@@ -14,14 +14,19 @@ Vagrant.configure("2") do |config|
   # boxes at https://atlas.hashicorp.com/search.
   config.vm.box = "ubuntu/xenial64"
 
+  # Timeout allowed while waiting for the machine to boot.
+  # The unit of measurements is in Seconds.
+  config.vm.boot_timeout = 500
+
   # Enable provisioning with Shell provisioner. Additional provisioners such
   # as Shell, Puppet, Chef, Ansible, Salt, and Docker are also available. Please
   # see the documentation for more information about their specific syntax and 
   # use.
-  # This will upload the script into guest & execute it.
-  # Note - This is not inline script execution. Inline refers to the script
-  # that is already available in the guest.
-  config.vm.provision "shell", path: "./start.sh"
+  # Note - This is not inline script execution. 
+  # Inline refers to the script that is already available in the guest.
+  # Note - This script will be copied to each VM.
+  # Operator need to ssh to each VM & run this script manually.
+  config.vm.provision "file", source: "./start.sh", destination: "start.sh"
 
   # Define 3 VMs required to set up an etcd cluster.
   # Each of these VMs are set with private network space.
