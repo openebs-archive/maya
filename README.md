@@ -1,6 +1,6 @@
 ## Maya
 
-Maya is the storage orchestration system for managing persistent storage for millions of containers. Maya can accomplish complex storage management tasks with deceptive simplicity. Maya can manage storage across multiple Maya-Realms (aka clusters/environements), that are co-located or geographically seperated and can also run from a single host. 
+Maya is the storage orchestration system for managing storage for millions of containers. Maya can accomplish complex storage management tasks with deceptive simplicity. Maya can manage storage across multiple Maya-Realms (aka clusters/environements), that are co-located or geographically seperated and can also run from within a single host. 
 
 TODO: Link to the Architecture Diagram. 
 
@@ -21,8 +21,8 @@ Start the maya services based on the configuration specified in the /etc/maya.co
 maya load
 ```
 Default maya.conf is created by **_maya init_** and can be modified to perform any of the following:
-- Run only as Storage Host in a new or existing Maya Realm
-- Run only Maya orchestration services 
+- Run as Storage Host only in a new or existing Maya Realm
+- Run Maya orchestration services only
 - Run both Maya orchestration services and also configure as Storage Host in a new or existing Maya Realm
 
 **_maya load_** can also be used to re-load the configuration from maya.conf. 
