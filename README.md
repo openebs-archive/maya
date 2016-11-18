@@ -45,3 +45,6 @@ The volume will be accessible via iSCSI and can be connected from local host.
 
 TBD
 
+## Forums
+
+Join us at our [gitter](https://gitter.im/openebs/Lobby) lobby.
