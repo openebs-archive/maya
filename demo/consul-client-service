@@ -1,0 +1,9 @@
+[Unit]
+Description=Download and run Consul client
+
+[Service]
+ExecStart=/bin/sh -c '/usr/bin/consul    \
+    agent                                \
+    -bind $(/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')         \
+    -config-file /etc/consul.d/consul-client.json        \
+    $(/usr/bin/cat /tmp/consul_members)'

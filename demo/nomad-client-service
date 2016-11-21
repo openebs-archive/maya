@@ -1,0 +1,6 @@
+[Unit]
+Description=Download and run Nomad client
+ConditionPathExists=/etc/nomad.d/nomad-client.hcl
+
+[Service]
+ExecStart=/usr/bin/nomad agent -config /etc/nomad.d/nomad-client.hcl

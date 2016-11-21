@@ -1,0 +1,55 @@
+#!/bin/bash
+set -e
+
+PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
+NOMAD_VERSION=__NOMAD_VERSION__
+NOMAD_URL="https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_${PLATFORM}_amd64.zip"
+
+scream () {
+    cat <<< "$@" 1>&2
+    exit 1
+}
+
+case "$PLATFORM" in
+  darwin|linux)
+    targetDir="/usr/local/bin"
+    if [[ -r /etc/os-release ]]; then
+      . /etc/os-release      
+    fi
+    ;;
+  *)
+    scream "Unknown or unsupported platform: ${PLATFORM}"
+    ;;
+esac
+
+if [[ "$#" -eq 1 && "$1" == "install"  ]] ; then
+  echo "Downloading and installing ${PLATFORM} version of 'nomad' ${NOMAD_VERSION} into ${targetDir}. This may take a couple minutes, depending on your internet speed.."
+  
+  [ -d ${targetDir} ] || sudo mkdir -p ${targetDir}
+  
+  [ -f /tmp/nomad.zip ] && sudo -E rm -f /tmp/nomad.zip
+  sudo -E wget -q --no-check-certificate -L -O /tmp/nomad.zip "${NOMAD_URL}"
+  
+  [ -f ${targetDir}/nomad ] && sudo -E rm -f ${targetDir}/nomad
+  sudo -E unzip /tmp/nomad.zip -d ${targetDir}
+  [ -x ${targetDir}/nomad ] || sudo chmod +x ${targetDir}/nomad
+
+  # use sed to replace current values, if any; create profile file if not exists
+  touch -a $HOME/.bash_profile
+  
+  echo "Setting environment variables.."
+  if ! grep -q 'export NOMAD_ADDR=http://__MASTER_IP__:4646' $HOME/.bash_profile ; then
+    echo "export NOMAD_ADDR=http://__MASTER_IP__:4646" >> $HOME/.bash_profile
+  else
+    sed -i'*' 's|.*export NOMAD_ADDR.*|export NOMAD_ADDR=http://__MASTER_IP__:4646|' $HOME/.bash_profile
+  fi
+
+  export NOMAD_ADDR=http://__MASTER_IP__:4646
+  
+elif [[ "$#" -eq 1 && "$1" == "uninstall"  ]] ; then
+  echo "Removing 'nomad' v${NOMAD_VERSION}.."
+  [ -f ${targetDir}/nomad ] && sudo rm -f ${targetDir}/nomad
+  [ -f /tmp/nomad.zip ] && sudo -E rm -f /tmp/nomad.zip
+else
+  echo "Usage: ./setup (install|uninstall)"
+fi

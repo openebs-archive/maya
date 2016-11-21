@@ -1,0 +1,7 @@
+[Unit]
+Description=Download and run Consul server
+
+[Service]
+ExecStart=/usr/bin/consul           \
+    agent                           \
+    -config-file /etc/consul.d/consul-server.json

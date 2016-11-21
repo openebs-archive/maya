@@ -1,0 +1,308 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require 'fileutils'
+require 'net/http'
+require 'open-uri'
+require 'json'
+
+class Module
+  def redefine_const(name, value)
+    __send__(:remove_const, name) if const_defined?(name)
+    const_set(name, value)
+  end
+end
+
+module OS
+  def OS.windows?
+    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def OS.mac?
+   (/darwin/ =~ RUBY_PLATFORM) != nil
+  end
+
+  def OS.unix?
+    !OS.windows?
+  end
+
+  def OS.linux?
+    OS.unix? and not OS.mac?
+  end
+end
+
+required_plugins = %w(vagrant-triggers)
+
+# check either 'http_proxy' or 'HTTP_PROXY' environment variable
+enable_proxy = !(ENV['HTTP_PROXY'] || ENV['http_proxy'] || '').empty?
+if enable_proxy
+  required_plugins.push('vagrant-proxyconf')
+end
+
+if OS.windows?
+  puts "You're running an unsupported platform. Exiting.."
+  exit
+end
+
+required_plugins.push('vagrant-timezone')
+
+required_plugins.each do |plugin|
+  need_restart = false
+  unless Vagrant.has_plugin? plugin
+    system "vagrant plugin install #{plugin}"
+    need_restart = true
+  end
+  exec "vagrant #{ARGV.join(' ')}" if need_restart
+end
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.require_version ">= 1.6.0"
+
+# cloud-configs
+SERVER_YAML = File.join(File.dirname(__FILE__), "server.yaml")
+CLIENT_YAML = File.join(File.dirname(__FILE__), "client.yaml")
+
+USE_DOCKERCFG = ENV['USE_DOCKERCFG'] || false
+DOCKERCFG = File.expand_path(ENV['DOCKERCFG'] || "~/.dockercfg")
+
+DOCKER_OPTIONS = ENV['DOCKER_OPTIONS'] || ''
+
+NOMAD_VERSION = ENV['NOMAD_VERSION'] || '0.4.1'
+CONSUL_VERSION = ENV['CONSUL_VERSION'] || '0.6.4'
+
+NODES = ENV['NODES'] || 2
+
+SERVER_MEM = ENV['SERVER_MEM'] || 512
+SERVER_CPU = ENV['SERVER_CPU'] || 1
+
+CLIENT_MEM= ENV['CLIENT_MEM'] || 2048
+CLIENT_CPUS = ENV['CLIENT_CPUS'] || 1
+
+BASE_IP_ADDR = ENV['BASE_IP_ADDR'] || "172.17.9"
+
+DNS_DOMAIN = ENV['DNS_DOMAIN'] || "cluster.local"
+DNS_UPSTREAM_SERVERS = ENV['DNS_UPSTREAM_SERVERS'] || "8.8.8.8:53,8.8.4.4:53"
+
+SERIAL_LOGGING = (ENV['SERIAL_LOGGING'].to_s.downcase == 'true')
+GUI = (ENV['GUI'].to_s.downcase == 'true')
+BOX_TIMEOUT_COUNT = ENV['BOX_TIMEOUT_COUNT'] || 50
+
+if enable_proxy
+  HTTP_PROXY = ENV['HTTP_PROXY'] || ENV['http_proxy']
+  HTTPS_PROXY = ENV['HTTPS_PROXY'] || ENV['https_proxy']
+  NO_PROXY = ENV['NO_PROXY'] || ENV['no_proxy'] || "localhost"
+end
+
+REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT = (ENV['REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT'].to_s.downcase == 'true')
+# if this is set true, remember to use --provision when executing vagrant up / reload
+
+# Read YAML file with mountpoint details
+MOUNT_POINTS = YAML::load_file('synced_folders.yaml')
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  # always use host timezone in VMs
+  config.timezone.value = :host
+ 
+  # always use Vagrants' insecure key
+  config.ssh.insert_key = false
+  config.ssh.forward_agent = true
+
+  config.vm.box = "cbednarski/ubuntu-1404"
+
+  config.vm.provider :virtualbox do |v|
+    # Nothing as of now
+  end
+
+  # plugin conflict
+  if Vagrant.has_plugin?("vagrant-vbguest") then
+    config.vbguest.auto_update = false
+  end
+
+  (1..(NODES.to_i + 1)).each do |i|
+  
+    THE_IPV4="#{BASE_IP_ADDR}.#{i+99}"
+  
+    # The very first node is set as server node    
+    if i == 1
+      hostname = "server"
+      MASTER_IP="#{THE_IPV4}"      
+      cfg = SERVER_YAML
+      memory = SERVER_MEM
+      cpus = SERVER_CPU
+    else
+      hostname = "client-%02d" % (i - 1)
+      cfg = CLIENT_YAML
+      memory = CLIENT_MEM
+      cpus = CLIENT_CPUS
+    end
+
+    # used for replacement of placeholders
+    sedInplaceArg = OS.mac? ? " ''" : ""
+
+    config.vm.define vmName = hostname do |kHost|
+      kHost.vm.hostname = vmName
+
+      # suspend / resume is hard to be properly supported because we have no way
+      # to assure the fully deterministic behavior of whatever is inside the VMs
+      # when faced with XXL clock gaps... so we just disable this functionality.
+      kHost.trigger.reject [:suspend, :resume] do
+        info "'vagrant suspend' and 'vagrant resume' are disabled."
+        info "- please do use 'vagrant halt' and 'vagrant up' instead."
+      end
+
+      config.trigger.instead_of :reload do
+        exec "vagrant halt && vagrant up"
+        exit
+      end
+
+      # one of most critical setting i.e. IP address setting
+      kHost.vm.network :private_network, ip: "#{THE_IPV4}"
+
+      # the actions that need to be taken before :up & :provision actions
+      kHost.trigger.before [:up, :provision] do
+
+        # copy the install tmpl
+        system "cp install.tmpl ./temp/install"  
+        
+        # replace the necessary placeholders with actual values
+        system "sed -e 's|__NOMAD_VERSION__|#{NOMAD_VERSION}|g' -i#{sedInplaceArg} ./temp/install"
+        system "sed -e 's|__CONSUL_VERSION__|#{CONSUL_VERSION}|g' -i#{sedInplaceArg} ./temp/install"
+
+      end
+
+      # this is done just for the Nomad server(s)
+      if vmName == "server"      
+
+        # this is done before the :up or :provision action is triggered
+        # we need to do some sed replacement of env variables here
+        kHost.trigger.before [:up, :provision] do
+          info "Setting up Nomad #{NOMAD_VERSION}"
+          sedInplaceArg = OS.mac? ? " ''" : ""
+          
+          # copy the server related config files
+          system "cp consul-server.json ./temp/consul-server.json"
+          system "cp nomad-server.hcl ./temp/nomad-server.hcl"
+
+          # replace the appropriate placeholders with current values
+          system "sed -e 's|__THE_IPV4__|#{THE_IPV4}|g' -i#{sedInplaceArg} ./temp/nomad-server.hcl"
+          
+          kHost.vm.provision 'file', source: './temp/consul-server.json', destination: '/etc/consul.d/consul-server.json'
+          kHost.vm.provision 'file', source: './temp/nomad-server.hcl', destination: '/etc/nomad.d/nomad-server.hcl'
+          
+          # copy the Nomad CLI setup file on your laptop that is running vagrant
+          system "cp setupcli.tmpl ./temp/setup"
+          
+          # replace the appropriate placeholders with current values
+          system "sed -e 's|__NOMAD_VERSION__|#{NOMAD_VERSION}|g' -i#{sedInplaceArg} ./temp/setup"
+          system "sed -e 's|__MASTER_IP__|#{MASTER_IP}|g' -i#{sedInplaceArg} ./temp/setup"
+          
+          system "chmod +x ./temp/setup"
+        end
+
+        # server's systemd services
+        # Run the script to place the systemd confs
+        kHost.vm.provision :shell, path: "./server-service.sh"
+        
+        # this is done after :up & :resume actions
+        kHost.trigger.after [:up, :resume] do
+          info "Sanitizing stuff..."
+          system "ssh-add ~/.vagrant.d/insecure_private_key"
+          system "rm -rf ~/.fleetctl/known_hosts"
+        end
+
+        # this is done after :up action & few other Nomad specific checks
+        kHost.trigger.after [:up] do
+          info "Waiting for Nomad server to become ready..."
+          
+          j, uri, res = 0, URI("http://#{MASTER_IP}:4646"), nil
+          loop do
+            j += 1
+            begin
+              res = Net::HTTP.get_response(uri)
+            rescue
+              sleep 10
+            end
+            break if res.is_a? Net::HTTPSuccess or j >= BOX_TIMEOUT_COUNT
+          end
+
+          # this is done only after Nomad server has started successfully
+          info "Installing Nomad CLI for the Nomad version we just bootstrapped..."
+          system "./temp/setup install"
+        end
+        
+      # end of Nomad server specific configuration
+      end
+
+      # this is for the Nomad clients
+      if vmName == "client-%02d" % (i - 1)
+      
+        kHost.trigger.before [:up, :provision] do
+        
+          # copy the client related config files
+          system "cp consul-client.json ./temp/consul-client.json"
+          system "cp nomad-client.hcl ./temp/nomad-client.hcl"
+
+          # replace appropriate placeholders with values
+          system "sed -e 's|__MASTER_IP__|#{MASTER_IP}|g' -i#{sedInplaceArg} ./temp/nomad-client.hcl"
+
+          kHost.vm.provision 'file', source: './temp/consul-client.json', destination: '/etc/consul.d/consul-client.json'
+          kHost.vm.provision 'file', source: './temp/nomad-client.hcl', destination: '/etc/nomad.d/nomad-client.hcl'
+        end
+      
+        # client's systemd services
+        # Run the script to place the systemd confs
+        kHost.vm.provision :shell, path: "./client-service.sh"
+      
+        # check for Nomad client readiness once the VM is up.
+        kHost.trigger.after [:up] do
+          info "Waiting for Nomad client [client-%02d" % (i - 1) + "] to become ready..."
+          j, uri, hasResponse = 0, URI("http://#{BASE_IP_ADDR}.#{i+99}:4646"), false
+          loop do
+            j += 1
+            begin
+              res = Net::HTTP.get_response(uri)
+              hasResponse = true
+            rescue Net::HTTPBadResponse
+              hasResponse = true
+            rescue
+              sleep 10
+            end
+            break if hasResponse or j >= BOX_TIMEOUT_COUNT
+          end
+        end
+
+      # end of Nomad client specific configuration
+      end
+
+      # from now onwards below settings are applicable for any Nomad VMs.
+      # In other words, there are no Nomad clients or server(s) specific stuff.
+      kHost.trigger.before [:halt, :reload] do
+        if REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT
+          run_remote "sudo rm -f /var/lib/cloud/vagrantfile-user-data"
+        end
+      end
+
+      kHost.trigger.before [:destroy] do
+        system <<-EOT.prepend("\n\n") + "\n"
+          rm -f ./temp/*
+        EOT
+      end
+
+      ["virtualbox"].each do |h|
+        kHost.vm.provider h do |vb|
+          vb.gui = GUI
+          vb.memory = memory
+          vb.cpus = cpus
+        end
+      end
+      
+      # you can override this in synced_folders.yaml
+      kHost.vm.synced_folder ".", "/vagrant", disabled: true
+
+      # Run the install script
+      kHost.vm.provision :shell, path: "./temp/install"
+
+    end
+  end
+end

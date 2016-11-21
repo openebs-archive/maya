@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+# Update apt and get dependencies
+sudo apt-get update
+
+# Install packages as needed
+if [[ ! -e /usr/bin/curl ]]; then
+  apt-get -yqq install curl
+fi
+
+if [[ ! -e /usr/bin/unzip ]]; then
+  apt-get -yqq install unzip
+fi
+
+# Move to /tmp/ location
+cd /tmp/
+
+# Download Nomad
+echo Fetching Nomad...
+curl -sSL https://releases.hashicorp.com/nomad/__NOMAD_VERSION__/nomad___NOMAD_VERSION___linux_amd64.zip -o nomad.zip
+
+echo Installing Nomad...
+unzip nomad.zip
+sudo chmod +x nomad
+sudo mv nomad /usr/bin/nomad
+sudo mkdir -p /etc/nomad.d
+sudo chmod a+w /etc/nomad.d
+sudo mkdir -p /opt/nomad/data
+sudo mkdir -p /var/log/nomad
+sudo chmod a+w /var/log/nomad
+
+# Download Consul
+echo Fetching Consul...
+curl -sSL https://releases.hashicorp.com/consul/__CONSUL_VERSION__/consul___CONSUL_VERSION___linux_amd64.zip -o consul.zip
+
+echo Installing Consul...
+unzip consul.zip
+sudo chmod +x consul
+sudo mv consul /usr/bin/consul
+sudo mkdir -p /etc/consul.d
+sudo chmod a+w /etc/consul.d
+sudo mkdir -p /opt/consul/data
+sudo mkdir -p /var/log/consul
+sudo chmod a+w /var/log/consul
