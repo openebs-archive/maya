@@ -1,0 +1,108 @@
+#cloud-config
+
+---
+write-files:
+  - path: /etc/consul/consul.json
+    permissions: '0644'
+    content: |
+      {
+          "data_dir": "/var/lib/consul/data",
+          "log_level": "INFO",
+          "server": true,
+          "disable_update_check": true,
+          "client_addr": "$private_ipv4",
+          "ports": {
+            "dns": 53
+          },
+          "recursor": "8.8.8.8",
+          "ui_dir": "/srv/consul-ui"
+      }
+  - path: /etc/nomad/server.hcl
+    permissions: '0644'
+    content: |
+      log_level = "DEBUG"
+      data_dir = "/tmp/nomad"
+      bind_addr = "$private_ipv4"
+      server {
+          enabled = true
+          bootstrap_expect = 1
+      }
+
+coreos:
+  etcd2:
+    name: __NAME__
+    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001
+    advertise-client-urls: http://$public_ipv4:2379,http://$public_ipv4:4001
+    initial-cluster-token: nomad_etcd
+    listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+    initial-advertise-peer-urls: http://$private_ipv4:2380
+    initial-cluster: __ETCD_SEED_CLUSTER__
+    initial-cluster-state: new
+  units:
+    - name: rpcbind.service
+      enable: true
+      command: start
+    - name: rpc-statd.service
+      enable: true
+      command: start
+    - name: docker.service
+      command: start
+      drop-ins:
+        - name: 51-docker-mirror.conf
+        - __PROXY_LINE__name: http-proxy.conf
+          __PROXY_LINE__content: |
+            __PROXY_LINE__[Service]
+            __PROXY_LINE__EnvironmentFile=/etc/environment
+    - name: consul-discovery.service
+      command: start
+      content: |
+        [Unit]
+        Description=Consul server discovery
+        Requires=etcd2.service
+        After=etcd2.service
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/bin/sh -c "while true; do etcdctl set /consul.io/members/consul-${COREOS_PRIVATE_IPV4} ${COREOS_PRIVATE_IPV4} --ttl 60; sleep 45; done"
+        ExecStop=/usr/bin/etcdctl rm /consul.io/members/consul-${COREOS_PRIVATE_IPV4}
+    - name: consul.service
+      command: start
+      content: |
+        [Unit]
+        Description=Download and run Consul for Nomad service discovery
+        Requires=consul-discovery.service
+        After=consul-discovery.service
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStartPre=-/usr/bin/rm -rf /opt/bin
+        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+        ExecStartPre=/usr/bin/wget -P /tmp https://releases.hashicorp.com/consul/__CONSUL_VERSION__/consul___CONSUL_VERSION___linux_amd64.zip
+        ExecStartPre=/usr/bin/unzip /tmp/consul___CONSUL_VERSION___linux_amd64.zip -d /opt/bin
+        ExecStartPre=/usr/bin/rm -f /tmp/consul___CONSUL_VERSION___linux_amd64.zip
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/consul
+        ExecStartPre=/usr/bin/mkdir -p /var/lib/consul/data
+        ExecStartPre=/usr/bin/wget -P /tmp https://releases.hashicorp.com/consul/__CONSUL_VERSION__/consul___CONSUL_VERSION___web_ui.zip
+        ExecStartPre=/usr/bin/mkdir -p /srv/consul-ui
+        ExecStartPre=/usr/bin/unzip /tmp/consul___CONSUL_VERSION___web_ui.zip -d /srv/consul-ui
+        ExecStart=/opt/bin/consul           \
+            agent                           \
+            -bind ${COREOS_PRIVATE_IPV4}    \
+            -bootstrap                      \
+            -config-file /etc/consul/consul.json
+    - name: nomad.service
+      command: start
+      content: |
+        [Unit]
+        Description=Download and run Nomad
+        Requires=consul.service
+        After=consul.service
+        ConditionPathExists=/etc/nomad/server.hcl
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStartPre=/usr/bin/wget -P /tmp https://releases.hashicorp.com/nomad/__NOMAD_VERSION__/nomad___NOMAD_VERSION___linux_amd64.zip
+        ExecStartPre=/usr/bin/unzip /tmp/nomad___NOMAD_VERSION___linux_amd64.zip -d /opt/bin
+        ExecStartPre=/usr/bin/rm -f /tmp/nomad___NOMAD_VERSION___linux_amd64.zip
+        ExecStartPre=/usr/bin/chmod +x /opt/bin/nomad
+        ExecStart=/opt/bin/nomad agent -config /etc/nomad/server.hcl
+  update:
+    group: __CHANNEL__
+    reboot-strategy: off

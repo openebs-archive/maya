@@ -1,9 +1,4 @@
-# Maya demo setup
-
-This is based on [pires' nomad setup](https://github.com/pires/nomad-vagrant-coreos-cluster).
-
-## nomad-vagrant-coreos-cluster
-
+# nomad-vagrant-coreos-cluster
 Turnkey **[Nomad](https://github.com/hashicorp/nomad)**
 cluster with **[Consul](https://github.com/hashicorp/consul)** integration
 on top of **[Vagrant](https://www.vagrantup.com)** (1.7.2+) and
@@ -19,8 +14,7 @@ on top of **[Vagrant](https://www.vagrantup.com)** (1.7.2+) and
 
 ### MacOS X
 
-On **MacOS X** (and assuming you have [homebrew](http://brew.sh) already 
-installed) run
+On **MacOS X** (and assuming you have [homebrew](http://brew.sh) already installed) run
 
 ```
 brew update
@@ -29,13 +23,8 @@ brew install wget
 
 ## Deploy Nomad
 
-Current `Vagrantfile` will bootstrap one VM with everything needed to become a 
-Nomad _server_ and, by default, a couple VMs with everything needed to become 
-Nomad clients.
-
-NOTE - You can change the number of minions and/or the Nomad version by setting 
-environment variables **NODES** and **NOMAD_VERSION**, respectively. 
-[You can find more details below](#customization).
+Current `Vagrantfile` will bootstrap one VM with everything needed to become a Nomad _server_ and, by default, a couple VMs with everything needed to become Nomad clients.
+You can change the number of minions and/or the Nomad version by setting environment variables **NODES** and **NOMAD_VERSION**, respectively. [You can find more details below](#customization).
 
 ```
 vagrant up
@@ -43,8 +32,7 @@ vagrant up
 
 ### Linux or MacOS host
 
-Nomad cluster is ready. but you need to set-up some environment variables that 
-we have already provisioned for you. In the current terminal window, run:
+Nomad cluster is ready. but you need to set-up some environment variables that we have already provisioned for you. In the current terminal window, run:
 
 ```
 source ~/.bash_profile
@@ -55,7 +43,6 @@ New terminal windows will have this set for you.
 ## Run example
 
 Just for the sake of curiosity, the cluster status should be something like:
-
 ```
 $ nomad server-members
 Name           Address       Port  Status  Leader  Protocol  Build     Datacenter  Region
@@ -123,8 +110,7 @@ $ curl "${NOMAD_ADDR%:*}:8500/v1/catalog/service/web"
 vagrant destroy -f
 ```
 
-If you've set `NODES` or any other variable when deploying, please make sure you
-set it in `vagrant destroy` call above, like:
+If you've set `NODES` or any other variable when deploying, please make sure you set it in `vagrant destroy` call above, like:
 
 ```
 NODES=3 vagrant destroy -f
@@ -134,41 +120,29 @@ NODES=3 vagrant destroy -f
 
 ### Virtualbox
 
-**VirtualBox** is the default hypervisor, and you'll probably need to disable 
-its DHCP server
-
+**VirtualBox** is the default hypervisor, and you'll probably need to disable its DHCP server
 ```
 VBoxManage dhcpserver remove --netname HostInterfaceNetworking-vboxnet0
 ```
 
 ### Parallels
 
-If you are using **Parallels Desktop**, you need to install 
-**[vagrant-parallels](http://parallels.github.io/vagrant-parallels/docs/)** provider 
-
+If you are using **Parallels Desktop**, you need to install **[vagrant-parallels](http://parallels.github.io/vagrant-parallels/docs/)** provider 
 ```
 vagrant plugin install vagrant-parallels
 ```
-
 Then just add `--provider parallels` to the `vagrant up` invocations above.
 
 ### VMware
-
-If you are using one of the **VMware** hypervisors you must 
-**[buy](http://www.vagrantup.com/vmware)** the matching  provider and, depending
-on your case, just add either `--provider vmware-fusion` or 
-`--provider vmware-workstation` to the `vagrant up` invocations above.
+If you are using one of the **VMware** hypervisors you must **[buy](http://www.vagrantup.com/vmware)** the matching  provider and, depending on your case, just add either `--provider vmware-fusion` or `--provider vmware-workstation` to the `vagrant up` invocations above.
 
 ## Private Docker Repositories
 
 If you want to use Docker private repositories look for **DOCKERCFG** bellow.
 
 ## Customization
-
 ### Environment variables
-
-Most aspects of your cluster setup can be customized with environment variables.
-Right now the available ones are:
+Most aspects of your cluster setup can be customized with environment variables. Right now the available ones are:
 
  - **NODES** sets the number of nodes (minions).
 
@@ -177,21 +151,12 @@ Right now the available ones are:
 
    Defaults to **alpha**.
 
-   While by convenience, we allow an user to optionally consume CoreOS' *beta* or
-   *stable* channels please do note that as both Nomad and CoreOS are quickly 
-   evolving platforms we only expect our setup to behave reliably on top of CoreOS _alpha_ channel.
-   
-   So, **before submitting a bug**, either in 
-   [this](https://github.com/pires/nomad-vagrant-coreos-cluster/issues) project,
-   or in ([Nomad](https://github.com/hashicorp/nomad/issues) or 
-   [CoreOS](https://github.com/coreos/bugs/issues)) **make sure it** (also) 
-   **happens in the** (default) **_alpha_ channel** :smile:
- - **COREOS_VERSION** will set the specific CoreOS release (from the given 
-   channel) to be used.
+   While by convenience, we allow an user to optionally consume CoreOS' *beta* or *stable* channels please do note that as both Nomad and CoreOS are quickly evolving platforms we only expect our setup to behave reliably on top of CoreOS _alpha_ channel.
+   So, **before submitting a bug**, either in [this](https://github.com/pires/nomad-vagrant-coreos-cluster/issues) project, or in ([Nomad](https://github.com/hashicorp/nomad/issues) or [CoreOS](https://github.com/coreos/bugs/issues)) **make sure it** (also) **happens in the** (default) **_alpha_ channel** :smile:
+ - **COREOS_VERSION** will set the specific CoreOS release (from the given channel) to be used.
 
    Default is to use whatever is the **latest** one from the given channel.
- - **SERIAL_LOGGING** if set to *true* will allow logging from the VMs serial 
-   console.
+ - **SERIAL_LOGGING** if set to *true* will allow logging from the VMs serial console.
 
    Defaults to **false**. Only use this if you *really* know what you are doing.
  - **SERVER_MEM** sets the server VM memory.
@@ -206,8 +171,7 @@ Right now the available ones are:
  - **CLIENT_CPUS** sets the number os vCPUs to be used by the client VMs.
 
    Defaults to **1**.
- - **DOCKERCFG** sets the location of your private docker repositories (and keys)
-   configuration. However, this is only usable if you set **USE_DOCKERCFG=true**.
+ - **DOCKERCFG** sets the location of your private docker repositories (and keys) configuration. However, this is only usable if you set **USE_DOCKERCFG=true**.
 
    Defaults to "**~/.dockercfg**".
 
@@ -215,15 +179,13 @@ Right now the available ones are:
    by running `docker login <registry>.<domain>`. All nodes will get it automatically,
    at `vagrant up`, given any modification or update to that file.
 
- - **DOCKER_OPTIONS** sets the additional `DOCKER_OPTS` for docker service on 
-   both master and the nodes. Useful for adding params such as `--insecure-registry`.
+ - **DOCKER_OPTIONS** sets the additional `DOCKER_OPTS` for docker service on both master and the nodes. Useful for adding params such as `--insecure-registry`.
 
  - **NOMAD_VERSION** defines the specific Nomad version being used.
 
    Defaults to `0.4.1`.
 
-So, in order to start, say, a Nomad cluster with 3 client nodes, 4GB of RAM and 
-2 vCPUs per client, one would run:
+So, in order to start, say, a Nomad cluster with 3 client nodes, 4GB of RAM and 2 vCPUs per client, one would run:
 
 ```
 CLIENT_MEM=4096 CLIENT_CPUS=2 NODES=3 vagrant up
@@ -231,11 +193,10 @@ CLIENT_MEM=4096 CLIENT_CPUS=2 NODES=3 vagrant up
 
 **Please do note** that if you were using non default settings to startup your
 cluster you *must* also use those exact settings when invoking
-`vagrant {up,ssh,status,destroy}` to communicate with any of the nodes in the 
-cluster as otherwise things may not behave as you'd expect.
+`vagrant {up,ssh,status,destroy}` to communicate with any of the nodes in the cluster as otherwise
+things may not behave as you'd expect.
 
 ### Synced Folders
-
 You can automatically mount in your *guest* VMs, at startup, an arbitrary
 number of local folders in your host machine by populating accordingly the
 `synced_folders.yaml` file in your `Vagrantfile` directory. For each folder
@@ -260,5 +221,6 @@ you which to mount the allowed syntax is...
 
 ## Licensing
 
-This work is [open-source](http://opensource.org/osd), and is licensed under the
-[Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0).
+This work is [open-source](http://opensource.org/osd), and is licensed under the [Apache License, Version 2.0](http://opensource.org/licenses/Apache-2.0).
+
+

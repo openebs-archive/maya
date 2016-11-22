@@ -1,7 +1,0 @@
-{
-    "datacenter": "mayadc",
-    "data_dir": "/var/lib/consul/data",
-    "log_level": "DEBUG",
-    "server": true,
-    "bootstrap_expect": 1,
-}
