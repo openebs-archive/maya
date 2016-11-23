@@ -19,23 +19,41 @@ S_NODES=3 C_NODES=3 vagrant up
 The envrionment variables that are currently available:
 
 #### Installer versions
+
+```bash
 NOMAD_VERSION = ENV['NOMAD_VERSION'] || "0.5.0"
 CONSUL_VERSION = ENV['CONSUL_VERSION'] || "0.7.1"
+```
 
 #### Server Nodes
+
+```bash
 S_NODES = ENV['S_NODES'] || 1
+```
 
 #### Client Nodes
+
+```bash
 C_NODES = ENV['C_NODES'] || 2
+```
 
 #### Server Memory & CPUs
+
+```bash
 S_MEM = ENV['S_MEM'] || 512
 S_CPUS = ENV['S_CPUS'] || 1
+```
 
 #### Client Memory & CPUs
+
+```bash
 C_MEM = ENV['C_MEM'] || 1024
 C_CPUS = ENV['C_CPUS'] || 1
+```
 
 #### Private IP address of server(s) & client(s)
+
+```bash
 BASE_SIP_ADDR = ENV['BASE_SIP_ADDR'] || "10.21.0"
 BASE_CIP_ADDR = ENV['BASE_CIP_ADDR'] || "10.31.0"
+```
