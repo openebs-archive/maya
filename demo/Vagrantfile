@@ -1,400 +1,325 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-require 'fileutils'
-require 'net/http'
-require 'open-uri'
-require 'json'
-
-class Module
-  def redefine_const(name, value)
-    __send__(:remove_const, name) if const_defined?(name)
-    const_set(name, value)
-  end
-end
-
-module OS
-  def OS.windows?
-    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def OS.mac?
-   (/darwin/ =~ RUBY_PLATFORM) != nil
-  end
-
-  def OS.unix?
-    !OS.windows?
-  end
-
-  def OS.linux?
-    OS.unix? and not OS.mac?
-  end
-end
-
-required_plugins = %w(vagrant-triggers)
-
-# check either 'http_proxy' or 'HTTP_PROXY' environment variable
-enable_proxy = !(ENV['HTTP_PROXY'] || ENV['http_proxy'] || '').empty?
-if enable_proxy
-  required_plugins.push('vagrant-proxyconf')
-end
-
-if OS.windows?
-  puts "You're running an unsupported platform. Exiting.."
-  exit
-end
-
-required_plugins.push('vagrant-timezone')
-
-required_plugins.each do |plugin|
-  need_restart = false
-  unless Vagrant.has_plugin? plugin
-    system "vagrant plugin install #{plugin}"
-    need_restart = true
-  end
-  exec "vagrant #{ARGV.join(' ')}" if need_restart
-end
-
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.require_version ">= 1.6.0"
 
-# cloud-configs
-SERVER_YAML = File.join(File.dirname(__FILE__), "server.yaml")
-CLIENT_YAML = File.join(File.dirname(__FILE__), "client.yaml")
+# Installer versions
+NOMAD_VERSION = ENV['NOMAD_VERSION'] || "0.5.0"
+CONSUL_VERSION = ENV['CONSUL_VERSION'] || "0.7.1"
 
-USE_DOCKERCFG = ENV['USE_DOCKERCFG'] || false
-DOCKERCFG = File.expand_path(ENV['DOCKERCFG'] || "~/.dockercfg")
+# Server Nodes
+S_NODES = ENV['S_NODES'] || 1
 
-DOCKER_OPTIONS = ENV['DOCKER_OPTIONS'] || ''
+# Client Nodes
+C_NODES = ENV['C_NODES'] || 2
 
-NOMAD_VERSION = ENV['NOMAD_VERSION'] || '0.4.1'
-CONSUL_VERSION = ENV['CONSUL_VERSION'] || '0.6.4'
+# Server Memory & CPUs
+S_MEM = ENV['S_MEM'] || 512
+S_CPUS = ENV['S_CPUS'] || 1
 
-CHANNEL = ENV['CHANNEL'] || 'alpha'
-#if CHANNEL != 'alpha'
-#  puts "============================================================================="
-#  puts "As this is a fastly evolving technology CoreOS' alpha channel is the only one"
-#  puts "expected to behave reliably. While one can invoke the beta or stable channels"
-#  puts "please be aware that your mileage may vary a whole lot."
-#  puts "So, before submitting a bug, in this project, or upstreams (either Nomad"
-#  puts "or CoreOS) please make sure it (also) happens in the (default) alpha channel."
-#  puts "============================================================================="
-#end
+# Client Memory & CPUs
+C_MEM = ENV['C_MEM'] || 1024
+C_CPUS = ENV['C_CPUS'] || 1
 
-COREOS_VERSION = ENV['COREOS_VERSION'] || 'latest'
-upstream = "http://#{CHANNEL}.release.core-os.net/amd64-usr/#{COREOS_VERSION}"
-if COREOS_VERSION == "latest"
-  upstream = "http://#{CHANNEL}.release.core-os.net/amd64-usr/current"
-  url = "#{upstream}/version.txt"
-  Object.redefine_const(:COREOS_VERSION,
-    open(url).read().scan(/COREOS_VERSION=.*/)[0].gsub('COREOS_VERSION=', ''))
+# Private IP address of server(s) & client(s)
+BASE_SIP_ADDR = ENV['BASE_SIP_ADDR'] || "10.21.0"
+BASE_CIP_ADDR = ENV['BASE_CIP_ADDR'] || "10.31.0"
+
+# Placeholder to store comma separated server ip addresses
+all_servers_ipv4 = ""
+all_servers_ipv4_n_ports = ""
+
+# Script that prepares directories at both server(s) & client(s)
+$preparedirs = <<SCRIPT
+echo Will run the prepare dirs script ...
+
+# Setup config directory for Nomad
+sudo mkdir -p /etc/nomad.d
+sudo chmod a+w /etc/nomad.d
+
+# Setup data directory for Nomad
+sudo mkdir -p /opt/nomad/data
+
+# Setup log directory for Nomad
+sudo mkdir -p /var/log/nomad
+sudo chmod a+w /var/log/nomad
+
+# Setup config directory for Consul
+sudo mkdir -p /etc/consul.d
+sudo chmod a+w /etc/consul.d
+
+# Setup data directory for Consul
+sudo mkdir -p /opt/consul/data
+
+# Setup log directory for Consul
+sudo mkdir -p /var/log/consul
+sudo chmod a+w /var/log/consul
+SCRIPT
+
+# Generic installer script common for server(s) & client(s)
+# This expects arguments that provide runtime values
+$installer = <<SCRIPT
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo $0: usage: installer NOMAD_VERSION CONSUL_VERSION
+    exit 1
+fi
+
+echo Will run the common installer script ...
+
+NOMAD_VERSION=$1
+CONSUL_VERSION=$2
+
+# Update apt and get dependencies
+
+sudo apt-get update
+sudo apt-get install -y unzip curl wget
+
+# Move to /tmp directory
+cd /tmp/
+
+# Download Nomad
+echo Fetching Nomad ${NOMAD_VERSION} ...
+curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
+
+echo Installing Nomad...
+unzip nomad.zip
+sudo chmod +x nomad
+sudo mv nomad /usr/bin/nomad
+
+
+# Download Consul
+echo Fetching Consul ${CONSUL_VERSION} ...
+curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip -o consul.zip
+
+echo Installing Consul...
+unzip consul.zip
+sudo chmod +x consul
+sudo mv consul /usr/bin/consul
+SCRIPT
+
+# Script that prepares the config for Nomad & Consul client
+# This expects arguments that provide runtime values
+$clientconfig = <<SCRIPT
+#!/bin/bash
+
+if [ $# -ne 3 ]; then
+    echo $0: usage: clientconfig ALL_SERVERS_IPV4 ALL_SERVERS_IPV4_N_PORTS SELF_IPV4
+    exit 1
+fi
+
+echo Will run the client config script ...
+
+ALL_SERVERS_IPV4=$1
+ALL_SERVERS_IPV4_N_PORTS=$2
+SELF_IPV4=$3
+
+sudo cp -p /vagrant/consul-client.json.tmpl /vagrant/temp/consul-client.json
+sudo cp -p /vagrant/client.hcl.tmpl /vagrant/temp/client.hcl
+
+sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/consul-client.json
+sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/consul-client.json
+sed -e "s|__ALL_SERVERS_IPV4_N_PORTS__|$ALL_SERVERS_IPV4_N_PORTS|g" -i /vagrant/temp/client.hcl
+
+sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/client.hcl
+SCRIPT
+
+# Script that prepares the config for Nomad & Consul server
+# This expects arguments that provide runtime values
+$serverconfig = <<SCRIPT
+#!/bin/bash
+
+if [ $# -ne 4 ]; then
+    echo $0: usage: serverconfig SELF_IPV4 SELF_HOSTNAME ALL_SERVERS_IPV4 S_NODES
+    exit 1
+fi
+
+echo Will run the server config script ...
+
+SELF_IPV4=$1
+SELF_HOSTNAME=$2
+ALL_SERVERS_IPV4=$3
+S_NODES=$4
+
+sudo cp -p /vagrant/consul-server.json.tmpl /vagrant/temp/consul-server.json
+sudo cp -p /vagrant/server.hcl.tmpl /vagrant/temp/server.hcl
+
+sed -e "s|__SELF_HOSTNAME__|$SELF_HOSTNAME|g" -i /vagrant/temp/consul-server.json
+sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/consul-server.json
+sed -e "s|__S_NODES__|$S_NODES|g" -i /vagrant/temp/consul-server.json
+sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/consul-server.json
+
+sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/server.hcl
+sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/server.hcl
+sed -e "s|__S_NODES__|$S_NODES|g" -i /vagrant/temp/server.hcl
+SCRIPT
+
+# Script that starts Nomad & Consul server
+$serverstart = <<SCRIPT
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo $0: usage: serverstart SELF_IPV4
+    exit 1
+fi
+
+echo Will run the server start script ...
+
+SELF_IPV4=$1
+
+# Copy Nomad server config to config directory
+sudo cp /vagrant/temp/server.hcl /etc/nomad.d/
+
+# Copy the Consul server config to config directory
+sudo cp /vagrant/temp/consul-server.json /etc/consul.d/
+
+cd ~
+
+echo Starting Nomad, logs at ~/nomad.log
+sudo nohup nomad agent -config /etc/nomad.d/server.hcl &>nomad.log  &
+
+echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+
+echo Starting Consul, logs at ~/consul.log
+sudo nohup consul agent -config-file /etc/consul.d/consul-server.json &>consul.log  &
+
+SCRIPT
+
+# Script that starts Nomad & Consul client
+$clientstart = <<SCRIPT
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo $0: usage: clientstart SELF_IPV4
+    exit 1
+fi
+
+echo Will run the client start script ...
+
+SELF_IPV4=$1
+
+# Copy Nomad server config to config directory
+sudo cp /vagrant/temp/client.hcl /etc/nomad.d/
+
+# Copy the Consul server config to config directory
+sudo cp /vagrant/temp/consul-client.json /etc/consul.d/
+
+cd ~
+
+echo Starting Nomad, logs at ~/nomad.log
+sudo nohup nomad agent -config /etc/nomad.d/client.hcl &>nomad.log  &
+
+echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+
+echo Starting Consul, logs at ~/consul.log
+
+# If client(s) are assigned with public IP.
+#export BIND_ADDRESS=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
+#sudo nohup consul agent -bind $BIND_ADDRESS -config-file /etc/consul.d/consul-client.json &>consul.log  &
+
+# If client(s) are assigned with private IP
+# NOTE: The 'bind' option will be already set by a prior script
+sudo nohup consul agent -config-file /etc/consul.d/consul-client.json &>consul.log  &
+SCRIPT
+
+def configureVM(vmCfg, hostname, cpus, mem)
+
+  vmCfg.vm.box = "cbednarski/ubuntu-1404"
+  #vmCfg.vm.box = "bento/ubuntu-14.04"
+  vmCfg.vm.hostname = hostname
+  
+  # Set resources w.r.t Virtualbox provider
+  vmCfg.vm.provider "virtualbox" do |vb|
+    vb.memory = mem
+    vb.cpus = cpus
+  end
+  
+  # Script will make some directories before installation procedure
+  vmCfg.vm.provision "shell", inline: $preparedirs, privileged: false
+  
+  # Script to run installation
+  vmCfg.vm.provision "shell" do |s|
+    s.inline = $installer
+    s.privileged = false
+    s.args = [NOMAD_VERSION, CONSUL_VERSION]
+  end
+
+  return vmCfg
 end
 
-NODES = ENV['NODES'] || 2
-
-SERVER_MEM = ENV['SERVER_MEM'] || 512
-SERVER_CPU = ENV['SERVER_CPU'] || 1
-
-CLIENT_MEM= ENV['CLIENT_MEM'] || 2048
-CLIENT_CPUS = ENV['CLIENT_CPUS'] || 1
-
-BASE_IP_ADDR = ENV['BASE_IP_ADDR'] || "172.17.9"
-
-DNS_DOMAIN = ENV['DNS_DOMAIN'] || "cluster.local"
-DNS_UPSTREAM_SERVERS = ENV['DNS_UPSTREAM_SERVERS'] || "8.8.8.8:53,8.8.4.4:53"
-
-SERIAL_LOGGING = (ENV['SERIAL_LOGGING'].to_s.downcase == 'true')
-GUI = (ENV['GUI'].to_s.downcase == 'true')
-BOX_TIMEOUT_COUNT = ENV['BOX_TIMEOUT_COUNT'] || 50
-
-if enable_proxy
-  HTTP_PROXY = ENV['HTTP_PROXY'] || ENV['http_proxy']
-  HTTPS_PROXY = ENV['HTTPS_PROXY'] || ENV['https_proxy']
-  NO_PROXY = ENV['NO_PROXY'] || ENV['no_proxy'] || "localhost"
-end
-
-REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT = (ENV['REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT'].to_s.downcase == 'true')
-# if this is set true, remember to use --provision when executing vagrant up / reload
-
-# Read YAML file with mountpoint details
-MOUNT_POINTS = YAML::load_file('synced_folders.yaml')
-
+# Entry point of this Vagrantfile
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  # always use host timezone in VMs
-  config.timezone.value = :host
- 
-  # always use Vagrants' insecure key
-  config.ssh.insert_key = false
-  config.ssh.forward_agent = true
 
-  config.vm.box = "coreos-#{CHANNEL}"
-  config.vm.box_version = ">= #{COREOS_VERSION}"
-  config.vm.box_url = "#{upstream}/coreos_production_vagrant.json"
+  # I do not want this
+  config.vbguest.auto_update = false
 
-  ["vmware_fusion", "vmware_workstation"].each do |vmware|
-    config.vm.provider vmware do |v, override|
-      override.vm.box_url = "#{upstream}/coreos_production_vagrant_vmware_fusion.json"
+  # Need to get the runtime values
+  # i.e. the IP addresses that will be assigned to all Nomad server(s)
+  1.upto(S_NODES.to_i) do |i|
+    if all_servers_ipv4.to_s != ''
+      all_servers_ipv4 = all_servers_ipv4 + ", "
+      all_servers_ipv4_n_ports = all_servers_ipv4_n_ports + ", "
+    end
+    
+    all_servers_ipv4 = all_servers_ipv4 + '"' + "#{BASE_SIP_ADDR}.#{i+99}" + '"'
+    all_servers_ipv4_n_ports = all_servers_ipv4_n_ports + '"' + "#{BASE_SIP_ADDR}.#{i+99}:4647" + '"'
+  end
+
+  # Nomad server related only !!
+  1.upto(S_NODES.to_i) do |i|
+    hostname = "server-%02d" % [i]
+    cpus = S_CPUS
+    mem = S_MEM
+    self_ipv4 = "#{BASE_SIP_ADDR}.#{i+99}"
+    
+    config.vm.define hostname do |vmCfg|
+      vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+      
+      vmCfg.vm.network "private_network", ip: self_ipv4
+            
+      vmCfg.vm.provision "shell" do |s|
+        s.inline = $serverconfig
+        s.privileged = false
+        s.args = [self_ipv4, hostname, all_servers_ipv4, S_NODES]
+      end
+    
+      vmCfg.vm.provision "shell" do |s|
+        s.inline = $serverstart
+        s.privileged = false
+        s.args = [self_ipv4]
+      end
+    end     
+  end
+  
+  # Nomad client related only !!
+  1.upto(C_NODES.to_i) do |i|
+    hostname = "client-%02d" % [i]
+    cpus = C_CPUS
+    mem = C_MEM
+    self_ipv4 = "#{BASE_CIP_ADDR}.#{i+99}"
+    
+    config.vm.define hostname do |vmCfg|
+      vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+
+      vmCfg.vm.network "private_network", ip: self_ipv4
+
+      vmCfg.vm.provision "shell" do |s|
+        s.inline = $clientconfig
+        s.privileged = false
+        s.args = [all_servers_ipv4, all_servers_ipv4_n_ports, self_ipv4]
+      end
+     
+      vmCfg.vm.provision "shell" do |s|
+        s.inline = $clientstart
+        s.privileged = false
+        s.args = [self_ipv4]
+      end
     end
   end
 
-  config.vm.provider :parallels do |vb, override|
-    override.vm.box = "AntonioMeireles/coreos-#{CHANNEL}"
-    override.vm.box_url = "https://vagrantcloud.com/AntonioMeireles/coreos-#{CHANNEL}"
-  end
-
-  config.vm.provider :virtualbox do |v|
-    # On VirtualBox, we don't have guest additions or a functional vboxsf
-    # in CoreOS, so tell Vagrant that so it can be smarter.
-    v.check_guest_additions = false
-    v.functional_vboxsf     = false
-  end
-  config.vm.provider :parallels do |p|
-    p.update_guest_tools = false
-    p.check_guest_tools = false
-  end
-
-  # plugin conflict
-  if Vagrant.has_plugin?("vagrant-vbguest") then
-    config.vbguest.auto_update = false
-  end
-
-  # setup VM proxy to system proxy environment
-  if Vagrant.has_plugin?("vagrant-proxyconf") && enable_proxy
-    config.proxy.http = HTTP_PROXY
-    config.proxy.https = HTTPS_PROXY
-    # most http tools, like wget and curl do not undestand IP range
-    # thus adding each node one by one to no_proxy
-    no_proxies = NO_PROXY.split(",")
-    (1..(NODES.to_i + 1)).each do |i|
-      vm_ip_addr = "#{BASE_IP_ADDR}.#{i+100}"
-      Object.redefine_const(:NO_PROXY,
-        "#{NO_PROXY},#{vm_ip_addr}") unless no_proxies.include?(vm_ip_addr)
-    end
-    config.proxy.no_proxy = NO_PROXY
-    # proxyconf plugin use wrong approach to set Docker proxy for CoreOS
-    # force proxyconf to skip Docker proxy setup
-    config.proxy.enabled = { docker: false }
-  end
-
-  (1..(NODES.to_i + 1)).each do |i|
-    if i == 1
-      hostname = "server"
-      MASTER_IP="#{BASE_IP_ADDR}.#{i+99}"
-      ETCD_SEED_CLUSTER = "#{hostname}=http://#{MASTER_IP}:2380"
-      cfg = SERVER_YAML
-      memory = SERVER_MEM
-      cpus = SERVER_CPU
-    else
-      hostname = "client-%02d" % (i - 1)
-      cfg = CLIENT_YAML
-      memory = CLIENT_MEM
-      cpus = CLIENT_CPUS
-    end
-
-    config.vm.define vmName = hostname do |kHost|
-      kHost.vm.hostname = vmName
-
-      # suspend / resume is hard to be properly supported because we have no way
-      # to assure the fully deterministic behavior of whatever is inside the VMs
-      # when faced with XXL clock gaps... so we just disable this functionality.
-      kHost.trigger.reject [:suspend, :resume] do
-        info "'vagrant suspend' and 'vagrant resume' are disabled."
-        info "- please do use 'vagrant halt' and 'vagrant up' instead."
-      end
-
-      config.trigger.instead_of :reload do
-        exec "vagrant halt && vagrant up"
-        exit
-      end
-
-      # vagrant-triggers has no concept of global triggers so to avoid having
-      # then to run as many times as the total number of VMs we only call them
-      # in the server (re: emyl/vagrant-triggers#13)...
-      if vmName == "server"
-        kHost.trigger.before [:up, :provision] do
-          info "Setting up Nomad #{NOMAD_VERSION}"
-          sedInplaceArg = OS.mac? ? " ''" : ""
-          system "cp setup.tmpl temp/setup"
-          system "sed -e 's|__NOMAD_VERSION__|#{NOMAD_VERSION}|g' -i#{sedInplaceArg} ./temp/setup"
-          system "sed -e 's|__MASTER_IP__|#{MASTER_IP}|g' -i#{sedInplaceArg} ./temp/setup"
-          if enable_proxy
-            system "sed -e 's|__PROXY_LINE__||g' -i#{sedInplaceArg} ./temp/setup"
-            system "sed -e 's|__NO_PROXY__|#{NO_PROXY}|g' -i#{sedInplaceArg} ./temp/setup"
-          else
-            system "sed -e '/__PROXY_LINE__/d' -i#{sedInplaceArg} ./temp/setup"
-          end
-          system "chmod +x temp/setup"
-      end
-
-        kHost.trigger.after [:up, :resume] do
-          info "Sanitizing stuff..."
-          system "ssh-add ~/.vagrant.d/insecure_private_key"
-          system "rm -rf ~/.fleetctl/known_hosts"
-        end
-
-        kHost.trigger.after [:up] do
-          info "Waiting for Nomad server to become ready..."
-          j, uri, res = 0, URI("http://#{MASTER_IP}:4646"), nil
-          loop do
-            j += 1
-            begin
-              res = Net::HTTP.get_response(uri)
-            rescue
-              sleep 10
-            end
-            break if res.is_a? Net::HTTPSuccess or j >= BOX_TIMEOUT_COUNT
-          end
-
-          info "Installing nomad CLI for the Nomad version we just bootstrapped..."
-          system "./temp/setup install"
-        end
-      end
-
-      if vmName == "client-%02d" % (i - 1)
-        kHost.trigger.after [:up] do
-          info "Waiting for Nomad client [client-%02d" % (i - 1) + "] to become ready..."
-          j, uri, hasResponse = 0, URI("http://#{BASE_IP_ADDR}.#{i+99}:4646"), false
-          loop do
-            j += 1
-            begin
-              res = Net::HTTP.get_response(uri)
-              hasResponse = true
-            rescue Net::HTTPBadResponse
-              hasResponse = true
-            rescue
-              sleep 10
-            end
-            break if hasResponse or j >= BOX_TIMEOUT_COUNT
-          end
-        end
-      end
-
-      kHost.trigger.before [:halt, :reload] do
-        if REMOVE_VAGRANTFILE_USER_DATA_BEFORE_HALT
-          run_remote "sudo rm -f /var/lib/coreos-vagrant/vagrantfile-user-data"
-        end
-      end
-
-      kHost.trigger.before [:destroy] do
-        system <<-EOT.prepend("\n\n") + "\n"
-          rm -f temp/*
-        EOT
-      end
-
-      if SERIAL_LOGGING
-        logdir = File.join(File.dirname(__FILE__), "log")
-        FileUtils.mkdir_p(logdir)
-
-        serialFile = File.join(logdir, "#{vmName}-serial.txt")
-        FileUtils.touch(serialFile)
-
-        ["vmware_fusion", "vmware_workstation"].each do |vmware|
-          kHost.vm.provider vmware do |v, override|
-            v.vmx["serial0.present"] = "TRUE"
-            v.vmx["serial0.fileType"] = "file"
-            v.vmx["serial0.fileName"] = serialFile
-            v.vmx["serial0.tryNoRxLoss"] = "FALSE"
-          end
-        end
-        kHost.vm.provider :virtualbox do |vb, override|
-          vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-          vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
-        end
-        # supported since vagrant-parallels 1.3.7
-        # https://github.com/Parallels/vagrant-parallels/issues/164
-        kHost.vm.provider :parallels do |v|
-          v.customize("post-import",
-            ["set", :id, "--device-add", "serial", "--output", serialFile])
-          v.customize("pre-boot",
-            ["set", :id, "--device-set", "serial0", "--output", serialFile])
-        end
-      end
-
-      ["vmware_fusion", "vmware_workstation", "virtualbox"].each do |h|
-        kHost.vm.provider h do |vb|
-          vb.gui = GUI
-        end
-      end
-      ["vmware_fusion", "vmware_workstation"].each do |h|
-        kHost.vm.provider h do |v|
-          v.vmx["memsize"] = memory
-          v.vmx["numvcpus"] = cpus
-        end
-      end
-      ["parallels", "virtualbox"].each do |h|
-        kHost.vm.provider h do |n|
-          n.memory = memory
-          n.cpus = cpus
-        end
-      end
-
-      kHost.vm.network :private_network, ip: "#{BASE_IP_ADDR}.#{i+99}"
-      # you can override this in synced_folders.yaml
-      kHost.vm.synced_folder ".", "/vagrant", disabled: true
-
-      begin
-        MOUNT_POINTS.each do |mount|
-          mount_options = ""
-          disabled = false
-          nfs =  true
-          if mount['mount_options']
-            mount_options = mount['mount_options']
-          end
-          if mount['disabled']
-            disabled = mount['disabled']
-          end
-          if mount['nfs']
-            nfs = mount['nfs']
-          end
-          if File.exist?(File.expand_path("#{mount['source']}"))
-            if mount['destination']
-              kHost.vm.synced_folder "#{mount['source']}", "#{mount['destination']}",
-                id: "#{mount['name']}",
-                disabled: disabled,
-                mount_options: ["#{mount_options}"],
-                nfs: nfs
-            end
-          end
-        end
-      rescue
-      end
-
-      if USE_DOCKERCFG && File.exist?(DOCKERCFG)
-        kHost.vm.provision :file, run: "always",
-         :source => "#{DOCKERCFG}", :destination => "/home/core/.dockercfg"
-
-        kHost.vm.provision :shell, run: "always" do |s|
-          s.inline = "cp /home/core/.dockercfg /root/.dockercfg"
-          s.privileged = true
-        end
-      end
-
-      if File.exist?(cfg)
-        kHost.vm.provision :file, :source => "#{cfg}", :destination => "/tmp/vagrantfile-user-data"
-        if enable_proxy
-          kHost.vm.provision :shell, :privileged => true,
-          inline: <<-EOF
-          sed -i"*" "s|__PROXY_LINE__||g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__HTTP_PROXY__|#{HTTP_PROXY}|g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__HTTPS_PROXY__|#{HTTPS_PROXY}|g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__NO_PROXY__|#{NO_PROXY}|g" /tmp/vagrantfile-user-data
-          EOF
-        end
-        kHost.vm.provision :shell, :privileged => true,
-        inline: <<-EOF
-          sed -i"*" "/__PROXY_LINE__/d" /tmp/vagrantfile-user-data
-          sed -i"*" "s,__DOCKER_OPTIONS__,#{DOCKER_OPTIONS},g" /tmp/vagrantfile-user-data
-          sed -i"*" "s,__NOMAD_VERSION__,#{NOMAD_VERSION},g" /tmp/vagrantfile-user-data
-          sed -i"*" "s,__CONSUL_VERSION__,#{CONSUL_VERSION},g" /tmp/vagrantfile-user-data
-          sed -i"*" "s,__CHANNEL__,v#{CHANNEL},g" /tmp/vagrantfile-user-data
-          sed -i"*" "s,__NAME__,#{hostname},g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__MASTER_IP__|#{MASTER_IP}|g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__DNS_DOMAIN__|#{DNS_DOMAIN}|g" /tmp/vagrantfile-user-data
-          sed -i"*" "s|__ETCD_SEED_CLUSTER__|#{ETCD_SEED_CLUSTER}|g" /tmp/vagrantfile-user-data
-          mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/
-        EOF
-      end
-    end
-  end
 end

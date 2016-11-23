@@ -1,0 +1,13 @@
+bind_addr = "__SELF_IPV4__"
+
+# Increase log verbosity
+log_level = "DEBUG"
+
+# Setup data dir
+data_dir = "/opt/nomad/data"
+
+# Enable the server
+client {
+    enabled = true
+    servers=[__ALL_SERVERS_IPV4_N_PORTS__]
+}
