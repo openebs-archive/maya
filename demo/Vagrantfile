@@ -308,6 +308,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       vmCfg.vm.network "private_network", ip: self_ipv4
 
+      # Install docker
+      vmCfg.vm.provision "docker"
+
       vmCfg.vm.provision "shell" do |s|
         s.inline = $clientconfig
         s.privileged = false
