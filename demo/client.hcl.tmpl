@@ -9,5 +9,8 @@ data_dir = "/opt/nomad/data"
 # Enable the server
 client {
     enabled = true
+    options = {
+      "docker.privileged.enabled" = "__RUN_DOCK_CON_PRIVILEGED__"
+    }
     servers=[__ALL_SERVERS_IPV4_N_PORTS__]
 }

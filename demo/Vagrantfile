@@ -27,6 +27,10 @@ C_CPUS = ENV['C_CPUS'] || 1
 BASE_SIP_ADDR = ENV['BASE_SIP_ADDR'] || "10.21.0"
 BASE_CIP_ADDR = ENV['BASE_CIP_ADDR'] || "10.31.0"
 
+# Nomad client setting that determines if docker containers should run in 
+# privileged mode
+RUN_DOCK_CON_PRIVILEGED = ENV['RUN_DOCK_CON_PRIVILEGED'] || "true"
+
 # Placeholder to store comma separated server ip addresses
 all_servers_ipv4 = ""
 all_servers_ipv4_n_ports = ""
@@ -106,8 +110,8 @@ SCRIPT
 $clientconfig = <<SCRIPT
 #!/bin/bash
 
-if [ $# -ne 3 ]; then
-    echo $0: usage: clientconfig ALL_SERVERS_IPV4 ALL_SERVERS_IPV4_N_PORTS SELF_IPV4
+if [ $# -ne 4 ]; then
+    echo $0: usage: clientconfig ALL_SERVERS_IPV4 ALL_SERVERS_IPV4_N_PORTS SELF_IPV4 RUN_DOCK_CON_PRIVILEGED
     exit 1
 fi
 
@@ -116,15 +120,17 @@ echo Will run the client config script ...
 ALL_SERVERS_IPV4=$1
 ALL_SERVERS_IPV4_N_PORTS=$2
 SELF_IPV4=$3
+RUN_DOCK_CON_PRIVILEGED=$4
 
 sudo cp -p /vagrant/consul-client.json.tmpl /vagrant/temp/consul-client.json
 sudo cp -p /vagrant/client.hcl.tmpl /vagrant/temp/client.hcl
 
 sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/consul-client.json
 sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/consul-client.json
-sed -e "s|__ALL_SERVERS_IPV4_N_PORTS__|$ALL_SERVERS_IPV4_N_PORTS|g" -i /vagrant/temp/client.hcl
 
+sed -e "s|__ALL_SERVERS_IPV4_N_PORTS__|$ALL_SERVERS_IPV4_N_PORTS|g" -i /vagrant/temp/client.hcl
 sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/client.hcl
+sed -e "s|__RUN_DOCK_CON_PRIVILEGED__|$RUN_DOCK_CON_PRIVILEGED|g" -i /vagrant/temp/client.hcl
 SCRIPT
 
 # Script that prepares the config for Nomad & Consul server
@@ -314,7 +320,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       vmCfg.vm.provision "shell" do |s|
         s.inline = $clientconfig
         s.privileged = false
-        s.args = [all_servers_ipv4, all_servers_ipv4_n_ports, self_ipv4]
+        s.args = [all_servers_ipv4, all_servers_ipv4_n_ports, self_ipv4, RUN_DOCK_CON_PRIVILEGED]
       end
      
       vmCfg.vm.provision "shell" do |s|
