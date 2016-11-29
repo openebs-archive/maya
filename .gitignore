@@ -2,3 +2,6 @@ experimental/install/etcdcluster/
 *.log
 .vagrant/
 demo/temp/*
+bin/
+glide.lock
+pkg/

@@ -1,0 +1,4 @@
+package: github.com/openebs/maya
+import:
+- package: github.com/mitchellh/cli
+- package: github.com/mitchellh/colorstring
