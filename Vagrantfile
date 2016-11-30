@@ -14,17 +14,17 @@ sudo apt-get install -y unzip curl
 # Install dependencies required for 
 # 1/ Running functional tests
 # 2/ Development (linting, coverage analysis, etc.)
-bash scripts/install_go.sh
-bash scripts/install_nomad.sh
-bash scripts/install_docker.sh
+cd /opt/gopath/src/github.com/openebs/maya && bash scripts/install_go.sh
+cd /opt/gopath/src/github.com/openebs/maya && bash scripts/install_nomad.sh
+cd /opt/gopath/src/github.com/openebs/maya && bash scripts/install_docker.sh
 
 # Bootstrap Maya (for `development purposes`)
 cd /opt/gopath/src/github.com/openebs/maya && make bootstrap
 
 # CD into the maya working directory when we login to the VM
 # A bit of conditional logic s.t. we do not repeat CD-ing
-grep "cd /opt/gopath/src/github.com/openebs/maya" ~/.profile || \
-  echo "cd /opt/gopath/src/github.com/openebs/maya" >> ~/.profile
+#grep "cd /opt/gopath/src/github.com/openebs/maya" ~/.profile || \
+#  echo "cd /opt/gopath/src/github.com/openebs/maya" >> ~/.profile
 
 SCRIPT
 

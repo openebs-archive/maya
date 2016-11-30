@@ -14,7 +14,7 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 # Install Go
 cd /tmp
 
-curl -sSL https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
+wget -q https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
 tar -xf go${GO_VERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
