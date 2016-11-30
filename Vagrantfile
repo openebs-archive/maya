@@ -42,8 +42,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       vmCfg.vm.provider "virtualbox" do |vb|
         vb.memory = DEFAULT_MEMORY
-  	    vb.cpus = DEFAULT_CPU_COUNT
+        vb.cpus = DEFAULT_CPU_COUNT
+        vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
       end
   end
-
 end
