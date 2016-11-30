@@ -32,12 +32,24 @@ const (
 type Meta struct {
 	Ui cli.Ui
 
+	// These are set by the command line flags.
+	flagAddress string
+
 	// Whether to not-colorize output
 	noColor bool
+
+	// The region to send API requests
+	region string
+
+	caCert     string
+	caPath     string
+	clientCert string
+	clientKey  string
+	insecure   bool
 }
 
 // FlagSet returns a FlagSet with the common flags that every
-// command implements. The exact behavior of FlagSet can be configured
+// Nomad command implements. The exact behavior of FlagSet can be configured
 // using the flags as the second parameter, for example to disable
 // server settings on the commands that don't talk to a server.
 func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
@@ -47,7 +59,16 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	// FlagSetClient is used to enable the settings for specifying
 	// client connectivity options.
 	if fs&FlagSetClient != 0 {
+		f.StringVar(&m.flagAddress, "address", "", "")
+		f.StringVar(&m.region, "region", "", "")
 		f.BoolVar(&m.noColor, "no-color", false, "")
+		f.StringVar(&m.caCert, "ca-cert", "", "")
+		f.StringVar(&m.caPath, "ca-path", "", "")
+		f.StringVar(&m.clientCert, "client-cert", "", "")
+		f.StringVar(&m.clientKey, "client-key", "", "")
+		f.BoolVar(&m.insecure, "insecure", false, "")
+		f.BoolVar(&m.insecure, "tls-skip-verify", false, "")
+
 	}
 
 	// Create an io.Writer that writes to our UI properly for errors.
@@ -76,9 +97,38 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 
 // generalOptionsUsage returns the help string for the global options.
 func generalOptionsUsage() string {
-	helpText := `  
+	helpText := `
+  -address=<addr>
+    The address of the Nomad server.
+    Overrides the NOMAD_ADDR environment variable if set.
+    Default = http://127.0.0.1:4646
+  -region=<region>
+    The region of the Nomad servers to forward commands to.
+    Overrides the NOMAD_REGION environment variable if set.
+    Defaults to the Agent's local region.
+  
   -no-color
     Disables colored command output.
+  -ca-cert=<path>           
+    Path to a PEM encoded CA cert file to use to verify the 
+    Nomad server SSL certificate.  Overrides the NOMAD_CACERT 
+    environment variable if set.
+  -ca-path=<path>           
+    Path to a directory of PEM encoded CA cert files to verify 
+    the Nomad server SSL certificate. If both -ca-cert and 
+    -ca-path are specified, -ca-cert is used. Overrides the 
+    NOMAD_CAPATH environment variable if set.
+  -client-cert=<path>       
+    Path to a PEM encoded client certificate for TLS authentication 
+    to the Nomad server. Must also specify -client-key. Overrides 
+    the NOMAD_CLIENT_CERT environment variable if set.
+  -client-key=<path>        
+    Path to an unencrypted PEM encoded private key matching the 
+    client certificate from -client-cert. Overrides the 
+    NOMAD_CLIENT_KEY environment variable if set.
+  -tls-skip-verify        
+    Do not verify TLS certificate. This is highly not recommended. Verification
+    will also be skipped if NOMAD_SKIP_VERIFY is set.
 `
 	return strings.TrimSpace(helpText)
 }

@@ -9,15 +9,15 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestVolCommand_Implements(t *testing.T) {
-	var _ cli.Command = &VolCommand{}
+func TestVsmCommand_Implements(t *testing.T) {
+	var _ cli.Command = &VsmCommand{}
 }
 
-func TestVolCommand_With_Meta(t *testing.T) {
+func TestVsmCommand_With_Meta(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VolCommand{
+	cmd := &VsmCommand{
 		M:    Meta{Ui: ui},
 		Exec: ExecCommand{Cmd: MayaExecTesting},
 	}
@@ -51,16 +51,16 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 }
 
-func TestVolCommand_Negative(t *testing.T) {
+func TestVsmCommand_Negative(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VolCommand{
+	cmd := &VsmCommand{
 		M:    Meta{Ui: ui},
 		Exec: ExecCommand{Cmd: MayaExecTesting},
 	}
@@ -69,8 +69,8 @@ func TestVolCommand_Negative(t *testing.T) {
 	if code := cmd.Run([]string{"some", "bad", "args"}); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 
@@ -78,8 +78,8 @@ func TestVolCommand_Negative(t *testing.T) {
 	if code := cmd.Run([]string{"/unicorns/leprechauns"}); code != 1 {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expect 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expect 'error starting vsm', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 
@@ -98,8 +98,8 @@ func TestVolCommand_Negative(t *testing.T) {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expect 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expect 'error starting vsm', got: %s", out)
 	}
 
 	ui.ErrorWriter.Reset()
@@ -119,8 +119,8 @@ func TestVolCommand_Negative(t *testing.T) {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expect 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expect 'error starting vsm', got: %s", out)
 	}
 
 	ui.ErrorWriter.Reset()
@@ -156,8 +156,8 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 
 	// Fails on invalid check-index (requires a valid job)
@@ -165,15 +165,15 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 
 	ui.ErrorWriter.Reset()
 
 }
 
-func TestVolCommand_From_STDIN(t *testing.T) {
+func TestVsmCommand_From_STDIN(t *testing.T) {
 	_, stdinW, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -181,7 +181,7 @@ func TestVolCommand_From_STDIN(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VolCommand{
+	cmd := &VsmCommand{
 		M:    Meta{Ui: ui},
 		Exec: ExecCommand{Cmd: MayaExecTesting},
 	}
@@ -210,17 +210,17 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got %d: %q", code, ui.ErrorWriter.String())
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 }
 
-func TestVolCommand_From_URL(t *testing.T) {
+func TestVsmCommand_From_URL(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VolCommand{
+	cmd := &VsmCommand{
 		M:    Meta{Ui: ui},
 		Exec: ExecCommand{Cmd: MayaExecTesting},
 	}
@@ -230,7 +230,7 @@ func TestVolCommand_From_URL(t *testing.T) {
 		t.Fatalf("expected exit code 1, got %d: %q", code, ui.ErrorWriter.String())
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vol") {
-		t.Fatalf("expected 'error starting vol', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 }

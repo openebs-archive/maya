@@ -9,7 +9,9 @@ $script = <<SCRIPT
 
 # Update apt and get dependencies
 sudo apt-get update
-sudo apt-get install -y unzip curl
+sudo apt-get install -y zip unzip curl
+
+cd /opt/gopath/src/github.com/openebs/maya
 
 # Install dependencies required for 
 # 1/ Running functional tests
@@ -17,9 +19,6 @@ sudo apt-get install -y unzip curl
 bash scripts/install_go.sh
 bash scripts/install_nomad.sh
 bash scripts/install_docker.sh
-
-# Bootstrap Maya (for `development purposes`)
-cd /opt/gopath/src/github.com/openebs/maya && make bootstrap
 
 # CD into the maya working directory when we login to the VM
 # A bit of conditional logic s.t. we do not repeat CD-ing
@@ -38,11 +37,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       # sync your laptop's development with vagrant VM
       vmCfg.vm.synced_folder '.', '/opt/gopath/src/github.com/openebs/maya'
       
-      vmCfg.vm.provision "shell", inline: $script, privileged: false      
-
+      vmCfg.vm.provision "shell", inline: $script, privileged: false
+      
       vmCfg.vm.provider "virtualbox" do |vb|
         vb.memory = DEFAULT_MEMORY
   	    vb.cpus = DEFAULT_CPU_COUNT
+  	    vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
       end
   end
 
