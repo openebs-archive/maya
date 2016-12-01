@@ -5,3 +5,5 @@ demo/temp/*
 bin/
 glide.lock
 pkg/
+nohup.out
+hello.nomad

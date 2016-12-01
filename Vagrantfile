@@ -29,6 +29,7 @@ grep "cd /opt/gopath/src/github.com/openebs/maya" ~/.profile || \
   echo "cd /opt/gopath/src/github.com/openebs/maya" >> ~/.profile
   
 echo "In-order to run maya, look at various options provided in GNUmakefile"
+echo "TIP: Start with make bootstrap"
 
 SCRIPT
 

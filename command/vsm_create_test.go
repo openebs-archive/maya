@@ -3,23 +3,24 @@ package command
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
 	"github.com/mitchellh/cli"
 )
 
-func TestVsmCommand_Implements(t *testing.T) {
-	var _ cli.Command = &VsmCommand{}
+func TestVsmCreateCommand_Implements(t *testing.T) {
+	var _ cli.Command = &VsmCreateCommand{}
 }
 
-func TestVsmCommand_With_Meta(t *testing.T) {
+func TestVsmCreateCommand_With_Meta(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VsmCommand{
-		M:    Meta{Ui: ui},
-		Exec: ExecCommand{Cmd: MayaExecTesting},
+	cmd := &VsmCreateCommand{
+		M:   Meta{Ui: ui},
+		Cmd: exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	fh, err := ioutil.TempFile("", "maya")
@@ -51,18 +52,18 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
-		t.Fatalf("expected 'error starting vsm', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
+		t.Fatalf("expected 'error starting cmd', got: %s", out)
 	}
 }
 
-func TestVsmCommand_Negative(t *testing.T) {
+func TestVsmCreateCommand_Negative(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VsmCommand{
-		M:    Meta{Ui: ui},
-		Exec: ExecCommand{Cmd: MayaExecTesting},
+	cmd := &VsmCreateCommand{
+		M:   Meta{Ui: ui},
+		Cmd: exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	// Fails on misuse
@@ -75,11 +76,12 @@ func TestVsmCommand_Negative(t *testing.T) {
 	ui.ErrorWriter.Reset()
 
 	// Fails when specified file does not exist
+	cmd.Cmd = exec.Command(string(ExecTesting), []string{""}...)
 	if code := cmd.Run([]string{"/unicorns/leprechauns"}); code != 1 {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
-		t.Fatalf("expect 'error starting vsm', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
+		t.Fatalf("expect 'error starting cmd', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 
@@ -94,12 +96,13 @@ func TestVsmCommand_Negative(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	cmd.Cmd = exec.Command(string(ExecTesting), []string{""}...)
 	if code := cmd.Run([]string{fh1.Name()}); code != 1 {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
-		t.Fatalf("expect 'error starting vsm', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
+		t.Fatalf("expect 'error starting cmd', got: %s", out)
 	}
 
 	ui.ErrorWriter.Reset()
@@ -115,12 +118,13 @@ func TestVsmCommand_Negative(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	cmd.Cmd = exec.Command(string(ExecTesting), []string{""}...)
 	if code := cmd.Run([]string{fh2.Name()}); code != 1 {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
-		t.Fatalf("expect 'error starting vsm', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
+		t.Fatalf("expect 'error starting cmd', got: %s", out)
 	}
 
 	ui.ErrorWriter.Reset()
@@ -152,20 +156,22 @@ job "job1" {
 		t.Fatalf("err: %s", err)
 	}
 
+	cmd.Cmd = exec.Command(string(ExecTesting), []string{""}...)
 	if code := cmd.Run([]string{"-address=nope", fh3.Name()}); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
 		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 
 	// Fails on invalid check-index (requires a valid job)
+	cmd.Cmd = exec.Command(string(ExecTesting), []string{""}...)
 	if code := cmd.Run([]string{"-check-index=bad", fh3.Name()}); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
 		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 
@@ -173,7 +179,7 @@ job "job1" {
 
 }
 
-func TestVsmCommand_From_STDIN(t *testing.T) {
+func TestVsmCreateCommand_From_STDIN(t *testing.T) {
 	_, stdinW, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -181,9 +187,9 @@ func TestVsmCommand_From_STDIN(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VsmCommand{
-		M:    Meta{Ui: ui},
-		Exec: ExecCommand{Cmd: MayaExecTesting},
+	cmd := &VsmCreateCommand{
+		M:   Meta{Ui: ui},
+		Cmd: exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	go func() {
@@ -210,19 +216,19 @@ job "job1" {
 		t.Fatalf("expected exit code 1, got %d: %q", code, ui.ErrorWriter.String())
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
 		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 }
 
-func TestVsmCommand_From_URL(t *testing.T) {
+func TestVsmCreateCommand_From_URL(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VsmCommand{
-		M:    Meta{Ui: ui},
-		Exec: ExecCommand{Cmd: MayaExecTesting},
+	cmd := &VsmCreateCommand{
+		M:   Meta{Ui: ui},
+		Cmd: exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	args := []string{"https://example.com/foo/bar"}
@@ -230,7 +236,7 @@ func TestVsmCommand_From_URL(t *testing.T) {
 		t.Fatalf("expected exit code 1, got %d: %q", code, ui.ErrorWriter.String())
 	}
 
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting vsm") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error starting cmd") {
 		t.Fatalf("expected 'error starting vsm', got: %s", out)
 	}
 }
