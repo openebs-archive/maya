@@ -26,7 +26,7 @@ type VsmCommand struct {
 
 func (c *VsmCommand) Help() string {
 	helpText := `
-Usage: maya vsm <path>
+Usage: maya vsm [options] <path>
 
   Creates a new VSM or updates an existing VSM using
   the specification i.e. Nomad jobfile located at <path>.
@@ -45,7 +45,7 @@ General Options:
 
   ` + generalOptionsUsage() + `
 
-Run Options:
+VSM Options:
   -check-index
     If set, the vsm is only registered or updated if the passed
     vsm modify index matches the server side version. If a check-index value of
@@ -77,26 +77,26 @@ func (c *VsmCommand) Synopsis() string {
 
 func (c *VsmCommand) Run(args []string) int {
 
-  var detach, verbose, output bool
+	var detach, verbose, output bool
 	var checkIndexStr, vaultToken string
 
-  // Create the sub command along with common flags (`i.e. general options`)
-	flags := c.Meta.FlagSet("vsm", FlagSetClient)
-	
+	// Create the sub command along with common flags (`i.e. general options`)
+	flags := c.M.FlagSet("vsm", FlagSetClient)
+
 	// These are the flags that are understood by `nomad run`
-  // These are passed through as-is (`these are also known as run options`)
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
+	// These are passed through as-is (`these are also known as run options`)
+	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 	flags.BoolVar(&detach, "detach", false, "")
 	flags.BoolVar(&verbose, "verbose", false, "")
 	flags.BoolVar(&output, "output", false, "")
 	flags.StringVar(&checkIndexStr, "check-index", "", "")
 	flags.StringVar(&vaultToken, "vault-token", "", "")
 
-  // Set the help function
+	// Set the help function
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-  // Validate the args that has been passed with the flags that were just 
-  // set above
+	// Validate the args that has been passed with the flags that were just
+	// set above
 	if err := flags.Parse(args); err != nil {
 		return 1
 	}
@@ -108,7 +108,7 @@ func (c *VsmCommand) Run(args []string) int {
 		return 1
 	}
 
-  // This will execute the `run` command of Nomad
+	// This will execute the `run` command of Nomad
 	subcmd := []string{"run"}
 	args = append(subcmd, args...)
 

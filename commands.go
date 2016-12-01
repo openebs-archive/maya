@@ -24,8 +24,8 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 	}
 
 	return map[string]cli.CommandFactory{
-		"vol": func() (cli.Command, error) {
-			return &command.VolCommand{
+		"vsm": func() (cli.Command, error) {
+			return &command.VsmCommand{
 				M:    meta,
 				Exec: command.ExecCommand{Cmd: command.MayaExecNomadRun},
 			}, nil

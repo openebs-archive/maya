@@ -19,20 +19,27 @@ func TestMeta_FlagSet(t *testing.T) {
 		{
 			FlagSetClient,
 			[]string{
+				"address",
 				"no-color",
+				"region",
+				"ca-cert",
+				"ca-path",
+				"client-cert",
+				"client-key",
+				"insecure",
+				"tls-skip-verify",
 			},
 		},
 	}
 
 	for i, tc := range cases {
 		var m Meta
-		fs := m.FlagSet("vol", tc.Flags)
+		fs := m.FlagSet("foo", tc.Flags)
 
 		actual := make([]string, 0, 0)
 		fs.VisitAll(func(f *flag.Flag) {
 			actual = append(actual, f.Name)
 		})
-
 		sort.Strings(actual)
 		sort.Strings(tc.Expected)
 

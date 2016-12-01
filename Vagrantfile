@@ -20,6 +20,9 @@ bash scripts/install_go.sh
 bash scripts/install_nomad.sh
 bash scripts/install_docker.sh
 
+# Start Nomad in dev mode
+nohup nomad agent -config scripts/config &>nomad.log  &
+
 # CD into the maya working directory when we login to the VM
 # A bit of conditional logic s.t. we do not repeat CD-ing
 grep "cd /opt/gopath/src/github.com/openebs/maya" ~/.profile || \
