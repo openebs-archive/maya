@@ -17,4 +17,6 @@ sudo mv nomad /usr/bin/nomad
 sudo mkdir -p /etc/nomad.d
 sudo chmod a+w /etc/nomad.d
 
+# This is very important as this script may be used in some workflow
+# The directory of the workflow should not be modified by individual scripts
 cd ${CURDIR}

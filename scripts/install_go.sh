@@ -3,6 +3,7 @@
 set -ex
 
 GO_VERSION="1.7.3"
+CURDIR=`pwd`
 
 # Setup go, for development
 SRCROOT="/opt/go"
@@ -35,3 +36,7 @@ EOF
 sudo mv /tmp/gopath.sh /etc/profile.d/gopath.sh
 sudo chmod 0755 /etc/profile.d/gopath.sh
 source /etc/profile.d/gopath.sh
+
+# This is very important as this script may be used in some workflow
+# The directory of the workflow should not be modified by individual scripts
+cd ${CURDIR}
