@@ -6,7 +6,9 @@ import (
 )
 
 type VsmCreateCommand struct {
-	M   Meta
+	// To control this CLI's display
+	M Meta
+	// OS command to execute; <optional>
 	Cmd *exec.Cmd
 }
 
@@ -26,7 +28,7 @@ General Options:
 
   ` + generalOptionsUsage() + `
 
-VSM Options:
+VSM Create Options:
   -verbose
     Display full information.
 `
@@ -37,6 +39,8 @@ func (c *VsmCreateCommand) Synopsis() string {
 	return "Creates a new VSM"
 }
 
+// The logic of this function can be understood by understanding
+// the help text defined earlier.
 func (c *VsmCreateCommand) Run(args []string) int {
 
 	var verbose bool
@@ -45,28 +49,24 @@ func (c *VsmCreateCommand) Run(args []string) int {
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 	flags.BoolVar(&verbose, "verbose", false, "")
 
-	// Set the help function
-	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
-
-	// Validate the args that has been passed against
-	// the flags that were just defined above
 	if err := flags.Parse(args); err != nil {
 		return 1
 	}
 
-	// Check that we got exactly one argument
+	// specs file is mandatory
 	args = flags.Args()
 	if len(args) != 1 {
 		c.M.Ui.Error(c.Help())
 		return 1
 	}
 
+	// TODO: Future might involve delegating to
+	// Nomad or Kubectl based on some env property
 	if c.Cmd == nil {
-		// This will execute the `run` command of Nomad
-		// subcmd := []string{string(NomadRun)}
+		// sub command
 		args = append([]string{string(NomadRun)}, args...)
 
-		// Prepare the command
+		// main command; append sub cmd to main cmd
 		c.Cmd = exec.Command(string(ExecNomad), args...)
 	}
 

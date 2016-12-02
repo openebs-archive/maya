@@ -29,7 +29,8 @@ const (
 
 // Nomad specific commands
 const (
-	NomadRun SubCmdType = "run"
+	NomadRun    SubCmdType = "run"
+	NomadStatus SubCmdType = "status"
 )
 
 var ErrMissingCommand error = errors.New("missing command")

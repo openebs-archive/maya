@@ -1,4 +1,4 @@
-job "simple-vol" {
+job "simple-jiva-vol-2" {
 	datacenters = ["dc1"]
 
 	# All tasks in this job must run on linux.
@@ -16,14 +16,8 @@ job "simple-vol" {
 		max_parallel = 1
 	}
 
-	group "openebs" {
-	
-	  # All groups in this job should be scheduled on different hosts.
-    constraint {
-      operator  = "distinct_hosts"
-      value     = "true"
-    }
-
+	group "ctl-n-rep" {
+	  
 		restart {			
 			attempts = 10
 			interval = "5m"
@@ -36,15 +30,19 @@ job "simple-vol" {
 			driver = "docker"
 
 			config {
-				image = "openebs/jiva"
-				privileged = true
-				command = "launch-simple-jiva"
+				image = "openebs/jiva"								
+				privileged = true				
+				command = "launch-simple-jiva"				
 				args = [ "simple-vol", "1g", "gotgt" ]
+				
+				port_map {
+				  iscsi = 3260
+				}
 			}
 
 			service {
 				name = "${TASKGROUP}-jiva"
-				tags = ["global", "openebs", "simple-vol"]
+				tags = ["global", "jiva", "openebs", "simple-vol"]
 				port = "iscsi"
 				check {
 					name = "alive"
@@ -59,9 +57,7 @@ job "simple-vol" {
 				memory = 256 # 256MB
 				network {
 					mbits = 20
-					port "iscsi" {
-						static = "3260"
-					}
+					port "iscsi" {}
 				}
 			}
 

@@ -34,6 +34,10 @@ echo "TIP: Start with make bootstrap"
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  # I do not want this
+  config.vbguest.auto_update = false
+  
   vmName = "maya-dev"
   config.vm.box = "bento/ubuntu-16.04"
 
