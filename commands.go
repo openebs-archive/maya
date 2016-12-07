@@ -34,6 +34,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
+		"vsm-update": func() (cli.Command, error) {
+			return &command.VsmUpdateCommand{
+				M: meta,
+			}, nil
+		},
 		"version": func() (cli.Command, error) {
 			ver := Version
 			rel := VersionPrerelease

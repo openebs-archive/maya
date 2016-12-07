@@ -18,6 +18,7 @@ cd /opt/gopath/src/github.com/openebs/maya
 # 2/ Development (linting, coverage analysis, etc.)
 bash scripts/install_go.sh
 bash scripts/install_nomad.sh
+bash scripts/install_consul.sh
 bash scripts/install_docker.sh
 
 # Start Nomad in dev mode

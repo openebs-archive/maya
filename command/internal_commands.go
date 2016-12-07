@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/mitchellh/cli"
 )
@@ -31,6 +32,7 @@ const (
 const (
 	NomadRun    SubCmdType = "run"
 	NomadStatus SubCmdType = "status"
+	NomadPlan   SubCmdType = "plan"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
@@ -40,6 +42,11 @@ type InternalCommand struct {
 	Ui  cli.Ui
 }
 
+// This executes the provided OS command (`assuming the command
+// to be available where this binary is running`). It returns
+// 0 or 1 depending on successful or failure in execution.
+// NOTE: It will return the exit code of the internal command if
+// available
 func (ic *InternalCommand) Execute() int {
 
 	if ic.Cmd.Path == "" {
@@ -77,6 +84,13 @@ func (ic *InternalCommand) Execute() int {
 	// returns the exit code & releases associated resources
 	if err = ic.Cmd.Wait(); nil != err {
 		ic.Ui.Error(fmt.Sprintf("Error executing cmd: %s", err))
+
+		// Capture the error code if any
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus := exitError.Sys().(syscall.WaitStatus)
+			return waitStatus.ExitStatus()
+		}
+
 		return 1
 	}
 

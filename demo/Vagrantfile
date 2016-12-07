@@ -233,11 +233,32 @@ echo Starting Consul, logs at ~/consul.log
 sudo nohup consul agent -config-file /etc/consul.d/consul-client.json &>consul.log  &
 SCRIPT
 
+required_plugins = %w(vagrant-cachier)
+
+required_plugins.each do |plugin|
+  need_restart = false
+  unless Vagrant.has_plugin? plugin
+    system "vagrant plugin install #{plugin}"
+    need_restart = true
+  end
+  exec "vagrant #{ARGV.join(' ')}" if need_restart
+end
+
+
 def configureVM(vmCfg, hostname, cpus, mem)
 
   vmCfg.vm.box = "cbednarski/ubuntu-1404"
   #vmCfg.vm.box = "bento/ubuntu-14.04"
+  #vmCfg.vm.box = "bento/ubuntu-16.04"
+  
   vmCfg.vm.hostname = hostname
+  
+  #Adding Vagrant-cachier
+  if Vagrant.has_plugin?("vagrant-cachier")
+     vmCfg.cache.scope = :machine
+     vmCfg.cache.enable :apt
+     vmCfg.cache.enable :gem
+  end
   
   # Set resources w.r.t Virtualbox provider
   vmCfg.vm.provider "virtualbox" do |vb|

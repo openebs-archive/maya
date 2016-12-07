@@ -44,6 +44,7 @@ func (c *VsmCreateCommand) Synopsis() string {
 func (c *VsmCreateCommand) Run(args []string) int {
 
 	var verbose bool
+	var op int
 
 	flags := c.M.FlagSet("vsm-create", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
@@ -60,8 +61,6 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		return 1
 	}
 
-	// TODO: Future might involve delegating to
-	// Nomad or Kubectl based on some env property
 	if c.Cmd == nil {
 		// sub command
 		args = append([]string{string(NomadRun)}, args...)
@@ -75,10 +74,10 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		Ui:  c.M.Ui,
 	}
 
-	if op := ic.Execute(); 0 != op {
+	if op = ic.Execute(); 0 != op {
 		c.M.Ui.Error("Error creating vsm")
-		return 1
+		return op
 	}
 
-	return 0
+	return op
 }
