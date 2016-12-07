@@ -18,6 +18,4 @@ sudo mv consul /usr/bin/consul
 sudo mkdir -p /etc/consul.d
 sudo chmod a+w /etc/consul.d
 
-# This is very important as this script may be used in some workflow
-# The directory of the workflow should not be modified by individual scripts
 cd ${CURDIR}

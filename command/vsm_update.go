@@ -3,8 +3,6 @@ package command
 import (
 	"os/exec"
 	"strings"
-
-	"github.com/mitchellh/cli"
 )
 
 type VsmUpdateCommand struct {
@@ -66,14 +64,4 @@ func (c *VsmUpdateCommand) Run(args []string) int {
 	}
 
 	return runop
-}
-
-func execute(cmd *exec.Cmd, ui cli.Ui) int {
-
-	ic := &InternalCommand{
-		Cmd: cmd,
-		Ui:  ui,
-	}
-
-	return ic.Execute()
 }

@@ -24,6 +24,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 	}
 
 	return map[string]cli.CommandFactory{
+		"install-maya": func() (cli.Command, error) {
+			return &command.InstallMayaCommand{
+				M: meta,
+			}, nil
+		},
 		"vsm-create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
 				M: meta,

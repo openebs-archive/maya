@@ -7,45 +7,45 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestVsmUpdateCommand_Implements(t *testing.T) {
-	var _ cli.Command = &VsmUpdateCommand{}
+func TestInstallMayaCommand_Implements(t *testing.T) {
+	var _ cli.Command = &InstallMayaCommand{}
 }
 
 // We are using the OS `ls` command when required. Since it
 // is generally available in all *nix environments. This is
 // more or less sufficient to unit test.
 // NOTE - Our target is to provide a good unit test coverage.
-func TestVsmUpdateCommand_Run(t *testing.T) {
+func TestInstallMayaCommand_Run(t *testing.T) {
 
 	ui := new(cli.MockUi)
 
-	cmd := &VsmUpdateCommand{
+	cmd := &InstallMayaCommand{
 		M:   Meta{Ui: ui},
 		Cmd: exec.Command("ls", []string{"/home"}...),
 	}
 
-	if code := cmd.Run([]string{""}); code != 0 {
-		t.Fatalf("expected exit 0, got: %d", code)
+	if code := cmd.Run([]string{""}); code != 1 {
+		t.Fatalf("expected exit 1, got: %d", code)
 	}
 
 }
 
-func TestVsmUpdateCommand_Negative(t *testing.T) {
+func TestInstallMayaCommand_Negative(t *testing.T) {
 	ui := new(cli.MockUi)
 
-	cmd := &VsmUpdateCommand{
+	cmd := &InstallMayaCommand{
 		M:   Meta{Ui: ui},
 		Cmd: exec.Command("ls", []string{".", "some", "bad", "args"}...),
 	}
 
 	// Fails on misuse
-	if code := cmd.Run([]string{""}); code != 2 {
-		t.Fatalf("expected exit code 2, got: %d", code)
+	if code := cmd.Run([]string{""}); code != 1 {
+		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
 	// Execute internal command with no args
 	cmd.Cmd = nil
-	if code := cmd.Run([]string{""}); code != 1 {
+	if code := cmd.Run(nil); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 

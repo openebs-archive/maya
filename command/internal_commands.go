@@ -19,10 +19,15 @@ type SubCmdType string
 
 const (
 	// Nomad is currently the underlying lib used by Maya
+	// for VSM provisioning
 	ExecNomad ExecCmdType = "nomad"
 
-	// Kubernetes may be another lib that can be used by Maya
+	// Kubernetes may be another lib that can be used
+	// for VSM provisioning
 	ExecKube ExecCmdType = "kubectl"
+
+	// Shell script based execution
+	ExecScript ExecCmdType = "sh"
 
 	// Will be used for unit testing purposes
 	ExecTesting ExecCmdType = "nopes"
@@ -33,6 +38,14 @@ const (
 	NomadRun    SubCmdType = "run"
 	NomadStatus SubCmdType = "status"
 	NomadPlan   SubCmdType = "plan"
+)
+
+// Install specific commands
+const (
+	// This requires connectivity to external world
+	InstallBootstrapFile SubCmdType = "https://github.com/openebs/maya/tree/master/scripts/install_bootstrap.sh"
+	MayaScriptsPath      SubCmdType = "/etc/init/maya.d"
+	InstallConsul        SubCmdType = MayaScriptsPath + "/install_consul.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
@@ -95,4 +108,14 @@ func (ic *InternalCommand) Execute() int {
 	}
 
 	return 0
+}
+
+func execute(cmd *exec.Cmd, ui cli.Ui) int {
+
+	ic := &InternalCommand{
+		Cmd: cmd,
+		Ui:  ui,
+	}
+
+	return ic.Execute()
 }
