@@ -15,7 +15,11 @@ unzip consul.zip
 sudo chmod +x consul
 sudo mv consul /usr/bin/consul
 
-sudo mkdir -p /etc/consul.d
-sudo chmod a+w /etc/consul.d
+# Location to hold consul's config files
+sudo mkdir -p /etc/consul.d/{bootstrap,server,client}
+sudo chmod -R a+w /etc/consul.d
+
+# Location to store consul's persistent data between reboots
+sudo mkdir -p /opt/consul/data
 
 cd ${CURDIR}

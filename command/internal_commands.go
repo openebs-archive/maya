@@ -42,7 +42,7 @@ const (
 	InstallScriptsPath string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
 	BootstrapFile      string = "install_bootstrap.sh"
 	BootstrapFilePath  string = InstallScriptsPath + BootstrapFile
-	MayaScriptsPath    string = "/etc/maya.d/"
+	MayaScriptsPath    string = "/etc/maya.d/scripts/"
 	InstallConsul      string = MayaScriptsPath + "install_consul.sh"
 )
 
