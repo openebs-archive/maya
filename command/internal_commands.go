@@ -43,8 +43,8 @@ const (
 // Install specific commands
 const (
 	// This requires connectivity to external world
-	InstallBootstrapFile SubCmdType = "https://github.com/openebs/maya/tree/master/scripts/install_bootstrap.sh"
-	MayaScriptsPath      SubCmdType = "/etc/init/maya.d"
+	InstallBootstrapFile SubCmdType = "https://raw.githubusercontent.com/openebs/maya/master/scripts/install_bootstrap.sh"
+	MayaScriptsPath      SubCmdType = "/etc/maya.d"
 	InstallConsul        SubCmdType = MayaScriptsPath + "/install_consul.sh"
 )
 

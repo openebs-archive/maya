@@ -43,16 +43,4 @@ func TestInstallMayaCommand_Negative(t *testing.T) {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
 
-	// Execute internal command with no args
-	cmd.Cmd = nil
-	if code := cmd.Run(nil); code != 1 {
-		t.Fatalf("expected exit code 1, got: %d", code)
-	}
-
-	// Execute internal command with bad arguments
-	cmd.Cmd = nil
-	if code := cmd.Run([]string{"some", "bad", "args"}); code != 1 {
-		t.Fatalf("expected exit code 1, got: %d", code)
-	}
-
 }

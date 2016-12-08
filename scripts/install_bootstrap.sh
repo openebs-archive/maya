@@ -11,6 +11,6 @@ sudo chmod a+w /etc/maya.d
 cd /etc/maya.d/scripts
 
 echo Fetching consul script ...
-wget -q https://github.com/openebs/maya/blob/master/scripts/install_consul.sh
+wget -q https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh
 
 cd ${CURDIR}

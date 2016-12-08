@@ -57,20 +57,28 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	}
 
 	// install related steps
-	args = append([]string{string(InstallBootstrapFile) + " | sh"}, oargs...)
-	c.Cmd = exec.Command("curl -sSL ", args...)
+	c.Cmd = exec.Command("wget", "q", string(InstallBootstrapFile))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Failed to bootstrap the install")
-		c.M.Ui.Error(fmt.Sprintf("Verify presence of file: %s", InstallBootstrapFile))
+		c.M.Ui.Error("Failed to fetch install bootstrap file")
 		return runop
 	}
 
-	args = append([]string{string(MayaScriptsPath)}, oargs...)
-	c.Cmd = exec.Command("ls", args...)
+	c.Cmd = exec.Command("sh", "./install_bootstrap.sh")
+	runop = execute(c.Cmd, c.M.Ui)
+
+	c.Cmd = exec.Command("rm", "-rf", "install_bootstrap.sh")
+	execute(c.Cmd, c.M.Ui)
+
+	if runop != 0 {
+		c.M.Ui.Error("Failed to bootstrap the install")
+		return runop
+	}
+
+	c.Cmd = exec.Command("ls", string(MayaScriptsPath))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Install bootstrap step is missing")
+		c.M.Ui.Error(fmt.Sprintf("Install failed. Missing path: %s", MayaScriptsPath))
 		return runop
 	}
 
