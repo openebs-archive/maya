@@ -17,7 +17,11 @@ sudo mv consul /usr/bin/consul
 
 # Location to hold consul's config files
 sudo mkdir -p /etc/consul.d/{bootstrap,server,client}
-sudo chmod -R a+w /etc/consul.d
+
+sudo chmod a+w /etc/consul.d
+sudo chmod a+w /etc/consul.d/bootstrap
+sudo chmod a+w /etc/consul.d/server
+sudo chmod a+w /etc/consul.d/client
 
 # Location to store consul's persistent data between reboots
 sudo mkdir -p /opt/consul/data
