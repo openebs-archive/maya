@@ -57,17 +57,17 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	}
 
 	// install related steps
-	c.Cmd = exec.Command("wget", "q", string(InstallBootstrapFile))
+	c.Cmd = exec.Command("curl", "-sSL", BootstrapFilePath, "-o", BootstrapFile)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Failed to fetch install bootstrap file")
+		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapFilePath))
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", "./install_bootstrap.sh")
+	c.Cmd = exec.Command("sh", "./"+BootstrapFile)
 	runop = execute(c.Cmd, c.M.Ui)
 
-	c.Cmd = exec.Command("rm", "-rf", "install_bootstrap.sh")
+	c.Cmd = exec.Command("rm", "-rf", BootstrapFile)
 	execute(c.Cmd, c.M.Ui)
 
 	if runop != 0 {
@@ -75,18 +75,17 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return runop
 	}
 
-	c.Cmd = exec.Command("ls", string(MayaScriptsPath))
+	c.Cmd = exec.Command("ls", MayaScriptsPath)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error(fmt.Sprintf("Install failed. Missing path: %s", MayaScriptsPath))
+		c.M.Ui.Error(fmt.Sprintf("Install failed: Missing path: %s", MayaScriptsPath))
 		return runop
 	}
 
-	args = append([]string{string(InstallConsul)}, oargs...)
-	c.Cmd = exec.Command(string(ExecScript), args...)
+	c.Cmd = exec.Command("sh", InstallConsul)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Error installing consul")
+		c.M.Ui.Error("Install failed: Error installing consul")
 		return runop
 	}
 

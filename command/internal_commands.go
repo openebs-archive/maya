@@ -26,9 +26,6 @@ const (
 	// for VSM provisioning
 	ExecKube ExecCmdType = "kubectl"
 
-	// Shell script based execution
-	ExecScript ExecCmdType = "sh"
-
 	// Will be used for unit testing purposes
 	ExecTesting ExecCmdType = "nopes"
 )
@@ -40,12 +37,13 @@ const (
 	NomadPlan   SubCmdType = "plan"
 )
 
-// Install specific commands
+// Install specific scripts, path etc
 const (
-	// This requires connectivity to external world
-	InstallBootstrapFile SubCmdType = "https://raw.githubusercontent.com/openebs/maya/master/scripts/install_bootstrap.sh"
-	MayaScriptsPath      SubCmdType = "/etc/maya.d"
-	InstallConsul        SubCmdType = MayaScriptsPath + "/install_consul.sh"
+	InstallScriptsPath string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
+	BootstrapFile      string = "install_bootstrap.sh"
+	BootstrapFilePath  string = InstallScriptsPath + BootstrapFile
+	MayaScriptsPath    string = "/etc/maya.d/"
+	InstallConsul      string = MayaScriptsPath + "install_consul.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
