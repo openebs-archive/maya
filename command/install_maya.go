@@ -22,17 +22,31 @@ func (c *InstallMayaCommand) Help() string {
 	helpText := `
 Usage: maya install-maya
 
-  Installs maya server.   
+  Installs maya server on this machine. In other words, the machine
+  where this command is run will become a maya server.
 
 General Options:
 
   ` + generalOptionsUsage() + `
+
+Install Maya Options:
+
+  -member-ips=<IP Address(es) of all server members>
+    Command separated list of IP addresses of all server members
+    participating in the cluster.
+    
+    NOTE: Do not include the IP address of this local machine i.e.
+    the machine where this command is being run.
+
+  -self-ip=<IP Address>
+    The IP Address of this local machine i.e. the machine where
+    this command is being run.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *InstallMayaCommand) Synopsis() string {
-	return "Installs maya server"
+	return "Installs maya server on this machine."
 }
 
 func (c *InstallMayaCommand) Run(args []string) int {
@@ -41,8 +55,8 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	flags := c.M.FlagSet("install-maya", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.member_ips, "member_ips", "", "")
-	flags.StringVar(&c.self_ip, "self_ip", "", "")
+	flags.StringVar(&c.member_ips, "member-ips", "", "")
+	flags.StringVar(&c.self_ip, "self-ip", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
