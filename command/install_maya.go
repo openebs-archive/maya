@@ -136,7 +136,7 @@ func (c *InstallMayaCommand) setIP() int {
 		// Derive the self ip
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
-		if runop = execute(c.Cmd, c.M.Ui, c.self_ip); runop != 0 {
+		if runop = execute(c.Cmd, c.M.Ui, &c.self_ip); runop != 0 {
 			c.M.Ui.Error("Install failed: Error fetching local IP address")
 		}
 	}
@@ -180,10 +180,10 @@ func (c *InstallMayaCommand) startConsul() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("start", "consul")
+	c.Cmd = exec.Command("sh", StartConsulServerScript)
 
 	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Install failed: Upstart failed: Error starting consul")
+		c.M.Ui.Error("Install failed: Systemd failed: Error starting consul")
 	}
 
 	return runop

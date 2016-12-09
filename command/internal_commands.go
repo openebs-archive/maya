@@ -46,6 +46,7 @@ const (
 	InstallConsulScript     string = MayaScriptsPath + "install_consul.sh"
 	GetPrivateIPScript      string = MayaScriptsPath + "get_first_private_ip.sh"
 	SetConsulAsServerScript string = MayaScriptsPath + "set_consul_as_server.sh"
+	StartConsulServerScript string = MayaScriptsPath + "start_consul_server.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
@@ -60,7 +61,7 @@ type InternalCommand struct {
 // 0 or 1 depending on successful or failure in execution.
 // NOTE: It will return the exit code of the internal command if
 // available
-func (ic *InternalCommand) Execute(capturer ...string) int {
+func (ic *InternalCommand) Execute(capturer ...*string) int {
 
 	if ic.Cmd.Path == "" {
 		ic.Ui.Error(fmt.Sprintf("Error: %s", ErrMissingCommand))
@@ -84,7 +85,7 @@ func (ic *InternalCommand) Execute(capturer ...string) int {
 		for scanner.Scan() {
 			ic.Ui.Output(scanner.Text())
 			if len(capturer) > 0 {
-				capturer[0] = capturer[0] + scanner.Text()
+				*capturer[0] = *capturer[0] + scanner.Text()
 			}
 		}
 	}()
@@ -113,7 +114,7 @@ func (ic *InternalCommand) Execute(capturer ...string) int {
 	return 0
 }
 
-func execute(cmd *exec.Cmd, ui cli.Ui, capturer ...string) int {
+func execute(cmd *exec.Cmd, ui cli.Ui, capturer ...*string) int {
 
 	ic := &InternalCommand{
 		Cmd: cmd,
