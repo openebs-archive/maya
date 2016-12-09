@@ -39,12 +39,13 @@ const (
 
 // Install specific scripts, path etc
 const (
-	InstallScriptsPath string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
-	BootstrapFile      string = "install_bootstrap.sh"
-	BootstrapFilePath  string = InstallScriptsPath + BootstrapFile
-	MayaScriptsPath    string = "/etc/maya.d/scripts/"
-	InstallConsul      string = MayaScriptsPath + "install_consul.sh"
-	SetConsulAsServer  string = "set_consul_as_server.sh"
+	InstallScriptsPath      string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
+	BootstrapScript         string = "install_bootstrap.sh"
+	BootstrapScriptPath     string = InstallScriptsPath + BootstrapScript
+	MayaScriptsPath         string = "/etc/maya.d/scripts/"
+	InstallConsulScript     string = MayaScriptsPath + "install_consul.sh"
+	GetPrivateIPScript      string = MayaScriptsPath + "get_first_private_ip.sh"
+	SetConsulAsServerScript string = MayaScriptsPath + "set_consul_as_server.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
@@ -59,7 +60,7 @@ type InternalCommand struct {
 // 0 or 1 depending on successful or failure in execution.
 // NOTE: It will return the exit code of the internal command if
 // available
-func (ic *InternalCommand) Execute() int {
+func (ic *InternalCommand) Execute(capturer ...string) int {
 
 	if ic.Cmd.Path == "" {
 		ic.Ui.Error(fmt.Sprintf("Error: %s", ErrMissingCommand))
@@ -82,6 +83,9 @@ func (ic *InternalCommand) Execute() int {
 	go func() {
 		for scanner.Scan() {
 			ic.Ui.Output(scanner.Text())
+			if len(capturer) > 0 {
+				capturer[0] = capturer[0] + scanner.Text()
+			}
 		}
 	}()
 
@@ -109,12 +113,12 @@ func (ic *InternalCommand) Execute() int {
 	return 0
 }
 
-func execute(cmd *exec.Cmd, ui cli.Ui) int {
+func execute(cmd *exec.Cmd, ui cli.Ui, capturer ...string) int {
 
 	ic := &InternalCommand{
 		Cmd: cmd,
 		Ui:  ui,
 	}
 
-	return ic.Execute()
+	return ic.Execute(capturer...)
 }

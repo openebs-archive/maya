@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 CONSUL_VERSION="0.7.0"
 CURDIR=`pwd`

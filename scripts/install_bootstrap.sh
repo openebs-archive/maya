@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 CURDIR=`pwd`
 
@@ -20,6 +20,7 @@ cd /etc/maya.d/scripts
 echo Fetching consul installer script ...
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_consul_as_server.sh -o set_consul_as_server.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/get_first_private_ip.sh -o get_first_private_ip.sh
 
 # Fetch various templates
 cd /etc/maya.d/templates

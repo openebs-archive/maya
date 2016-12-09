@@ -13,8 +13,9 @@ type InstallMayaCommand struct {
 	// OS command to execute; <optional>
 	Cmd *exec.Cmd
 
-	// Check the help section to learn more on these variables
-	bootstrap bool
+	member_ips string
+
+	self_ip string
 }
 
 func (c *InstallMayaCommand) Help() string {
@@ -40,6 +41,9 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	flags := c.M.FlagSet("install-maya", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
+	flags.StringVar(&c.member_ips, "member_ips", "", "")
+	flags.StringVar(&c.self_ip, "self_ip", "", "")
+
 	if err := flags.Parse(args); err != nil {
 		return 1
 	}
@@ -57,21 +61,21 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	}
 
 	// install related steps
-	c.Cmd = exec.Command("curl", "-sSL", BootstrapFilePath, "-o", BootstrapFile)
+	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapFilePath))
+		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapScriptPath))
 
-		c.Cmd = exec.Command("rm", "-rf", BootstrapFile)
+		c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
 		execute(c.Cmd, c.M.Ui)
 
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", "./"+BootstrapFile)
+	c.Cmd = exec.Command("sh", "./"+BootstrapScript)
 	runop = execute(c.Cmd, c.M.Ui)
 
-	c.Cmd = exec.Command("rm", "-rf", BootstrapFile)
+	c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
 	execute(c.Cmd, c.M.Ui)
 
 	if runop != 0 {
@@ -86,14 +90,14 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", InstallConsul)
+	c.Cmd = exec.Command("sh", InstallConsulScript)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing consul")
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", SetConsulAsServer)
+	c.Cmd = exec.Command("sh", SetConsulAsServerScript)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting consul as server")
@@ -105,6 +109,38 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Upstart failed: Error starting consul")
 		return runop
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) setConsulAsServer(args []string) int {
+
+	var runop int
+	var server_count int
+	var server_members []string
+
+	if c.self_ip == "" {
+		// Derive the self ip
+		c.Cmd = exec.Command("sh", GetPrivateIPScript)
+
+		if runop = execute(c.Cmd, c.M.Ui, c.self_ip); runop != 0 {
+			c.M.Ui.Error("Install failed: Error fetching local IP address")
+			return runop
+		}
+	}
+
+	c.M.Ui.Output(c.self_ip)
+
+	if c.member_ips == "" {
+		// This will be the only server as there are no members
+		server_count = 1
+		c.M.Ui.Output(fmt.Sprintf("tot servers: %d", server_count))
+	} else {
+		// server count will be count(members) + self
+		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
+		server_count = len(server_members) + 1
+		c.M.Ui.Output(fmt.Sprintf("tot servers: %d", server_count))
 	}
 
 	return runop

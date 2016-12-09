@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 NOMAD_VERSION="0.5.0"
 CURDIR=`pwd`
