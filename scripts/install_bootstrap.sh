@@ -4,6 +4,10 @@ set -ex
 
 CURDIR=`pwd`
 
+# Remove if already present
+# NOTE: this is install only script
+sudo rm -rf /etc/maya.d/
+
 sudo mkdir -p /etc/maya.d/scripts
 sudo mkdir -p /etc/maya.d/templates
 
@@ -15,10 +19,12 @@ sudo chmod a+w /etc/maya.d/templates
 cd /etc/maya.d/scripts
 echo Fetching consul installer script ...
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_consul_as_server.sh -o set_consul_as_server.sh
 
 # Fetch various templates
 cd /etc/maya.d/templates
 echo Fetching consul server config template ...
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server.json.tmpl -o consul-server.json.tmpl
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server-init.conf.tmpl -o consul-server-init.conf.tmpl
 
 cd ${CURDIR}

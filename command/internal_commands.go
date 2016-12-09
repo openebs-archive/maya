@@ -44,6 +44,7 @@ const (
 	BootstrapFilePath  string = InstallScriptsPath + BootstrapFile
 	MayaScriptsPath    string = "/etc/maya.d/scripts/"
 	InstallConsul      string = MayaScriptsPath + "install_consul.sh"
+	SetConsulAsServer  string = "set_consul_as_server.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")

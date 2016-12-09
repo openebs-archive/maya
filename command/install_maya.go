@@ -62,7 +62,6 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapFilePath))
 
-		// remove it incase a partial copy was downloaded
 		c.Cmd = exec.Command("rm", "-rf", BootstrapFile)
 		execute(c.Cmd, c.M.Ui)
 
@@ -91,6 +90,20 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing consul")
+		return runop
+	}
+
+	c.Cmd = exec.Command("sh", SetConsulAsServer)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error setting consul as server")
+		return runop
+	}
+
+	c.Cmd = exec.Command("start", "consul")
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Upstart failed: Error starting consul")
 		return runop
 	}
 
