@@ -111,28 +111,26 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", SetConsulAsServerScript)
+	c.setServerCount()
 
-	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Install failed: Error setting consul as server")
+	if runop = c.setIP(); runop != 0 {
 		return runop
 	}
 
-	c.Cmd = exec.Command("start", "consul")
+	if runop = c.setConsulAsServer(); runop != 0 {
+		return runop
+	}
 
-	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Install failed: Upstart failed: Error starting consul")
+	if runop = c.startConsul(); runop != 0 {
 		return runop
 	}
 
 	return runop
 }
 
-func (c *InstallMayaCommand) setConsulAsServer(args []string) int {
+func (c *InstallMayaCommand) setIP() int {
 
-	var runop int
-	var server_count int
-	var server_members []string
+	var runop int = 0
 
 	if c.self_ip == "" {
 		// Derive the self ip
@@ -140,11 +138,17 @@ func (c *InstallMayaCommand) setConsulAsServer(args []string) int {
 
 		if runop = execute(c.Cmd, c.M.Ui, c.self_ip); runop != 0 {
 			c.M.Ui.Error("Install failed: Error fetching local IP address")
-			return runop
 		}
 	}
 
-	c.M.Ui.Output(c.self_ip)
+	c.M.Ui.Output(fmt.Sprintf("Self IP: %s", c.self_ip))
+	return runop
+}
+
+func (c *InstallMayaCommand) setServerCount() {
+
+	var server_count int
+	var server_members []string
 
 	if c.member_ips == "" {
 		// This will be the only server as there are no members
@@ -155,6 +159,31 @@ func (c *InstallMayaCommand) setConsulAsServer(args []string) int {
 		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
 		server_count = len(server_members) + 1
 		c.M.Ui.Output(fmt.Sprintf("tot servers: %d", server_count))
+	}
+
+}
+
+func (c *InstallMayaCommand) setConsulAsServer() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", SetConsulAsServerScript)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error setting consul as server")
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) startConsul() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("start", "consul")
+
+	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Upstart failed: Error starting consul")
 	}
 
 	return runop

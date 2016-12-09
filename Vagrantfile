@@ -9,7 +9,7 @@ $script = <<SCRIPT
 
 # Update apt and get dependencies
 sudo apt-get update
-sudo apt-get install -y zip unzip curl
+sudo apt-get install -y zip unzip curl upstart
 
 cd /opt/gopath/src/github.com/openebs/maya
 
