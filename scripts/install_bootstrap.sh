@@ -5,7 +5,7 @@ set -ex
 CURDIR=`pwd`
 
 sudo mkdir -p /etc/maya.d/scripts
-sudo mkdir -p /etc/maya.d/templates
+sudo mkdir -p /etc/maya.d/template
 
 sudo chmod a+w /etc/maya.d/
 sudo chmod a+w /etc/maya.d/scripts

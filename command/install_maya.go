@@ -61,6 +61,11 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapFilePath))
+
+		// remove it incase a partial copy was downloaded
+		c.Cmd = exec.Command("rm", "-rf", BootstrapFile)
+		execute(c.Cmd, c.M.Ui)
+
 		return runop
 	}
 
