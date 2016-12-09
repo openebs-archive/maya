@@ -13,8 +13,13 @@ type InstallMayaCommand struct {
 	// OS command to execute; <optional>
 	Cmd *exec.Cmd
 
+	// all servers excluding self
 	member_ips string
 
+	// all servers including self
+	server_count int
+
+	// self ip address
 	self_ip string
 }
 
@@ -74,40 +79,15 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return execute(c.Cmd, c.M.Ui)
 	}
 
-	// install related steps
-	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
-
-	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapScriptPath))
-
-		c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
-		execute(c.Cmd, c.M.Ui)
-
+	if runop = c.bootTheInstall(); runop != 0 {
 		return runop
 	}
 
-	c.Cmd = exec.Command("sh", "./"+BootstrapScript)
-	runop = execute(c.Cmd, c.M.Ui)
-
-	c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
-	execute(c.Cmd, c.M.Ui)
-
-	if runop != 0 {
-		c.M.Ui.Error("Failed to bootstrap the install")
+	if runop = c.verifyBootstrap(); runop != 0 {
 		return runop
 	}
 
-	c.Cmd = exec.Command("ls", MayaScriptsPath)
-
-	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error(fmt.Sprintf("Install failed: Missing path: %s", MayaScriptsPath))
-		return runop
-	}
-
-	c.Cmd = exec.Command("sh", InstallConsulScript)
-
-	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Install failed: Error installing consul")
+	if runop = c.installConsul(); runop != 0 {
 		return runop
 	}
 
@@ -128,11 +108,65 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	return runop
 }
 
+func (c *InstallMayaCommand) installConsul() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", InstallConsulScript)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error installing consul")
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) verifyBootstrap() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("ls", MayaScriptsPath)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error(fmt.Sprintf("Install failed: Bootstrap failed: Missing path: %s", MayaScriptsPath))
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) bootTheInstall() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error(fmt.Sprintf("Failed to fetch file: %s", BootstrapScriptPath))
+
+		c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
+		execute(c.Cmd, c.M.Ui)
+
+		return runop
+	}
+
+	c.Cmd = exec.Command("sh", "./"+BootstrapScript)
+	runop = execute(c.Cmd, c.M.Ui)
+
+	c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
+	execute(c.Cmd, c.M.Ui)
+
+	if runop != 0 {
+		c.M.Ui.Error("Install failed: Error while bootstraping")
+	}
+
+	return runop
+}
+
 func (c *InstallMayaCommand) setIP() int {
 
 	var runop int = 0
 
-	if c.self_ip == "" {
+	if len(strings.TrimSpace(c.self_ip)) == 0 {
 		// Derive the self ip
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
@@ -147,18 +181,15 @@ func (c *InstallMayaCommand) setIP() int {
 
 func (c *InstallMayaCommand) setServerCount() {
 
-	var server_count int
 	var server_members []string
 
-	if c.member_ips == "" {
+	if len(strings.TrimSpace(c.member_ips)) == 0 {
 		// This will be the only server as there are no members
-		server_count = 1
-		c.M.Ui.Output(fmt.Sprintf("tot servers: %d", server_count))
+		c.server_count = 1
 	} else {
 		// server count will be count(members) + self
 		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
-		server_count = len(server_members) + 1
-		c.M.Ui.Output(fmt.Sprintf("tot servers: %d", server_count))
+		c.server_count = len(server_members) + 1
 	}
 
 }
