@@ -171,6 +171,13 @@ func (c *InstallMayaCommand) init() int {
 	var runop int = 0
 	var server_members []string
 
+  c.Cmd = exec.Command("hostname")
+
+	if runop = execute(c.Cmd, c.M.Ui, &c.self_hostname); runop != 0 {
+		c.M.Ui.Error("Install failed: hostname could not be determined")
+		return runop
+	}
+
 	if len(strings.TrimSpace(c.self_ip)) == 0 {
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
@@ -186,7 +193,7 @@ func (c *InstallMayaCommand) init() int {
 
 	// server count will be count(members) + self
 	c.server_count = 1
-	if len(strings.TrimSpace(c.member_ips)) != 0 {
+	if len(strings.TrimSpace(c.member_ips)) > 0 {
 		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
 		c.server_count = len(server_members) + 1
 	}
