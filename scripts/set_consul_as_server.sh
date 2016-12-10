@@ -12,8 +12,6 @@ SELF_HOSTNAME=$2
 ALL_SERVERS_IPV4=$3
 S_NODES=$4
 
-echo "Total Servers: ${S_NODES}"
-
 echo Set consul on server mode
 
 # Place consul config template 

@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -171,7 +172,7 @@ func (c *InstallMayaCommand) init() int {
 	var runop int = 0
 	var server_members []string
 
-  c.Cmd = exec.Command("hostname")
+	c.Cmd = exec.Command("hostname")
 
 	if runop = execute(c.Cmd, c.M.Ui, &c.self_hostname); runop != 0 {
 		c.M.Ui.Error("Install failed: hostname could not be determined")
@@ -211,7 +212,7 @@ func (c *InstallMayaCommand) setConsulAsServer() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, string(c.server_count))
+	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting consul as server")
