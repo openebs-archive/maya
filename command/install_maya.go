@@ -19,8 +19,14 @@ type InstallMayaCommand struct {
 	// all servers including self
 	server_count int
 
+	// all servers ipv4, in a comma separated format
+	all_servers_ipv4 string
+
 	// self ip address
 	self_ip string
+
+	// self hostname
+	self_hostname string
 }
 
 func (c *InstallMayaCommand) Help() string {
@@ -79,6 +85,10 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return execute(c.Cmd, c.M.Ui)
 	}
 
+	if runop = c.init(); runop != 0 {
+		return runop
+	}
+
 	if runop = c.bootTheInstall(); runop != 0 {
 		return runop
 	}
@@ -88,12 +98,6 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	}
 
 	if runop = c.installConsul(); runop != 0 {
-		return runop
-	}
-
-	c.setServerCount()
-
-	if runop = c.setIP(); runop != 0 {
 		return runop
 	}
 
@@ -162,12 +166,12 @@ func (c *InstallMayaCommand) bootTheInstall() int {
 	return runop
 }
 
-func (c *InstallMayaCommand) setIP() int {
+func (c *InstallMayaCommand) init() int {
 
 	var runop int = 0
+	var server_members []string
 
 	if len(strings.TrimSpace(c.self_ip)) == 0 {
-		// Derive the self ip
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
 		if runop = execute(c.Cmd, c.M.Ui, &c.self_ip); runop != 0 {
@@ -175,30 +179,32 @@ func (c *InstallMayaCommand) setIP() int {
 		}
 	}
 
-	c.M.Ui.Output(fmt.Sprintf("Self IP: %s", c.self_ip))
-	return runop
-}
+	if len(strings.TrimSpace(c.self_ip)) == 0 {
+		c.M.Ui.Error("Install failed: IP address could not be determined")
+		runop = 1
+	}
 
-func (c *InstallMayaCommand) setServerCount() {
-
-	var server_members []string
-
-	if len(strings.TrimSpace(c.member_ips)) == 0 {
-		// This will be the only server as there are no members
-		c.server_count = 1
-	} else {
-		// server count will be count(members) + self
+	// server count will be count(members) + self
+	c.server_count = 1
+	if len(strings.TrimSpace(c.member_ips)) != 0 {
 		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
 		c.server_count = len(server_members) + 1
 	}
 
+	c.all_servers_ipv4 = `"` + c.self_ip + `"`
+
+	for _, server_ip := range server_members {
+		c.all_servers_ipv4 = c.all_servers_ipv4 + `,"` + server_ip + `"`
+	}
+
+	return runop
 }
 
 func (c *InstallMayaCommand) setConsulAsServer() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", SetConsulAsServerScript)
+	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, string(c.server_count))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting consul as server")
