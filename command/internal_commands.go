@@ -47,6 +47,9 @@ const (
 	GetPrivateIPScript      string = MayaScriptsPath + "get_first_private_ip.sh"
 	SetConsulAsServerScript string = MayaScriptsPath + "set_consul_as_server.sh"
 	StartConsulServerScript string = MayaScriptsPath + "start_consul_server.sh"
+	InstallNomadScript      string = MayaScriptsPath + "install_nomad.sh"
+	SetNomadAsServerScript  string = MayaScriptsPath + "set_nomad_as_server.sh"
+	StartNomadServerScript  string = MayaScriptsPath + "start_nomad_server.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")

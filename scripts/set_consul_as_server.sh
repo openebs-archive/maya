@@ -12,7 +12,7 @@ SELF_HOSTNAME=$2
 ALL_SERVERS_IPV4=$3
 S_NODES=$4
 
-echo Set consul on server mode
+echo "Set consul in server mode ..."
 
 # Place consul config template 
 sudo cp /etc/maya.d/templates/consul-server.json.tmpl /etc/consul.d/server/consul-server.json

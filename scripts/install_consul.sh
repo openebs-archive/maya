@@ -10,7 +10,7 @@ CURDIR=`pwd`
 # NOTE: this is install only script
 echo "Cleaning old Consul installation if any"
 sudo systemctl stop consul-server.service
-sudo rm -rf consul.zip
+sudo rm -rf /tmp/consul.zip
 sudo rm -rf /usr/bin/consul
 sudo rm -rf /etc/consul.d/
 sudo rm -rf /opt/consul/

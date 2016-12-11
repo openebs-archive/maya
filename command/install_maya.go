@@ -44,7 +44,7 @@ General Options:
 Install Maya Options:
 
   -member-ips=<IP Address(es) of all server members>
-    Command separated list of IP addresses of all server members
+    Comma separated list of IP addresses of all server members
     participating in the cluster.
     
     NOTE: Do not include the IP address of this local machine i.e.
@@ -52,7 +52,8 @@ Install Maya Options:
 
   -self-ip=<IP Address>
     The IP Address of this local machine i.e. the machine where
-    this command is being run.
+    this command is being run. This is required when the machine
+    has many private IPs and you want to use a specific IP.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -110,6 +111,18 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return runop
 	}
 
+	if runop = c.installNomad(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.setNomadAsServer(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.startNomad(); runop != 0 {
+		return runop
+	}
+
 	return runop
 }
 
@@ -121,6 +134,19 @@ func (c *InstallMayaCommand) installConsul() int {
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing consul")
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) installNomad() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", InstallNomadScript)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error installing nomad")
 	}
 
 	return runop
@@ -184,12 +210,13 @@ func (c *InstallMayaCommand) init() int {
 
 		if runop = execute(c.Cmd, c.M.Ui, &c.self_ip); runop != 0 {
 			c.M.Ui.Error("Install failed: Error fetching local IP address")
+			return runop
 		}
 	}
 
 	if len(strings.TrimSpace(c.self_ip)) == 0 {
 		c.M.Ui.Error("Install failed: IP address could not be determined")
-		runop = 1
+		return 1
 	}
 
 	// server count will be count(members) + self
@@ -221,6 +248,19 @@ func (c *InstallMayaCommand) setConsulAsServer() int {
 	return runop
 }
 
+func (c *InstallMayaCommand) setNomadAsServer() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", SetNomadAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error setting nomad as server")
+	}
+
+	return runop
+}
+
 func (c *InstallMayaCommand) startConsul() int {
 
 	var runop int = 0
@@ -229,6 +269,18 @@ func (c *InstallMayaCommand) startConsul() int {
 
 	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Systemd failed: Error starting consul")
+	}
+
+	return runop
+}
+func (c *InstallMayaCommand) startNomad() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", StartNomadServerScript)
+
+	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Systemd failed: Error starting nomad")
 	}
 
 	return runop
