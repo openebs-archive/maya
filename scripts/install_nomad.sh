@@ -8,7 +8,7 @@ CURDIR=`pwd`
 # Remove if already present
 # NOTE: this is install only script
 echo "Cleaning old Nomad installation if any"
-sudo systemctl stop nomad-server.service
+
 sudo rm -rf /tmp/nomad.zip
 sudo rm -rf /usr/bin/nomad
 sudo rm -rf /etc/nomad.d/
