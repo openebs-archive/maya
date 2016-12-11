@@ -87,15 +87,15 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return execute(c.Cmd, c.M.Ui)
 	}
 
-	if runop = c.init(); runop != 0 {
-		return runop
-	}
-
 	if runop = c.bootTheInstall(); runop != 0 {
 		return runop
 	}
 
 	if runop = c.verifyBootstrap(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.init(); runop != 0 {
 		return runop
 	}
 
