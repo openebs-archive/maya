@@ -1,6 +1,6 @@
 ## Maya
 
-Maya is the storage orchestration system for managing storage for millions of containers. Maya can accomplish complex storage management tasks with deceptive simplicity. Maya can manage storage across multiple Maya-Realms (aka clusters/environements), that are co-located or geographically seperated and can also run from within a single host. 
+Maya is the storage orchestration system for managing storage for millions of containers. Maya can accomplish complex storage management tasks with deceptive simplicity. Maya can manage storage across multiple Maya-Realms (aka clusters/environments), that are co-located or geographically seperated and can also run from within a single host. 
 
 TODO: Link to the Architecture Diagram. 
 
