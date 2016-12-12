@@ -26,5 +26,7 @@ sudo sed -e "s|__S_NODES__|$S_NODES|g" -i /etc/nomad.d/server/nomad-server.hcl
 sudo sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /etc/nomad.d/server/nomad-server.hcl
 
 # Set the env variable to bind nomad cli to self ip
-echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
-source $HOME/.bash_profile
+#echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
+grep "export NOMAD_ADDR=http://${SELF_IPV4}:4646" ~/.profile || \
+  echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> ~/.profile
+export NOMAD_ADDR=http://${SELF_IPV4}:4646
