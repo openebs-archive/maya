@@ -26,11 +26,15 @@ echo "Fetching consul scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_consul_as_server.sh -o set_consul_as_server.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_consul_server.sh -o start_consul_server.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_consul_as_client.sh -o set_consul_as_client.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_consul_client.sh -o start_consul_client.sh
 
 echo "Fetching nomad scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_nomad.sh -o install_nomad.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_nomad_as_server.sh -o set_nomad_as_server.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_server.sh -o start_nomad_server.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_nomad_as_client.sh -o set_nomad_as_client.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_client.sh -o start_nomad_client.sh
 
 # Fetch various templates
 cd /etc/maya.d/templates
@@ -38,9 +42,13 @@ cd /etc/maya.d/templates
 echo "Fetching consul config templates ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server.json.tmpl -o consul-server.json.tmpl
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server.service.tmpl -o consul-server.service.tmpl
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-client.json.tmpl -o consul-client.json.tmpl
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-client.service.tmpl -o consul-client.service.tmpl
 
 echo "Fetching nomad config templates ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-server.hcl.tmpl -o nomad-server.hcl.tmpl
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-server.service.tmpl -o nomad-server.service.tmpl
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-client.hcl.tmpl -o nomad-client.hcl.tmpl
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-client.service.tmpl -o nomad-client.service.tmpl
 
 cd ${CURDIR}

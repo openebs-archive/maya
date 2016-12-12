@@ -39,17 +39,24 @@ const (
 
 // Install specific scripts, path etc
 const (
-	InstallScriptsPath      string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
-	BootstrapScript         string = "install_bootstrap.sh"
-	BootstrapScriptPath     string = InstallScriptsPath + BootstrapScript
-	MayaScriptsPath         string = "/etc/maya.d/scripts/"
+	InstallScriptsPath  string = "https://raw.githubusercontent.com/openebs/maya/master/scripts/"
+	BootstrapScript     string = "install_bootstrap.sh"
+	BootstrapScriptPath string = InstallScriptsPath + BootstrapScript
+	MayaScriptsPath     string = "/etc/maya.d/scripts/"
+	// Utility scripts
+	GetPrivateIPScript string = MayaScriptsPath + "get_first_private_ip.sh"
+	// Consul scripts
 	InstallConsulScript     string = MayaScriptsPath + "install_consul.sh"
-	GetPrivateIPScript      string = MayaScriptsPath + "get_first_private_ip.sh"
 	SetConsulAsServerScript string = MayaScriptsPath + "set_consul_as_server.sh"
+	SetConsulAsClientScript string = MayaScriptsPath + "set_consul_as_client.sh"
 	StartConsulServerScript string = MayaScriptsPath + "start_consul_server.sh"
-	InstallNomadScript      string = MayaScriptsPath + "install_nomad.sh"
-	SetNomadAsServerScript  string = MayaScriptsPath + "set_nomad_as_server.sh"
-	StartNomadServerScript  string = MayaScriptsPath + "start_nomad_server.sh"
+	StartConsulClientScript string = MayaScriptsPath + "start_consul_client.sh"
+	// Nomad scripts
+	InstallNomadScript     string = MayaScriptsPath + "install_nomad.sh"
+	SetNomadAsServerScript string = MayaScriptsPath + "set_nomad_as_server.sh"
+	SetNomadAsClientScript string = MayaScriptsPath + "set_nomad_as_client.sh"
+	StartNomadServerScript string = MayaScriptsPath + "start_nomad_server.sh"
+	StartNomadClientScript string = MayaScriptsPath + "start_nomad_client.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")

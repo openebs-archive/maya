@@ -11,7 +11,7 @@ type InstallMayaCommand struct {
 	// To control this CLI's display
 	M Meta
 
-	// OS command to execute; <optional>
+	// OS command to execute
 	Cmd *exec.Cmd
 
 	// all servers excluding self

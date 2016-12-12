@@ -29,6 +29,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
+		"install-openebs": func() (cli.Command, error) {
+			return &command.InstallOpenEBSCommand{
+				M: meta,
+			}, nil
+		},
 		"vsm-create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
 				M: meta,
