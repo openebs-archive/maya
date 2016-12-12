@@ -7,7 +7,7 @@ After=network-online.target
 EnvironmentFile=-/etc/sysconfig/nomad
 Environment=GOMAXPROCS=2
 Restart=on-failure
-ExecStart=/usr/bin/nomad agent -config-dir=/etc/nomad.d/server
+ExecStart=/usr/bin/nomad agent -config=/etc/nomad.d/server
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGTERM
 
