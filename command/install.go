@@ -124,6 +124,11 @@ func (c *MayaAsNomadInstaller) verifyBootstrap() int {
 	return runop
 }
 
+//TODO
+func (c *MayaAsNomadInstaller) validateIPs() int {
+	return 0
+}
+
 // Set the instance variables i.e. properties of
 // MayaAsNomadInstaller
 func (c *MayaAsNomadInstaller) initAsClient() int {
@@ -150,10 +155,21 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 	}
 
 	for _, master_ip := range master_iparr {
+
+		master_ip = strings.TrimSpace(master_ip)
+
+		if len(master_ip) == 0 {
+			continue
+		}
+
 		if len(c.fmt_master_ips) > 0 {
 			c.fmt_master_ips = c.fmt_master_ips + ","
+		}
+
+		if len(c.fmt_master_ipnports) > 0 {
 			c.fmt_master_ipnports = c.fmt_master_ipnports + ","
 		}
+
 		c.fmt_master_ips = c.fmt_master_ips + `"` + master_ip + `"`
 		c.fmt_master_ipnports = c.fmt_master_ipnports + `"` + master_ip + `:4647"`
 	}

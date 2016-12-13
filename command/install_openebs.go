@@ -2,7 +2,6 @@ package command
 
 import (
 	"os/exec"
-
 	"strings"
 )
 
