@@ -8,21 +8,20 @@ CURDIR=`pwd`
 # Remove if already present
 # NOTE: this is install only script
 echo "Cleaning old Nomad installation if any"
-
-sudo rm -rf /tmp/nomad.zip
 sudo rm -rf /usr/bin/nomad
 sudo rm -rf /etc/nomad.d/
 sudo rm -rf /opt/nomad/
 sudo rm -rf /var/log/nomad
 
-echo "Fetching Nomad ${NOMAD_VERSION} ..."
-
 cd /tmp/
 
-curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
+if [ ! -f "./nomad_${NOMAD_VERSION}.zip" ]; then
+  echo "Fetching Nomad ${NOMAD_VERSION} ..."
+  curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad_${NOMAD_VERSION}.zip
+fi
 
 echo "Installing Nomad ${NOMAD_VERSION} ..."
-unzip nomad.zip
+unzip nomad_${NOMAD_VERSION}.zip
 sudo chmod +x nomad
 sudo mv nomad /usr/bin/nomad
 

@@ -3,7 +3,7 @@
 set -e
 
 if [ $# -ne 4 ]; then
-    echo $0: usage: set_nomad_as_server SELF_IPV4 SELF_HOSTNAME ALL_SERVERS_IPV4 S_NODES
+    echo usage: $0 SELF_IPV4 SELF_HOSTNAME ALL_SERVERS_IPV4 S_NODES
     exit 1
 fi
 

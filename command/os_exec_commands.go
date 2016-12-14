@@ -57,6 +57,8 @@ const (
 	SetNomadAsClientScript string = MayaScriptsPath + "set_nomad_as_client.sh"
 	StartNomadServerScript string = MayaScriptsPath + "start_nomad_server.sh"
 	StartNomadClientScript string = MayaScriptsPath + "start_nomad_client.sh"
+	// Docker scripts
+	InstallDockerScript string = MayaScriptsPath + "install_docker.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")

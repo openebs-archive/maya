@@ -56,6 +56,10 @@ func (c *MayaAsNomadInstaller) Install() int {
 		return runop
 	}
 
+	if runop = c.installDocker(); runop != 0 {
+		return runop
+	}
+
 	if runop = c.installConsul(); runop != 0 {
 		return runop
 	}
@@ -172,6 +176,19 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 
 		c.fmt_master_ips = c.fmt_master_ips + `"` + master_ip + `"`
 		c.fmt_master_ipnports = c.fmt_master_ipnports + `"` + master_ip + `:4647"`
+	}
+
+	return runop
+}
+
+func (c *MayaAsNomadInstaller) installDocker() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", InstallDockerScript)
+
+	if runop = execute(c.Cmd, c.Ui); runop != 0 {
+		c.Ui.Error("Install failed: Error installing docker")
 	}
 
 	return runop

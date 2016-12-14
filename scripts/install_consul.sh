@@ -9,19 +9,19 @@ CURDIR=`pwd`
 # Remove if already present
 # NOTE: this is install only script
 echo "Cleaning old Consul installation if any"
-sudo rm -rf /tmp/consul.zip
 sudo rm -rf /usr/bin/consul
 sudo rm -rf /etc/consul.d/
 sudo rm -rf /opt/consul/
 
-echo "Fetching Consul ${CONSUL_VERSION} ..."
-
 cd /tmp/
 
-curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip -o consul.zip
+if [ ! -f "./consul_${CONSUL_VERSION}.zip" ]; then
+  echo "Fetching Consul ${CONSUL_VERSION} ..."
+  curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip -o consul_${CONSUL_VERSION}.zip
+fi
 
 echo "Installing Consul ${CONSUL_VERSION} ..."
-unzip consul.zip
+unzip consul_${CONSUL_VERSION}.zip
 sudo chmod +x consul
 sudo mv consul /usr/bin/consul
 

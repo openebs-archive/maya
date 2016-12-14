@@ -4,9 +4,11 @@ set -e
 
 CURDIR=`pwd`
 
+# Update the apt
+sudo apt-get update
+
 # Remove if already present
-# NOTE: this is install only script
-echo "Cleaning old maya boostrapping if any"
+echo "Cleaning old maya boostrapping if any ..."
 sudo rm -rf /etc/maya.d/
 
 sudo mkdir -p /etc/maya.d/scripts
@@ -21,6 +23,9 @@ cd /etc/maya.d/scripts
 
 echo "Fetching utility scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/get_first_private_ip.sh -o get_first_private_ip.sh
+
+echo "Fetching docker scripts ..."
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_docker.sh -o install_docker.sh
 
 echo "Fetching consul scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh

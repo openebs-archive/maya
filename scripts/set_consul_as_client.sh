@@ -3,7 +3,7 @@
 set -e
 
 if [ $# -ne 2 ]; then
-    echo $0: usage: set_consul_as_client SELF_IPV4 ALL_SERVERS_IPV4
+    echo usage: $0 SELF_IPV4 ALL_SERVERS_IPV4
     exit 1
 fi
 
