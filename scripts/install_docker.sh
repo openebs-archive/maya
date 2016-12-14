@@ -4,7 +4,7 @@ set -e
 
 echo "Installing Docker ..."
 
-sudo apt-get install apt-transport-https ca-certificates
+sudo apt-get install -y apt-transport-https ca-certificates
 
 echo deb https://apt.dockerproject.org/repo ubuntu-`lsb_release -c \
   | awk '{print $2}'` main | sudo tee /etc/apt/sources.list.d/docker.list
