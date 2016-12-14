@@ -43,7 +43,7 @@ test:
 	@$(MAKE) vet
 
 cover:
-	go list ./... | xargs -n1 go test --cover
+	go list ./... | grep -v vendor | xargs -n1 go test --cover
 
 format:
 	@echo "--> Running go fmt"
@@ -68,14 +68,11 @@ vet:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "Installing $$tool" ; \
-    go get $$tool; \
+		go get $$tool; \
 	done
 
 # You might need to use sudo
 install: bin/maya
 	install -o root -g root -m 0755 ./bin/maya /usr/local/bin/maya
-
-travis:
-	@sh -c "'$(PWD)/scripts/travis.sh'"
 
 .PHONY: all bin cov integ test vet test-nodep
