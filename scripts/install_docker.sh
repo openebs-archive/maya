@@ -18,7 +18,7 @@ sudo apt-get update
 
 # Install recommended packages
 # This allows the use of aufs storage driver
-sudo apt-get install linux-image-extra-$(uname -r) linux-image-extra-virtual
+sudo apt-get install -y linux-image-extra-$(uname -r) linux-image-extra-virtual
 
 # Display the version of docker that will be installed
 # NOTE: The default version that is set is marked with ***
