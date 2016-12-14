@@ -38,6 +38,5 @@ sudo service docker restart
 # can only access it using sudo. The docker daemon always runs as the root user.
 sudo usermod -aG docker $USER
 
-# Make sure the env variable is set properly
-# TODO: If not then you need to set this explicity at ~/.profile
-env | grep DOCKER_HOST
+# Verify the env variable
+env | grep DOCKER_HOST || echo "NOTE: DOCKER_HOST is not set"
