@@ -18,7 +18,7 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 cd /tmp
 
 if [ ! -f "./go${GO_VERSION}.linux-${ARCH}.tar.gz" ]; then
-  wget https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
+  wget -q https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
 fi
 
 tar -xf go${GO_VERSION}.linux-${ARCH}.tar.gz
