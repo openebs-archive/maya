@@ -20,6 +20,21 @@ install:
 script:
   - make test
 
+deploy:
+  - provider: releases
+    api_key:
+        secure: obYvy0FBy1zU0IsbgUPBRqPyd9LoVRzugEngj6+v3TPA/lnKCZlYzYboqD60wfoqO9BaCdepyL7D9ogh4pQgaDRk/bFT+FDeMC3oeVauXFiDCWw8tKbM4+bOTycdKmv7dhobAcolm0KAs03bKBgNdpdz0BQ6TbjuoIwja3rdoade/XuedbuDLs44cE4J8gZpHFi1Cj5IUvTUqUTqO5gV33CJ3WMdgWlJPHm/zEdcGQ/KzvXrUrPCH7AABbXOMRTKnl1alEdO3a+uUoZVJmpX8c6Rd2+B1wuGsz2KqveNAOdruvSOqu8SONncSBhIW3IL5tDOjrZjOXmJ7F6xbDc3UFk7ZRHNLIFlaRFTwI26vAam76KJ+x2DVxp4akt+NlyPRggFsQOtgZVtqTDgGJs17GwsuVsNsuh3r1PVPfLyagptys16AY81QSctENcHv3UWkQ/quLWM0VOHFCrBODSMU2pVJsuHYXQUz2QfN3FiUAre+UsbRlppEXrlSinIwbNv0khm+UJHrITsnmfQPTZjurupToiZxcUhDBFMakjye/jH8OxGll7zwe/S2kuNlmDrGz/iVjjOukYrPVOPgVXYFUQHfxVuak6RxfaPPBr8I93XbvZ1BReRSVDnkbV22FlNlG/Rwc5DI49qe7s6TnDtrTEk6pfiw5DbDHPKeKIiG/g=
+ 
+   file: 
+     - pkg/linux_amd64
+     - pkg/linux_amd64.zip
+   skip_cleanup: true
+   overwrite: true        
+  on:
+  repo: openebs/maya
+  tags: true
+
+
 notifications:
   email:
     recipients:
