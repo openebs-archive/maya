@@ -29,4 +29,7 @@ deploy:
   overwrite: true        
   on:
     repo: openebs/maya
-    tags: true        
+    tags: true
+branches:
+  except:
+    - /^*-v[0-9]/      
