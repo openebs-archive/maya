@@ -1,18 +1,18 @@
 sudo: required
 dist: trusty
 services:
-- docker
+  - docker
 language: go
 go:
-- 1.7
+  - 1.7
 before_install:
-- sudo apt-get update
-- sudo apt-get install -y docker-engine liblxc1 lxc-dev lxc
-- sudo apt-get install -y qemu
+  - sudo apt-get update
+  - sudo apt-get install -y docker-engine liblxc1 lxc-dev lxc
+  - sudo apt-get install -y qemu
 install:
-- make bootstrap
+  - make bootstrap
 script:
-- make test
+  - make test dev
 notifications:
   email:
     recipients:
