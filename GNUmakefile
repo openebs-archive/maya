@@ -25,6 +25,10 @@ dev: format
 bin:
 	@sh -c "'$(PWD)/scripts/build.sh'"
 
+clean: 
+	rm -rf pkg
+	rm -rf bin
+
 release:
 	@$(MAKE) bin
 
