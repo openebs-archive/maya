@@ -39,7 +39,7 @@ gox \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE}" \
     -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}'" \
-    -output "pkg/{{.OS}}_{{.Arch}}/maya" \
+    -output "pkg/{{.OS}}_{{.Arch}}/mayactl" \
     .
 
 echo ""
@@ -70,7 +70,7 @@ if [[ "x${MAYA_DEV}" == "x" ]]; then
         echo "--> ${OSARCH}"
 
         pushd $PLATFORM >/dev/null 2>&1
-        zip ../${OSARCH}.zip ./*
+        zip ../maya-${OSARCH}.zip ./*
         popd >/dev/null 2>&1
     done
 fi

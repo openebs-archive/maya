@@ -37,7 +37,7 @@ func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 	cli := &cli.CLI{
 		Args:     args,
 		Commands: commands,
-		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc("maya")),
+		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc("mayactl")),
 	}
 
 	exitCode, err := cli.Run()
