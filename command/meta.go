@@ -97,27 +97,8 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 // generalOptionsUsage returns the help string for the global options.
 func generalOptionsUsage() string {
 	helpText := `
-  -address=<addr>
-    The address of the server.
-  -region=<region>
-    The region of the servers to forward commands to.    
   -no-color
     Disables colored command output.
-  -ca-cert=<path>           
-    Path to a PEM encoded CA cert file to use to verify the 
-    server SSL certificate.
-  -ca-path=<path>           
-    Path to a directory of PEM encoded CA cert files to verify 
-    the server SSL certificate. If both -ca-cert and 
-    -ca-path are specified, -ca-cert is used.
-  -client-cert=<path>       
-    Path to a PEM encoded client certificate for TLS authentication 
-    to the server. Must also specify -client-key.
-  -client-key=<path>        
-    Path to an unencrypted PEM encoded private key matching the 
-    client certificate from -client-cert.
-  -tls-skip-verify        
-    Do not verify TLS certificate. This is highly not recommended.
 `
 	return strings.TrimSpace(helpText)
 }
