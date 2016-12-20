@@ -7,3 +7,5 @@ glide.lock
 pkg/
 nohup.out
 hello.nomad
+clientpeers
+serverpeers

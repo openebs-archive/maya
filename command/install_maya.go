@@ -36,6 +36,8 @@ Usage: maya install-maya
 
   Installs maya server on this machine. In other words, the machine
   where this command is run will become a maya server.
+  
+  A maya server is otherwise known as a maya master.
 
 General Options:
 
@@ -44,8 +46,8 @@ General Options:
 Install Maya Options:
 
   -member-ips=<IP Address(es) of all server members>
-    Comma separated list of IP addresses of all server members
-    participating in the cluster.
+    Comma separated list of IP addresses of all servers members
+    i.e. maya server peers, participating in the cluster.
     
     NOTE: Do not include the IP address of this local machine i.e.
     the machine where this command is being run.
