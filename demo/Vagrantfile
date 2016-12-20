@@ -5,10 +5,6 @@
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.require_version ">= 1.6.0"
 
-# Installer versions
-NOMAD_VERSION = ENV['NOMAD_VERSION'] || "0.5.0"
-CONSUL_VERSION = ENV['CONSUL_VERSION'] || "0.7.1"
-
 # Server Nodes
 S_NODES = ENV['S_NODES'] || 1
 
@@ -23,214 +19,18 @@ S_CPUS = ENV['S_CPUS'] || 1
 C_MEM = ENV['C_MEM'] || 1024
 C_CPUS = ENV['C_CPUS'] || 1
 
-# Private IP address of server(s) & client(s)
-BASE_SIP_ADDR = ENV['BASE_SIP_ADDR'] || "10.21.0"
-BASE_CIP_ADDR = ENV['BASE_CIP_ADDR'] || "10.31.0"
-
-# Nomad client setting that determines if docker containers should run in 
-# privileged mode
-RUN_DOCK_CON_PRIVILEGED = ENV['RUN_DOCK_CON_PRIVILEGED'] || "true"
-
-# Placeholder to store comma separated server ip addresses
-all_servers_ipv4 = ""
-all_servers_ipv4_n_ports = ""
-
-# Script that prepares directories at both server(s) & client(s)
-$preparedirs = <<SCRIPT
-echo Will run the prepare dirs script ...
-
-# Setup config directory for Nomad
-sudo mkdir -p /etc/nomad.d
-sudo chmod a+w /etc/nomad.d
-
-# Setup data directory for Nomad
-sudo mkdir -p /opt/nomad/data
-
-# Setup log directory for Nomad
-sudo mkdir -p /var/log/nomad
-sudo chmod a+w /var/log/nomad
-
-# Setup config directory for Consul
-sudo mkdir -p /etc/consul.d
-sudo chmod a+w /etc/consul.d
-
-# Setup data directory for Consul
-sudo mkdir -p /opt/consul/data
-
-# Setup log directory for Consul
-sudo mkdir -p /var/log/consul
-sudo chmod a+w /var/log/consul
-SCRIPT
 
 # Generic installer script common for server(s) & client(s)
 # This expects arguments that provide runtime values
 $installer = <<SCRIPT
 #!/bin/bash
 
-if [ $# -ne 2 ]; then
-    echo $0: usage: installer NOMAD_VERSION CONSUL_VERSION
-    exit 1
-fi
-
 echo Will run the common installer script ...
 
-NOMAD_VERSION=$1
-CONSUL_VERSION=$2
-
 # Update apt and get dependencies
-
 sudo apt-get update
 sudo apt-get install -y unzip curl wget
 
-# Move to /tmp directory
-cd /tmp/
-
-# Download Nomad
-echo Fetching Nomad ${NOMAD_VERSION} ...
-curl -sSL https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip -o nomad.zip
-
-echo Installing Nomad...
-unzip nomad.zip
-sudo chmod +x nomad
-sudo mv nomad /usr/bin/nomad
-
-
-# Download Consul
-echo Fetching Consul ${CONSUL_VERSION} ...
-curl -sSL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip -o consul.zip
-
-echo Installing Consul...
-unzip consul.zip
-sudo chmod +x consul
-sudo mv consul /usr/bin/consul
-SCRIPT
-
-# Script that prepares the config for Nomad & Consul client
-# This expects arguments that provide runtime values
-$clientconfig = <<SCRIPT
-#!/bin/bash
-
-if [ $# -ne 4 ]; then
-    echo $0: usage: clientconfig ALL_SERVERS_IPV4 ALL_SERVERS_IPV4_N_PORTS SELF_IPV4 RUN_DOCK_CON_PRIVILEGED
-    exit 1
-fi
-
-echo Will run the client config script ...
-
-ALL_SERVERS_IPV4=$1
-ALL_SERVERS_IPV4_N_PORTS=$2
-SELF_IPV4=$3
-RUN_DOCK_CON_PRIVILEGED=$4
-
-sudo cp -p /vagrant/consul-client.json.tmpl /vagrant/temp/consul-client.json
-sudo cp -p /vagrant/client.hcl.tmpl /vagrant/temp/client.hcl
-
-sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/consul-client.json
-sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/consul-client.json
-
-sed -e "s|__ALL_SERVERS_IPV4_N_PORTS__|$ALL_SERVERS_IPV4_N_PORTS|g" -i /vagrant/temp/client.hcl
-sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/client.hcl
-sed -e "s|__RUN_DOCK_CON_PRIVILEGED__|$RUN_DOCK_CON_PRIVILEGED|g" -i /vagrant/temp/client.hcl
-SCRIPT
-
-# Script that prepares the config for Nomad & Consul server
-# This expects arguments that provide runtime values
-$serverconfig = <<SCRIPT
-#!/bin/bash
-
-if [ $# -ne 4 ]; then
-    echo $0: usage: serverconfig SELF_IPV4 SELF_HOSTNAME ALL_SERVERS_IPV4 S_NODES
-    exit 1
-fi
-
-echo Will run the server config script ...
-
-SELF_IPV4=$1
-SELF_HOSTNAME=$2
-ALL_SERVERS_IPV4=$3
-S_NODES=$4
-
-sudo cp -p /vagrant/consul-server.json.tmpl /vagrant/temp/consul-server.json
-sudo cp -p /vagrant/server.hcl.tmpl /vagrant/temp/server.hcl
-
-sed -e "s|__SELF_HOSTNAME__|$SELF_HOSTNAME|g" -i /vagrant/temp/consul-server.json
-sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/consul-server.json
-sed -e "s|__S_NODES__|$S_NODES|g" -i /vagrant/temp/consul-server.json
-sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/consul-server.json
-
-sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /vagrant/temp/server.hcl
-sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /vagrant/temp/server.hcl
-sed -e "s|__S_NODES__|$S_NODES|g" -i /vagrant/temp/server.hcl
-SCRIPT
-
-# Script that starts Nomad & Consul server
-$serverstart = <<SCRIPT
-#!/bin/bash
-
-if [ $# -ne 1 ]; then
-    echo $0: usage: serverstart SELF_IPV4
-    exit 1
-fi
-
-echo Will run the server start script ...
-
-SELF_IPV4=$1
-
-# Copy Nomad server config to config directory
-sudo cp /vagrant/temp/server.hcl /etc/nomad.d/
-
-# Copy the Consul server config to config directory
-sudo cp /vagrant/temp/consul-server.json /etc/consul.d/
-
-cd ~
-
-echo Starting Nomad, logs at ~/nomad.log
-sudo nohup nomad agent -config /etc/nomad.d/server.hcl &>nomad.log  &
-
-echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
-source $HOME/.bash_profile
-
-echo Starting Consul, logs at ~/consul.log
-sudo nohup consul agent -config-file /etc/consul.d/consul-server.json &>consul.log  &
-
-SCRIPT
-
-# Script that starts Nomad & Consul client
-$clientstart = <<SCRIPT
-#!/bin/bash
-
-if [ $# -ne 1 ]; then
-    echo $0: usage: clientstart SELF_IPV4
-    exit 1
-fi
-
-echo Will run the client start script ...
-
-SELF_IPV4=$1
-
-# Copy Nomad server config to config directory
-sudo cp /vagrant/temp/client.hcl /etc/nomad.d/
-
-# Copy the Consul server config to config directory
-sudo cp /vagrant/temp/consul-client.json /etc/consul.d/
-
-cd ~
-
-echo Starting Nomad, logs at ~/nomad.log
-sudo nohup nomad agent -config /etc/nomad.d/client.hcl &>nomad.log  &
-
-echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
-source $HOME/.bash_profile
-
-echo Starting Consul, logs at ~/consul.log
-
-# If client(s) are assigned with public IP.
-#export BIND_ADDRESS=`/sbin/ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}'`
-#sudo nohup consul agent -bind $BIND_ADDRESS -config-file /etc/consul.d/consul-client.json &>consul.log  &
-
-# If client(s) are assigned with private IP
-# NOTE: The 'bind' option will be already set by a prior script
-sudo nohup consul agent -config-file /etc/consul.d/consul-client.json &>consul.log  &
 SCRIPT
 
 required_plugins = %w(vagrant-cachier)
@@ -247,11 +47,11 @@ end
 
 def configureVM(vmCfg, hostname, cpus, mem)
 
-  vmCfg.vm.box = "cbednarski/ubuntu-1404"
-  #vmCfg.vm.box = "bento/ubuntu-14.04"
-  #vmCfg.vm.box = "bento/ubuntu-16.04"
+  vmCfg.vm.box = "ubuntu/xenial64"
   
   vmCfg.vm.hostname = hostname
+  vmCfg.vm.network "private_network", type: "dhcp"
+
   
   #Adding Vagrant-cachier
   if Vagrant.has_plugin?("vagrant-cachier")
@@ -264,18 +64,12 @@ def configureVM(vmCfg, hostname, cpus, mem)
   vmCfg.vm.provider "virtualbox" do |vb|
     vb.memory = mem
     vb.cpus = cpus
+    vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
   end
   
   # Script will make some directories before installation procedure
-  vmCfg.vm.provision "shell", inline: $preparedirs, privileged: false
+  vmCfg.vm.provision "shell", inline: $installer, privileged: true
   
-  # Script to run installation
-  vmCfg.vm.provision "shell" do |s|
-    s.inline = $installer
-    s.privileged = false
-    s.args = [NOMAD_VERSION, CONSUL_VERSION]
-  end
-
   return vmCfg
 end
 
@@ -283,43 +77,16 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # I do not want this
-  config.vbguest.auto_update = false
-
-  # Need to get the runtime values
-  # i.e. the IP addresses that will be assigned to all Nomad server(s)
-  1.upto(S_NODES.to_i) do |i|
-    if all_servers_ipv4.to_s != ''
-      all_servers_ipv4 = all_servers_ipv4 + ", "
-      all_servers_ipv4_n_ports = all_servers_ipv4_n_ports + ", "
-    end
-    
-    all_servers_ipv4 = all_servers_ipv4 + '"' + "#{BASE_SIP_ADDR}.#{i+99}" + '"'
-    all_servers_ipv4_n_ports = all_servers_ipv4_n_ports + '"' + "#{BASE_SIP_ADDR}.#{i+99}:4647" + '"'
-  end
+  #config.vbguest.auto_update = false
 
   # Nomad server related only !!
   1.upto(S_NODES.to_i) do |i|
     hostname = "server-%02d" % [i]
     cpus = S_CPUS
     mem = S_MEM
-    self_ipv4 = "#{BASE_SIP_ADDR}.#{i+99}"
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-      
-      vmCfg.vm.network "private_network", ip: self_ipv4
-            
-      vmCfg.vm.provision "shell" do |s|
-        s.inline = $serverconfig
-        s.privileged = false
-        s.args = [self_ipv4, hostname, all_servers_ipv4, S_NODES]
-      end
-    
-      vmCfg.vm.provision "shell" do |s|
-        s.inline = $serverstart
-        s.privileged = false
-        s.args = [self_ipv4]
-      end
     end     
   end
   
@@ -328,27 +95,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     hostname = "client-%02d" % [i]
     cpus = C_CPUS
     mem = C_MEM
-    self_ipv4 = "#{BASE_CIP_ADDR}.#{i+99}"
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-
-      vmCfg.vm.network "private_network", ip: self_ipv4
-
-      # Install docker
-      vmCfg.vm.provision "docker"
-
-      vmCfg.vm.provision "shell" do |s|
-        s.inline = $clientconfig
-        s.privileged = false
-        s.args = [all_servers_ipv4, all_servers_ipv4_n_ports, self_ipv4, RUN_DOCK_CON_PRIVILEGED]
-      end
-     
-      vmCfg.vm.provision "shell" do |s|
-        s.inline = $clientstart
-        s.privileged = false
-        s.args = [self_ipv4]
-      end
     end
   end
 
