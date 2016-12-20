@@ -7,6 +7,8 @@ CURDIR=`pwd`
 # Update the apt
 sudo apt-get update
 
+sudo apt-get install -y unzip
+
 # Remove if already present
 echo "Cleaning old maya boostrapping if any ..."
 sudo rm -rf /etc/maya.d/

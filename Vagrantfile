@@ -26,7 +26,7 @@ BASE_CIP_ADDR = ENV['BASE_CIP_ADDR'] || "10.31.0"
 $maya = <<SCRIPT
 
 # Update apt and get dependencies
-sudo apt-get install -y zip unzip
+sudo apt-get install -y zip
 
 cd /opt/gopath/src/github.com/openebs/maya
 
