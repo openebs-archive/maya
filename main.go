@@ -7,6 +7,9 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+// The latest git tag will be filled in by the compiler
+var MayaCtlName string = "mayactl"
+
 func main() {
 	os.Exit(Run(os.Args[1:]))
 }
@@ -37,7 +40,7 @@ func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 	cli := &cli.CLI{
 		Args:     args,
 		Commands: commands,
-		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc("mayactl")),
+		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc( MayaCtlName )),
 	}
 
 	exitCode, err := cli.Run()

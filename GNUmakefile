@@ -23,10 +23,10 @@ MAYACTL=mayactl
 all: test
 
 dev: format bootstrap
-	@MAYACTL=mayactl MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 bin:
-	@MAYACTL=mayactl sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 clean: 
 	rm -rf pkg
@@ -47,7 +47,7 @@ test:
 		echo "[ERR] go fmt updated formatting. Please commit formatted code first."; \
 		exit 1; \
 	fi
-	@MAYACTL=mayactl sh -c "'$(PWD)/buildscripts/test.sh'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/test.sh'"
 	@$(MAKE) vet
 
 cover:

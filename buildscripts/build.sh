@@ -32,6 +32,11 @@ then
     GIT_TAG="0.0.1"
 fi
 
+if [ -z "${MAYACTL}" ]; 
+then
+    MAYACTL="mayactl"
+fi
+
 # If its dev mode, only build for ourself
 if [[ "${MAYA_DEV}" ]]; then
     XC_OS=$(go env GOOS)
@@ -44,7 +49,10 @@ gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE}" \
-    -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X main.Version='${GIT_TAG}'" \
+    -ldflags \
+       "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
+        -X main.MayaCtlName='${MAYACTL}' \
+        -X main.Version='${GIT_TAG}'" \
     -output "pkg/{{.OS}}_{{.Arch}}/${MAYACTL}" \
     .
 
