@@ -17,7 +17,32 @@ TODO: Link to the Architecture Diagram.
 Any \*inx host that supports container can be converted into Maya-Storage-Host using the
 following commands. 
 
+
+## Installing from binaries
+
+Pre-requisites : ubuntu 16.04, wget, unzip
+
+```
+RELEASE_TAG=0.0.2
+wget https://github.com/openebs/maya/releases/download/${RELEASE_TAG}/maya-linux_amd64.zip
+unzip maya-linux_amd64.zip
+sudo cp mayactl /usr/bin
+rm -rf maya-linux_amd64.zip
+```
+
+## Installing from source
+
+Pre-requisites : ubuntu 16.04, git, zip, unzip, go. 
+
+```
+mkdir -p $GOPATH/src/github.com/openebs && cd $GOPATH/src/github.com/openebs
+git clone https://github.com/openebs/maya.git
+cd maya && make dev
+```
+
+
 ## Usage
+
 
 ### Initialize 
 
@@ -58,9 +83,6 @@ The volume will be accessible via iSCSI and can be connected from local host.
 This can ge changed via the /etc/maya.conf to specify a different directory or disks 
 (in case of single node setups) or can be an shared storage (in case of clustered setups).
 
-## Build and Install Maya
-
-TBD
 
 ## Forums
 
