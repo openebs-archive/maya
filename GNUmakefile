@@ -19,7 +19,7 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 all: test
 
-dev: format
+dev: format bootstrap
 	@MAYA_DEV=1 sh -c "'$(PWD)/scripts/build.sh'"
 
 bin:
