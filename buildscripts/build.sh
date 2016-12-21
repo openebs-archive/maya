@@ -14,6 +14,7 @@ cd "$DIR"
 # Get the git commit
 GIT_COMMIT="$(git rev-parse HEAD)"
 GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
+GIT_TAG="$(git describe --tags $(git rev-list --tags --max-count=1))"
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64"}
@@ -25,6 +26,11 @@ echo "==> Removing old directory..."
 rm -f bin/*
 rm -rf pkg/*
 mkdir -p bin/
+
+if [ -z "${GIT_TAG}" ]; 
+then
+    GIT_TAG="0.0.1"
+fi
 
 # If its dev mode, only build for ourself
 if [[ "${MAYA_DEV}" ]]; then
@@ -38,7 +44,7 @@ gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE}" \
-    -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}'" \
+    -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X main.Version='${GIT_TAG}'" \
     -output "pkg/{{.OS}}_{{.Arch}}/${MAYACTL}" \
     .
 
