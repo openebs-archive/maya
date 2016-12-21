@@ -28,6 +28,7 @@ bin:
 clean: 
 	rm -rf pkg
 	rm -rf bin
+	rm -rf ${GOPATH}/bin/mayactl
 
 release:
 	@$(MAKE) bin
