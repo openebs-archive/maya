@@ -10,8 +10,8 @@ sudo apt-get update
 sudo apt-get install -y unzip
 
 # Remove if already present
-echo "Cleaning old maya boostrapping if any ..."
-sudo rm -rf /etc/maya.d/
+#echo "Cleaning old maya boostrapping if any ..."
+#sudo rm -rf /etc/maya.d/
 
 sudo mkdir -p /etc/maya.d/scripts
 sudo mkdir -p /etc/maya.d/templates
@@ -42,6 +42,9 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_noma
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_server.sh -o start_nomad_server.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_nomad_as_client.sh -o set_nomad_as_client.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_client.sh -o start_nomad_client.sh
+
+#Changing the ownership permission
+sudo chmod 0755 set_nomad_as_server.sh
 
 # Fetch various templates
 cd /etc/maya.d/templates
