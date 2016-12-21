@@ -17,18 +17,21 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
+# Specify the name for the maya binary
+MAYACTL=mayactl
+
 all: test
 
 dev: format bootstrap
-	@MAYA_DEV=1 sh -c "'$(PWD)/scripts/build.sh'"
+	@MAYACTL=mayactl MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 bin:
-	@sh -c "'$(PWD)/scripts/build.sh'"
+	@MAYACTL=mayactl sh -c "'$(PWD)/buildscripts/build.sh'"
 
 clean: 
 	rm -rf pkg
 	rm -rf bin
-	rm -rf ${GOPATH}/bin/mayactl
+	rm -rf ${GOPATH}/bin/${MAYACTL}
 
 release:
 	@$(MAKE) bin
@@ -44,7 +47,7 @@ test:
 		echo "[ERR] go fmt updated formatting. Please commit formatted code first."; \
 		exit 1; \
 	fi
-	@sh -c "'$(PWD)/scripts/test.sh'"
+	@MAYACTL=mayactl sh -c "'$(PWD)/buildscripts/test.sh'"
 	@$(MAKE) vet
 
 cover:
@@ -77,7 +80,7 @@ bootstrap:
 	done
 
 # You might need to use sudo
-install: bin/maya
-	install -o root -g root -m 0755 ./bin/maya /usr/local/bin/maya
+install: bin/${MAYACTL}
+	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
 
 .PHONY: all bin cov integ test vet test-nodep

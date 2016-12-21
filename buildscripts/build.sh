@@ -39,7 +39,7 @@ gox \
     -arch="${XC_ARCH}" \
     -osarch="${XC_EXCLUDE}" \
     -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}'" \
-    -output "pkg/{{.OS}}_{{.Arch}}/mayactl" \
+    -output "pkg/{{.OS}}_{{.Arch}}/${MAYACTL}" \
     .
 
 echo ""
