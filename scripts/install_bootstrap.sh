@@ -43,7 +43,7 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_no
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_nomad_as_client.sh -o set_nomad_as_client.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_client.sh -o start_nomad_client.sh
 
-#Changing the ownership permission
+#Changing the ownership 
 sudo chmod 0755 set_nomad_as_server.sh
 
 # Fetch various templates
