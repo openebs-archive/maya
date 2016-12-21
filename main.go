@@ -40,7 +40,7 @@ func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 	cli := &cli.CLI{
 		Args:     args,
 		Commands: commands,
-		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc( MayaCtlName )),
+		HelpFunc: cli.FilteredHelpFunc(commandNames, cli.BasicHelpFunc(MayaCtlName)),
 	}
 
 	exitCode, err := cli.Run()
