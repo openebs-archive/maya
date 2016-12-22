@@ -10,8 +10,8 @@ sudo apt-get update
 sudo apt-get install -y unzip
 
 # Remove if already present
-#echo "Cleaning old maya boostrapping if any ..."
-#sudo rm -rf /etc/maya.d/
+echo "Cleaning old maya boostrapping if any ..."
+sudo rm -rf /etc/maya.d/
 
 sudo mkdir -p /etc/maya.d/scripts
 sudo mkdir -p /etc/maya.d/templates
@@ -43,7 +43,12 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_no
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_nomad_as_client.sh -o set_nomad_as_client.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_nomad_client.sh -o start_nomad_client.sh
 
-#Changing the ownership 
+echo "Fetching etcd scripts ..."
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_etcd.sh -o install_etcd.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_etcd.sh -o set_etcd.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_etcd.sh -o start_etcd.sh
+
+# Changing the ownership 
 sudo chmod 0755 set_nomad_as_server.sh
 
 # Fetch various templates
@@ -60,5 +65,8 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-server.service.tmpl -o nomad-server.service.tmpl
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-client.hcl.tmpl -o nomad-client.hcl.tmpl
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/nomad-client.service.tmpl -o nomad-client.service.tmpl
+
+echo "Fetching etcd config templates ..."
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/etcd.service.tmpl -o etcd.service.tmpl
 
 cd ${CURDIR}

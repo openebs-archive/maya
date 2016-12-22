@@ -17,6 +17,9 @@ type InstallOpenEBSCommand struct {
 
 	// self ip address
 	self_ip string
+
+	// all maya client ips, in a comma separated format
+	member_ips string
 }
 
 func (c *InstallOpenEBSCommand) Help() string {
@@ -41,6 +44,13 @@ Install Maya Options:
     The IP Address of this local machine i.e. the machine where
     this command is being run. This is required when the machine
     has many private IPs and you want to use a specific IP.
+  
+  -member-ips=<IP Address(es) of all maya openebs nodes>
+    Comma separated list of IP addresses of all maya openebs 
+    nodes partipating in the cluster.
+    
+    NOTE: Do not include the IP address of this local machine i.e.
+    the machine where this command is being run.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -57,6 +67,7 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 
 	flags.StringVar(&c.master_ips, "master-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
+	flags.StringVar(&c.member_ips, "member-ips", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -80,6 +91,7 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 			Ui: c.M.Ui,
 		},
 		self_ip:    c.self_ip,
+		client_ips: c.member_ips,
 		master_ips: c.master_ips,
 		is_master:  false,
 	}

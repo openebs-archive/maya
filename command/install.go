@@ -29,6 +29,9 @@ type MayaAsNomadInstaller struct {
 	// all maya master ips, in a comma separated format
 	master_ips string
 
+	// all maya openebs ips, in a comma separated format
+	client_ips string
+
 	// self ip address
 	self_ip string
 
@@ -37,6 +40,12 @@ type MayaAsNomadInstaller struct {
 
 	// the provided master ips with rpc ports in a format understood by Nomad
 	fmt_master_ipnports string
+
+	// a trimmed version of self_ip
+	self_ip_trim string
+
+	// formatted etcd initial cluster
+	etcd_cluster string
 }
 
 // The public command
@@ -81,6 +90,18 @@ func (c *MayaAsNomadInstaller) Install() int {
 	}
 
 	if runop = c.startNomadAsClient(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.installEtcd(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.setEtcd(); runop != 0 {
+		return runop
+	}
+
+	if runop = c.startEtcd(); runop != 0 {
 		return runop
 	}
 
@@ -139,6 +160,8 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 
 	var runop int = 0
 	var master_iparr []string
+	var client_iparr []string
+	var ip_trimmed string
 
 	if len(strings.TrimSpace(c.self_ip)) == 0 {
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
@@ -154,6 +177,33 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 		return 1
 	}
 
+	// Stuff with client ips
+	c.self_ip_trim = strings.Replace(c.self_ip, ".", "", -1)
+
+	if len(strings.TrimSpace(c.client_ips)) > 0 {
+		client_iparr = strings.Split(strings.TrimSpace(c.client_ips), ",")
+	}
+
+	client_iparr = append(client_iparr, c.self_ip)
+
+	for _, client_ip := range client_iparr {
+		client_ip = strings.TrimSpace(client_ip)
+
+		if len(client_ip) == 0 {
+			continue
+		}
+
+		ip_trimmed = strings.Replace(client_ip, ".", "", -1)
+
+		if len(c.etcd_cluster) > 0 {
+			c.etcd_cluster = c.etcd_cluster + ","
+		}
+
+		c.etcd_cluster = c.etcd_cluster + ip_trimmed + "=https://" + client_ip + ":2380"
+
+	}
+
+	// Stuff with master ips
 	if len(strings.TrimSpace(c.master_ips)) > 0 {
 		master_iparr = strings.Split(strings.TrimSpace(c.master_ips), ",")
 	}
@@ -194,6 +244,19 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 	return runop
 }
 
+func (c *MayaAsNomadInstaller) installEtcd() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", InstallEtcdScript)
+
+	if runop = execute(c.Cmd, c.Ui); runop != 0 {
+		c.Ui.Error("Install failed: Error installing etcd")
+	}
+
+	return runop
+}
+
 func (c *MayaAsNomadInstaller) installConsul() int {
 
 	var runop int = 0
@@ -220,6 +283,19 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 	return runop
 }
 
+func (c *MayaAsNomadInstaller) startEtcd() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", StartEtcdScript)
+
+	if runop := execute(c.Cmd, c.Ui); runop != 0 {
+		c.Ui.Error("Install failed: Systemd failed: Error starting etcd")
+	}
+
+	return runop
+}
+
 func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 
 	var runop int = 0
@@ -241,6 +317,19 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
 	if runop := execute(c.Cmd, c.Ui); runop != 0 {
 		c.Ui.Error("Install failed: Systemd failed: Error starting nomad in client mode")
+	}
+
+	return runop
+}
+
+func (c *MayaAsNomadInstaller) setEtcd() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", SetEtcdScript, c.self_ip, c.self_ip_trim, c.etcd_cluster)
+
+	if runop = execute(c.Cmd, c.Ui); runop != 0 {
+		c.Ui.Error("Install failed: Error setting etcd")
 	}
 
 	return runop
