@@ -7,24 +7,12 @@ After=network-online.target
 WantedBy=multi-user.target
 
 [Service]
-#basic config
-Environment=ETCD_DATA_DIR=/var/lib/etcd
-Environment=ETCD_NAME=__SELF_IP_TRIM__
-Environment=ETCD_LISTEN_PEER_URLS=https://__SELF_IP__:2380
-Environment=ETCD_LISTEN_CLIENT_URLS=https://__SELF_IP__:2379
-Environment=ETCD_ADVERTISE_CLIENT_URLS=https://__SELF_IP__:2379
-
-#initial cluster configuration
-Environment=ETCD_INITIAL_CLUSTER=etcd1=__ETCD_INITIAL_CLUSTER__
-Environment=ETCD_INITIAL_CLUSTER_TOKEN=mayacluster
-Environment=ETCD_INITIAL_CLUSTER_STATE=new
-Environment=ETCD_INITIAL_ADVERTISE_PEER_URLS=https://__SELF_IP__:2380
-
-#security
-
-#tuning
-Environment=ETCD_HEARTBEAT_INTERVAL=100
-Environment=ETCD_ELECTION_TIMEOUT=2500
-
-ExecStart=/usr/bin/etcd
+ExecStart=/usr/bin/etcd __SELF_IP_TRIM__ \
+  --initial-advertise-peer-urls http://__SELF_IP__:2380 \
+  --listen-peer-urls http://__SELF_IP__:2380 \
+  --listen-client-urls http://__SELF_IP__:2379,http://127.0.0.1:2379 \
+  --advertise-client-urls http://__SELF_IP__:2379 \
+  --initial-cluster-token mayacluster \
+  --initial-cluster __ETCD_INITIAL_CLUSTER__ \
+  --initial-cluster-state new
 Restart=always
