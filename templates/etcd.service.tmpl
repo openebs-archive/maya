@@ -7,12 +7,6 @@ After=network-online.target
 WantedBy=multi-user.target
 
 [Service]
-ExecStart=/usr/bin/etcd __SELF_IP_TRIM__ \
-  --initial-advertise-peer-urls http://__SELF_IP__:2380 \
-  --listen-peer-urls http://__SELF_IP__:2380 \
-  --listen-client-urls http://__SELF_IP__:2379,http://127.0.0.1:2379 \
-  --advertise-client-urls http://__SELF_IP__:2379 \
-  --initial-cluster-token mayacluster \
-  --initial-cluster __ETCD_INITIAL_CLUSTER__ \
-  --initial-cluster-state new
+# This is a single member cluster only
+ExecStart=/usr/bin/etcd --data-dir=/var/lib/etcd
 Restart=always
