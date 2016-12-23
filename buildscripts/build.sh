@@ -14,6 +14,9 @@ cd "$DIR"
 # Get the git commit
 GIT_COMMIT="$(git rev-parse HEAD)"
 GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
+
+# Fetch the tags before using git rev-list --tags
+git fetch --tags >/dev/null 2>&1
 GIT_TAG="$(git describe --tags $(git rev-list --tags --max-count=1))"
 
 # Determine the arch/os combos we're building for
