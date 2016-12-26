@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/mitchellh/cli"
-	"github.com/prateekpandey14/maya/command"
+	"github.com/openebs/maya/command"
 )
 
 // Commands returns the mapping of CLI commands for Maya. The meta
