@@ -1,4 +1,14 @@
 package: github.com/openebs/maya
 import:
+- package: github.com/dustin/go-humanize
+- package: github.com/hashicorp/go-getter
+- package: github.com/hashicorp/nomad
+  version: ^0.5.2
+  subpackages:
+  - api
+  - jobspec
+  - nomad/structs
 - package: github.com/mitchellh/cli
 - package: github.com/mitchellh/colorstring
+- package: github.com/ryanuber/columnize
+  version: ^2.1.0

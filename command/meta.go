@@ -4,13 +4,19 @@ import (
 	"bufio"
 	"flag"
 	"io"
+	"os"
 	"strings"
 
+	"github.com/hashicorp/nomad/api"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 )
 
 const (
+	// Names of environment variables used to supply various
+	// config options to the Nomad CLI.
+	EnvNomadAddress = "NOMAD_ADDR"
+	EnvNomadRegion  = "NOMAD_REGION"
 
 	// Constants for CLI identifier length
 	shortId = 8
@@ -49,11 +55,10 @@ type Meta struct {
 }
 
 // FlagSet returns a FlagSet with the common flags that every
-// Nomad command implements. The exact behavior of FlagSet can be configured
+// command implements. The exact behavior of FlagSet can be configured
 // using the flags as the second parameter, for example to disable
 // server settings on the commands that don't talk to a server.
 func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
-
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 
 	// FlagSetClient is used to enable the settings for specifying
@@ -68,6 +73,7 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 		f.StringVar(&m.clientKey, "client-key", "", "")
 		f.BoolVar(&m.insecure, "insecure", false, "")
 		f.BoolVar(&m.insecure, "tls-skip-verify", false, "")
+
 	}
 
 	// Create an io.Writer that writes to our UI properly for errors.
@@ -86,6 +92,37 @@ func (m *Meta) FlagSet(n string, fs FlagSetFlags) *flag.FlagSet {
 	return f
 }
 
+// Client is used to initialize and return a new API client using
+// the default command line arguments and env vars.
+func (m *Meta) Client() (*api.Client, error) {
+	config := api.DefaultConfig()
+	if v := os.Getenv(EnvNomadAddress); v != "" {
+		config.Address = v
+	}
+	if m.flagAddress != "" {
+		config.Address = m.flagAddress
+	}
+	if v := os.Getenv(EnvNomadRegion); v != "" {
+		config.Region = v
+	}
+	if m.region != "" {
+		config.Region = m.region
+	}
+	// If we need custom TLS configuration, then set it
+	if m.caCert != "" || m.caPath != "" || m.clientCert != "" || m.clientKey != "" || m.insecure {
+		t := &api.TLSConfig{
+			CACert:     m.caCert,
+			CAPath:     m.caPath,
+			ClientCert: m.clientCert,
+			ClientKey:  m.clientKey,
+			Insecure:   m.insecure,
+		}
+		config.TLSConfig = t
+	}
+
+	return api.NewClient(config)
+}
+
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
@@ -97,8 +134,43 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 // generalOptionsUsage returns the help string for the global options.
 func generalOptionsUsage() string {
 	helpText := `
+  -address=<addr>
+    The address of the Nomad server.
+    Overrides the NOMAD_ADDR environment variable if set.
+    Default = http://127.0.0.1:4646
+
+  -region=<region>
+    The region of the Nomad servers to forward commands to.
+    Overrides the NOMAD_REGION environment variable if set.
+    Defaults to the Agent's local region.
+  
   -no-color
     Disables colored command output.
+
+  -ca-cert=<path>           
+    Path to a PEM encoded CA cert file to use to verify the 
+    Nomad server SSL certificate.  Overrides the NOMAD_CACERT 
+    environment variable if set.
+
+  -ca-path=<path>           
+    Path to a directory of PEM encoded CA cert files to verify 
+    the Nomad server SSL certificate. If both -ca-cert and 
+    -ca-path are specified, -ca-cert is used. Overrides the 
+    NOMAD_CAPATH environment variable if set.
+
+  -client-cert=<path>       
+    Path to a PEM encoded client certificate for TLS authentication 
+    to the Nomad server. Must also specify -client-key. Overrides 
+    the NOMAD_CLIENT_CERT environment variable if set.
+
+  -client-key=<path>        
+    Path to an unencrypted PEM encoded private key matching the 
+    client certificate from -client-cert. Overrides the 
+    NOMAD_CLIENT_KEY environment variable if set.
+
+  -tls-skip-verify        
+    Do not verify TLS certificate. This is highly not recommended. Verification
+    will also be skipped if NOMAD_SKIP_VERIFY is set.
 `
 	return strings.TrimSpace(helpText)
 }

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/mitchellh/cli"
-	"github.com/openebs/maya/command"
+	"github.com/prateekpandey14/maya/command"
 )
 
 // Commands returns the mapping of CLI commands for Maya. The meta
@@ -34,6 +34,17 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
+		"status": func() (cli.Command, error) {
+			return &command.StatusCommand{
+				Meta: meta,
+			}, nil
+		},
+		"node-status": func() (cli.Command, error) {
+			return &command.NodeStatusCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"vsm-create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
 				M: meta,
