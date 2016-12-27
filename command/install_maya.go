@@ -32,25 +32,32 @@ type InstallMayaCommand struct {
 
 func (c *InstallMayaCommand) Help() string {
 	helpText := `
-Usage: maya install-maya
+Usage: maya setup-omm
 
-  Installs maya server on this machine. In other words, the machine
-  where this command is run will become a maya server.
+  Configure this machine as OpenEBS Maya Master (omm) 
+  OMM is a clustered management server node that can either be
+  run in VMs or Physical Hosts and is responsible for managing 
+  and scheduling OpenEBS hosts and VSMs. 
+
+  OMM also comes with an clustered configuration store. 
   
-  A maya server is otherwise known as a maya master.
+  OMM can be clustered with other local or remote OMMs.
 
 General Options:
 
   ` + generalOptionsUsage() + `
 
-Install Maya Options:
+OpenEBS Maya Master setup Options:
 
-  -member-ips=<IP Address(es) of all server members>
-    Comma separated list of IP addresses of all servers members
-    i.e. maya server peers, participating in the cluster.
+  -master-ips=<IP Address(es) of peer OMMs>
+    Comma separated list of IP addresses of all management nodes
+    participating in the cluster.
     
     NOTE: Do not include the IP address of this local machine i.e.
     the machine where this command is being run.
+
+    If not provided, this machine will be added as the first node
+    in the cluster. 
 
   -self-ip=<IP Address>
     The IP Address of this local machine i.e. the machine where
@@ -61,16 +68,16 @@ Install Maya Options:
 }
 
 func (c *InstallMayaCommand) Synopsis() string {
-	return "Installs maya server on this machine."
+	return "Configure OpenEBS Maya Master on this machine."
 }
 
 func (c *InstallMayaCommand) Run(args []string) int {
 	var runop int
 
-	flags := c.M.FlagSet("install-maya", FlagSetClient)
+	flags := c.M.FlagSet("setup-omm", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.member_ips, "member-ips", "", "")
+	flags.StringVar(&c.member_ips, "join-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
 
 	if err := flags.Parse(args); err != nil {

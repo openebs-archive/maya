@@ -24,11 +24,10 @@ type InstallOpenEBSCommand struct {
 
 func (c *InstallOpenEBSCommand) Help() string {
 	helpText := `
-Usage: maya install-openebs
+Usage: maya setup-host
 
-  Installs maya openebs on this machine. In other words, the
-  machine where this command is run will become a maya openebs
-  node.
+  Configure this machine as OpenEBS Host and enable it 
+  to run OpenEBS VSMs. 
 
 General Options:
 
@@ -45,9 +44,9 @@ Install Maya Options:
     this command is being run. This is required when the machine
     has many private IPs and you want to use a specific IP.
   
-  -member-ips=<IP Address(es) of all maya openebs nodes>
-    Comma separated list of IP addresses of all maya openebs 
-    nodes partipating in the cluster.
+  -member-ips=<IP Address(es) of all peer openebs hosts>
+    Comma separated list of IP addresses of all openebs 
+    hosts partipating in the cluster.
     
     NOTE: Do not include the IP address of this local machine i.e.
     the machine where this command is being run.
@@ -56,13 +55,13 @@ Install Maya Options:
 }
 
 func (c *InstallOpenEBSCommand) Synopsis() string {
-	return "Installs maya openebs on this machine."
+	return "Configure this machine as OpenEBS Host."
 }
 
 func (c *InstallOpenEBSCommand) Run(args []string) int {
 	var runop int
 
-	flags := c.M.FlagSet("install-openebs", FlagSetClient)
+	flags := c.M.FlagSet("setup-host", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
 	flags.StringVar(&c.master_ips, "master-ips", "", "")
@@ -97,7 +96,7 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 	}
 
 	if runop = mi.Install(); runop != 0 {
-		c.M.Ui.Error("OpenEBS install failed")
+		c.M.Ui.Error("OpenEBS Host setup failed")
 	}
 
 	return runop

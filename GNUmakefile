@@ -18,7 +18,7 @@ EXTERNAL_TOOLS=\
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # Specify the name for the maya binary
-MAYACTL=mayactl
+MAYACTL=maya
 
 all: test
 
