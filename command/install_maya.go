@@ -261,7 +261,11 @@ func (c *InstallMayaCommand) setNomadAsServer() int {
 
 	var runop int = 0
 
+<<<<<<< HEAD
 	c.Cmd = exec.Command("bash", SetNomadAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
+=======
+	c.Cmd = exec.Command("sh", SetNomadAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
+>>>>>>> 0c4615c... Running By Shell
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting nomad as server")
