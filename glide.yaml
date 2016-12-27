@@ -12,6 +12,9 @@ excludeDirs:
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
+import:
+- package: github.com/dustin/go-humanize
+- package: github.com/hashicorp/go-getter
   subpackages:
   - api
   - jobspec
