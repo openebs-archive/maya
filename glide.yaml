@@ -4,11 +4,14 @@ ignore:
 - github.com/StackExchange/wmi
 - github.com/hpcloud/tail
 - github.com/sethgrid/pester
+- github.com/jmespath/go-jmespath
+
+excludeDirs:
+- github.com/hashicorp/vault
+
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
-- package: github.com/hashicorp/nomad
-  version: ^0.5.2
   subpackages:
   - api
   - jobspec

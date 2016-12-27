@@ -48,7 +48,7 @@ fi
 
 # Build!
 echo "==> Building..."
-glide up
+#glide up
 gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \

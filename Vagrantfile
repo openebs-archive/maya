@@ -97,6 +97,12 @@ end
 # Entry point of this Vagrantfile
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
+  # I do not want this
+  #config.vbguest.auto_update = false
+  
+  # Placeholder to store comma separated ip addresses
+  all_servers_ipv4 = ""
+  all_clients_ipv4 = ""
 
   # Nomad server related only !!
   1.upto(S_NODES.to_i) do |i|
