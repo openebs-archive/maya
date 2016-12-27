@@ -1,4 +1,9 @@
 package: github.com/openebs/maya
+ignore:
+- github.com/docker/docker/api/types
+- github.com/StackExchange/wmi
+- github.com/hpcloud/tail
+- github.com/sethgrid/pester
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
