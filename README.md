@@ -48,13 +48,20 @@ cd maya && make dev
 Setup OpenEBS Master and Host Nodes by logging into the nodes via ssh. When there are multiple IPs on the node, you can specify the listening ip for the node via **-self-ip**
 
 #### Setup OpenEBS Maya Master (omm)
+
+maya setup-omm [-self-ip=<listen ip address>]
+
+Example:
 ```
 ubuntu@master-01:~$ maya setup-omm -self-ip=172.28.128.3
 ```
 
-#### Setup OpenEBS Host (omm)
+#### Setup OpenEBS Host (osh)
+
+maya setup-osh -omm-ips=172.28.128.3 [-self-ip=<listen ip address>]
+
 ```
-ubuntu@host-01:~$ maya setup-host -self-ip=172.28.128.6 -master-ips=172.28.128.3
+ubuntu@host-01:~$ maya setup-osh -self-ip=172.28.128.6 -omm-ips=172.28.128.3
 ```
 
 
