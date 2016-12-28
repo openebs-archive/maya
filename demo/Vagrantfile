@@ -5,17 +5,24 @@
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.require_version ">= 1.6.0"
 
-# Server Nodes
-S_NODES = ENV['S_NODES'] || 1
+# Maya Master Nodes
+M_NODES = ENV['M_NODES'] || 1
 
-# Client Nodes
-C_NODES = ENV['C_NODES'] || 2
+# OpenEBS Host Nodes
+H_NODES = ENV['H_NODES'] || 2
 
-# Server Memory & CPUs
-S_MEM = ENV['S_MEM'] || 512
-S_CPUS = ENV['S_CPUS'] || 1
+# Container/Compute Nodes
+C_NODES = ENV['C_NODES'] || 1
 
-# Client Memory & CPUs
+# Maya Server Memory & CPUs
+M_MEM = ENV['M_MEM'] || 512
+M_CPUS = ENV['M_CPUS'] || 1
+
+# OpenEBS Host Memory & CPUs
+H_MEM = ENV['H_MEM'] || 1024
+H_CPUS = ENV['H_CPUS'] || 1
+
+# Container/Client Memory & CPUs
 C_MEM = ENV['C_MEM'] || 1024
 C_CPUS = ENV['C_CPUS'] || 1
 
@@ -30,6 +37,18 @@ echo Will run the common installer script ...
 # Update apt and get dependencies
 sudo apt-get update
 sudo apt-get install -y unzip curl wget
+
+SCRIPT
+
+# Installer script for Clients for consuming storage
+$clientinstaller = <<SCRIPT
+#!/bin/bash
+
+echo Will run the client installer script ...
+
+# Update apt and get dependencies
+sudo apt-get update
+sudo apt-get install -y open-iscsi
 
 SCRIPT
 
@@ -77,18 +96,29 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
-  # Nomad server related only !!
-  1.upto(S_NODES.to_i) do |i|
-    hostname = "server-%02d" % [i]
-    cpus = S_CPUS
-    mem = S_MEM
+  # Maya Master related only !!
+  1.upto(M_NODES.to_i) do |i|
+    hostname = "master-%02d" % [i]
+    cpus = M_CPUS
+    mem = M_MEM
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
     end     
   end
   
-  # Nomad client related only !!
+  # OpenEBS Host related only !!
+  1.upto(H_NODES.to_i) do |i|
+    hostname = "host-%02d" % [i]
+    cpus = H_CPUS
+    mem = H_MEM
+    
+    config.vm.define hostname do |vmCfg|
+      vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+    end
+  end
+
+  # Container/Client related only !!
   1.upto(C_NODES.to_i) do |i|
     hostname = "client-%02d" % [i]
     cpus = C_CPUS
@@ -96,6 +126,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+      # Script will make some directories before installation procedure
+      vmCfg.vm.provision "shell", inline: $clientinstaller, privileged: true
     end
   end
 
