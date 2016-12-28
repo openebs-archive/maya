@@ -5,20 +5,27 @@
 VAGRANTFILE_API_VERSION = "2"
 Vagrant.require_version ">= 1.6.0"
 
-# Server Nodes
+# Maya Master Nodes
 M_NODES = ENV['M_NODES'] || 1
 
-# Client Nodes
+# Storage Hosts
 H_NODES = ENV['H_NODES'] || 2
 
-# Server Memory & CPUs
+# Client
+C_NODES = ENV['C_NODES'] || 1
+
+
+# Maya Master Memory & CPUs
 M_MEM = ENV['M_MEM'] || 512
 M_CPUS = ENV['M_CPUS'] || 1
 
-# Client Memory & CPUs
+# Storage Host Memory & CPUs
 H_MEM = ENV['H_MEM'] || 1024
 H_CPUS = ENV['H_CPUS'] || 1
 
+# Client Memory & CPUs
+C_MEM = ENV['C_MEM'] || 512
+C_CPUS = ENV['C_CPUS'] || 1
 
 # Generic installer script common for server(s) & client(s)
 # This expects arguments that provide runtime values
@@ -34,6 +41,7 @@ sudo apt-get install -y zip unzip curl wget
 SCRIPT
 
 $mayadev = <<SCRIPT
+#!/bin/bash
 
 cd /opt/gopath/src/github.com/openebs/maya
 
@@ -42,13 +50,41 @@ bash scripts/install_go.sh
 
 # CD into the maya working directory when we login to the VM
 # A bit of conditional logic s.t. we do not repeat CD-ing
-grep "cd /opt/gopath/src/github.com/openebs/maya" ~/.profile || \
-  echo "cd /opt/gopath/src/github.com/openebs/maya" >> ~/.profile
+grep "cd /opt/gopath/src/github.com/openebs/maya" /home/vagrant/.profile || \
+  echo "cd /opt/gopath/src/github.com/openebs/maya" >> /home/vagrant/.profile
 
 echo "In-order to compile maya, look at various options provided in GNUmakefile"
 echo -e "\n\tTIP: Start with command:- make bootstrap"
 SCRIPT
 
+$mayamaster = <<SCRIPT
+#!/bin/bash
+
+cd /opt/gopath/src/github.com/openebs/maya
+make dev
+maya setup-omm
+echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
+
+SCRIPT
+
+$storagehost = <<SCRIPT
+#!/bin/bash
+
+echo "Testing output redirection"
+
+cd /opt/gopath/src/github.com/openebs/maya
+make dev
+maya setup-osh -omm-ips=172.28.128.3
+echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
+
+SCRIPT
+
+
+$clientinstaller = <<SCRIPT
+
+sudo apt-get install -y open-iscsi fio
+
+SCRIPT
 
 required_plugins = %w(vagrant-cachier)
 
@@ -98,7 +134,7 @@ end
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
-  # Nomad server related only !!
+  # maya master related only !!
   1.upto(M_NODES.to_i) do |i|
     hostname = "master-%02d" % [i]
     cpus = M_CPUS
@@ -106,10 +142,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+      vmCfg.vm.provision "shell", inline: $mayamaster, privileged: true
     end     
   end
   
-  # Nomad client related only !!
+  # storage host related only !!
   1.upto(H_NODES.to_i) do |i|
     hostname = "host-%02d" % [i]
     cpus = H_CPUS
@@ -117,7 +154,21 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+      vmCfg.vm.provision "shell", inline: $storagehost, privileged: true
     end
   end
+
+  # client related only !!
+  1.upto(C_NODES.to_i) do |i|
+    hostname = "client-%02d" % [i]
+    cpus = C_CPUS
+    mem = C_MEM
+    
+    config.vm.define hostname do |vmCfg|
+      vmCfg = configureVM(vmCfg, hostname, cpus, mem)
+      vmCfg.vm.provision "shell", inline: $clientinstaller, privileged: true
+    end
+  end
+
 
 end
