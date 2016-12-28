@@ -23,10 +23,10 @@ following commands.
 Pre-requisites : ubuntu 16.04, wget, unzip
 
 ```
-RELEASE_TAG=0.0.2
+RELEASE_TAG=0.0.3
 wget https://github.com/openebs/maya/releases/download/${RELEASE_TAG}/maya-linux_amd64.zip
 unzip maya-linux_amd64.zip
-sudo cp mayactl /usr/bin
+sudo mv maya /usr/bin
 rm -rf maya-linux_amd64.zip
 ```
 
@@ -46,10 +46,20 @@ cd maya && make dev
 
 ### Initialize 
 
-Initialize the default configuration file for adding the Host to new Maya Realm.
+Setup OpenEBS Master and Host Nodes by logging into the nodes via ssh. When there are multiple IPs on the node, you can specify the listening ip for the node via **-self-ip**
+
+#### Setup OpenEBS Maya Master (omm)
 ```
-maya init
+vagrant ssh server-01
+ubuntu@master-01:~$ maya setup-omm -self-ip=172.28.128.3
 ```
+
+#### Setup OpenEBS Host (omm)
+```
+vagrant ssh client-01
+ubuntu@client-01:~$ maya setup-host -self-ip=172.28.128.6 -master-ips=172.28.128.3
+```
+
 
 ### Load Maya
 Start the maya services based on the configuration specified in the /etc/maya.conf. 
