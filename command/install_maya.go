@@ -47,9 +47,9 @@ General Options:
 
   ` + generalOptionsUsage() + `
 
-OpenEBS Maya Master setup Options:
+OpenEBS Maya Master (omm) setup Options:
 
-  -master-ips=<IP Address(es) of peer OMMs>
+  -omm-ips=<IP Address(es) of peer OMMs>
     Comma separated list of IP addresses of all management nodes
     participating in the cluster.
     
@@ -77,7 +77,7 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	flags := c.M.FlagSet("setup-omm", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.member_ips, "join-ips", "", "")
+	flags.StringVar(&c.member_ips, "omm-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
 
 	if err := flags.Parse(args); err != nil {

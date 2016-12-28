@@ -6,18 +6,18 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.require_version ">= 1.6.0"
 
 # Server Nodes
-S_NODES = ENV['S_NODES'] || 1
+M_NODES = ENV['M_NODES'] || 1
 
 # Client Nodes
-C_NODES = ENV['C_NODES'] || 2
+H_NODES = ENV['H_NODES'] || 2
 
 # Server Memory & CPUs
-S_MEM = ENV['S_MEM'] || 512
-S_CPUS = ENV['S_CPUS'] || 1
+M_MEM = ENV['M_MEM'] || 512
+M_CPUS = ENV['M_CPUS'] || 1
 
 # Client Memory & CPUs
-C_MEM = ENV['C_MEM'] || 1024
-C_CPUS = ENV['C_CPUS'] || 1
+H_MEM = ENV['H_MEM'] || 1024
+H_CPUS = ENV['H_CPUS'] || 1
 
 
 # Generic installer script common for server(s) & client(s)
@@ -99,10 +99,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
 
   # Nomad server related only !!
-  1.upto(S_NODES.to_i) do |i|
-    hostname = "server-%02d" % [i]
-    cpus = S_CPUS
-    mem = S_MEM
+  1.upto(M_NODES.to_i) do |i|
+    hostname = "master-%02d" % [i]
+    cpus = M_CPUS
+    mem = M_MEM
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
@@ -110,10 +110,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
   
   # Nomad client related only !!
-  1.upto(C_NODES.to_i) do |i|
-    hostname = "client-%02d" % [i]
-    cpus = C_CPUS
-    mem = C_MEM
+  1.upto(H_NODES.to_i) do |i|
+    hostname = "host-%02d" % [i]
+    cpus = H_CPUS
+    mem = H_MEM
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)

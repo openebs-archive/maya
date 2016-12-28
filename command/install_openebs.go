@@ -24,7 +24,7 @@ type InstallOpenEBSCommand struct {
 
 func (c *InstallOpenEBSCommand) Help() string {
 	helpText := `
-Usage: maya setup-host
+Usage: maya setup-osh
 
   Configure this machine as OpenEBS Host and enable it 
   to run OpenEBS VSMs. 
@@ -33,9 +33,9 @@ General Options:
 
   ` + generalOptionsUsage() + `
 
-Install Maya Options:
+OpenEBS Storage Host (osh) setup options:
 
-  -master-ips=<IP Address(es) of all maya masters>
+  -omm-ips=<IP Address(es) of all maya masters>
     Comma separated list of IP addresses of all maya masters
     participating in the cluster.
     
@@ -44,10 +44,6 @@ Install Maya Options:
     this command is being run. This is required when the machine
     has many private IPs and you want to use a specific IP.
   
-  -member-ips=<IP Address(es) of all peer openebs hosts>
-    Comma separated list of IP addresses of all openebs 
-    hosts partipating in the cluster.
-    
     NOTE: Do not include the IP address of this local machine i.e.
     the machine where this command is being run.
 `
@@ -61,10 +57,10 @@ func (c *InstallOpenEBSCommand) Synopsis() string {
 func (c *InstallOpenEBSCommand) Run(args []string) int {
 	var runop int
 
-	flags := c.M.FlagSet("setup-host", FlagSetClient)
+	flags := c.M.FlagSet("setup-osh", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.master_ips, "master-ips", "", "")
+	flags.StringVar(&c.master_ips, "omm-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
 	flags.StringVar(&c.member_ips, "member-ips", "", "")
 
@@ -80,7 +76,7 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 	}
 
 	if len(strings.TrimSpace(c.master_ips)) == 0 {
-		c.M.Ui.Error("-master-ips option is mandatory")
+		c.M.Ui.Error("-omm-ips option is mandatory")
 		c.M.Ui.Error(c.Help())
 		return 1
 	}
