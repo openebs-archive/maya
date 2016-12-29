@@ -51,7 +51,7 @@ Example : Assuming 172.28.128.3 is where you require the management server to be
 ubuntu@master-01:~$ maya setup-omm -self-ip=172.28.128.3
 ```
 
-#### Setup OpenEBS Host (osh)
+#### Setup OpenEBS Storage Host (osh)
 
 Example : Assuming Maya Master is reachable on 172.28.128.3 and you would like the OpenEBS Storage Host to communicate using 172.28.128.6
 ```
