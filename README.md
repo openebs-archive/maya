@@ -12,13 +12,12 @@ Well, the *story* does not end here. Maya manages itself i.e. `maya manages maya
 It has been a long desire to make the lives of storage operators easier. Maya has been 
 designed ground up to implement just this i.e. manage & tune its own devops requirements. 
 
-TODO: Link to the Architecture Diagram. 
+![Quick-glance overview](https://github.com/openebs/openebs/blob/master/docs/MayaArchitectureOverview.png) 
 
-Any \*inx host that supports container can be converted into Maya-Storage-Host using the
-following commands. 
+Any \*inx host that supports container can be converted into OpenEBS Storage Host using maya. 
 
 
-## Installing from binaries
+## Installing Maya from binaries
 
 Pre-requisites : ubuntu 16.04, wget, unzip
 
@@ -30,7 +29,7 @@ sudo mv maya /usr/bin
 rm -rf maya-linux_amd64.zip
 ```
 
-## Installing from source
+## Installing Maya from source
 
 Pre-requisites : ubuntu 16.04, git, zip, unzip, go. 
 
@@ -41,25 +40,20 @@ cd maya && make dev
 ```
 
 
-## Usage
+## Setup and Initialize
 
-### Setup and Initialize 
-
-Setup OpenEBS Master and Host Nodes by logging into the nodes via ssh. When there are multiple IPs on the node, you can specify the listening ip for the node via **-self-ip**
+NOTE: When there are multiple IPs on the machine, you can specify the IP to be used for management traffic using **-self-ip**
 
 #### Setup OpenEBS Maya Master (omm)
 
-maya setup-omm [-self-ip=<listen ip address>]
-
-Example:
+Example : Assuming 172.28.128.3 is where you require the management server to be running. 
 ```
 ubuntu@master-01:~$ maya setup-omm -self-ip=172.28.128.3
 ```
 
 #### Setup OpenEBS Host (osh)
 
-maya setup-osh -omm-ips=172.28.128.3 [-self-ip=<listen ip address>]
-
+Example : Assuming Maya Master is reachable on 172.28.128.3 and you would like the OpenEBS Storage Host to communicate using 172.28.128.6
 ```
 ubuntu@host-01:~$ maya setup-osh -self-ip=172.28.128.6 -omm-ips=172.28.128.3
 ```
