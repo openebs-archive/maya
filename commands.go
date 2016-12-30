@@ -29,7 +29,7 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
-		"setup-host": func() (cli.Command, error) {
+		"setup-osh": func() (cli.Command, error) {
 			return &command.InstallOpenEBSCommand{
 				M: meta,
 			}, nil
