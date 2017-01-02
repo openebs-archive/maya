@@ -78,7 +78,7 @@ bootstrap:
 		echo "Installing $$tool" ; \
 		go get $$tool; \
 	done 
-	#@glide up 
+	@glide up 
 
 # You might need to use sudo
 install: bin/${MAYACTL}
