@@ -34,12 +34,12 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
-		"status": func() (cli.Command, error) {
-			return &command.StatusCommand{
+		"omm-status": func() (cli.Command, error) {
+			return &command.ServerMembersCommand{
 				Meta: meta,
 			}, nil
 		},
-		"node-status": func() (cli.Command, error) {
+		"osh-status": func() (cli.Command, error) {
 			return &command.NodeStatusCommand{
 				Meta: meta,
 			}, nil
