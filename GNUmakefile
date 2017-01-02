@@ -77,7 +77,8 @@ bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "Installing $$tool" ; \
 		go get $$tool; \
-	done
+	done 
+	@glide up 
 
 # You might need to use sudo
 install: bin/${MAYACTL}

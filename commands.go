@@ -34,6 +34,17 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
+		"omm-status": func() (cli.Command, error) {
+			return &command.ServerMembersCommand{
+				Meta: meta,
+			}, nil
+		},
+		"osh-status": func() (cli.Command, error) {
+			return &command.NodeStatusCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"vsm-create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
 				M: meta,

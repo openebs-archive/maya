@@ -9,3 +9,4 @@ nohup.out
 hello.nomad
 clientpeers
 serverpeers
+vendor/

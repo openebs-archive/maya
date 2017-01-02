@@ -1,4 +1,22 @@
 package: github.com/openebs/maya
+ignore:
+- github.com/docker/docker
+- github.com/StackExchange/wmi
+- github.com/hpcloud/tail
+- github.com/sethgrid/pester
+- github.com/jmespath/go-jmespath
+
+excludeDirs:
+- github.com/hashicorp/vault
+
 import:
+- package: github.com/dustin/go-humanize
+- package: github.com/hashicorp/go-getter
+  subpackages:
+  - api
+  - jobspec
+  - nomad/structs
 - package: github.com/mitchellh/cli
 - package: github.com/mitchellh/colorstring
+- package: github.com/ryanuber/columnize
+  version: ^2.1.0
