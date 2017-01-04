@@ -10,14 +10,17 @@ job "demo-vsm2" {
 
 	#Declare the IP parameters generic to all controllers and replicas
 	meta {
-		JIVA_VOLNAME = "demo1-vsm2-vol2"
-		JIVA_VOLSIZE = "10g"
+		JIVA_VOLNAME = "demo-vsm2-vol1"
+		JIVA_VOLSIZE = "20g"
+		JIVA_FRONTEND_VERSION = "openebs/jiva:latest"
+		JIVA_FRONTEND_NETWORK = "host_static"
 		JIVA_FRONTENDIP = "172.28.128.121"
+		JIVA_FRONTENDSUBNET = "24"
+		JIVA_FRONTENDINTERFACE = "enp0s8"
 	}
 
-	# Create a 'ctl' group. Each task in the group will be
-	# scheduled onto the same machine.
-	group "demo-vsm2-ctl" {
+	# Create a 'frontend container' group.
+	group "demo-vsm2-fe" {
 		# Configure the restart policy for the task group. If not provided, a
 		# default is used based on the job type.
 		restart {
@@ -29,7 +32,7 @@ job "demo-vsm2" {
 		}
 
 		# Define the controller task to run
-		task "ctl" {
+		task "fe" {
 			# Use a docker wrapper to run the task.
 			driver = "raw_exec"
 			artifact {
@@ -38,12 +41,12 @@ job "demo-vsm2" {
 
 			env {
 				JIVA_CTL_NAME = "${NOMAD_JOB_NAME}-${NOMAD_TASK_NAME}"
-				JIVA_CTL_VERSION = "openebs/jiva:latest"
+				JIVA_CTL_VERSION = "${NOMAD_META_JIVA_FRONTEND_VERSION}"
 				JIVA_CTL_VOLNAME = "${NOMAD_META_JIVA_VOLNAME}"
 				JIVA_CTL_VOLSIZE = "${NOMAD_META_JIVA_VOLSIZE}"
 				JIVA_CTL_IP = "${NOMAD_META_JIVA_FRONTENDIP}"
-				JIVA_CTL_SUBNET = "24"
-				JIVA_CTL_IFACE = "enp0s8"
+				JIVA_CTL_SUBNET = "${NOMAD_META_JIVA_FRONTENDSUBNET}"
+				JIVA_CTL_IFACE = "${NOMAD_META_JIVA_FRONTENDINTERFACE}"
 			}
 
 			config {
@@ -64,9 +67,8 @@ job "demo-vsm2" {
 		}
 	}
 
-	# Create a 'rep' group. Each task in the group will be
-	# scheduled onto the same machine.
-	group "rep-store1" {
+	# Create a 'backend container' group.
+	group "demo-vsm2-backend-container1" {
 		# Configure the restart policy for the task group. If not provided, a
 		# default is used based on the job type.
 		restart {
@@ -77,8 +79,8 @@ job "demo-vsm2" {
 			mode = "delay"
 		}
 
-		# Define the controller task to run
-		task "rep-store1" {
+		# Define the parameters for the backend container
+		task "be-store1" {
 			# Use a docker wrapper to run the task.
 			driver = "raw_exec"
 			artifact {
@@ -87,14 +89,15 @@ job "demo-vsm2" {
 
 			env {
 				JIVA_REP_NAME = "${NOMAD_JOB_NAME}-${NOMAD_TASK_NAME}"
-				JIVA_REP_VERSION = "openebs/jiva:latest"
 				JIVA_CTL_IP = "${NOMAD_META_JIVA_FRONTENDIP}"
 				JIVA_REP_VOLNAME = "${NOMAD_META_JIVA_VOLNAME}"
 				JIVA_REP_VOLSIZE = "${NOMAD_META_JIVA_VOLSIZE}"
+				JIVA_REP_VOLSTORE = "/tmp/jiva/vsm2/rep1"
+				JIVA_REP_VERSION = "openebs/jiva:latest"
+		                JIVA_REP_NETWORK = "host_static"
+				JIVA_REP_IFACE = "enp0s8"
 				JIVA_REP_IP = "172.28.128.122"
 				JIVA_REP_SUBNET = "24"
-				JIVA_REP_IFACE = "enp0s8"
-				JIVA_REP_VOLSTORE = "/tmp/jiva/vsm2/rep1"
 			}
 
 			config {
@@ -108,16 +111,15 @@ job "demo-vsm2" {
 				cpu = 500 # 500 MHz
 				memory = 256 # 256MB
 				network {
-					mbits = 20
+					mbits = 100
 				}
 			}
 
 		}
 	}
 
-	# Create a 'rep' group. Each task in the group will be
-	# scheduled onto the same machine.
-	group "rep-store2" {
+	# Create a 'backend container' group. 
+	group "demo-vsm2-backend-container2" {
 		# Configure the restart policy for the task group. If not provided, a
 		# default is used based on the job type.
 		restart {
@@ -128,8 +130,8 @@ job "demo-vsm2" {
 			mode = "delay"
 		}
 
-		# Define the controller task to run
-		task "rep-store2" {
+		# Define the parameters for the backend container
+		task "be-store2" {
 			# Use a docker wrapper to run the task.
 			driver = "raw_exec"
 			artifact {
@@ -138,14 +140,15 @@ job "demo-vsm2" {
 
 			env {
 				JIVA_REP_NAME = "${NOMAD_JOB_NAME}-${NOMAD_TASK_NAME}"
-				JIVA_REP_VERSION = "openebs/jiva:latest"
 				JIVA_CTL_IP = "${NOMAD_META_JIVA_FRONTENDIP}"
 				JIVA_REP_VOLNAME = "${NOMAD_META_JIVA_VOLNAME}"
 				JIVA_REP_VOLSIZE = "${NOMAD_META_JIVA_VOLSIZE}"
+				JIVA_REP_VOLSTORE = "/tmp/jiva/vsm2/rep2"
+				JIVA_REP_VERSION = "openebs/jiva:latest"
+		                JIVA_REP_NETWORK = "host_static"
+				JIVA_REP_IFACE = "enp0s8"
 				JIVA_REP_IP = "172.28.128.123"
 				JIVA_REP_SUBNET = "24"
-				JIVA_REP_IFACE = "enp0s8"
-				JIVA_REP_VOLSTORE = "/tmp/jiva/vsm2/rep2"
 			}
 
 			config {
@@ -159,7 +162,7 @@ job "demo-vsm2" {
 				cpu = 500 # 500 MHz
 				memory = 256 # 256MB
 				network {
-					mbits = 20
+					mbits = 100
 				}
 			}
 
