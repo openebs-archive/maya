@@ -1,14 +1,4 @@
 package: github.com/openebs/maya
-ignore:
-- github.com/docker/docker
-- github.com/StackExchange/wmi
-- github.com/hpcloud/tail
-- github.com/sethgrid/pester
-- github.com/jmespath/go-jmespath
-
-excludeDirs:
-- github.com/hashicorp/vault
-
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
@@ -20,3 +10,9 @@ import:
 - package: github.com/mitchellh/colorstring
 - package: github.com/ryanuber/columnize
   version: ^2.1.0
+- package: github.com/docker/docker
+  version: ^1.12
+  subpackages:
+  - pkg
+  - opts
+  - contrib

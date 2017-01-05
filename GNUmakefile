@@ -22,11 +22,17 @@ MAYACTL=maya
 
 all: test
 
-dev: format bootstrap
+dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 bin:
 	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
+
+initialize: bootstrap
+
+deps: 
+	rm -rf vendor
+	@glide up
 
 clean: 
 	rm -rf pkg
@@ -78,7 +84,6 @@ bootstrap:
 		echo "Installing $$tool" ; \
 		go get $$tool; \
 	done 
-	@glide up 
 
 # You might need to use sudo
 install: bin/${MAYACTL}

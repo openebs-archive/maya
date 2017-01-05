@@ -61,6 +61,8 @@ $mayamaster = <<SCRIPT
 #!/bin/bash
 
 cd /opt/gopath/src/github.com/openebs/maya
+make initialize
+make deps
 make dev
 maya setup-omm
 echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
@@ -73,6 +75,7 @@ $storagehost = <<SCRIPT
 echo "Testing output redirection"
 
 cd /opt/gopath/src/github.com/openebs/maya
+make initialize
 make dev
 maya setup-osh -omm-ips=172.28.128.3
 echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
@@ -124,8 +127,8 @@ def configureVM(vmCfg, hostname, cpus, mem)
   vmCfg.vm.synced_folder '.', '/opt/gopath/src/github.com/openebs/maya'
 
   # Script will make some directories before installation procedure
-  vmCfg.vm.provision "shell", inline: $installer, privileged: true
-  vmCfg.vm.provision "shell", inline: $mayadev, privileged: true
+  vmCfg.vm.provision "shell", inline: $installer, privileged: false 
+  vmCfg.vm.provision "shell", inline: $mayadev, privileged: false
   
   return vmCfg
 end
@@ -148,7 +151,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-      vmCfg.vm.provision "shell", inline: $mayamaster, privileged: true
+      vmCfg.vm.provision "shell", inline: $mayamaster, privileged: false 
     end     
   end
   
@@ -160,7 +163,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-      vmCfg.vm.provision "shell", inline: $storagehost, privileged: true
+      vmCfg.vm.provision "shell", inline: $storagehost, privileged: false
     end
   end
 
@@ -172,7 +175,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-      vmCfg.vm.provision "shell", inline: $clientinstaller, privileged: true
+      vmCfg.vm.provision "shell", inline: $clientinstaller, privileged: false
     end
   end
 
