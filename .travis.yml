@@ -12,7 +12,7 @@ before_install:
 install:
   - make bootstrap
 script:
-  - make test bin
+  - make deps test bin
   - ls -la pkg/
 notifications:
   email:
