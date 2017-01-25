@@ -90,8 +90,3 @@ The volume will be accessible via iSCSI and can be connected from local host.
 **/opt/maya-store** is the default store created when Maya is installed on the local disk. 
 This can ge changed via the /etc/maya.conf to specify a different directory or disks 
 (in case of single node setups) or can be an shared storage (in case of clustered setups).
-
-
-## Forums
-
-Join us at our [gitter](https://gitter.im/openebs/Lobby) lobby.
