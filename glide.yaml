@@ -12,7 +12,7 @@ import:
 - package: github.com/ryanuber/columnize
   version: ^2.1.0
 - package: github.com/docker/docker
-  version: ^1.13
+  version: ^1.13.0
   subpackages:
   - pkg
   - opts
