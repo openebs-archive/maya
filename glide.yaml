@@ -2,6 +2,7 @@ package: github.com/openebs/maya
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
+- package: github.com/hashicorp/nomad
   subpackages:
   - api
   - jobspec
@@ -11,7 +12,7 @@ import:
 - package: github.com/ryanuber/columnize
   version: ^2.1.0
 - package: github.com/docker/docker
-  version: ^1.12
+  version: ^1.13
   subpackages:
   - pkg
   - opts
