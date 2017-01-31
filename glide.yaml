@@ -3,6 +3,7 @@ import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
 - package: github.com/hashicorp/nomad
+  version: v0.5.2
   subpackages:
   - api
   - jobspec
@@ -10,10 +11,11 @@ import:
 - package: github.com/mitchellh/cli
 - package: github.com/mitchellh/colorstring
 - package: github.com/ryanuber/columnize
-  version: ^2.1.0
+  version: v2.1.0
 - package: github.com/docker/docker
-  version: ^1.13.0
+  version: v1.13.0
   subpackages:
   - pkg
   - opts
   - contrib
+  - cli
