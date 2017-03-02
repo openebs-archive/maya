@@ -131,12 +131,14 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	if runop = c.startNomad(); runop != 0 {
 		return runop
 	}
+	if runop = c.installMayaserver(); runop != 0 {
+		return runop
+	}
 
 	return runop
 }
 
 func (c *InstallMayaCommand) installConsul() int {
-
 	var runop int = 0
 
 	c.Cmd = exec.Command("sh", InstallConsulScript)
@@ -156,6 +158,19 @@ func (c *InstallMayaCommand) installNomad() int {
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing nomad")
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) installMayaserver() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", InstallMayaserverScript)
+
+	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Error installing mayaserver")
 	}
 
 	return runop

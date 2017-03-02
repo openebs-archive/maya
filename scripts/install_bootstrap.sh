@@ -29,6 +29,9 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/get_firs
 echo "Fetching docker scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_docker.sh -o install_docker.sh
 
+echo "Fetching Mayaserver scripts ..."
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_mayaserver.sh -o install_mayaserver.sh
+
 echo "Fetching consul scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/set_consul_as_server.sh -o set_consul_as_server.sh

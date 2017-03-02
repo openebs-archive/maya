@@ -63,6 +63,8 @@ const (
 	InstallEtcdScript string = MayaScriptsPath + "install_etcd.sh"
 	StartEtcdScript   string = MayaScriptsPath + "start_etcd.sh"
 	SetEtcdScript     string = MayaScriptsPath + "set_etcd.sh"
+	//MayaServer Scripts
+	InstallMayaserverScript string = MayaScriptsPath + "install_mayaserver.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
