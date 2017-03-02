@@ -11,10 +11,8 @@ sudo rm -rf /usr/bin/mayaserver
 
 cd /tmp/
 
-if [ ! -f "./mayaserver_${MAYA_VERSION}.zip" ]; then
-  echo "Fetching Mayaserver ${MAYA_VERSION} ..."
-  wget -q https://github.com/openebs/mayaserver/releases/download/${MAYA_VERSION}/mayaserver-linux_amd64.zip -o mayaserver.zip
-fi
+echo "Fetching Mayaserver ${MAYA_VERSION} ..."
+wget -q https://github.com/openebs/mayaserver/releases/download/${MAYA_VERSION}/mayaserver-linux_amd64.zip -o mayaserver.zip
 
 echo "Installing Mayaserver ${MAYA_VERSION} ..."
 unzip mayaserver.zip
