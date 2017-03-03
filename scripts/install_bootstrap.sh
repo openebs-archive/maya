@@ -58,6 +58,9 @@ sudo chmod 0755 set_nomad_as_server.sh
 # Fetch various templates
 cd /etc/maya.d/templates
 
+echo "Fetching mayaserver config templates ..."
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/mayaserver.service.tmpl -o mayaserver.service.tmpl
+
 echo "Fetching consul config templates ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server.json.tmpl -o consul-server.json.tmpl
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/templates/consul-server.service.tmpl -o consul-server.service.tmpl
