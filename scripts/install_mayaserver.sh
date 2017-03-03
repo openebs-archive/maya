@@ -11,8 +11,6 @@ CURDIR=`pwd`
 
 if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2) == "v$MAYA_VERSION" ]]; then
     echo "Mayaserver v$MAYA_VERSION already installed; Skipping"
-    echo "Starting Mayaserver..."
-    sudo systemctl restart mayaserver.service
     exit
 fi
 
@@ -28,6 +26,4 @@ unzip mayaserver.zip
 sudo chmod +x mayaserver
 sudo mv mayaserver /usr/bin/mayaserver
 
-echo "Starting Mayaserver..."
-sudo systemctl restart mayaserver.service
 cd ${CURDIR}
