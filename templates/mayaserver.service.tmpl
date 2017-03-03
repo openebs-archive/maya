@@ -1,0 +1,12 @@
+[Unit]
+Description=Mayaserver Daemon 
+
+[Service]
+Environment=GOMAXPROCS=2
+Restart=on-failure
+ExecStart=/usr/bin/mayaserver up &>mserver.log 
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

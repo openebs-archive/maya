@@ -31,6 +31,7 @@ curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_
 
 echo "Fetching Mayaserver scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_mayaserver.sh -o install_mayaserver.sh
+curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/start_mayaserver.sh -o start_mayaserver.sh
 
 echo "Fetching consul scripts ..."
 curl -sSL https://raw.githubusercontent.com/openebs/maya/master/scripts/install_consul.sh -o install_consul.sh

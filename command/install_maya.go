@@ -134,6 +134,9 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	if runop = c.installMayaserver(); runop != 0 {
 		return runop
 	}
+	if runop = c.startMayaserver(); runop != 0 {
+		return runop
+	}
 
 	return runop
 }
@@ -305,6 +308,19 @@ func (c *InstallMayaCommand) startNomad() int {
 
 	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Systemd failed: Error starting nomad")
+	}
+
+	return runop
+}
+
+func (c *InstallMayaCommand) startMayaserver() int {
+
+	var runop int = 0
+
+	c.Cmd = exec.Command("sh", StartMayaServerScript)
+
+	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
+		c.M.Ui.Error("Install failed: Systemd failed: Error starting mayaserver")
 	}
 
 	return runop
