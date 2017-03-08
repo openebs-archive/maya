@@ -102,7 +102,6 @@ func (c *ServerMembersCommand) Run(args []string) int {
 	if runop = c.mserverstatus(); runop != 0 {
 		return runop
 	}
-	//fmt.Println(mserverstatus)
 	return 0
 }
 
@@ -187,14 +186,9 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 	return leaders, nil
 }
 
+// to get the status of mayaserver deamon,
+// TODO proper CLI command once mayaserver have it's own
 func (c *ServerMembersCommand) mserverstatus() int {
-	//	out, err := exec.Command("mayaserver", "version").Output()
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//	fmt.Printf("mayaserver is running:  %s\n", out)
-	//	return 0
-
 	var runop int = 0
 
 	c.Cmd = exec.Command("systemctl", "status", "mayaserver")
