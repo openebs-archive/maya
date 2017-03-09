@@ -4,7 +4,7 @@ Description=Mayaserver Daemon
 [Service]
 Environment=GOMAXPROCS=2
 Restart=on-failure
-ExecStart=/usr/bin/mayaserver up &>mserver.log 
+ExecStart=/usr/bin/mayaserver up -bind=__SELF_IPV4__ &>mserver.log 
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGTERM
 
