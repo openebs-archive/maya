@@ -317,7 +317,7 @@ func (c *InstallMayaCommand) startMayaserver() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", StartMayaServerScript)
+	c.Cmd = exec.Command("sh", StartMayaServerScript, c.self_ip)
 
 	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Systemd failed: Error starting mayaserver")
