@@ -4,11 +4,11 @@ set -e
 
 SELF_IPV4=$1
 
-if [ $# -ne "" ]; then
+if [ $# -eq 0 ]; then
+
    SELF_IP4=127.0.0.1
 fi
-
-echo "Setup Mayaserver Daemon ..."
+echo "Setting up Mayaserver Daemon ...with ip $SELF_IPV4"
 
 # Place systemd service template for Mayaserver
 sudo cp /etc/maya.d/templates/mayaserver.service.tmpl /etc/systemd/system/mayaserver.service
