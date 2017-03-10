@@ -12,9 +12,12 @@ echo "Setting up Mayaserver Daemon ...with ip $SELF_IPV4"
 
 # Place systemd service template for Mayaserver
 sudo cp /etc/maya.d/templates/mayaserver.service.tmpl /etc/systemd/system/mayaserver.service
+sudo cp /etc/maya.d/templates/nomad_global.INI.tmpl /etc/mayaserver/orchprovider/nomad_global.INI
 
 # Replace the placeholders with actual values
 sudo sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /etc/systemd/system/mayaserver.service 
+
+sudo sed -e "s|__SELF_IPV4__|$SELF_IPV4|g" -i /etc/mayaserver/orchprovider/nomad_global.INI
 
 echo "Starting Mayaserver service ..."
 

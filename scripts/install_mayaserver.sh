@@ -26,4 +26,9 @@ unzip mayaserver.zip
 sudo chmod +x mayaserver
 sudo mv mayaserver /usr/bin/mayaserver
 
+# Setup config directory for mayaserver
+sudo mkdir -p /etc/mayaserver/orchprovider
+sudo chmod a+w /etc/mayaserver/orchprovider
+
+
 cd ${CURDIR}
