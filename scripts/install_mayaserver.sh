@@ -2,7 +2,7 @@
 
 set -e
 
-MAYA_VERSION="0.0.3"
+MAYA_VERSION="0.0.4"
 CURDIR=`pwd`
 
 # Remove if already present
