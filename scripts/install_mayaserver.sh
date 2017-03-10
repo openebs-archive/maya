@@ -5,11 +5,7 @@ set -e
 MAYA_VERSION="0.0.4"
 CURDIR=`pwd`
 
-# Remove if already present
-# echo "Cleaning old Mayaserver installation if any"
-#sudo rm -rf /usr/bin/mayaserver
-
-if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2) == "v$MAYA_VERSION" ]]; then
+if [ `mayaserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2` = $MAYA_VERSION ]; then
     echo "Mayaserver v$MAYA_VERSION already installed; Skipping"
     exit
 fi
