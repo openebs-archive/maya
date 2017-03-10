@@ -170,7 +170,7 @@ func (c *InstallMayaCommand) installMayaserver() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallMayaserverScript)
+	c.Cmd = exec.Command("bash", InstallMayaserverScript)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing mayaserver")
