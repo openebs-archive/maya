@@ -66,6 +66,8 @@ const (
 	//MayaServer Scripts
 	InstallMayaserverScript string = MayaScriptsPath + "install_mayaserver.sh"
 	StartMayaServerScript   string = MayaScriptsPath + "start_mayaserver.sh"
+	//flannel Scripts
+	InstallFlannelScript string = MayaScriptsPath + "install_flannel.sh"
 )
 
 var ErrMissingCommand error = errors.New("missing command")
