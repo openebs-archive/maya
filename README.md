@@ -1,21 +1,35 @@
-## Maya
+## Overview
 
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
 
+OpenEBS Storage Orchestration, abstracts the operational burden of setting up and managing the Storage (Persistent Volumes) and Storage Infrastructure (Physical Storage - Local/Cloud Disks/SSDs/Cache, Controllers, Networks). OpenEBS Orchestration is delivered through a set of services and tools that seamlessly integrate OpenEBS into your container eco-system. 
 
-Maya is the storage orchestration system for managing storage for millions of containers. 
-Maya can accomplish complex storage management tasks with deceptive simplicity. Maya can 
-manage storage across multiple Maya-Realms (aka clusters/environments), that are co-located
-or geographically seperated and can also run from within a single host. 
+OpenEBS Storage Orchestration allows you to manage storage across multiple zones (aka clusters/environments), that are co-located or geographically seperated and can also run from within a single host. Maya can move the storage across different tiers based on the application needs (volume migration). OpenEBS learns and adapts to the changing environement through machine learning and data analytics. 
 
-Well, the *story* does not end here. Maya manages itself i.e. `maya manages maya`. 
-It has been a long desire to make the lives of storage operators easier. Maya has been 
-designed ground up to implement just this i.e. manage & tune its own devops requirements. 
+OpenEBS aims at managing storage for millions of containers with deceptive simplicity. 
 
-![Quick-glance overview](https://github.com/openebs/openebs/blob/master/docs/MayaArchitectureOverview.png) 
+Maya (meaning magic) is the command line interface for setting up and managing the OpenEBS Storage Orchestration services.
 
-Any \*inx host that supports container can be converted into OpenEBS Storage Host using maya. 
+## Design
 
+Maya helps in managing the OpenEBS Storage Orchestration services, that can be classified based on where they are deployed as follows:
+
+![Maya Design](https://github.com/openebs/openebs/blob/master/documentation/source/_static/maya-hld.png)
+
+- Control Plane Components - like API Server (mAPI) that helps in processing the requests for creating new volumes. The API server, will use the container orchestration engines to deploy the VSM. Another example is the Analytics (mAnalytics) engine that gathers the data via the machine learning probes and runs heuristics analysis to optimize storage deployment. In hyper-converged deployment modes (example with Kubernetes), these services will be deployed along-side kubernetes master nodes. When deployed with Kubernetes (mSCH) is kubernetes-scheduler that is plugged with the storage metrics for placement of VSMs. 
+
+- Node/Host Components - are the services and tools that run on the Container hosts where the VSM containers are scheduled. Services (like mStorageInterace) on the node help in managing the disks attached to the hosts and help in carving out the required disks to different VSMs. There is also an agent that runs on the nodes for interfacing with the control plane, or to external providers like terraform or amazon webservices. 
+
+Maya is primarily designed to : 
+- Install and configure Services based on node type, like OpenEBS Master, OpenEBS Storage Host, K8s-master, K8s-minion, etc., 
+- Install and configure OpenEBS storage orchestration services like mayaserver, mAnalytics, etc,. 
+- Install and configure network infrastructure services/plugins like flannel, weave, etc,. 
+- Install and configure Kubernetes services like kube-apiserver, kube-proxy, kube-scheduler, etc., 
+- Create and Manage OpenEBS VSMs
+
+Maya aims at making the infrastructure programmable via the yaml files. Once Maya is installed, it can read the node infrastructure intent (speficied in yaml file) and will install the required components. 
+
+## Install
 
 ## Installing Maya from binaries
 
@@ -40,9 +54,7 @@ cd maya && make dev
 ```
 
 
-## Setup and Initialize
-
-NOTE: When there are multiple IPs on the machine, you can specify the IP to be used for management traffic using **-self-ip**
+## Usage
 
 #### Setup OpenEBS Maya Master (omm)
 
@@ -58,35 +70,3 @@ Example : Assuming Maya Master is reachable on 172.28.128.3 and you would like t
 ubuntu@host-01:~$ maya setup-osh -self-ip=172.28.128.6 -omm-ips=172.28.128.3
 ```
 
-
-### Load Maya
-Start the maya services based on the configuration specified in the /etc/maya.conf. 
-```
-maya load
-```
-Default maya.conf is created by **_maya init_** and can be modified to perform any of
-the following:
-- Run as Storage Host only in a new or existing Maya Realm
-- Run Maya orchestration services only
-- Run both Maya orchestration services and also configure as Storage Host in a new or 
-existing Maya Realm
-
-**_maya load_** can also be used to re-load the configuration from maya.conf. 
-
-### Use Maya for Managing Volumes
-The following command will create a Maya volume using the default *volume spec*. 
-```
-maya volume <name> [--spec <volume-spec>]
-```
-Each volume in maya is associated with a spec that defines the features for the volume 
-like the capacity, *jiva* version, persistent store, etc., The default volume spec will
-create a new container and expose an volume with :
-- capacity 100GB
-- latest Jiva version 
-- data persisted to the directory /opt/maya-store/<vol-name>. 
-
-The volume will be accessible via iSCSI and can be connected from local host. 
-
-**/opt/maya-store** is the default store created when Maya is installed on the local disk. 
-This can ge changed via the /etc/maya.conf to specify a different directory or disks 
-(in case of single node setups) or can be an shared storage (in case of clustered setups).
