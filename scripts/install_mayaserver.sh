@@ -2,7 +2,7 @@
 
 set -e
 
-MAYA_VERSION="0.0.4"
+MAYA_VERSION="0.0.5"
 CURDIR=`pwd`
 
 if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
