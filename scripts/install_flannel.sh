@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# env variables
+MASTER_IP=$1
+MASTER_NAME=$2
+NODE_NAME=`hostname`
+IP=`ip addr | grep "state UP" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/'`
+
 echo "Provisioning network on master"
 set -e
 
@@ -16,7 +22,7 @@ fi
 
 echo "Installing flannel ${FLANNEL_VER} ..."
 tar xzvf flannel-${FLANNEL_VER}-linux-amd64.tar.gz
-chmod +x flanneld
+sudo chmod +x flanneld
 sudo mv flanneld /usr/local/bin/flanneld
 
 cat <<EOF >/tmp/flannel-config.json
@@ -33,7 +39,7 @@ EOF
 sudo mv /tmp/flannel-config.json /etc/flannel-config.json
 
 # Import default configuration into etcd for maya master
-etcdctl --ca-file=/etc/etcd/ca.crt set /coreos.com/network/config < /etc/flannel-config.json
+# etcdctl --ca-file=/etc/etcd/ca.crt set /coreos.com/network/config < /etc/flannel-config.json
 
 cat <<EOF > /tmp/flanneld.service
 [Unit]
@@ -52,8 +58,18 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-#creating flanneld daemon service
+# creating flanneld daemon service
 sudo mv /tmp/flanneld.service /etc/systemd/system/flanneld.service
+
+# Setup hosts file to support ping by hostname to each node in the cluster
+cp /etc/hosts /tmp/
+if [ ! "$(cat /tmp/hosts | grep $IP)" ]; then
+        echo "Adding $NODE_NAME to hosts file"
+     echo "$IP $NODE_NAME" >> /tmp/hosts
+fi  
+echo "Adding $MASTER_NAME to hosts file"
+echo "$MASTER_IP $MASTER_NAME" >> /tmp/hosts
+sudo mv /tmp/hosts /etc/
 
 # Start flannel
 echo "Starting flannel service..."
