@@ -92,18 +92,18 @@ func (c *MayaAsNomadInstaller) Install() int {
 	if runop = c.startNomadAsClient(); runop != 0 {
 		return runop
 	}
+	//Not installing the etcd on Maya-host
+	//if runop = c.installEtcd(); runop != 0 {
+	//	return runop
+	//}
 
-	if runop = c.installEtcd(); runop != 0 {
-		return runop
-	}
+	//if runop = c.setEtcd(); runop != 0 {
+	//	return runop
+	//}
 
-	if runop = c.setEtcd(); runop != 0 {
-		return runop
-	}
-
-	if runop = c.startEtcd(); runop != 0 {
-		return runop
-	}
+	//if runop = c.startEtcd(); runop != 0 {
+	//	return runop
+	//}
 
 	return runop
 }
@@ -244,18 +244,18 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 	return runop
 }
 
-func (c *MayaAsNomadInstaller) installEtcd() int {
+//func (c *MayaAsNomadInstaller) installEtcd() int {
 
-	var runop int = 0
+//	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallEtcdScript)
+//	c.Cmd = exec.Command("sh", InstallEtcdScript)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error installing etcd")
-	}
+//	if runop = execute(c.Cmd, c.Ui); runop != 0 {
+//		c.Ui.Error("Install failed: Error installing etcd")
+//	}
 
-	return runop
-}
+//	return runop
+//}
 
 func (c *MayaAsNomadInstaller) installConsul() int {
 
@@ -283,18 +283,18 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 	return runop
 }
 
-func (c *MayaAsNomadInstaller) startEtcd() int {
+//func (c *MayaAsNomadInstaller) startEtcd() int {
 
-	var runop int = 0
+//	var runop int = 0
 
-	c.Cmd = exec.Command("sh", StartEtcdScript)
+//	c.Cmd = exec.Command("sh", StartEtcdScript)
 
-	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Systemd failed: Error starting etcd")
-	}
+//	if runop := execute(c.Cmd, c.Ui); runop != 0 {
+//		c.Ui.Error("Install failed: Systemd failed: Error starting etcd")
+//	}
 
-	return runop
-}
+//	return runop
+//}
 
 func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 
@@ -322,18 +322,18 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 	return runop
 }
 
-func (c *MayaAsNomadInstaller) setEtcd() int {
+//func (c *MayaAsNomadInstaller) setEtcd() int {
 
-	var runop int = 0
+//	var runop int = 0
 
-	c.Cmd = exec.Command("sh", SetEtcdScript, c.self_ip, c.self_ip_trim, c.etcd_cluster)
+//	c.Cmd = exec.Command("sh", SetEtcdScript, c.self_ip, c.self_ip_trim, c.etcd_cluster)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error setting etcd")
-	}
+//	if runop = execute(c.Cmd, c.Ui); runop != 0 {
+//		c.Ui.Error("Install failed: Error setting etcd")
+//	}
 
-	return runop
-}
+//	return runop
+//}
 
 func (c *MayaAsNomadInstaller) setConsulAsClient() int {
 
