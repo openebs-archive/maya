@@ -6,7 +6,7 @@ MASTER_NAME=$2
 NODE_NAME=`hostname`
 IP=`ip addr | grep "state UP" -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/'`
 
-echo "Provisioning network on master"
+echo "Provisioning network on Maya Host"
 set -e
 
 FLANNEL_VER="v0.6.2"
@@ -50,7 +50,7 @@ Documentation=https://github.com/coreos/flannel
 ExecStart=/usr/local/bin/flanneld \
   --iface=enp0s8 \
   --etcd-cafile=/etc/etcd/ca.crt \
-  --etcd-endpoints=https://k8s-master-1:2379
+  --etcd-endpoints=https://$MASTER_NAME:2379
 Restart=on-failure
 RestartSec=5
 
