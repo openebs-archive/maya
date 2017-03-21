@@ -71,7 +71,7 @@ if [ ! "$(cat /tmp/hosts | grep $IP)" ]; then
      echo "$IP $NODE_NAME" >> /tmp/hosts
 fi  
 echo "Adding $MASTER_NAME to hosts file"
-echo "$MASTER_IP $MASTER_NAME" >> /tmp/host
+echo "$MASTER_IP $MASTER_NAME" >> /tmp/hosts
 sudo mv /tmp/hosts /etc/
 
 # Start flannel
