@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 	"strings"
 )
@@ -13,23 +14,28 @@ type NetworkInstallCommand struct {
 	// OS command to execute
 	Cmd *exec.Cmd
 
-	// self ip address
+	// etcd ip address
 	kube_ip string
 
-	// self hostname
+	//Server name in which etcd is running
 	kubename string
+
+	// cni plugin-name to install as maya network
+	cni string
 }
 
 func (c *NetworkInstallCommand) Help() string {
 	helpText := `
-	Usage: maya network-install <name> <ip>
+	Usage: maya network-install <cni> <name> <ip>
 
 	Configure the virtual network for containers on OpenEBS Host (osh)
 
 Maya Network options:
+  -cni= <Name>
+    Name of the CNI plugin to configure as a virtual container network
 
   -name= <Name>
-    This is name of the kubernetes-master which is running
+    This is name of the host which is running
     the etcd server to manage the key-value pair.
  
   -ip= <IP Address> 
@@ -52,6 +58,7 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 	flags.StringVar(&c.kubename, "name", "", "")
 	flags.StringVar(&c.kube_ip, "ip", "", "")
+	flags.StringVar(&c.cni, "cni", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -65,6 +72,12 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 	}
 
 	//check the args
+	if len(strings.TrimSpace(c.cni)) == 0 {
+		c.M.Ui.Error(fmt.Sprintf("-cni option is mandatory\n"))
+		c.M.Ui.Error(c.Help())
+		return 1
+	}
+
 	if len(strings.TrimSpace(c.kubename)) == 0 {
 		c.M.Ui.Error(fmt.Sprintf("-name option is mandatory\n"))
 		c.M.Ui.Error(c.Help())
@@ -76,10 +89,12 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 		c.M.Ui.Error(c.Help())
 		return 1
 	}
+
 	//stdout the configuration
 	fmt.Printf("following Configuration has been passed:\n")
 	fmt.Printf("k8smaster-name = %v\n", c.kubename)
 	fmt.Printf("k8smaster-ip = %v\n", c.kube_ip)
+	fmt.Printf("cni-plugin = %v\n", c.cni)
 
 	if runop = c.installFlannel(); runop != 0 {
 		return runop
@@ -89,6 +104,15 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 
 func (c *NetworkInstallCommand) installFlannel() int {
 	var runop int = 0
+
+	//Validation of ip
+	var ipAddr net.IP
+	if len(strings.TrimSpace(c.kube_ip)) > 0 {
+		if ipAddr = net.ParseIP(c.kube_ip); ipAddr == nil {
+			c.M.Ui.Error(fmt.Sprintf("provided ip address is not correct"))
+			return 1
+		}
+	}
 
 	c.Cmd = exec.Command("sh", InstallFlannelScript, c.kube_ip, c.kubename)
 

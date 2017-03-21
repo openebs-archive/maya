@@ -41,6 +41,9 @@ sudo mv /tmp/flannel-config.json /etc/flannel-config.json
 # Import default configuration into etcd for maya master
 # etcdctl --ca-file=/etc/etcd/ca.crt set /coreos.com/network/config < /etc/flannel-config.json
 
+# Creating certs dir and setting up permissions
+mkdir -p /etc/etcd/
+
 cat <<EOF > /tmp/flanneld.service
 [Unit]
 Description=Flannel SDN
@@ -68,7 +71,7 @@ if [ ! "$(cat /tmp/hosts | grep $IP)" ]; then
      echo "$IP $NODE_NAME" >> /tmp/hosts
 fi  
 echo "Adding $MASTER_NAME to hosts file"
-echo "$MASTER_IP $MASTER_NAME" >> /tmp/hosts
+echo "$MASTER_IP $MASTER_NAME" >> /tmp/host
 sudo mv /tmp/hosts /etc/
 
 # Start flannel
@@ -77,3 +80,40 @@ echo "Starting flannel service..."
    sudo systemctl start flanneld
 
 echo "Network configuration verified"
+
+echo "Changing the configuration of docker"
+
+# Setup docker env file for 
+mkdir -p /etc/etcd/cni/
+cat <<EOF > /tmp/docker_opts.env
+DOCKER_OPT_BIP=""
+DOCKER_OPT_IPMASQ=""
+EOF
+
+sudo mv /tmp/docker_opts.env /run/
+
+# Configuring Docker service
+cat <<EOF > /tmp/docker.service
+[Unit]
+Description=Docker Application Container Engine
+Documentation=http://docs.docker.io
+After=flanneld.service
+
+[Service]
+EnvironmentFile=/run/docker_opts.env
+EnvironmentFile=/run/flannel/subnet.env
+ExecStart=/usr/bin/dockerd --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU}  --iptables=false   --ip-masq=false   --host=unix:///var/run/docker.sock   --log-level=error   --storage-driver=overlay
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# creating flanneld daemon service
+sudo mv /tmp/docker.service /etc/systemd/system/docker.service 
+
+# Starting Docker service
+echo "Starting docker service..."
+   sudo systemctl daemon-reload
+   sudo systemctl restart docker.service
