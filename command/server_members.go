@@ -191,10 +191,10 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 func (c *ServerMembersCommand) mserverstatus() int {
 	var runop int = 0
 
-	c.Cmd = exec.Command("systemctl", "status", "mayaserver")
+	c.Cmd = exec.Command("systemctl", "status", "m-apiserver")
 
 	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("mayaserver not running")
+		c.Ui.Error("m-apiserver not running")
 	}
 
 	return runop
