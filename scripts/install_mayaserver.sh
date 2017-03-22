@@ -2,23 +2,23 @@
 
 set -e
 
-MAYA_VERSION="0.2-RC1"
+MAYA_VERSION="0.0.6"
 CURDIR=`pwd`
 
-if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
-echo "Mayaserver v$MAYA_VERSION already installed; Skipping"
-    exit
-fi
+#if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
+#echo "Mayaserver v$MAYA_VERSION already installed; Skipping"
+#    exit
+#fi
 
 cd /tmp/
 
 if [ ! -f "./mayaserver_${MAYA_VERSION}.zip" ]; then
 echo "Fetching Mayaserver ${MAYA_VERSION} ..."
-curl -sSL https://github.com/openebs/mayaserver/releases/download/${MAYA_VERSION}/mayaserver-linux_amd64.zip -o mayaserver.zip
+curl -sSL https://github.com/openebs/mayaserver/releases/download/${MAYA_VERSION}/mayaserver-linux_amd64.zip -o mayaserver_$MAYA_VERSION.zip
 fi
 
 echo "Installing Mayaserver ${MAYA_VERSION} ..."
-unzip mayaserver.zip
+unzip mayaserver_$MAYA_VERSION.zip
 sudo chmod +x mayaserver
 sudo mv mayaserver /usr/bin/mayaserver
 
