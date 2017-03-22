@@ -2,29 +2,28 @@
 
 set -e
 
-MAYA_VERSION="0.0.6"
+MAPI_VERSION="0.2-RC1"
 CURDIR=`pwd`
 
-#if [[ $(which mayaserver >/dev/null && mayaserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
-#echo "Mayaserver v$MAYA_VERSION already installed; Skipping"
+#if [[ $(which m-apiserver >/dev/null && m-apiserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
+#echo "Maya-API Server v$MAYA_VERSION already installed; Skipping"
 #    exit
 #fi
 
 cd /tmp/
 
-if [ ! -f "./mayaserver_${MAYA_VERSION}.zip" ]; then
-echo "Fetching Mayaserver ${MAYA_VERSION} ..."
-curl -sSL https://github.com/openebs/mayaserver/releases/download/${MAYA_VERSION}/mayaserver-linux_amd64.zip -o mayaserver_$MAYA_VERSION.zip
+if [ ! -f "./m-apiserver_${MAPI_VERSION}.zip" ]; then
+echo "Fetching Maya-API Server ${MAPI_VERSION} ..."
+curl -sSL https://github.com/openebs/mayaserver/releases/download/${MAPI_VERSION}/m-apiserver-linux_amd64.zip -o m-apiserver_$MAPI_VERSION.zip
 fi
 
-echo "Installing Mayaserver ${MAYA_VERSION} ..."
-unzip mayaserver_$MAYA_VERSION.zip
-sudo chmod +x mayaserver
-sudo mv mayaserver /usr/bin/mayaserver
+echo "Installing Maya-API Server ${MAPI_VERSION} ..."
+unzip m-apiserver_$MAPI_VERSION.zip
+sudo chmod +x m-apiserver
+sudo mv m-apiserver /usr/bin/
 
-# Setup config directory for mayaserver
+# Setup INI config directory for m-apiserver
 sudo mkdir -p /etc/mayaserver/orchprovider
 sudo chmod a+w /etc/mayaserver/orchprovider
-
 
 cd ${CURDIR}
