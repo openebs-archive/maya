@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/nomad/api"
+	"github.com/hashicorp/nomad/helper"
 )
 
 const (
@@ -47,6 +48,10 @@ Usage: maya osh-status [options] <node>
   short-hand list of all nodes will be displayed. The -self flag is useful to
   quickly access the status of the local node.
 
+General Options:
+
+  ` + generalOptionsUsage() + `
+
 Node Status Options:
 
   -self
@@ -80,7 +85,7 @@ func (c *NodeStatusCommand) Synopsis() string {
 
 func (c *NodeStatusCommand) Run(args []string) int {
 
-	flags := c.Meta.FlagSet("node-status", FlagSetClient)
+	flags := c.Meta.FlagSet("osh-status", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.BoolVar(&c.short, "short", false, "")
 	flags.BoolVar(&c.verbose, "verbose", false, "")
@@ -483,23 +488,23 @@ func getAllocatedResources(client *api.Client, runningAllocs []*api.Allocation, 
 	// Get Resources
 	var cpu, mem, disk, iops int
 	for _, alloc := range runningAllocs {
-		cpu += alloc.Resources.CPU
-		mem += alloc.Resources.MemoryMB
-		disk += alloc.Resources.DiskMB
-		iops += alloc.Resources.IOPS
+		cpu += *alloc.Resources.CPU
+		mem += *alloc.Resources.MemoryMB
+		disk += *alloc.Resources.DiskMB
+		iops += *alloc.Resources.IOPS
 	}
 
 	resources := make([]string, 2)
 	resources[0] = "CPU|Memory|Disk|IOPS"
-	resources[1] = fmt.Sprintf("%v/%v MHz|%v/%v|%v/%v|%v/%v",
+	resources[1] = fmt.Sprintf("%d/%d MHz|%s/%s|%s/%s|%d/%d",
 		cpu,
-		total.CPU,
+		*total.CPU,
 		humanize.IBytes(uint64(mem*bytesPerMegabyte)),
-		humanize.IBytes(uint64(total.MemoryMB*bytesPerMegabyte)),
+		humanize.IBytes(uint64(*total.MemoryMB*bytesPerMegabyte)),
 		humanize.IBytes(uint64(disk*bytesPerMegabyte)),
-		humanize.IBytes(uint64(total.DiskMB*bytesPerMegabyte)),
+		humanize.IBytes(uint64(*total.DiskMB*bytesPerMegabyte)),
 		iops,
-		total.IOPS)
+		*total.IOPS)
 
 	return resources
 }
@@ -514,10 +519,10 @@ func computeNodeTotalResources(node *api.Node) api.Resources {
 	if res == nil {
 		res = &api.Resources{}
 	}
-	total.CPU = r.CPU - res.CPU
-	total.MemoryMB = r.MemoryMB - res.MemoryMB
-	total.DiskMB = r.DiskMB - res.DiskMB
-	total.IOPS = r.IOPS - res.IOPS
+	total.CPU = helper.IntToPtr(*r.CPU - *res.CPU)
+	total.MemoryMB = helper.IntToPtr(*r.MemoryMB - *res.MemoryMB)
+	total.DiskMB = helper.IntToPtr(*r.DiskMB - *res.DiskMB)
+	total.IOPS = helper.IntToPtr(*r.IOPS - *res.IOPS)
 	return total
 }
 
@@ -542,11 +547,11 @@ func getActualResources(client *api.Client, runningAllocs []*api.Allocation, nod
 
 	resources := make([]string, 2)
 	resources[0] = "CPU|Memory"
-	resources[1] = fmt.Sprintf("%v/%v MHz|%v/%v",
+	resources[1] = fmt.Sprintf("%v/%d MHz|%v/%v",
 		math.Floor(cpu),
-		total.CPU,
+		*total.CPU,
 		humanize.IBytes(mem),
-		humanize.IBytes(uint64(total.MemoryMB*bytesPerMegabyte)))
+		humanize.IBytes(uint64(*total.MemoryMB*bytesPerMegabyte)))
 
 	return resources, nil
 }
@@ -573,9 +578,9 @@ func getHostResources(hostStats *api.HostStats, node *api.Node) ([]string, error
 	resources = make([]string, 2)
 	resources[0] = "CPU|Memory|Disk"
 	if physical {
-		resources[1] = fmt.Sprintf("%v/%v MHz|%v/%v|%v/%v",
+		resources[1] = fmt.Sprintf("%v/%d MHz|%s/%s|%s/%s",
 			math.Floor(hostStats.CPUTicksConsumed),
-			node.Resources.CPU,
+			*node.Resources.CPU,
 			humanize.IBytes(hostStats.Memory.Used),
 			humanize.IBytes(hostStats.Memory.Total),
 			humanize.IBytes(diskUsed),
@@ -583,10 +588,10 @@ func getHostResources(hostStats *api.HostStats, node *api.Node) ([]string, error
 		)
 	} else {
 		// If non-physical device are used, output device name only,
-		// since nomad doesn't collect the stats data.
-		resources[1] = fmt.Sprintf("%v/%v MHz|%v/%v|(%s)",
+		// since maya doesn't collect the stats data.
+		resources[1] = fmt.Sprintf("%v/%d MHz|%s/%s|(%s)",
 			math.Floor(hostStats.CPUTicksConsumed),
-			node.Resources.CPU,
+			*node.Resources.CPU,
 			humanize.IBytes(hostStats.Memory.Used),
 			humanize.IBytes(hostStats.Memory.Total),
 			storageDevice,

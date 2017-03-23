@@ -12,7 +12,7 @@ import (
 	gg "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/jobspec"
-	"github.com/hashicorp/nomad/nomad/structs"
+
 	"github.com/ryanuber/columnize"
 )
 
@@ -76,14 +76,12 @@ func getLocalNodeID(client *api.Client) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Error querying agent info: %s", err)
 	}
-	var stats map[string]interface{}
-	stats, _ = info["stats"]
-	clientStats, ok := stats["client"].(map[string]interface{})
+	clientStats, ok := info.Stats["client"]
 	if !ok {
 		return "", fmt.Errorf("Nomad not running in client mode")
 	}
 
-	nodeID, ok := clientStats["node_id"].(string)
+	nodeID, ok := clientStats["node_id"]
 	if !ok {
 		return "", fmt.Errorf("Failed to determine node ID")
 	}
@@ -234,7 +232,7 @@ type JobGetter struct {
 }
 
 // StructJob returns the Job struct from jobfile.
-func (j *JobGetter) StructJob(jpath string) (*structs.Job, error) {
+func (j *JobGetter) ApiJob(jpath string) (*api.Job, error) {
 	var jobfile io.Reader
 	switch jpath {
 	case "-":
@@ -285,8 +283,7 @@ func (j *JobGetter) StructJob(jpath string) (*structs.Job, error) {
 	// Parse the JobFile
 	jobStruct, err := jobspec.Parse(jobfile)
 	if err != nil {
-		fmt.Errorf("Error parsing job file from %s: %v", jpath, err)
-		return nil, err
+		return nil, fmt.Errorf("Error parsing job file from %s: %v", jpath, err)
 	}
 
 	return jobStruct, nil

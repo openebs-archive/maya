@@ -108,8 +108,9 @@ func (c *VsmStopCommand) Run(args []string) int {
 	}
 
 	// Confirm the stop if the job was a prefix match.
-	if jobID != job.ID && !autoYes {
-		question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", job.ID)
+	// to fix the --> pointers being printed while passing status commands
+	if jobID != *job.ID && !autoYes {
+		question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", *job.ID)
 		answer, err := c.Ui.Ask(question)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to parse answer: %v", err))
@@ -131,7 +132,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 	}
 
 	// Invoke the stop
-	evalID, _, err := client.Jobs().Deregister(job.ID, nil)
+	evalID, _, err := client.Jobs().Deregister(*job.ID, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error deregistering job: %s", err))
 		return 1

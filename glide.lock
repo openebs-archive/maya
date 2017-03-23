@@ -1,8 +1,8 @@
-hash: 1f650f629b3c28310abac2527cbae32e39009868583d550f0eba8e3b4971c444
-updated: 2017-01-31T13:38:12.080950729+05:30
+hash: 06bce1cde02fe4c1286b04fafd67c1cf865a8f0f4afcd4bf354827ab612d6f91
+updated: 2017-03-23T15:54:53.163501108+05:30
 imports:
-- name: github.com/armon/circbuf
-  version: bbbad097214e2918d8543d5201d12bfd7bca254d
+- name: github.com/armon/go-metrics
+  version: 93f237eba9b0602f3e73710416558854a81d9337
 - name: github.com/armon/go-radix
   version: 4239b77079c7b5d1243b7b4736304ce8ddb6f0f2
 - name: github.com/aws/aws-sdk-go
@@ -33,10 +33,6 @@ imports:
   - private/waiter
   - service/s3
   - service/sts
-- name: github.com/Azure/go-ansiterm
-  version: fa152c58bc15761d0200cb75fe958b89a9d4888e
-  subpackages:
-  - winterm
 - name: github.com/bgentry/go-netrc
   version: 9fd32a8b3d3d3f9d43c341bfe098430e07609480
   subpackages:
@@ -46,63 +42,20 @@ imports:
 - name: github.com/docker/docker
   version: 49bf474f9ed7ce7143a59d1964ff7b7fd9b52178
   subpackages:
-  - api/types
-  - api/types/blkiodev
-  - api/types/container
-  - api/types/filters
-  - api/types/mount
-  - api/types/network
-  - api/types/registry
-  - api/types/strslice
-  - api/types/swarm
-  - api/types/versions
   - cli
   - contrib
   - opts
   - pkg
-  - pkg/archive
-  - pkg/fileutils
-  - pkg/homedir
-  - pkg/idtools
-  - pkg/ioutils
-  - pkg/jsonlog
-  - pkg/jsonmessage
-  - pkg/longpath
-  - pkg/pools
-  - pkg/promise
-  - pkg/stdcopy
-  - pkg/system
-  - pkg/term
-  - pkg/term/windows
-- name: github.com/docker/go-connections
-  version: eb315e36415380e7c2fdee175262560ff42359da
-  subpackages:
-  - nat
-- name: github.com/docker/go-units
-  version: 9b001659dd36225e356b4467c465d732e745f53d
 - name: github.com/dustin/go-humanize
   version: ef638b6c2e62b857442c6443dace9366a48c0ee2
-- name: github.com/fatih/structs
-  version: a720dfa8df582c51dee1b36feabb906bde1588bd
-- name: github.com/fsouza/go-dockerclient
-  version: 4a934a8fd3ec3d4f84d9dcd8b47e7b277918c366
 - name: github.com/go-ini/ini
   version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
-- name: github.com/go-ole/go-ole
-  version: 5e9c030faf78847db7aa77e3661b9cc449de29b7
-  subpackages:
-  - oleutil
 - name: github.com/gorhill/cronexpr
   version: d520615e531a6bf3fb69406b9eba718261285ec8
 - name: github.com/hashicorp/consul
   version: dc2a54a77b3b053e77298d4ce587bdf0bd0bcd1c
   subpackages:
   - api
-  - lib
-- name: github.com/hashicorp/consul-template
-  version: b9659049dca5a0e6e856d3e301d43bb508943e7a
-  subpackages:
-  - signals
 - name: github.com/hashicorp/errwrap
   version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
 - name: github.com/hashicorp/go-cleanhttp
@@ -117,8 +70,6 @@ imports:
   - codec
 - name: github.com/hashicorp/go-multierror
   version: ed905158d87462226a13fe39ddf685ea65f1c11f
-- name: github.com/hashicorp/go-plugin
-  version: 8cf118f7a2f0c7ef1c82f66d4f6ac77c7e27dc12
 - name: github.com/hashicorp/go-rootcerts
   version: 6bb64b370b90e7ef1fa532be9e591a81c3493e00
 - name: github.com/hashicorp/go-version
@@ -135,56 +86,24 @@ imports:
   - json/scanner
   - json/token
 - name: github.com/hashicorp/nomad
-  version: fccf115c564e9d21e13c509372e40f06d16e7a2b
+  version: 103290a39e68c81d9216685318045ec56f498cc8
   subpackages:
   - api
-  - client/allocdir
-  - client/config
-  - client/driver
-  - client/driver/env
-  - client/driver/executor
-  - client/driver/logging
-  - client/driver/structs
-  - client/fingerprint
-  - client/stats
-  - client/structs
-  - command/agent/consul
+  - helper
   - helper/args
-  - helper/discover
-  - helper/fields
   - helper/flatmap
-  - helper/stats
-  - helper/tlsutil
   - jobspec
   - nomad/structs
-  - nomad/structs/config
-  - nomad/types
-  - testutil
+- name: github.com/hashicorp/raft
+  version: 5f09c4ffdbcd2a53768e78c47717415de12b6728
 - name: github.com/hashicorp/serf
   version: d3a67ab21bc8a4643fa53a3633f2d951dd50c6ca
   subpackages:
   - coordinate
-- name: github.com/hashicorp/vault
-  version: ba9f57a27eba3ad83249fc48832434b3ae33509d
-  subpackages:
-  - api
-  - helper/compressutil
-  - helper/jsonutil
-- name: github.com/hashicorp/yamux
-  version: d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd
-- name: github.com/hpcloud/tail
-  version: 915e5feba042395f5fda4dbe9c0e99aeab3088b3
-  subpackages:
-  - util
-  - watch
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
-- name: github.com/kardianos/osext
-  version: c2c54e542fb797ad986b31721e1baedf214ca413
 - name: github.com/mattn/go-isatty
   version: 30a891c33c7cde7b02a981314b4228ec99380cca
-- name: github.com/Microsoft/go-winio
-  version: 24a3e3d3fc7451805e09d11e11e95d9a0a4f205e
 - name: github.com/mitchellh/cli
   version: fa17b36f6c61f1ddbbb08c9f6fde94b3c065a09d
 - name: github.com/mitchellh/colorstring
@@ -193,67 +112,20 @@ imports:
   version: 5af94aef99f597e6a9e1f6ac6be6ce0f3c96b49d
 - name: github.com/mitchellh/go-homedir
   version: b8bc1bf767474819792c23f32d8286a45736f1c6
-- name: github.com/mitchellh/go-ps
-  version: e2d21980687ce16e58469d98dcee92d27fbbd7fb
 - name: github.com/mitchellh/hashstructure
   version: b098c52ef6beab8cd82bc4a32422cf54b890e8fa
 - name: github.com/mitchellh/mapstructure
   version: bfdb1a85537d60bc7e954e600c250219ea497417
 - name: github.com/mitchellh/reflectwalk
   version: 9ad27c461a633e32a235a061d523aefe8f18571d
-- name: github.com/opencontainers/runc
-  version: 1e4ca86a7249beba40ba3037c4acb9a26d07fc38
-  subpackages:
-  - libcontainer/cgroups
-  - libcontainer/cgroups/fs
-  - libcontainer/configs
-  - libcontainer/system
-  - libcontainer/user
-  - libcontainer/utils
-- name: github.com/opencontainers/runtime-spec
-  version: 794ca7ac88234607f9d2c76da8a6e9bbbade8cb9
-  subpackages:
-  - specs-go
-- name: github.com/RackSec/srslog
-  version: 456df3a81436d29ba874f3590eeeee25d666f8a5
 - name: github.com/ryanuber/columnize
   version: 983d3a5fab1bf04d1b412465d2d9f8430e2e917e
-- name: github.com/sethgrid/pester
-  version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
-- name: github.com/shirou/gopsutil
-  version: 93564b314264efac01934715fad4c355ed6af1c5
-  subpackages:
-  - cpu
-  - disk
-  - host
-  - internal/common
-  - mem
-  - net
-  - process
-- name: github.com/shirou/w32
-  version: bb4de0191aa41b5507caa14b0650cdbddcd9280b
-- name: github.com/Sirupsen/logrus
-  version: 26709e2714106fb8ad40b773b711ebce25b78914
-- name: github.com/StackExchange/wmi
-  version: e54cbda6595d7293a7a468ccf9525f6bc8887f99
 - name: github.com/ugorji/go
   version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
   subpackages:
   - codec
-- name: golang.org/x/net
-  version: 69d4b8aa71caaaa75c3dfc11211d1be495abec7c
-  subpackages:
-  - context
-  - context/ctxhttp
 - name: golang.org/x/sys
   version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
-  - windows
-- name: gopkg.in/fsnotify.v1
-  version: 7be54206639f256967dd82fa767397ba5f8f48f5
-- name: gopkg.in/lxc/go-lxc.v2
-  version: 82a07a67a43089687c0cc71ad515cde8d8ae3b8f
-- name: gopkg.in/tomb.v1
-  version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
 testImports: []

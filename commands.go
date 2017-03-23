@@ -52,7 +52,7 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 		},
 		"vsm-list": func() (cli.Command, error) {
 			return &command.VsmListCommand{
-				M: meta,
+				Meta: meta,
 			}, nil
 		},
 		"vsm-update": func() (cli.Command, error) {
