@@ -1,8 +1,13 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
+	"net/http"
+	"os"
 	"os/exec"
 	"sort"
 	"strings"
@@ -98,9 +103,10 @@ func (c *ServerMembersCommand) Run(args []string) int {
 
 	// Dump the list
 	c.Ui.Output(columnize.SimpleFormat(out))
-	var runop int
-	if runop = c.mserverstatus(); runop != 0 {
-		return runop
+	instanceID := "\"any-compute\""
+	response := c.mserverstatus()
+	if response != instanceID {
+		c.Ui.Error("Error querying M-apiserver")
 	}
 	return 0
 }
@@ -188,15 +194,29 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 
 // to get the status of mayaserver deamon,
 // TODO proper CLI command once mayaserver have it's own
-func (c *ServerMembersCommand) mserverstatus() int {
-	var runop int = 0
+func (c *ServerMembersCommand) mserverstatus() string {
 
-	c.Cmd = exec.Command("systemctl", "status", "m-apiserver")
+	//getting the m-apiserver env variable
+	addr := os.Getenv("MAPI_ADDR")
 
-	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("m-apiserver not running")
+	var url bytes.Buffer
+	url.WriteString(addr + "/latest/meta-data/instance-id")
+	resp, err := http.Get(url.String())
+
+	if err == nil {
+		c.Ui.Error(fmt.Sprintf("\nm-apiserver listening at %v", addr))
 	}
 
-	return runop
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return string(body[:])
 
 }

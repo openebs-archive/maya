@@ -29,4 +29,9 @@ sudo sed -e "s|__ALL_SERVERS_IPV4__|$ALL_SERVERS_IPV4|g" -i /etc/nomad.d/server/
 #echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> $HOME/.bash_profile
 grep "export NOMAD_ADDR=http://${SELF_IPV4}:4646" ~/.profile || \
   echo "export NOMAD_ADDR=http://${SELF_IPV4}:4646" >> ~/.profile
+
+# set the Maya apiserver env variable
+grep "export MAPI_ADDR=http://${SELF_IPV4}:5656" ~/.profile || \
+  echo "export MAPI_ADDR=http://${SELF_IPV4}:5656" >> ~/.profile
+
 source ~/.profile
