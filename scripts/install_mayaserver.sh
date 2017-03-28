@@ -5,10 +5,10 @@ set -e
 MAPI_VERSION="0.2-RC2"
 CURDIR=`pwd`
 
-#if [[ $(which m-apiserver >/dev/null && m-apiserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAYA_VERSION" ]]; then    
-#echo "Maya-API Server v$MAYA_VERSION already installed; Skipping"
-#    exit
-#fi
+if [[ $(which m-apiserver >/dev/null && m-apiserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAPI_VERSION" ]]; then    
+    echo "Maya-API Server v$MAPI_VERSION already installed; Skipping"
+    exit
+fi
 
 cd /tmp/
 
