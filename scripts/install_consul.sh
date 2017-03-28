@@ -6,6 +6,11 @@ CONSUL_VERSION="0.7.0"
 CURDIR=`pwd`
 
 
+if [[ $(which consul >/dev/null && consul version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "v$CONSUL_VERSION" ]]; then    
+    echo "Consul v$CONSUL_VERSION already installed; Skipping"
+    exit
+fi
+
 # Remove if already present
 # NOTE: this is install only script
 echo "Cleaning old Consul installation if any"

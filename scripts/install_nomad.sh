@@ -5,6 +5,11 @@ set -e
 NOMAD_VERSION="0.5.0"
 CURDIR=`pwd`
 
+if [[ $(which nomad >/dev/null && nomad version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "v$NOMAD_VERSION" ]]; then    
+    echo "Nomad v$NOMAD_VERSION already installed; Skipping"
+    exit
+fi
+
 # Remove if already present
 # NOTE: this is install only script
 echo "Cleaning old Nomad installation if any"
