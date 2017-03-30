@@ -98,7 +98,7 @@ func (c *VsmListCommand) Run(args []string) int {
 
 		if len(jobs) == 0 {
 			// No output if we have no jobs
-			c.Ui.Output("No running jobs")
+			c.Ui.Output("No VSMs are running")
 		} else {
 			c.Ui.Output(createVsmListOutput(jobs))
 		}
