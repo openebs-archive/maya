@@ -6,9 +6,12 @@ CONSUL_VERSION="0.7.0"
 CURDIR=`pwd`
 
 
-if [[ $(which consul >/dev/null && consul version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "v$CONSUL_VERSION" ]]; then    
-    echo "Consul v$CONSUL_VERSION already installed; Skipping"
-    exit
+if [ -f /usr/bin/consul ]; then
+    INSTALLED_VERSION=`consul version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2`
+    if [ "v$CONSUL_VERSION" = "$INSTALLED_VERSION" ]; then
+      echo "CONSUL v$CONSUL_VERSION already installed; Skipping"
+      exit
+    fi
 fi
 
 # Remove if already present
