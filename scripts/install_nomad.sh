@@ -2,12 +2,15 @@
 
 set -e
 
-NOMAD_VERSION="0.5.0"
+NOMAD_VERSION="0.5.5"
 CURDIR=`pwd`
 
-if [[ $(which nomad >/dev/null && nomad version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "v$NOMAD_VERSION" ]]; then    
-    echo "Nomad v$NOMAD_VERSION already installed; Skipping"
-    exit
+if [ -f /usr/bin/nomad ]; then
+    INSTALLED_VERSION=`nomad version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2`
+    if [ "v$NOMAD_VERSION" = "$INSTALLED_VERSION" ]; then
+      echo "Nomad v$NOMAD_VERSION already installed; Skipping"
+      exit
+    fi
 fi
 
 # Remove if already present
