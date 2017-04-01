@@ -4,7 +4,6 @@
 # NOTE: Use of vagrant user !!!
 set -ex
 
-GO_VERSION="1.8"
 CURDIR=`pwd`
 
 # Setup go, for development
@@ -17,11 +16,15 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 # Install Go
 cd /tmp
 
-if [ ! -f "./go${GO_VERSION}.linux-${ARCH}.tar.gz" ]; then
-  wget -q https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
+# getting for latest stable version
+CONTENT=$(wget https://storage.googleapis.com/golang/ -q -O -)
+GO_LATEST=`echo $CONTENT | grep -o "go[0-9]\.[0-9][\.]*[0-9]*\.linux-${ARCH}.tar.gz" | tail -1`
+
+if [ ! -f "./${GO_LATEST}" ]; then
+  wget -q https://storage.googleapis.com/golang/${GO_LATEST}
 fi
 
-tar -xf go${GO_VERSION}.linux-${ARCH}.tar.gz
+tar -xf ${GO_LATEST}
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
 sudo chown vagrant:vagrant $SRCROOT
