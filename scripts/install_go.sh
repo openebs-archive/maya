@@ -4,7 +4,7 @@
 # NOTE: Use of vagrant user !!!
 set -ex
 
-GO_VERSION="1.7.3"
+GO_VERSION="1.8"
 CURDIR=`pwd`
 
 # Setup go, for development
