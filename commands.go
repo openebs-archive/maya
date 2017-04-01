@@ -55,6 +55,12 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
+		"vsm-stats": func() (cli.Command, error) {
+			return &command.VsmStatsCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"vsm-update": func() (cli.Command, error) {
 			return &command.VsmUpdateCommand{
 				M: meta,
