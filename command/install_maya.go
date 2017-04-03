@@ -98,11 +98,9 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	//Check if scripts were already downloaded
 	if runop = c.verifyBootstrap(); runop != 0 {
-
 		if runop = c.bootTheInstall(); runop != 0 {
 			return runop
 		}
-		return runop
 	}
 
 	if runop = c.init(); runop != 0 {

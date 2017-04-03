@@ -53,12 +53,11 @@ func (c *MayaAsNomadInstaller) Install() int {
 
 	var runop int = 0
 
-	if runop = c.bootstrap(); runop != 0 {
-		return runop
-	}
-
 	if runop = c.verifyBootstrap(); runop != 0 {
-		return runop
+		//Run the bootstrap only if required
+		if runop = c.bootstrap(); runop != 0 {
+			return runop
+		}
 	}
 
 	if runop = c.initAsClient(); runop != 0 {
