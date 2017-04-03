@@ -96,11 +96,12 @@ func (c *InstallMayaCommand) Run(args []string) int {
 		return execute(c.Cmd, c.M.Ui)
 	}
 
-	if runop = c.bootTheInstall(); runop != 0 {
-		return runop
-	}
-
+	//Check if scripts were already downloaded
 	if runop = c.verifyBootstrap(); runop != 0 {
+
+		if runop = c.bootTheInstall(); runop != 0 {
+			return runop
+		}
 		return runop
 	}
 
@@ -180,7 +181,7 @@ func (c *InstallMayaCommand) installMayaserver() int {
 }
 
 func (c *InstallMayaCommand) verifyBootstrap() int {
-
+	//TODO: Enhance this logic to verify if there are updated scripts
 	var runop int = 0
 
 	c.Cmd = exec.Command("ls", MayaScriptsPath)
