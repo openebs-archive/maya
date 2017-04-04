@@ -35,25 +35,27 @@ type ReplicaClient struct {
 
 func (c *VsmStatsCommand) Help() string {
 	helpText := `
-	Usage: maya vsm-stats [options] <replica-ip:port> 
+	Usage: maya vsm-stats <vsm-name> 
 
-  Display stats information about VSM.
+  Display VSM Stats.
 
-  Stats Options:
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *VsmStatsCommand) Synopsis() string {
-	return "Display information about Vsm(s)"
+	return "Display VSM Stats"
 }
 
 func (c *VsmStatsCommand) Run(args []string) int {
 
-	var stats Stats
+	var (
+		stats      Stats
+		statsArray []string
+	)
+
 	flags := c.Meta.FlagSet("vsm-stats", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
-	flags.StringVar(&c.replica_ips, "replica-ips", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -63,16 +65,27 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		c.Ui.Error(c.Help())
 		return 1
 	}
-	fmt.Printf("%2s %15s\n", "RevisionCounter", "ReplicaCounter")
-	for counter := 0; counter <= 100; counter++ {
-		time.Sleep(2 * time.Second)
-		err := GetStatus(args[0], &stats)
+
+	annotations, _ := GetVolAnnotations(args[0])
+
+	for _, replica := range annotations.Replicas {
+		err := GetStatus(replica+":9502", &stats)
 		if err != nil {
-			fmt.Println("\nERROR:", err)
-			return -1
+			statsArray = append(statsArray, fmt.Sprintf("%15s %11s %9s", replica, "Offline", "Unknown"))
+		} else {
+			statsArray = append(statsArray, fmt.Sprintf("%15s %10s %9d", replica, "Online", stats.RevisionCounter))
 		}
-		fmt.Printf("\r    %-17d %d", stats.RevisionCounter, stats.ReplicaCounter)
 	}
+	fmt.Println("------------------------------------\n")
+	fmt.Printf("%7s: %-48s\n", "IQN", annotations.Iqn)
+	fmt.Printf("%7s: %-16s\n", "Volume", args[0])
+	fmt.Printf("%7s: %-15s\n", "Portal", annotations.VolAddr)
+	fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
+	fmt.Printf("  %s           %s    %s\n", "Replica", "Status", "Txg")
+	for i, _ := range statsArray {
+		fmt.Printf("%s\n", statsArray[i])
+	}
+	fmt.Println("------------------------------------")
 	return 0
 }
 
@@ -104,7 +117,7 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}
 	syncAgent := strings.Replace(address, fmt.Sprintf(":%d", port), fmt.Sprintf(":%d", port+2), -1)
 
-	timeout := time.Duration(30 * time.Second)
+	timeout := time.Duration(2 * time.Second)
 	client := &http.Client{
 		Timeout: timeout,
 	}
