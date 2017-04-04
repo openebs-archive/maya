@@ -2,7 +2,7 @@
 
 set -e
 
-MAPI_VERSION="0.2-RC3"
+MAPI_VERSION="0.2-RC4"
 CURDIR=`pwd`
 
 if [[ $(which m-apiserver >/dev/null && m-apiserver version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2) == "$MAPI_VERSION" ]]; then    
