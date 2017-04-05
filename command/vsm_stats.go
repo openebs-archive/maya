@@ -90,7 +90,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	fmt.Printf("%7s: %-16s\n", "Volume", args[0])
 	fmt.Printf("%7s: %-15s\n", "Portal", annotations.VolAddr)
 	fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
-	fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateCounters")
+	fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateIndex")
 	for i, _ := range statsArray {
 		fmt.Printf("%s\n", statsArray[i])
 	}
