@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -45,12 +46,29 @@ const (
 
 func getVolDetails(volName string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
-	fmt.Println("ADDR =", addr)
+	if addr == "" {
+		err := errors.New("MAPI_ADDR environment variable not set")
+		fmt.Println(err)
+		return err
+	}
 	url := addr + "/latest/volume/info/" + volName
 	client := &http.Client{
 		Timeout: timeout,
 	}
 	resp, err := client.Get(url)
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			fmt.Printf("VSM %s not found at M_API server\n", volName)
+			return err
+		} else if resp.StatusCode == 503 {
+			fmt.Println("M_API server not reachable")
+			return err
+		}
+	} else {
+		fmt.Println("M_API server not reachable")
+		return err
+	}
+
 	if err != nil {
 		return err
 	}
@@ -63,7 +81,10 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 	var volume Volume
 	var annotations Annotations
 	err := getVolDetails(volName, &volume)
-	if err != nil {
+	if err != nil || volume.Annotations == nil {
+		if volume.Status.Reason == "pending" {
+			fmt.Println("VSM status Unknown to M_API server")
+		}
 		return nil, err
 	}
 	for key, value := range volume.Annotations.(map[string]interface{}) {

@@ -50,6 +50,7 @@ func (c *VsmStatsCommand) Synopsis() string {
 func (c *VsmStatsCommand) Run(args []string) int {
 
 	var (
+		err        error
 		stats      Stats
 		statsArray []string
 	)
@@ -66,14 +67,22 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		return 1
 	}
 
-	annotations, _ := GetVolAnnotations(args[0])
+	annotations, err := GetVolAnnotations(args[0])
+	if err != nil || annotations == nil {
+		return -1
+	}
 
 	for _, replica := range annotations.Replicas {
-		err := GetStatus(replica+":9502", &stats)
+		err, errCode := GetStatus(replica+":9502", &stats)
 		if err != nil {
-			statsArray = append(statsArray, fmt.Sprintf("%15s %11s %9s", replica, "Offline", "Unknown"))
+			if errCode == 500 || strings.Contains(err.Error(), "EOF") {
+				statsArray = append(statsArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Waiting", "Unknown"))
+
+			} else {
+				statsArray = append(statsArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Offline", "Unknown"))
+			}
 		} else {
-			statsArray = append(statsArray, fmt.Sprintf("%15s %10s %9d", replica, "Online", stats.RevisionCounter))
+			statsArray = append(statsArray, fmt.Sprintf("%-15s %-10s  %d", replica, "Online", stats.RevisionCounter))
 		}
 	}
 	fmt.Println("------------------------------------\n")
@@ -81,7 +90,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	fmt.Printf("%7s: %-16s\n", "Volume", args[0])
 	fmt.Printf("%7s: %-15s\n", "Portal", annotations.VolAddr)
 	fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
-	fmt.Printf("  %s           %s    %s\n", "Replica", "Status", "Txg")
+	fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateCounters")
 	for i, _ := range statsArray {
 		fmt.Printf("%s\n", statsArray[i])
 	}
@@ -130,17 +139,26 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}, nil
 }
 
-func GetStatus(address string, obj interface{}) error {
+func GetStatus(address string, obj interface{}) (error, int) {
 	replica, err := NewReplicaClient(address)
 	if err != nil {
-		return err
+		return err, -1
 	}
 	url := replica.address + "/stats"
 	resp, err := replica.httpClient.Get(url)
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			return err, 500
+		} else if resp.StatusCode == 503 {
+			return err, 503
+		}
+	} else {
+		return err, -1
+	}
 	if err != nil {
-		return err
+		return err, -1
 	}
 	defer resp.Body.Close()
 
-	return json.NewDecoder(resp.Body).Decode(obj)
+	return json.NewDecoder(resp.Body).Decode(obj), 0
 }
