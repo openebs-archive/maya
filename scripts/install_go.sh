@@ -4,6 +4,7 @@
 # NOTE: Use of vagrant user !!!
 set -ex
 
+GO_VERSION="1.8"
 CURDIR=`pwd`
 
 # Setup go, for development
@@ -13,18 +14,29 @@ SRCPATH="/opt/gopath"
 # Get the ARCH
 ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 
+# updating GO_VERSION if new version is available
+#func to compare versions
+version_gt()
+{ 
+	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+}
+
+CONTENT=$(wget https://storage.googleapis.com/golang -q -O -)
+GO_LATEST=`echo -n $CONTENT | grep -o "go[0-9]\.[0-9][\.]*[0-9]*\.linux-${ARCH}.tar.gz" | grep -o "[0-9]\.[0-9][\.]*[0-9]*\." | sort --version-sort | tail -1 | head -c -2`
+
+# updating GO_VERSION
+if version_gt $GO_LATEST $GO_VERSION; then
+     GO_VERSION=$GO_LATEST
+fi
+
 # Install Go
 cd /tmp
 
-# getting for latest stable version
-CONTENT=$(wget https://storage.googleapis.com/golang/ -q -O -)
-GO_LATEST=`echo $CONTENT | grep -o "go[0-9]\.[0-9][\.]*[0-9]*\.linux-${ARCH}.tar.gz" | tail -1`
-
-if [ ! -f "./${GO_LATEST}" ]; then
-  wget -q https://storage.googleapis.com/golang/${GO_LATEST}
+if [ ! -f "./go${GO_VERSION}.linux-${ARCH}.tar.gz" ]; then
+  wget -q https://storage.googleapis.com/golang/go${GO_VERSION}.linux-${ARCH}.tar.gz
 fi
 
-tar -xf ${GO_LATEST}
+tar -xf go${GO_VERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
 sudo chown vagrant:vagrant $SRCROOT
