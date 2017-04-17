@@ -26,30 +26,36 @@ type NetworkInstallCommand struct {
 
 func (c *NetworkInstallCommand) Help() string {
 	helpText := `
-	Usage: maya network-install <cni> <name> <ip>
+Usage: maya network-install <cni> <name> <ip>
 
-	Configure the virtual network for containers on OpenEBS Host (osh)
+  Configure the virtual network for containers on OpenEBS Host (osh)
+
+  Note: This requires a PEM encoded SSL Certificate Authority (ca.crt) 
+        file used to secure etcd communication inside a /etc/etcd/ directory 
+        PATH to configure network for containers  
 
 Maya Network options:
-  -cni= <Name>
-    Name of the CNI plugin to configure as a virtual container network
+  
+  -cni=<Name>
+    Name of the CNI plugin to configure as a virtual container network.
+    Currently only flannel is supported.
 
-  -name= <Name>
+  -name=<Name>
     This is name of the host which is running
     the etcd server to manage the key-value pair.
  
-  -ip= <IP Address> 
-    This args is ip-address of the same etcd server mentioned above 
-	running on kubernetes-master.
-
+  -ip=<IP Address> 
+    This args is ip-address of the same etcd server mentioned
+    above running on kubernetes-master.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *NetworkInstallCommand) Synopsis() string {
-	return "Configure flannel network on maya-host machine."
+	return "Configure flannel network on maya-host machine (Alpha)."
 
 }
+
 func (c *NetworkInstallCommand) Run(args []string) int {
 
 	var runop int
@@ -78,6 +84,15 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 		return 1
 	}
 
+	switch c.cni {
+	case "flannel":
+		break
+	default:
+		c.M.Ui.Error(fmt.Sprintf("Plugin not supported\n"))
+		c.M.Ui.Error(fmt.Sprintf("Please check the supported CNI plugins...\n"))
+		return 1
+	}
+
 	if len(strings.TrimSpace(c.kubename)) == 0 {
 		c.M.Ui.Error(fmt.Sprintf("-name option is mandatory\n"))
 		c.M.Ui.Error(c.Help())
@@ -92,8 +107,8 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 
 	//stdout the configuration
 	fmt.Printf("following Configuration has been passed:\n")
-	fmt.Printf("k8smaster-name = %v\n", c.kubename)
-	fmt.Printf("k8smaster-ip = %v\n", c.kube_ip)
+	fmt.Printf("etcd-master-name = %v\n", c.kubename)
+	fmt.Printf("etcd-master-ip = %v\n", c.kube_ip)
 	fmt.Printf("cni-plugin = %v\n", c.cni)
 
 	if runop = c.installFlannel(); runop != 0 {
