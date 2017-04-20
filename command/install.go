@@ -234,7 +234,7 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallDockerScript)
+	c.Cmd = exec.Command("bash", InstallDockerScript)
 
 	if runop = execute(c.Cmd, c.Ui); runop != 0 {
 		c.Ui.Error("Install failed: Error installing docker")

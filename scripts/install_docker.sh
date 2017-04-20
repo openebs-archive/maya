@@ -3,8 +3,9 @@
 set -e
 
 IS_DOCKER_INSTALLED=$(which docker >> /dev/null 2>&1; echo $?)
-if [ ${IS_DOCKER_INSTALLED} -eq 0 ]; then
+if [ $IS_DOCKER_INSTALLED -eq 0 ]; then
     echo "docker is installed; Skipping"
+    sleep 2
     exit 0
 fi
 
