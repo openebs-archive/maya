@@ -41,7 +41,7 @@ type Annotations struct {
 }
 
 const (
-	timeout = 2 * time.Second
+	timeout = 5 * time.Second
 )
 
 func getVolDetails(volName string, obj interface{}) error {

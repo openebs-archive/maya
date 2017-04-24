@@ -1,15 +1,41 @@
 package command
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"os/exec"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 type VsmCreateCommand struct {
 	// To control this CLI's display
 	M Meta
 	// OS command to execute; <optional>
-	Cmd *exec.Cmd
+	Cmd     *exec.Cmd
+	vsmname string
+	size    string
+}
+
+type VsmSpec struct {
+	Kind       string `yaml:"kind"`
+	APIVersion string `yaml:"apiVersion"`
+	Metadata   struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		AccessModes []string `yaml:"accessModes"`
+		Resources   struct {
+			Requests struct {
+				Storage string `yaml:"storage"`
+			} `yaml:"requests"`
+		} `yaml:"resources"`
+	} `yaml:"spec"`
 }
 
 func (c *VsmCreateCommand) Help() string {
@@ -24,13 +50,11 @@ Usage: maya vsm-create [options] <path>
   exit code will be 2. Any other errors, including client connection
   issues or internal errors, are indicated by exit code 1.
 
-General Options:
-
-  ` + generalOptionsUsage() + `
-
 VSM Create Options:
-  -verbose
-    Display full information.
+  -name
+    Name of the vsm
+  -size
+    Provisioning size of the vsm(defualt is 5G)
 `
 	return strings.TrimSpace(helpText)
 }
@@ -43,12 +67,12 @@ func (c *VsmCreateCommand) Synopsis() string {
 // the help text defined earlier.
 func (c *VsmCreateCommand) Run(args []string) int {
 
-	var verbose bool
 	var op int
 
 	flags := c.M.FlagSet("vsm-create", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
-	flags.BoolVar(&verbose, "verbose", false, "")
+	flags.StringVar(&c.vsmname, "name", "", "")
+	flags.StringVar(&c.size, "size", "5", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -56,28 +80,79 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 	// specs file is mandatory
 	args = flags.Args()
-	if len(args) != 1 {
+	if len(args) != 1 && len(strings.TrimSpace(c.vsmname)) == 0 {
 		c.M.Ui.Error(c.Help())
 		return 1
 	}
+	if len(args) == 1 {
+		if c.Cmd == nil {
+			// sub command
+			args = append([]string{string(NomadRun)}, args...)
 
-	if c.Cmd == nil {
-		// sub command
-		args = append([]string{string(NomadRun)}, args...)
+			// main command; append sub cmd to main cmd
+			c.Cmd = exec.Command(string(ExecNomad), args...)
+		}
 
-		// main command; append sub cmd to main cmd
-		c.Cmd = exec.Command(string(ExecNomad), args...)
+		ic := &InternalCommand{
+			Cmd: c.Cmd,
+			Ui:  c.M.Ui,
+		}
+
+		if op = ic.Execute(); 0 != op {
+			c.M.Ui.Error("Error creating vsm")
+			return op
+		}
+		return 1
 	}
-
-	ic := &InternalCommand{
-		Cmd: c.Cmd,
-		Ui:  c.M.Ui,
+	if c.vsmname != " " {
+		err := CreateApiVsm(c.vsmname, c.size)
+		if err != nil {
+			fmt.Println("Error Creating Vsm")
+		}
 	}
-
-	if op = ic.Execute(); 0 != op {
-		c.M.Ui.Error("Error creating vsm")
-		return op
-	}
-
 	return op
+}
+
+// Function to create the Vsm through a API call to m-apiserver
+func CreateApiVsm(vname string, size string) error {
+
+	var vs VsmSpec
+
+	addr := os.Getenv("MAPI_ADDR")
+	if addr == "" {
+		err := errors.New("MAPI_ADDR environment variable not set")
+		fmt.Println(err)
+		return err
+	}
+	url := addr + "/latest/volumes/"
+
+	vs.Metadata.Name = vname
+	vs.Spec.Resources.Requests.Storage = size
+
+	//Marshal serializes the value provided into a YAML document
+	yamlValue, _ := yaml.Marshal(vs)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
+
+	req.Header.Add("Content-Type", "application/yaml")
+
+	c := &http.Client{
+		Timeout: timeout,
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		fmt.Printf("http.Do() error: %v\n", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("ioutil.ReadAll() error: %v\n", err)
+		return err
+	}
+
+	fmt.Printf("VSM Successfully Created:\n%v\n", string(data))
+
+	return err
 }
