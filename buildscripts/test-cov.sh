@@ -2,7 +2,6 @@
 
 set -e
 echo "" > coverage.txt
-cd ..
 
 for d in $(go list ./... | grep -v vendor); do
     #TODO - Include -race while creating the coverage profile. 
