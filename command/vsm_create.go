@@ -54,7 +54,7 @@ VSM Create Options:
   -name
     Name of the vsm
   -size
-    Provisioning size of the vsm(defualt is 5G)
+    Provisioning size of the vsm(default is 5G)
 `
 	return strings.TrimSpace(helpText)
 }
