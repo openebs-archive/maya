@@ -5,7 +5,8 @@ echo "" > coverage.txt
 cd ..
 
 for d in $(go list ./... | grep -v vendor); do
-    go test -race -coverprofile=profile.out -covermode=atomic $d
+    #TODO - Include -race while creating the coverage profile. 
+    go test -coverprofile=profile.out -covermode=atomic $d
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt
         rm profile.out
