@@ -20,3 +20,5 @@ import:
   - opts
   - contrib
   - cli
+- package: github.com/pkg/errors
+  version: v0.8.0

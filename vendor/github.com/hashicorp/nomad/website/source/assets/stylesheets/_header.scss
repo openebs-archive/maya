@@ -1,0 +1,57 @@
+//
+// Header
+// - Project Specific
+// - edits should be made here
+// --------------------------------------------------
+
+#header {
+  .navbar-brand {
+    .logo{
+      display: inline-block;
+      height: 59px;
+      width: 153px;
+      margin-top: 15px;
+      background: image-url('logo-header.svg') 0 0 no-repeat;
+      font-size: 0;
+
+      &:hover{
+        opacity: .7;
+      }
+    }
+
+    .by{
+      &:hover{
+        svg{
+          .svg-bg-line{
+            fill: $green-dark;
+          }
+        }
+      }
+    }
+  }
+
+  .buttons{
+    margin-top: 2px; //baseline everything
+
+    ul.navbar-nav{
+      li {
+        &:hover{
+          svg path{
+            fill: $black;
+          }
+        }
+
+        svg path{
+          fill: $blue-light;
+        }
+      }
+    }
+  }
+
+  .main-links,
+  .external-links {
+    li > a {
+      @include project-a-style();
+    }
+  }
+}

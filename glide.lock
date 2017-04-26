@@ -1,5 +1,5 @@
 hash: 5d90505f1c2a3838fe093f77446273ca6f991e863f86293a6fdaf0090e46b97b
-updated: 2017-04-02T15:22:22.669492111+05:30
+updated: 2017-04-26T16:22:58.357283196+05:30
 imports:
 - name: github.com/armon/go-metrics
   version: 93f237eba9b0602f3e73710416558854a81d9337
@@ -48,6 +48,8 @@ imports:
   - pkg
 - name: github.com/dustin/go-humanize
   version: ef638b6c2e62b857442c6443dace9366a48c0ee2
+- name: github.com/fatih/structs
+  version: a720dfa8df582c51dee1b36feabb906bde1588bd
 - name: github.com/go-ini/ini
   version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
 - name: github.com/gorhill/cronexpr
@@ -96,12 +98,20 @@ imports:
   - helper/flatmap
   - jobspec
   - nomad/structs
+  - nomad/structs/config
+  - testutil
 - name: github.com/hashicorp/raft
   version: 5f09c4ffdbcd2a53768e78c47717415de12b6728
 - name: github.com/hashicorp/serf
   version: d3a67ab21bc8a4643fa53a3633f2d951dd50c6ca
   subpackages:
   - coordinate
+- name: github.com/hashicorp/vault
+  version: ba9f57a27eba3ad83249fc48832434b3ae33509d
+  subpackages:
+  - api
+  - helper/compressutil
+  - helper/jsonutil
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/mattn/go-isatty
@@ -123,11 +133,13 @@ imports:
 - name: github.com/pkg/errors
   version: ff09b135c25aae272398c51a07235b90a75aa4f0
 - name: github.com/rancher/go-rancher
-  version: 939fd85e3c7f06f29e985fd35cb62a281a32d3b0
+  version: ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792
   subpackages:
   - client
 - name: github.com/ryanuber/columnize
   version: 983d3a5fab1bf04d1b412465d2d9f8430e2e917e
+- name: github.com/sethgrid/pester
+  version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
 - name: github.com/ugorji/go
   version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
   subpackages:
@@ -136,4 +148,6 @@ imports:
   version: d75a52659825e75fff6158388dddc6a5b04f9ba5
   subpackages:
   - unix
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 testImports: []
