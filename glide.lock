@@ -141,7 +141,7 @@ imports:
 - name: github.com/sethgrid/pester
   version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
 - name: github.com/ugorji/go
-  version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
+  version: c88ee250d0221a57af388746f5cf03768c21d6e2 
   subpackages:
   - codec
 - name: golang.org/x/sys
