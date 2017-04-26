@@ -9,7 +9,9 @@ import:
   - jobspec
   - nomad/structs
 - package: github.com/mitchellh/cli
-- package: github.com/rancher/go-rancher/client  
+- package: github.com/rancher/go-rancher
+  subpackages:
+  - client
 - package: github.com/mitchellh/colorstring
 - package: github.com/ryanuber/columnize
   version: v2.1.0
@@ -22,3 +24,6 @@ import:
   - cli
 - package: github.com/pkg/errors
   version: v0.8.0
+- package: github.com/ugorji/go
+  subpackages:
+  - codec

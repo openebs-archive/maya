@@ -1,5 +1,5 @@
-hash: 5d90505f1c2a3838fe093f77446273ca6f991e863f86293a6fdaf0090e46b97b
-updated: 2017-04-26T16:22:58.357283196+05:30
+hash: 998d03560dd14d1c66aea40b4e8e7dc5fe1e6ca8ccaf8e62163d20e578723b83
+updated: 2017-04-26T17:30:53.802380457+05:30
 imports:
 - name: github.com/armon/go-metrics
   version: 93f237eba9b0602f3e73710416558854a81d9337
@@ -131,7 +131,7 @@ imports:
 - name: github.com/mitchellh/reflectwalk
   version: 9ad27c461a633e32a235a061d523aefe8f18571d
 - name: github.com/pkg/errors
-  version: ff09b135c25aae272398c51a07235b90a75aa4f0
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/rancher/go-rancher
   version: ec24b7f12fca9f78fbfcd62a0ea8bce14ade8792
   subpackages:
@@ -141,7 +141,7 @@ imports:
 - name: github.com/sethgrid/pester
   version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
 - name: github.com/ugorji/go
-  version: c88ee250d0221a57af388746f5cf03768c21d6e2 
+  version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
   subpackages:
   - codec
 - name: golang.org/x/sys

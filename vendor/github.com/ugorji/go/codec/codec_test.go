@@ -104,10 +104,8 @@ func testInitFlags() {
 	flag.BoolVar(&testSkipIntf, "tf", false, "Skip Interfaces")
 	flag.BoolVar(&testUseReset, "tr", false, "Use Reset")
 	flag.IntVar(&testJsonIndent, "td", 0, "Use JSON Indent")
-	flag.IntVar(&testMaxInitLen, "tx", 0, "Max Init Len")
 	flag.BoolVar(&testUseMust, "tm", true, "Use Must(En|De)code")
 	flag.BoolVar(&testCheckCircRef, "tl", false, "Use Check Circular Ref")
-	flag.BoolVar(&testJsonHTMLCharsAsIs, "tas", false, "Set JSON HTMLCharsAsIs")
 }
 
 func testByteBuf(in []byte) *bytes.Buffer {
@@ -348,7 +346,6 @@ func testInit() {
 		bh.Canonical = testCanonical
 		bh.CheckCircularRef = testCheckCircRef
 		bh.StructToArray = testStructToArray
-		bh.MaxInitLen = testMaxInitLen
 		// mostly doing this for binc
 		if testWriteNoSymbols {
 			bh.AsSymbols = AsSymbolNone
@@ -358,7 +355,6 @@ func testInit() {
 	}
 
 	testJsonH.Indent = int8(testJsonIndent)
-	testJsonH.HTMLCharsAsIs = testJsonHTMLCharsAsIs
 	testMsgpackH.RawToString = true
 
 	// testMsgpackH.AddExt(byteSliceTyp, 0, testMsgpackH.BinaryEncodeExt, testMsgpackH.BinaryDecodeExt)
@@ -393,7 +389,7 @@ func testInit() {
 		true,
 		"null",
 		nil,
-		"some&day>some<day",
+		"someday",
 		timeToCompare1,
 		"",
 		timeToCompare2,
