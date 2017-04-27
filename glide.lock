@@ -1,5 +1,5 @@
 hash: 998d03560dd14d1c66aea40b4e8e7dc5fe1e6ca8ccaf8e62163d20e578723b83
-updated: 2017-04-26T17:30:53.802380457+05:30
+updated: 2017-04-27T12:38:45.563871844+05:30
 imports:
 - name: github.com/armon/go-metrics
   version: 93f237eba9b0602f3e73710416558854a81d9337
@@ -141,7 +141,7 @@ imports:
 - name: github.com/sethgrid/pester
   version: 2c5fb962da6113d0968907fd81dba3ca35151d1c
 - name: github.com/ugorji/go
-  version: 9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6
+  version: c88ee250d0221a57af388746f5cf03768c21d6e2
   subpackages:
   - codec
 - name: golang.org/x/sys
