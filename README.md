@@ -70,4 +70,29 @@ Example : Assuming Maya Master is reachable on 172.28.128.3 and you would like t
 ```
 ubuntu@host-01:~$ maya setup-osh -self-ip=172.28.128.6 -omm-ips=172.28.128.3
 ```
+## Start developing Maya
 
+If you want to build Maya right away there are two options:
+
+##### You have a working [Go environment].
+```
+$ go get github.com/openebs/maya
+$ cd $GOPATH/src/github.com/openebs/maya
+$ make dev
+```
+Head over to the [developer's documentation] for more details.
+
+#### Developing with Vagrant 
+
+You will need an Linux host with Vagrant 1.9.1+ and Virtual Box 5.1. Follow these steps to setup your Development Environment.
+
+```
+cd <your-work-dir-on-linux-host>
+git clone https://github.com/openebs/maya.git
+vagrant up master-01
+vagrant ssh master-01
+make dev 
+```
+
+[Go environment]: https://golang.org/doc/install
+[developer's documentation]: https://github.com/openebs/maya/blob/master/docs/developer.md
