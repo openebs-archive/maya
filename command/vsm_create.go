@@ -72,7 +72,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 	flags := c.M.FlagSet("vsm-create", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 	flags.StringVar(&c.vsmname, "name", "", "")
-	flags.StringVar(&c.size, "size", "5", "")
+	flags.StringVar(&c.size, "size", "5G", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -105,6 +105,10 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		return 1
 	}
 	if c.vsmname != " " {
+		if strings.HasSuffix(c.size, "G") != true {
+			fmt.Println("-size should contain the suffix 'G',which represent the size in GB (exp: 10G)")
+			return 0
+		}
 		err := CreateApiVsm(c.vsmname, c.size)
 		if err != nil {
 			fmt.Println("Error Creating Vsm")
