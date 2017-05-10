@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -20,6 +21,9 @@ type InstallOpenEBSCommand struct {
 
 	// all maya client ips, in a comma separated format
 	member_ips string
+	conf       string
+	nomad      string
+	consul     string
 }
 
 func (c *InstallOpenEBSCommand) Help() string {
@@ -63,9 +67,20 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 	flags.StringVar(&c.master_ips, "omm-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
 	flags.StringVar(&c.member_ips, "member-ips", "", "")
+	flags.StringVar(&c.conf, "config", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
+	}
+
+	if c.conf != "" {
+		//  c.conf = os.Args[2]
+		config := getConfig(c.conf)
+		fmt.Println(config)
+		c.self_ip = config.Hostip
+		c.master_ips = config.Masterip
+		c.nomad = config.Nomad.Version
+		c.consul = config.Consul.Version
 	}
 
 	// There are no extra arguments
@@ -89,6 +104,8 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 		client_ips: c.member_ips,
 		master_ips: c.master_ips,
 		is_master:  false,
+		nomad:      c.nomad,
+		consul:     c.consul,
 	}
 
 	if runop = mi.Install(); runop != 0 {

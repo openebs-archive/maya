@@ -1,9 +1,15 @@
 #!/bin/bash
 
 set -e
-
-NOMAD_VERSION="0.5.5"
 CURDIR=`pwd`
+
+NOMAD_VERSION=$1
+
+if [ -z $NOMAD_VERSION ]; then
+    
+     NOMAD_VERSION="0.5.5"
+fi
+
 
 if [ -f /usr/bin/nomad ]; then
     INSTALLED_VERSION=`nomad version | head -n 1 | cut -d ' ' -f 2 | sed 's/dev//' | cut -d "'" -f 2`
@@ -14,7 +20,6 @@ if [ -f /usr/bin/nomad ]; then
 fi
 
 # Remove if already present
-# NOTE: this is install only script
 echo "Cleaning old Nomad installation if any"
 sudo rm -rf /usr/bin/nomad
 sudo rm -rf /etc/nomad.d/

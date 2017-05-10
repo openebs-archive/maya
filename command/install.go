@@ -46,6 +46,9 @@ type MayaAsNomadInstaller struct {
 
 	// formatted etcd initial cluster
 	etcd_cluster string
+	nomad        string
+	consul       string
+	docker       string
 }
 
 // The public command
@@ -260,7 +263,7 @@ func (c *MayaAsNomadInstaller) installConsul() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallConsulScript)
+	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
 	if runop = execute(c.Cmd, c.Ui); runop != 0 {
 		c.Ui.Error("Install failed: Error installing consul")
@@ -273,7 +276,7 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallNomadScript)
+	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
 	if runop = execute(c.Cmd, c.Ui); runop != 0 {
 		c.Ui.Error("Install failed: Error installing nomad")

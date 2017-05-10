@@ -2,9 +2,13 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 type InstallMayaCommand struct {
@@ -28,6 +32,27 @@ type InstallMayaCommand struct {
 
 	// self hostname
 	self_hostname string
+
+	//versions of deps to be installed
+	nomad  string
+	consul string
+
+	//flag variable for config
+	conf string
+}
+
+type Configuration struct {
+	Nomad struct {
+		Version string `yaml:"version"`
+	} `yaml:"Nomad"`
+	Consul struct {
+		Version string `yaml:"version"`
+	} `yaml:"Consul"`
+	Docker struct {
+		Version string `yaml:"version"`
+	} `yaml:"Docker"`
+	Masterip string `yaml:"masterip"`
+	Hostip   string `yaml:"hostip"`
 }
 
 func (c *InstallMayaCommand) Help() string {
@@ -79,16 +104,23 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	flags.StringVar(&c.member_ips, "omm-ips", "", "")
 	flags.StringVar(&c.self_ip, "self-ip", "", "")
+	flags.StringVar(&c.conf, "config", "", "Config file for setup omm")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
 	}
-
 	// There are no extra arguments
 	oargs := flags.Args()
-	if len(oargs) != 0 {
+	if len(oargs) != 0 && len(strings.TrimSpace(c.conf)) == 0 {
 		c.M.Ui.Error(c.Help())
 		return 1
+	}
+
+	if c.conf != "" {
+		config := getConfig(c.conf)
+		c.self_ip = config.Masterip
+		c.nomad = config.Nomad.Version
+		c.consul = config.Consul.Version
 	}
 
 	if c.Cmd != nil {
@@ -142,8 +174,7 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 func (c *InstallMayaCommand) installConsul() int {
 	var runop int = 0
-
-	c.Cmd = exec.Command("sh", InstallConsulScript)
+	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing consul")
@@ -156,7 +187,7 @@ func (c *InstallMayaCommand) installNomad() int {
 
 	var runop int = 0
 
-	c.Cmd = exec.Command("sh", InstallNomadScript)
+	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing nomad")
@@ -323,4 +354,19 @@ func (c *InstallMayaCommand) startMayaserver() int {
 	}
 
 	return runop
+}
+
+//getconfig will read and decode the config file
+func getConfig(path string) Configuration {
+	file, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatal("Config File Missing. ", err)
+	}
+
+	var config Configuration
+	err = yaml.Unmarshal(file, &config)
+	if err != nil {
+		log.Fatal("Config Parse Error: ", err)
+	}
+	return config
 }

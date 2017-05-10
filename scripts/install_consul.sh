@@ -1,9 +1,13 @@
 #!/bin/bash
 
 set -e
-
-CONSUL_VERSION="0.7.0"
 CURDIR=`pwd`
+
+CONSUL_VERSION=$1
+
+if [ -z $CONSUL_VERSION ]; then
+     CONSUL_VERSION="0.7.0"
+fi
 
 
 if [ -f /usr/bin/consul ]; then
