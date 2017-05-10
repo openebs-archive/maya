@@ -1,0 +1,7 @@
+---
+Nomad:
+  version: '0.5.6'
+Consul:
+  version: '0.7.5'
+masterip: 172.28.128.4
+hostip: 172.28.128.5
