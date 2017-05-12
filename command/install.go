@@ -46,9 +46,10 @@ type MayaAsNomadInstaller struct {
 
 	// formatted etcd initial cluster
 	etcd_cluster string
-	nomad        string
-	consul       string
-	docker       string
+
+	//contains version info
+	nomad  string
+	consul string
 }
 
 // The public command

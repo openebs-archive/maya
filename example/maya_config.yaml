@@ -1,0 +1,20 @@
+---
+version: 0.3
+kind: install
+spec:
+  provider: nomad
+  bin:
+  - name: nomad
+    version: 0.5.5
+  - name: consul
+    version: 0.7.5
+metadeta:
+  - name: master
+    role: server
+  - name: host
+    role: client
+args:
+- name: master
+  value: 172.10.1.5
+- name: host
+  value: 172.10.1.6

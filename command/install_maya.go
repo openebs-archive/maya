@@ -2,13 +2,9 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
-
-	yaml "gopkg.in/yaml.v2"
 )
 
 type InstallMayaCommand struct {
@@ -33,26 +29,13 @@ type InstallMayaCommand struct {
 	// self hostname
 	self_hostname string
 
-	//versions of deps to be installed
+	//Contains the version info
 	nomad  string
 	consul string
 
 	//flag variable for config
-	conf string
-}
-
-type Configuration struct {
-	Nomad struct {
-		Version string `yaml:"version"`
-	} `yaml:"Nomad"`
-	Consul struct {
-		Version string `yaml:"version"`
-	} `yaml:"Consul"`
-	Docker struct {
-		Version string `yaml:"version"`
-	} `yaml:"Docker"`
-	Masterip string `yaml:"masterip"`
-	Hostip   string `yaml:"hostip"`
+	conf   string
+	config []Config
 }
 
 func (c *InstallMayaCommand) Help() string {
@@ -118,9 +101,9 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	if c.conf != "" {
 		config := getConfig(c.conf)
-		c.self_ip = config.Masterip
-		c.nomad = config.Nomad.Version
-		c.consul = config.Consul.Version
+		c.self_ip = config.Args[0].Addr
+		c.nomad = config.Spec.Bin[0].Version
+		c.consul = config.Spec.Bin[1].Version
 	}
 
 	if c.Cmd != nil {
@@ -354,19 +337,4 @@ func (c *InstallMayaCommand) startMayaserver() int {
 	}
 
 	return runop
-}
-
-//getconfig will read and decode the config file
-func getConfig(path string) Configuration {
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatal("Config File Missing. ", err)
-	}
-
-	var config Configuration
-	err = yaml.Unmarshal(file, &config)
-	if err != nil {
-		log.Fatal("Config Parse Error: ", err)
-	}
-	return config
 }

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -74,13 +73,11 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 	}
 
 	if c.conf != "" {
-		//  c.conf = os.Args[2]
 		config := getConfig(c.conf)
-		fmt.Println(config)
-		c.self_ip = config.Hostip
-		c.master_ips = config.Masterip
-		c.nomad = config.Nomad.Version
-		c.consul = config.Consul.Version
+		c.self_ip = config.Args[1].Addr
+		c.master_ips = config.Args[0].Addr
+		c.nomad = config.Spec.Bin[0].Version
+		c.consul = config.Spec.Bin[1].Version
 	}
 
 	// There are no extra arguments
