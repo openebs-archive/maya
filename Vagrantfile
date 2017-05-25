@@ -61,11 +61,11 @@ $mayamaster = <<SCRIPT
 #!/bin/bash
 
 cd /opt/gopath/src/github.com/openebs/maya
-make initialize
-make deps
+make bootstrap 
 make dev
 maya setup-omm
 echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
+echo "export MAPI_ADDR=http://172.28.128.3:5656" >> /home/vagrant/.profile
 
 SCRIPT
 
@@ -75,7 +75,7 @@ $storagehost = <<SCRIPT
 echo "Testing output redirection"
 
 cd /opt/gopath/src/github.com/openebs/maya
-make initialize
+make bootstrap
 make dev
 maya setup-osh -omm-ips=172.28.128.3
 echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile

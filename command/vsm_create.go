@@ -22,6 +22,7 @@ type VsmCreateCommand struct {
 	size    string
 }
 
+// VsmSpec holds the config for creating a VSM
 type VsmSpec struct {
 	Kind       string `yaml:"kind"`
 	APIVersion string `yaml:"apiVersion"`
@@ -63,7 +64,8 @@ func (c *VsmCreateCommand) Synopsis() string {
 	return "Creates a new VSM"
 }
 
-// The logic of this function can be understood by understanding
+// Run to get the flag values and start execution
+//The logic of this function can be understood by understanding
 // the help text defined earlier.
 func (c *VsmCreateCommand) Run(args []string) int {
 
@@ -109,7 +111,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 			fmt.Println("-size should contain the suffix 'G',which represent the size in GB (exp: 10G)")
 			return 0
 		}
-		err := CreateApiVsm(c.vsmname, c.size)
+		err := CreateAPIVsm(c.vsmname, c.size)
 		if err != nil {
 			fmt.Println("Error Creating Vsm")
 		}
@@ -117,8 +119,8 @@ func (c *VsmCreateCommand) Run(args []string) int {
 	return op
 }
 
-// Function to create the Vsm through a API call to m-apiserver
-func CreateApiVsm(vname string, size string) error {
+// CreateAPIVsm to create the Vsm through a API call to m-apiserver
+func CreateAPIVsm(vname string, size string) error {
 
 	var vs VsmSpec
 

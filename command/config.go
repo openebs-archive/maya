@@ -7,6 +7,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+//Config holds the configuration of maya
 type Config struct {
 	Version float64 `json:"version"`
 	Kind    string  `json:"kind"`
@@ -26,6 +27,7 @@ type Config struct {
 	} `json:"args"`
 }
 
+//getConfig to load the config from a yaml file
 func getConfig(path string) Config {
 	file, err := ioutil.ReadFile(path)
 	if err != nil {

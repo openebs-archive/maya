@@ -156,7 +156,7 @@ func (c *InstallMayaCommand) Run(args []string) int {
 }
 
 func (c *InstallMayaCommand) installConsul() int {
-	var runop int = 0
+	var runop int
 	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
@@ -168,7 +168,7 @@ func (c *InstallMayaCommand) installConsul() int {
 
 func (c *InstallMayaCommand) installNomad() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
@@ -181,7 +181,7 @@ func (c *InstallMayaCommand) installNomad() int {
 
 func (c *InstallMayaCommand) installMayaserver() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("bash", InstallMayaserverScript)
 
@@ -194,7 +194,7 @@ func (c *InstallMayaCommand) installMayaserver() int {
 
 func (c *InstallMayaCommand) verifyBootstrap() int {
 	//TODO: Enhance this logic to verify if there are updated scripts
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("ls", MayaScriptsPath)
 
@@ -207,7 +207,7 @@ func (c *InstallMayaCommand) verifyBootstrap() int {
 
 func (c *InstallMayaCommand) bootTheInstall() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
 
@@ -235,7 +235,7 @@ func (c *InstallMayaCommand) bootTheInstall() int {
 
 func (c *InstallMayaCommand) init() int {
 
-	var runop int = 0
+	var runop int
 	var server_members []string
 
 	c.Cmd = exec.Command("hostname")
@@ -277,7 +277,7 @@ func (c *InstallMayaCommand) init() int {
 
 func (c *InstallMayaCommand) setConsulAsServer() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
 
@@ -290,7 +290,7 @@ func (c *InstallMayaCommand) setConsulAsServer() int {
 
 func (c *InstallMayaCommand) setNomadAsServer() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("bash", SetNomadAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
 
@@ -303,7 +303,7 @@ func (c *InstallMayaCommand) setNomadAsServer() int {
 
 func (c *InstallMayaCommand) startConsul() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", StartConsulServerScript)
 
@@ -315,7 +315,7 @@ func (c *InstallMayaCommand) startConsul() int {
 }
 func (c *InstallMayaCommand) startNomad() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", StartNomadServerScript)
 
@@ -328,7 +328,7 @@ func (c *InstallMayaCommand) startNomad() int {
 
 func (c *InstallMayaCommand) startMayaserver() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", StartMayaServerScript, c.self_ip)
 
