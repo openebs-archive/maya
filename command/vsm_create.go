@@ -13,6 +13,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// VsmCreateCommand is a command implementation struct
 type VsmCreateCommand struct {
 	// To control this CLI's display
 	M Meta
@@ -39,6 +40,7 @@ type VsmSpec struct {
 	} `yaml:"spec"`
 }
 
+// Help shows helpText for a particular CLI command
 func (c *VsmCreateCommand) Help() string {
 	helpText := `
 Usage: maya vsm-create [options] <path>
@@ -60,6 +62,7 @@ VSM Create Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *VsmCreateCommand) Synopsis() string {
 	return "Creates a new VSM"
 }

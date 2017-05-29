@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// NetworkInstallCommand is a command implementation struct
 type NetworkInstallCommand struct {
 	// To control this CLI's display
 	M Meta
@@ -15,7 +16,7 @@ type NetworkInstallCommand struct {
 	Cmd *exec.Cmd
 
 	// etcd ip address
-	kube_ip string
+	kubeIP string
 
 	//Server name in which etcd is running
 	kubename string
@@ -24,6 +25,7 @@ type NetworkInstallCommand struct {
 	cni string
 }
 
+// Help shows helpText for a particular CLI command
 func (c *NetworkInstallCommand) Help() string {
 	helpText := `
 Usage: maya network-install <cni> <name> <ip>
@@ -51,11 +53,13 @@ Maya Network options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *NetworkInstallCommand) Synopsis() string {
 	return "Configure flannel network on maya-host machine (Alpha)."
 
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *NetworkInstallCommand) Run(args []string) int {
 
 	var runop int
@@ -63,7 +67,7 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 	flags := c.M.FlagSet("network-install", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 	flags.StringVar(&c.kubename, "name", "", "")
-	flags.StringVar(&c.kube_ip, "ip", "", "")
+	flags.StringVar(&c.kubeIP, "ip", "", "")
 	flags.StringVar(&c.cni, "cni", "", "")
 
 	if err := flags.Parse(args); err != nil {
@@ -99,7 +103,7 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(strings.TrimSpace(c.kube_ip)) == 0 {
+	if len(strings.TrimSpace(c.kubeIP)) == 0 {
 		c.M.Ui.Error(fmt.Sprintf("-ip option is mandatory\n"))
 		c.M.Ui.Error(c.Help())
 		return 1
@@ -108,17 +112,18 @@ func (c *NetworkInstallCommand) Run(args []string) int {
 	//stdout the configuration
 	fmt.Printf("following Configuration has been passed:\n")
 	fmt.Printf("etcd-master-name = %v\n", c.kubename)
-	fmt.Printf("etcd-master-ip = %v\n", c.kube_ip)
+	fmt.Printf("etcd-master-ip = %v\n", c.kubeIP)
 	fmt.Printf("cni-plugin = %v\n", c.cni)
 
-	if runop = c.installFlannel(); runop != 0 {
+	if runop = c.installNetwork(); runop != 0 {
 		return runop
 	}
 	return runop
 }
 
-func (c *NetworkInstallCommand) installFlannel() int {
-	var runop int = 0
+// installNetwork configures CNI network in OpenEBS Host
+func (c *NetworkInstallCommand) installNetwork() int {
+	var runop int
 
 	//Validation of ip
 	var ipAddr net.IP

@@ -22,19 +22,21 @@ const (
 	bytesPerMegabyte = 1024 * 1024
 )
 
+// NodeStatusCommand is a command implementation struct
 type NodeStatusCommand struct {
 	Meta
-	color       *colorstring.Colorize
-	length      int
-	short       bool
-	verbose     bool
-	list_allocs bool
-	self        bool
-	stats       bool
-	json        bool
-	tmpl        string
+	color      *colorstring.Colorize
+	length     int
+	short      bool
+	verbose    bool
+	listAllocs bool
+	self       bool
+	stats      bool
+	json       bool
+	tmpl       string
 }
 
+// Help shows helpText for a particular CLI command
 func (c *NodeStatusCommand) Help() string {
 	helpText := `
 Usage: maya osh-status [options] <node>
@@ -79,17 +81,19 @@ Node Status Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *NodeStatusCommand) Synopsis() string {
 	return "Display status information about nodes"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *NodeStatusCommand) Run(args []string) int {
 
 	flags := c.Meta.FlagSet("osh-status", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.BoolVar(&c.short, "short", false, "")
 	flags.BoolVar(&c.verbose, "verbose", false, "")
-	flags.BoolVar(&c.list_allocs, "allocs", false, "")
+	flags.BoolVar(&c.listAllocs, "allocs", false, "")
 	flags.BoolVar(&c.self, "self", false, "")
 	flags.BoolVar(&c.stats, "stats", false, "")
 	flags.BoolVar(&c.json, "json", false, "")
@@ -162,14 +166,14 @@ func (c *NodeStatusCommand) Run(args []string) int {
 
 		// Format the nodes list
 		out := make([]string, len(nodes)+1)
-		if c.list_allocs {
+		if c.listAllocs {
 			out[0] = "ID|DC|Name|Class|Drain|Status|Running Allocs"
 		} else {
 			out[0] = "ID|DC|Name|Class|Drain|Status"
 		}
 
 		for i, node := range nodes {
-			if c.list_allocs {
+			if c.listAllocs {
 				numAllocs, err := getRunningAllocs(client, node.ID)
 				if err != nil {
 					c.Ui.Error(fmt.Sprintf("Error querying node allocations: %s", err))
@@ -284,6 +288,7 @@ func (c *NodeStatusCommand) Run(args []string) int {
 	return c.formatNode(client, node)
 }
 
+// formatNode to print the result in table format
 func (c *NodeStatusCommand) formatNode(client *api.Client, node *api.Node) int {
 	// Format the header output
 	basic := []string{
@@ -339,7 +344,7 @@ func (c *NodeStatusCommand) formatNode(client *api.Client, node *api.Node) int {
 
 		if hostStats != nil && c.stats {
 			c.Ui.Output(c.Colorize().Color("\n[bold]CPU Stats[reset]"))
-			c.printCpuStats(hostStats)
+			c.printCPUStats(hostStats)
 			c.Ui.Output(c.Colorize().Color("\n[bold]Memory Stats[reset]"))
 			c.printMemoryStats(hostStats)
 			c.Ui.Output(c.Colorize().Color("\n[bold]Disk Stats[reset]"))
@@ -402,7 +407,7 @@ func (c *NodeStatusCommand) formatMeta(node *api.Node) {
 	c.Ui.Output(formatKV(meta))
 }
 
-func (c *NodeStatusCommand) printCpuStats(hostStats *api.HostStats) {
+func (c *NodeStatusCommand) printCPUStats(hostStats *api.HostStats) {
 	l := len(hostStats.CPU)
 	for i, cpuStat := range hostStats.CPU {
 		cpuStatsAttr := make([]string, 4)

@@ -15,10 +15,12 @@ type VersionCommand struct {
 	Ui                cli.Ui
 }
 
+// Help shows helpText for a particular CLI command
 func (c *VersionCommand) Help() string {
 	return ""
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *VersionCommand) Run(_ []string) int {
 	var versionString bytes.Buffer
 
@@ -35,6 +37,7 @@ func (c *VersionCommand) Run(_ []string) int {
 	return 0
 }
 
+// Synopsis shows short information related to CLI command
 func (c *VersionCommand) Synopsis() string {
 	return "Prints the Maya version"
 }
