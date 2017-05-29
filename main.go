@@ -7,7 +7,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// The latest git tag will be filled in by the compiler
+// MayaCtlName will be fiiled in by the compiler on basis of latest git tag
 var MayaCtlName string = "mayactl"
 
 func main() {

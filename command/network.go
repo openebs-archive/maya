@@ -127,14 +127,14 @@ func (c *NetworkInstallCommand) installNetwork() int {
 
 	//Validation of ip
 	var ipAddr net.IP
-	if len(strings.TrimSpace(c.kube_ip)) > 0 {
-		if ipAddr = net.ParseIP(c.kube_ip); ipAddr == nil {
+	if len(strings.TrimSpace(c.kubeIP)) > 0 {
+		if ipAddr = net.ParseIP(c.kubeIP); ipAddr == nil {
 			c.M.Ui.Error(fmt.Sprintf("provided ip address is not correct"))
 			return 1
 		}
 	}
 
-	c.Cmd = exec.Command("sh", InstallFlannelScript, c.kube_ip, c.kubename)
+	c.Cmd = exec.Command("sh", InstallFlannelScript, c.kubeIP, c.kubename)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error installing flannel")
