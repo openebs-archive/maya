@@ -16,11 +16,13 @@ import (
 	"github.com/ryanuber/columnize"
 )
 
+// ServerMembersCommand is basic struct for cli command
 type ServerMembersCommand struct {
 	Meta
 	Cmd *exec.Cmd
 }
 
+// Help is helper function
 func (c *ServerMembersCommand) Help() string {
 	helpText := `
 Usage: maya omm-status [options]
@@ -42,10 +44,12 @@ Server Members Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *ServerMembersCommand) Synopsis() string {
 	return "Display a list of known servers and their status"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *ServerMembersCommand) Run(args []string) int {
 	var detailed bool
 
@@ -104,7 +108,7 @@ func (c *ServerMembersCommand) Run(args []string) int {
 	// Dump the list
 	c.Ui.Output(columnize.SimpleFormat(out))
 	instanceID := "\"any-compute\""
-	response := c.mserverstatus()
+	response := c.mserverStatus()
 	if response != instanceID {
 		c.Ui.Error("Error querying M-apiserver")
 	}
@@ -192,9 +196,9 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 	return leaders, nil
 }
 
-// to get the status of mayaserver deamon,
+// mserverstatus to get the status of mayaserver deamon,
 // TODO proper CLI command once mayaserver have it's own
-func (c *ServerMembersCommand) mserverstatus() string {
+func (c *ServerMembersCommand) mserverStatus() string {
 
 	//getting the m-apiserver env variable
 	addr := os.Getenv("MAPI_ADDR")
@@ -204,7 +208,7 @@ func (c *ServerMembersCommand) mserverstatus() string {
 	resp, err := http.Get(url.String())
 
 	if err == nil {
-		c.Ui.Error(fmt.Sprintf("\nm-apiserver listening at %v", addr))
+		fmt.Sprintf("\nm-apiserver listening at %v", addr)
 	}
 
 	if err != nil {
