@@ -12,12 +12,14 @@ import (
 	"github.com/rancher/go-rancher/client"
 )
 
+// Stats implementation stats struct
 type Stats struct {
 	client.Resource
 	ReplicaCounter  int64 `json:"replicacounter"`
 	RevisionCounter int64 `json:"revisioncounter"`
 }
 
+// VsmStatsCommand is a command implementation struct
 type VsmStatsCommand struct {
 	Meta
 	address     string
@@ -26,6 +28,7 @@ type VsmStatsCommand struct {
 	replica_ips string
 }
 
+// ReplicaClient is Client structure
 type ReplicaClient struct {
 	address    string
 	syncAgent  string
@@ -33,6 +36,7 @@ type ReplicaClient struct {
 	httpClient *http.Client
 }
 
+// Help shows helpText for a particular CLI command
 func (c *VsmStatsCommand) Help() string {
 	helpText := `
 	Usage: maya vsm-stats <vsm-name> 
@@ -43,10 +47,12 @@ func (c *VsmStatsCommand) Help() string {
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *VsmStatsCommand) Synopsis() string {
 	return "Display VSM Stats"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *VsmStatsCommand) Run(args []string) int {
 
 	var (
@@ -98,6 +104,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	return 0
 }
 
+// NewReplicaClient create the new replica client
 func NewReplicaClient(address string) (*ReplicaClient, error) {
 	if strings.HasPrefix(address, "tcp://") {
 		address = address[6:]
@@ -139,6 +146,7 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}, nil
 }
 
+// GetStatus will return json response and statusCode
 func GetStatus(address string, obj interface{}) (error, int) {
 	replica, err := NewReplicaClient(address)
 	if err != nil {

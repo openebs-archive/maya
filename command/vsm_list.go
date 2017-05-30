@@ -16,6 +16,7 @@ const (
 	maxFailedTGs = 5
 )
 
+// VsmListCommand is a command implementation struct
 type VsmListCommand struct {
 	Meta
 	length    int
@@ -24,6 +25,7 @@ type VsmListCommand struct {
 	verbose   bool
 }
 
+// Help shows helpText for a particular CLI command
 func (c *VsmListCommand) Help() string {
 	helpText := `
 Usage: maya vsm-list [options] <job>
@@ -50,10 +52,12 @@ Status Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *VsmListCommand) Synopsis() string {
 	return "Display status information about Vsm(s)"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *VsmListCommand) Run(args []string) int {
 	var short bool
 

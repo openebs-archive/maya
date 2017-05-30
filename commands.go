@@ -47,7 +47,7 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 
 		"vsm-create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
-				M: meta,
+				Meta: meta,
 			}, nil
 		},
 		"vsm-list": func() (cli.Command, error) {

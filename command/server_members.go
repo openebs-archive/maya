@@ -196,7 +196,7 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 	return leaders, nil
 }
 
-// mserverstatus to get the status of mayaserver deamon,
+// mserverStatus to get the status of mayaserver deamon,
 // TODO proper CLI command once mayaserver have it's own
 func (c *ServerMembersCommand) mserverStatus() string {
 
@@ -208,7 +208,7 @@ func (c *ServerMembersCommand) mserverStatus() string {
 	resp, err := http.Get(url.String())
 
 	if err == nil {
-		fmt.Sprintf("\nm-apiserver listening at %v", addr)
+		fmt.Println("\nm-apiserver listening at %v", addr)
 	}
 
 	if err != nil {

@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// Volume is a command implementation struct
 type Volume struct {
 	Spec struct {
 		AccessModes interface{} `json:"AccessModes"`
@@ -31,6 +32,7 @@ type Volume struct {
 	Name              string      `json:"name"`
 }
 
+// Annotations describes volume struct
 type Annotations struct {
 	VolSize      string   `json:"be.jiva.volume.openebs.io/vol-size"`
 	VolAddr      string   `json:"fe.jiva.volume.openebs.io/ip"`
@@ -44,6 +46,7 @@ const (
 	timeout = 5 * time.Second
 )
 
+// getVolDetails gets response in json format of a volume from m-apiserver
 func getVolDetails(volName string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
@@ -77,6 +80,7 @@ func getVolDetails(volName string, obj interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
+// GetVolAnnotations gets annotations of volume
 func GetVolAnnotations(volName string) (*Annotations, error) {
 	var volume Volume
 	var annotations Annotations

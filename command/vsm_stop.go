@@ -5,10 +5,12 @@ import (
 	"strings"
 )
 
+// VsmStopCommand is a command implementation struct
 type VsmStopCommand struct {
 	Meta
 }
 
+// Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
 Usage: maya vsm-stop [options] <vsm>
@@ -16,11 +18,7 @@ Usage: maya vsm-stop [options] <vsm>
   Stop an existing vsm. This command is used to signal allocations
   to shut down for the given vsm ID. Upon successful deregistraion,
   an interactive monitor session will start to display log lines as
-  the job unwinds its allocations and completes shutting down.
-
-General Options:
-
-  ` + generalOptionsUsage() + `
+  the vsm unwinds its allocations and completes shutting down.
 
 Stop Options:
 
@@ -29,7 +27,11 @@ Stop Options:
     deregister command is submitted, a new evaluation ID is printed to the
     screen, which can be used to examine the evaluation using the eval-status
     command.
-
+  
+  -purge
+    Purge is used to stop the vsm and purge it from the system. If not set, the
+    vsm will still be queryable and will be purged by the garbage collector.
+  
   -yes
     Automatic yes to prompts.
 
@@ -39,10 +41,12 @@ Stop Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *VsmStopCommand) Synopsis() string {
 	return "Stop a running vsm"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *VsmStopCommand) Run(args []string) int {
 	var detach, verbose, autoYes bool
 
@@ -62,7 +66,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 		length = fullId
 	}
 
-	// Check that we got exactly one job
+	// Check that we got exactly one vsm
 	args = flags.Args()
 	if len(args) != 1 {
 		c.Ui.Error(c.Help())
@@ -77,14 +81,14 @@ func (c *VsmStopCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the job exists
+	// Check if the VSM exists
 	jobs, _, err := client.Jobs().PrefixList(jobID)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error deregistering job: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error deregistering VSM: %s", err))
 		return 1
 	}
 	if len(jobs) == 0 {
-		c.Ui.Error(fmt.Sprintf("No job(s) with prefix or id %q found", jobID))
+		c.Ui.Error(fmt.Sprintf("No VSM(s) with prefix or id %q found", jobID))
 		return 1
 	}
 	if len(jobs) > 1 && strings.TrimSpace(jobID) != jobs[0].ID {
@@ -97,20 +101,20 @@ func (c *VsmStopCommand) Run(args []string) int {
 				job.Priority,
 				job.Status)
 		}
-		c.Ui.Output(fmt.Sprintf("Prefix matched multiple jobs\n\n%s", formatList(out)))
+		c.Ui.Output(fmt.Sprintf("Prefix matched multiple VSM(s)\n\n%s", formatList(out)))
 		return 0
 	}
-	// Prefix lookup matched a single job
+	// Prefix lookup matched a single VSM
 	job, _, err := client.Jobs().Info(jobs[0].ID, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error deregistering job: %s", err))
 		return 1
 	}
 
-	// Confirm the stop if the job was a prefix match.
+	// Confirm the stop if the VSM was a prefix match.
 	// to fix the --> pointers being printed while passing status commands
 	if jobID != *job.ID && !autoYes {
-		question := fmt.Sprintf("Are you sure you want to stop job %q? [y/N]", *job.ID)
+		question := fmt.Sprintf("Are you sure you want to stop VSM %q? [y/N]", *job.ID)
 		answer, err := c.Ui.Ask(question)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to parse answer: %v", err))
@@ -119,7 +123,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 
 		if answer == "" || strings.ToLower(answer)[0] == 'n' {
 			// No case
-			c.Ui.Output("Cancelling job stop")
+			c.Ui.Output("Cancelling VSM stop")
 			return 0
 		} else if strings.ToLower(answer)[0] == 'y' && len(answer) > 1 {
 			// Non exact match yes
@@ -134,11 +138,11 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Invoke the stop
 	evalID, _, err := client.Jobs().Deregister(*job.ID, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error deregistering job: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error deregistering VSM: %s", err))
 		return 1
 	}
 
-	// If we are stopping a periodic job there won't be an evalID.
+	// If we are stopping a periodic VSM there won't be an evalID.
 	if evalID == "" {
 		return 0
 	}

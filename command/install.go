@@ -55,7 +55,7 @@ type MayaAsNomadInstaller struct {
 // The public command
 func (c *MayaAsNomadInstaller) Install() int {
 
-	var runop int = 0
+	var runop int
 
 	if runop = c.verifyBootstrap(); runop != 0 {
 		//Run the bootstrap only if required
@@ -113,7 +113,7 @@ func (c *MayaAsNomadInstaller) Install() int {
 
 func (c *MayaAsNomadInstaller) bootstrap() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
 
@@ -141,7 +141,7 @@ func (c *MayaAsNomadInstaller) bootstrap() int {
 
 func (c *MayaAsNomadInstaller) verifyBootstrap() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("ls", MayaScriptsPath)
 
@@ -161,7 +161,7 @@ func (c *MayaAsNomadInstaller) validateIPs() int {
 // MayaAsNomadInstaller
 func (c *MayaAsNomadInstaller) initAsClient() int {
 
-	var runop int = 0
+	var runop int
 	var master_iparr []string
 	var client_iparr []string
 	var ip_trimmed string
@@ -236,7 +236,7 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 
 func (c *MayaAsNomadInstaller) installDocker() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("bash", InstallDockerScript)
 
@@ -249,7 +249,7 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 
 //func (c *MayaAsNomadInstaller) installEtcd() int {
 
-//	var runop int = 0
+//	var runop int
 
 //	c.Cmd = exec.Command("sh", InstallEtcdScript)
 
@@ -262,7 +262,7 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 
 func (c *MayaAsNomadInstaller) installConsul() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
@@ -275,7 +275,7 @@ func (c *MayaAsNomadInstaller) installConsul() int {
 
 func (c *MayaAsNomadInstaller) installNomad() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
@@ -288,7 +288,7 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 
 //func (c *MayaAsNomadInstaller) startEtcd() int {
 
-//	var runop int = 0
+//	var runop int
 
 //	c.Cmd = exec.Command("sh", StartEtcdScript)
 
@@ -301,7 +301,7 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 
 func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", StartConsulClientScript)
 
@@ -314,7 +314,7 @@ func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 
 func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", StartNomadClientScript)
 
@@ -327,7 +327,7 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
 //func (c *MayaAsNomadInstaller) setEtcd() int {
 
-//	var runop int = 0
+//	var runop int
 
 //	c.Cmd = exec.Command("sh", SetEtcdScript, c.self_ip, c.self_ip_trim, c.etcd_cluster)
 
@@ -340,7 +340,7 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
 func (c *MayaAsNomadInstaller) setConsulAsClient() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", SetConsulAsClientScript, c.self_ip, c.fmt_master_ips)
 
@@ -353,7 +353,7 @@ func (c *MayaAsNomadInstaller) setConsulAsClient() int {
 
 func (c *MayaAsNomadInstaller) setNomadAsClient() int {
 
-	var runop int = 0
+	var runop int
 
 	c.Cmd = exec.Command("sh", SetNomadAsClientScript, c.self_ip, c.fmt_master_ipnports)
 

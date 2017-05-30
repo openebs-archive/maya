@@ -16,7 +16,7 @@ import (
 // VsmCreateCommand is a command implementation struct
 type VsmCreateCommand struct {
 	// To control this CLI's display
-	M Meta
+	Meta
 	// OS command to execute; <optional>
 	Cmd     *exec.Cmd
 	vsmname string
@@ -74,8 +74,8 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 	var op int
 
-	flags := c.M.FlagSet("vsm-create", FlagSetClient)
-	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
+	flags := c.Meta.FlagSet("vsm-create", FlagSetClient)
+	flags.Usage = func() { c.Meta.Ui.Output(c.Help()) }
 	flags.StringVar(&c.vsmname, "name", "", "")
 	flags.StringVar(&c.size, "size", "5G", "")
 
@@ -86,7 +86,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 	// specs file is mandatory
 	args = flags.Args()
 	if len(args) != 1 && len(strings.TrimSpace(c.vsmname)) == 0 {
-		c.M.Ui.Error(c.Help())
+		c.Ui.Error(c.Help())
 		return 1
 	}
 	if len(args) == 1 {
@@ -100,11 +100,11 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 		ic := &InternalCommand{
 			Cmd: c.Cmd,
-			Ui:  c.M.Ui,
+			Ui:  c.Ui,
 		}
 
 		if op = ic.Execute(); 0 != op {
-			c.M.Ui.Error("Error creating vsm")
+			c.Ui.Error("Error creating vsm")
 			return op
 		}
 		return 1
@@ -114,9 +114,24 @@ func (c *VsmCreateCommand) Run(args []string) int {
 			fmt.Println("-size should contain the suffix 'G',which represent the size in GB (exp: 10G)")
 			return 0
 		}
-		err := CreateAPIVsm(c.vsmname, c.size)
+		jobID := c.vsmname
+
+		// Get the HTTP client
+		client, err := c.Meta.Client()
 		if err != nil {
-			fmt.Println("Error Creating Vsm")
+			c.Ui.Error(fmt.Sprintf("Error initializing client: %s", err))
+			return 1
+		}
+		// Check if the VSM exists
+		job, _, err := client.Jobs().Info(jobID, nil)
+		if err == nil || job != nil {
+			c.Ui.Error(fmt.Sprintf("VSM already exist: %q", jobID))
+			return 1
+		}
+
+		resp := CreateAPIVsm(c.vsmname, c.size)
+		if resp != nil {
+			fmt.Println("Error Creating VSM %v", resp)
 		}
 	}
 	return op

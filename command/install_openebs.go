@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// InstallOpenEBSCommand is a command implementation struct
 type InstallOpenEBSCommand struct {
 	// To control this CLI's display
 	M Meta
@@ -25,6 +26,7 @@ type InstallOpenEBSCommand struct {
 	consul     string
 }
 
+// Help shows helpText for a particular CLI command
 func (c *InstallOpenEBSCommand) Help() string {
 	helpText := `
 Usage: maya setup-osh
@@ -53,10 +55,12 @@ OpenEBS Storage Host (osh) setup options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *InstallOpenEBSCommand) Synopsis() string {
 	return "Configure this machine as OpenEBS Host."
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *InstallOpenEBSCommand) Run(args []string) int {
 	var runop int
 
