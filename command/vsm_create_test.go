@@ -19,8 +19,8 @@ func TestVsmCreateCommand_With_Meta(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	cmd := &VsmCreateCommand{
-		M:   Meta{Ui: ui},
-		Cmd: exec.Command(string(ExecTesting), []string{""}...),
+		Meta: Meta{Ui: ui},
+		Cmd:  exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	fh, err := ioutil.TempFile("", "maya")
@@ -62,8 +62,8 @@ func TestVsmCreateCommand_Negative(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	cmd := &VsmCreateCommand{
-		M:   Meta{Ui: ui},
-		Cmd: exec.Command(string(ExecTesting), []string{""}...),
+		Meta: Meta{Ui: ui},
+		Cmd:  exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	// Fails on misuse
@@ -188,8 +188,8 @@ func TestVsmCreateCommand_From_STDIN(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	cmd := &VsmCreateCommand{
-		M:   Meta{Ui: ui},
-		Cmd: exec.Command(string(ExecTesting), []string{""}...),
+		Meta: Meta{Ui: ui},
+		Cmd:  exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	go func() {
@@ -227,8 +227,8 @@ func TestVsmCreateCommand_From_URL(t *testing.T) {
 	ui := new(cli.MockUi)
 
 	cmd := &VsmCreateCommand{
-		M:   Meta{Ui: ui},
-		Cmd: exec.Command(string(ExecTesting), []string{""}...),
+		Meta: Meta{Ui: ui},
+		Cmd:  exec.Command(string(ExecTesting), []string{""}...),
 	}
 
 	args := []string{"https://example.com/foo/bar"}

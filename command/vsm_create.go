@@ -131,7 +131,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 		resp := CreateAPIVsm(c.vsmname, c.size)
 		if resp != nil {
-			fmt.Println("Error Creating VSM %v", resp)
+			c.Ui.Error(fmt.Sprintf("Error Creating VSM %v", resp))
 		}
 	}
 	return op
