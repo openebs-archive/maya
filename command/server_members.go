@@ -208,7 +208,7 @@ func (c *ServerMembersCommand) mserverStatus() string {
 	resp, err := http.Get(url.String())
 
 	if err == nil {
-		fmt.Sprintf("\nm-apiserver listening at %v", addr)
+		fmt.Printf("\nm-apiserver listening at %v", addr)
 	}
 
 	if err != nil {

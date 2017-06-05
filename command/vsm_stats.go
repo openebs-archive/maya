@@ -91,7 +91,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 			statsArray = append(statsArray, fmt.Sprintf("%-15s %-10s  %d", replica, "Online", stats.RevisionCounter))
 		}
 	}
-	fmt.Println("------------------------------------\n")
+	fmt.Println("------------------------------------")
 	fmt.Printf("%7s: %-48s\n", "IQN", annotations.Iqn)
 	fmt.Printf("%7s: %-16s\n", "Volume", args[0])
 	fmt.Printf("%7s: %-15s\n", "Portal", annotations.VolAddr)
