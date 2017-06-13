@@ -49,9 +49,7 @@ rm -rf maya-linux_amd64.zip
 Pre-requisites : ubuntu 16.04, git, zip, unzip, go. 
 
 ```
-mkdir -p $GOPATH/src/github.com/openebs && cd $GOPATH/src/github.com/openebs
-git clone https://github.com/openebs/maya.git
-cd maya && make dev
+go get github.com/openebs/maya
 ```
 
 
