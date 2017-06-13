@@ -107,11 +107,19 @@ func (c *ServerMembersCommand) Run(args []string) int {
 
 	// Dump the list
 	c.Ui.Output(columnize.SimpleFormat(out))
-	instanceID := "\"any-compute\""
-	response := c.mserverStatus()
-	if response != instanceID {
-		c.Ui.Error("Error querying M-apiserver")
+
+	//getting the m-apiserver env variable
+	addr := os.Getenv("MAPI_ADDR")
+
+	_, resp := c.mserverStatus()
+
+	if resp != nil {
+		fmt.Printf("\nM-apiserver Status : %v\n", resp)
+		return 0
 	}
+
+	fmt.Printf("\nM-apiserver listening at : %v\n", addr)
+
 	return 0
 }
 
@@ -198,7 +206,7 @@ func regionLeaders(client *api.Client, mem []*api.AgentMember) (map[string]strin
 
 // mserverStatus to get the status of mayaserver deamon,
 // TODO proper CLI command once mayaserver have it's own
-func (c *ServerMembersCommand) mserverStatus() string {
+func (c *ServerMembersCommand) mserverStatus() (string, error) {
 
 	//getting the m-apiserver env variable
 	addr := os.Getenv("MAPI_ADDR")
@@ -207,12 +215,13 @@ func (c *ServerMembersCommand) mserverStatus() string {
 	url.WriteString(addr + "/latest/meta-data/instance-id")
 	resp, err := http.Get(url.String())
 
-	if err == nil {
-		fmt.Printf("\nm-apiserver listening at %v\n", addr)
-	}
+	//	if err == nil {
+	//		fmt.Printf("\nm-apiserver listening at %v\n", addr)
+	//	}
 
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
+		return "", err
 	}
 	defer resp.Body.Close()
 
@@ -221,6 +230,6 @@ func (c *ServerMembersCommand) mserverStatus() string {
 		log.Fatal(err)
 	}
 
-	return string(body[:])
+	return string(body[:]), err
 
 }
