@@ -175,8 +175,15 @@ func CreateAPIVsm(vname string, size string) error {
 		fmt.Printf("ioutil.ReadAll() error: %v\n", err)
 		return err
 	}
+	code := resp.StatusCode
+
+	if code != http.StatusOK {
+
+		fmt.Printf("Status error: %v\n")
+		os.Exit(1)
+	}
 
 	fmt.Printf("VSM Successfully Created:\n%v\n", string(data))
 
-	return err
+	return nil
 }

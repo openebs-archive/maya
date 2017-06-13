@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// InstallMayaCommand is a command implementation struct to setup Master Node
 type InstallMayaCommand struct {
 	// To control this CLI's display
 	M Meta
@@ -38,9 +39,10 @@ type InstallMayaCommand struct {
 	config []Config
 }
 
+// Help shows helpText for a particular CLI command
 func (c *InstallMayaCommand) Help() string {
 	helpText := `
-Usage: maya setup-omm
+Usage: maya setup-omm <config>
 
   Configure this machine as OpenEBS Maya Master (omm) 
   OMM is a clustered management server node that can either be
@@ -56,6 +58,10 @@ General Options:
   ` + generalOptionsUsage() + `
 
 OpenEBS Maya Master (omm) setup Options:
+
+  -config=<config yaml file>
+    Congifuration file in Yaml format,example config file is available
+	at example/maya_config.yaml dir.
 
   -omm-ips=<IP Address(es) of peer OMMs>
     Comma separated list of IP addresses of all management nodes
@@ -75,10 +81,12 @@ OpenEBS Maya Master (omm) setup Options:
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *InstallMayaCommand) Synopsis() string {
 	return "Configure OpenEBS Maya Master on this machine."
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *InstallMayaCommand) Run(args []string) int {
 	var runop int
 
@@ -101,6 +109,14 @@ func (c *InstallMayaCommand) Run(args []string) int {
 
 	if c.conf != "" {
 		config := getConfig(c.conf)
+
+		ok, errs := config.validate()
+		if !ok {
+			PrintValidationErrors(errs)
+			fmt.Printf("file validation error prevents installation from proceeding:\n")
+			return 1
+		}
+
 		c.self_ip = config.Args[0].Addr
 		c.nomad = config.Spec.Bin[0].Version
 		c.consul = config.Spec.Bin[1].Version

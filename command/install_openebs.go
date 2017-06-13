@@ -1,6 +1,7 @@
 package command
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -78,6 +79,13 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 
 	if c.conf != "" {
 		config := getConfig(c.conf)
+		ok, errs := config.validate()
+		if !ok {
+			PrintValidationErrors(errs)
+			fmt.Printf("Config file validation error prevents installation from proceeding:\n")
+			return 1
+		}
+
 		c.self_ip = config.Args[1].Addr
 		c.master_ips = config.Args[0].Addr
 		c.nomad = config.Spec.Bin[0].Version
