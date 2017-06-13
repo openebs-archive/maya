@@ -17,14 +17,11 @@ script:
   - ./buildscripts/test-cov.sh
 after_success:
   - bash <(curl -s https://codecov.io/bash)
- 
+  - make image
 notifications:
   email:
     recipients:
     - kiran.mova@cloudbyte.com
-  webhooks:
-    urls:
-    - https://webhooks.gitter.im/e/d885a0beef16020c3878
 deploy:
   provider: releases
   api_key:

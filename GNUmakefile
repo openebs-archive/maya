@@ -85,6 +85,11 @@ bootstrap:
 		go get $$tool; \
 	done 
 
+image:
+	@cp bin/maya buildscripts/docker/
+	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci .
+	@sh buildscripts/push
+
 # You might need to use sudo
 install: bin/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
