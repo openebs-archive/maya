@@ -7,8 +7,9 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// MayaCtlName will be fiiled in by the compiler on basis of latest git tag
-var MayaCtlName string = "mayactl"
+// MayaCtlName will be fiiled in by the GNUMakefile using an EVN variable
+//  MAYACTL
+var MayaCtlName string = "maya"
 
 func main() {
 	os.Exit(Run(os.Args[1:]))
