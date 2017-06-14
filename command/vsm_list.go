@@ -1,7 +1,12 @@
 package command
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +28,10 @@ type VsmListCommand struct {
 	evals     bool
 	allAllocs bool
 	verbose   bool
+}
+
+type ListStub struct {
+	Data []Volume `json:"data"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -451,4 +460,76 @@ func createVsmListOutput(jobs []*api.JobListStub) string {
 			job.Status)
 	}
 	return formatList(out)
+}
+
+func GetVsm() (*ListStub, error) {
+
+	body, err := RestClient()
+	if err != nil {
+		fmt.Sprintf("Error querying Vsm's: %s", err)
+		return nil, err
+	}
+	s, err := Parser(body)
+	return s, err
+}
+
+/*func VsmListOutput() string {
+	out := make([]string, len(jobs)+1)
+	out[0] = "ID|Status"
+	for i, vsm := range vsms {
+		out[i+1] = fmt.Sprintf("%s|%s",
+			vsm.Name,
+			vsm.Status)
+	}
+	return formatList(out)
+}*/
+
+func RestClient() ([]byte, error) {
+	addr := os.Getenv("MAPI_ADDR")
+	if addr == "" {
+		err := errors.New("MAPI_ADDR environment variable not set")
+		fmt.Println(err)
+		return nil, err
+	}
+	url := addr + "/latest/volumes/info/"
+	client := &http.Client{
+		Timeout: timeout,
+	}
+	resp, err := client.Get(url)
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			fmt.Println("VSM %s not found at M_API server")
+			return nil, err
+		} else if resp.StatusCode == 503 {
+			fmt.Println("M_API server not reachable")
+			return nil, err
+		}
+	} else {
+		fmt.Println("M_API server not reachable")
+		return nil, err
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(body), err
+
+	//	return json.NewDecoder(resp.Body).Decode(obj), nil
+	//	return resp.Body, nil
+}
+
+func Parser(body []byte) (*ListStub, error) {
+	var s = new(ListStub)
+	err := json.Unmarshal(body, &s)
+	if err != nil {
+		fmt.Println("Error", err)
+	}
+	return s, err
 }

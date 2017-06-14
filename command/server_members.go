@@ -215,12 +215,7 @@ func (c *ServerMembersCommand) mserverStatus() (string, error) {
 	url.WriteString(addr + "/latest/meta-data/instance-id")
 	resp, err := http.Get(url.String())
 
-	//	if err == nil {
-	//		fmt.Printf("\nm-apiserver listening at %v\n", addr)
-	//	}
-
 	if err != nil {
-		//log.Fatal(err)
 		return "", err
 	}
 	defer resp.Body.Close()

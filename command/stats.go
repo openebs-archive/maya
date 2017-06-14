@@ -54,7 +54,7 @@ func getVolDetails(volName string, obj interface{}) error {
 		fmt.Println(err)
 		return err
 	}
-	url := addr + "/latest/volume/info/" + volName
+	url := addr + "/latest/volumes/info/" + volName
 	client := &http.Client{
 		Timeout: timeout,
 	}

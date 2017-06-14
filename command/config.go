@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -129,3 +130,11 @@ func PrintValidationErrors(errors []error) {
 //	}
 //	return nil
 //}
+
+func getEnvOrDefault(name string, defaultValue string) string {
+	v := os.Getenv(name)
+	if v == "" {
+		v = defaultValue
+	}
+	return v
+}
