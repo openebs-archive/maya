@@ -54,20 +54,20 @@ func (c *VersionCommand) Run(_ []string) int {
 	if err == nil {
 		fmt.Printf("M-apiserver: %v\n", addr)
 	}
-	_, ok := os.LookupEnv("NOMAD_ADDR")
+	_, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST")
 	if !ok {
 		for _, e := range os.Environ() {
-			ok := strings.Contains(e, "KUBERNETES_SERVICE_HOST")
+			ok := strings.Contains(e, "NOMAD_ADDR")
 			if !ok {
 				fmt.Println("Provider : Unknown")
 				return 0
 			}
-			fmt.Println("Provider : Kubernetes")
+			fmt.Println("Provider : NOMAD")
 			return 0
 		}
 
 	}
-	fmt.Println("Provider: Nomad")
+	fmt.Println("Provider: KUBERNETES")
 
 	return 0
 }
