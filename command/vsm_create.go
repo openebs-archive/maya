@@ -28,16 +28,19 @@ type VsmSpec struct {
 	Kind       string `yaml:"kind"`
 	APIVersion string `yaml:"apiVersion"`
 	Metadata   struct {
-		Name string `yaml:"name"`
+		Name   string `yaml:"name"`
+		Labels struct {
+			Storage string `yaml:"volumeprovisioner.mapi.openebs.io/storage-size"`
+		}
 	} `yaml:"metadata"`
-	Spec struct {
-		AccessModes []string `yaml:"accessModes"`
-		Resources   struct {
-			Requests struct {
-				Storage string `yaml:"storage"`
-			} `yaml:"requests"`
-		} `yaml:"resources"`
-	} `yaml:"spec"`
+	//Spec struct {
+	//	AccessModes []string `yaml:"accessModes"`
+	//	Resources   struct {
+	//		Requests struct {
+	//			Storage string `yaml:"storage"`
+	//		} `yaml:"requests"`
+	//	} `yaml:"resources"`
+	//} `yaml:"spec"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -150,11 +153,15 @@ func CreateAPIVsm(vname string, size string) error {
 	}
 	url := addr + "/latest/volumes/"
 
+	vs.Kind = "PersistentVolumeClaim"
+	vs.APIVersion = "v1"
 	vs.Metadata.Name = vname
-	vs.Spec.Resources.Requests.Storage = size
+	vs.Metadata.Labels.Storage = size
 
 	//Marshal serializes the value provided into a YAML document
 	yamlValue, _ := yaml.Marshal(vs)
+
+	fmt.Printf("VSM Spec Created:\n%v\n", string(yamlValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 
