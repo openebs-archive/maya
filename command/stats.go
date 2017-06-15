@@ -73,6 +73,7 @@ func getVolDetails(volName string, obj interface{}) error {
 	}
 
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 	defer resp.Body.Close()
