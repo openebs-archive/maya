@@ -31,7 +31,35 @@ type VsmListCommand struct {
 }
 
 type ListStub struct {
-	Data []Volume `json:"data"`
+	Items []struct {
+		Metadata struct {
+			Annotations struct {
+				BeJivaVolumeOpenebsIoCount   string `json:"be.jiva.volume.openebs.io/count"`
+				BeJivaVolumeOpenebsIoVolSize string `json:"be.jiva.volume.openebs.io/vol-size"`
+				Iqn                          string `json:"iqn"`
+				Targetportal                 string `json:"targetportal"`
+			} `json:"annotations"`
+			CreationTimestamp interface{} `json:"creationTimestamp"`
+			Name              string      `json:"name"`
+		} `json:"metadata"`
+		Spec struct {
+			AccessModes interface{} `json:"AccessModes"`
+			Capacity    interface{} `json:"Capacity"`
+			ClaimRef    interface{} `json:"ClaimRef"`
+			OpenEBS     struct {
+				VolumeID string `json:"volumeID"`
+			} `json:"OpenEBS"`
+			PersistentVolumeReclaimPolicy string `json:"PersistentVolumeReclaimPolicy"`
+			StorageClassName              string `json:"StorageClassName"`
+		} `json:"spec"`
+		Status struct {
+			Message string `json:"Message"`
+			Phase   string `json:"Phase"`
+			Reason  string `json:"Reason"`
+		} `json:"status"`
+	} `json:"items"`
+	Metadata struct {
+	} `json:"metadata"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -86,6 +114,12 @@ func (c *VsmListCommand) Run(args []string) int {
 	if len(args) > 1 {
 		c.Ui.Error(c.Help())
 		return 1
+	}
+	//TODO
+	addr := os.Getenv("KUBERNETES_SERVICE_HOST")
+	if addr != "" {
+		VsmListOutput()
+		return 0
 	}
 
 	// Truncate the id unless full length is requested
@@ -462,27 +496,39 @@ func createVsmListOutput(jobs []*api.JobListStub) string {
 	return formatList(out)
 }
 
-func GetVsm() (*ListStub, error) {
+func GetVsm(obj interface{}) error {
 
 	body, err := RestClient()
 	if err != nil {
 		fmt.Sprintf("Error querying Vsm's: %s", err)
-		return nil, err
+		return err
 	}
-	s, err := Parser(body)
-	return s, err
+	return Parser(body, obj)
+
 }
 
-/*func VsmListOutput() string {
-	out := make([]string, len(jobs)+1)
-	out[0] = "ID|Status"
-	for i, vsm := range vsms {
+func VsmListOutput() error {
+
+	var vsms ListStub
+	GetVsm(&vsms)
+	out := make([]string, len(vsms.Items)+1)
+	out[0] = "Name|Status"
+	for i, items := range vsms.Items {
+		if items.Status.Reason == "" {
+			items.Status.Reason = "Running"
+		}
 		out[i+1] = fmt.Sprintf("%s|%s",
-			vsm.Name,
-			vsm.Status)
+			items.Metadata.Name,
+			items.Status.Reason)
 	}
-	return formatList(out)
-}*/
+	if len(out) == 1 {
+		fmt.Println("No Vsm is running")
+		return nil
+	}
+	fmt.Println(formatList(out))
+	return nil
+
+}
 
 func RestClient() ([]byte, error) {
 	addr := os.Getenv("MAPI_ADDR")
@@ -491,14 +537,14 @@ func RestClient() ([]byte, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	url := addr + "/latest/volumes/info/"
+	url := addr + "/latest/volumes/"
 	client := &http.Client{
 		Timeout: timeout,
 	}
 	resp, err := client.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			fmt.Println("VSM %s not found at M_API server")
+			fmt.Println("VSM not found at M_API server")
 			return nil, err
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")
@@ -525,11 +571,10 @@ func RestClient() ([]byte, error) {
 	//	return resp.Body, nil
 }
 
-func Parser(body []byte) (*ListStub, error) {
-	var s = new(ListStub)
-	err := json.Unmarshal(body, &s)
+func Parser(body []byte, obj interface{}) error {
+	err := json.Unmarshal(body, &obj)
 	if err != nil {
 		fmt.Println("Error", err)
 	}
-	return s, err
+	return err
 }
