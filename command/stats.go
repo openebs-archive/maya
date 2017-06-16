@@ -27,19 +27,21 @@ type Volume struct {
 		Phase   string `json:"Phase"`
 		Reason  string `json:"Reason"`
 	} `json:"Status"`
-	Annotations       interface{} `json:"annotations"`
-	CreationTimestamp interface{} `json:"creationTimestamp"`
-	Name              string      `json:"name"`
+	Metadata struct {
+		Annotations       interface{} `json:"annotations"`
+		CreationTimestamp interface{} `json:"creationTimestamp"`
+		Name              string      `json:"name"`
+	} `json:"metadata"`
 }
 
 // Annotations describes volume struct
 type Annotations struct {
-	VolSize      string   `json:"be.jiva.volume.openebs.io/vol-size"`
-	VolAddr      string   `json:"fe.jiva.volume.openebs.io/ip"`
-	Iqn          string   `json:"iqn"`
-	Targetportal string   `json:"targetportal"`
-	Replicas     []string `json:"JIVA_REP_IP_*"`
-	ReplicaCount string   `json:"be.jiva.volume.openebs.io/count"`
+	VolSize string `json:"be.jiva.volume.openebs.io\/vol-size"`
+	//	VolAddr      string   `json:"fe.jiva.volume.openebs.io/ip"`
+	Iqn          string `json:"iqn"`
+	Targetportal string `json:"targetportal"`
+	//	Replicas     []string `json:"JIVA_REP_IP_*"`
+	ReplicaCount string `json:"be.jiva.volume.openebs.io\/count"`
 }
 
 const (
@@ -86,26 +88,28 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 	var volume Volume
 	var annotations Annotations
 	err := getVolDetails(volName, &volume)
-	if err != nil || volume.Annotations == nil {
+	if err != nil || volume.Metadata.Annotations == nil {
 		if volume.Status.Reason == "pending" {
 			fmt.Println("VSM status Unknown to M_API server")
 		}
 		return nil, err
 	}
-	for key, value := range volume.Annotations.(map[string]interface{}) {
+	for key, value := range volume.Metadata.Annotations.(map[string]interface{}) {
 		switch key {
 		case "be.jiva.volume.openebs.io/vol-size":
 			annotations.VolSize = value.(string)
-		case "fe.jiva.volume.openebs.io/ip":
-			annotations.VolAddr = value.(string)
+			//	case "fe.jiva.volume.openebs.io/ip":
+			//		annotations.VolAddr = value.(string)
 		case "iqn":
 			annotations.Iqn = value.(string)
 		case "be.jiva.volume.openebs.io/count":
 			annotations.ReplicaCount = value.(string)
-		case "JIVA_REP_IP_0":
-			annotations.Replicas = append(annotations.Replicas, value.(string))
-		case "JIVA_REP_IP_1":
-			annotations.Replicas = append(annotations.Replicas, value.(string))
+		case "targetportal":
+			annotations.Targetportal = value.(string)
+			//	case "JIVA_REP_IP_0":
+			//		annotations.Replicas = append(annotations.Replicas, value.(string))
+			//	case "JIVA_REP_IP_1":
+			//		annotations.Replicas = append(annotations.Replicas, value.(string))
 
 		}
 	}
