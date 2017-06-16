@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -131,10 +130,28 @@ func PrintValidationErrors(errors []error) {
 //	return nil
 //}
 
-func getEnvOrDefault(name string, defaultValue string) string {
+/* func getEnvOrDefault(name string, defaultValue string) string {
 	v := os.Getenv(name)
 	if v == "" {
 		v = defaultValue
 	}
 	return v
-}
+}*/
+
+/*
+func getEnvOrDefault(env string) string {
+	if env == "" {
+		host, _ := os.Hostname()
+		addrs, _ := net.LookupIP(host)
+		for _, addr := range addrs {
+			if ipv4 := addr.To4(); ipv4 != nil {
+				env = ipv4.String()
+				if env == "127.0.0.1" {
+					continue
+				}
+				break
+			}
+		}
+	}
+	return "http://" + env + ":5656"
+}*/

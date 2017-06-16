@@ -42,11 +42,13 @@ func (c *VersionCommand) Run(_ []string) int {
 	fmt.Println("OS/Arch:", runtime.GOOS, "/", runtime.GOARCH)
 	addr := os.Getenv("MAPI_ADDR")
 
-	if addr == "" {
+	/*if addr == "" {
+		addr = getEnvOrDefault(addr)
 
-		os.Setenv("MAPI_ADDR", "http://127.0.0.1:5656")
+		os.Setenv("MAPI_ADDR", addr)
 		addr = os.Getenv("MAPI_ADDR")
-	}
+
+	}*/
 	_, err := s.mserverStatus()
 	if err != nil {
 		fmt.Println("M-apiserver: Unable to contact M-apiserver :", addr)

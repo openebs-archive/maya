@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 
 	"github.com/mitchellh/cli"
@@ -10,6 +11,18 @@ import (
 // MayaCtlName will be fiiled in by the GNUMakefile using an EVN variable
 //  MAYACTL
 var MayaCtlName string = "maya"
+
+func init() {
+
+	mapiaddr := os.Getenv("MAPI_ADDR")
+	if mapiaddr == "" {
+		mapiaddr = getEnvOrDefault(mapiaddr)
+
+		os.Setenv("MAPI_ADDR", mapiaddr)
+
+	}
+
+}
 
 func main() {
 	os.Exit(Run(os.Args[1:]))
@@ -51,4 +64,21 @@ func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 	}
 
 	return exitCode
+}
+
+func getEnvOrDefault(env string) string {
+	if env == "" {
+		host, _ := os.Hostname()
+		addrs, _ := net.LookupIP(host)
+		for _, addr := range addrs {
+			if ipv4 := addr.To4(); ipv4 != nil {
+				env = ipv4.String()
+				if env == "127.0.0.1" {
+					continue
+				}
+				break
+			}
+		}
+	}
+	return "http://" + env + ":5656"
 }

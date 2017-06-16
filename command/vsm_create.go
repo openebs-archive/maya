@@ -186,7 +186,7 @@ func CreateAPIVsm(vname string, size string) error {
 
 	if code != http.StatusOK {
 
-		fmt.Printf("Status error: %v\n")
+		fmt.Printf("Status error: %v\n", http.StatusText(code))
 		os.Exit(1)
 	}
 
