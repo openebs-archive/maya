@@ -70,11 +70,22 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
-		"network-install": func() (cli.Command, error) {
-			return &command.NetworkInstallCommand{
-				M: meta,
+		"vsm-snapshot": func() (cli.Command, error) {
+			return &command.SnapshotCommand{}, nil
+		},
+
+		"vsm-snapshot create": func() (cli.Command, error) {
+			return &command.SnapshotCreateCommand{
+				Meta: meta,
 			}, nil
 		},
+
+		/*	"network-install": func() (cli.Command, error) {
+				return &command.NetworkInstallCommand{
+					M: meta,
+				}, nil
+			},
+		*/
 		"version": func() (cli.Command, error) {
 			ver := Version
 			rel := VersionPrerelease
