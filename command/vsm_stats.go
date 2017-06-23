@@ -100,12 +100,12 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 	var (
 		err, err1, err2 error
-		//status       Status
-		stats1 VolumeStats
-		stats2 VolumeStats
-		//statusArray  []string
-		ReadLatency  int64
-		WriteLatency int64
+		status          Status
+		stats1          VolumeStats
+		stats2          VolumeStats
+		statusArray     []string
+		ReadLatency     int64
+		WriteLatency    int64
 
 		AvgReadBlockCountPS  int64
 		AvgWriteBlockCountPS int64
@@ -126,30 +126,31 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 	annotations, err := GetVolAnnotations(args[0])
 	if err != nil || annotations == nil {
-		fmt.Println(err)
 		return -1
 	}
-	/*
-		for _, replica := range annotations.Replicas {
-			err, errCode1 := GetStatus(replica+":9502", &status)
-			if err != nil {
-				if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
-					statusArray = append(statusArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Waiting", "Unknown"))
+	if annotations.ControllerStatus != "Running" {
+		fmt.Println("Volume not reachable")
+		return -1
+	}
+	replicas := strings.Split(annotations.Replicas, ",")
+	for _, replica := range replicas {
+		err, errCode1 := GetStatus(replica+":9502", &status)
+		if err != nil {
+			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
+				statusArray = append(statusArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Waiting", "Unknown"))
 
-				} else {
-					statusArray = append(statusArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Offline", "Unknown"))
-				}
 			} else {
-				statusArray = append(statusArray, fmt.Sprintf("%-15s %-10s  %d", replica, "Online", status.RevisionCounter))
+				statusArray = append(statusArray, fmt.Sprintf("%-15s %-12s%-10s", replica, "Offline", "Unknown"))
 			}
+		} else {
+			statusArray = append(statusArray, fmt.Sprintf("%-15s %-10s  %d", replica, "Online", status.RevisionCounter))
 		}
-	*/
+	}
+
 	//Get VolumeStats
-	parts := strings.Split(annotations.Targetportal, ":")
-	volumeAddr := parts[0]
-	err1, _ = GetVolumeStats(volumeAddr+":9501", &stats1)
+	err1, _ = GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
 	time.Sleep(1 * time.Second)
-	err2, _ = GetVolumeStats(volumeAddr+":9501", &stats2)
+	err2, _ = GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
 
 	if (err1 != nil) || (err2 != nil) {
 		fmt.Println("Volume not reachable")
@@ -204,7 +205,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 			IQN:    annotations.Iqn,
 			Volume: args[0],
-			Portal: annotations.Targetportal,
+			Portal: annotations.TargetPortal,
 			Size:   annotations.VolSize,
 
 			ReadIOPS:  ReadIOPSPS,
@@ -234,15 +235,13 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	} else {
 		fmt.Printf("%7s: %-48s\n", "IQN", annotations.Iqn)
 		fmt.Printf("%7s: %-16s\n", "Volume", args[0])
-		fmt.Printf("%7s: %-15s\n", "Portal", annotations.Targetportal)
+		fmt.Printf("%7s: %-15s\n", "Portal", annotations.TargetPortal)
 		fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
-		/*
-			fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateIndex")
+		fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateIndex")
 
-			for i, _ := range statusArray {
-				fmt.Printf("%s\n", statusArray[i])
-			}
-		*/
+		for i, _ := range statusArray {
+			fmt.Printf("%s\n", statusArray[i])
+		}
 		fmt.Println("------------------------------------")
 
 		// Printing in tabular form
