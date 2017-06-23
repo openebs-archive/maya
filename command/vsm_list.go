@@ -34,10 +34,10 @@ type ListStub struct {
 	Items []struct {
 		Metadata struct {
 			Annotations struct {
-				BeJivaVolumeOpenebsIoCount   string `json:"be.jiva.volume.openebs.io/count"`
-				BeJivaVolumeOpenebsIoVolSize string `json:"be.jiva.volume.openebs.io/vol-size"`
-				Iqn                          string `json:"iqn"`
-				Targetportal                 string `json:"targetportal"`
+				BeJivaVolumeOpenebsIoCount   string `json:"vsm.openebs.io/replica-count"`
+				BeJivaVolumeOpenebsIoVolSize string `json:"vsm.openebs.io/volume-size"`
+				Iqn                          string `json:"vsm.openebs.io/iqn"`
+				Targetportal                 string `json:"vsm.openebs.io/targetportals"`
 			} `json:"annotations"`
 			CreationTimestamp interface{} `json:"creationTimestamp"`
 			Name              string      `json:"name"`
