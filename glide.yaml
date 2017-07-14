@@ -1,4 +1,7 @@
 package: github.com/openebs/maya
+ignore:
+- github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+- github.com/emicklei/go-restful/swagger
 import:
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
@@ -27,3 +30,6 @@ import:
 - package: github.com/ugorji/go
   subpackages:
   - codec
+- package: k8s.io/client-go
+  version: v3.0.0
+- package: k8s.io/api
