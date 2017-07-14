@@ -10,9 +10,9 @@ package jiva
 import (
 	"fmt"
 
-	"github.com/openebs/mayaserver/lib/api/v1"
-	"github.com/openebs/mayaserver/lib/orchprovider"
-	vProfile "github.com/openebs/mayaserver/lib/profile/volumeprovisioner"
+	"github.com/openebs/maya/lib/orchprovider"
+	vProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
+	"github.com/openebs/maya/lib/types/v1"
 )
 
 type JivaInterface interface {

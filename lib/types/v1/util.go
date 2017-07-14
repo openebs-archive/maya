@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/openebs/mayaserver/lib/nethelper"
+	"github.com/openebs/maya/lib/nethelper"
 )
 
 // GetPVPControllerCountInt gets the not nil value of PVP's VSM Controller count
