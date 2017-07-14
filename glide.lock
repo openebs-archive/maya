@@ -1,5 +1,5 @@
 hash: 0eb790fb8b5c39a21a1dcd0f4e833a4dd0b91d0a82a3ccd6c348de92147e61de
-updated: 2017-07-14T14:32:47.454920226+05:30
+updated: 2017-07-14T15:30:25.794367951+05:30
 imports:
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
@@ -171,13 +171,6 @@ imports:
   version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/mitchellh/reflectwalk
   version: 8d802ff4ae93611b807597f639c19f76074df5c6
-- name: github.com/openebs/mayaserver
-  version: cc9b056434d3d5b643a50dc844d7f90f78b6891c
-  subpackages:
-  - lib/api/v1
-  - lib/nethelper
-  - lib/profile/volumeprovisioner
-  - lib/volumeprovisioner
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/PuerkitoBio/purell
