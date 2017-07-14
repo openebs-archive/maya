@@ -2,28 +2,42 @@ package command
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 
+func testKVPutCommand(t *testing.T) (*cli.MockUi, *KVPutCommand) {
+	ui := cli.NewMockUi()
+	return ui, &KVPutCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetHTTP,
+		},
+	}
+}
+
 func TestKVPutCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KVPutCommand{}
 }
 
 func TestKVPutCommand_noTabs(t *testing.T) {
-	assertNoTabs(t, new(KVPutCommand))
+	t.Parallel()
+	assertNoTabs(t, new(KVDeleteCommand))
 }
 
 func TestKVPutCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	t.Parallel()
+	ui, c := testKVPutCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -73,15 +87,15 @@ func TestKVPutCommand_Validation(t *testing.T) {
 }
 
 func TestKVPutCommand_Run(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"foo", "bar",
 	}
 
@@ -100,25 +114,86 @@ func TestKVPutCommand_Run(t *testing.T) {
 	}
 }
 
-func TestKVPutCommand_File(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+func TestKVPutCommand_RunEmptyDataQuoted(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
-	f, err := ioutil.TempFile("", "kv-put-command-file")
-	if err != nil {
-		t.Fatalf("err: %#v", err)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"foo", "",
 	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	data, _, err := client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if data.Value != nil {
+		t.Errorf("bad: %#v", data.Value)
+	}
+}
+
+func TestKVPutCommand_RunBase64(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui, c := testKVPutCommand(t)
+
+	const encodedString = "aGVsbG8gd29ybGQK"
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-base64",
+		"foo", encodedString,
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	data, _, err := client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected, err := base64.StdEncoding.DecodeString(encodedString)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(data.Value, []byte(expected)) {
+		t.Errorf("bad: %#v, %s", data.Value, data.Value)
+	}
+}
+
+func TestKVPutCommand_File(t *testing.T) {
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
+
+	ui, c := testKVPutCommand(t)
+
+	f := testutil.TempFile(t, "kv-put-command-file")
 	defer os.Remove(f.Name())
 	if _, err := f.WriteString("bar"); err != nil {
 		t.Fatalf("err: %#v", err)
 	}
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"foo", "@" + f.Name(),
 	}
 
@@ -138,8 +213,8 @@ func TestKVPutCommand_File(t *testing.T) {
 }
 
 func TestKVPutCommand_FileNoExist(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	t.Parallel()
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
 		"foo", "@/nope/definitely/not-a-real-file.txt",
@@ -157,17 +232,15 @@ func TestKVPutCommand_FileNoExist(t *testing.T) {
 }
 
 func TestKVPutCommand_Stdin(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
 	stdinR, stdinW := io.Pipe()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{
-		Ui:        ui,
-		testStdin: stdinR,
-	}
+	ui, c := testKVPutCommand(t)
+	c.testStdin = stdinR
 
 	go func() {
 		stdinW.Write([]byte("bar"))
@@ -175,7 +248,7 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 	}()
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"foo", "-",
 	}
 
@@ -195,15 +268,15 @@ func TestKVPutCommand_Stdin(t *testing.T) {
 }
 
 func TestKVPutCommand_NegativeVal(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"foo", "-2",
 	}
 
@@ -223,15 +296,15 @@ func TestKVPutCommand_NegativeVal(t *testing.T) {
 }
 
 func TestKVPutCommand_Flags(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-flags", "12345",
 		"foo",
 	}
@@ -252,9 +325,10 @@ func TestKVPutCommand_Flags(t *testing.T) {
 }
 
 func TestKVPutCommand_CAS(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
 	// Create the initial pair so it has a ModifyIndex.
 	pair := &api.KVPair{
@@ -265,11 +339,10 @@ func TestKVPutCommand_CAS(t *testing.T) {
 		t.Fatalf("err: %#v", err)
 	}
 
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
+	ui, c := testKVPutCommand(t)
 
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-cas",
 		"-modify-index", "123",
 		"foo", "a",
@@ -290,7 +363,7 @@ func TestKVPutCommand_CAS(t *testing.T) {
 	ui.ErrorWriter.Reset()
 
 	args = []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		"-cas",
 		"-modify-index", strconv.FormatUint(data.ModifyIndex, 10),
 		"foo", "a",

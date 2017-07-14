@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: maya-apiserver
+spec:
+  containers:
+  - image: openebs/m-apiserver:ci
+    imagePullPolicy: IfNotPresent
+    name: maya-apiserver
+    ports:
+    - containerPort: 5656

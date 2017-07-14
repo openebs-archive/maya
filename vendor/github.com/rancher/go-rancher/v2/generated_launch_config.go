@@ -291,8 +291,6 @@ type LaunchConfigOperations interface {
 
 	ActionRestart(*LaunchConfig) (*Instance, error)
 
-	ActionRestore(*LaunchConfig) (*Instance, error)
-
 	ActionStart(*LaunchConfig) (*Instance, error)
 
 	ActionStop(*LaunchConfig, *InstanceStop) (*Instance, error)
@@ -451,15 +449,6 @@ func (c *LaunchConfigClient) ActionRestart(resource *LaunchConfig) (*Instance, e
 	resp := &Instance{}
 
 	err := c.rancherClient.doAction(LAUNCH_CONFIG_TYPE, "restart", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *LaunchConfigClient) ActionRestore(resource *LaunchConfig) (*Instance, error) {
-
-	resp := &Instance{}
-
-	err := c.rancherClient.doAction(LAUNCH_CONFIG_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }

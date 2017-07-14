@@ -113,8 +113,15 @@ func (m *RollbackManager) triggerRollbacks() {
 	for _, e := range backends {
 		path := e.Path
 		if e.Table == credentialTableType {
-			path = "auth/" + path
+			path = credentialRoutePrefix + path
 		}
+
+		// When the mount is filtered, the backend will be nil
+		backend := m.router.MatchingBackend(path)
+		if backend == nil {
+			continue
+		}
+
 		m.inflightLock.RLock()
 		_, ok := m.inflight[path]
 		m.inflightLock.RUnlock()
@@ -140,8 +147,8 @@ func (m *RollbackManager) startRollback(path string) *rollbackState {
 // attemptRollback invokes a RollbackOperation for the given path
 func (m *RollbackManager) attemptRollback(path string, rs *rollbackState) (err error) {
 	defer metrics.MeasureSince([]string{"rollback", "attempt", strings.Replace(path, "/", "-", -1)}, time.Now())
-	if m.logger.IsDebug() {
-		m.logger.Debug("rollback: attempting rollback", "path", path)
+	if m.logger.IsTrace() {
+		m.logger.Trace("rollback: attempting rollback", "path", path)
 	}
 
 	defer func() {

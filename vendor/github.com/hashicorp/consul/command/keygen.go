@@ -5,29 +5,32 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-
-	"github.com/mitchellh/cli"
 )
 
 // KeygenCommand is a Command implementation that generates an encryption
 // key for use in `consul agent`.
 type KeygenCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
-func (c *KeygenCommand) Run(_ []string) int {
+func (c *KeygenCommand) Run(args []string) int {
+	c.BaseCommand.NewFlagSet(c)
+	if err := c.BaseCommand.Parse(args); err != nil {
+		return 1
+	}
+
 	key := make([]byte, 16)
 	n, err := rand.Reader.Read(key)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading random data: %s", err))
+		c.UI.Error(fmt.Sprintf("Error reading random data: %s", err))
 		return 1
 	}
 	if n != 16 {
-		c.Ui.Error(fmt.Sprintf("Couldn't read enough entropy. Generate more entropy!"))
+		c.UI.Error(fmt.Sprintf("Couldn't read enough entropy. Generate more entropy!"))
 		return 1
 	}
 
-	c.Ui.Output(base64.StdEncoding.EncodeToString(key))
+	c.UI.Output(base64.StdEncoding.EncodeToString(key))
 	return 0
 }
 
@@ -42,6 +45,8 @@ Usage: consul keygen
   Generates a new encryption key that can be used to configure the
   agent to encrypt traffic. The output of this command is already
   in the proper format that the agent expects.
-`
+
+` + c.BaseCommand.Help()
+
 	return strings.TrimSpace(helpText)
 }

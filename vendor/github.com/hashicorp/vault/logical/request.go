@@ -6,12 +6,28 @@ import (
 	"time"
 )
 
+// RequestWrapInfo is a struct that stores information about desired response
+// wrapping behavior
+type RequestWrapInfo struct {
+	// Setting to non-zero specifies that the response should be wrapped.
+	// Specifies the desired TTL of the wrapping token.
+	TTL time.Duration `json:"ttl" structs:"ttl" mapstructure:"ttl"`
+
+	// The format to use for the wrapped response; if not specified it's a bare
+	// token
+	Format string `json:"format" structs:"format" mapstructure:"format"`
+}
+
 // Request is a struct that stores the parameters and context
 // of a request being made to Vault. It is used to abstract
 // the details of the higher level request protocol from the handlers.
 type Request struct {
 	// Id is the uuid associated with each request
 	ID string `json:"id" structs:"id" mapstructure:"id"`
+
+	// If set, the name given to the replication secondary where this request
+	// originated
+	ReplicationCluster string `json:"replication_cluster" structs:"replication_cluster", mapstructure:"replication_cluster"`
 
 	// Operation is the requested operation type
 	Operation Operation `json:"operation" structs:"operation" mapstructure:"operation"`
@@ -26,7 +42,7 @@ type Request struct {
 	Data map[string]interface{} `json:"map" structs:"data" mapstructure:"data"`
 
 	// Storage can be used to durably store and retrieve state.
-	Storage Storage `json:"storage" structs:"storage" mapstructure:"storage"`
+	Storage Storage `json:"-"`
 
 	// Secret will be non-nil only for Revoke and Renew operations
 	// to represent the secret that was returned prior.
@@ -35,6 +51,11 @@ type Request struct {
 	// Auth will be non-nil only for Renew operations
 	// to represent the auth that was returned prior.
 	Auth *Auth `json:"auth" structs:"auth" mapstructure:"auth"`
+
+	// Headers will contain the http headers from the request. This value will
+	// be used in the audit broker to ensure we are auditing only the allowed
+	// headers.
+	Headers map[string][]string `json:"headers" structs:"headers" mapstructure:"headers"`
 
 	// Connection will be non-nil only for credential providers to
 	// inspect the connection information and potentially use it for
@@ -61,9 +82,21 @@ type Request struct {
 	// request path with the MountPoint trimmed off.
 	MountPoint string `json:"mount_point" structs:"mount_point" mapstructure:"mount_point"`
 
-	// WrapTTL contains the requested TTL of the token used to wrap the
-	// response in a cubbyhole.
-	WrapTTL time.Duration `json:"wrap_ttl" struct:"wrap_ttl" mapstructure:"wrap_ttl"`
+	// MountType is provided so that a logical backend can make decisions
+	// based on the specific mount type (e.g., if a mount type has different
+	// aliases, generating different defaults depending on the alias)
+	MountType string `json:"mount_type" structs:"mount_type" mapstructure:"mount_type"`
+
+	// WrapInfo contains requested response wrapping parameters
+	WrapInfo *RequestWrapInfo `json:"wrap_info" structs:"wrap_info" mapstructure:"wrap_info"`
+
+	// ClientTokenRemainingUses represents the allowed number of uses left on the
+	// token supplied
+	ClientTokenRemainingUses int `json:"client_token_remaining_uses" structs:"client_token_remaining_uses" mapstructure:"client_token_remaining_uses"`
+
+	// For replication, contains the last WAL on the remote side after handling
+	// the request, used for best-effort avoidance of stale read-after-write
+	lastRemoteWAL uint64
 }
 
 // Get returns a data field and guards for nil Data
@@ -83,6 +116,14 @@ func (r *Request) GetString(key string) string {
 
 func (r *Request) GoString() string {
 	return fmt.Sprintf("*%#v", *r)
+}
+
+func (r *Request) LastRemoteWAL() uint64 {
+	return r.lastRemoteWAL
+}
+
+func (r *Request) SetLastRemoteWAL(last uint64) {
+	r.lastRemoteWAL = last
 }
 
 // RenewRequest creates the structure of the renew request.

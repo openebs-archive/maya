@@ -1,10 +1,7 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/hashicorp/logutils"
-	"github.com/mitchellh/cli"
 	"strings"
 	"sync"
 )
@@ -12,8 +9,9 @@ import (
 // MonitorCommand is a Command implementation that queries a running
 // Consul agent what members are part of the cluster currently.
 type MonitorCommand struct {
+	BaseCommand
+
 	ShutdownCh <-chan struct{}
-	Ui         cli.Ui
 
 	lock     sync.Mutex
 	quitting bool
@@ -29,40 +27,34 @@ Usage: consul monitor [options]
   example your agent may only be logging at INFO level, but with the monitor
   you can see the DEBUG level logs.
 
-Options:
+` + c.BaseCommand.Help()
 
-  -log-level=info          Log level of the agent.
-  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
 func (c *MonitorCommand) Run(args []string) int {
 	var logLevel string
-	cmdFlags := flag.NewFlagSet("monitor", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.StringVar(&logLevel, "log-level", "INFO", "log level")
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+
+	f := c.BaseCommand.NewFlagSet(c)
+	f.StringVar(&logLevel, "log-level", "INFO", "Log level of the agent.")
+
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
-
-	logCh := make(chan string, 1024)
-	monHandle, err := client.Monitor(logutils.LogLevel(logLevel), logCh)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting monitor: %s", err))
-		return 1
-	}
-	defer client.Stop(monHandle)
 
 	eventDoneCh := make(chan struct{})
+	logCh, err := client.Agent().Monitor(logLevel, eventDoneCh, nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error starting monitor: %s", err))
+		return 1
+	}
+
 	go func() {
 		defer close(eventDoneCh)
 	OUTER:
@@ -72,15 +64,15 @@ func (c *MonitorCommand) Run(args []string) int {
 				if log == "" {
 					break OUTER
 				}
-				c.Ui.Info(log)
+				c.UI.Info(log)
 			}
 		}
 
 		c.lock.Lock()
 		defer c.lock.Unlock()
 		if !c.quitting {
-			c.Ui.Info("")
-			c.Ui.Output("Remote side ended the monitor! This usually means that the\n" +
+			c.UI.Info("")
+			c.UI.Output("Remote side ended the monitor! This usually means that the\n" +
 				"remote side has exited or crashed.")
 		}
 	}()

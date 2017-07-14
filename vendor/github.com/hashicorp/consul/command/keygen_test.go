@@ -2,17 +2,25 @@ package command
 
 import (
 	"encoding/base64"
-	"github.com/mitchellh/cli"
 	"testing"
+
+	"github.com/mitchellh/cli"
 )
 
 func TestKeygenCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &KeygenCommand{}
 }
 
 func TestKeygenCommand(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeygenCommand{Ui: ui}
+	t.Parallel()
+	ui := cli.NewMockUi()
+	c := &KeygenCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetNone,
+		},
+	}
 	code := c.Run(nil)
 	if code != 0 {
 		t.Fatalf("bad: %d", code)

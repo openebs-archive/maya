@@ -61,6 +61,9 @@ func TestAppRole_CIDRSubset(t *testing.T) {
 
 	secretIDData["cidr_list"] = "192.168.27.29/20,172.245.30.40/25,10.20.30.40/32"
 	resp, err = b.HandleRequest(secretIDReq)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if resp != nil && resp.IsError() {
 		t.Fatalf("resp: %#v", resp)
 	}
@@ -104,7 +107,7 @@ func TestAppRole_RoleConstraints(t *testing.T) {
 	roleData["bind_secret_id"] = false
 	resp, err = b.HandleRequest(roleReq)
 	if resp != nil && resp.IsError() {
-		t.Fatalf("resp:%#v", err, resp)
+		t.Fatalf("err:%v, resp:%#v", err, resp)
 	}
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -374,7 +377,7 @@ func TestAppRole_RoleSecretIDReadDelete(t *testing.T) {
 
 	resp, err = b.HandleRequest(secretIDReq)
 	if resp != nil && resp.IsError() {
-		t.Fatalf("error response:%#v", err, resp)
+		t.Fatalf("error response:%#v", resp)
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -433,7 +436,7 @@ func TestAppRole_RoleSecretIDAccessorReadDelete(t *testing.T) {
 	hmacReq.Operation = logical.ReadOperation
 	resp, err = b.HandleRequest(hmacReq)
 	if resp != nil && resp.IsError() {
-		t.Fatalf("error response:%#v", err, resp)
+		t.Fatalf("err:%v resp:%#v", err, resp)
 	}
 	if err == nil {
 		t.Fatalf("expected an error")
@@ -582,6 +585,7 @@ func TestAppRole_RoleCRUD(t *testing.T) {
 		"secret_id_ttl":      300,
 		"token_ttl":          400,
 		"token_max_ttl":      500,
+		"token_num_uses":     600,
 		"bound_cidr_list":    "127.0.0.1/32,127.0.0.1/16",
 	}
 	roleReq := &logical.Request{
@@ -609,6 +613,7 @@ func TestAppRole_RoleCRUD(t *testing.T) {
 		"secret_id_ttl":      300,
 		"token_ttl":          400,
 		"token_max_ttl":      500,
+		"token_num_uses":     600,
 		"bound_cidr_list":    "127.0.0.1/32,127.0.0.1/16",
 	}
 	var expectedStruct roleStorageEntry
@@ -738,7 +743,7 @@ func TestAppRole_RoleCRUD(t *testing.T) {
 		t.Fatalf("expected the default value of 'true' to be set")
 	}
 
-	// RUD for policiess field
+	// RUD for policies field
 	roleReq.Path = "role/role1/policies"
 	roleReq.Operation = logical.ReadOperation
 	resp, err = b.HandleRequest(roleReq)
@@ -857,6 +862,50 @@ func TestAppRole_RoleCRUD(t *testing.T) {
 	}
 
 	if resp.Data["secret_id_ttl"].(time.Duration) != 0 {
+		t.Fatalf("expected value to be reset")
+	}
+
+	// RUD for secret-id-num-uses field
+	roleReq.Path = "role/role1/token-num-uses"
+	roleReq.Operation = logical.ReadOperation
+	resp, err = b.HandleRequest(roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+	if resp.Data["token_num_uses"].(int) != 600 {
+		t.Fatalf("bad: token_num_uses: expected:600 actual:%d\n", resp.Data["token_num_uses"].(int))
+	}
+
+	roleReq.Data = map[string]interface{}{"token_num_uses": 60}
+	roleReq.Operation = logical.UpdateOperation
+	resp, err = b.HandleRequest(roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	roleReq.Operation = logical.ReadOperation
+	resp, err = b.HandleRequest(roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	if resp.Data["token_num_uses"].(int) != 60 {
+		t.Fatalf("bad: token_num_uses: expected:60 actual:%d\n", resp.Data["token_num_uses"].(int))
+	}
+
+	roleReq.Operation = logical.DeleteOperation
+	resp, err = b.HandleRequest(roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	roleReq.Operation = logical.ReadOperation
+	resp, err = b.HandleRequest(roleReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	if resp.Data["token_num_uses"].(int) != 0 {
 		t.Fatalf("expected value to be reset")
 	}
 

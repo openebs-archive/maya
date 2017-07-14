@@ -283,8 +283,6 @@ type ContainerOperations interface {
 
 	ActionRestart(*Container) (*Instance, error)
 
-	ActionRestore(*Container) (*Instance, error)
-
 	ActionStart(*Container) (*Instance, error)
 
 	ActionStop(*Container, *InstanceStop) (*Instance, error)
@@ -452,15 +450,6 @@ func (c *ContainerClient) ActionRestart(resource *Container) (*Instance, error) 
 	resp := &Instance{}
 
 	err := c.rancherClient.doAction(CONTAINER_TYPE, "restart", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *ContainerClient) ActionRestore(resource *Container) (*Instance, error) {
-
-	resp := &Instance{}
-
-	err := c.rancherClient.doAction(CONTAINER_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }

@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleSNS_AddPermission() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.AddPermissionInput{
 		AWSAccountId: []*string{ // Required
@@ -49,39 +43,8 @@ func ExampleSNS_AddPermission() {
 	fmt.Println(resp)
 }
 
-func ExampleSNS_CheckIfPhoneNumberIsOptedOut() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
-
-	params := &sns.CheckIfPhoneNumberIsOptedOutInput{
-		PhoneNumber: aws.String("PhoneNumber"), // Required
-	}
-	resp, err := svc.CheckIfPhoneNumberIsOptedOut(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleSNS_ConfirmSubscription() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ConfirmSubscriptionInput{
 		Token:                     aws.String("token"),    // Required
@@ -102,13 +65,7 @@ func ExampleSNS_ConfirmSubscription() {
 }
 
 func ExampleSNS_CreatePlatformApplication() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.CreatePlatformApplicationInput{
 		Attributes: map[string]*string{ // Required
@@ -132,13 +89,7 @@ func ExampleSNS_CreatePlatformApplication() {
 }
 
 func ExampleSNS_CreatePlatformEndpoint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.CreatePlatformEndpointInput{
 		PlatformApplicationArn: aws.String("String"), // Required
@@ -163,13 +114,7 @@ func ExampleSNS_CreatePlatformEndpoint() {
 }
 
 func ExampleSNS_CreateTopic() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.CreateTopicInput{
 		Name: aws.String("topicName"), // Required
@@ -188,13 +133,7 @@ func ExampleSNS_CreateTopic() {
 }
 
 func ExampleSNS_DeleteEndpoint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.DeleteEndpointInput{
 		EndpointArn: aws.String("String"), // Required
@@ -213,13 +152,7 @@ func ExampleSNS_DeleteEndpoint() {
 }
 
 func ExampleSNS_DeletePlatformApplication() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.DeletePlatformApplicationInput{
 		PlatformApplicationArn: aws.String("String"), // Required
@@ -238,13 +171,7 @@ func ExampleSNS_DeletePlatformApplication() {
 }
 
 func ExampleSNS_DeleteTopic() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.DeleteTopicInput{
 		TopicArn: aws.String("topicARN"), // Required
@@ -263,13 +190,7 @@ func ExampleSNS_DeleteTopic() {
 }
 
 func ExampleSNS_GetEndpointAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.GetEndpointAttributesInput{
 		EndpointArn: aws.String("String"), // Required
@@ -288,13 +209,7 @@ func ExampleSNS_GetEndpointAttributes() {
 }
 
 func ExampleSNS_GetPlatformApplicationAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.GetPlatformApplicationAttributesInput{
 		PlatformApplicationArn: aws.String("String"), // Required
@@ -312,42 +227,8 @@ func ExampleSNS_GetPlatformApplicationAttributes() {
 	fmt.Println(resp)
 }
 
-func ExampleSNS_GetSMSAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
-
-	params := &sns.GetSMSAttributesInput{
-		Attributes: []*string{
-			aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.GetSMSAttributes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleSNS_GetSubscriptionAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.GetSubscriptionAttributesInput{
 		SubscriptionArn: aws.String("subscriptionARN"), // Required
@@ -366,13 +247,7 @@ func ExampleSNS_GetSubscriptionAttributes() {
 }
 
 func ExampleSNS_GetTopicAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.GetTopicAttributesInput{
 		TopicArn: aws.String("topicARN"), // Required
@@ -391,13 +266,7 @@ func ExampleSNS_GetTopicAttributes() {
 }
 
 func ExampleSNS_ListEndpointsByPlatformApplication() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ListEndpointsByPlatformApplicationInput{
 		PlatformApplicationArn: aws.String("String"), // Required
@@ -416,39 +285,8 @@ func ExampleSNS_ListEndpointsByPlatformApplication() {
 	fmt.Println(resp)
 }
 
-func ExampleSNS_ListPhoneNumbersOptedOut() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
-
-	params := &sns.ListPhoneNumbersOptedOutInput{
-		NextToken: aws.String("string"),
-	}
-	resp, err := svc.ListPhoneNumbersOptedOut(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleSNS_ListPlatformApplications() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ListPlatformApplicationsInput{
 		NextToken: aws.String("String"),
@@ -467,13 +305,7 @@ func ExampleSNS_ListPlatformApplications() {
 }
 
 func ExampleSNS_ListSubscriptions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ListSubscriptionsInput{
 		NextToken: aws.String("nextToken"),
@@ -492,13 +324,7 @@ func ExampleSNS_ListSubscriptions() {
 }
 
 func ExampleSNS_ListSubscriptionsByTopic() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ListSubscriptionsByTopicInput{
 		TopicArn:  aws.String("topicARN"), // Required
@@ -518,13 +344,7 @@ func ExampleSNS_ListSubscriptionsByTopic() {
 }
 
 func ExampleSNS_ListTopics() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.ListTopicsInput{
 		NextToken: aws.String("nextToken"),
@@ -542,39 +362,8 @@ func ExampleSNS_ListTopics() {
 	fmt.Println(resp)
 }
 
-func ExampleSNS_OptInPhoneNumber() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
-
-	params := &sns.OptInPhoneNumberInput{
-		PhoneNumber: aws.String("PhoneNumber"), // Required
-	}
-	resp, err := svc.OptInPhoneNumber(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleSNS_Publish() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.PublishInput{
 		Message: aws.String("message"), // Required
@@ -587,7 +376,6 @@ func ExampleSNS_Publish() {
 			// More values...
 		},
 		MessageStructure: aws.String("messageStructure"),
-		PhoneNumber:      aws.String("String"),
 		Subject:          aws.String("subject"),
 		TargetArn:        aws.String("String"),
 		TopicArn:         aws.String("topicARN"),
@@ -606,13 +394,7 @@ func ExampleSNS_Publish() {
 }
 
 func ExampleSNS_RemovePermission() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.RemovePermissionInput{
 		Label:    aws.String("label"),    // Required
@@ -632,13 +414,7 @@ func ExampleSNS_RemovePermission() {
 }
 
 func ExampleSNS_SetEndpointAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.SetEndpointAttributesInput{
 		Attributes: map[string]*string{ // Required
@@ -661,13 +437,7 @@ func ExampleSNS_SetEndpointAttributes() {
 }
 
 func ExampleSNS_SetPlatformApplicationAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.SetPlatformApplicationAttributesInput{
 		Attributes: map[string]*string{ // Required
@@ -689,42 +459,8 @@ func ExampleSNS_SetPlatformApplicationAttributes() {
 	fmt.Println(resp)
 }
 
-func ExampleSNS_SetSMSAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
-
-	params := &sns.SetSMSAttributesInput{
-		Attributes: map[string]*string{ // Required
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.SetSMSAttributes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleSNS_SetSubscriptionAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.SetSubscriptionAttributesInput{
 		AttributeName:   aws.String("attributeName"),   // Required
@@ -745,13 +481,7 @@ func ExampleSNS_SetSubscriptionAttributes() {
 }
 
 func ExampleSNS_SetTopicAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.SetTopicAttributesInput{
 		AttributeName:  aws.String("attributeName"), // Required
@@ -772,13 +502,7 @@ func ExampleSNS_SetTopicAttributes() {
 }
 
 func ExampleSNS_Subscribe() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.SubscribeInput{
 		Protocol: aws.String("protocol"), // Required
@@ -799,13 +523,7 @@ func ExampleSNS_Subscribe() {
 }
 
 func ExampleSNS_Unsubscribe() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := sns.New(sess)
+	svc := sns.New(session.New())
 
 	params := &sns.UnsubscribeInput{
 		SubscriptionArn: aws.String("subscriptionARN"), // Required

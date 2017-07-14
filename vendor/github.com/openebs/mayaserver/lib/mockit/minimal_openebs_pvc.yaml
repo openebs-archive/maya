@@ -1,0 +1,11 @@
+# Similar to K8s' PersistentVolumeClaim
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: twelf
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3G

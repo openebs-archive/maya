@@ -9,8 +9,19 @@ import (
 )
 
 func TestBackend_basic(t *testing.T) {
+	var b backend
+	var err error
+	var storage logical.Storage
+	factory := func(conf *logical.BackendConfig) (logical.Backend, error) {
+		b, err = Backend(conf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		storage = conf.StorageView
+		return b.Setup(conf)
+	}
 	logicaltest.Test(t, logicaltest.TestCase{
-		Factory: Factory,
+		Factory: factory,
 		Steps: []logicaltest.TestStep{
 			testAccStepMapAppId(t),
 			testAccStepMapUserId(t),
@@ -21,6 +32,30 @@ func TestBackend_basic(t *testing.T) {
 			testAccLoginDeleted(t),
 		},
 	})
+
+	req := &logical.Request{
+		Path:      "map/app-id",
+		Operation: logical.ListOperation,
+		Storage:   storage,
+	}
+	resp, err := b.HandleRequest(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp == nil {
+		t.Fatal("nil response")
+	}
+	keys := resp.Data["keys"].([]string)
+	if len(keys) != 1 {
+		t.Fatalf("expected 1 key, got %d", len(keys))
+	}
+	salt, err := b.Salt()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keys[0] != salt.SaltID("foo") {
+		t.Fatal("value was improperly salted")
+	}
 }
 
 func TestBackend_cidr(t *testing.T) {
@@ -49,66 +84,6 @@ func TestBackend_displayName(t *testing.T) {
 			testAccLoginDeleted(t),
 		},
 	})
-}
-
-// Verify that we are able to update from non-salted (<0.2) to
-// using a Salt for the paths
-func TestBackend_upgradeToSalted(t *testing.T) {
-	inm := new(logical.InmemStorage)
-
-	// Create some fake keys
-	se, _ := logical.StorageEntryJSON("struct/map/app-id/foo",
-		map[string]string{"value": "test"})
-	inm.Put(se)
-	se, _ = logical.StorageEntryJSON("struct/map/user-id/bar",
-		map[string]string{"value": "foo"})
-	inm.Put(se)
-
-	// Initialize the backend, this should do the automatic upgrade
-	conf := &logical.BackendConfig{
-		StorageView: inm,
-	}
-	backend, err := Factory(conf)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check the keys have been upgraded
-	out, err := inm.Get("struct/map/app-id/foo")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if out != nil {
-		t.Fatalf("unexpected key")
-	}
-	out, err = inm.Get("struct/map/user-id/bar")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if out != nil {
-		t.Fatalf("unexpected key")
-	}
-
-	// Backend should still be able to resolve
-	req := logical.TestRequest(t, logical.ReadOperation, "map/app-id/foo")
-	req.Storage = inm
-	resp, err := backend.HandleRequest(req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Data["value"] != "test" {
-		t.Fatalf("bad: %#v", resp)
-	}
-
-	req = logical.TestRequest(t, logical.ReadOperation, "map/user-id/bar")
-	req.Storage = inm
-	resp, err = backend.HandleRequest(req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if resp.Data["value"] != "foo" {
-		t.Fatalf("bad: %#v", resp)
-	}
 }
 
 func testAccStepMapAppId(t *testing.T) logicaltest.TestStep {

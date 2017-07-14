@@ -1,0 +1,11 @@
+mapiserver:
+  image: openebs/m-apiserver:0.2-RC4
+  environment:
+    - ENV MAYA_API_SERVER_VERSION="0.2-RC4"
+    - MAYA_API_SERVER_NETWORK=eth0
+    - NOMAD_ADDR="http:\/\/172.28.128.4:4646"
+    - NOMAD_CN_TYPE="host"
+    - NOMAD_CN_NETWORK_CIDR="172.28.128.1\/24"
+    - NOMAD_CN_INTERFACE="enp0s8"
+    - NOMAD_CS_PERSISTENCE_LOCATION="\/tmp\/"
+    - NOMAD_CS_REPLICA_COUNT="2"

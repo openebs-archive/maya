@@ -1,18 +1,14 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
 )
 
 // MaintCommand is a Command implementation that enables or disables
 // node or service maintenance mode.
 type MaintCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *MaintCommand) Help() string {
@@ -40,15 +36,8 @@ Usage: consul maint [options]
   If no arguments are given, the agent's maintenance status will be shown.
   This will return blank if nothing is currently under maintenance.
 
-Options:
+` + c.BaseCommand.Help()
 
-  -enable                    Enable maintenance mode.
-  -disable                   Disable maintenance mode.
-  -reason=<string>           Text string describing the maintenance reason
-  -service=<serviceID>       Control maintenance mode for a specific service ID
-  -token=""                  ACL token to use. Defaults to that of agent.
-  -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
@@ -57,49 +46,42 @@ func (c *MaintCommand) Run(args []string) int {
 	var disable bool
 	var reason string
 	var serviceID string
-	var token string
 
-	cmdFlags := flag.NewFlagSet("maint", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+	f := c.BaseCommand.NewFlagSet(c)
 
-	cmdFlags.BoolVar(&enable, "enable", false, "enable maintenance mode")
-	cmdFlags.BoolVar(&disable, "disable", false, "disable maintenance mode")
-	cmdFlags.StringVar(&reason, "reason", "", "maintenance reason")
-	cmdFlags.StringVar(&serviceID, "service", "", "service maintenance")
-	cmdFlags.StringVar(&token, "token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
+	f.BoolVar(&enable, "enable", false, "Enable maintenance mode.")
+	f.BoolVar(&disable, "disable", false, "Disable maintenance mode.")
+	f.StringVar(&reason, "reason", "", "Text describing the maintenance reason.")
+	f.StringVar(&serviceID, "service", "", "Control maintenance mode for a specific service ID.")
 
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
 	// Ensure we don't have conflicting args
 	if enable && disable {
-		c.Ui.Error("Only one of -enable or -disable may be provided")
+		c.UI.Error("Only one of -enable or -disable may be provided")
 		return 1
 	}
 	if !enable && reason != "" {
-		c.Ui.Error("Reason may only be provided with -enable")
+		c.UI.Error("Reason may only be provided with -enable")
 		return 1
 	}
 	if !enable && !disable && serviceID != "" {
-		c.Ui.Error("Service requires either -enable or -disable")
+		c.UI.Error("Service requires either -enable or -disable")
 		return 1
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Address = *httpAddr
-	conf.Token = token
-	client, err := api.NewClient(conf)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 	a := client.Agent()
 	nodeName, err := a.NodeName()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
 	}
 
@@ -107,21 +89,21 @@ func (c *MaintCommand) Run(args []string) int {
 		// List mode - list nodes/services in maintenance mode
 		checks, err := a.Checks()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting checks: %s", err))
+			c.UI.Error(fmt.Sprintf("Error getting checks: %s", err))
 			return 1
 		}
 
 		for _, check := range checks {
 			if check.CheckID == "_node_maintenance" {
-				c.Ui.Output("Node:")
-				c.Ui.Output("  Name:   " + nodeName)
-				c.Ui.Output("  Reason: " + check.Notes)
-				c.Ui.Output("")
+				c.UI.Output("Node:")
+				c.UI.Output("  Name:   " + nodeName)
+				c.UI.Output("  Reason: " + check.Notes)
+				c.UI.Output("")
 			} else if strings.HasPrefix(string(check.CheckID), "_service_maintenance:") {
-				c.Ui.Output("Service:")
-				c.Ui.Output("  ID:     " + check.ServiceID)
-				c.Ui.Output("  Reason: " + check.Notes)
-				c.Ui.Output("")
+				c.UI.Output("Service:")
+				c.UI.Output("  ID:     " + check.ServiceID)
+				c.UI.Output("  Reason: " + check.Notes)
+				c.UI.Output("")
 			}
 		}
 
@@ -132,19 +114,19 @@ func (c *MaintCommand) Run(args []string) int {
 		// Enable node maintenance
 		if serviceID == "" {
 			if err := a.EnableNodeMaintenance(reason); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error enabling node maintenance: %s", err))
+				c.UI.Error(fmt.Sprintf("Error enabling node maintenance: %s", err))
 				return 1
 			}
-			c.Ui.Output("Node maintenance is now enabled")
+			c.UI.Output("Node maintenance is now enabled")
 			return 0
 		}
 
 		// Enable service maintenance
 		if err := a.EnableServiceMaintenance(serviceID, reason); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error enabling service maintenance: %s", err))
+			c.UI.Error(fmt.Sprintf("Error enabling service maintenance: %s", err))
 			return 1
 		}
-		c.Ui.Output(fmt.Sprintf("Service maintenance is now enabled for %q", serviceID))
+		c.UI.Output(fmt.Sprintf("Service maintenance is now enabled for %q", serviceID))
 		return 0
 	}
 
@@ -152,19 +134,19 @@ func (c *MaintCommand) Run(args []string) int {
 		// Disable node maintenance
 		if serviceID == "" {
 			if err := a.DisableNodeMaintenance(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error disabling node maintenance: %s", err))
+				c.UI.Error(fmt.Sprintf("Error disabling node maintenance: %s", err))
 				return 1
 			}
-			c.Ui.Output("Node maintenance is now disabled")
+			c.UI.Output("Node maintenance is now disabled")
 			return 0
 		}
 
 		// Disable service maintenance
 		if err := a.DisableServiceMaintenance(serviceID); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error disabling service maintenance: %s", err))
+			c.UI.Error(fmt.Sprintf("Error disabling service maintenance: %s", err))
 			return 1
 		}
-		c.Ui.Output(fmt.Sprintf("Service maintenance is now disabled for %q", serviceID))
+		c.UI.Output(fmt.Sprintf("Service maintenance is now disabled for %q", serviceID))
 		return 0
 	}
 

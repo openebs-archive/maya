@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleIAM_AddClientIDToOpenIDConnectProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AddClientIDToOpenIDConnectProviderInput{
 		ClientID:                 aws.String("clientIDType"), // Required
@@ -42,13 +36,7 @@ func ExampleIAM_AddClientIDToOpenIDConnectProvider() {
 }
 
 func ExampleIAM_AddRoleToInstanceProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AddRoleToInstanceProfileInput{
 		InstanceProfileName: aws.String("instanceProfileNameType"), // Required
@@ -68,13 +56,7 @@ func ExampleIAM_AddRoleToInstanceProfile() {
 }
 
 func ExampleIAM_AddUserToGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AddUserToGroupInput{
 		GroupName: aws.String("groupNameType"),        // Required
@@ -94,13 +76,7 @@ func ExampleIAM_AddUserToGroup() {
 }
 
 func ExampleIAM_AttachGroupPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AttachGroupPolicyInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -120,13 +96,7 @@ func ExampleIAM_AttachGroupPolicy() {
 }
 
 func ExampleIAM_AttachRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AttachRolePolicyInput{
 		PolicyArn: aws.String("arnType"),      // Required
@@ -146,13 +116,7 @@ func ExampleIAM_AttachRolePolicy() {
 }
 
 func ExampleIAM_AttachUserPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.AttachUserPolicyInput{
 		PolicyArn: aws.String("arnType"),      // Required
@@ -172,13 +136,7 @@ func ExampleIAM_AttachUserPolicy() {
 }
 
 func ExampleIAM_ChangePassword() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ChangePasswordInput{
 		NewPassword: aws.String("passwordType"), // Required
@@ -198,13 +156,7 @@ func ExampleIAM_ChangePassword() {
 }
 
 func ExampleIAM_CreateAccessKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateAccessKeyInput{
 		UserName: aws.String("existingUserNameType"),
@@ -223,13 +175,7 @@ func ExampleIAM_CreateAccessKey() {
 }
 
 func ExampleIAM_CreateAccountAlias() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateAccountAliasInput{
 		AccountAlias: aws.String("accountAliasType"), // Required
@@ -248,13 +194,7 @@ func ExampleIAM_CreateAccountAlias() {
 }
 
 func ExampleIAM_CreateGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateGroupInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -274,13 +214,7 @@ func ExampleIAM_CreateGroup() {
 }
 
 func ExampleIAM_CreateInstanceProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateInstanceProfileInput{
 		InstanceProfileName: aws.String("instanceProfileNameType"), // Required
@@ -300,13 +234,7 @@ func ExampleIAM_CreateInstanceProfile() {
 }
 
 func ExampleIAM_CreateLoginProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateLoginProfileInput{
 		Password:              aws.String("passwordType"), // Required
@@ -327,13 +255,7 @@ func ExampleIAM_CreateLoginProfile() {
 }
 
 func ExampleIAM_CreateOpenIDConnectProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateOpenIDConnectProviderInput{
 		ThumbprintList: []*string{ // Required
@@ -360,13 +282,7 @@ func ExampleIAM_CreateOpenIDConnectProvider() {
 }
 
 func ExampleIAM_CreatePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreatePolicyInput{
 		PolicyDocument: aws.String("policyDocumentType"), // Required
@@ -388,13 +304,7 @@ func ExampleIAM_CreatePolicy() {
 }
 
 func ExampleIAM_CreatePolicyVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreatePolicyVersionInput{
 		PolicyArn:      aws.String("arnType"),            // Required
@@ -415,13 +325,7 @@ func ExampleIAM_CreatePolicyVersion() {
 }
 
 func ExampleIAM_CreateRole() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String("policyDocumentType"), // Required
@@ -442,13 +346,7 @@ func ExampleIAM_CreateRole() {
 }
 
 func ExampleIAM_CreateSAMLProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateSAMLProviderInput{
 		Name:                 aws.String("SAMLProviderNameType"),     // Required
@@ -467,40 +365,8 @@ func ExampleIAM_CreateSAMLProvider() {
 	fmt.Println(resp)
 }
 
-func ExampleIAM_CreateServiceSpecificCredential() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
-
-	params := &iam.CreateServiceSpecificCredentialInput{
-		ServiceName: aws.String("serviceName"),  // Required
-		UserName:    aws.String("userNameType"), // Required
-	}
-	resp, err := svc.CreateServiceSpecificCredential(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleIAM_CreateUser() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateUserInput{
 		UserName: aws.String("userNameType"), // Required
@@ -520,13 +386,7 @@ func ExampleIAM_CreateUser() {
 }
 
 func ExampleIAM_CreateVirtualMFADevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.CreateVirtualMFADeviceInput{
 		VirtualMFADeviceName: aws.String("virtualMFADeviceName"), // Required
@@ -546,13 +406,7 @@ func ExampleIAM_CreateVirtualMFADevice() {
 }
 
 func ExampleIAM_DeactivateMFADevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeactivateMFADeviceInput{
 		SerialNumber: aws.String("serialNumberType"),     // Required
@@ -572,13 +426,7 @@ func ExampleIAM_DeactivateMFADevice() {
 }
 
 func ExampleIAM_DeleteAccessKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteAccessKeyInput{
 		AccessKeyId: aws.String("accessKeyIdType"), // Required
@@ -598,13 +446,7 @@ func ExampleIAM_DeleteAccessKey() {
 }
 
 func ExampleIAM_DeleteAccountAlias() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteAccountAliasInput{
 		AccountAlias: aws.String("accountAliasType"), // Required
@@ -623,13 +465,7 @@ func ExampleIAM_DeleteAccountAlias() {
 }
 
 func ExampleIAM_DeleteAccountPasswordPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.DeleteAccountPasswordPolicyInput
 	resp, err := svc.DeleteAccountPasswordPolicy(params)
@@ -646,13 +482,7 @@ func ExampleIAM_DeleteAccountPasswordPolicy() {
 }
 
 func ExampleIAM_DeleteGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteGroupInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -671,13 +501,7 @@ func ExampleIAM_DeleteGroup() {
 }
 
 func ExampleIAM_DeleteGroupPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteGroupPolicyInput{
 		GroupName:  aws.String("groupNameType"),  // Required
@@ -697,13 +521,7 @@ func ExampleIAM_DeleteGroupPolicy() {
 }
 
 func ExampleIAM_DeleteInstanceProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteInstanceProfileInput{
 		InstanceProfileName: aws.String("instanceProfileNameType"), // Required
@@ -722,13 +540,7 @@ func ExampleIAM_DeleteInstanceProfile() {
 }
 
 func ExampleIAM_DeleteLoginProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteLoginProfileInput{
 		UserName: aws.String("userNameType"), // Required
@@ -747,13 +559,7 @@ func ExampleIAM_DeleteLoginProfile() {
 }
 
 func ExampleIAM_DeleteOpenIDConnectProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteOpenIDConnectProviderInput{
 		OpenIDConnectProviderArn: aws.String("arnType"), // Required
@@ -772,13 +578,7 @@ func ExampleIAM_DeleteOpenIDConnectProvider() {
 }
 
 func ExampleIAM_DeletePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeletePolicyInput{
 		PolicyArn: aws.String("arnType"), // Required
@@ -797,13 +597,7 @@ func ExampleIAM_DeletePolicy() {
 }
 
 func ExampleIAM_DeletePolicyVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeletePolicyVersionInput{
 		PolicyArn: aws.String("arnType"),             // Required
@@ -823,13 +617,7 @@ func ExampleIAM_DeletePolicyVersion() {
 }
 
 func ExampleIAM_DeleteRole() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteRoleInput{
 		RoleName: aws.String("roleNameType"), // Required
@@ -848,13 +636,7 @@ func ExampleIAM_DeleteRole() {
 }
 
 func ExampleIAM_DeleteRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String("policyNameType"), // Required
@@ -874,13 +656,7 @@ func ExampleIAM_DeleteRolePolicy() {
 }
 
 func ExampleIAM_DeleteSAMLProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteSAMLProviderInput{
 		SAMLProviderArn: aws.String("arnType"), // Required
@@ -899,13 +675,7 @@ func ExampleIAM_DeleteSAMLProvider() {
 }
 
 func ExampleIAM_DeleteSSHPublicKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteSSHPublicKeyInput{
 		SSHPublicKeyId: aws.String("publicKeyIdType"), // Required
@@ -925,13 +695,7 @@ func ExampleIAM_DeleteSSHPublicKey() {
 }
 
 func ExampleIAM_DeleteServerCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteServerCertificateInput{
 		ServerCertificateName: aws.String("serverCertificateNameType"), // Required
@@ -949,40 +713,8 @@ func ExampleIAM_DeleteServerCertificate() {
 	fmt.Println(resp)
 }
 
-func ExampleIAM_DeleteServiceSpecificCredential() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
-
-	params := &iam.DeleteServiceSpecificCredentialInput{
-		ServiceSpecificCredentialId: aws.String("serviceSpecificCredentialId"), // Required
-		UserName:                    aws.String("userNameType"),
-	}
-	resp, err := svc.DeleteServiceSpecificCredential(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleIAM_DeleteSigningCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteSigningCertificateInput{
 		CertificateId: aws.String("certificateIdType"), // Required
@@ -1002,13 +734,7 @@ func ExampleIAM_DeleteSigningCertificate() {
 }
 
 func ExampleIAM_DeleteUser() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteUserInput{
 		UserName: aws.String("existingUserNameType"), // Required
@@ -1027,13 +753,7 @@ func ExampleIAM_DeleteUser() {
 }
 
 func ExampleIAM_DeleteUserPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteUserPolicyInput{
 		PolicyName: aws.String("policyNameType"),       // Required
@@ -1053,13 +773,7 @@ func ExampleIAM_DeleteUserPolicy() {
 }
 
 func ExampleIAM_DeleteVirtualMFADevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DeleteVirtualMFADeviceInput{
 		SerialNumber: aws.String("serialNumberType"), // Required
@@ -1078,13 +792,7 @@ func ExampleIAM_DeleteVirtualMFADevice() {
 }
 
 func ExampleIAM_DetachGroupPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DetachGroupPolicyInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -1104,13 +812,7 @@ func ExampleIAM_DetachGroupPolicy() {
 }
 
 func ExampleIAM_DetachRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DetachRolePolicyInput{
 		PolicyArn: aws.String("arnType"),      // Required
@@ -1130,13 +832,7 @@ func ExampleIAM_DetachRolePolicy() {
 }
 
 func ExampleIAM_DetachUserPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.DetachUserPolicyInput{
 		PolicyArn: aws.String("arnType"),      // Required
@@ -1156,13 +852,7 @@ func ExampleIAM_DetachUserPolicy() {
 }
 
 func ExampleIAM_EnableMFADevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.EnableMFADeviceInput{
 		AuthenticationCode1: aws.String("authenticationCodeType"), // Required
@@ -1184,13 +874,7 @@ func ExampleIAM_EnableMFADevice() {
 }
 
 func ExampleIAM_GenerateCredentialReport() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.GenerateCredentialReportInput
 	resp, err := svc.GenerateCredentialReport(params)
@@ -1207,13 +891,7 @@ func ExampleIAM_GenerateCredentialReport() {
 }
 
 func ExampleIAM_GetAccessKeyLastUsed() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetAccessKeyLastUsedInput{
 		AccessKeyId: aws.String("accessKeyIdType"), // Required
@@ -1232,13 +910,7 @@ func ExampleIAM_GetAccessKeyLastUsed() {
 }
 
 func ExampleIAM_GetAccountAuthorizationDetails() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetAccountAuthorizationDetailsInput{
 		Filter: []*string{
@@ -1262,13 +934,7 @@ func ExampleIAM_GetAccountAuthorizationDetails() {
 }
 
 func ExampleIAM_GetAccountPasswordPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.GetAccountPasswordPolicyInput
 	resp, err := svc.GetAccountPasswordPolicy(params)
@@ -1285,13 +951,7 @@ func ExampleIAM_GetAccountPasswordPolicy() {
 }
 
 func ExampleIAM_GetAccountSummary() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.GetAccountSummaryInput
 	resp, err := svc.GetAccountSummary(params)
@@ -1308,13 +968,7 @@ func ExampleIAM_GetAccountSummary() {
 }
 
 func ExampleIAM_GetContextKeysForCustomPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetContextKeysForCustomPolicyInput{
 		PolicyInputList: []*string{ // Required
@@ -1336,13 +990,7 @@ func ExampleIAM_GetContextKeysForCustomPolicy() {
 }
 
 func ExampleIAM_GetContextKeysForPrincipalPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetContextKeysForPrincipalPolicyInput{
 		PolicySourceArn: aws.String("arnType"), // Required
@@ -1365,13 +1013,7 @@ func ExampleIAM_GetContextKeysForPrincipalPolicy() {
 }
 
 func ExampleIAM_GetCredentialReport() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.GetCredentialReportInput
 	resp, err := svc.GetCredentialReport(params)
@@ -1388,13 +1030,7 @@ func ExampleIAM_GetCredentialReport() {
 }
 
 func ExampleIAM_GetGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetGroupInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -1415,13 +1051,7 @@ func ExampleIAM_GetGroup() {
 }
 
 func ExampleIAM_GetGroupPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetGroupPolicyInput{
 		GroupName:  aws.String("groupNameType"),  // Required
@@ -1441,13 +1071,7 @@ func ExampleIAM_GetGroupPolicy() {
 }
 
 func ExampleIAM_GetInstanceProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetInstanceProfileInput{
 		InstanceProfileName: aws.String("instanceProfileNameType"), // Required
@@ -1466,13 +1090,7 @@ func ExampleIAM_GetInstanceProfile() {
 }
 
 func ExampleIAM_GetLoginProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetLoginProfileInput{
 		UserName: aws.String("userNameType"), // Required
@@ -1491,13 +1109,7 @@ func ExampleIAM_GetLoginProfile() {
 }
 
 func ExampleIAM_GetOpenIDConnectProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetOpenIDConnectProviderInput{
 		OpenIDConnectProviderArn: aws.String("arnType"), // Required
@@ -1516,13 +1128,7 @@ func ExampleIAM_GetOpenIDConnectProvider() {
 }
 
 func ExampleIAM_GetPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetPolicyInput{
 		PolicyArn: aws.String("arnType"), // Required
@@ -1541,13 +1147,7 @@ func ExampleIAM_GetPolicy() {
 }
 
 func ExampleIAM_GetPolicyVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetPolicyVersionInput{
 		PolicyArn: aws.String("arnType"),             // Required
@@ -1567,13 +1167,7 @@ func ExampleIAM_GetPolicyVersion() {
 }
 
 func ExampleIAM_GetRole() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetRoleInput{
 		RoleName: aws.String("roleNameType"), // Required
@@ -1592,13 +1186,7 @@ func ExampleIAM_GetRole() {
 }
 
 func ExampleIAM_GetRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetRolePolicyInput{
 		PolicyName: aws.String("policyNameType"), // Required
@@ -1618,13 +1206,7 @@ func ExampleIAM_GetRolePolicy() {
 }
 
 func ExampleIAM_GetSAMLProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetSAMLProviderInput{
 		SAMLProviderArn: aws.String("arnType"), // Required
@@ -1643,13 +1225,7 @@ func ExampleIAM_GetSAMLProvider() {
 }
 
 func ExampleIAM_GetSSHPublicKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetSSHPublicKeyInput{
 		Encoding:       aws.String("encodingType"),    // Required
@@ -1670,13 +1246,7 @@ func ExampleIAM_GetSSHPublicKey() {
 }
 
 func ExampleIAM_GetServerCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetServerCertificateInput{
 		ServerCertificateName: aws.String("serverCertificateNameType"), // Required
@@ -1695,13 +1265,7 @@ func ExampleIAM_GetServerCertificate() {
 }
 
 func ExampleIAM_GetUser() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetUserInput{
 		UserName: aws.String("existingUserNameType"),
@@ -1720,13 +1284,7 @@ func ExampleIAM_GetUser() {
 }
 
 func ExampleIAM_GetUserPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.GetUserPolicyInput{
 		PolicyName: aws.String("policyNameType"),       // Required
@@ -1746,13 +1304,7 @@ func ExampleIAM_GetUserPolicy() {
 }
 
 func ExampleIAM_ListAccessKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListAccessKeysInput{
 		Marker:   aws.String("markerType"),
@@ -1773,13 +1325,7 @@ func ExampleIAM_ListAccessKeys() {
 }
 
 func ExampleIAM_ListAccountAliases() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListAccountAliasesInput{
 		Marker:   aws.String("markerType"),
@@ -1799,13 +1345,7 @@ func ExampleIAM_ListAccountAliases() {
 }
 
 func ExampleIAM_ListAttachedGroupPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListAttachedGroupPoliciesInput{
 		GroupName:  aws.String("groupNameType"), // Required
@@ -1827,13 +1367,7 @@ func ExampleIAM_ListAttachedGroupPolicies() {
 }
 
 func ExampleIAM_ListAttachedRolePolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListAttachedRolePoliciesInput{
 		RoleName:   aws.String("roleNameType"), // Required
@@ -1855,13 +1389,7 @@ func ExampleIAM_ListAttachedRolePolicies() {
 }
 
 func ExampleIAM_ListAttachedUserPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListAttachedUserPoliciesInput{
 		UserName:   aws.String("userNameType"), // Required
@@ -1883,13 +1411,7 @@ func ExampleIAM_ListAttachedUserPolicies() {
 }
 
 func ExampleIAM_ListEntitiesForPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListEntitiesForPolicyInput{
 		PolicyArn:    aws.String("arnType"), // Required
@@ -1912,13 +1434,7 @@ func ExampleIAM_ListEntitiesForPolicy() {
 }
 
 func ExampleIAM_ListGroupPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListGroupPoliciesInput{
 		GroupName: aws.String("groupNameType"), // Required
@@ -1939,13 +1455,7 @@ func ExampleIAM_ListGroupPolicies() {
 }
 
 func ExampleIAM_ListGroups() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListGroupsInput{
 		Marker:     aws.String("markerType"),
@@ -1966,13 +1476,7 @@ func ExampleIAM_ListGroups() {
 }
 
 func ExampleIAM_ListGroupsForUser() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListGroupsForUserInput{
 		UserName: aws.String("existingUserNameType"), // Required
@@ -1993,13 +1497,7 @@ func ExampleIAM_ListGroupsForUser() {
 }
 
 func ExampleIAM_ListInstanceProfiles() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListInstanceProfilesInput{
 		Marker:     aws.String("markerType"),
@@ -2020,13 +1518,7 @@ func ExampleIAM_ListInstanceProfiles() {
 }
 
 func ExampleIAM_ListInstanceProfilesForRole() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListInstanceProfilesForRoleInput{
 		RoleName: aws.String("roleNameType"), // Required
@@ -2047,13 +1539,7 @@ func ExampleIAM_ListInstanceProfilesForRole() {
 }
 
 func ExampleIAM_ListMFADevices() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListMFADevicesInput{
 		Marker:   aws.String("markerType"),
@@ -2074,13 +1560,7 @@ func ExampleIAM_ListMFADevices() {
 }
 
 func ExampleIAM_ListOpenIDConnectProviders() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.ListOpenIDConnectProvidersInput
 	resp, err := svc.ListOpenIDConnectProviders(params)
@@ -2097,13 +1577,7 @@ func ExampleIAM_ListOpenIDConnectProviders() {
 }
 
 func ExampleIAM_ListPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListPoliciesInput{
 		Marker:       aws.String("markerType"),
@@ -2126,13 +1600,7 @@ func ExampleIAM_ListPolicies() {
 }
 
 func ExampleIAM_ListPolicyVersions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListPolicyVersionsInput{
 		PolicyArn: aws.String("arnType"), // Required
@@ -2153,13 +1621,7 @@ func ExampleIAM_ListPolicyVersions() {
 }
 
 func ExampleIAM_ListRolePolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListRolePoliciesInput{
 		RoleName: aws.String("roleNameType"), // Required
@@ -2180,13 +1642,7 @@ func ExampleIAM_ListRolePolicies() {
 }
 
 func ExampleIAM_ListRoles() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListRolesInput{
 		Marker:     aws.String("markerType"),
@@ -2207,13 +1663,7 @@ func ExampleIAM_ListRoles() {
 }
 
 func ExampleIAM_ListSAMLProviders() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	var params *iam.ListSAMLProvidersInput
 	resp, err := svc.ListSAMLProviders(params)
@@ -2230,13 +1680,7 @@ func ExampleIAM_ListSAMLProviders() {
 }
 
 func ExampleIAM_ListSSHPublicKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListSSHPublicKeysInput{
 		Marker:   aws.String("markerType"),
@@ -2257,13 +1701,7 @@ func ExampleIAM_ListSSHPublicKeys() {
 }
 
 func ExampleIAM_ListServerCertificates() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListServerCertificatesInput{
 		Marker:     aws.String("markerType"),
@@ -2283,40 +1721,8 @@ func ExampleIAM_ListServerCertificates() {
 	fmt.Println(resp)
 }
 
-func ExampleIAM_ListServiceSpecificCredentials() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
-
-	params := &iam.ListServiceSpecificCredentialsInput{
-		ServiceName: aws.String("serviceName"),
-		UserName:    aws.String("userNameType"),
-	}
-	resp, err := svc.ListServiceSpecificCredentials(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleIAM_ListSigningCertificates() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListSigningCertificatesInput{
 		Marker:   aws.String("markerType"),
@@ -2337,13 +1743,7 @@ func ExampleIAM_ListSigningCertificates() {
 }
 
 func ExampleIAM_ListUserPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListUserPoliciesInput{
 		UserName: aws.String("existingUserNameType"), // Required
@@ -2364,13 +1764,7 @@ func ExampleIAM_ListUserPolicies() {
 }
 
 func ExampleIAM_ListUsers() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListUsersInput{
 		Marker:     aws.String("markerType"),
@@ -2391,13 +1785,7 @@ func ExampleIAM_ListUsers() {
 }
 
 func ExampleIAM_ListVirtualMFADevices() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ListVirtualMFADevicesInput{
 		AssignmentStatus: aws.String("assignmentStatusType"),
@@ -2418,13 +1806,7 @@ func ExampleIAM_ListVirtualMFADevices() {
 }
 
 func ExampleIAM_PutGroupPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.PutGroupPolicyInput{
 		GroupName:      aws.String("groupNameType"),      // Required
@@ -2445,13 +1827,7 @@ func ExampleIAM_PutGroupPolicy() {
 }
 
 func ExampleIAM_PutRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.PutRolePolicyInput{
 		PolicyDocument: aws.String("policyDocumentType"), // Required
@@ -2472,13 +1848,7 @@ func ExampleIAM_PutRolePolicy() {
 }
 
 func ExampleIAM_PutUserPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.PutUserPolicyInput{
 		PolicyDocument: aws.String("policyDocumentType"),   // Required
@@ -2499,13 +1869,7 @@ func ExampleIAM_PutUserPolicy() {
 }
 
 func ExampleIAM_RemoveClientIDFromOpenIDConnectProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.RemoveClientIDFromOpenIDConnectProviderInput{
 		ClientID:                 aws.String("clientIDType"), // Required
@@ -2525,13 +1889,7 @@ func ExampleIAM_RemoveClientIDFromOpenIDConnectProvider() {
 }
 
 func ExampleIAM_RemoveRoleFromInstanceProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.RemoveRoleFromInstanceProfileInput{
 		InstanceProfileName: aws.String("instanceProfileNameType"), // Required
@@ -2551,13 +1909,7 @@ func ExampleIAM_RemoveRoleFromInstanceProfile() {
 }
 
 func ExampleIAM_RemoveUserFromGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.RemoveUserFromGroupInput{
 		GroupName: aws.String("groupNameType"),        // Required
@@ -2576,40 +1928,8 @@ func ExampleIAM_RemoveUserFromGroup() {
 	fmt.Println(resp)
 }
 
-func ExampleIAM_ResetServiceSpecificCredential() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
-
-	params := &iam.ResetServiceSpecificCredentialInput{
-		ServiceSpecificCredentialId: aws.String("serviceSpecificCredentialId"), // Required
-		UserName:                    aws.String("userNameType"),
-	}
-	resp, err := svc.ResetServiceSpecificCredential(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleIAM_ResyncMFADevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.ResyncMFADeviceInput{
 		AuthenticationCode1: aws.String("authenticationCodeType"), // Required
@@ -2631,13 +1951,7 @@ func ExampleIAM_ResyncMFADevice() {
 }
 
 func ExampleIAM_SetDefaultPolicyVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.SetDefaultPolicyVersionInput{
 		PolicyArn: aws.String("arnType"),             // Required
@@ -2657,13 +1971,7 @@ func ExampleIAM_SetDefaultPolicyVersion() {
 }
 
 func ExampleIAM_SimulateCustomPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.SimulateCustomPolicyInput{
 		ActionNames: []*string{ // Required
@@ -2710,13 +2018,7 @@ func ExampleIAM_SimulateCustomPolicy() {
 }
 
 func ExampleIAM_SimulatePrincipalPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.SimulatePrincipalPolicyInput{
 		ActionNames: []*string{ // Required
@@ -2764,13 +2066,7 @@ func ExampleIAM_SimulatePrincipalPolicy() {
 }
 
 func ExampleIAM_UpdateAccessKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateAccessKeyInput{
 		AccessKeyId: aws.String("accessKeyIdType"), // Required
@@ -2791,13 +2087,7 @@ func ExampleIAM_UpdateAccessKey() {
 }
 
 func ExampleIAM_UpdateAccountPasswordPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateAccountPasswordPolicyInput{
 		AllowUsersToChangePassword: aws.Bool(true),
@@ -2824,13 +2114,7 @@ func ExampleIAM_UpdateAccountPasswordPolicy() {
 }
 
 func ExampleIAM_UpdateAssumeRolePolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateAssumeRolePolicyInput{
 		PolicyDocument: aws.String("policyDocumentType"), // Required
@@ -2850,13 +2134,7 @@ func ExampleIAM_UpdateAssumeRolePolicy() {
 }
 
 func ExampleIAM_UpdateGroup() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateGroupInput{
 		GroupName:    aws.String("groupNameType"), // Required
@@ -2877,13 +2155,7 @@ func ExampleIAM_UpdateGroup() {
 }
 
 func ExampleIAM_UpdateLoginProfile() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateLoginProfileInput{
 		UserName:              aws.String("userNameType"), // Required
@@ -2904,13 +2176,7 @@ func ExampleIAM_UpdateLoginProfile() {
 }
 
 func ExampleIAM_UpdateOpenIDConnectProviderThumbprint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateOpenIDConnectProviderThumbprintInput{
 		OpenIDConnectProviderArn: aws.String("arnType"), // Required
@@ -2933,13 +2199,7 @@ func ExampleIAM_UpdateOpenIDConnectProviderThumbprint() {
 }
 
 func ExampleIAM_UpdateSAMLProvider() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateSAMLProviderInput{
 		SAMLMetadataDocument: aws.String("SAMLMetadataDocumentType"), // Required
@@ -2959,13 +2219,7 @@ func ExampleIAM_UpdateSAMLProvider() {
 }
 
 func ExampleIAM_UpdateSSHPublicKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateSSHPublicKeyInput{
 		SSHPublicKeyId: aws.String("publicKeyIdType"), // Required
@@ -2986,13 +2240,7 @@ func ExampleIAM_UpdateSSHPublicKey() {
 }
 
 func ExampleIAM_UpdateServerCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateServerCertificateInput{
 		ServerCertificateName:    aws.String("serverCertificateNameType"), // Required
@@ -3012,41 +2260,8 @@ func ExampleIAM_UpdateServerCertificate() {
 	fmt.Println(resp)
 }
 
-func ExampleIAM_UpdateServiceSpecificCredential() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
-
-	params := &iam.UpdateServiceSpecificCredentialInput{
-		ServiceSpecificCredentialId: aws.String("serviceSpecificCredentialId"), // Required
-		Status:   aws.String("statusType"), // Required
-		UserName: aws.String("userNameType"),
-	}
-	resp, err := svc.UpdateServiceSpecificCredential(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleIAM_UpdateSigningCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateSigningCertificateInput{
 		CertificateId: aws.String("certificateIdType"), // Required
@@ -3067,13 +2282,7 @@ func ExampleIAM_UpdateSigningCertificate() {
 }
 
 func ExampleIAM_UpdateUser() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UpdateUserInput{
 		UserName:    aws.String("existingUserNameType"), // Required
@@ -3094,13 +2303,7 @@ func ExampleIAM_UpdateUser() {
 }
 
 func ExampleIAM_UploadSSHPublicKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UploadSSHPublicKeyInput{
 		SSHPublicKeyBody: aws.String("publicKeyMaterialType"), // Required
@@ -3120,13 +2323,7 @@ func ExampleIAM_UploadSSHPublicKey() {
 }
 
 func ExampleIAM_UploadServerCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UploadServerCertificateInput{
 		CertificateBody:       aws.String("certificateBodyType"),       // Required
@@ -3149,13 +2346,7 @@ func ExampleIAM_UploadServerCertificate() {
 }
 
 func ExampleIAM_UploadSigningCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iam.New(sess)
+	svc := iam.New(session.New())
 
 	params := &iam.UploadSigningCertificateInput{
 		CertificateBody: aws.String("certificateBodyType"), // Required

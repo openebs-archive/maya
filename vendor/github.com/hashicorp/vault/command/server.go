@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/net/http2"
+
 	colorable "github.com/mattn/go-colorable"
 	log "github.com/mgutz/logxi/v1"
 
@@ -23,6 +25,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/circonus"
+	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/vault/audit"
@@ -31,6 +34,7 @@ import (
 	"github.com/hashicorp/vault/helper/gated-writer"
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/helper/mlock"
+	"github.com/hashicorp/vault/helper/parseutil"
 	vaulthttp "github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/meta"
@@ -61,7 +65,7 @@ type ServerCommand struct {
 }
 
 func (c *ServerCommand) Run(args []string) int {
-	var dev, verifyOnly, devHA bool
+	var dev, verifyOnly, devHA, devTransactional, devLeasedGeneric bool
 	var configPath []string
 	var logLevel, devRootTokenID, devListenAddress string
 	flags := c.Meta.FlagSet("server", meta.FlagSetDefault)
@@ -71,6 +75,8 @@ func (c *ServerCommand) Run(args []string) int {
 	flags.StringVar(&logLevel, "log-level", "info", "")
 	flags.BoolVar(&verifyOnly, "verify-only", false, "")
 	flags.BoolVar(&devHA, "dev-ha", false, "")
+	flags.BoolVar(&devTransactional, "dev-transactional", false, "")
+	flags.BoolVar(&devLeasedGeneric, "dev-leased-generic", false, "")
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.Var((*sliceflag.StringFlag)(&configPath), "config", "config")
 	if err := flags.Parse(args); err != nil {
@@ -81,6 +87,7 @@ func (c *ServerCommand) Run(args []string) int {
 	// start logging too early.
 	logGate := &gatedwriter.Writer{Writer: colorable.NewColorable(os.Stderr)}
 	var level int
+	logLevel = strings.ToLower(strings.TrimSpace(logLevel))
 	switch logLevel {
 	case "trace":
 		level = log.LevelTrace
@@ -122,7 +129,7 @@ func (c *ServerCommand) Run(args []string) int {
 		devListenAddress = os.Getenv("VAULT_DEV_LISTEN_ADDRESS")
 	}
 
-	if devHA {
+	if devHA || devTransactional || devLeasedGeneric {
 		dev = true
 	}
 
@@ -143,7 +150,7 @@ func (c *ServerCommand) Run(args []string) int {
 	// Load the configuration
 	var config *server.Config
 	if dev {
-		config = server.DevConfig(devHA)
+		config = server.DevConfig(devHA, devTransactional)
 		if devListenAddress != "" {
 			config.Listeners[0].Config["address"] = devListenAddress
 		}
@@ -170,8 +177,8 @@ func (c *ServerCommand) Run(args []string) int {
 	}
 
 	// Ensure that a backend is provided
-	if config.Backend == nil {
-		c.Ui.Output("A physical backend must be specified")
+	if config.Storage == nil {
+		c.Ui.Output("A storage backend must be specified")
 		return 1
 	}
 
@@ -191,11 +198,11 @@ func (c *ServerCommand) Run(args []string) int {
 
 	// Initialize the backend
 	backend, err := physical.NewBackend(
-		config.Backend.Type, c.logger, config.Backend.Config)
+		config.Storage.Type, c.logger, config.Storage.Config)
 	if err != nil {
 		c.Ui.Output(fmt.Sprintf(
-			"Error initializing backend of type %s: %s",
-			config.Backend.Type, err))
+			"Error initializing storage of type %s: %s",
+			config.Storage.Type, err))
 		return 1
 	}
 
@@ -221,7 +228,7 @@ func (c *ServerCommand) Run(args []string) int {
 
 	coreConfig := &vault.CoreConfig{
 		Physical:           backend,
-		RedirectAddr:       config.Backend.RedirectAddr,
+		RedirectAddr:       config.Storage.RedirectAddr,
 		HAPhysical:         nil,
 		Seal:               seal,
 		AuditBackends:      c.AuditBackends,
@@ -234,43 +241,50 @@ func (c *ServerCommand) Run(args []string) int {
 		DefaultLeaseTTL:    config.DefaultLeaseTTL,
 		ClusterName:        config.ClusterName,
 		CacheSize:          config.CacheSize,
+		PluginDirectory:    config.PluginDirectory,
+	}
+	if dev {
+		coreConfig.DevToken = devRootTokenID
+		if devLeasedGeneric {
+			coreConfig.LogicalBackends["generic"] = vault.LeasedPassthroughBackendFactory
+		}
 	}
 
 	var disableClustering bool
 
-	// Initialize the separate HA physical backend, if it exists
+	// Initialize the separate HA storage backend, if it exists
 	var ok bool
-	if config.HABackend != nil {
+	if config.HAStorage != nil {
 		habackend, err := physical.NewBackend(
-			config.HABackend.Type, c.logger, config.HABackend.Config)
+			config.HAStorage.Type, c.logger, config.HAStorage.Config)
 		if err != nil {
 			c.Ui.Output(fmt.Sprintf(
-				"Error initializing backend of type %s: %s",
-				config.HABackend.Type, err))
+				"Error initializing HA storage of type %s: %s",
+				config.HAStorage.Type, err))
 			return 1
 		}
 
 		if coreConfig.HAPhysical, ok = habackend.(physical.HABackend); !ok {
-			c.Ui.Output("Specified HA backend does not support HA")
+			c.Ui.Output("Specified HA storage does not support HA")
 			return 1
 		}
 
 		if !coreConfig.HAPhysical.HAEnabled() {
-			c.Ui.Output("Specified HA backend has HA support disabled; please consult documentation")
+			c.Ui.Output("Specified HA storage has HA support disabled; please consult documentation")
 			return 1
 		}
 
-		coreConfig.RedirectAddr = config.HABackend.RedirectAddr
-		disableClustering = config.HABackend.DisableClustering
+		coreConfig.RedirectAddr = config.HAStorage.RedirectAddr
+		disableClustering = config.HAStorage.DisableClustering
 		if !disableClustering {
-			coreConfig.ClusterAddr = config.HABackend.ClusterAddr
+			coreConfig.ClusterAddr = config.HAStorage.ClusterAddr
 		}
 	} else {
 		if coreConfig.HAPhysical, ok = backend.(physical.HABackend); ok {
-			coreConfig.RedirectAddr = config.Backend.RedirectAddr
-			disableClustering = config.Backend.DisableClustering
+			coreConfig.RedirectAddr = config.Storage.RedirectAddr
+			disableClustering = config.Storage.DisableClustering
 			if !disableClustering {
-				coreConfig.ClusterAddr = config.Backend.ClusterAddr
+				coreConfig.ClusterAddr = config.Storage.ClusterAddr
 			}
 		}
 	}
@@ -298,6 +312,9 @@ func (c *ServerCommand) Run(args []string) int {
 			coreConfig.RedirectAddr = redirect
 		}
 	}
+	if coreConfig.RedirectAddr == "" && dev {
+		coreConfig.RedirectAddr = fmt.Sprintf("http://%s", config.Listeners[0].Config["address"])
+	}
 
 	// After the redirect bits are sorted out, if no cluster address was
 	// explicitly given, derive one from the redirect addr
@@ -305,22 +322,35 @@ func (c *ServerCommand) Run(args []string) int {
 		coreConfig.ClusterAddr = ""
 	} else if envCA := os.Getenv("VAULT_CLUSTER_ADDR"); envCA != "" {
 		coreConfig.ClusterAddr = envCA
-	} else if coreConfig.ClusterAddr == "" && coreConfig.RedirectAddr != "" {
-		u, err := url.ParseRequestURI(coreConfig.RedirectAddr)
+	} else {
+		var addrToUse string
+		switch {
+		case coreConfig.ClusterAddr == "" && coreConfig.RedirectAddr != "":
+			addrToUse = coreConfig.RedirectAddr
+		case dev:
+			addrToUse = fmt.Sprintf("http://%s", config.Listeners[0].Config["address"])
+		default:
+			goto CLUSTER_SYNTHESIS_COMPLETE
+		}
+		u, err := url.ParseRequestURI(addrToUse)
 		if err != nil {
-			c.Ui.Output(fmt.Sprintf("Error parsing redirect address %s: %v", coreConfig.RedirectAddr, err))
+			c.Ui.Output(fmt.Sprintf("Error parsing synthesized cluster address %s: %v", addrToUse, err))
 			return 1
 		}
 		host, port, err := net.SplitHostPort(u.Host)
-		nPort, nPortErr := strconv.Atoi(port)
 		if err != nil {
-			// assume it's due to there not being a port specified, in which case
-			// use 443
-			host = u.Host
-			nPort = 443
+			// This sucks, as it's a const in the function but not exported in the package
+			if strings.Contains(err.Error(), "missing port in address") {
+				host = u.Host
+				port = "443"
+			} else {
+				c.Ui.Output(fmt.Sprintf("Error parsing redirect address: %v", err))
+				return 1
+			}
 		}
-		if nPortErr != nil {
-			c.Ui.Output(fmt.Sprintf("Cannot parse %s as a numeric port: %v", port, nPortErr))
+		nPort, err := strconv.Atoi(port)
+		if err != nil {
+			c.Ui.Output(fmt.Sprintf("Error parsing synthesized address; failed to convert %q to a numeric: %v", port, err))
 			return 1
 		}
 		u.Host = net.JoinHostPort(host, strconv.Itoa(nPort+1))
@@ -328,6 +358,9 @@ func (c *ServerCommand) Run(args []string) int {
 		u.Scheme = "https"
 		coreConfig.ClusterAddr = u.String()
 	}
+
+CLUSTER_SYNTHESIS_COMPLETE:
+
 	if coreConfig.ClusterAddr != "" {
 		// Force https as we'll always be TLS-secured
 		u, err := url.ParseRequestURI(coreConfig.ClusterAddr)
@@ -353,34 +386,32 @@ func (c *ServerCommand) Run(args []string) int {
 	c.reloadFuncsLock = coreConfig.ReloadFuncsLock
 
 	// Compile server information for output later
-	info["backend"] = config.Backend.Type
+	info["storage"] = config.Storage.Type
 	info["log level"] = logLevel
 	info["mlock"] = fmt.Sprintf(
 		"supported: %v, enabled: %v",
 		mlock.Supported(), !config.DisableMlock && mlock.Supported())
-	infoKeys = append(infoKeys, "log level", "mlock", "backend")
+	infoKeys = append(infoKeys, "log level", "mlock", "storage")
 
-	if config.HABackend != nil {
-		info["HA backend"] = config.HABackend.Type
+	if coreConfig.ClusterAddr != "" {
+		info["cluster address"] = coreConfig.ClusterAddr
+		infoKeys = append(infoKeys, "cluster address")
+	}
+	if coreConfig.RedirectAddr != "" {
 		info["redirect address"] = coreConfig.RedirectAddr
-		infoKeys = append(infoKeys, "HA backend", "redirect address")
-		if coreConfig.ClusterAddr != "" {
-			info["cluster address"] = coreConfig.ClusterAddr
-			infoKeys = append(infoKeys, "cluster address")
-		}
+		infoKeys = append(infoKeys, "redirect address")
+	}
+
+	if config.HAStorage != nil {
+		info["HA storage"] = config.HAStorage.Type
+		infoKeys = append(infoKeys, "HA storage")
 	} else {
-		// If the backend supports HA, then note it
+		// If the storage supports HA, then note it
 		if coreConfig.HAPhysical != nil {
 			if coreConfig.HAPhysical.HAEnabled() {
-				info["backend"] += " (HA available)"
-				info["redirect address"] = coreConfig.RedirectAddr
-				infoKeys = append(infoKeys, "redirect address")
-				if coreConfig.ClusterAddr != "" {
-					info["cluster address"] = coreConfig.ClusterAddr
-					infoKeys = append(infoKeys, "cluster address")
-				}
+				info["storage"] += " (HA available)"
 			} else {
-				info["backend"] += " (HA disabled)"
+				info["storage"] += " (HA disabled)"
 			}
 		}
 	}
@@ -391,15 +422,6 @@ func (c *ServerCommand) Run(args []string) int {
 	c.reloadFuncsLock.Lock()
 	lns := make([]net.Listener, 0, len(config.Listeners))
 	for i, lnConfig := range config.Listeners {
-		if lnConfig.Type == "atlas" {
-			if config.ClusterName == "" {
-				c.Ui.Output("cluster_name is not set in the config and is a required value")
-				return 1
-			}
-
-			lnConfig.Config["cluster_name"] = config.ClusterName
-		}
-
 		ln, props, reloadFunc, err := server.NewListener(lnConfig.Type, lnConfig.Config, logGate)
 		if err != nil {
 			c.Ui.Output(fmt.Sprintf(
@@ -417,9 +439,11 @@ func (c *ServerCommand) Run(args []string) int {
 		}
 
 		if !disableClustering && lnConfig.Type == "tcp" {
+			var addrRaw interface{}
 			var addr string
 			var ok bool
-			if addr, ok = lnConfig.Config["cluster_address"]; ok {
+			if addrRaw, ok = lnConfig.Config["cluster_address"]; ok {
+				addr = addrRaw.(string)
 				tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 				if err != nil {
 					c.Ui.Output(fmt.Sprintf(
@@ -434,10 +458,12 @@ func (c *ServerCommand) Run(args []string) int {
 					c.Ui.Output("Failed to parse tcp listener")
 					return 1
 				}
-				clusterAddrs = append(clusterAddrs, &net.TCPAddr{
+				clusterAddr := &net.TCPAddr{
 					IP:   tcpAddr.IP,
 					Port: tcpAddr.Port + 1,
-				})
+				}
+				clusterAddrs = append(clusterAddrs, clusterAddr)
+				addr = clusterAddr.String()
 			}
 			props["cluster address"] = addr
 		}
@@ -537,14 +563,14 @@ func (c *ServerCommand) Run(args []string) int {
 	// This needs to happen before we first unseal, so before we trigger dev
 	// mode if it's set
 	core.SetClusterListenerAddrs(clusterAddrs)
-	core.SetClusterSetupFuncs(vault.WrapHandlerForClustering(handler, c.logger))
+	core.SetClusterHandler(handler)
 
-	// If we're in dev mode, then initialize the core
+	// If we're in Dev mode, then initialize the core
 	if dev {
 		init, err := c.enableDev(core, devRootTokenID)
 		if err != nil {
 			c.Ui.Output(fmt.Sprintf(
-				"Error initializing dev mode: %s", err))
+				"Error initializing Dev mode: %s", err))
 			return 1
 		}
 
@@ -563,7 +589,7 @@ func (c *ServerCommand) Run(args []string) int {
 				"immediately begin using the Vault CLI.\n\n"+
 				"The only step you need to take is to set the following\n"+
 				"environment variables:\n\n"+
-				"    "+export+" VAULT_ADDR="+quote+"http://"+config.Listeners[0].Config["address"]+quote+"\n\n"+
+				"    "+export+" VAULT_ADDR="+quote+"http://"+config.Listeners[0].Config["address"].(string)+quote+"\n\n"+
 				"The unseal key and root token are reproduced below in case you\n"+
 				"want to seal/unseal the Vault or play with authentication.\n\n"+
 				"Unseal Key: %s\nRoot Token: %s\n",
@@ -574,6 +600,10 @@ func (c *ServerCommand) Run(args []string) int {
 
 	// Initialize the HTTP server
 	server := &http.Server{}
+	if err := http2.ConfigureServer(server, nil); err != nil {
+		c.Ui.Output(fmt.Sprintf("Error configuring server for HTTP/2: %s", err))
+		return 1
+	}
 	server.Handler = handler
 	for _, ln := range lns {
 		go server.Serve(ln)
@@ -744,7 +774,7 @@ func (c *ServerCommand) detectRedirect(detect physical.RedirectDetect,
 
 		// Check if TLS is disabled
 		if val, ok := list.Config["tls_disable"]; ok {
-			disable, err := strconv.ParseBool(val)
+			disable, err := parseutil.ParseBool(val)
 			if err != nil {
 				return "", fmt.Errorf("tls_disable: %s", err)
 			}
@@ -755,9 +785,12 @@ func (c *ServerCommand) detectRedirect(detect physical.RedirectDetect,
 		}
 
 		// Check for address override
-		addr, ok := list.Config["address"]
+		var addr string
+		addrRaw, ok := list.Config["address"]
 		if !ok {
 			addr = "127.0.0.1:8200"
+		} else {
+			addr = addrRaw.(string)
 		}
 
 		// Check for localhost
@@ -846,6 +879,10 @@ func (c *ServerCommand) setupTelemetry(config *server.Config) error {
 			cfg.CheckManager.API.TokenApp = "vault"
 		}
 
+		if cfg.CheckManager.Check.DisplayName == "" {
+			cfg.CheckManager.Check.DisplayName = "Vault"
+		}
+
 		if cfg.CheckManager.Check.SearchTag == "" {
 			cfg.CheckManager.Check.SearchTag = "service:vault"
 		}
@@ -855,6 +892,21 @@ func (c *ServerCommand) setupTelemetry(config *server.Config) error {
 			return err
 		}
 		sink.Start()
+		fanout = append(fanout, sink)
+	}
+
+	if telConfig.DogStatsDAddr != "" {
+		var tags []string
+
+		if telConfig.DogStatsDTags != nil {
+			tags = telConfig.DogStatsDTags
+		}
+
+		sink, err := datadog.NewDogStatsdSink(telConfig.DogStatsDAddr, metricsConf.HostName)
+		if err != nil {
+			return fmt.Errorf("failed to start DogStatsD sink. Got: %s", err)
+		}
+		sink.SetTags(tags)
 		fanout = append(fanout, sink)
 	}
 
@@ -941,7 +993,7 @@ Usage: vault server [options]
   with "vault unseal" or the API before this server can respond to requests.
   This must be done for every server.
 
-  If the server is being started against a storage backend that has
+  If the server is being started against a storage backend that is
   brand new (no existing Vault data in it), it must be initialized with
   "vault init" or the API first.
 

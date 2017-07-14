@@ -5,7 +5,10 @@
 
 package github
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // ProjectsService provides access to the projects functions in the
 // GitHub API.
@@ -35,8 +38,8 @@ func (p Project) String() string {
 // GetProject gets a GitHub Project for a repo.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/#get-a-project
-func (s *ProjectsService) GetProject(id int) (*Project, *Response, error) {
-	u := fmt.Sprintf("/projects/%v", id)
+func (s *ProjectsService) GetProject(ctx context.Context, id int) (*Project, *Response, error) {
+	u := fmt.Sprintf("projects/%v", id)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
@@ -46,12 +49,12 @@ func (s *ProjectsService) GetProject(id int) (*Project, *Response, error) {
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	project := &Project{}
-	resp, err := s.client.Do(req, project)
+	resp, err := s.client.Do(ctx, req, project)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return project, resp, err
+	return project, resp, nil
 }
 
 // ProjectOptions specifies the parameters to the
@@ -67,8 +70,8 @@ type ProjectOptions struct {
 // UpdateProject updates a repository project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/#update-a-project
-func (s *ProjectsService) UpdateProject(id int, opt *ProjectOptions) (*Project, *Response, error) {
-	u := fmt.Sprintf("/projects/%v", id)
+func (s *ProjectsService) UpdateProject(ctx context.Context, id int, opt *ProjectOptions) (*Project, *Response, error) {
+	u := fmt.Sprintf("projects/%v", id)
 	req, err := s.client.NewRequest("PATCH", u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -78,19 +81,19 @@ func (s *ProjectsService) UpdateProject(id int, opt *ProjectOptions) (*Project, 
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	project := &Project{}
-	resp, err := s.client.Do(req, project)
+	resp, err := s.client.Do(ctx, req, project)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return project, resp, err
+	return project, resp, nil
 }
 
 // DeleteProject deletes a GitHub Project from a repository.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/#delete-a-project
-func (s *ProjectsService) DeleteProject(id int) (*Response, error) {
-	u := fmt.Sprintf("/projects/%v", id)
+func (s *ProjectsService) DeleteProject(ctx context.Context, id int) (*Response, error) {
+	u := fmt.Sprintf("projects/%v", id)
 	req, err := s.client.NewRequest("DELETE", u, nil)
 	if err != nil {
 		return nil, err
@@ -99,7 +102,7 @@ func (s *ProjectsService) DeleteProject(id int) (*Response, error) {
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }
 
 // ProjectColumn represents a column of a GitHub Project.
@@ -116,8 +119,8 @@ type ProjectColumn struct {
 // ListProjectColumns lists the columns of a GitHub Project for a repo.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#list-project-columns
-func (s *ProjectsService) ListProjectColumns(projectId int, opt *ListOptions) ([]*ProjectColumn, *Response, error) {
-	u := fmt.Sprintf("/projects/%v/columns", projectId)
+func (s *ProjectsService) ListProjectColumns(ctx context.Context, projectID int, opt *ListOptions) ([]*ProjectColumn, *Response, error) {
+	u := fmt.Sprintf("projects/%v/columns", projectID)
 	u, err := addOptions(u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -132,19 +135,19 @@ func (s *ProjectsService) ListProjectColumns(projectId int, opt *ListOptions) ([
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	columns := []*ProjectColumn{}
-	resp, err := s.client.Do(req, &columns)
+	resp, err := s.client.Do(ctx, req, &columns)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return columns, resp, err
+	return columns, resp, nil
 }
 
 // GetProjectColumn gets a column of a GitHub Project for a repo.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#get-a-project-column
-func (s *ProjectsService) GetProjectColumn(id int) (*ProjectColumn, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v", id)
+func (s *ProjectsService) GetProjectColumn(ctx context.Context, id int) (*ProjectColumn, *Response, error) {
+	u := fmt.Sprintf("projects/columns/%v", id)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
@@ -154,12 +157,12 @@ func (s *ProjectsService) GetProjectColumn(id int) (*ProjectColumn, *Response, e
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	column := &ProjectColumn{}
-	resp, err := s.client.Do(req, column)
+	resp, err := s.client.Do(ctx, req, column)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return column, resp, err
+	return column, resp, nil
 }
 
 // ProjectColumnOptions specifies the parameters to the
@@ -173,8 +176,8 @@ type ProjectColumnOptions struct {
 // CreateProjectColumn creates a column for the specified (by number) project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#create-a-project-column
-func (s *ProjectsService) CreateProjectColumn(projectId int, opt *ProjectColumnOptions) (*ProjectColumn, *Response, error) {
-	u := fmt.Sprintf("/projects/%v/columns", projectId)
+func (s *ProjectsService) CreateProjectColumn(ctx context.Context, projectID int, opt *ProjectColumnOptions) (*ProjectColumn, *Response, error) {
+	u := fmt.Sprintf("projects/%v/columns", projectID)
 	req, err := s.client.NewRequest("POST", u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -184,19 +187,19 @@ func (s *ProjectsService) CreateProjectColumn(projectId int, opt *ProjectColumnO
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	column := &ProjectColumn{}
-	resp, err := s.client.Do(req, column)
+	resp, err := s.client.Do(ctx, req, column)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return column, resp, err
+	return column, resp, nil
 }
 
 // UpdateProjectColumn updates a column of a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#update-a-project-column
-func (s *ProjectsService) UpdateProjectColumn(columnID int, opt *ProjectColumnOptions) (*ProjectColumn, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v", columnID)
+func (s *ProjectsService) UpdateProjectColumn(ctx context.Context, columnID int, opt *ProjectColumnOptions) (*ProjectColumn, *Response, error) {
+	u := fmt.Sprintf("projects/columns/%v", columnID)
 	req, err := s.client.NewRequest("PATCH", u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -206,19 +209,19 @@ func (s *ProjectsService) UpdateProjectColumn(columnID int, opt *ProjectColumnOp
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	column := &ProjectColumn{}
-	resp, err := s.client.Do(req, column)
+	resp, err := s.client.Do(ctx, req, column)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return column, resp, err
+	return column, resp, nil
 }
 
 // DeleteProjectColumn deletes a column from a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#delete-a-project-column
-func (s *ProjectsService) DeleteProjectColumn(columnID int) (*Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v", columnID)
+func (s *ProjectsService) DeleteProjectColumn(ctx context.Context, columnID int) (*Response, error) {
+	u := fmt.Sprintf("projects/columns/%v", columnID)
 	req, err := s.client.NewRequest("DELETE", u, nil)
 	if err != nil {
 		return nil, err
@@ -227,7 +230,7 @@ func (s *ProjectsService) DeleteProjectColumn(columnID int) (*Response, error) {
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }
 
 // ProjectColumnMoveOptions specifies the parameters to the
@@ -241,8 +244,8 @@ type ProjectColumnMoveOptions struct {
 // MoveProjectColumn moves a column within a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/columns/#move-a-project-column
-func (s *ProjectsService) MoveProjectColumn(columnID int, opt *ProjectColumnMoveOptions) (*Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v/moves", columnID)
+func (s *ProjectsService) MoveProjectColumn(ctx context.Context, columnID int, opt *ProjectColumnMoveOptions) (*Response, error) {
+	u := fmt.Sprintf("projects/columns/%v/moves", columnID)
 	req, err := s.client.NewRequest("POST", u, opt)
 	if err != nil {
 		return nil, err
@@ -251,7 +254,7 @@ func (s *ProjectsService) MoveProjectColumn(columnID int, opt *ProjectColumnMove
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }
 
 // ProjectCard represents a card in a column of a GitHub Project.
@@ -269,8 +272,8 @@ type ProjectCard struct {
 // ListProjectCards lists the cards in a column of a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#list-project-cards
-func (s *ProjectsService) ListProjectCards(columnID int, opt *ListOptions) ([]*ProjectCard, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v/cards", columnID)
+func (s *ProjectsService) ListProjectCards(ctx context.Context, columnID int, opt *ListOptions) ([]*ProjectCard, *Response, error) {
+	u := fmt.Sprintf("projects/columns/%v/cards", columnID)
 	u, err := addOptions(u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -285,19 +288,19 @@ func (s *ProjectsService) ListProjectCards(columnID int, opt *ListOptions) ([]*P
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	cards := []*ProjectCard{}
-	resp, err := s.client.Do(req, &cards)
+	resp, err := s.client.Do(ctx, req, &cards)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return cards, resp, err
+	return cards, resp, nil
 }
 
 // GetProjectCard gets a card in a column of a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#get-a-project-card
-func (s *ProjectsService) GetProjectCard(columnID int) (*ProjectCard, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/cards/%v", columnID)
+func (s *ProjectsService) GetProjectCard(ctx context.Context, columnID int) (*ProjectCard, *Response, error) {
+	u := fmt.Sprintf("projects/columns/cards/%v", columnID)
 	req, err := s.client.NewRequest("GET", u, nil)
 	if err != nil {
 		return nil, nil, err
@@ -307,12 +310,12 @@ func (s *ProjectsService) GetProjectCard(columnID int) (*ProjectCard, *Response,
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	card := &ProjectCard{}
-	resp, err := s.client.Do(req, card)
+	resp, err := s.client.Do(ctx, req, card)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return card, resp, err
+	return card, resp, nil
 }
 
 // ProjectCardOptions specifies the parameters to the
@@ -331,8 +334,8 @@ type ProjectCardOptions struct {
 // CreateProjectCard creates a card in the specified column of a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#create-a-project-card
-func (s *ProjectsService) CreateProjectCard(columnID int, opt *ProjectCardOptions) (*ProjectCard, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/%v/cards", columnID)
+func (s *ProjectsService) CreateProjectCard(ctx context.Context, columnID int, opt *ProjectCardOptions) (*ProjectCard, *Response, error) {
+	u := fmt.Sprintf("projects/columns/%v/cards", columnID)
 	req, err := s.client.NewRequest("POST", u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -342,19 +345,19 @@ func (s *ProjectsService) CreateProjectCard(columnID int, opt *ProjectCardOption
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	card := &ProjectCard{}
-	resp, err := s.client.Do(req, card)
+	resp, err := s.client.Do(ctx, req, card)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return card, resp, err
+	return card, resp, nil
 }
 
 // UpdateProjectCard updates a card of a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#update-a-project-card
-func (s *ProjectsService) UpdateProjectCard(cardID int, opt *ProjectCardOptions) (*ProjectCard, *Response, error) {
-	u := fmt.Sprintf("/projects/columns/cards/%v", cardID)
+func (s *ProjectsService) UpdateProjectCard(ctx context.Context, cardID int, opt *ProjectCardOptions) (*ProjectCard, *Response, error) {
+	u := fmt.Sprintf("projects/columns/cards/%v", cardID)
 	req, err := s.client.NewRequest("PATCH", u, opt)
 	if err != nil {
 		return nil, nil, err
@@ -364,19 +367,19 @@ func (s *ProjectsService) UpdateProjectCard(cardID int, opt *ProjectCardOptions)
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
 	card := &ProjectCard{}
-	resp, err := s.client.Do(req, card)
+	resp, err := s.client.Do(ctx, req, card)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return card, resp, err
+	return card, resp, nil
 }
 
 // DeleteProjectCard deletes a card from a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#delete-a-project-card
-func (s *ProjectsService) DeleteProjectCard(cardID int) (*Response, error) {
-	u := fmt.Sprintf("/projects/columns/cards/%v", cardID)
+func (s *ProjectsService) DeleteProjectCard(ctx context.Context, cardID int) (*Response, error) {
+	u := fmt.Sprintf("projects/columns/cards/%v", cardID)
 	req, err := s.client.NewRequest("DELETE", u, nil)
 	if err != nil {
 		return nil, err
@@ -385,7 +388,7 @@ func (s *ProjectsService) DeleteProjectCard(cardID int) (*Response, error) {
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }
 
 // ProjectCardMoveOptions specifies the parameters to the
@@ -403,8 +406,8 @@ type ProjectCardMoveOptions struct {
 // MoveProjectCard moves a card within a GitHub Project.
 //
 // GitHub API docs: https://developer.github.com/v3/projects/cards/#move-a-project-card
-func (s *ProjectsService) MoveProjectCard(cardID int, opt *ProjectCardMoveOptions) (*Response, error) {
-	u := fmt.Sprintf("/projects/columns/cards/%v/moves", cardID)
+func (s *ProjectsService) MoveProjectCard(ctx context.Context, cardID int, opt *ProjectCardMoveOptions) (*Response, error) {
+	u := fmt.Sprintf("projects/columns/cards/%v/moves", cardID)
 	req, err := s.client.NewRequest("POST", u, opt)
 	if err != nil {
 		return nil, err
@@ -413,5 +416,5 @@ func (s *ProjectsService) MoveProjectCard(cardID int, opt *ProjectCardMoveOption
 	// TODO: remove custom Accept header when this API fully launches.
 	req.Header.Set("Accept", mediaTypeProjectsPreview)
 
-	return s.client.Do(req, nil)
+	return s.client.Do(ctx, req, nil)
 }

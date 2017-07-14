@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/pgpkeys"
 	"github.com/hashicorp/vault/vault"
 )
@@ -16,6 +17,13 @@ func handleSysRekeyInit(core *vault.Core, recovery bool) http.Handler {
 		standby, _ := core.Standby()
 		if standby {
 			respondStandby(core, w, r.URL)
+			return
+		}
+
+		repState := core.ReplicationState()
+		if repState == consts.ReplicationSecondary {
+			respondError(w, http.StatusBadRequest,
+				fmt.Errorf("rekeying can only be performed on the primary cluster when replication is activated"))
 			return
 		}
 
@@ -108,8 +116,13 @@ func handleSysRekeyInitPut(core *vault.Core, recovery bool, w http.ResponseWrite
 	// Right now we don't support this, but the rest of the code is ready for
 	// when we do, hence the check below for this to be false if
 	// StoredShares is greater than zero
-	if core.SealAccess().StoredKeysSupported() {
+	if core.SealAccess().StoredKeysSupported() && !recovery {
 		respondError(w, http.StatusBadRequest, fmt.Errorf("rekeying of barrier not supported when stored key support is available"))
+		return
+	}
+
+	if len(req.PGPKeys) > 0 && len(req.PGPKeys) != req.SecretShares-req.StoredShares {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("incorrect number of PGP keys for rekey"))
 		return
 	}
 
@@ -155,7 +168,7 @@ func handleSysRekeyUpdate(core *vault.Core, recovery bool) http.Handler {
 		if req.Key == "" {
 			respondError(
 				w, http.StatusBadRequest,
-				errors.New("'key' must specified in request body as JSON"))
+				errors.New("'key' must be specified in request body as JSON"))
 			return
 		}
 
@@ -199,8 +212,10 @@ func handleSysRekeyUpdate(core *vault.Core, recovery bool) http.Handler {
 			}
 			resp.Keys = keys
 			resp.KeysB64 = keysB64
+			respondOk(w, resp)
+		} else {
+			handleSysRekeyInitGet(core, recovery, w, r)
 		}
-		respondOk(w, resp)
 	})
 }
 

@@ -1,14 +1,22 @@
 package cert
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"io/ioutil"
+	"math/big"
+	"net"
+	"os"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/vault/helper/certutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	logicaltest "github.com/hashicorp/vault/logical/testing"
@@ -99,6 +107,222 @@ func connectionState(t *testing.T, serverCAPath, serverCertPath, serverKeyPath, 
 	// Grab the current state
 	connState := serverConn.(*tls.Conn).ConnectionState()
 	return connState
+}
+
+func TestBackend_NonCAExpiry(t *testing.T) {
+	var resp *logical.Response
+	var err error
+
+	// Create a self-signed certificate and issue a leaf certificate using the
+	// CA cert
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1234),
+		Subject: pkix.Name{
+			CommonName:         "localhost",
+			Organization:       []string{"hashicorp"},
+			OrganizationalUnit: []string{"vault"},
+		},
+		BasicConstraintsValid: true,
+		NotBefore:             time.Now().Add(-30 * time.Second),
+		NotAfter:              time.Now().Add(50 * time.Second),
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsage(x509.KeyUsageCertSign | x509.KeyUsageCRLSign),
+	}
+
+	// Set IP SAN
+	parsedIP := net.ParseIP("127.0.0.1")
+	if parsedIP == nil {
+		t.Fatalf("failed to create parsed IP")
+	}
+	template.IPAddresses = []net.IP{parsedIP}
+
+	// Private key for CA cert
+	caPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Marshalling to be able to create PEM file
+	caPrivateKeyBytes := x509.MarshalPKCS1PrivateKey(caPrivateKey)
+
+	caPublicKey := &caPrivateKey.PublicKey
+
+	template.IsCA = true
+
+	caCertBytes, err := x509.CreateCertificate(rand.Reader, template, template, caPublicKey, caPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	caCert, err := x509.ParseCertificate(caCertBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsedCaBundle := &certutil.ParsedCertBundle{
+		Certificate:      caCert,
+		CertificateBytes: caCertBytes,
+		PrivateKeyBytes:  caPrivateKeyBytes,
+		PrivateKeyType:   certutil.RSAPrivateKey,
+	}
+
+	caCertBundle, err := parsedCaBundle.ToCertBundle()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	caCertFile, err := ioutil.TempFile("", "caCert")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(caCertFile.Name())
+
+	if _, err := caCertFile.Write([]byte(caCertBundle.Certificate)); err != nil {
+		t.Fatal(err)
+	}
+	if err := caCertFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	caKeyFile, err := ioutil.TempFile("", "caKey")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(caKeyFile.Name())
+
+	if _, err := caKeyFile.Write([]byte(caCertBundle.PrivateKey)); err != nil {
+		t.Fatal(err)
+	}
+	if err := caKeyFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Prepare template for non-CA cert
+
+	template.IsCA = false
+	template.SerialNumber = big.NewInt(5678)
+
+	template.KeyUsage = x509.KeyUsage(x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign)
+	issuedPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	issuedPrivateKeyBytes := x509.MarshalPKCS1PrivateKey(issuedPrivateKey)
+
+	issuedPublicKey := &issuedPrivateKey.PublicKey
+
+	// Keep a short certificate lifetime so logins can be tested both when
+	// cert is valid and when it gets expired
+	template.NotBefore = time.Now().Add(-2 * time.Second)
+	template.NotAfter = time.Now().Add(3 * time.Second)
+
+	issuedCertBytes, err := x509.CreateCertificate(rand.Reader, template, caCert, issuedPublicKey, caPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	issuedCert, err := x509.ParseCertificate(issuedCertBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsedIssuedBundle := &certutil.ParsedCertBundle{
+		Certificate:      issuedCert,
+		CertificateBytes: issuedCertBytes,
+		PrivateKeyBytes:  issuedPrivateKeyBytes,
+		PrivateKeyType:   certutil.RSAPrivateKey,
+	}
+
+	issuedCertBundle, err := parsedIssuedBundle.ToCertBundle()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	issuedCertFile, err := ioutil.TempFile("", "issuedCert")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(issuedCertFile.Name())
+
+	if _, err := issuedCertFile.Write([]byte(issuedCertBundle.Certificate)); err != nil {
+		t.Fatal(err)
+	}
+	if err := issuedCertFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	issuedKeyFile, err := ioutil.TempFile("", "issuedKey")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(issuedKeyFile.Name())
+
+	if _, err := issuedKeyFile.Write([]byte(issuedCertBundle.PrivateKey)); err != nil {
+		t.Fatal(err)
+	}
+	if err := issuedKeyFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b, err := Factory(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Register the Non-CA certificate of the client key pair
+	certData := map[string]interface{}{
+		"certificate":  issuedCertBundle.Certificate,
+		"policies":     "abc",
+		"display_name": "cert1",
+		"ttl":          10000,
+	}
+	certReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Path:      "certs/cert1",
+		Storage:   storage,
+		Data:      certData,
+	}
+
+	resp, err = b.HandleRequest(certReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	// Create connection state using the certificates generated
+	connState := connectionState(t, caCertFile.Name(), caCertFile.Name(), caKeyFile.Name(), issuedCertFile.Name(), issuedKeyFile.Name())
+
+	loginReq := &logical.Request{
+		Operation: logical.UpdateOperation,
+		Storage:   storage,
+		Path:      "login",
+		Connection: &logical.Connection{
+			ConnState: &connState,
+		},
+	}
+
+	// Login when the certificate is still valid. Login should succeed.
+	resp, err = b.HandleRequest(loginReq)
+	if err != nil || (resp != nil && resp.IsError()) {
+		t.Fatalf("err:%v resp:%#v", err, resp)
+	}
+
+	// Wait until the certificate expires
+	time.Sleep(5 * time.Second)
+
+	// Login attempt after certificate expiry should fail
+	resp, err = b.HandleRequest(loginReq)
+	if err == nil {
+		t.Fatalf("expected error due to expired certificate")
+	}
 }
 
 func TestBackend_RegisteredNonCA_CRL(t *testing.T) {
@@ -348,9 +572,9 @@ func TestBackend_CertWrites(t *testing.T) {
 	tc := logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "aaa", ca1, "foo", false),
-			testAccStepCert(t, "bbb", ca2, "foo", false),
-			testAccStepCert(t, "ccc", ca3, "foo", true),
+			testAccStepCert(t, "aaa", ca1, "foo", "", false),
+			testAccStepCert(t, "bbb", ca2, "foo", "", false),
+			testAccStepCert(t, "ccc", ca3, "foo", "", true),
 		},
 	}
 	tc.Steps = append(tc.Steps, testAccStepListCerts(t, []string{"aaa", "bbb"})...)
@@ -368,13 +592,17 @@ func TestBackend_basic_CA(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "web", ca, "foo", false),
+			testAccStepCert(t, "web", ca, "foo", "", false),
 			testAccStepLogin(t, connState),
 			testAccStepCertLease(t, "web", ca, "foo"),
 			testAccStepCertTTL(t, "web", ca, "foo"),
 			testAccStepLogin(t, connState),
 			testAccStepCertNoLease(t, "web", ca, "foo"),
 			testAccStepLoginDefaultLease(t, connState),
+			testAccStepCert(t, "web", ca, "foo", "*.example.com", false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", "*.invalid.com", false),
+			testAccStepLoginInvalid(t, connState),
 		},
 	})
 }
@@ -405,8 +633,29 @@ func TestBackend_Basic_CRLs(t *testing.T) {
 	})
 }
 
-// Test a self-signed client that is trusted
+// Test a self-signed client (root CA) that is trusted
 func TestBackend_basic_singleCert(t *testing.T) {
+	connState := testConnState(t, "test-fixtures/root/rootcacert.pem",
+		"test-fixtures/root/rootcakey.pem", "test-fixtures/root/rootcacert.pem")
+	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	logicaltest.Test(t, logicaltest.TestCase{
+		Backend: testFactory(t),
+		Steps: []logicaltest.TestStep{
+			testAccStepCert(t, "web", ca, "foo", "", false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", "example.com", false),
+			testAccStepLogin(t, connState),
+			testAccStepCert(t, "web", ca, "foo", "invalid", false),
+			testAccStepLoginInvalid(t, connState),
+		},
+	})
+}
+
+// Test against a collection of matching and non-matching rules
+func TestBackend_mixed_constraints(t *testing.T) {
 	connState := testConnState(t, "test-fixtures/keys/cert.pem",
 		"test-fixtures/keys/key.pem", "test-fixtures/root/rootcacert.pem")
 	ca, err := ioutil.ReadFile("test-fixtures/root/rootcacert.pem")
@@ -416,13 +665,18 @@ func TestBackend_basic_singleCert(t *testing.T) {
 	logicaltest.Test(t, logicaltest.TestCase{
 		Backend: testFactory(t),
 		Steps: []logicaltest.TestStep{
-			testAccStepCert(t, "web", ca, "foo", false),
+			testAccStepCert(t, "1unconstrained", ca, "foo", "", false),
+			testAccStepCert(t, "2matching", ca, "foo", "*.example.com,whatever", false),
+			testAccStepCert(t, "3invalid", ca, "foo", "invalid", false),
 			testAccStepLogin(t, connState),
+			// Assumes CertEntries are processed in alphabetical order (due to store.List), so we only match 2matching if 1unconstrained doesn't match
+			testAccStepLoginWithName(t, connState, "2matching"),
+			testAccStepLoginWithNameInvalid(t, connState, "3invalid"),
 		},
 	})
 }
 
-// Test an untrusted self-signed client
+// Test an untrusted client
 func TestBackend_untrusted(t *testing.T) {
 	connState := testConnState(t, "test-fixtures/keys/cert.pem",
 		"test-fixtures/keys/key.pem", "test-fixtures/root/rootcacert.pem")
@@ -476,6 +730,10 @@ func testAccStepDeleteCRL(t *testing.T, connState tls.ConnectionState) logicalte
 }
 
 func testAccStepLogin(t *testing.T, connState tls.ConnectionState) logicaltest.TestStep {
+	return testAccStepLoginWithName(t, connState, "")
+}
+
+func testAccStepLoginWithName(t *testing.T, connState tls.ConnectionState, certName string) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation:       logical.UpdateOperation,
 		Path:            "login",
@@ -486,8 +744,15 @@ func testAccStepLogin(t *testing.T, connState tls.ConnectionState) logicaltest.T
 				t.Fatalf("bad lease length: %#v", resp.Auth)
 			}
 
+			if certName != "" && resp.Auth.DisplayName != ("mnt-"+certName) {
+				t.Fatalf("matched the wrong cert: %#v", resp.Auth.DisplayName)
+			}
+
 			fn := logicaltest.TestCheckAuth([]string{"default", "foo"})
 			return fn(resp)
+		},
+		Data: map[string]interface{}{
+			"name": certName,
 		},
 	}
 }
@@ -510,6 +775,10 @@ func testAccStepLoginDefaultLease(t *testing.T, connState tls.ConnectionState) l
 }
 
 func testAccStepLoginInvalid(t *testing.T, connState tls.ConnectionState) logicaltest.TestStep {
+	return testAccStepLoginWithNameInvalid(t, connState, "")
+}
+
+func testAccStepLoginWithNameInvalid(t *testing.T, connState tls.ConnectionState, certName string) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation:       logical.UpdateOperation,
 		Path:            "login",
@@ -520,6 +789,9 @@ func testAccStepLoginInvalid(t *testing.T, connState tls.ConnectionState) logica
 				return fmt.Errorf("should not be authorized: %#v", resp)
 			}
 			return nil
+		},
+		Data: map[string]interface{}{
+			"name": certName,
 		},
 		ErrorOk: true,
 	}
@@ -572,16 +844,17 @@ func testAccStepListCerts(
 }
 
 func testAccStepCert(
-	t *testing.T, name string, cert []byte, policies string, expectError bool) logicaltest.TestStep {
+	t *testing.T, name string, cert []byte, policies string, allowedNames string, expectError bool) logicaltest.TestStep {
 	return logicaltest.TestStep{
 		Operation: logical.UpdateOperation,
 		Path:      "certs/" + name,
 		ErrorOk:   expectError,
 		Data: map[string]interface{}{
-			"certificate":  string(cert),
-			"policies":     policies,
-			"display_name": name,
-			"lease":        1000,
+			"certificate":   string(cert),
+			"policies":      policies,
+			"display_name":  name,
+			"allowed_names": allowedNames,
+			"lease":         1000,
 		},
 		Check: func(resp *logical.Response) error {
 			if resp == nil && expectError {
@@ -697,7 +970,7 @@ func Test_Renew(t *testing.T) {
 		StorageView: storage,
 	})
 	if err != nil {
-		t.Fatal("error: %s", err)
+		t.Fatalf("error: %s", err)
 	}
 
 	b := lb.(*backend)
@@ -730,9 +1003,16 @@ func Test_Renew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err = b.pathLogin(req, nil)
+	empty_login_fd := &framework.FieldData{
+		Raw:    map[string]interface{}{},
+		Schema: pathLogin(b).Fields,
+	}
+	resp, err = b.pathLogin(req, empty_login_fd)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if resp.IsError() {
+		t.Fatalf("got error: %#v", *resp)
 	}
 	req.Auth.InternalData = resp.Auth.InternalData
 	req.Auth.Metadata = resp.Auth.Metadata
@@ -741,7 +1021,7 @@ func Test_Renew(t *testing.T) {
 	req.Auth.IssueTime = time.Now()
 
 	// Normal renewal
-	resp, err = b.pathLoginRenew(req, nil)
+	resp, err = b.pathLoginRenew(req, empty_login_fd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -759,7 +1039,7 @@ func Test_Renew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err = b.pathLoginRenew(req, nil)
+	resp, err = b.pathLoginRenew(req, empty_login_fd)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -771,7 +1051,7 @@ func Test_Renew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err = b.pathLoginRenew(req, nil)
+	resp, err = b.pathLoginRenew(req, empty_login_fd)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -779,7 +1059,7 @@ func Test_Renew(t *testing.T) {
 		t.Fatal("got nil response from renew")
 	}
 	if resp.IsError() {
-		t.Fatal("got error: %#v", *resp)
+		t.Fatalf("got error: %#v", *resp)
 	}
 
 	// Delete CA, make sure we can't renew
@@ -788,7 +1068,7 @@ func Test_Renew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	resp, err = b.pathLoginRenew(req, nil)
+	resp, err = b.pathLoginRenew(req, empty_login_fd)
 	if err != nil {
 		t.Fatal(err)
 	}

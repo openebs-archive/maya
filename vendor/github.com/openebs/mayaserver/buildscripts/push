@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+IMAGEID=$( sudo docker images -q openebs/m-apiserver:ci )
+
+if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
+then 
+  sudo docker login -u "${DNAME}" -p "${DPASS}"; 
+  #Push the development build images to jiva-ci docker hub repository
+  sudo docker push openebs/m-apiserver:ci ; 
+  if [ ! -z "${TRAVIS_TAG}" ] ; 
+  then
+    #Push the release tag image to jiva docker hub repository
+    #When a git hub is tagged with a release, the travis will 
+    #hold the release tag in env TRAVIS_TAG
+    sudo docker tag ${IMAGEID} openebs/m-apiserver:${TRAVIS_TAG}
+    sudo docker push openebs/m-apiserver:${TRAVIS_TAG}; 
+    sudo docker tag ${IMAGEID} openebs/m-apiserver:latest
+    sudo docker push openebs/m-apiserver:latest; 
+  fi;
+else
+  echo "No docker credentials provided. Skip uploading openebs/m-apiserver:ci to docker hub"; 
+fi;

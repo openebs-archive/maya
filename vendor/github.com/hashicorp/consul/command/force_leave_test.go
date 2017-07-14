@@ -1,27 +1,40 @@
 package command
 
 import (
-	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/serf/serf"
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/cli"
 )
 
+func testForceLeaveCommand(t *testing.T) (*cli.MockUi, *ForceLeaveCommand) {
+	ui := cli.NewMockUi()
+	return ui, &ForceLeaveCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetClientHTTP,
+		},
+	}
+}
+
 func TestForceLeaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &ForceLeaveCommand{}
 }
 
 func TestForceLeaveCommandRun(t *testing.T) {
-	a1 := testAgent(t)
-	a2 := testAgent(t)
+	t.Parallel()
+	a1 := agent.NewTestAgent(t.Name(), nil)
+	a2 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan)
-	_, err := a1.agent.JoinLAN([]string{addr})
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.Config.Ports.SerfLan)
+	_, err := a1.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -29,11 +42,10 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	// Forcibly shutdown a2 so that it appears "failed" in a1
 	a2.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &ForceLeaveCommand{Ui: ui}
+	ui, c := testForceLeaveCommand(t)
 	args := []string{
-		"-rpc-addr=" + a1.addr,
-		a2.config.NodeName,
+		"-http-addr=" + a1.HTTPAddr(),
+		a2.Config.NodeName,
 	}
 
 	code := c.Run(args)
@@ -41,24 +53,23 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	m := a1.agent.LANMembers()
+	m := a1.LANMembers()
 	if len(m) != 2 {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
-
-	testutil.WaitForResult(func() (bool, error) {
-		m = a1.agent.LANMembers()
-		success := m[1].Status == serf.StatusLeft
-		return success, errors.New(m[1].Status.String())
-	}, func(err error) {
-		t.Fatalf("member status is %v, should be left", err)
+	retry.Run(t, func(r *retry.R) {
+		m = a1.LANMembers()
+		if got, want := m[1].Status, serf.StatusLeft; got != want {
+			r.Fatalf("got status %q want %q", got, want)
+		}
 	})
 }
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &ForceLeaveCommand{Ui: ui}
-	args := []string{"-rpc-addr=foo"}
+	t.Parallel()
+	ui := cli.NewMockUi()
+	ui, c := testForceLeaveCommand(t)
+	args := []string{"-http-addr=foo"}
 
 	code := c.Run(args)
 	if code != 1 {

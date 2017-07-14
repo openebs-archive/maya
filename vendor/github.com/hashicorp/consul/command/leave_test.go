@@ -1,22 +1,35 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/mitchellh/cli"
 )
 
+func testLeaveCommand(t *testing.T) (*cli.MockUi, *LeaveCommand) {
+	ui := cli.NewMockUi()
+	return ui, &LeaveCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetClientHTTP,
+		},
+	}
+}
+
 func TestLeaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &LeaveCommand{}
 }
 
 func TestLeaveCommandRun(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &LeaveCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr}
+	ui, c := testLeaveCommand(t)
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -29,12 +42,12 @@ func TestLeaveCommandRun(t *testing.T) {
 }
 
 func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &LeaveCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr, "appserver1"}
+	_, c := testLeaveCommand(t)
+	args := []string{"-http-addr=" + a.HTTPAddr(), "appserver1"}
 
 	code := c.Run(args)
 	if code == 0 {

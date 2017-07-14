@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/yamux"
@@ -34,6 +36,20 @@ func TestConfig_CACertificate_Valid(t *testing.T) {
 	}
 	if len(pool.Subjects()) == 0 {
 		t.Fatalf("expected cert")
+	}
+}
+
+func TestConfig_CAPath_Valid(t *testing.T) {
+	conf := &Config{
+		CAPath: "../test/ca_path",
+	}
+
+	tlsConf, err := conf.IncomingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(tlsConf.ClientCAs.Subjects()) != 2 {
+		t.Fatalf("expected certs")
 	}
 }
 
@@ -180,6 +196,27 @@ func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	}
 	if len(tls.Certificates) != 1 {
 		t.Fatalf("expected client cert")
+	}
+}
+
+func TestConfig_OutgoingTLS_TLSMinVersion(t *testing.T) {
+	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	for _, version := range tlsVersions {
+		conf := &Config{
+			VerifyOutgoing: true,
+			CAFile:         "../test/ca/root.cer",
+			TLSMinVersion:  version,
+		}
+		tls, err := conf.OutgoingTLSConfig()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if tls == nil {
+			t.Fatalf("expected config")
+		}
+		if tls.MinVersion != TLSLookup[version] {
+			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
+		}
 	}
 }
 
@@ -448,5 +485,71 @@ func TestConfig_IncomingTLS_NoVerify(t *testing.T) {
 	}
 	if len(tlsC.Certificates) != 0 {
 		t.Fatalf("unexpected client cert")
+	}
+}
+
+func TestConfig_IncomingTLS_TLSMinVersion(t *testing.T) {
+	tlsVersions := []string{"tls10", "tls11", "tls12"}
+	for _, version := range tlsVersions {
+		conf := &Config{
+			VerifyIncoming: true,
+			CAFile:         "../test/ca/root.cer",
+			CertFile:       "../test/key/ourdomain.cer",
+			KeyFile:        "../test/key/ourdomain.key",
+			TLSMinVersion:  version,
+		}
+		tls, err := conf.IncomingTLSConfig()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if tls == nil {
+			t.Fatalf("expected config")
+		}
+		if tls.MinVersion != TLSLookup[version] {
+			t.Fatalf("expected tls min version: %v, %v", tls.MinVersion, TLSLookup[version])
+		}
+	}
+}
+
+func TestConfig_ParseCiphers(t *testing.T) {
+	testOk := strings.Join([]string{
+		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_RSA_WITH_AES_128_CBC_SHA",
+		"TLS_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_RSA_WITH_AES_256_CBC_SHA",
+		"TLS_RSA_WITH_AES_256_GCM_SHA384",
+	}, ",")
+	ciphers := []uint16{
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	}
+	v, err := ParseCiphers(testOk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := v, ciphers; !reflect.DeepEqual(got, want) {
+		t.Fatalf("got ciphers %#v want %#v", got, want)
+	}
+
+	testBad := "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,cipherX"
+	if _, err := ParseCiphers(testBad); err == nil {
+		t.Fatal("should fail on unsupported cipherX")
 	}
 }

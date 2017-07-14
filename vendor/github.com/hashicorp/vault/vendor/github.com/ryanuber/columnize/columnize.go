@@ -83,9 +83,9 @@ func stringFormat(c *Config, widths []int, columns int) string {
 // elementsFromLine returns a list of elements, each representing a single
 // item which will belong to a column of output.
 func elementsFromLine(config *Config, line string) []interface{} {
-	seperated := strings.Split(line, config.Delim)
-	elements := make([]interface{}, len(seperated))
-	for i, field := range seperated {
+	separated := strings.Split(line, config.Delim)
+	elements := make([]interface{}, len(separated))
+	for i, field := range separated {
 		value := strings.TrimSpace(field)
 
 		// Apply the empty value, if configured.
@@ -97,6 +97,15 @@ func elementsFromLine(config *Config, line string) []interface{} {
 	return elements
 }
 
+// runeLen calculates the number of visible "characters" in a string
+func runeLen(s string) int {
+	l := 0
+	for _ = range s {
+		l++
+	}
+	return l
+}
+
 // widthsFromLines examines a list of strings and determines how wide each
 // column should be considering all of the elements that need to be printed
 // within it.
@@ -106,7 +115,7 @@ func widthsFromLines(config *Config, lines []string) []int {
 	for _, line := range lines {
 		elems := elementsFromLine(config, line)
 		for i := 0; i < len(elems); i++ {
-			l := len(elems[i].(string))
+			l := runeLen(elems[i].(string))
 			if len(widths) <= i {
 				widths = append(widths, l)
 			} else if widths[i] < l {

@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleCognitoSync_BulkPublish() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.BulkPublishInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -41,13 +35,7 @@ func ExampleCognitoSync_BulkPublish() {
 }
 
 func ExampleCognitoSync_DeleteDataset() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.DeleteDatasetInput{
 		DatasetName:    aws.String("DatasetName"),    // Required
@@ -68,13 +56,7 @@ func ExampleCognitoSync_DeleteDataset() {
 }
 
 func ExampleCognitoSync_DescribeDataset() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.DescribeDatasetInput{
 		DatasetName:    aws.String("DatasetName"),    // Required
@@ -95,13 +77,7 @@ func ExampleCognitoSync_DescribeDataset() {
 }
 
 func ExampleCognitoSync_DescribeIdentityPoolUsage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.DescribeIdentityPoolUsageInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -120,13 +96,7 @@ func ExampleCognitoSync_DescribeIdentityPoolUsage() {
 }
 
 func ExampleCognitoSync_DescribeIdentityUsage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.DescribeIdentityUsageInput{
 		IdentityId:     aws.String("IdentityId"),     // Required
@@ -146,13 +116,7 @@ func ExampleCognitoSync_DescribeIdentityUsage() {
 }
 
 func ExampleCognitoSync_GetBulkPublishDetails() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.GetBulkPublishDetailsInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -171,13 +135,7 @@ func ExampleCognitoSync_GetBulkPublishDetails() {
 }
 
 func ExampleCognitoSync_GetCognitoEvents() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.GetCognitoEventsInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -196,13 +154,7 @@ func ExampleCognitoSync_GetCognitoEvents() {
 }
 
 func ExampleCognitoSync_GetIdentityPoolConfiguration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.GetIdentityPoolConfigurationInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -221,13 +173,7 @@ func ExampleCognitoSync_GetIdentityPoolConfiguration() {
 }
 
 func ExampleCognitoSync_ListDatasets() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.ListDatasetsInput{
 		IdentityId:     aws.String("IdentityId"),     // Required
@@ -249,13 +195,7 @@ func ExampleCognitoSync_ListDatasets() {
 }
 
 func ExampleCognitoSync_ListIdentityPoolUsage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.ListIdentityPoolUsageInput{
 		MaxResults: aws.Int64(1),
@@ -275,13 +215,7 @@ func ExampleCognitoSync_ListIdentityPoolUsage() {
 }
 
 func ExampleCognitoSync_ListRecords() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.ListRecordsInput{
 		DatasetName:      aws.String("DatasetName"),    // Required
@@ -306,13 +240,7 @@ func ExampleCognitoSync_ListRecords() {
 }
 
 func ExampleCognitoSync_RegisterDevice() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.RegisterDeviceInput{
 		IdentityId:     aws.String("IdentityId"),     // Required
@@ -334,13 +262,7 @@ func ExampleCognitoSync_RegisterDevice() {
 }
 
 func ExampleCognitoSync_SetCognitoEvents() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.SetCognitoEventsInput{
 		Events: map[string]*string{ // Required
@@ -363,13 +285,7 @@ func ExampleCognitoSync_SetCognitoEvents() {
 }
 
 func ExampleCognitoSync_SetIdentityPoolConfiguration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.SetIdentityPoolConfigurationInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -400,13 +316,7 @@ func ExampleCognitoSync_SetIdentityPoolConfiguration() {
 }
 
 func ExampleCognitoSync_SubscribeToDataset() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.SubscribeToDatasetInput{
 		DatasetName:    aws.String("DatasetName"),    // Required
@@ -428,13 +338,7 @@ func ExampleCognitoSync_SubscribeToDataset() {
 }
 
 func ExampleCognitoSync_UnsubscribeFromDataset() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.UnsubscribeFromDatasetInput{
 		DatasetName:    aws.String("DatasetName"),    // Required
@@ -456,13 +360,7 @@ func ExampleCognitoSync_UnsubscribeFromDataset() {
 }
 
 func ExampleCognitoSync_UpdateRecords() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitosync.New(sess)
+	svc := cognitosync.New(session.New())
 
 	params := &cognitosync.UpdateRecordsInput{
 		DatasetName:      aws.String("DatasetName"),      // Required

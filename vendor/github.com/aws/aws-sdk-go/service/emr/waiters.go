@@ -6,10 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
-// WaitUntilClusterRunning uses the Amazon EMR API operation
-// DescribeCluster to wait for a condition to be met before returning.
-// If the condition is not meet within the max attempt window an error will
-// be returned.
 func (c *EMR) WaitUntilClusterRunning(input *DescribeClusterInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeCluster",
@@ -57,10 +53,6 @@ func (c *EMR) WaitUntilClusterRunning(input *DescribeClusterInput) error {
 	return w.Wait()
 }
 
-// WaitUntilStepComplete uses the Amazon EMR API operation
-// DescribeStep to wait for a condition to be met before returning.
-// If the condition is not meet within the max attempt window an error will
-// be returned.
 func (c *EMR) WaitUntilStepComplete(input *DescribeStepInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeStep",

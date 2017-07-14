@@ -1,50 +1,60 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/agent"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 )
 
 // KeyringCommand is a Command implementation that handles querying, installing,
 // and removing gossip encryption keys from a keyring.
 type KeyringCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *KeyringCommand) Run(args []string) int {
-	var installKey, useKey, removeKey, token string
+	var installKey, useKey, removeKey string
 	var listKeys bool
+	var relay int
 
-	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+	f := c.BaseCommand.NewFlagSet(c)
 
-	cmdFlags.StringVar(&installKey, "install", "", "install key")
-	cmdFlags.StringVar(&useKey, "use", "", "use key")
-	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
-	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
-	cmdFlags.StringVar(&token, "token", "", "acl token")
+	f.StringVar(&installKey, "install", "",
+		"Install a new encryption key. This will broadcast the new key to "+
+			"all members in the cluster.")
+	f.StringVar(&useKey, "use", "",
+		"Change the primary encryption key, which is used to encrypt "+
+			"messages. The key must already be installed before this operation "+
+			"can succeed.")
+	f.StringVar(&removeKey, "remove", "",
+		"Remove the given key from the cluster. This operation may only be "+
+			"performed on keys which are not currently the primary key.")
+	f.BoolVar(&listKeys, "list", false,
+		"List all keys currently in use within the cluster.")
+	f.IntVar(&relay, "relay-factor", 0,
+		"Setting this to a non-zero value will cause nodes to relay their response "+
+			"to the operation through this many randomly-chosen other nodes in the "+
+			"cluster. The maximum allowed value is 5.")
 
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
-	c.Ui = &cli.PrefixedUi{
+	c.UI = &cli.PrefixedUi{
 		OutputPrefix: "",
 		InfoPrefix:   "==> ",
 		ErrorPrefix:  "",
-		Ui:           c.Ui,
+		Ui:           c.UI,
 	}
 
 	// Only accept a single argument
 	found := listKeys
 	for _, arg := range []string{installKey, useKey, removeKey} {
 		if found && len(arg) > 0 {
-			c.Ui.Error("Only a single action is allowed")
+			c.UI.Error("Only a single action is allowed")
 			return 1
 		}
 		found = found || len(arg) > 0
@@ -52,129 +62,81 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	// Fail fast if no actionable args were passed
 	if !found {
-		c.Ui.Error(c.Help())
+		c.UI.Error(c.Help())
+		return 1
+	}
+
+	// Validate the relay factor
+	relayFactor, err := agent.ParseRelayFactor(relay)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error parsing relay factor: %s", err))
 		return 1
 	}
 
 	// All other operations will require a client connection
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
 	if listKeys {
-		c.Ui.Info("Gathering installed encryption keys...")
-		r, err := client.ListKeys(token)
+		c.UI.Info("Gathering installed encryption keys...")
+		responses, err := client.Operator().KeyringList(&consulapi.QueryOptions{RelayFactor: relayFactor})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		if rval := c.handleResponse(r.Info, r.Messages); rval != 0 {
-			return rval
-		}
-		c.handleList(r.Info, r.Keys)
+		c.handleList(responses)
 		return 0
 	}
 
+	opts := &consulapi.WriteOptions{RelayFactor: relayFactor}
 	if installKey != "" {
-		c.Ui.Info("Installing new gossip encryption key...")
-		r, err := client.InstallKey(installKey, token)
+		c.UI.Info("Installing new gossip encryption key...")
+		err := client.Operator().KeyringInstall(installKey, opts)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages)
+		return 0
 	}
 
 	if useKey != "" {
-		c.Ui.Info("Changing primary gossip encryption key...")
-		r, err := client.UseKey(useKey, token)
+		c.UI.Info("Changing primary gossip encryption key...")
+		err := client.Operator().KeyringUse(useKey, opts)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages)
+		return 0
 	}
 
 	if removeKey != "" {
-		c.Ui.Info("Removing gossip encryption key...")
-		r, err := client.RemoveKey(removeKey, token)
+		c.UI.Info("Removing gossip encryption key...")
+		err := client.Operator().KeyringRemove(removeKey, opts)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			c.UI.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages)
+		return 0
 	}
 
 	// Should never make it here
 	return 0
 }
 
-func (c *KeyringCommand) handleResponse(
-	info []agent.KeyringInfo,
-	messages []agent.KeyringMessage) int {
-
-	var rval int
-
-	for _, i := range info {
-		if i.Error != "" {
-			pool := i.Pool
-			if pool != "WAN" {
-				pool = i.Datacenter + " (LAN)"
-			}
-
-			c.Ui.Error("")
-			c.Ui.Error(fmt.Sprintf("%s error: %s", pool, i.Error))
-
-			for _, msg := range messages {
-				if msg.Datacenter != i.Datacenter || msg.Pool != i.Pool {
-					continue
-				}
-				c.Ui.Error(fmt.Sprintf("  %s: %s", msg.Node, msg.Message))
-			}
-			rval = 1
-		}
-	}
-
-	if rval == 0 {
-		c.Ui.Info("Done!")
-	}
-
-	return rval
-}
-
-func (c *KeyringCommand) handleList(
-	info []agent.KeyringInfo,
-	keys []agent.KeyringEntry) {
-
-	installed := make(map[string]map[string][]int)
-	for _, key := range keys {
-		var nodes int
-		for _, i := range info {
-			if i.Datacenter == key.Datacenter && i.Pool == key.Pool {
-				nodes = i.NumNodes
-			}
+func (c *KeyringCommand) handleList(responses []*consulapi.KeyringResponse) {
+	for _, response := range responses {
+		pool := response.Datacenter + " (LAN)"
+		if response.WAN {
+			pool = "WAN"
 		}
 
-		pool := key.Pool
-		if pool != "WAN" {
-			pool = key.Datacenter + " (LAN)"
-		}
-
-		if _, ok := installed[pool]; !ok {
-			installed[pool] = map[string][]int{key.Key: []int{key.Count, nodes}}
-		} else {
-			installed[pool][key.Key] = []int{key.Count, nodes}
-		}
-	}
-
-	for pool, keys := range installed {
-		c.Ui.Output("")
-		c.Ui.Output(pool + ":")
-		for key, num := range keys {
-			c.Ui.Output(fmt.Sprintf("  %s [%d/%d]", key, num[0], num[1]))
+		c.UI.Output("")
+		c.UI.Output(pool + ":")
+		for key, num := range response.Keys {
+			c.UI.Output(fmt.Sprintf("  %s [%d/%d]", key, num, response.NumNodes))
 		}
 	}
 }
@@ -196,21 +158,8 @@ Usage: consul keyring [options]
   are no errors. If any node fails to reply or reports failure, the exit code
   will be 1.
 
-Options:
+` + c.BaseCommand.Help()
 
-  -install=<key>            Install a new encryption key. This will broadcast
-                            the new key to all members in the cluster.
-  -list                     List all keys currently in use within the cluster.
-  -remove=<key>             Remove the given key from the cluster. This
-                            operation may only be performed on keys which are
-                            not currently the primary key.
-  -token=""                 ACL token to use during requests. Defaults to that
-                            of the agent.
-  -use=<key>                Change the primary encryption key, which is used to
-                            encrypt messages. The key must already be installed
-                            before this operation can succeed.
-  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 

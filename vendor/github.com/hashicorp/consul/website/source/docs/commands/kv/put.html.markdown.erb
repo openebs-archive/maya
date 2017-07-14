@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-kv-put"
 
 Command: `consul kv put`
 
-The `kv put` command writes the data to the given path in the key-value store.
+The `kv put` command writes the data to the given path in the KV store.
 
 ## Usage
 
@@ -16,7 +16,8 @@ Usage: `consul kv put [options] KEY [DATA]`
 
 #### API Options
 
-<%= partial "docs/commands/http_api_options" %>
+<%= partial "docs/commands/http_api_options_client" %>
+<%= partial "docs/commands/http_api_options_server" %>
 
 #### KV Put Options
 
@@ -24,10 +25,12 @@ Usage: `consul kv put [options] KEY [DATA]`
   operation will create the key and obtain the lock. The session must already
   exist and be specified via the -session flag. The default value is false.
 
+* `-base64` - Treat the data as base 64 encoded. The default value is false.
+
 * `-cas` - Perform a Check-And-Set operation. Specifying this value also
   requires the -modify-index flag to be set. The default value is false.
 
-* `-flags=<int>` - Unsigned integer value to assign to this key-value pair. This
+* `-flags=<int>` - Unsigned integer value to assign to this KV pair. This
   value is not read by Consul, so clients can use this value however makes sense
   for their use case. The default value is 0 (no flags).
 
@@ -46,7 +49,7 @@ Usage: `consul kv put [options] KEY [DATA]`
 ## Examples
 
 To insert a value of "5" for the key named "redis/config/connections" in the
-key-value store:
+KV store:
 
 ```
 $ consul kv put redis/config/connections 5
@@ -58,6 +61,13 @@ If no data is specified, the key will be created with empty data:
 ```
 $ consul kv put redis/config/connections
 Success! Data written to: redis/config/connections
+```
+
+If the `-base64` flag is set, the data will be decoded before writing:
+
+```
+$ consul kv put -base64 foo/encoded aGVsbG8gd29ybGQK
+Success! Data written to: foo/encoded
 ```
 
 !> **Be careful when overwriting data!** The above operation would overwrite

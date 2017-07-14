@@ -1,9 +1,7 @@
 package command
 
 import (
-	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
 	"sort"
 	"strings"
 )
@@ -11,40 +9,41 @@ import (
 // InfoCommand is a Command implementation that queries a running
 // Consul agent for various debugging statistics for operators
 type InfoCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
-func (i *InfoCommand) Help() string {
+func (c *InfoCommand) Help() string {
 	helpText := `
 Usage: consul info [options]
 
 	Provides debugging information for operators
 
-Options:
+` + c.BaseCommand.Help()
 
-  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
-`
 	return strings.TrimSpace(helpText)
 }
 
-func (i *InfoCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("info", flag.ContinueOnError)
-	cmdFlags.Usage = func() { i.Ui.Output(i.Help()) }
-	rpcAddr := RPCAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+func (c *InfoCommand) Run(args []string) int {
+	c.BaseCommand.NewFlagSet(c)
+
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
-	client, err := RPCClient(*rpcAddr)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		i.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	defer client.Close()
 
-	stats, err := client.Stats()
+	self, err := client.Agent().Self()
 	if err != nil {
-		i.Ui.Error(fmt.Sprintf("Error querying agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error querying agent: %s", err))
+		return 1
+	}
+	stats, ok := self["Stats"]
+	if !ok {
+		c.UI.Error(fmt.Sprintf("Agent response did not contain 'Stats' key: %v", self))
 		return 1
 	}
 
@@ -57,10 +56,14 @@ func (i *InfoCommand) Run(args []string) int {
 
 	// Iterate over each top-level key
 	for _, key := range keys {
-		i.Ui.Output(key + ":")
+		c.UI.Output(key + ":")
 
 		// Sort the sub-keys
-		subvals := stats[key]
+		subvals, ok := stats[key].(map[string]interface{})
+		if !ok {
+			c.UI.Error(fmt.Sprintf("Got invalid subkey in stats: %v", subvals))
+			return 1
+		}
 		subkeys := make([]string, 0, len(subvals))
 		for k := range subvals {
 			subkeys = append(subkeys, k)
@@ -70,12 +73,12 @@ func (i *InfoCommand) Run(args []string) int {
 		// Iterate over the subkeys
 		for _, subkey := range subkeys {
 			val := subvals[subkey]
-			i.Ui.Output(fmt.Sprintf("\t%s = %s", subkey, val))
+			c.UI.Output(fmt.Sprintf("\t%s = %s", subkey, val))
 		}
 	}
 	return 0
 }
 
-func (i *InfoCommand) Synopsis() string {
-	return "Provides debugging information for operators"
+func (c *InfoCommand) Synopsis() string {
+	return "Provides debugging information for operators."
 }

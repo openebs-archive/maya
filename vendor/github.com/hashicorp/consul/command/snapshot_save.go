@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -9,13 +8,12 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/mitchellh/cli"
 )
 
 // SnapshotSaveCommand is a Command implementation that is used to save the
 // state of the Consul servers for disaster recovery.
 type SnapshotSaveCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *SnapshotSaveCommand) Help() string {
@@ -40,53 +38,45 @@ Usage: consul snapshot save [options] FILE
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SnapshotSaveCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.BaseCommand.NewFlagSet(c)
+
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Datacenter = *datacenter
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	// Take the snapshot.
 	snap, qm, err := client.Snapshot().Save(&api.QueryOptions{
-		AllowStale: *stale,
+		AllowStale: c.BaseCommand.HTTPStale(),
 	})
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error saving snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error saving snapshot: %s", err))
 		return 1
 	}
 	defer snap.Close()
@@ -94,36 +84,36 @@ func (c *SnapshotSaveCommand) Run(args []string) int {
 	// Save the file.
 	f, err := os.Create(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error creating snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error creating snapshot file: %s", err))
 		return 1
 	}
 	if _, err := io.Copy(f, snap); err != nil {
 		f.Close()
-		c.Ui.Error(fmt.Sprintf("Error writing snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error writing snapshot file: %s", err))
 		return 1
 	}
 	if err := f.Close(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error closing snapshot file after writing: %s", err))
+		c.UI.Error(fmt.Sprintf("Error closing snapshot file after writing: %s", err))
 		return 1
 	}
 
 	// Read it back to verify.
 	f, err = os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file for verify: %s", err))
 		return 1
 	}
 	if _, err := snapshot.Verify(f); err != nil {
 		f.Close()
-		c.Ui.Error(fmt.Sprintf("Error verifying snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error verifying snapshot file: %s", err))
 		return 1
 	}
 	if err := f.Close(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error closing snapshot file after verify: %s", err))
+		c.UI.Error(fmt.Sprintf("Error closing snapshot file after verify: %s", err))
 		return 1
 	}
 
-	c.Ui.Info(fmt.Sprintf("Saved and verified snapshot to index %d", qm.LastIndex))
+	c.UI.Info(fmt.Sprintf("Saved and verified snapshot to index %d", qm.LastIndex))
 	return 0
 }
 

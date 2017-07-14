@@ -293,8 +293,6 @@ type SecondaryLaunchConfigOperations interface {
 
 	ActionRestart(*SecondaryLaunchConfig) (*Instance, error)
 
-	ActionRestore(*SecondaryLaunchConfig) (*Instance, error)
-
 	ActionStart(*SecondaryLaunchConfig) (*Instance, error)
 
 	ActionStop(*SecondaryLaunchConfig, *InstanceStop) (*Instance, error)
@@ -453,15 +451,6 @@ func (c *SecondaryLaunchConfigClient) ActionRestart(resource *SecondaryLaunchCon
 	resp := &Instance{}
 
 	err := c.rancherClient.doAction(SECONDARY_LAUNCH_CONFIG_TYPE, "restart", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *SecondaryLaunchConfigClient) ActionRestore(resource *SecondaryLaunchConfig) (*Instance, error) {
-
-	resp := &Instance{}
-
-	err := c.rancherClient.doAction(SECONDARY_LAUNCH_CONFIG_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }

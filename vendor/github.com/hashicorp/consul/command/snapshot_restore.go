@@ -1,19 +1,15 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/mitchellh/cli"
 )
 
 // SnapshotRestoreCommand is a Command implementation that is used to restore
 // the state of the Consul servers for disaster recovery.
 type SnapshotRestoreCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *SnapshotRestoreCommand) Help() string {
@@ -38,50 +34,43 @@ Usage: consul snapshot restore [options] FILE
 
   For a full list of options and examples, please see the Consul documentation.
 
-` + apiOptsText
+` + c.BaseCommand.Help()
 
 	return strings.TrimSpace(helpText)
 }
 
 func (c *SnapshotRestoreCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	datacenter := cmdFlags.String("datacenter", "", "")
-	token := cmdFlags.String("token", "", "")
-	httpAddr := HTTPAddrFlag(cmdFlags)
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.BaseCommand.NewFlagSet(c)
+
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Create and test the HTTP client
-	conf := api.DefaultConfig()
-	conf.Datacenter = *datacenter
-	conf.Address = *httpAddr
-	conf.Token = *token
-	client, err := api.NewClient(conf)
+	client, err := c.BaseCommand.HTTPClient()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
 	defer f.Close()
@@ -89,11 +78,11 @@ func (c *SnapshotRestoreCommand) Run(args []string) int {
 	// Restore the snapshot.
 	err = client.Snapshot().Restore(nil, f)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error restoring snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error restoring snapshot: %s", err))
 		return 1
 	}
 
-	c.Ui.Info("Restored snapshot")
+	c.UI.Info("Restored snapshot")
 	return 0
 }
 
