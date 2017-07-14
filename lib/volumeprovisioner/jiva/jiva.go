@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/openebs/mayaserver/lib/api/v1"
-	volProfile "github.com/openebs/mayaserver/lib/profile/volumeprovisioner"
-	"github.com/openebs/mayaserver/lib/volumeprovisioner"
+	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
+	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/lib/volumeprovisioner"
 )
 
 // TODO
