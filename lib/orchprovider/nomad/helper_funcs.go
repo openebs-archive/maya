@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/helper"
 	"github.com/hashicorp/nomad/nomad/structs"
-	"github.com/openebs/mayaserver/lib/api/v1"
+	"github.com/openebs/maya/lib/types/v1"
 )
 
 // Get the job name from a persistent volume claim

@@ -3,7 +3,7 @@ package nomad
 import (
 	"github.com/golang/glog"
 	"github.com/hashicorp/nomad/api"
-	"github.com/openebs/mayaserver/lib/api/v1"
+	"github.com/openebs/maya/lib/types/v1"
 )
 
 // NomadUtilInterface is an abstraction over Hashicorp's Nomad properties &

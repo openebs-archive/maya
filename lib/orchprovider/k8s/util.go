@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openebs/maya/types/v1"
-	orchProfile "github.com/openebs/mayaserver/lib/profile/orchprovider"
-	volProfile "github.com/openebs/mayaserver/lib/profile/volumeprovisioner"
+	orchProfile "github.com/openebs/maya/lib/profile/orchprovider"
+	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
+	"github.com/openebs/maya/lib/types/v1"
 	"k8s.io/client-go/kubernetes"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"

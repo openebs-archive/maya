@@ -3,9 +3,9 @@ package orchprovider
 import (
 	"fmt"
 
-	"github.com/openebs/mayaserver/lib/api/v1"
-	"github.com/openebs/mayaserver/lib/nethelper"
-	"github.com/openebs/mayaserver/lib/util"
+	"github.com/openebs/maya/lib/nethelper"
+	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/lib/util"
 )
 
 // VolumeProvisionerProfile abstracts & exposes a persistent volume provisioner's

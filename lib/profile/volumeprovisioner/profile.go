@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openebs/mayaserver/lib/api/v1"
+	"github.com/openebs/maya/lib/types/v1"
 )
 
 // VolumeProvisionerProfile abstracts & exposes a persistent volume provisioner's
