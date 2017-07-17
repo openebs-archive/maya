@@ -26,8 +26,7 @@ XC_EXCLUDE=${XC_EXCLUDE:-"!darwin/arm !darwin/386"}
 
 # Delete the old dir
 echo "==> Removing old directory..."
-rm -f bin/*
-rm -rf pkg/*
+rm -rf bin/*
 mkdir -p bin/
 
 if [ -z "${GIT_TAG}" ]; 
@@ -57,7 +56,7 @@ gox \
        "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
         -X main.MayaCtlName='${MAYACTL}' \
         -X main.Version='${GIT_TAG}'" \
-    -output "pkg/{{.OS}}_{{.Arch}}/${MAYACTL}" \
+    -output "bin/{{.OS}}_{{.Arch}}/${MAYACTL}" \
     .
 
 echo ""
@@ -74,7 +73,7 @@ IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
 
 # Copy our OS/Arch to the bin/ directory
-DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
+DEV_PLATFORM="./bin/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
     cp ${F} bin/
     cp ${F} ${MAIN_GOPATH}/bin/
@@ -83,7 +82,7 @@ done
 if [[ "x${MAYA_DEV}" == "x" ]]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
-    for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
+    for PLATFORM in $(find ./bin -mindepth 1 -maxdepth 1 -type d); do
         OSARCH=$(basename ${PLATFORM})
         echo "--> ${OSARCH}"
 
