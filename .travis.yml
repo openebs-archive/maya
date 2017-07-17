@@ -4,11 +4,7 @@ services:
   - docker
 language: go
 go:
-  - 1.7
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install -y docker-engine liblxc1 lxc-dev lxc
-  - sudo apt-get install -y qemu
+  - 1.8
 install:
   - make bootstrap
 script:
