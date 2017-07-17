@@ -34,6 +34,10 @@ type VolumeStats struct {
 	WriteIOPS            string `json:"WriteIOPS"`
 	TotalWriteTime       string `json:"TotalWriteTime"`
 	TotalWriteBlockCount string `json:"TotatWriteBlockCount"`
+
+	SectorSize        string `json:"SectorSize"`
+	UsedBlocks        string `json:"UsedBlocks"`
+	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
 }
 
 // VsmStatsCommand is a command implementation struct
@@ -77,6 +81,10 @@ type StatsArr struct {
 
 	AvgReadBlockSize  int64 `json:"AvgReadBlockSize"`
 	AvgWriteBlockSize int64 `json:"AvgWriteBlockSize"`
+
+	SectorSize  float64 `json:"SectorSize"`
+	ActualUsed  float64 `json:"ActualUsed"`
+	LogicalSize float64 `json:"LogicalSize"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -155,6 +163,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	if (err1 != nil) || (err2 != nil) {
 		fmt.Println("Volume not reachable")
 	}
+
 	ReadIOPSi, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64)
 	ReadIOPSf, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64)
 	ReadIOPSPS := ReadIOPSf - ReadIOPSi
@@ -197,6 +206,15 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		AvgWriteBlockCountPS = 0
 	}
 
+	SectorSizePS, _ := strconv.ParseFloat(stats2.SectorSize, 64)
+	//	fmt.Println("hi", stats1.SectorSize, stats2.SectorSize)
+	SectorSizePS = SectorSizePS / 1048576
+	LogicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64)
+	LogicalSizePS := LogicalSize * SectorSizePS
+
+	ActualUsed, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64)
+	ActualUsedPS := ActualUsed * SectorSizePS
+
 	fmt.Println("------------------------------------")
 	// json formatting and showing default output
 	if c.Json == "json" {
@@ -219,6 +237,10 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 			AvgReadBlockSize:  AvgReadBlockCountPS / 1024,
 			AvgWriteBlockSize: AvgWriteBlockCountPS / 1024,
+
+			SectorSize:  SectorSizePS,
+			ActualUsed:  ActualUsedPS,
+			LogicalSize: LogicalSizePS,
 		}
 
 		data, err := json.Marshal(stat1)
@@ -246,10 +268,16 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 		// Printing in tabular form
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\trBlk(KB)\twBlk(KB)\t\n")
-		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%d\t\n", ReadIOPSPS, WriteIOPSPS, float64(RThroughput)/1048576, float64(WThroughput)/1048576, float64(ReadLatency)/1000000, float64(WriteLatency)/1000000, AvgReadBlockCountPS/1024, AvgWriteBlockCountPS/1024)
+		fmt.Println("-------- Performance Stats ---------\n")
+		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
+		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", ReadIOPSPS, WriteIOPSPS, float64(RThroughput)/1048576, float64(WThroughput)/1048576, float64(ReadLatency)/1000000, float64(WriteLatency)/1000000)
 		w.Flush()
 
+		x := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		fmt.Println("\n---------- Capacity Stats ----------\n")
+		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
+		fmt.Fprintf(x, "%f\t%f\t\n", LogicalSizePS, ActualUsedPS)
+		x.Flush()
 	}
 	return 0
 }
@@ -378,6 +406,6 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 		return err, -1
 	}
 	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(obj), 0
+	rc, _ := json.NewDecoder(resp.Body).Decode(obj), 0
+	return rc, 0
 }
