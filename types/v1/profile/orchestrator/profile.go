@@ -1,4 +1,4 @@
-package orchprovider
+package orchestrator
 
 import (
 	"fmt"

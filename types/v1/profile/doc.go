@@ -11,4 +11,4 @@
 // Operator can create different variants of profile meant for persistent volume
 // provisioners or for orchestration providers. The profiles can always be overridden
 // with the properties specified at runtime.
-package profile
+package orchestrator
