@@ -406,6 +406,6 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 		return err, -1
 	}
 	defer resp.Body.Close()
-	rc, _ := json.NewDecoder(resp.Body).Decode(obj), 0
+	rc := json.NewDecoder(resp.Body).Decode(obj)
 	return rc, 0
 }
