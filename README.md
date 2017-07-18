@@ -5,7 +5,7 @@
 
 OpenEBS Storage Orchestration, abstracts the operational burden of setting up and managing the Storage (Persistent Volumes) and Storage Infrastructure (Physical Storage - Local/Cloud Disks/SSDs/Cache, Controllers, Networks). OpenEBS Orchestration is delivered through a set of services and tools that seamlessly integrate OpenEBS into your container eco-system. 
 
-OpenEBS Storage Orchestration allows you to manage storage across multiple zones (aka clusters/environments), that are co-located or geographically seperated and can also run from within a single host. Maya can move the storage across different tiers based on the application needs (volume migration). OpenEBS learns and adapts to the changing environement through machine learning and data analytics. 
+OpenEBS Storage Orchestration allows you to manage storage across multiple zones (aka clusters/environments), that are co-located or geographically separated and can also run from within a single host. Maya can move the storage across different tiers based on the application needs (volume migration). OpenEBS learns and adapts to the changing environement through machine learning and data analytics. 
 
 OpenEBS aims at managing storage for millions of containers with deceptive simplicity. 
 
