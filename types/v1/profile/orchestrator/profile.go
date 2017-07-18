@@ -3,9 +3,9 @@ package orchestrator
 import (
 	"fmt"
 
-	"github.com/openebs/maya/lib/nethelper"
-	"github.com/openebs/maya/lib/types/v1"
-	"github.com/openebs/maya/lib/util"
+	"github.com/openebs/maya/pkg/nethelper"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
 )
 
 // VolumeProvisionerProfile abstracts & exposes a persistent volume provisioner's

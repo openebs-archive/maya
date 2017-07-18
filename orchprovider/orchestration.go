@@ -4,8 +4,8 @@
 package orchprovider
 
 import (
-	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/types/v1"
+	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
 )
 
 // OrchestrationInterface is an interface abstraction of a real orchestrator.

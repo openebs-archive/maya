@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/lib/orchprovider"
-	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/types/v1"
+	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
 )
 
 // NomadOrchestrator is a concrete representation of following

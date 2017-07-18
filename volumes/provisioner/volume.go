@@ -1,10 +1,10 @@
 // This file abstracts & exposes persistent volume provisioner features. All
 // maya api server's persistent volume provisioners need to implement these
 // contracts.
-package volumeprovisioner
+package provisioner
 
 import (
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/types/v1"
 )
 
 // VolumeInterface abstracts the persistent volume features of any persistent

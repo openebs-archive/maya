@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
-	"github.com/openebs/maya/lib/types/v1"
-	"github.com/openebs/maya/lib/volumeprovisioner"
+	"github.com/openebs/maya/types/v1"
+	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
+	"github.com/openebs/maya/volumes/provisioner"
 )
 
 // TODO
@@ -16,9 +16,9 @@ import (
 // jivaStor is the concrete implementation that implements
 // following interfaces:
 //
-//  1. volumeprovisioner.VolumeInterface interface
-//  2. volumeprovisioner.Provisioner interface
-//  3. volumeprovisioner.Deleter interface
+//  1. provisioner.VolumeInterface interface
+//  2. provisioner.Provisioner interface
+//  3. provisioner.Deleter interface
 type jivaStor struct {
 	// label assigned against this jiva persistent volume provisioner
 	label string
@@ -38,7 +38,7 @@ type jivaStor struct {
 //
 // Note:
 //    This function aligns with the callback function signature
-func NewJivaProvisioner(label, name string) (volumeprovisioner.VolumeInterface, error) {
+func NewJivaProvisioner(label, name string) (provisioner.VolumeInterface, error) {
 
 	if label == "" {
 		return nil, fmt.Errorf("Label not provided for jiva persistent volume provisioner instance")
@@ -113,7 +113,7 @@ func (j *jivaStor) isProfile() bool {
 //
 // NOTE:
 //    This is one of the concrete implementations of volume.VolumeInterface
-func (j *jivaStor) Reader() (volumeprovisioner.Reader, bool) {
+func (j *jivaStor) Reader() (provisioner.Reader, bool) {
 	return j, true
 }
 
@@ -122,7 +122,7 @@ func (j *jivaStor) Reader() (volumeprovisioner.Reader, bool) {
 //
 // NOTE:
 //    This is one of the concrete implementations of volume.VolumeInterface
-func (j *jivaStor) Adder() (volumeprovisioner.Adder, bool) {
+func (j *jivaStor) Adder() (provisioner.Adder, bool) {
 	return j, true
 }
 
@@ -131,7 +131,7 @@ func (j *jivaStor) Adder() (volumeprovisioner.Adder, bool) {
 //
 // NOTE:
 //    This is one of the concrete implementations of volume.VolumeInterface
-func (j *jivaStor) Lister() (volumeprovisioner.Lister, bool, error) {
+func (j *jivaStor) Lister() (provisioner.Lister, bool, error) {
 	if j.jivaProUtil == nil {
 		return nil, true, fmt.Errorf("Jiva provisioner util is not set at 'jiva provisioner: %s:%s'", j.Label(), j.Name())
 	}
@@ -154,7 +154,7 @@ func (j *jivaStor) Lister() (volumeprovisioner.Lister, bool, error) {
 //
 // NOTE:
 //    This is one of the concrete implementations of volume.VolumeInterface
-func (j *jivaStor) Remover() (volumeprovisioner.Remover, bool, error) {
+func (j *jivaStor) Remover() (provisioner.Remover, bool, error) {
 	if j.jivaProUtil == nil {
 		return nil, true, fmt.Errorf("Jiva provisioner util is not set at 'jiva provisioner: %s:%s'", j.Label(), j.Name())
 	}

@@ -6,9 +6,9 @@ import (
 	//"reflect"
 	"testing"
 
-	"github.com/openebs/maya/lib/orchprovider"
-	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/types/v1"
+	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"

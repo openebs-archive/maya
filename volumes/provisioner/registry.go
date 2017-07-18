@@ -2,14 +2,14 @@
 //
 // NOTE:
 //    This is the new file w.r.t the deprecated volume/plugins.go file
-package volumeprovisioner
+package provisioner
 
 import (
 	"fmt"
 	"sync"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/types/v1"
 )
 
 type VolumeProvisionerFactory func(label, name string) (VolumeInterface, error)

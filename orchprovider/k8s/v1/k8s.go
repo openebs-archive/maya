@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/lib/orchprovider"
-	volProfile "github.com/openebs/maya/lib/profile/volumeprovisioner"
-	"github.com/openebs/maya/lib/types/v1"
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/types/v1"
+	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	//k8sUnversioned "k8s.io/client-go/pkg/api/unversioned"
