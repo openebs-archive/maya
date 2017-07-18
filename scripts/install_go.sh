@@ -14,6 +14,21 @@ SRCPATH="/opt/gopath"
 # Get the ARCH
 ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 
+# updating GO_VERSION if new version is available
+#func to compare versions
+version_gt()
+{ 
+	test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1";
+}
+
+CONTENT=$(wget https://storage.googleapis.com/golang -q -O -)
+GO_LATEST=`echo -n $CONTENT | grep -o "go[0-9]\.[0-9][\.]*[0-9]*\.linux-${ARCH}.tar.gz" | grep -o "[0-9]\.[0-9][\.]*[0-9]*\." | sort --version-sort | tail -1 | head -c -2`
+
+# updating GO_VERSION
+if version_gt $GO_LATEST $GO_VERSION; then
+     GO_VERSION=$GO_LATEST
+fi
+
 # Install Go
 cd /tmp
 
