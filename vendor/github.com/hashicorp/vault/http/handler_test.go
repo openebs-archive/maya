@@ -9,9 +9,91 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 )
+
+func TestHandler_cors(t *testing.T) {
+	core, _, _ := vault.TestCoreUnsealed(t)
+	ln, addr := TestServer(t, core)
+	defer ln.Close()
+
+	// Enable CORS and allow from any origin for testing.
+	corsConfig := core.CORSConfig()
+	err := corsConfig.Enable([]string{addr})
+	if err != nil {
+		t.Fatalf("Error enabling CORS: %s", err)
+	}
+
+	req, err := http.NewRequest(http.MethodOptions, addr+"/v1/sys/seal-status", nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	req.Header.Set("Origin", "BAD ORIGIN")
+
+	// Requests from unacceptable origins will be rejected with a 403.
+	client := cleanhttp.DefaultClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("Bad status:\nexpected: 403 Forbidden\nactual: %s", resp.Status)
+	}
+
+	//
+	// Test preflight requests
+	//
+
+	// Set a valid origin
+	req.Header.Set("Origin", addr)
+
+	// Server should NOT accept arbitrary methods.
+	req.Header.Set("Access-Control-Request-Method", "FOO")
+
+	client = cleanhttp.DefaultClient()
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Fail if an arbitrary method is accepted.
+	if resp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("Bad status:\nexpected: 405 Method Not Allowed\nactual: %s", resp.Status)
+	}
+
+	// Server SHOULD accept acceptable methods.
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+
+	client = cleanhttp.DefaultClient()
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	//
+	// Test that the CORS headers are applied correctly.
+	//
+	expHeaders := map[string]string{
+		"Access-Control-Allow-Origin":  addr,
+		"Access-Control-Allow-Headers": "*",
+		"Access-Control-Max-Age":       "300",
+		"Vary": "Origin",
+	}
+
+	for expHeader, expected := range expHeaders {
+		actual := resp.Header.Get(expHeader)
+		if actual == "" {
+			t.Fatalf("bad:\nHeader: %#v was not on response.", expHeader)
+		}
+
+		if actual != expected {
+			t.Fatalf("bad:\nExpected: %#v\nActual: %#v\n", expected, actual)
+		}
+	}
+}
 
 func TestHandler_CacheControlNoStore(t *testing.T) {
 	core, _, token := vault.TestCoreUnsealed(t)
@@ -79,7 +161,9 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
 				},
+				"local": false,
 			},
 			"sys/": map[string]interface{}{
 				"description": "system endpoints used for control, policy and debugging",
@@ -87,7 +171,9 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
 				},
+				"local": false,
 			},
 			"cubbyhole/": map[string]interface{}{
 				"description": "per-token private secret storage",
@@ -95,7 +181,9 @@ func TestSysMounts_headerAuth(t *testing.T) {
 				"config": map[string]interface{}{
 					"default_lease_ttl": json.Number("0"),
 					"max_lease_ttl":     json.Number("0"),
+					"force_no_cache":    false,
 				},
+				"local": true,
 			},
 		},
 		"secret/": map[string]interface{}{
@@ -104,7 +192,9 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
 			},
+			"local": false,
 		},
 		"sys/": map[string]interface{}{
 			"description": "system endpoints used for control, policy and debugging",
@@ -112,7 +202,9 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
 			},
+			"local": false,
 		},
 		"cubbyhole/": map[string]interface{}{
 			"description": "per-token private secret storage",
@@ -120,13 +212,22 @@ func TestSysMounts_headerAuth(t *testing.T) {
 			"config": map[string]interface{}{
 				"default_lease_ttl": json.Number("0"),
 				"max_lease_ttl":     json.Number("0"),
+				"force_no_cache":    false,
 			},
+			"local": true,
 		},
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
 
 	expected["request_id"] = actual["request_id"]
+	for k, v := range actual["data"].(map[string]interface{}) {
+		if v.(map[string]interface{})["accessor"] == "" {
+			t.Fatalf("no accessor from %s", k)
+		}
+		expected[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+		expected["data"].(map[string]interface{})[k].(map[string]interface{})["accessor"] = v.(map[string]interface{})["accessor"]
+	}
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad:\nExpected: %#v\nActual: %#v\n", expected, actual)
@@ -223,7 +324,7 @@ func TestHandler_error(t *testing.T) {
 	// vault.ErrSealed is a special case
 	w3 := httptest.NewRecorder()
 
-	respondError(w3, 400, vault.ErrSealed)
+	respondError(w3, 400, consts.ErrSealed)
 
 	if w3.Code != 503 {
 		t.Fatalf("expected 503, got %d", w3.Code)

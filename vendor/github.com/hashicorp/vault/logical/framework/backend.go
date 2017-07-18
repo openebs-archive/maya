@@ -1,6 +1,7 @@
 package framework
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/vault/helper/errutil"
 	"github.com/hashicorp/vault/helper/logformat"
+	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -68,6 +70,13 @@ type Backend struct {
 	// to the backend, if required.
 	Clean CleanupFunc
 
+	// Initialize is called after a backend is created. Storage should not be
+	// written to before this function is called.
+	Init InitializeFunc
+
+	// Invalidate is called when a keys is modified if required
+	Invalidate InvalidateFunc
+
 	// AuthRenew is the callback to call when a RenewRequest for an
 	// authentication comes in. By default, renewal won't be allowed.
 	// See the built-in AuthRenew helpers in lease.go for common callbacks.
@@ -91,6 +100,12 @@ type WALRollbackFunc func(*logical.Request, string, interface{}) error
 
 // CleanupFunc is the callback for backend unload.
 type CleanupFunc func()
+
+// InitializeFunc is the callback for backend creation.
+type InitializeFunc func() error
+
+// InvalidateFunc is the callback for backend key invalidation.
+type InvalidateFunc func(string)
 
 func (b *Backend) HandleExistenceCheck(req *logical.Request) (checkFound bool, exists bool, err error) {
 	b.once.Do(b.init)
@@ -218,9 +233,25 @@ func (b *Backend) Setup(config *logical.BackendConfig) (logical.Backend, error) 
 	return b, nil
 }
 
+// Cleanup is used to release resources and prepare to stop the backend
 func (b *Backend) Cleanup() {
 	if b.Clean != nil {
 		b.Clean()
+	}
+}
+
+func (b *Backend) Initialize() error {
+	if b.Init != nil {
+		return b.Init()
+	}
+
+	return nil
+}
+
+// InvalidateKey is used to clear caches and reset internal state on key changes
+func (b *Backend) InvalidateKey(key string) {
+	if b.Invalidate != nil {
+		b.Invalidate(key)
 	}
 }
 
@@ -505,7 +536,40 @@ type FieldSchema struct {
 // the zero value of the type.
 func (s *FieldSchema) DefaultOrZero() interface{} {
 	if s.Default != nil {
-		return s.Default
+		switch s.Type {
+		case TypeDurationSecond:
+			var result int
+			switch inp := s.Default.(type) {
+			case nil:
+				return s.Type.Zero()
+			case int:
+				result = inp
+			case int64:
+				result = int(inp)
+			case float32:
+				result = int(inp)
+			case float64:
+				result = int(inp)
+			case string:
+				dur, err := parseutil.ParseDurationSecond(inp)
+				if err != nil {
+					return s.Type.Zero()
+				}
+				result = int(dur.Seconds())
+			case json.Number:
+				valInt64, err := inp.Int64()
+				if err != nil {
+					return s.Type.Zero()
+				}
+				result = int(valInt64)
+			default:
+				return s.Type.Zero()
+			}
+			return result
+
+		default:
+			return s.Default
+		}
 	}
 
 	return s.Type.Zero()
@@ -523,6 +587,10 @@ func (t FieldType) Zero() interface{} {
 		return map[string]interface{}{}
 	case TypeDurationSecond:
 		return 0
+	case TypeSlice:
+		return []interface{}{}
+	case TypeStringSlice, TypeCommaStringSlice:
+		return []string{}
 	default:
 		panic("unknown type: " + t.String())
 	}

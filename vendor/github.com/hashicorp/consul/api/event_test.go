@@ -3,10 +3,10 @@ package api
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 )
 
-func TestEvent_FireList(t *testing.T) {
+func TestAPI_EventFireList(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
@@ -29,14 +29,15 @@ func TestEvent_FireList(t *testing.T) {
 
 	var events []*UserEvent
 	var qm *QueryMeta
-	testutil.WaitForResult(func() (bool, error) {
+
+	retry.Run(t, func(r *retry.R) {
 		events, qm, err = event.List("", nil)
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			r.Fatalf("err: %v", err)
 		}
-		return len(events) > 0, err
-	}, func(err error) {
-		t.Fatalf("err: %#v", err)
+		if len(events) <= 0 {
+			r.Fatal(err)
+		}
 	})
 
 	if events[len(events)-1].ID != id {

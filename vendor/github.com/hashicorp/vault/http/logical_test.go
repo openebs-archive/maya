@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -92,14 +94,16 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	key, root := vault.TestCoreInit(t, core1)
-	if _, err := core1.Unseal(vault.TestKeyCopy(key)); err != nil {
-		t.Fatalf("unseal err: %s", err)
+	keys, root := vault.TestCoreInit(t, core1)
+	for _, key := range keys {
+		if _, err := core1.Unseal(vault.TestKeyCopy(key)); err != nil {
+			t.Fatalf("unseal err: %s", err)
+		}
 	}
 
 	// Attempt to fix raciness in this test by giving the first core a chance
 	// to grab the lock
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	// Create a second HA Vault
 	conf2 := &vault.CoreConfig{
@@ -112,8 +116,10 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, err := core2.Unseal(vault.TestKeyCopy(key)); err != nil {
-		t.Fatalf("unseal err: %s", err)
+	for _, key := range keys {
+		if _, err := core2.Unseal(vault.TestKeyCopy(key)); err != nil {
+			t.Fatalf("unseal err: %s", err)
+		}
 	}
 
 	TestServerWithListener(t, ln1, addr1, core1)
@@ -121,10 +127,12 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	TestServerAuth(t, addr1, root)
 
 	// WRITE to STANDBY
-	resp := testHttpPut(t, root, addr2+"/v1/secret/foo", map[string]interface{}{
+	resp := testHttpPutDisableRedirect(t, root, addr2+"/v1/secret/foo", map[string]interface{}{
 		"data": "bar",
 	})
+	logger.Trace("307 test one starting")
 	testResponseStatus(t, resp, 307)
+	logger.Trace("307 test one stopping")
 
 	//// READ to standby
 	resp = testHttpGet(t, root, addr2+"/v1/auth/token/lookup-self")
@@ -144,6 +152,7 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 			"ttl":              json.Number("0"),
 			"creation_ttl":     json.Number("0"),
 			"explicit_max_ttl": json.Number("0"),
+			"expire_time":      nil,
 		},
 		"warnings":  nilWarnings,
 		"wrap_info": nil,
@@ -163,8 +172,10 @@ func TestLogical_StandbyRedirect(t *testing.T) {
 	}
 
 	//// DELETE to standby
-	resp = testHttpDelete(t, root, addr2+"/v1/secret/foo")
+	resp = testHttpDeleteDisableRedirect(t, root, addr2+"/v1/secret/foo")
+	logger.Trace("307 test two starting")
 	testResponseStatus(t, resp, 307)
+	logger.Trace("307 test two stopping")
 }
 
 func TestLogical_CreateToken(t *testing.T) {
@@ -243,4 +254,43 @@ func TestLogical_RequestSizeLimit(t *testing.T) {
 		"data": make([]byte, MaxRequestSize),
 	})
 	testResponseStatus(t, resp, 413)
+}
+
+func TestLogical_ListSuffix(t *testing.T) {
+	core, _, _ := vault.TestCoreUnsealed(t)
+	req, _ := http.NewRequest("GET", "http://127.0.0.1:8200/v1/secret/foo", nil)
+	lreq, status, err := buildLogicalRequest(core, nil, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != 0 {
+		t.Fatalf("got status %d", status)
+	}
+	if strings.HasSuffix(lreq.Path, "/") {
+		t.Fatal("trailing slash found on path")
+	}
+
+	req, _ = http.NewRequest("GET", "http://127.0.0.1:8200/v1/secret/foo?list=true", nil)
+	lreq, status, err = buildLogicalRequest(core, nil, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != 0 {
+		t.Fatalf("got status %d", status)
+	}
+	if !strings.HasSuffix(lreq.Path, "/") {
+		t.Fatal("trailing slash not found on path")
+	}
+
+	req, _ = http.NewRequest("LIST", "http://127.0.0.1:8200/v1/secret/foo", nil)
+	lreq, status, err = buildLogicalRequest(core, nil, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if status != 0 {
+		t.Fatalf("got status %d", status)
+	}
+	if !strings.HasSuffix(lreq.Path, "/") {
+		t.Fatal("trailing slash not found on path")
+	}
 }

@@ -15,46 +15,8 @@ import (
 var _ time.Duration
 var _ bytes.Buffer
 
-func ExampleACM_AddTagsToCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
-
-	params := &acm.AddTagsToCertificateInput{
-		CertificateArn: aws.String("Arn"), // Required
-		Tags: []*acm.Tag{ // Required
-			{ // Required
-				Key:   aws.String("TagKey"), // Required
-				Value: aws.String("TagValue"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.AddTagsToCertificate(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleACM_DeleteCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.DeleteCertificateInput{
 		CertificateArn: aws.String("Arn"), // Required
@@ -73,13 +35,7 @@ func ExampleACM_DeleteCertificate() {
 }
 
 func ExampleACM_DescribeCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.DescribeCertificateInput{
 		CertificateArn: aws.String("Arn"), // Required
@@ -98,13 +54,7 @@ func ExampleACM_DescribeCertificate() {
 }
 
 func ExampleACM_GetCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.GetCertificateInput{
 		CertificateArn: aws.String("Arn"), // Required
@@ -122,42 +72,8 @@ func ExampleACM_GetCertificate() {
 	fmt.Println(resp)
 }
 
-func ExampleACM_ImportCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
-
-	params := &acm.ImportCertificateInput{
-		Certificate:      []byte("PAYLOAD"), // Required
-		PrivateKey:       []byte("PAYLOAD"), // Required
-		CertificateArn:   aws.String("Arn"),
-		CertificateChain: []byte("PAYLOAD"),
-	}
-	resp, err := svc.ImportCertificate(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleACM_ListCertificates() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.ListCertificatesInput{
 		CertificateStatuses: []*string{
@@ -180,71 +96,8 @@ func ExampleACM_ListCertificates() {
 	fmt.Println(resp)
 }
 
-func ExampleACM_ListTagsForCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
-
-	params := &acm.ListTagsForCertificateInput{
-		CertificateArn: aws.String("Arn"), // Required
-	}
-	resp, err := svc.ListTagsForCertificate(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleACM_RemoveTagsFromCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
-
-	params := &acm.RemoveTagsFromCertificateInput{
-		CertificateArn: aws.String("Arn"), // Required
-		Tags: []*acm.Tag{ // Required
-			{ // Required
-				Key:   aws.String("TagKey"), // Required
-				Value: aws.String("TagValue"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.RemoveTagsFromCertificate(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleACM_RequestCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.RequestCertificateInput{
 		DomainName: aws.String("DomainNameString"), // Required
@@ -275,13 +128,7 @@ func ExampleACM_RequestCertificate() {
 }
 
 func ExampleACM_ResendValidationEmail() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := acm.New(sess)
+	svc := acm.New(session.New())
 
 	params := &acm.ResendValidationEmailInput{
 		CertificateArn:   aws.String("Arn"),              // Required

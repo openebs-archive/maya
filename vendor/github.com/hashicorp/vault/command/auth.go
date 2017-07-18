@@ -37,11 +37,13 @@ type AuthCommand struct {
 
 func (c *AuthCommand) Run(args []string) int {
 	var method, authPath string
-	var methods, methodHelp, noVerify bool
+	var methods, methodHelp, noVerify, noStore, tokenOnly bool
 	flags := c.Meta.FlagSet("auth", meta.FlagSetDefault)
 	flags.BoolVar(&methods, "methods", false, "")
 	flags.BoolVar(&methodHelp, "method-help", false, "")
 	flags.BoolVar(&noVerify, "no-verify", false, "")
+	flags.BoolVar(&noStore, "no-store", false, "")
+	flags.BoolVar(&tokenOnly, "token-only", false, "")
 	flags.StringVar(&method, "method", "", "method")
 	flags.StringVar(&authPath, "path", "", "")
 	flags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -127,8 +129,8 @@ func (c *AuthCommand) Run(args []string) int {
 	}
 
 	// Warn if the VAULT_TOKEN environment variable is set, as that will take
-	// precedence
-	if os.Getenv("VAULT_TOKEN") != "" {
+	// precedence. Don't output on token-only since we're likely piping output.
+	if os.Getenv("VAULT_TOKEN") != "" && !tokenOnly {
 		c.Ui.Output("==> WARNING: VAULT_TOKEN environment variable set!\n")
 		c.Ui.Output("  The environment variable takes precedence over the value")
 		c.Ui.Output("  set by the auth command. Either update the value of the")
@@ -177,14 +179,21 @@ func (c *AuthCommand) Run(args []string) int {
 		return 1
 	}
 
+	if tokenOnly {
+		c.Ui.Output(token)
+		return 0
+	}
+
 	// Store the token!
-	if err := tokenHelper.Store(token); err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Error storing token: %s\n\n"+
-				"Authentication was not successful and did not persist.\n"+
-				"Please reauthenticate, or fix the issue above if possible.",
-			err))
-		return 1
+	if !noStore {
+		if err := tokenHelper.Store(token); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error storing token: %s\n\n"+
+					"Authentication was not successful and did not persist.\n"+
+					"Please reauthenticate, or fix the issue above if possible.",
+				err))
+			return 1
+		}
 	}
 
 	if noVerify {
@@ -192,6 +201,16 @@ func (c *AuthCommand) Run(args []string) int {
 			"Authenticated - no token verification has been performed.",
 		))
 
+		if noStore {
+			if err := tokenHelper.Erase(); err != nil {
+				c.Ui.Error(fmt.Sprintf(
+					"Error removing prior token: %s\n\n"+
+						"Authentication was successful, but unable to remove the\n"+
+						"previous token.",
+					err))
+				return 1
+			}
+		}
 		return 0
 	}
 
@@ -200,13 +219,21 @@ func (c *AuthCommand) Run(args []string) int {
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error initializing client to verify the token: %s", err))
-		if err := tokenHelper.Store(previousToken); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Error restoring the previous token: %s\n\n"+
-					"Please reauthenticate with a valid token.",
-				err))
+		if !noStore {
+			if err := tokenHelper.Store(previousToken); err != nil {
+				c.Ui.Error(fmt.Sprintf(
+					"Error restoring the previous token: %s\n\n"+
+						"Please reauthenticate with a valid token.",
+					err))
+			}
 		}
 		return 1
+	}
+
+	// If in no-store mode it won't have read the token from a token-helper (or
+	// will read an old one) so set it explicitly
+	if noStore {
+		client.SetToken(token)
 	}
 
 	// Verify the token
@@ -222,7 +249,7 @@ func (c *AuthCommand) Run(args []string) int {
 		}
 		return 1
 	}
-	if secret == nil {
+	if secret == nil && !noStore {
 		c.Ui.Error(fmt.Sprintf("Error: Invalid token"))
 		if err := tokenHelper.Store(previousToken); err != nil {
 			c.Ui.Error(fmt.Sprintf(
@@ -231,6 +258,17 @@ func (c *AuthCommand) Run(args []string) int {
 				err))
 		}
 		return 1
+	}
+
+	if noStore {
+		if err := tokenHelper.Erase(); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error removing prior token: %s\n\n"+
+					"Authentication was successful, but unable to remove the\n"+
+					"previous token.",
+				err))
+			return 1
+		}
 	}
 
 	// Get the policies we have
@@ -244,6 +282,9 @@ func (c *AuthCommand) Run(args []string) int {
 	}
 
 	output := "Successfully authenticated! You are now logged in."
+	if noStore {
+		output += "\nThe token has not been stored to the configured token helper."
+	}
 	if method != "" {
 		output += "\nThe token below is already saved in the session. You do not"
 		output += "\nneed to \"vault auth\" again with the token."
@@ -281,7 +322,7 @@ func (c *AuthCommand) listMethods() int {
 	}
 	sort.Strings(paths)
 
-	columns := []string{"Path | Type | Default TTL | Max TTL | Description"}
+	columns := []string{"Path | Type | Accessor | Default TTL | Max TTL | Replication Behavior | Description"}
 	for _, path := range paths {
 		auth := auth[path]
 		defTTL := "system"
@@ -292,8 +333,12 @@ func (c *AuthCommand) listMethods() int {
 		if auth.Config.MaxLeaseTTL != 0 {
 			maxTTL = strconv.Itoa(auth.Config.MaxLeaseTTL)
 		}
+		replicatedBehavior := "replicated"
+		if auth.Local {
+			replicatedBehavior = "local"
+		}
 		columns = append(columns, fmt.Sprintf(
-			"%s | %s | %s | %s | %s", path, auth.Type, defTTL, maxTTL, auth.Description))
+			"%s | %s | %s | %s | %s | %s | %s", path, auth.Type, auth.Accessor, defTTL, maxTTL, replicatedBehavior, auth.Description))
 	}
 
 	c.Ui.Output(columnize.SimpleFormat(columns))
@@ -308,7 +353,7 @@ func (c *AuthCommand) Help() string {
 	helpText := `
 Usage: vault auth [options] [auth-information]
 
-  Authenticate with Vault with the given token or via any supported
+  Authenticate with Vault using the given token or via any supported
   authentication backend.
 
   By default, the -method is assumed to be token. If not supplied via the
@@ -350,6 +395,12 @@ Auth Options:
 
   -no-verify        Do not verify the token after creation; avoids a use count
                     decrement.
+
+  -no-store         Do not store the token after creation; it will only be
+                    displayed in the command output.
+
+  -token-only       Output only the token to stdout. This implies -no-verify
+                    and -no-store.
 
   -path             The path at which the auth backend is enabled. If an auth
                     backend is mounted at multiple paths, this option can be
@@ -395,7 +446,7 @@ func (h *tokenAuthHandler) Help() string {
 	help := `
 No method selected with the "-method" flag, so the "auth" command assumes
 you'll be using raw token authentication. For this, specify the token to
-authenticate as as the parameter to "vault auth". Example:
+authenticate as the parameter to "vault auth". Example:
 
     vault auth 123456
 

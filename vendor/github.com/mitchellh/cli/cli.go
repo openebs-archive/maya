@@ -25,7 +25,7 @@ import (
 //
 //   * We use longest prefix matching to find a matching subcommand. This
 //     means if you register "foo bar" and the user executes "cli foo qux",
-//     the "foo" commmand will be executed with the arg "qux". It is up to
+//     the "foo" command will be executed with the arg "qux". It is up to
 //     you to handle these args. One option is to just return the special
 //     help return code `RunResultHelp` to display help and exit.
 //
@@ -120,7 +120,13 @@ func (c *CLI) Run() (int, error) {
 	// Just show the version and exit if instructed.
 	if c.IsVersion() && c.Version != "" {
 		c.HelpWriter.Write([]byte(c.Version + "\n"))
-		return 1, nil
+		return 0, nil
+	}
+
+	// Just print the help when only '-h' or '--help' is passed.
+	if c.IsHelp() && c.Subcommand() == "" {
+		c.HelpWriter.Write([]byte(c.HelpFunc(c.Commands) + "\n"))
+		return 0, nil
 	}
 
 	// Attempt to get the factory function for creating the command
@@ -133,13 +139,13 @@ func (c *CLI) Run() (int, error) {
 
 	command, err := raw.(CommandFactory)()
 	if err != nil {
-		return 0, err
+		return 1, err
 	}
 
 	// If we've been instructed to just print the help, then print it
 	if c.IsHelp() {
 		c.commandHelp(command)
-		return 1, nil
+		return 0, nil
 	}
 
 	// If there is an invalid flag, then error
@@ -454,7 +460,7 @@ const defaultHelpTemplate = `
 {{.Help}}{{if gt (len .Subcommands) 0}}
 
 Subcommands:
-{{ range $value := .Subcommands }}
+{{- range $value := .Subcommands }}
     {{ $value.NameAligned }}    {{ $value.Synopsis }}{{ end }}
-{{ end }}
+{{- end }}
 `

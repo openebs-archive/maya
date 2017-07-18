@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 	"github.com/hashicorp/vault/version"
@@ -87,7 +88,7 @@ func handleSysUnseal(core *vault.Core) http.Handler {
 		if !req.Reset && req.Key == "" {
 			respondError(
 				w, http.StatusBadRequest,
-				errors.New("'key' must specified in request body as JSON, or 'reset' set to true"))
+				errors.New("'key' must be specified in request body as JSON, or 'reset' set to true"))
 			return
 		}
 
@@ -126,7 +127,7 @@ func handleSysUnseal(core *vault.Core) http.Handler {
 				case errwrap.Contains(err, vault.ErrBarrierInvalidKey.Error()):
 				case errwrap.Contains(err, vault.ErrBarrierNotInit.Error()):
 				case errwrap.Contains(err, vault.ErrBarrierSealed.Error()):
-				case errwrap.Contains(err, vault.ErrStandby.Error()):
+				case errwrap.Contains(err, consts.ErrStandby.Error()):
 				default:
 					respondError(w, http.StatusInternalServerError, err)
 					return
@@ -186,11 +187,14 @@ func handleSysSealStatusRaw(core *vault.Core, w http.ResponseWriter, r *http.Req
 		clusterID = cluster.ID
 	}
 
+	progress, nonce := core.SecretProgress()
+
 	respondOk(w, &SealStatusResponse{
 		Sealed:      sealed,
 		T:           sealConfig.SecretThreshold,
 		N:           sealConfig.SecretShares,
-		Progress:    core.SecretProgress(),
+		Progress:    progress,
+		Nonce:       nonce,
 		Version:     version.GetVersion().VersionNumber(),
 		ClusterName: clusterName,
 		ClusterID:   clusterID,
@@ -202,6 +206,7 @@ type SealStatusResponse struct {
 	T           int    `json:"t"`
 	N           int    `json:"n"`
 	Progress    int    `json:"progress"`
+	Nonce       string `json:"nonce"`
 	Version     string `json:"version"`
 	ClusterName string `json:"cluster_name,omitempty"`
 	ClusterID   string `json:"cluster_id,omitempty"`

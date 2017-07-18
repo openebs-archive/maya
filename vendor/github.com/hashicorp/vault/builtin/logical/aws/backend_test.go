@@ -163,7 +163,7 @@ func createRole(t *testing.T) {
 	_, err := svc.CreateRole(params)
 
 	if err != nil {
-		t.Fatal("AWS CreateRole failed: %v", err)
+		t.Fatalf("AWS CreateRole failed: %v", err)
 	}
 
 	attachment := &iam.AttachRolePolicyInput{
@@ -173,7 +173,7 @@ func createRole(t *testing.T) {
 	_, err = svc.AttachRolePolicy(attachment)
 
 	if err != nil {
-		t.Fatal("AWS CreateRole failed: %v", err)
+		t.Fatalf("AWS CreateRole failed: %v", err)
 	}
 
 	// Sleep sometime because AWS is eventually consistent
@@ -196,6 +196,10 @@ func teardown() error {
 		RoleName:  aws.String(testRoleName), // Required
 	}
 	_, err := svc.DetachRolePolicy(attachment)
+	if err != nil {
+		log.Printf("[WARN] AWS DetachRolePolicy failed: %v", err)
+		return err
+	}
 
 	params := &iam.DeleteRoleInput{
 		RoleName: aws.String(testRoleName),
@@ -206,9 +210,10 @@ func teardown() error {
 
 	if err != nil {
 		log.Printf("[WARN] AWS DeleteRole failed: %v", err)
+		return err
 	}
 
-	return err
+	return nil
 }
 
 func testAccStepConfig(t *testing.T) logicaltest.TestStep {

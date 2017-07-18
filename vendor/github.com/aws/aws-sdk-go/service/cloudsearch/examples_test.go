@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleCloudSearch_BuildSuggesters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.BuildSuggestersInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -41,13 +35,7 @@ func ExampleCloudSearch_BuildSuggesters() {
 }
 
 func ExampleCloudSearch_CreateDomain() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.CreateDomainInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -66,13 +54,7 @@ func ExampleCloudSearch_CreateDomain() {
 }
 
 func ExampleCloudSearch_DefineAnalysisScheme() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DefineAnalysisSchemeInput{
 		AnalysisScheme: &cloudsearch.AnalysisScheme{ // Required
@@ -102,13 +84,7 @@ func ExampleCloudSearch_DefineAnalysisScheme() {
 }
 
 func ExampleCloudSearch_DefineExpression() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DefineExpressionInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -131,13 +107,7 @@ func ExampleCloudSearch_DefineExpression() {
 }
 
 func ExampleCloudSearch_DefineIndexField() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DefineIndexFieldInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -243,13 +213,7 @@ func ExampleCloudSearch_DefineIndexField() {
 }
 
 func ExampleCloudSearch_DefineSuggester() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DefineSuggesterInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -276,13 +240,7 @@ func ExampleCloudSearch_DefineSuggester() {
 }
 
 func ExampleCloudSearch_DeleteAnalysisScheme() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DeleteAnalysisSchemeInput{
 		AnalysisSchemeName: aws.String("StandardName"), // Required
@@ -302,13 +260,7 @@ func ExampleCloudSearch_DeleteAnalysisScheme() {
 }
 
 func ExampleCloudSearch_DeleteDomain() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DeleteDomainInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -327,13 +279,7 @@ func ExampleCloudSearch_DeleteDomain() {
 }
 
 func ExampleCloudSearch_DeleteExpression() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DeleteExpressionInput{
 		DomainName:     aws.String("DomainName"),   // Required
@@ -353,13 +299,7 @@ func ExampleCloudSearch_DeleteExpression() {
 }
 
 func ExampleCloudSearch_DeleteIndexField() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DeleteIndexFieldInput{
 		DomainName:     aws.String("DomainName"),       // Required
@@ -379,13 +319,7 @@ func ExampleCloudSearch_DeleteIndexField() {
 }
 
 func ExampleCloudSearch_DeleteSuggester() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DeleteSuggesterInput{
 		DomainName:    aws.String("DomainName"),   // Required
@@ -405,13 +339,7 @@ func ExampleCloudSearch_DeleteSuggester() {
 }
 
 func ExampleCloudSearch_DescribeAnalysisSchemes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeAnalysisSchemesInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -435,13 +363,7 @@ func ExampleCloudSearch_DescribeAnalysisSchemes() {
 }
 
 func ExampleCloudSearch_DescribeAvailabilityOptions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeAvailabilityOptionsInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -461,13 +383,7 @@ func ExampleCloudSearch_DescribeAvailabilityOptions() {
 }
 
 func ExampleCloudSearch_DescribeDomains() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeDomainsInput{
 		DomainNames: []*string{
@@ -489,13 +405,7 @@ func ExampleCloudSearch_DescribeDomains() {
 }
 
 func ExampleCloudSearch_DescribeExpressions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeExpressionsInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -519,13 +429,7 @@ func ExampleCloudSearch_DescribeExpressions() {
 }
 
 func ExampleCloudSearch_DescribeIndexFields() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeIndexFieldsInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -549,13 +453,7 @@ func ExampleCloudSearch_DescribeIndexFields() {
 }
 
 func ExampleCloudSearch_DescribeScalingParameters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeScalingParametersInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -574,13 +472,7 @@ func ExampleCloudSearch_DescribeScalingParameters() {
 }
 
 func ExampleCloudSearch_DescribeServiceAccessPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeServiceAccessPoliciesInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -600,13 +492,7 @@ func ExampleCloudSearch_DescribeServiceAccessPolicies() {
 }
 
 func ExampleCloudSearch_DescribeSuggesters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.DescribeSuggestersInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -630,13 +516,7 @@ func ExampleCloudSearch_DescribeSuggesters() {
 }
 
 func ExampleCloudSearch_IndexDocuments() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.IndexDocumentsInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -655,13 +535,7 @@ func ExampleCloudSearch_IndexDocuments() {
 }
 
 func ExampleCloudSearch_ListDomainNames() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	var params *cloudsearch.ListDomainNamesInput
 	resp, err := svc.ListDomainNames(params)
@@ -678,13 +552,7 @@ func ExampleCloudSearch_ListDomainNames() {
 }
 
 func ExampleCloudSearch_UpdateAvailabilityOptions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.UpdateAvailabilityOptionsInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -704,13 +572,7 @@ func ExampleCloudSearch_UpdateAvailabilityOptions() {
 }
 
 func ExampleCloudSearch_UpdateScalingParameters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.UpdateScalingParametersInput{
 		DomainName: aws.String("DomainName"), // Required
@@ -734,13 +596,7 @@ func ExampleCloudSearch_UpdateScalingParameters() {
 }
 
 func ExampleCloudSearch_UpdateServiceAccessPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearch.New(sess)
+	svc := cloudsearch.New(session.New())
 
 	params := &cloudsearch.UpdateServiceAccessPoliciesInput{
 		AccessPolicies: aws.String("PolicyDocument"), // Required

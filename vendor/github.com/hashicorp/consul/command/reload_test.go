@@ -1,22 +1,37 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/mitchellh/cli"
 )
 
 func TestReloadCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &ReloadCommand{}
 }
 
 func TestReloadCommandRun(t *testing.T) {
-	a1 := testAgent(t)
-	defer a1.Shutdown()
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &ReloadCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr}
+	// Setup a dummy response to errCh to simulate a successful reload
+	go func() {
+		errCh := <-a.ReloadCh()
+		errCh <- nil
+	}()
+
+	ui := cli.NewMockUi()
+	c := &ReloadCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetClientHTTP,
+		},
+	}
+	args := []string{"-http-addr=" + a.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {

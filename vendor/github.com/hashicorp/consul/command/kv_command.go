@@ -9,7 +9,7 @@ import (
 // KVCommand is a Command implementation that just shows help for
 // the subcommands nested below it.
 type KVCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *KVCommand) Run(args []string) int {

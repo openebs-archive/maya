@@ -14,15 +14,25 @@ import (
 
 // Router is used to do prefix based routing of a request to a logical backend
 type Router struct {
-	l              sync.RWMutex
-	root           *radix.Tree
-	tokenStoreSalt *salt.Salt
+	l                  sync.RWMutex
+	root               *radix.Tree
+	mountUUIDCache     *radix.Tree
+	mountAccessorCache *radix.Tree
+	tokenStoreSalt     *salt.Salt
+
+	// storagePrefix maps the prefix used for storage (ala the BarrierView)
+	// to the backend. This is used to map a key back into the backend that owns it.
+	// For example, logical/uuid1/foobar -> secrets/ (generic backend) + foobar
+	storagePrefix *radix.Tree
 }
 
 // NewRouter returns a new router
 func NewRouter() *Router {
 	r := &Router{
-		root: radix.New(),
+		root:               radix.New(),
+		storagePrefix:      radix.New(),
+		mountUUIDCache:     radix.New(),
+		mountAccessorCache: radix.New(),
 	}
 	return r
 }
@@ -68,7 +78,22 @@ func (r *Router) Mount(backend logical.Backend, prefix string, mountEntry *Mount
 		rootPaths:   pathsToRadix(paths.Root),
 		loginPaths:  pathsToRadix(paths.Unauthenticated),
 	}
+
+	switch {
+	case prefix == "":
+		return fmt.Errorf("missing prefix to be used for router entry; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case storageView.prefix == "":
+		return fmt.Errorf("missing storage view prefix; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case re.mountEntry.UUID == "":
+		return fmt.Errorf("missing mount identifier; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case re.mountEntry.Accessor == "":
+		return fmt.Errorf("missing mount accessor; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	}
+
 	r.root.Insert(prefix, re)
+	r.storagePrefix.Insert(storageView.prefix, re)
+	r.mountUUIDCache.Insert(re.mountEntry.UUID, re.mountEntry)
+	r.mountAccessorCache.Insert(re.mountEntry.Accessor, re.mountEntry)
 
 	return nil
 }
@@ -78,12 +103,22 @@ func (r *Router) Unmount(prefix string) error {
 	r.l.Lock()
 	defer r.l.Unlock()
 
-	// Call backend's Cleanup routine
-	re, ok := r.root.Get(prefix)
-	if ok {
-		re.(*routeEntry).backend.Cleanup()
+	// Fast-path out if the backend doesn't exist
+	raw, ok := r.root.Get(prefix)
+	if !ok {
+		return nil
 	}
+
+	// Call backend's Cleanup routine
+	re := raw.(*routeEntry)
+	re.backend.Cleanup()
+
+	// Purge from the radix trees
 	r.root.Delete(prefix)
+	r.storagePrefix.Delete(re.storageView.prefix)
+	r.mountUUIDCache.Delete(re.mountEntry.UUID)
+	r.mountAccessorCache.Delete(re.mountEntry.Accessor)
+
 	return nil
 }
 
@@ -125,6 +160,38 @@ func (r *Router) Untaint(path string) error {
 		raw.(*routeEntry).tainted = false
 	}
 	return nil
+}
+
+func (r *Router) MatchingMountByUUID(mountID string) *MountEntry {
+	if mountID == "" {
+		return nil
+	}
+
+	r.l.RLock()
+	defer r.l.RUnlock()
+
+	_, raw, ok := r.mountUUIDCache.LongestPrefix(mountID)
+	if !ok {
+		return nil
+	}
+
+	return raw.(*MountEntry)
+}
+
+func (r *Router) MatchingMountByAccessor(mountAccessor string) *MountEntry {
+	if mountAccessor == "" {
+		return nil
+	}
+
+	r.l.RLock()
+	defer r.l.RUnlock()
+
+	_, raw, ok := r.mountAccessorCache.LongestPrefix(mountAccessor)
+	if !ok {
+		return nil
+	}
+
+	return raw.(*MountEntry)
 }
 
 // MatchingMount returns the mount prefix that would be used for a path
@@ -182,6 +249,29 @@ func (r *Router) MatchingSystemView(path string) logical.SystemView {
 	return raw.(*routeEntry).backend.System()
 }
 
+// MatchingStoragePrefix returns the mount path matching and storage prefix
+// matching the given path
+func (r *Router) MatchingStoragePrefix(path string) (string, string, bool) {
+	r.l.RLock()
+	_, raw, ok := r.storagePrefix.LongestPrefix(path)
+	r.l.RUnlock()
+	if !ok {
+		return "", "", false
+	}
+
+	// Extract the mount path and storage prefix
+	re := raw.(*routeEntry)
+	mountPath := re.mountEntry.Path
+	prefix := re.storageView.prefix
+
+	// Add back the prefix for credential backends
+	if strings.HasPrefix(path, credentialBarrierPrefix) {
+		mountPath = credentialRoutePrefix + mountPath
+	}
+
+	return mountPath, prefix, true
+}
+
 // Route is used to route a given request
 func (r *Router) Route(req *logical.Request) (*logical.Response, error) {
 	resp, _, _, err := r.routeCommon(req, false)
@@ -226,6 +316,7 @@ func (r *Router) routeCommon(req *logical.Request, existenceCheck bool) (*logica
 	originalPath := req.Path
 	req.Path = strings.TrimPrefix(req.Path, mount)
 	req.MountPoint = mount
+	req.MountType = re.mountEntry.Type
 	if req.Path == "/" {
 		req.Path = ""
 	}
@@ -252,18 +343,38 @@ func (r *Router) routeCommon(req *logical.Request, existenceCheck bool) (*logica
 	// Cache the identifier of the request
 	originalReqID := req.ID
 
-	// Cache the wrap TTL of the request
-	originalWrapTTL := req.WrapTTL
+	// Cache the client token's number of uses in the request
+	originalClientTokenRemainingUses := req.ClientTokenRemainingUses
+	req.ClientTokenRemainingUses = 0
+
+	// Cache the headers and hide them from backends
+	headers := req.Headers
+	req.Headers = nil
+
+	// Cache the wrap info of the request
+	var wrapInfo *logical.RequestWrapInfo
+	if req.WrapInfo != nil {
+		wrapInfo = &logical.RequestWrapInfo{
+			TTL:    req.WrapInfo.TTL,
+			Format: req.WrapInfo.Format,
+		}
+	}
 
 	// Reset the request before returning
 	defer func() {
 		req.Path = originalPath
-		req.MountPoint = ""
+		req.MountPoint = mount
+		req.MountType = re.mountEntry.Type
 		req.Connection = originalConn
 		req.ID = originalReqID
 		req.Storage = nil
 		req.ClientToken = clientToken
-		req.WrapTTL = originalWrapTTL
+		req.ClientTokenRemainingUses = originalClientTokenRemainingUses
+		req.WrapInfo = wrapInfo
+		req.Headers = headers
+		// This is only set in one place, after routing, so should never be set
+		// by a backend
+		req.SetLastRemoteWAL(0)
 	}()
 
 	// Invoke the backend

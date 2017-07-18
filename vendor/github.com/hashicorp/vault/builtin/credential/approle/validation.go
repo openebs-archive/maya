@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/helper/cidrutil"
+	"github.com/hashicorp/vault/helper/locksutil"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -31,7 +31,7 @@ type secretIDStorageEntry struct {
 	// operation
 	SecretIDNumUses int `json:"secret_id_num_uses" structs:"secret_id_num_uses" mapstructure:"secret_id_num_uses"`
 
-	// Duration after which this SecretID should expire. This is croleed by
+	// Duration after which this SecretID should expire. This is capped by
 	// the backend mount's max TTL value.
 	SecretIDTTL time.Duration `json:"secret_id_ttl" structs:"secret_id_ttl" mapstructure:"secret_id_ttl"`
 
@@ -143,7 +143,7 @@ func (b *backend) validateCredentials(req *logical.Request, data *framework.Fiel
 			return nil, "", metadata, fmt.Errorf("failed to verify the CIDR restrictions set on the role: %v", err)
 		}
 		if !belongs {
-			return nil, "", metadata, fmt.Errorf("source address unauthorized through CIDR restrictions on the role")
+			return nil, "", metadata, fmt.Errorf("source address %q unauthorized through CIDR restrictions on the role", req.Connection.RemoteAddr)
 		}
 	}
 
@@ -199,7 +199,7 @@ func (b *backend) validateBindSecretID(req *logical.Request, roleName, secretID,
 			}
 
 			if belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, result.CIDRList); !belongs || err != nil {
-				return false, nil, fmt.Errorf("source address unauthorized through CIDR restrictions on the secret ID: %v", err)
+				return false, nil, fmt.Errorf("source address %q unauthorized through CIDR restrictions on the secret ID: %v", req.Connection.RemoteAddr, err)
 			}
 		}
 
@@ -261,7 +261,7 @@ func (b *backend) validateBindSecretID(req *logical.Request, roleName, secretID,
 		}
 
 		if belongs, err := cidrutil.IPBelongsToCIDRBlocksSlice(req.Connection.RemoteAddr, result.CIDRList); !belongs || err != nil {
-			return false, nil, fmt.Errorf("source address unauthorized through CIDR restrictions on the secret ID: %v", err)
+			return false, nil, fmt.Errorf("source address %q unauthorized through CIDR restrictions on the secret ID: %v", req.Connection.RemoteAddr, err)
 		}
 	}
 
@@ -273,7 +273,7 @@ func (b *backend) validateBindSecretID(req *logical.Request, roleName, secretID,
 func verifyCIDRRoleSecretIDSubset(secretIDCIDRs []string, roleBoundCIDRList string) error {
 	if len(secretIDCIDRs) != 0 {
 		// Parse the CIDRs on role as a slice
-		roleCIDRs := strutil.ParseDedupAndSortStrings(roleBoundCIDRList, ",")
+		roleCIDRs := strutil.ParseDedupLowercaseAndSortStrings(roleBoundCIDRList, ",")
 
 		// If there are no CIDR blocks on the role, then the subset
 		// requirement would be satisfied
@@ -299,39 +299,12 @@ func createHMAC(key, value string) (string, error) {
 	return hex.EncodeToString(hm.Sum(nil)), nil
 }
 
-// secretIDLock is used to get a lock from the pre-initialized map of locks.
-// Map is indexed based on the first 2 characters of the secretIDHMAC. If the
-// input is not hex encoded or if empty, a "custom" lock will be returned.
-func (b *backend) secretIDLock(secretIDHMAC string) *sync.RWMutex {
-	var lock *sync.RWMutex
-	var ok bool
-	if len(secretIDHMAC) >= 2 {
-		lock, ok = b.secretIDLocksMap[secretIDHMAC[0:2]]
-	}
-	if !ok || lock == nil {
-		// Fall back for custom lock to make sure that this method
-		// never returns nil
-		lock = b.secretIDLocksMap["custom"]
-	}
-	return lock
+func (b *backend) secretIDLock(secretIDHMAC string) *locksutil.LockEntry {
+	return locksutil.LockForKey(b.secretIDLocks, secretIDHMAC)
 }
 
-// secretIDAccessorLock is used to get a lock from the pre-initialized map
-// of locks. Map is indexed based on the first 2 characters of the
-// secretIDAccessor. If the input is not hex encoded or if empty, a "custom"
-// lock will be returned.
-func (b *backend) secretIDAccessorLock(secretIDAccessor string) *sync.RWMutex {
-	var lock *sync.RWMutex
-	var ok bool
-	if len(secretIDAccessor) >= 2 {
-		lock, ok = b.secretIDAccessorLocksMap[secretIDAccessor[0:2]]
-	}
-	if !ok || lock == nil {
-		// Fall back for custom lock to make sure that this method
-		// never returns nil
-		lock = b.secretIDAccessorLocksMap["custom"]
-	}
-	return lock
+func (b *backend) secretIDAccessorLock(secretIDAccessor string) *locksutil.LockEntry {
+	return locksutil.LockForKey(b.secretIDAccessorLocks, secretIDAccessor)
 }
 
 // nonLockedSecretIDStorageEntry fetches the secret ID properties from physical
@@ -379,7 +352,7 @@ func (b *backend) nonLockedSecretIDStorageEntry(s logical.Storage, roleNameHMAC,
 
 	if persistNeeded {
 		if err := b.nonLockedSetSecretIDStorageEntry(s, roleNameHMAC, secretIDHMAC, &result); err != nil {
-			return nil, fmt.Errorf("failed to upgrade role storage entry", err)
+			return nil, fmt.Errorf("failed to upgrade role storage entry %s", err)
 		}
 	}
 
@@ -496,7 +469,11 @@ func (b *backend) secretIDAccessorEntry(s logical.Storage, secretIDAccessor stri
 	var result secretIDAccessorStorageEntry
 
 	// Create index entry, mapping the accessor to the token ID
-	entryIndex := "accessor/" + b.salt.SaltID(secretIDAccessor)
+	salt, err := b.Salt()
+	if err != nil {
+		return nil, err
+	}
+	entryIndex := "accessor/" + salt.SaltID(secretIDAccessor)
 
 	accessorLock := b.secretIDAccessorLock(secretIDAccessor)
 	accessorLock.RLock()
@@ -525,7 +502,11 @@ func (b *backend) createSecretIDAccessorEntry(s logical.Storage, entry *secretID
 	entry.SecretIDAccessor = accessorUUID
 
 	// Create index entry, mapping the accessor to the token ID
-	entryIndex := "accessor/" + b.salt.SaltID(entry.SecretIDAccessor)
+	salt, err := b.Salt()
+	if err != nil {
+		return err
+	}
+	entryIndex := "accessor/" + salt.SaltID(entry.SecretIDAccessor)
 
 	accessorLock := b.secretIDAccessorLock(accessorUUID)
 	accessorLock.Lock()
@@ -544,7 +525,11 @@ func (b *backend) createSecretIDAccessorEntry(s logical.Storage, entry *secretID
 
 // deleteSecretIDAccessorEntry deletes the storage index mapping the accessor to a SecretID.
 func (b *backend) deleteSecretIDAccessorEntry(s logical.Storage, secretIDAccessor string) error {
-	accessorEntryIndex := "accessor/" + b.salt.SaltID(secretIDAccessor)
+	salt, err := b.Salt()
+	if err != nil {
+		return err
+	}
+	accessorEntryIndex := "accessor/" + salt.SaltID(secretIDAccessor)
 
 	accessorLock := b.secretIDAccessorLock(secretIDAccessor)
 	accessorLock.Lock()
@@ -567,9 +552,8 @@ func (b *backend) flushRoleSecrets(s logical.Storage, roleName, hmacKey string) 
 	}
 
 	// Acquire the custom lock to perform listing of SecretIDs
-	customLock := b.secretIDLock("")
-	customLock.RLock()
-	defer customLock.RUnlock()
+	b.secretIDListingLock.RLock()
+	defer b.secretIDListingLock.RUnlock()
 
 	secretIDHMACs, err := s.List(fmt.Sprintf("secret_id/%s/", roleNameHMAC))
 	if err != nil {

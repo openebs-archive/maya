@@ -15,11 +15,14 @@ type MountCommand struct {
 
 func (c *MountCommand) Run(args []string) int {
 	var description, path, defaultLeaseTTL, maxLeaseTTL string
+	var local, forceNoCache bool
 	flags := c.Meta.FlagSet("mount", meta.FlagSetDefault)
 	flags.StringVar(&description, "description", "", "")
 	flags.StringVar(&path, "path", "", "")
 	flags.StringVar(&defaultLeaseTTL, "default-lease-ttl", "", "")
 	flags.StringVar(&maxLeaseTTL, "max-lease-ttl", "", "")
+	flags.BoolVar(&forceNoCache, "force-no-cache", false, "")
+	flags.BoolVar(&local, "local", false, "")
 	flags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := flags.Parse(args); err != nil {
 		return 1
@@ -29,7 +32,7 @@ func (c *MountCommand) Run(args []string) int {
 	if len(args) != 1 {
 		flags.Usage()
 		c.Ui.Error(fmt.Sprintf(
-			"\nMount expects one argument: the type to mount."))
+			"\nmount expects one argument: the type to mount."))
 		return 1
 	}
 
@@ -53,7 +56,9 @@ func (c *MountCommand) Run(args []string) int {
 		Config: api.MountConfigInput{
 			DefaultLeaseTTL: defaultLeaseTTL,
 			MaxLeaseTTL:     maxLeaseTTL,
+			ForceNoCache:    forceNoCache,
 		},
+		Local: local,
 	}
 
 	if err := client.Sys().Mount(path, mountInfo); err != nil {
@@ -90,7 +95,7 @@ Mount Options:
                                  the mount. This shows up in the mounts command.
 
   -path=<path>                   Mount point for the logical backend. This
-                                 defauls to the type of the mount.
+                                 defaults to the type of the mount.
 
   -default-lease-ttl=<duration>  Default lease time-to-live for this backend.
                                  If not specified, uses the global default, or
@@ -101,6 +106,15 @@ Mount Options:
                                  If not specified, uses the global default, or
                                  the previously set value. Set to '0' to
                                  explicitly set it to use the global default.
+
+  -force-no-cache                Forces the backend to disable caching. If not
+                                 specified, uses the global default. This does
+                                 not affect caching of the underlying encrypted
+                                 data storage.
+
+  -local                         Mark the mount as a local mount. Local mounts
+                                 are not replicated nor (if a secondary)
+                                 removed by replication.
 
 `
 	return strings.TrimSpace(helpText)

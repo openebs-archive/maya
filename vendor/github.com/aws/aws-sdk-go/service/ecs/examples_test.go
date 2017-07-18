@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleECS_CreateCluster() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.CreateClusterInput{
 		ClusterName: aws.String("String"),
@@ -41,13 +35,7 @@ func ExampleECS_CreateCluster() {
 }
 
 func ExampleECS_CreateService() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.CreateServiceInput{
 		DesiredCount:   aws.Int64(1),         // Required
@@ -64,21 +52,6 @@ func ExampleECS_CreateService() {
 				ContainerName:    aws.String("String"),
 				ContainerPort:    aws.Int64(1),
 				LoadBalancerName: aws.String("String"),
-				TargetGroupArn:   aws.String("String"),
-			},
-			// More values...
-		},
-		PlacementConstraints: []*ecs.PlacementConstraint{
-			{ // Required
-				Expression: aws.String("String"),
-				Type:       aws.String("PlacementConstraintType"),
-			},
-			// More values...
-		},
-		PlacementStrategy: []*ecs.PlacementStrategy{
-			{ // Required
-				Field: aws.String("String"),
-				Type:  aws.String("PlacementStrategyType"),
 			},
 			// More values...
 		},
@@ -97,48 +70,8 @@ func ExampleECS_CreateService() {
 	fmt.Println(resp)
 }
 
-func ExampleECS_DeleteAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
-
-	params := &ecs.DeleteAttributesInput{
-		Attributes: []*ecs.Attribute{ // Required
-			{ // Required
-				Name:       aws.String("String"), // Required
-				TargetId:   aws.String("String"),
-				TargetType: aws.String("TargetType"),
-				Value:      aws.String("String"),
-			},
-			// More values...
-		},
-		Cluster: aws.String("String"),
-	}
-	resp, err := svc.DeleteAttributes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleECS_DeleteCluster() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DeleteClusterInput{
 		Cluster: aws.String("String"), // Required
@@ -157,13 +90,7 @@ func ExampleECS_DeleteCluster() {
 }
 
 func ExampleECS_DeleteService() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DeleteServiceInput{
 		Service: aws.String("String"), // Required
@@ -183,13 +110,7 @@ func ExampleECS_DeleteService() {
 }
 
 func ExampleECS_DeregisterContainerInstance() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DeregisterContainerInstanceInput{
 		ContainerInstance: aws.String("String"), // Required
@@ -210,13 +131,7 @@ func ExampleECS_DeregisterContainerInstance() {
 }
 
 func ExampleECS_DeregisterTaskDefinition() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DeregisterTaskDefinitionInput{
 		TaskDefinition: aws.String("String"), // Required
@@ -235,13 +150,7 @@ func ExampleECS_DeregisterTaskDefinition() {
 }
 
 func ExampleECS_DescribeClusters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DescribeClustersInput{
 		Clusters: []*string{
@@ -263,13 +172,7 @@ func ExampleECS_DescribeClusters() {
 }
 
 func ExampleECS_DescribeContainerInstances() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DescribeContainerInstancesInput{
 		ContainerInstances: []*string{ // Required
@@ -292,13 +195,7 @@ func ExampleECS_DescribeContainerInstances() {
 }
 
 func ExampleECS_DescribeServices() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DescribeServicesInput{
 		Services: []*string{ // Required
@@ -321,13 +218,7 @@ func ExampleECS_DescribeServices() {
 }
 
 func ExampleECS_DescribeTaskDefinition() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DescribeTaskDefinitionInput{
 		TaskDefinition: aws.String("String"), // Required
@@ -346,13 +237,7 @@ func ExampleECS_DescribeTaskDefinition() {
 }
 
 func ExampleECS_DescribeTasks() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DescribeTasksInput{
 		Tasks: []*string{ // Required
@@ -375,13 +260,7 @@ func ExampleECS_DescribeTasks() {
 }
 
 func ExampleECS_DiscoverPollEndpoint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.DiscoverPollEndpointInput{
 		Cluster:           aws.String("String"),
@@ -400,44 +279,8 @@ func ExampleECS_DiscoverPollEndpoint() {
 	fmt.Println(resp)
 }
 
-func ExampleECS_ListAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
-
-	params := &ecs.ListAttributesInput{
-		TargetType:     aws.String("TargetType"), // Required
-		AttributeName:  aws.String("String"),
-		AttributeValue: aws.String("String"),
-		Cluster:        aws.String("String"),
-		MaxResults:     aws.Int64(1),
-		NextToken:      aws.String("String"),
-	}
-	resp, err := svc.ListAttributes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleECS_ListClusters() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListClustersInput{
 		MaxResults: aws.Int64(1),
@@ -457,17 +300,10 @@ func ExampleECS_ListClusters() {
 }
 
 func ExampleECS_ListContainerInstances() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListContainerInstancesInput{
 		Cluster:    aws.String("String"),
-		Filter:     aws.String("String"),
 		MaxResults: aws.Int64(1),
 		NextToken:  aws.String("String"),
 	}
@@ -485,13 +321,7 @@ func ExampleECS_ListContainerInstances() {
 }
 
 func ExampleECS_ListServices() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListServicesInput{
 		Cluster:    aws.String("String"),
@@ -512,19 +342,12 @@ func ExampleECS_ListServices() {
 }
 
 func ExampleECS_ListTaskDefinitionFamilies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListTaskDefinitionFamiliesInput{
 		FamilyPrefix: aws.String("String"),
 		MaxResults:   aws.Int64(1),
 		NextToken:    aws.String("String"),
-		Status:       aws.String("TaskDefinitionFamilyStatus"),
 	}
 	resp, err := svc.ListTaskDefinitionFamilies(params)
 
@@ -540,13 +363,7 @@ func ExampleECS_ListTaskDefinitionFamilies() {
 }
 
 func ExampleECS_ListTaskDefinitions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListTaskDefinitionsInput{
 		FamilyPrefix: aws.String("String"),
@@ -569,13 +386,7 @@ func ExampleECS_ListTaskDefinitions() {
 }
 
 func ExampleECS_ListTasks() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.ListTasksInput{
 		Cluster:           aws.String("String"),
@@ -600,56 +411,14 @@ func ExampleECS_ListTasks() {
 	fmt.Println(resp)
 }
 
-func ExampleECS_PutAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
-
-	params := &ecs.PutAttributesInput{
-		Attributes: []*ecs.Attribute{ // Required
-			{ // Required
-				Name:       aws.String("String"), // Required
-				TargetId:   aws.String("String"),
-				TargetType: aws.String("TargetType"),
-				Value:      aws.String("String"),
-			},
-			// More values...
-		},
-		Cluster: aws.String("String"),
-	}
-	resp, err := svc.PutAttributes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleECS_RegisterContainerInstance() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.RegisterContainerInstanceInput{
 		Attributes: []*ecs.Attribute{
 			{ // Required
-				Name:       aws.String("String"), // Required
-				TargetId:   aws.String("String"),
-				TargetType: aws.String("TargetType"),
-				Value:      aws.String("String"),
+				Name:  aws.String("String"), // Required
+				Value: aws.String("String"),
 			},
 			// More values...
 		},
@@ -691,13 +460,7 @@ func ExampleECS_RegisterContainerInstance() {
 }
 
 func ExampleECS_RegisterTaskDefinition() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.RegisterTaskDefinitionInput{
 		ContainerDefinitions: []*ecs.ContainerDefinition{ // Required
@@ -756,8 +519,7 @@ func ExampleECS_RegisterTaskDefinition() {
 						// More values...
 					},
 				},
-				Memory:            aws.Int64(1),
-				MemoryReservation: aws.Int64(1),
+				Memory: aws.Int64(1),
 				MountPoints: []*ecs.MountPoint{
 					{ // Required
 						ContainerPath: aws.String("String"),
@@ -797,16 +559,7 @@ func ExampleECS_RegisterTaskDefinition() {
 			},
 			// More values...
 		},
-		Family:      aws.String("String"), // Required
-		NetworkMode: aws.String("NetworkMode"),
-		PlacementConstraints: []*ecs.TaskDefinitionPlacementConstraint{
-			{ // Required
-				Expression: aws.String("String"),
-				Type:       aws.String("TaskDefinitionPlacementConstraintType"),
-			},
-			// More values...
-		},
-		TaskRoleArn: aws.String("String"),
+		Family: aws.String("String"), // Required
 		Volumes: []*ecs.Volume{
 			{ // Required
 				Host: &ecs.HostVolumeProperties{
@@ -831,19 +584,12 @@ func ExampleECS_RegisterTaskDefinition() {
 }
 
 func ExampleECS_RunTask() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.RunTaskInput{
 		TaskDefinition: aws.String("String"), // Required
 		Cluster:        aws.String("String"),
 		Count:          aws.Int64(1),
-		Group:          aws.String("String"),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{ // Required
@@ -862,21 +608,6 @@ func ExampleECS_RunTask() {
 				},
 				// More values...
 			},
-			TaskRoleArn: aws.String("String"),
-		},
-		PlacementConstraints: []*ecs.PlacementConstraint{
-			{ // Required
-				Expression: aws.String("String"),
-				Type:       aws.String("PlacementConstraintType"),
-			},
-			// More values...
-		},
-		PlacementStrategy: []*ecs.PlacementStrategy{
-			{ // Required
-				Field: aws.String("String"),
-				Type:  aws.String("PlacementStrategyType"),
-			},
-			// More values...
 		},
 		StartedBy: aws.String("String"),
 	}
@@ -894,13 +625,7 @@ func ExampleECS_RunTask() {
 }
 
 func ExampleECS_StartTask() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.StartTaskInput{
 		ContainerInstances: []*string{ // Required
@@ -909,7 +634,6 @@ func ExampleECS_StartTask() {
 		},
 		TaskDefinition: aws.String("String"), // Required
 		Cluster:        aws.String("String"),
-		Group:          aws.String("String"),
 		Overrides: &ecs.TaskOverride{
 			ContainerOverrides: []*ecs.ContainerOverride{
 				{ // Required
@@ -928,7 +652,6 @@ func ExampleECS_StartTask() {
 				},
 				// More values...
 			},
-			TaskRoleArn: aws.String("String"),
 		},
 		StartedBy: aws.String("String"),
 	}
@@ -946,13 +669,7 @@ func ExampleECS_StartTask() {
 }
 
 func ExampleECS_StopTask() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.StopTaskInput{
 		Task:    aws.String("String"), // Required
@@ -973,13 +690,7 @@ func ExampleECS_StopTask() {
 }
 
 func ExampleECS_SubmitContainerStateChange() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.SubmitContainerStateChangeInput{
 		Cluster:       aws.String("String"),
@@ -1012,13 +723,7 @@ func ExampleECS_SubmitContainerStateChange() {
 }
 
 func ExampleECS_SubmitTaskStateChange() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.SubmitTaskStateChangeInput{
 		Cluster: aws.String("String"),
@@ -1040,13 +745,7 @@ func ExampleECS_SubmitTaskStateChange() {
 }
 
 func ExampleECS_UpdateContainerAgent() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.UpdateContainerAgentInput{
 		ContainerInstance: aws.String("String"), // Required
@@ -1066,13 +765,7 @@ func ExampleECS_UpdateContainerAgent() {
 }
 
 func ExampleECS_UpdateService() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecs.New(sess)
+	svc := ecs.New(session.New())
 
 	params := &ecs.UpdateServiceInput{
 		Service: aws.String("String"), // Required

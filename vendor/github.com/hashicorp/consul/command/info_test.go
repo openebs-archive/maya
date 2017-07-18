@@ -1,22 +1,31 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/mitchellh/cli"
 )
 
 func TestInfoCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &InfoCommand{}
 }
 
 func TestInfoCommandRun(t *testing.T) {
-	a1 := testAgent(t)
+	t.Parallel()
+	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &InfoCommand{Ui: ui}
-	args := []string{"-rpc-addr=" + a1.addr}
+	ui := cli.NewMockUi()
+	c := &InfoCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetClientHTTP,
+		},
+	}
+	args := []string{"-http-addr=" + a1.HTTPAddr()}
 
 	code := c.Run(args)
 	if code != 0 {

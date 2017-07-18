@@ -1,26 +1,39 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 
+func testSnapshotSaveCommand(t *testing.T) (*cli.MockUi, *SnapshotSaveCommand) {
+	ui := cli.NewMockUi()
+	return ui, &SnapshotSaveCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetHTTP,
+		},
+	}
+}
+
 func TestSnapshotSaveCommand_implements(t *testing.T) {
+	t.Parallel()
 	var _ cli.Command = &SnapshotSaveCommand{}
 }
 
 func TestSnapshotSaveCommand_noTabs(t *testing.T) {
+	t.Parallel()
 	assertNoTabs(t, new(SnapshotSaveCommand))
 }
 
 func TestSnapshotSaveCommand_Validation(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &SnapshotSaveCommand{Ui: ui}
+	t.Parallel()
+	ui, c := testSnapshotSaveCommand(t)
 
 	cases := map[string]struct {
 		args   []string
@@ -58,22 +71,19 @@ func TestSnapshotSaveCommand_Validation(t *testing.T) {
 }
 
 func TestSnapshotSaveCommand_Run(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
+	t.Parallel()
+	a := agent.NewTestAgent(t.Name(), nil)
+	defer a.Shutdown()
+	client := a.Client()
 
-	ui := new(cli.MockUi)
-	c := &SnapshotSaveCommand{Ui: ui}
+	ui, c := testSnapshotSaveCommand(t)
 
-	dir, err := ioutil.TempDir("", "snapshot")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	dir := testutil.TempDir(t, "snapshot")
 	defer os.RemoveAll(dir)
 
 	file := path.Join(dir, "backup.tgz")
 	args := []string{
-		"-http-addr=" + srv.httpAddr,
+		"-http-addr=" + a.HTTPAddr(),
 		file,
 	}
 

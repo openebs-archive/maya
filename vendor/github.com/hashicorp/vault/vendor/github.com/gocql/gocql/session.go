@@ -6,17 +6,17 @@ package gocql
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unicode"
-
-	"golang.org/x/net/context"
 
 	"github.com/gocql/gocql/internal/lru"
 )
@@ -76,16 +76,23 @@ var queryPool = &sync.Pool{
 }
 
 func addrsToHosts(addrs []string, defaultPort int) ([]*HostInfo, error) {
-	hosts := make([]*HostInfo, len(addrs))
-	for i, hostport := range addrs {
+	var hosts []*HostInfo
+	for _, hostport := range addrs {
 		host, err := hostInfo(hostport, defaultPort)
 		if err != nil {
+			// Try other hosts if unable to resolve DNS name
+			if _, ok := err.(*net.DNSError); ok {
+				Logger.Printf("gocql: dns error: %v\n", err)
+				continue
+			}
 			return nil, err
 		}
 
-		hosts[i] = host
+		hosts = append(hosts, host)
 	}
-
+	if len(hosts) == 0 {
+		return nil, errors.New("failed to resolve any of the provided hostnames")
+	}
 	return hosts, nil
 }
 
@@ -126,16 +133,24 @@ func NewSession(cfg ClusterConfig) (*Session, error) {
 		policy: cfg.PoolConfig.HostSelectionPolicy,
 	}
 
-	if err := s.init(); err != nil {
-		// TODO(zariel): dont wrap this error in fmt.Errorf, return a typed error
-		s.Close()
+	//Check the TLS Config before trying to connect to anything external
+	connCfg, err := connConfig(&s.cfg)
+	if err != nil {
+		//TODO: Return a typed error
 		return nil, fmt.Errorf("gocql: unable to create session: %v", err)
 	}
+	s.connCfg = connCfg
 
-	if s.pool.Size() == 0 {
-		// TODO(zariel): move this to init
+	if err := s.init(); err != nil {
 		s.Close()
-		return nil, ErrNoConnectionsStarted
+		if err == ErrNoConnectionsStarted {
+			//This error used to be generated inside NewSession & returned directly
+			//Forward it on up to be backwards compatible
+			return nil, ErrNoConnectionsStarted
+		} else {
+			// TODO(zariel): dont wrap this error in fmt.Errorf, return a typed error
+			return nil, fmt.Errorf("gocql: unable to create session: %v", err)
+		}
 	}
 
 	return s, nil
@@ -146,12 +161,6 @@ func (s *Session) init() error {
 	if err != nil {
 		return err
 	}
-
-	connCfg, err := connConfig(s)
-	if err != nil {
-		return err
-	}
-	s.connCfg = connCfg
 
 	if !s.cfg.disableControlConn {
 		s.control = createControlConn(s)
@@ -165,7 +174,7 @@ func (s *Session) init() error {
 
 			// TODO(zariel): we really only need this in 1 place
 			s.cfg.ProtoVersion = proto
-			connCfg.ProtoVersion = proto
+			s.connCfg.ProtoVersion = proto
 		}
 
 		if err := s.control.connect(hosts); err != nil {
@@ -210,6 +219,10 @@ func (s *Session) init() error {
 		s.useSystemSchema = newer
 	} else {
 		s.useSystemSchema = hosts[0].Version().Major >= 3
+	}
+
+	if s.pool.Size() == 0 {
+		return ErrNoConnectionsStarted
 	}
 
 	return nil
@@ -383,7 +396,7 @@ func (s *Session) executeQuery(qry *Query) *Iter {
 	return iter
 }
 
-// KeyspaceMetadata returns the schema metadata for the keyspace specified.
+// KeyspaceMetadata returns the schema metadata for the keyspace specified. Returns an error if the keyspace does not exist.
 func (s *Session) KeyspaceMetadata(keyspace string) (*KeyspaceMetadata, error) {
 	// fail fast
 	if s.Closed() {
@@ -434,7 +447,7 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 	if cached {
 		// done accessing the cache
 		s.routingKeyInfoCache.mu.Unlock()
-		// the entry is an inflight struct similiar to that used by
+		// the entry is an inflight struct similar to that used by
 		// Conn to prepare statements
 		inflight := entry.(*inflightCachedEntry)
 
@@ -465,7 +478,7 @@ func (s *Session) routingKeyInfo(ctx context.Context, stmt string) (*routingKeyI
 	conn := s.getConn()
 	if conn == nil {
 		// TODO: better error?
-		inflight.err = errors.New("gocql: unable to fetch preapred info: no connection avilable")
+		inflight.err = errors.New("gocql: unable to fetch prepared info: no connection available")
 		return nil, inflight.err
 	}
 
@@ -1016,6 +1029,7 @@ func (q *Query) reset() {
 	q.defaultTimestamp = false
 	q.disableSkipMetadata = false
 	q.disableAutoPage = false
+	q.context = nil
 }
 
 // Iter represents an iterator that can be used to iterate over all rows that
@@ -1564,15 +1578,16 @@ func (e Error) Error() string {
 }
 
 var (
-	ErrNotFound      = errors.New("not found")
-	ErrUnavailable   = errors.New("unavailable")
-	ErrUnsupported   = errors.New("feature not supported")
-	ErrTooManyStmts  = errors.New("too many statements")
-	ErrUseStmt       = errors.New("use statements aren't supported. Please see https://github.com/gocql/gocql for explaination.")
-	ErrSessionClosed = errors.New("session has been closed")
-	ErrNoConnections = errors.New("gocql: no hosts available in the pool")
-	ErrNoKeyspace    = errors.New("no keyspace provided")
-	ErrNoMetadata    = errors.New("no metadata available")
+	ErrNotFound             = errors.New("not found")
+	ErrUnavailable          = errors.New("unavailable")
+	ErrUnsupported          = errors.New("feature not supported")
+	ErrTooManyStmts         = errors.New("too many statements")
+	ErrUseStmt              = errors.New("use statements aren't supported. Please see https://github.com/gocql/gocql for explanation.")
+	ErrSessionClosed        = errors.New("session has been closed")
+	ErrNoConnections        = errors.New("gocql: no hosts available in the pool")
+	ErrNoKeyspace           = errors.New("no keyspace provided")
+	ErrKeyspaceDoesNotExist = errors.New("keyspace does not exist")
+	ErrNoMetadata           = errors.New("no metadata available")
 )
 
 type ErrProtocol struct{ error }

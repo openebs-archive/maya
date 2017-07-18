@@ -7,49 +7,37 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/query"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Welcome to the Amazon Simple Queue Service API Reference.
+// Welcome to the Amazon Simple Queue Service API Reference. This section describes
+// who should read this guide, how the guide is organized, and other resources
+// related to the Amazon Simple Queue Service (Amazon SQS).
 //
-// Amazon Simple Queue Service (Amazon SQS) is a reliable, highly-scalable hosted
-// queue for storing messages as they travel between applications or microservices.
-// Amazon SQS moves data between distributed application components and helps
-// you decouple these components.
+// Amazon SQS offers reliable and scalable hosted queues for storing messages
+// as they travel between computers. By using Amazon SQS, you can move data
+// between distributed components of your applications that perform different
+// tasks without losing messages or requiring each component to be always available.
 //
-// Standard queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html)
-// are available in all regions. FIFO queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/FIFO-queues.html)
-// are available in US West (Oregon) and US East (Ohio).
-//
-// You can use AWS SDKs (http://aws.amazon.com/tools/#sdk) to access Amazon
-// SQS using your favorite programming language. The SDKs perform tasks such
-// as the following automatically:
-//
-//    * Cryptographically sign your service requests
-//
-//    * Retry requests
-//
-//    * Handle error responses
-//
-// Additional Information
-//
-//    * Amazon SQS Product Page (http://aws.amazon.com/sqs/)
-//
-//    * Amazon SQS Developer Guide
-//
+// Helpful Links:  Current WSDL (2012-11-05) (http://queue.amazonaws.com/doc/2012-11-05/QueueService.wsdl)
 // Making API Requests (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/MakingRequestsArticle.html)
-//
-// Using Amazon SQS Message Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-attributes.html)
-//
-// Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html)
-//
-//    * Amazon Web Services General Reference
-//
+// Amazon SQS product page (http://aws.amazon.com/sqs/) Using Amazon SQS Message
+// Attributes (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSMessageAttributes.html)
+// Using Amazon SQS Dead Letter Queues (http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/SQSDeadLetterQueue.html)
 // Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#sqs_region)
-// The service client's operations are safe to be used concurrently.
+//
+//
+// We also provide SDKs that enable you to access Amazon SQS from your preferred
+// programming language. The SDKs contain functionality that automatically takes
+// care of tasks such as:
+//
+//   Cryptographically signing your service requests Retrying requests Handling
+// error responses
+//
+// For a list of available SDKs, go to Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+//The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/sqs-2012-11-05
 type SQS struct {
 	*client.Client
 }
@@ -60,11 +48,8 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// Service information constants
-const (
-	ServiceName = "sqs"       // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
-)
+// A ServiceName is the name of the service the client will make API calls to.
+const ServiceName = "sqs"
 
 // New creates a new instance of the SQS client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -77,18 +62,17 @@ const (
 //     // Create a SQS client with additional configuration
 //     svc := sqs.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *SQS {
-	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	c := p.ClientConfig(ServiceName, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *SQS {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *SQS {
 	svc := &SQS{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2012-11-05",
@@ -98,7 +82,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
+	svc.Handlers.Sign.PushBack(v4.Sign)
 	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)

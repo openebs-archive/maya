@@ -1,22 +1,31 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/mitchellh/cli"
 )
 
 func TestEventCommand_implements(t *testing.T) {
-	var _ cli.Command = &WatchCommand{}
+	t.Parallel()
+	var _ cli.Command = &EventCommand{}
 }
 
 func TestEventCommandRun(t *testing.T) {
-	a1 := testAgent(t)
+	t.Parallel()
+	a1 := agent.NewTestAgent(t.Name(), nil)
 	defer a1.Shutdown()
 
-	ui := new(cli.MockUi)
-	c := &EventCommand{Ui: ui}
-	args := []string{"-http-addr=" + a1.httpAddr, "-name=cmd"}
+	ui := cli.NewMockUi()
+	c := &EventCommand{
+		BaseCommand: BaseCommand{
+			UI:    ui,
+			Flags: FlagSetClientHTTP,
+		},
+	}
+	args := []string{"-http-addr=" + a1.HTTPAddr(), "-name=cmd"}
 
 	code := c.Run(args)
 	if code != 0 {

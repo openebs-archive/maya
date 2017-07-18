@@ -2,20 +2,18 @@ package command
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/mitchellh/cli"
 )
 
 // SnapshotInspectCommand is a Command implementation that is used to display
 // metadata about a snapshot file
 type SnapshotInspectCommand struct {
-	Ui cli.Ui
+	BaseCommand
 }
 
 func (c *SnapshotInspectCommand) Help() string {
@@ -35,37 +33,37 @@ Usage: consul snapshot inspect [options] FILE
 }
 
 func (c *SnapshotInspectCommand) Run(args []string) int {
-	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
-	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
+	flagSet := c.BaseCommand.NewFlagSet(c)
+
+	if err := c.BaseCommand.Parse(args); err != nil {
 		return 1
 	}
 
 	var file string
 
-	args = cmdFlags.Args()
+	args = flagSet.Args()
 	switch len(args) {
 	case 0:
-		c.Ui.Error("Missing FILE argument")
+		c.UI.Error("Missing FILE argument")
 		return 1
 	case 1:
 		file = args[0]
 	default:
-		c.Ui.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
+		c.UI.Error(fmt.Sprintf("Too many arguments (expected 1, got %d)", len(args)))
 		return 1
 	}
 
 	// Open the file.
 	f, err := os.Open(file)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
+		c.UI.Error(fmt.Sprintf("Error opening snapshot file: %s", err))
 		return 1
 	}
 	defer f.Close()
 
 	meta, err := snapshot.Verify(f)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
+		c.UI.Error(fmt.Sprintf("Error verifying snapshot: %s", err))
 	}
 
 	var b bytes.Buffer
@@ -76,10 +74,10 @@ func (c *SnapshotInspectCommand) Run(args []string) int {
 	fmt.Fprintf(tw, "Term\t%d\n", meta.Term)
 	fmt.Fprintf(tw, "Version\t%d\n", meta.Version)
 	if err = tw.Flush(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
+		c.UI.Error(fmt.Sprintf("Error rendering snapshot info: %s", err))
 	}
 
-	c.Ui.Info(b.String())
+	c.UI.Info(b.String())
 
 	return 0
 }

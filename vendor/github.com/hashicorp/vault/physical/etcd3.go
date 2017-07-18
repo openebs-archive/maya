@@ -15,6 +15,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/coreos/etcd/pkg/transport"
+	"github.com/hashicorp/vault/helper/strutil"
 	log "github.com/mgutz/logxi/v1"
 	"golang.org/x/net/context"
 )
@@ -32,6 +33,9 @@ type EtcdBackend struct {
 	etcd *clientv3.Client
 }
 
+// etcd default lease duration is 60s. set to 15s for faster recovery.
+const etcd3LockTimeoutInSeconds = 15
+
 // newEtcd3Backend constructs a etcd3 backend.
 func newEtcd3Backend(conf map[string]string, logger log.Logger) (Backend, error) {
 	// Get the etcd path form the configuration.
@@ -45,10 +49,9 @@ func newEtcd3Backend(conf map[string]string, logger log.Logger) (Backend, error)
 		path = "/" + path
 	}
 
-	// Set a default machines list and check for an overriding address value.
-	endpoints := []string{"http://127.0.0.1:2379"}
-	if address, ok := conf["address"]; ok {
-		endpoints = strings.Split(address, ",")
+	endpoints, err := getEtcdEndpoints(conf)
+	if err != nil {
+		return nil, err
 	}
 
 	cfg := clientv3.Config{
@@ -59,7 +62,13 @@ func newEtcd3Backend(conf map[string]string, logger log.Logger) (Backend, error)
 	if haEnabled == "" {
 		haEnabled = conf["ha_enabled"]
 	}
-	haEnabledBool, _ := strconv.ParseBool(haEnabled)
+	if haEnabled == "" {
+		haEnabled = "false"
+	}
+	haEnabledBool, err := strconv.ParseBool(haEnabled)
+	if err != nil {
+		return nil, fmt.Errorf("value [%v] of 'ha_enabled' could not be understood", haEnabled)
+	}
 
 	cert, hasCert := conf["tls_cert_file"]
 	key, hasKey := conf["tls_key_file"]
@@ -196,7 +205,7 @@ func (c *EtcdBackend) List(prefix string) ([]string, error) {
 		if i := strings.Index(key, "/"); i == -1 {
 			keys = append(keys, key)
 		} else if i != -1 {
-			keys = appendIfMissing(keys, key[:i+1])
+			keys = strutil.AppendIfMissing(keys, key[:i+1])
 		}
 	}
 	return keys, nil
@@ -222,7 +231,7 @@ type EtcdLock struct {
 
 // Lock is used for mutual exclusion based on the given key.
 func (c *EtcdBackend) LockWith(key, value string) (Lock, error) {
-	session, err := concurrency.NewSession(c.etcd)
+	session, err := concurrency.NewSession(c.etcd, concurrency.WithTTL(etcd3LockTimeoutInSeconds))
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +265,7 @@ func (c *EtcdLock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		}
 		return nil, err
 	}
-	if _, err := c.etcd.Put(ctx, c.etcdMu.Key(), c.value); err != nil {
+	if _, err := c.etcd.Put(ctx, c.etcdMu.Key(), c.value, clientv3.WithLease(c.etcdSession.Lease())); err != nil {
 		return nil, err
 	}
 
@@ -286,9 +295,6 @@ func (c *EtcdLock) Value() (bool, string, error) {
 	}
 	if len(resp.Kvs) == 0 {
 		return false, "", nil
-	}
-	if len(resp.Kvs) > 1 {
-		return false, "", errors.New("unexpected number of keys from a get request")
 	}
 
 	return true, string(resp.Kvs[0].Value), nil

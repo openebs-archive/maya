@@ -45,10 +45,10 @@ clarify what is being discussed:
   and response from Vault goes through the configured audit backends. This provides a simple
   way to integrate Vault with multiple audit logging destinations of different types.
 
-* **Credential Backend** - A credential backend is used to authenticate users or applications which
+* **Auth Backend** - An auth backend is used to authenticate users or applications which
   are connecting to Vault. Once authenticated, the backend returns the list of applicable policies
   which should be applied. Vault takes an authenticated user and returns a client token that can
-  be used for future requests. As an example, the `user-password` backend uses a username and password
+  be used for future requests. As an example, the `userpass` backend uses a username and password
   to authenticate the user. Alternatively, the `github` backend allows users to authenticate
   via GitHub.
 
@@ -95,7 +95,7 @@ as [Shamir's secret sharing algorithm](https://en.wikipedia.org/wiki/Shamir's_Se
 to split the master key into 5 shares, any 3 of which are required to reconstruct the master
 key.
 
-![Keys](/assets/images/keys.png)
+[![Vault Shamir Secret Sharing Algorithm](/assets/images/vault-shamir-secret-sharing.svg)](/assets/images/vault-shamir-secret-sharing.svg)
 
 The number of shares and the minimum threshold required can both be specified. Shamir's
 technique can be disabled, and the master key used directly for unsealing. Once Vault

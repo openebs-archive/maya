@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -67,77 +66,21 @@ func newEtcd2Backend(conf map[string]string, logger log.Logger) (Backend, error)
 		path = "/" + path
 	}
 
-	// Set a default machines list and check for an overriding address value.
-	machines := "http://127.0.0.1:2379"
-	if address, ok := conf["address"]; ok {
-		machines = address
-	}
-	machinesEnv := os.Getenv("ETCD_ADDR")
-	if machinesEnv != "" {
-		machines = machinesEnv
-	}
-	machinesParsed := strings.Split(machines, Etcd2MachineDelimiter)
-
-	// Verify that the machines are valid URLs
-	for _, machine := range machinesParsed {
-		u, urlErr := url.Parse(machine)
-		if urlErr != nil || u.Scheme == "" {
-			return nil, EtcdAddressError
-		}
+	c, err := newEtcdV2Client(conf)
+	if err != nil {
+		return nil, err
 	}
 
 	haEnabled := os.Getenv("ETCD_HA_ENABLED")
 	if haEnabled == "" {
 		haEnabled = conf["ha_enabled"]
 	}
-	haEnabledBool, _ := strconv.ParseBool(haEnabled)
-
-	// Create a new client from the supplied address and attempt to sync with the
-	// cluster.
-	var cTransport client.CancelableTransport
-	cert, hasCert := conf["tls_cert_file"]
-	key, hasKey := conf["tls_key_file"]
-	ca, hasCa := conf["tls_ca_file"]
-	if (hasCert && hasKey) || hasCa {
-		var transportErr error
-		tls := transport.TLSInfo{
-			CAFile:   ca,
-			CertFile: cert,
-			KeyFile:  key,
-		}
-		cTransport, transportErr = transport.NewTransport(tls, 30*time.Second)
-
-		if transportErr != nil {
-			return nil, transportErr
-		}
-	} else {
-		cTransport = client.DefaultTransport
+	if haEnabled == "" {
+		haEnabled = "false"
 	}
-
-	cfg := client.Config{
-		Endpoints: machinesParsed,
-		Transport: cTransport,
-	}
-
-	// Set credentials.
-	username := os.Getenv("ETCD_USERNAME")
-	if username == "" {
-		username, _ = conf["username"]
-	}
-
-	password := os.Getenv("ETCD_PASSWORD")
-	if password == "" {
-		password, _ = conf["password"]
-	}
-
-	if username != "" && password != "" {
-		cfg.Username = username
-		cfg.Password = password
-	}
-
-	c, err := client.New(cfg)
+	haEnabledBool, err := strconv.ParseBool(haEnabled)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("value [%v] of 'ha_enabled' could not be understood", haEnabled)
 	}
 
 	// Should we sync the cluster state? There are three available options
@@ -171,6 +114,58 @@ func newEtcd2Backend(conf map[string]string, logger log.Logger) (Backend, error)
 		logger:     logger,
 		haEnabled:  haEnabledBool,
 	}, nil
+}
+
+func newEtcdV2Client(conf map[string]string) (client.Client, error) {
+	endpoints, err := getEtcdEndpoints(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new client from the supplied address and attempt to sync with the
+	// cluster.
+	var cTransport client.CancelableTransport
+	cert, hasCert := conf["tls_cert_file"]
+	key, hasKey := conf["tls_key_file"]
+	ca, hasCa := conf["tls_ca_file"]
+	if (hasCert && hasKey) || hasCa {
+		var transportErr error
+		tls := transport.TLSInfo{
+			CAFile:   ca,
+			CertFile: cert,
+			KeyFile:  key,
+		}
+		cTransport, transportErr = transport.NewTransport(tls, 30*time.Second)
+
+		if transportErr != nil {
+			return nil, transportErr
+		}
+	} else {
+		cTransport = client.DefaultTransport
+	}
+
+	cfg := client.Config{
+		Endpoints: endpoints,
+		Transport: cTransport,
+	}
+
+	// Set credentials.
+	username := os.Getenv("ETCD_USERNAME")
+	if username == "" {
+		username, _ = conf["username"]
+	}
+
+	password := os.Getenv("ETCD_PASSWORD")
+	if password == "" {
+		password, _ = conf["password"]
+	}
+
+	if username != "" && password != "" {
+		cfg.Username = username
+		cfg.Password = password
+	}
+
+	return client.New(cfg)
 }
 
 // Put is used to insert or update an entry.

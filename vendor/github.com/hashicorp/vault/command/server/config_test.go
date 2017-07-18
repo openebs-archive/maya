@@ -21,23 +21,14 @@ func TestLoadConfigFile(t *testing.T) {
 	expected := &Config{
 		Listeners: []*Listener{
 			&Listener{
-				Type: "atlas",
-				Config: map[string]string{
-					"token":          "foobar",
-					"infrastructure": "foo/bar",
-					"endpoint":       "https://foo.bar:1111",
-					"node_id":        "foo_node",
-				},
-			},
-			&Listener{
 				Type: "tcp",
-				Config: map[string]string{
+				Config: map[string]interface{}{
 					"address": "127.0.0.1:443",
 				},
 			},
 		},
 
-		Backend: &Backend{
+		Storage: &Storage{
 			Type:         "consul",
 			RedirectAddr: "foo",
 			Config: map[string]string{
@@ -45,7 +36,7 @@ func TestLoadConfigFile(t *testing.T) {
 			},
 		},
 
-		HABackend: &Backend{
+		HAStorage: &Storage{
 			Type:         "consul",
 			RedirectAddr: "snafu",
 			Config: map[string]string{
@@ -58,10 +49,16 @@ func TestLoadConfigFile(t *testing.T) {
 			StatsdAddr:      "bar",
 			StatsiteAddr:    "foo",
 			DisableHostname: false,
+			DogStatsDAddr:   "127.0.0.1:7254",
+			DogStatsDTags:   []string{"tag_1:val_1", "tag_2:val_2"},
 		},
 
-		DisableCache: true,
-		DisableMlock: true,
+		DisableCache:    true,
+		DisableCacheRaw: true,
+		DisableMlock:    true,
+		DisableMlockRaw: true,
+		EnableUI:        true,
+		EnableUIRaw:     true,
 
 		MaxLeaseTTL:        10 * time.Hour,
 		MaxLeaseTTLRaw:     "10h",
@@ -86,22 +83,13 @@ func TestLoadConfigFile_json(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]string{
+				Config: map[string]interface{}{
 					"address": "127.0.0.1:443",
-				},
-			},
-			&Listener{
-				Type: "atlas",
-				Config: map[string]string{
-					"token":          "foobar",
-					"infrastructure": "foo/bar",
-					"endpoint":       "https://foo.bar:1111",
-					"node_id":        "foo_node",
 				},
 			},
 		},
 
-		Backend: &Backend{
+		Storage: &Storage{
 			Type: "consul",
 			Config: map[string]string{
 				"foo": "bar",
@@ -133,6 +121,10 @@ func TestLoadConfigFile_json(t *testing.T) {
 		DefaultLeaseTTL:    10 * time.Hour,
 		DefaultLeaseTTLRaw: "10h",
 		ClusterName:        "testcluster",
+		DisableCacheRaw:    interface{}(nil),
+		DisableMlockRaw:    interface{}(nil),
+		EnableUI:           true,
+		EnableUIRaw:        true,
 	}
 	if !reflect.DeepEqual(config, expected) {
 		t.Fatalf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
@@ -151,19 +143,19 @@ func TestLoadConfigFile_json2(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]string{
+				Config: map[string]interface{}{
 					"address": "127.0.0.1:443",
 				},
 			},
 			&Listener{
 				Type: "tcp",
-				Config: map[string]string{
+				Config: map[string]interface{}{
 					"address": "127.0.0.1:444",
 				},
 			},
 		},
 
-		Backend: &Backend{
+		Storage: &Storage{
 			Type: "consul",
 			Config: map[string]string{
 				"foo": "bar",
@@ -171,7 +163,7 @@ func TestLoadConfigFile_json2(t *testing.T) {
 			DisableClustering: true,
 		},
 
-		HABackend: &Backend{
+		HAStorage: &Storage{
 			Type: "consul",
 			Config: map[string]string{
 				"bar": "baz",
@@ -179,6 +171,8 @@ func TestLoadConfigFile_json2(t *testing.T) {
 		},
 
 		CacheSize: 45678,
+
+		EnableUI: true,
 
 		Telemetry: &Telemetry{
 			StatsiteAddr:                       "foo",
@@ -218,19 +212,21 @@ func TestLoadConfigDir(t *testing.T) {
 		Listeners: []*Listener{
 			&Listener{
 				Type: "tcp",
-				Config: map[string]string{
+				Config: map[string]interface{}{
 					"address": "127.0.0.1:443",
 				},
 			},
 		},
 
-		Backend: &Backend{
+		Storage: &Storage{
 			Type: "consul",
 			Config: map[string]string{
 				"foo": "bar",
 			},
 			DisableClustering: true,
 		},
+
+		EnableUI: true,
 
 		Telemetry: &Telemetry{
 			StatsiteAddr:    "qux",

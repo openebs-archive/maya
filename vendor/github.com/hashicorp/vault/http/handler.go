@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/vault/helper/duration"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
+	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 )
@@ -19,9 +20,13 @@ const (
 	// AuthHeaderName is the name of the header containing the token.
 	AuthHeaderName = "X-Vault-Token"
 
-	// WrapHeaderName is the name of the header containing a directive to wrap the
-	// response.
+	// WrapTTLHeaderName is the name of the header containing a directive to
+	// wrap the response
 	WrapTTLHeaderName = "X-Vault-Wrap-TTL"
+
+	// WrapFormatHeaderName is the name of the header containing the format to
+	// wrap in; has no effect if the wrap TTL is not set
+	WrapFormatHeaderName = "X-Vault-Wrap-Format"
 
 	// NoRequestForwardingHeaderName is the name of the header telling Vault
 	// not to use request forwarding
@@ -41,10 +46,11 @@ func Handler(core *vault.Core) http.Handler {
 	mux.Handle("/v1/sys/init", handleSysInit(core))
 	mux.Handle("/v1/sys/seal-status", handleSysSealStatus(core))
 	mux.Handle("/v1/sys/seal", handleSysSeal(core))
-	mux.Handle("/v1/sys/step-down", handleSysStepDown(core))
+	mux.Handle("/v1/sys/step-down", handleRequestForwarding(core, handleSysStepDown(core)))
 	mux.Handle("/v1/sys/unseal", handleSysUnseal(core))
 	mux.Handle("/v1/sys/renew", handleRequestForwarding(core, handleLogical(core, false, nil)))
 	mux.Handle("/v1/sys/renew/", handleRequestForwarding(core, handleLogical(core, false, nil)))
+	mux.Handle("/v1/sys/leases/", handleRequestForwarding(core, handleLogical(core, false, nil)))
 	mux.Handle("/v1/sys/leader", handleSysLeader(core))
 	mux.Handle("/v1/sys/health", handleSysHealth(core))
 	mux.Handle("/v1/sys/generate-root/attempt", handleRequestForwarding(core, handleSysGenerateRootAttempt(core)))
@@ -62,10 +68,11 @@ func Handler(core *vault.Core) http.Handler {
 
 	// Wrap the handler in another handler to trigger all help paths.
 	helpWrappedHandler := wrapHelpHandler(mux, core)
+	corsWrappedHandler := wrapCORSHandler(helpWrappedHandler, core)
 
 	// Wrap the help wrapped handler with another layer with a generic
 	// handler
-	genericWrappedHandler := wrapGenericHandler(helpWrappedHandler)
+	genericWrappedHandler := wrapGenericHandler(corsWrappedHandler)
 
 	return genericWrappedHandler
 }
@@ -91,20 +98,7 @@ func wrappingVerificationFunc(core *vault.Core, req *logical.Request) error {
 		return fmt.Errorf("invalid request")
 	}
 
-	var token string
-	if req.Data != nil && req.Data["token"] != nil {
-		if tokenStr, ok := req.Data["token"].(string); !ok {
-			return fmt.Errorf("could not decode token in request body")
-		} else if tokenStr == "" {
-			return fmt.Errorf("empty token in request body")
-		} else {
-			token = tokenStr
-		}
-	} else {
-		token = req.ClientToken
-	}
-
-	valid, err := core.ValidateWrappingToken(token)
+	valid, err := core.ValidateWrappingToken(req)
 	if err != nil {
 		return fmt.Errorf("error validating wrapping token: %v", err)
 	}
@@ -215,11 +209,11 @@ func handleRequestForwarding(core *vault.Core, handler http.Handler) http.Handle
 // case of an error.
 func request(core *vault.Core, w http.ResponseWriter, rawReq *http.Request, r *logical.Request) (*logical.Response, bool) {
 	resp, err := core.HandleRequest(r)
-	if errwrap.Contains(err, vault.ErrStandby.Error()) {
+	if errwrap.Contains(err, consts.ErrStandby.Error()) {
 		respondStandby(core, w, rawReq.URL)
 		return resp, false
 	}
-	if respondErrorCommon(w, resp, err) {
+	if respondErrorCommon(w, r, resp, err) {
 		return resp, false
 	}
 
@@ -282,15 +276,15 @@ func requestAuth(core *vault.Core, r *http.Request, req *logical.Request) *logic
 		te, err := core.LookupToken(v)
 		if err == nil && te != nil {
 			req.ClientTokenAccessor = te.Accessor
+			req.ClientTokenRemainingUses = te.NumUses
 		}
 	}
 
 	return req
 }
 
-// requestWrapTTL adds the WrapTTL value to the logical.Request if it
-// exists.
-func requestWrapTTL(r *http.Request, req *logical.Request) (*logical.Request, error) {
+// requestWrapInfo adds the WrapInfo value to the logical.Request if wrap info exists
+func requestWrapInfo(r *http.Request, req *logical.Request) (*logical.Request, error) {
 	// First try for the header value
 	wrapTTL := r.Header.Get(WrapTTLHeaderName)
 	if wrapTTL == "" {
@@ -298,33 +292,29 @@ func requestWrapTTL(r *http.Request, req *logical.Request) (*logical.Request, er
 	}
 
 	// If it has an allowed suffix parse as a duration string
-	dur, err := duration.ParseDurationSecond(wrapTTL)
+	dur, err := parseutil.ParseDurationSecond(wrapTTL)
 	if err != nil {
 		return req, err
 	}
 	if int64(dur) < 0 {
 		return req, fmt.Errorf("requested wrap ttl cannot be negative")
 	}
-	req.WrapTTL = dur
+
+	req.WrapInfo = &logical.RequestWrapInfo{
+		TTL: dur,
+	}
+
+	wrapFormat := r.Header.Get(WrapFormatHeaderName)
+	switch wrapFormat {
+	case "jwt":
+		req.WrapInfo.Format = "jwt"
+	}
 
 	return req, nil
 }
 
 func respondError(w http.ResponseWriter, status int, err error) {
-	// Adjust status code when sealed
-	if errwrap.Contains(err, vault.ErrSealed.Error()) {
-		status = http.StatusServiceUnavailable
-	}
-
-	// Adjust status code on
-	if errwrap.Contains(err, "http: request body too large") {
-		status = http.StatusRequestEntityTooLarge
-	}
-
-	// Allow HTTPCoded error passthrough to specify a code
-	if t, ok := err.(logical.HTTPCodedError); ok {
-		status = t.Code()
-	}
+	logical.AdjustErrorStatusCode(&status, err)
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -338,42 +328,13 @@ func respondError(w http.ResponseWriter, status int, err error) {
 	enc.Encode(resp)
 }
 
-func respondErrorCommon(w http.ResponseWriter, resp *logical.Response, err error) bool {
-	// If there are no errors return
-	if err == nil && (resp == nil || !resp.IsError()) {
+func respondErrorCommon(w http.ResponseWriter, req *logical.Request, resp *logical.Response, err error) bool {
+	statusCode, newErr := logical.RespondErrorCommon(req, resp, err)
+	if newErr == nil && statusCode == 0 {
 		return false
 	}
 
-	// Start out with internal server error since in most of these cases there
-	// won't be a response so this won't be overridden
-	statusCode := http.StatusInternalServerError
-	// If we actually have a response, start out with bad request
-	if resp != nil {
-		statusCode = http.StatusBadRequest
-	}
-
-	// Now, check the error itself; if it has a specific logical error, set the
-	// appropriate code
-	if err != nil {
-		switch {
-		case errwrap.ContainsType(err, new(vault.StatusBadRequest)):
-			statusCode = http.StatusBadRequest
-		case errwrap.Contains(err, logical.ErrPermissionDenied.Error()):
-			statusCode = http.StatusForbidden
-		case errwrap.Contains(err, logical.ErrUnsupportedOperation.Error()):
-			statusCode = http.StatusMethodNotAllowed
-		case errwrap.Contains(err, logical.ErrUnsupportedPath.Error()):
-			statusCode = http.StatusNotFound
-		case errwrap.Contains(err, logical.ErrInvalidRequest.Error()):
-			statusCode = http.StatusBadRequest
-		}
-	}
-
-	if resp != nil && resp.IsError() {
-		err = fmt.Errorf("%s", resp.Data["error"].(string))
-	}
-
-	respondError(w, statusCode, err)
+	respondError(w, statusCode, newErr)
 	return true
 }
 

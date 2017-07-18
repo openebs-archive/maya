@@ -1,6 +1,7 @@
 package gocql
 
 import (
+	"context"
 	crand "crypto/rand"
 	"errors"
 	"fmt"
@@ -8,14 +9,14 @@ import (
 	"net"
 	"regexp"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 var (
-	randr *rand.Rand
+	randr    *rand.Rand
+	mutRandr sync.Mutex
 )
 
 func init() {
@@ -135,7 +136,9 @@ func hostInfo(addr string, defaultPort int) (*HostInfo, error) {
 }
 
 func shuffleHosts(hosts []*HostInfo) []*HostInfo {
+	mutRandr.Lock()
 	perm := randr.Perm(len(hosts))
+	mutRandr.Unlock()
 	shuffled := make([]*HostInfo, len(hosts))
 
 	for i, host := range hosts {
@@ -397,7 +400,7 @@ func (c *controlConn) withConn(fn func(*Conn) *Iter) *Iter {
 
 // query will return nil if the connection is closed or nil
 func (c *controlConn) query(statement string, values ...interface{}) (iter *Iter) {
-	q := c.session.Query(statement, values...).Consistency(One).RoutingKey([]byte{})
+	q := c.session.Query(statement, values...).Consistency(One).RoutingKey([]byte{}).Trace(nil)
 
 	for {
 		iter = c.withConn(func(conn *Conn) *Iter {

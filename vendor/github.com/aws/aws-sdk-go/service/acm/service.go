@@ -7,18 +7,19 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Welcome to the AWS Certificate Manager (ACM) API documentation.
-//
-// You can use ACM to manage SSL/TLS certificates for your AWS-based websites
-// and applications. For general information about using ACM, see the AWS Certificate
-// Manager User Guide (http://docs.aws.amazon.com/acm/latest/userguide/).
-// The service client's operations are safe to be used concurrently.
+// Welcome to the AWS Certificate Manager (ACM) CLI Command Reference. This
+// guide provides descriptions, syntax, and usage examples for each ACM CLI
+// command. You can use AWS Certificate Manager to request ACM Certificates
+// for your AWS-based websites and applications. For general information about
+// using ACM and for more information about using the console, see the AWS Certificate
+// Manager User Guide (url-acm-ug;acm-overview.html). For more information about
+// using the ACM API, see the  AWS Certificate Manager API Reference (http://docs.aws.amazon.com/acm/latest/APIReference/Welcome.html).
+//The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/acm-2015-12-08
 type ACM struct {
 	*client.Client
 }
@@ -29,11 +30,8 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// Service information constants
-const (
-	ServiceName = "acm"       // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName // Service ID for Regions and Endpoints metadata.
-)
+// A ServiceName is the name of the service the client will make API calls to.
+const ServiceName = "acm"
 
 // New creates a new instance of the ACM client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -46,18 +44,17 @@ const (
 //     // Create a ACM client with additional configuration
 //     svc := acm.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ACM {
-	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	c := p.ClientConfig(ServiceName, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *ACM {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *ACM {
 	svc := &ACM{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2015-12-08",
@@ -69,7 +66,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
+	svc.Handlers.Sign.PushBack(v4.Sign)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)

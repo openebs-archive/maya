@@ -2,13 +2,15 @@ package vault
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
 )
 
 func TestCore_DefaultAuthTable(t *testing.T) {
-	c, key, _ := TestCoreUnsealed(t)
+	c, keys, _ := TestCoreUnsealed(t)
 	verifyDefaultAuthTable(t, c.auth)
 
 	// Start a second core with same physical
@@ -20,12 +22,14 @@ func TestCore_DefaultAuthTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	unseal, err := TestCoreUnseal(c2, key)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !unseal {
-		t.Fatalf("should be unsealed")
+	for i, key := range keys {
+		unseal, err := TestCoreUnseal(c2, key)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if i+1 == len(keys) && !unseal {
+			t.Fatalf("should be unsealed")
+		}
 	}
 
 	// Verify matching mount tables
@@ -35,7 +39,7 @@ func TestCore_DefaultAuthTable(t *testing.T) {
 }
 
 func TestCore_EnableCredential(t *testing.T) {
-	c, key, _ := TestCoreUnsealed(t)
+	c, keys, _ := TestCoreUnsealed(t)
 	c.credentialBackends["noop"] = func(*logical.BackendConfig) (logical.Backend, error) {
 		return &NoopBackend{}, nil
 	}
@@ -66,17 +70,103 @@ func TestCore_EnableCredential(t *testing.T) {
 	c2.credentialBackends["noop"] = func(*logical.BackendConfig) (logical.Backend, error) {
 		return &NoopBackend{}, nil
 	}
-	unseal, err := TestCoreUnseal(c2, key)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !unseal {
-		t.Fatalf("should be unsealed")
+	for i, key := range keys {
+		unseal, err := TestCoreUnseal(c2, key)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if i+1 == len(keys) && !unseal {
+			t.Fatalf("should be unsealed")
+		}
 	}
 
 	// Verify matching auth tables
 	if !reflect.DeepEqual(c.auth, c2.auth) {
 		t.Fatalf("mismatch: %v %v", c.auth, c2.auth)
+	}
+}
+
+// Test that the local table actually gets populated as expected with local
+// entries, and that upon reading the entries from both are recombined
+// correctly
+func TestCore_EnableCredential_Local(t *testing.T) {
+	c, _, _ := TestCoreUnsealed(t)
+	c.credentialBackends["noop"] = func(*logical.BackendConfig) (logical.Backend, error) {
+		return &NoopBackend{}, nil
+	}
+
+	c.auth = &MountTable{
+		Type: credentialTableType,
+		Entries: []*MountEntry{
+			&MountEntry{
+				Table:    credentialTableType,
+				Path:     "noop/",
+				Type:     "noop",
+				UUID:     "abcd",
+				Accessor: "noop-abcd",
+			},
+			&MountEntry{
+				Table:    credentialTableType,
+				Path:     "noop2/",
+				Type:     "noop",
+				UUID:     "bcde",
+				Accessor: "noop-bcde",
+			},
+		},
+	}
+
+	// Both should set up successfully
+	err := c.setupCredentials()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rawLocal, err := c.barrier.Get(coreLocalAuthConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rawLocal == nil {
+		t.Fatal("expected non-nil local credential")
+	}
+	localCredentialTable := &MountTable{}
+	if err := jsonutil.DecodeJSON(rawLocal.Value, localCredentialTable); err != nil {
+		t.Fatal(err)
+	}
+	if len(localCredentialTable.Entries) > 0 {
+		t.Fatalf("expected no entries in local credential table, got %#v", localCredentialTable)
+	}
+
+	c.auth.Entries[1].Local = true
+	if err := c.persistAuth(c.auth, false); err != nil {
+		t.Fatal(err)
+	}
+
+	rawLocal, err = c.barrier.Get(coreLocalAuthConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rawLocal == nil {
+		t.Fatal("expected non-nil local credential")
+	}
+	localCredentialTable = &MountTable{}
+	if err := jsonutil.DecodeJSON(rawLocal.Value, localCredentialTable); err != nil {
+		t.Fatal(err)
+	}
+	if len(localCredentialTable.Entries) != 1 {
+		t.Fatalf("expected one entry in local credential table, got %#v", localCredentialTable)
+	}
+
+	oldCredential := c.auth
+	if err := c.loadCredentials(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(oldCredential, c.auth) {
+		t.Fatalf("expected\n%#v\ngot\n%#v\n", oldCredential, c.auth)
+	}
+
+	if len(c.auth.Entries) != 2 {
+		t.Fatalf("expected two credential entries, got %#v", localCredentialTable)
 	}
 }
 
@@ -122,14 +212,14 @@ func TestCore_EnableCredential_Token(t *testing.T) {
 }
 
 func TestCore_DisableCredential(t *testing.T) {
-	c, key, _ := TestCoreUnsealed(t)
+	c, keys, _ := TestCoreUnsealed(t)
 	c.credentialBackends["noop"] = func(*logical.BackendConfig) (logical.Backend, error) {
 		return &NoopBackend{}, nil
 	}
 
-	existed, err := c.disableCredential("foo")
-	if existed || err.Error() != "no matching backend" {
-		t.Fatalf("existed: %v; err: %v", existed, err)
+	err := c.disableCredential("foo")
+	if err != nil && !strings.HasPrefix(err.Error(), "no matching backend") {
+		t.Fatalf("err: %v", err)
 	}
 
 	me := &MountEntry{
@@ -142,9 +232,9 @@ func TestCore_DisableCredential(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	existed, err = c.disableCredential("foo")
-	if !existed || err != nil {
-		t.Fatalf("existed: %v; err: %v", existed, err)
+	err = c.disableCredential("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	match := c.router.MatchingMount("auth/foo/bar")
@@ -160,12 +250,14 @@ func TestCore_DisableCredential(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	unseal, err := TestCoreUnseal(c2, key)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !unseal {
-		t.Fatalf("should be unsealed")
+	for i, key := range keys {
+		unseal, err := TestCoreUnseal(c2, key)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if i+1 == len(keys) && !unseal {
+			t.Fatalf("should be unsealed")
+		}
 	}
 
 	// Verify matching mount tables
@@ -176,9 +268,9 @@ func TestCore_DisableCredential(t *testing.T) {
 
 func TestCore_DisableCredential_Protected(t *testing.T) {
 	c, _, _ := TestCoreUnsealed(t)
-	existed, err := c.disableCredential("token")
-	if !existed || err.Error() != "token credential backend cannot be disabled" {
-		t.Fatalf("existed: %v; err: %v", existed, err)
+	err := c.disableCredential("token")
+	if err.Error() != "token credential backend cannot be disabled" {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -232,9 +324,9 @@ func TestCore_DisableCredential_Cleanup(t *testing.T) {
 	}
 
 	// Disable should cleanup
-	existed, err := c.disableCredential("foo")
-	if !existed || err != nil {
-		t.Fatalf("existed: %v; err: %v", existed, err)
+	err = c.disableCredential("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Token should be revoked
@@ -247,7 +339,7 @@ func TestCore_DisableCredential_Cleanup(t *testing.T) {
 	}
 
 	// View should be empty
-	out, err := CollectKeys(view)
+	out, err := logical.CollectKeys(view)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -257,7 +349,8 @@ func TestCore_DisableCredential_Cleanup(t *testing.T) {
 }
 
 func TestDefaultAuthTable(t *testing.T) {
-	table := defaultAuthTable()
+	c, _, _ := TestCoreUnsealed(t)
+	table := c.defaultAuthTable()
 	verifyDefaultAuthTable(t, table)
 }
 

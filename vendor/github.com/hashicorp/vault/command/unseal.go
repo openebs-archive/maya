@@ -84,18 +84,20 @@ func (c *UnsealCommand) Run(args []string) int {
 		"Sealed: %v\n"+
 			"Key Shares: %d\n"+
 			"Key Threshold: %d\n"+
-			"Unseal Progress: %d",
+			"Unseal Progress: %d\n"+
+			"Unseal Nonce: %v",
 		sealStatus.Sealed,
 		sealStatus.N,
 		sealStatus.T,
 		sealStatus.Progress,
+		sealStatus.Nonce,
 	))
 
 	return 0
 }
 
 func (c *UnsealCommand) Synopsis() string {
-	return "Unseals the vault server"
+	return "Unseals the Vault server"
 }
 
 func (c *UnsealCommand) Help() string {
@@ -103,7 +105,7 @@ func (c *UnsealCommand) Help() string {
 Usage: vault unseal [options] [key]
 
   Unseal the vault by entering a portion of the master key. Once all
-  portions are entered, the Vault will be unsealed.
+  portions are entered, the vault will be unsealed.
 
   Every Vault server initially starts as sealed. It cannot perform any
   operation except unsealing until it is sealed. Secrets cannot be accessed

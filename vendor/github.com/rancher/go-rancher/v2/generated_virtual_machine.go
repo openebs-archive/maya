@@ -251,8 +251,6 @@ type VirtualMachineOperations interface {
 
 	ActionRestart(*VirtualMachine) (*Instance, error)
 
-	ActionRestore(*VirtualMachine) (*Instance, error)
-
 	ActionStart(*VirtualMachine) (*Instance, error)
 
 	ActionStop(*VirtualMachine, *InstanceStop) (*Instance, error)
@@ -420,15 +418,6 @@ func (c *VirtualMachineClient) ActionRestart(resource *VirtualMachine) (*Instanc
 	resp := &Instance{}
 
 	err := c.rancherClient.doAction(VIRTUAL_MACHINE_TYPE, "restart", &resource.Resource, nil, resp)
-
-	return resp, err
-}
-
-func (c *VirtualMachineClient) ActionRestore(resource *VirtualMachine) (*Instance, error) {
-
-	resp := &Instance{}
-
-	err := c.rancherClient.doAction(VIRTUAL_MACHINE_TYPE, "restore", &resource.Resource, nil, resp)
 
 	return resp, err
 }
