@@ -43,10 +43,10 @@ type VolumeStats struct {
 // VsmStatsCommand is a command implementation struct
 type VsmStatsCommand struct {
 	Meta
-	address     string
-	host        string
-	length      int
-	replica_ips string
+	Address     string
+	Host        string
+	Length      int
+	Replica_ips string
 	Json        string
 }
 
@@ -112,11 +112,6 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		stats1          VolumeStats
 		stats2          VolumeStats
 		statusArray     []string
-		ReadLatency     int64
-		WriteLatency    int64
-
-		AvgReadBlockCountPS  int64
-		AvgWriteBlockCountPS int64
 	)
 
 	flags := c.Meta.FlagSet("vsm-stats", FlagSetClient)
@@ -164,121 +159,9 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		fmt.Println("Volume not reachable")
 	}
 
-	ReadIOPSi, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64)
-	ReadIOPSf, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64)
-	ReadIOPSPS := ReadIOPSf - ReadIOPSi
+	//Showing the Output
+	err = StatsOutput(c, annotations, args, statusArray, stats1, stats2)
 
-	ReadTimePSi, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
-	ReadTimePSf, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
-	ReadTimePS := ReadTimePSf - ReadTimePSi
-
-	ReadBlockCountPSi, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
-	ReadBlockCountPSf, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
-	ReadBlockCountPS := ReadBlockCountPSf - ReadBlockCountPSi
-
-	RThroughput := ReadBlockCountPS
-	if ReadIOPSPS != 0 {
-		ReadLatency = ReadTimePS / ReadIOPSPS
-		AvgReadBlockCountPS = ReadBlockCountPS / ReadIOPSPS
-	} else {
-		ReadLatency = 0
-		AvgReadBlockCountPS = 0
-	}
-
-	WriteIOPSi, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
-	WriteIOPSf, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
-	WriteIOPSPS := WriteIOPSf - WriteIOPSi
-
-	WriteTimePSi, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
-	WriteTimePSf, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
-	WriteTimePS := WriteTimePSf - WriteTimePSi
-
-	WriteBlockCountPSi, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
-	WriteBlockCountPSf, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
-	WriteBlockCountPS := WriteBlockCountPSf - WriteBlockCountPSi
-
-	WThroughput := WriteBlockCountPS
-	if WriteIOPSPS != 0 {
-		WriteLatency = WriteTimePS / WriteIOPSPS
-		AvgWriteBlockCountPS = WriteBlockCountPS / WriteIOPSPS
-	} else {
-		WriteLatency = 0
-		AvgWriteBlockCountPS = 0
-	}
-
-	SectorSizePS, _ := strconv.ParseFloat(stats2.SectorSize, 64)
-	//	fmt.Println("hi", stats1.SectorSize, stats2.SectorSize)
-	SectorSizePS = SectorSizePS / 1048576
-	LogicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64)
-	LogicalSizePS := LogicalSize * SectorSizePS
-
-	ActualUsed, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64)
-	ActualUsedPS := ActualUsed * SectorSizePS
-
-	fmt.Println("------------------------------------")
-	// json formatting and showing default output
-	if c.Json == "json" {
-
-		stat1 := StatsArr{
-
-			IQN:    annotations.Iqn,
-			Volume: args[0],
-			Portal: annotations.TargetPortal,
-			Size:   annotations.VolSize,
-
-			ReadIOPS:  ReadIOPSPS,
-			WriteIOPS: WriteIOPSPS,
-
-			ReadThroughput:  float64(RThroughput) / 104857,
-			WriteThroughput: float64(WThroughput) / 104857,
-
-			ReadLatency:  float64(ReadLatency) / 1000000,
-			WriteLatency: float64(WriteLatency) / 1000000,
-
-			AvgReadBlockSize:  AvgReadBlockCountPS / 1024,
-			AvgWriteBlockSize: AvgWriteBlockCountPS / 1024,
-
-			SectorSize:  SectorSizePS,
-			ActualUsed:  ActualUsedPS,
-			LogicalSize: LogicalSizePS,
-		}
-
-		data, err := json.Marshal(stat1)
-
-		if err != nil {
-
-			panic(err)
-		}
-
-		os.Stdout.Write(data)
-
-		fmt.Println("\n------------------------------------")
-
-	} else {
-		fmt.Printf("%7s: %-48s\n", "IQN", annotations.Iqn)
-		fmt.Printf("%7s: %-16s\n", "Volume", args[0])
-		fmt.Printf("%7s: %-15s\n", "Portal", annotations.TargetPortal)
-		fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
-		fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateIndex")
-
-		for i, _ := range statusArray {
-			fmt.Printf("%s\n", statusArray[i])
-		}
-		fmt.Println("------------------------------------")
-
-		// Printing in tabular form
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("-------- Performance Stats ---------\n")
-		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
-		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", ReadIOPSPS, WriteIOPSPS, float64(RThroughput)/1048576, float64(WThroughput)/1048576, float64(ReadLatency)/1000000, float64(WriteLatency)/1000000)
-		w.Flush()
-
-		x := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n---------- Capacity Stats ----------\n")
-		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
-		fmt.Fprintf(x, "%f\t%f\t\n", LogicalSizePS, ActualUsedPS)
-		x.Flush()
-	}
 	return 0
 }
 
@@ -408,4 +291,136 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 	defer resp.Body.Close()
 	rc := json.NewDecoder(resp.Body).Decode(obj)
 	return rc, 0
+}
+
+// StatsOutput Displays the Output in json or default format
+func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, statusArray []string, stats1 VolumeStats, stats2 VolumeStats) error {
+
+	var (
+		err error
+
+		ReadLatency  int64
+		WriteLatency int64
+
+		AvgReadBlockCountPS  int64
+		AvgWriteBlockCountPS int64
+	)
+
+	ReadIOPSi, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64)
+	ReadIOPSf, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64)
+	ReadIOPSPS := ReadIOPSf - ReadIOPSi
+
+	ReadTimePSi, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
+	ReadTimePSf, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
+	ReadTimePS := ReadTimePSf - ReadTimePSi
+
+	ReadBlockCountPSi, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
+	ReadBlockCountPSf, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
+	ReadBlockCountPS := ReadBlockCountPSf - ReadBlockCountPSi
+
+	RThroughput := ReadBlockCountPS
+	if ReadIOPSPS != 0 {
+		ReadLatency = ReadTimePS / ReadIOPSPS
+		AvgReadBlockCountPS = ReadBlockCountPS / ReadIOPSPS
+	} else {
+		ReadLatency = 0
+		AvgReadBlockCountPS = 0
+	}
+
+	WriteIOPSi, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
+	WriteIOPSf, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
+	WriteIOPSPS := WriteIOPSf - WriteIOPSi
+
+	WriteTimePSi, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
+	WriteTimePSf, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
+	WriteTimePS := WriteTimePSf - WriteTimePSi
+
+	WriteBlockCountPSi, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
+	WriteBlockCountPSf, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
+	WriteBlockCountPS := WriteBlockCountPSf - WriteBlockCountPSi
+
+	WThroughput := WriteBlockCountPS
+	if WriteIOPSPS != 0 {
+		WriteLatency = WriteTimePS / WriteIOPSPS
+		AvgWriteBlockCountPS = WriteBlockCountPS / WriteIOPSPS
+	} else {
+		WriteLatency = 0
+		AvgWriteBlockCountPS = 0
+	}
+
+	SectorSizePS, _ := strconv.ParseFloat(stats2.SectorSize, 64)
+	//	fmt.Println("hi", stats1.SectorSize, stats2.SectorSize)
+	SectorSizePS = SectorSizePS / 1048576
+	LogicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64)
+	LogicalSizePS := LogicalSize * SectorSizePS
+
+	ActualUsed, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64)
+	ActualUsedPS := ActualUsed * SectorSizePS
+
+	fmt.Println("------------------------------------")
+	// json formatting and showing default output
+	if c.Json == "json" {
+
+		stat1 := StatsArr{
+
+			IQN:    annotations.Iqn,
+			Volume: args[0],
+			Portal: annotations.TargetPortal,
+			Size:   annotations.VolSize,
+
+			ReadIOPS:  ReadIOPSPS,
+			WriteIOPS: WriteIOPSPS,
+
+			ReadThroughput:  float64(RThroughput) / 104857,
+			WriteThroughput: float64(WThroughput) / 104857,
+
+			ReadLatency:  float64(ReadLatency) / 1000000,
+			WriteLatency: float64(WriteLatency) / 1000000,
+
+			AvgReadBlockSize:  AvgReadBlockCountPS / 1024,
+			AvgWriteBlockSize: AvgWriteBlockCountPS / 1024,
+
+			SectorSize:  SectorSizePS,
+			ActualUsed:  ActualUsedPS,
+			LogicalSize: LogicalSizePS,
+		}
+
+		data, err := json.Marshal(stat1)
+
+		if err != nil {
+
+			panic(err)
+		}
+
+		os.Stdout.Write(data)
+
+		fmt.Println("\n------------------------------------")
+
+	} else {
+		fmt.Printf("%7s: %-48s\n", "IQN", annotations.Iqn)
+		fmt.Printf("%7s: %-16s\n", "Volume", args[0])
+		fmt.Printf("%7s: %-15s\n", "Portal", annotations.TargetPortal)
+		fmt.Printf("%7s: %-6s\n\n", "Size", annotations.VolSize)
+		fmt.Printf("%s         %s      %s\n", "Replica", "Status", "DataUpdateIndex")
+
+		for i, _ := range statusArray {
+			fmt.Printf("%s\n", statusArray[i])
+		}
+		fmt.Println("------------------------------------")
+
+		// Printing in tabular form
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		fmt.Println("-------- Performance Stats ---------\n")
+		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
+		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", ReadIOPSPS, WriteIOPSPS, float64(RThroughput)/1048576, float64(WThroughput)/1048576, float64(ReadLatency)/1000000, float64(WriteLatency)/1000000)
+		w.Flush()
+
+		x := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		fmt.Println("\n---------- Capacity Stats ----------\n")
+		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
+		fmt.Fprintf(x, "%f\t%f\t\n", LogicalSizePS, ActualUsedPS)
+		x.Flush()
+	}
+
+	return err
 }
