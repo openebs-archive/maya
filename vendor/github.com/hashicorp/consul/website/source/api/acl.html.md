@@ -8,7 +8,7 @@ description: |-
 
 # ACL HTTP API
 
-The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul.
+The `/acl` endpoints create, update, destroy, and query ACL tokens in Consul. For more information about ACLs, please see the [ACL Guide](/docs/guides/acl.html).
 
 ## Create ACL Token
 

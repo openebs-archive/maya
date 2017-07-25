@@ -182,6 +182,10 @@ func TestDecodeConfig(t *testing.T) {
 			c:  &Config{Autopilot: Autopilot{DisableUpgradeMigration: Bool(true)}},
 		},
 		{
+			in: `{"autopilot":{"upgrade_version_tag":"rev"}}`,
+			c:  &Config{Autopilot: Autopilot{UpgradeVersionTag: "rev"}},
+		},
+		{
 			in: `{"autopilot":{"last_contact_threshold":"2s"}}`,
 			c:  &Config{Autopilot: Autopilot{LastContactThreshold: Duration(2 * time.Second), LastContactThresholdRaw: "2s"}},
 		},
@@ -321,6 +325,10 @@ func TestDecodeConfig(t *testing.T) {
 		{
 			in: `{"disable_keyring_file":true}`,
 			c:  &Config{DisableKeyringFile: true},
+		},
+		{
+			in: `{"enable_script_checks":true}`,
+			c:  &Config{EnableScriptChecks: true},
 		},
 		{
 			in: `{"encrypt_verify_incoming":true}`,
@@ -1363,6 +1371,7 @@ func TestMergeConfig(t *testing.T) {
 		ReconnectTimeoutLan:    24 * time.Hour,
 		ReconnectTimeoutWanRaw: "36h",
 		ReconnectTimeoutWan:    36 * time.Hour,
+		EnableScriptChecks:     true,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1111",

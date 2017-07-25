@@ -324,6 +324,10 @@ type Autopilot struct {
 	// strategy of waiting until enough newer-versioned servers have been added to the
 	// cluster before promoting them to voters.
 	DisableUpgradeMigration *bool `mapstructure:"disable_upgrade_migration"`
+
+	// (Enterprise-only) UpgradeVersionTag is the node tag to use for version info when
+	// performing upgrade migrations. If left blank, the Consul version will be used.
+	UpgradeVersionTag string `mapstructure:"upgrade_version_tag"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -624,6 +628,11 @@ type Config struct {
 	// the cluster until an explicit join is received. If this is set to
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool `mapstructure:"rejoin_after_leave"`
+
+	// EnableScriptChecks controls whether health checks which execute
+	// scripts are enabled. This includes regular script checks and Docker
+	// checks.
+	EnableScriptChecks bool `mapstructure:"enable_script_checks"`
 
 	// CheckUpdateInterval controls the interval on which the output of a health check
 	// is updated if there is no change to the state. For example, a check in a steady
@@ -1682,6 +1691,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Autopilot.DisableUpgradeMigration != nil {
 		result.Autopilot.DisableUpgradeMigration = b.Autopilot.DisableUpgradeMigration
 	}
+	if b.Autopilot.UpgradeVersionTag != "" {
+		result.Autopilot.UpgradeVersionTag = b.Autopilot.UpgradeVersionTag
+	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
 	}
@@ -1931,6 +1943,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.RecursorTimeout != 0 {
 		result.DNSConfig.RecursorTimeout = b.DNSConfig.RecursorTimeout
+	}
+	if b.EnableScriptChecks {
+		result.EnableScriptChecks = true
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval

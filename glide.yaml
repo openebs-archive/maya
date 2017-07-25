@@ -33,3 +33,7 @@ import:
 - package: k8s.io/client-go
   version: v3.0.0
 - package: k8s.io/api
+- package: github.com/onsi/ginkgo
+  version: v1.4.0
+- package: github.com/onsi/gomega
+  version: v1.2.0

@@ -128,6 +128,9 @@ type Agent struct {
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
 
+	// dockerClient is the client for performing docker health checks.
+	dockerClient *DockerClient
+
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
 
@@ -747,6 +750,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.Autopilot.DisableUpgradeMigration != nil {
 		base.AutopilotConfig.DisableUpgradeMigration = *a.config.Autopilot.DisableUpgradeMigration
 	}
+	if a.config.Autopilot.UpgradeVersionTag != "" {
+		base.AutopilotConfig.UpgradeVersionTag = a.config.Autopilot.UpgradeVersionTag
+	}
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
@@ -794,10 +800,9 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Setup the loggers
 	base.LogOutput = a.LogOutput
 
-	if !a.config.DisableKeyringFile {
-		if err := a.setupKeyrings(base); err != nil {
-			return nil, fmt.Errorf("Failed to configure keyring: %v", err)
-		}
+	// This will set up the LAN keyring, as well as the WAN for servers.
+	if err := a.setupKeyrings(base); err != nil {
+		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
 	return base, nil
@@ -1026,6 +1031,26 @@ func (a *Agent) setupNodeID(config *Config) error {
 
 // setupKeyrings is used to initialize and load keyrings during agent startup
 func (a *Agent) setupKeyrings(config *consul.Config) error {
+	// If the keyring file is disabled then just poke the provided key
+	// into the in-memory keyring.
+	if a.config.DisableKeyringFile {
+		if a.config.EncryptKey == "" {
+			return nil
+		}
+
+		keys := []string{a.config.EncryptKey}
+		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
+			return err
+		}
+		if a.config.Server {
+			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Otherwise, we need to deal with the keyring files.
 	fileLAN := filepath.Join(a.config.DataDir, SerfLANKeyring)
 	fileWAN := filepath.Join(a.config.DataDir, SerfWANKeyring)
 
@@ -1061,7 +1086,6 @@ LOAD:
 		}
 	}
 
-	// Success!
 	return nil
 }
 
@@ -1135,6 +1159,9 @@ func (a *Agent) ShutdownAgent() error {
 		chk.Stop()
 	}
 	for _, chk := range a.checkTCPs {
+		chk.Stop()
+	}
+	for _, chk := range a.checkDockers {
 		chk.Stop()
 	}
 
@@ -1458,15 +1485,24 @@ func writeFileAtomic(path string, contents []byte) error {
 		return err
 	}
 	if _, err := fh.Write(contents); err != nil {
+		fh.Close()
+		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Sync(); err != nil {
+		fh.Close()
+		os.Remove(tempPath)
 		return err
 	}
 	if err := fh.Close(); err != nil {
+		os.Remove(tempPath)
 		return err
 	}
-	return os.Rename(tempPath, path)
+	if err := os.Rename(tempPath, path); err != nil {
+		os.Remove(tempPath)
+		return err
+	}
+	return nil
 }
 
 // AddService is used to add a service entry.
@@ -1595,8 +1631,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
-	if chkType != nil && !chkType.Valid() {
-		return fmt.Errorf("Check type is not valid")
+
+	if chkType != nil {
+		if !chkType.Valid() {
+			return fmt.Errorf("Check type is not valid")
+		}
+
+		if chkType.IsScript() && !a.config.EnableScriptChecks {
+			return fmt.Errorf("Scripts are disabled on this agent; to enable, configure 'enable_script_checks' to true")
+		}
 	}
 
 	if check.ServiceID != "" {
@@ -1612,9 +1655,12 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 
 	// Check if already registered
 	if chkType != nil {
-		if chkType.IsTTL() {
+		switch {
+
+		case chkType.IsTTL():
 			if existing, ok := a.checkTTLs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkTTLs, check.CheckID)
 			}
 
 			ttl := &CheckTTL{
@@ -1633,9 +1679,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			ttl.Start()
 			a.checkTTLs[check.CheckID] = ttl
 
-		} else if chkType.IsHTTP() {
+		case chkType.IsHTTP():
 			if existing, ok := a.checkHTTPs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkHTTPs, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1657,9 +1704,10 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
 
-		} else if chkType.IsTCP() {
+		case chkType.IsTCP():
 			if existing, ok := a.checkTCPs[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkTCPs, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1678,14 +1726,25 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
-		} else if chkType.IsDocker() {
+		case chkType.IsDocker():
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkDockers, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
 					check.CheckID, MinInterval))
 				chkType.Interval = MinInterval
+			}
+
+			if a.dockerClient == nil {
+				dc, err := NewDockerClient(os.Getenv("DOCKER_HOST"), CheckBufSize)
+				if err != nil {
+					a.logger.Printf("[ERR] agent: error creating docker client: %s", err)
+					return err
+				}
+				a.logger.Printf("[DEBUG] agent: created docker client for %s", dc.host)
+				a.dockerClient = dc
 			}
 
 			dockerCheck := &CheckDocker{
@@ -1696,15 +1755,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				Script:            chkType.Script,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
-			}
-			if err := dockerCheck.Init(); err != nil {
-				return err
+				client:            a.dockerClient,
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
-		} else if chkType.IsMonitor() {
+
+		case chkType.IsMonitor():
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
+				delete(a.checkMonitors, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
@@ -1722,7 +1781,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
-		} else {
+
+		default:
 			return fmt.Errorf("Check type is not valid")
 		}
 
@@ -1740,7 +1800,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	// Add to the local state for anti-entropy
-	a.state.AddCheck(check, token)
+	err := a.state.AddCheck(check, token)
+	if err != nil {
+		a.cancelCheckMonitors(check.CheckID)
+		return err
+	}
 
 	// Persist the check
 	if persist && !a.config.DevMode {
@@ -1764,6 +1828,21 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
 
+	a.cancelCheckMonitors(checkID)
+
+	if persist {
+		if err := a.purgeCheck(checkID); err != nil {
+			return err
+		}
+		if err := a.purgeCheckState(checkID); err != nil {
+			return err
+		}
+	}
+	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
+	return nil
+}
+
+func (a *Agent) cancelCheckMonitors(checkID types.CheckID) {
 	// Stop any monitors
 	delete(a.checkReapAfter, checkID)
 	if check, ok := a.checkMonitors[checkID]; ok {
@@ -1782,16 +1861,10 @@ func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 		check.Stop()
 		delete(a.checkTTLs, checkID)
 	}
-	if persist {
-		if err := a.purgeCheck(checkID); err != nil {
-			return err
-		}
-		if err := a.purgeCheckState(checkID); err != nil {
-			return err
-		}
+	if check, ok := a.checkDockers[checkID]; ok {
+		check.Stop()
+		delete(a.checkDockers, checkID)
 	}
-	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
-	return nil
 }
 
 // updateTTLCheck is used to update the status of a TTL check via the Agent API.
@@ -2005,6 +2078,12 @@ func (a *Agent) loadServices(conf *Config) error {
 	for _, fi := range files {
 		// Skip all dirs
 		if fi.IsDir() {
+			continue
+		}
+
+		// Skip all partially written temporary files
+		if strings.HasSuffix(fi.Name(), "tmp") {
+			a.logger.Printf("[WARN] Ignoring temporary service file %v", fi.Name())
 			continue
 		}
 
