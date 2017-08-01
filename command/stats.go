@@ -116,6 +116,8 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 			annotations.TargetPortal = value.(string)
 		case "vsm.openebs.io/controller-status":
 			annotations.ControllerStatus = value.(string)
+		case "vsm.openebs.io/controller-ips":
+			annotations.ControllerIP = value.(string)
 		}
 	}
 	return &annotations, nil
