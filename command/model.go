@@ -50,6 +50,11 @@ type ReplicaCollection struct {
 	Data []Replica `json:"data"`
 }
 
+type MarkDiskAsRemovedInput struct {
+	client.Resource
+	Name string `json:"name"`
+}
+
 func Filter(list []string, check func(string) bool) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {

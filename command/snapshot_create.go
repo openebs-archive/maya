@@ -23,6 +23,7 @@ var (
 type SnapshotCreateCommand struct {
 	Meta
 	Name   string
+	Sname  string
 	Labels map[string]string
 }
 type SnapshotInput struct {
@@ -59,7 +60,7 @@ func (f *StringSlice) Value() []string {
 // Help shows helpText for a particular CLI command
 func (c *SnapshotCreateCommand) Help() string {
 	helpText := `
-    Usage: maya vsm-snapshot <vsm-name> 
+    Usage: maya vsm-snapshot create -volname <name> -snapname <snapshot-name>
 
   This command will create the snapshot of a given Vsm.
 
@@ -82,7 +83,8 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 	flags := c.Meta.FlagSet("vsm-snapshot", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.Name, "name", "", "")
+	flags.StringVar(&c.Name, "volname", "", "")
+	flags.StringVar(&c.Sname, "snapname", "", "")
 	//flags.String(&c.Labels, "label", "")
 
 	if err := flags.Parse(args); err != nil {
@@ -108,7 +110,7 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 	//var client ControllerClient
 
 	fmt.Println("Creating Snapshot of Vsm :", c.Name)
-	id, err := Snapshot(c.Name, labelMap)
+	id, err := Snapshot(c.Name, c.Sname, labelMap)
 	if err != nil {
 		log.Fatalf("Error running create snapshot command: %v", err)
 		return 1
@@ -119,9 +121,9 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 
 }
 
-func Snapshot(name string, labels map[string]string) (string, error) {
+func Snapshot(volname string, snapname string, labels map[string]string) (string, error) {
 
-	annotations, err := GetVolAnnotations(name)
+	annotations, err := GetVolAnnotations(volname)
 	if err != nil || annotations == nil {
 
 		return "", err
@@ -147,7 +149,7 @@ func Snapshot(name string, labels map[string]string) (string, error) {
 	fmt.Println("Url is:", url)
 
 	input := SnapshotInput{
-		Name:   name,
+		Name:   snapname,
 		Labels: labels,
 	}
 	output := SnapshotOutput{}
@@ -175,7 +177,6 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 		url = c.address + path
 
 	}
-	log.Printf("URL is :%s %s", method, url)
 
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
 	if err != nil {

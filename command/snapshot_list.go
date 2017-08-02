@@ -1,8 +1,10 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -16,7 +18,7 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-	Usage: maya vsm-snapshot list 
+	Usage: maya vsm-snapshot list -name <vsm-name> 
 	    
 	Command to list the snapshot.
 `
@@ -148,4 +150,34 @@ func (c *ReplicaClient) get(url string, obj interface{}) error {
 	defer resp.Body.Close()
 
 	return json.NewDecoder(resp.Body).Decode(obj)
+}
+
+func (c *ReplicaClient) post(path string, req, resp interface{}) error {
+	b, err := json.Marshal(req)
+	if err != nil {
+		return err
+	}
+
+	bodyType := "application/json"
+	url := path
+	if !strings.HasPrefix(url, "http") {
+		url = c.address + path
+	}
+
+	httpResp, err := c.httpClient.Post(url, bodyType, bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode >= 300 {
+		content, _ := ioutil.ReadAll(httpResp.Body)
+		return fmt.Errorf("Bad response: %d %s: %s", httpResp.StatusCode, httpResp.Status, content)
+	}
+
+	if resp == nil {
+		return nil
+	}
+
+	return json.NewDecoder(httpResp.Body).Decode(resp)
 }
