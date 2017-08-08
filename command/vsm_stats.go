@@ -2,28 +2,28 @@ package command
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-
 	"net/http"
 	"net/url"
 	"os"
-
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"text/template"
 	"time"
 
 	"github.com/rancher/go-rancher/client"
 )
 
 type Status struct {
-	client.Resource
+	Cl              client.Resource
 	ReplicaCounter  int64 `json:"replicacounter"`
 	RevisionCounter int64 `json:"revisioncounter"`
 }
 
 type VolumeStats struct {
-	client.Resource
+	Cl              client.Resource
 	RevisionCounter int64         `json:"RevisionCounter"`
 	ReplicaCounter  int64         `json:"ReplicaCounter"`
 	SCSIIOCount     map[int]int64 `json:"SCSIIOCount"`
@@ -106,12 +106,9 @@ const (
 
 // Help shows helpText for a particular CLI command
 func (c *VsmStatsCommand) Help() string {
-	helpText := `
-	Usage: maya vsm-stats <vsm-name> 
+	helpText := `Usage: maya vsm-stats <vsm-name> 
 
-  Display VSM Stats.
-
-`
+	Display VSM Stats.`
 	return strings.TrimSpace(helpText)
 }
 
@@ -124,7 +121,8 @@ func (c *VsmStatsCommand) Synopsis() string {
 func (c *VsmStatsCommand) Run(args []string) int {
 
 	var (
-		err, err1, err2 error
+		err, err1, err3 error
+		err2, err4      int
 		status          Status
 		stats1, stats2  VolumeStats
 		statusArray     []string
@@ -175,17 +173,24 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	}
 
 	//GetVolumeStats gets volume stats
-	err1, _ = GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
-	time.Sleep(1 * time.Second)
-	err2, _ = GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
+	err1, err2 = GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
+	if err1 != nil {
+		if (err2 == 500) || (err2 == 503) || strings.Contains(err.Error(), "EOF") {
+			fmt.Println("Volume not Reachable")
+		}
+	} else {
+		time.Sleep(1 * time.Second)
+		err3, err4 = GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
+		if err3 != nil {
+			if err4 == 500 || err4 == 503 || strings.Contains(err.Error(), "EOF") {
+				fmt.Println("Volume not Reachable")
+			}
+		} else {
 
-	if (err1 != nil) || (err2 != nil) {
-		fmt.Println("Volume not reachable")
+			//StatsOutput displays output
+			err = StatsOutput(c, annotations, args, statusArray, stats1, stats2)
+		}
 	}
-
-	//StatsOutput displays output
-	err = StatsOutput(c, annotations, args, statusArray, stats1, stats2)
-
 	return 0
 }
 
@@ -241,19 +246,19 @@ func GetStatus(address string, obj interface{}) (error, int) {
 	resp, err := replica.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return err, 500
+			return errors.New("Internal Server Error"), 500
 		} else if resp.StatusCode == 503 {
-			return err, 503
+			return errors.New("Service Unavailable"), 503
 		}
 	} else {
-		return err, -1
+		return errors.New("Server Not Reachable"), -1
 	}
 	if err != nil {
 		return err, -1
 	}
 	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(obj), 0
+	rc := json.NewDecoder(resp.Body).Decode(obj)
+	return rc, 0
 }
 
 // NewControllerClient create the new replica client
@@ -302,12 +307,12 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 	resp, err := controller.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return err, 500
+			return errors.New("Internal Server Error"), 500
 		} else if resp.StatusCode == 503 {
-			return err, 503
+			return errors.New("Service Unavailable"), 503
 		}
 	} else {
-		return err, -1
+		return errors.New("Server Not Reachable"), -1
 	}
 	if err != nil {
 		return err, -1
@@ -331,17 +336,17 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 	)
 
 	// 10 and 64 represents decimal and bits respectively
-	i_riops, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64) // Initial
-	f_riops, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64) // Final
-	readIOPS := f_riops - i_riops
+	iReadIOPS, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64) // Initial
+	fReadIOPS, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64) // Final
+	readIOPS := fReadIOPS - iReadIOPS
 
-	i_rtps, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
-	f_rtps, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
-	readTimePS := f_rtps - i_rtps
+	iReadTimePS, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
+	fReadTimePS, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
+	readTimePS := fReadTimePS - iReadTimePS
 
-	i_rbps, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
-	f_rbps, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
-	readBlockCountPS := f_rbps - i_rbps
+	iReadBlockCountPS, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
+	fReadBlockCountPS, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
+	readBlockCountPS := fReadBlockCountPS - iReadBlockCountPS
 
 	rThroughput := readBlockCountPS
 	if readIOPS != 0 {
@@ -352,17 +357,17 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		AvgReadBlockCountPS = 0
 	}
 
-	i_wiops, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
-	f_wiops, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
-	writeIOPS := f_wiops - i_wiops
+	iWriteIOPS, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
+	fWriteIOPS, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
+	writeIOPS := fWriteIOPS - iWriteIOPS
 
-	i_wtps, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
-	f_wtps, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
-	writeTimePS := f_wtps - i_wtps
+	iWriteTimePS, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
+	fWriteTimePS, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
+	writeTimePS := fWriteTimePS - iWriteTimePS
 
-	i_wbcps, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
-	f_wbcps, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
-	writeBlockCountPS := f_wbcps - i_wbcps
+	iWriteBlockCountPS, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
+	fWriteBlockCountPS, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
+	writeBlockCountPS := fWriteBlockCountPS - iWriteBlockCountPS
 
 	wThroughput := writeBlockCountPS
 	if writeIOPS != 0 {
@@ -373,14 +378,14 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		AvgWriteBlockCountPS = 0
 	}
 
-	ss, _ := strconv.ParseFloat(stats2.SectorSize, 64) // Sector Size
-	ss = ss / bytesToMB
+	sectorSize, _ := strconv.ParseFloat(stats2.SectorSize, 64) // Sector Size
+	sectorSize = sectorSize / bytesToMB
 
-	ls, _ := strconv.ParseFloat(stats2.UsedBlocks, 64) // Logical Size
-	ls = ls * ss
+	logicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64) // Logical Size
+	logicalSize = logicalSize * sectorSize
 
-	au, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64) // Actual Used
-	au = au * ss
+	actualUsed, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64) // Actual Used
+	actualUsed = actualUsed * sectorSize
 
 	annotation := Annotation{
 		IQN:    annotations.Iqn,
@@ -411,9 +416,9 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 			AvgReadBlockSize:  AvgReadBlockCountPS / bytesToKB, // Bytes to KB
 			AvgWriteBlockSize: AvgWriteBlockCountPS / bytesToKB,
 
-			SectorSize:  ss,
-			ActualUsed:  au,
-			LogicalSize: ls,
+			SectorSize:  sectorSize,
+			ActualUsed:  actualUsed,
+			LogicalSize: logicalSize,
 		}
 
 		data, err := json.MarshalIndent(stat1, "", "\t")
@@ -427,17 +432,17 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 
 	} else {
 
-		// Printing in tabular form
-		//	fmt.Printf("%+v\n\n", annotation)
-		data, err := json.MarshalIndent(annotation, "", "\t")
-
+		// Printing using template
+		tmpl, err := template.New("test").Parse("IQN     : {{.IQN}}\nVolume  : {{.Volume}}\nPortal  : {{.Portal}}\nSize    : {{.Size}}")
 		if err != nil {
-
+			panic(err)
+		}
+		err = tmpl.Execute(os.Stdout, annotation)
+		if err != nil {
 			panic(err)
 		}
 
-		os.Stdout.Write(data)
-
+		// Printing in tabular form
 		q := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 
 		fmt.Fprintf(q, "\n\nReplica\tStatus\tDataUpdateIndex\t\n")
@@ -455,10 +460,10 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/bytesToMB, float64(wThroughput)/bytesToMB, float64(ReadLatency)/mic_sec, float64(WriteLatency)/mic_sec)
 		w.Flush()
 
-		x := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		x := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Println("\n------------ Capacity Stats -------------\n")
 		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
-		fmt.Fprintf(x, "%f\t%f\t\n", ls, au)
+		fmt.Fprintf(x, "%f\t%f\t\n", logicalSize, actualUsed)
 		x.Flush()
 	}
 
