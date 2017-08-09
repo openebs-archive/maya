@@ -138,15 +138,13 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 	if err != nil {
 		return "", err
 	}
-	//var c *ControllerClient
+
 	volume, err := GetVolume(controller.address)
 	if err != nil {
 		return "", err
 	}
 
 	url := controller.address + "/volumes/" + volume.Id + "?action=snapshot"
-
-	fmt.Println("Url is:", url)
 
 	input := SnapshotInput{
 		Name:   snapname,
@@ -228,18 +226,6 @@ func (c *ControllerClient) get(path string, obj interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
-/*func Snapshot(name string, userCreated bool, created string, labels map[string]string) error {
-	fmt.Println("Snapshot: %s %s UserCreated %v Created at %v, Labels %v",
-		r.name, name, userCreated, created, labels)
-	return r.doAction("snapshot",
-		&map[string]interface{}{
-			"name":        name,
-			"usercreated": userCreated,
-			"created":     created,
-			"labels":      labels,
-		})
-}*/
-
 func ParseLabels(labels []string) (map[string]string, error) {
 	result := map[string]string{}
 	for _, label := range labels {
@@ -249,6 +235,7 @@ func ParseLabels(labels []string) (map[string]string, error) {
 		}
 		key := kv[0]
 		value := kv[1]
+
 		//Well, we should rename that ValidVolumeName
 		if !ValidVolumeName(key) {
 			return nil, fmt.Errorf("Invalid key %v for label %v", key, label)

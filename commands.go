@@ -85,6 +85,17 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 			}, nil
 		},
 
+		"vsm-snapshot rm": func() (cli.Command, error) {
+			return &command.SnapshotDeleteCommand{
+				Meta: meta,
+			}, nil
+		},
+		"vsm-snapshot revert": func() (cli.Command, error) {
+			return &command.SnapshotRevertCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		/*	"network-install": func() (cli.Command, error) {
 				return &command.NetworkInstallCommand{
 					M: meta,
