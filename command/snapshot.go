@@ -17,33 +17,32 @@ func (c *SnapshotCommand) Run(args []string) int {
 
 func (c *SnapshotCommand) Help() string {
 	helpText := `
-Usage: maya vsm-snapshot <subcommand> [options] [args]
+Usage: maya snapshot <subcommand> [options] [args]
 
-  This command has subcommands for creating a snapshot of Vsm
-  and list them. 
+  This command has subcommands related to snapshot of Volume.
 
   snapshot operations.
 
   Create a snapshot:
 
-      $ maya vsm-snapshot create -volname <vol> -snapname <snapshot>
+      $ maya snapshot create -volname <vol> -snapname <snapshot>
 
   list a snapshot:
 
-      $ maya vsm-snapshot list -name <vsm-name>
+      $ maya snapshot list -name <vsm-name>
   
   Remove a snapshot:
 
-     $ maya vsm-snapshot rm -volname <vol> -snapname <snapshot>
+     $ maya snapshot rm -volname <vol> -snapname <snapshot>
 
   Revert a snapshot:
 
-     $ maya vsm-snapshot revert -volname <vol> -snapname <snapshot>
+     $ maya snapshot revert -volname <vol> -snapname <snapshot>
 
 
 `
 	return strings.TrimSpace(helpText)
 }
 func (c *SnapshotCommand) Synopsis() string {
-	return "Create a snapshot of a Volume"
+	return "Creates snapshot of a Volume"
 }

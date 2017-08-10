@@ -60,9 +60,9 @@ func (f *StringSlice) Value() []string {
 // Help shows helpText for a particular CLI command
 func (c *SnapshotCreateCommand) Help() string {
 	helpText := `
-    Usage: maya vsm-snapshot create -volname <name> -snapname <snapshot-name>
+    Usage: maya snapshot create -volname <name> -snapname <snapshot-name>
 
-  This command will create the snapshot of a given Vsm.
+  This command will create the snapshot of a given Volume.
 
 `
 	return strings.TrimSpace(helpText)
@@ -70,7 +70,7 @@ func (c *SnapshotCreateCommand) Help() string {
 
 // Synopsis shows short information related to CLI command
 func (c *SnapshotCreateCommand) Synopsis() string {
-	return "Create snapshot of a VSM"
+	return "Create snapshot of a Volume"
 }
 
 // Run holds the flag values for CLI subcommands
@@ -80,7 +80,7 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 		err      error
 	)
 
-	flags := c.Meta.FlagSet("vsm-snapshot", FlagSetClient)
+	flags := c.Meta.FlagSet("snapshot", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	flags.StringVar(&c.Name, "volname", "", "")
@@ -109,14 +109,14 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 	//	labelMap = map[str]string
 	//var client ControllerClient
 
-	fmt.Println("Creating Snapshot of Vsm :", c.Name)
+	fmt.Println("Creating Snapshot of Volume :", c.Name)
 	id, err := Snapshot(c.Name, c.Sname, labelMap)
 	if err != nil {
 		log.Fatalf("Error running create snapshot command: %v", err)
 		return 1
 	}
 
-	fmt.Println("Snapshot is:", id)
+	fmt.Println("Created Snapshot is:", id)
 	return 0
 
 }
@@ -145,6 +145,8 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 	}
 
 	url := controller.address + "/volumes/" + volume.Id + "?action=snapshot"
+
+	fmt.Println("Url is:", url)
 
 	input := SnapshotInput{
 		Name:   snapname,
@@ -175,7 +177,7 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 		url = c.address + path
 
 	}
-
+	fmt.Println("Do url:", url)
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
 	if err != nil {
 		return err
@@ -226,6 +228,18 @@ func (c *ControllerClient) get(path string, obj interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
+/*func Snapshot(name string, userCreated bool, created string, labels map[string]string) error {
+	fmt.Println("Snapshot: %s %s UserCreated %v Created at %v, Labels %v",
+		r.name, name, userCreated, created, labels)
+	return r.doAction("snapshot",
+		&map[string]interface{}{
+			"name":        name,
+			"usercreated": userCreated,
+			"created":     created,
+			"labels":      labels,
+		})
+}*/
+
 func ParseLabels(labels []string) (map[string]string, error) {
 	result := map[string]string{}
 	for _, label := range labels {
@@ -235,7 +249,6 @@ func ParseLabels(labels []string) (map[string]string, error) {
 		}
 		key := kv[0]
 		value := kv[1]
-
 		//Well, we should rename that ValidVolumeName
 		if !ValidVolumeName(key) {
 			return nil, fmt.Errorf("Invalid key %v for label %v", key, label)

@@ -65,10 +65,10 @@ type ListStub struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmListCommand) Help() string {
 	helpText := `
-Usage: maya vsm-list [options] <job>
+Usage: maya volume list [options]
 
-  Display status information about VSM. If no VSM ID is given,
-  a list of all known VSM will be dumped.
+  Display status information of created Volume. If no vol ID is given,
+  a list of all known volume will be dumped.
 
 Status Options:
 
@@ -91,14 +91,14 @@ Status Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmListCommand) Synopsis() string {
-	return "Display status information about Vsm(s)"
+	return "Display status information about Volume(s)"
 }
 
 // Run holds the flag values for CLI subcommands
 func (c *VsmListCommand) Run(args []string) int {
 	var short bool
 
-	flags := c.Meta.FlagSet("vsm-list", FlagSetClient)
+	flags := c.Meta.FlagSet("volume list", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.BoolVar(&short, "short", false, "")
 	flags.BoolVar(&c.evals, "evals", false, "")
@@ -144,8 +144,8 @@ func (c *VsmListCommand) Run(args []string) int {
 		}
 
 		if len(jobs) == 0 {
-			// No output if we have no jobs
-			c.Ui.Output("No VSMs are running")
+			// No output if we have no volumes
+			c.Ui.Output("No Volumes are running")
 		} else {
 			c.Ui.Output(createVsmListOutput(jobs))
 		}
@@ -500,7 +500,7 @@ func GetVsm(obj interface{}) error {
 
 	body, err := RestClient()
 	if err != nil {
-		fmt.Sprintf("Error querying Vsm's: %s", err)
+		fmt.Sprintf("Error querying Volumes: %s", err)
 		return err
 	}
 	return Parser(body, obj)
@@ -522,7 +522,7 @@ func VsmListOutput() error {
 			items.Status.Reason)
 	}
 	if len(out) == 1 {
-		fmt.Println("No Vsm is running")
+		fmt.Println("No Volumes are running")
 		return nil
 	}
 	fmt.Println(formatList(out))
@@ -544,7 +544,7 @@ func RestClient() ([]byte, error) {
 	resp, err := client.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			fmt.Println("VSM not found at M_API server")
+			fmt.Println("Volume not found at M_API server")
 			return nil, err
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")

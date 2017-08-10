@@ -13,7 +13,7 @@ type VsmStopCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
-Usage: maya vsm-stop [options] <vsm>
+Usage: maya volume stop [options] <volume>
 
   Stop an existing vsm. This command is used to signal allocations
   to shut down for the given vsm ID. Upon successful deregistraion,
@@ -43,14 +43,14 @@ Stop Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmStopCommand) Synopsis() string {
-	return "Stop a running vsm"
+	return "Stop a running Volume"
 }
 
 // Run holds the flag values for CLI subcommands
 func (c *VsmStopCommand) Run(args []string) int {
 	var detach, verbose, autoYes bool
 
-	flags := c.Meta.FlagSet("stop", FlagSetClient)
+	flags := c.Meta.FlagSet("volume stop", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.BoolVar(&detach, "detach", false, "")
 	flags.BoolVar(&verbose, "verbose", false, "")
@@ -84,11 +84,11 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Check if the VSM exists
 	jobs, _, err := client.Jobs().PrefixList(jobID)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error deregistering VSM: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error deregistering Volume: %s", err))
 		return 1
 	}
 	if len(jobs) == 0 {
-		c.Ui.Error(fmt.Sprintf("No VSM(s) with prefix or id %q found", jobID))
+		c.Ui.Error(fmt.Sprintf("No Volume(s) with prefix or id %q found", jobID))
 		return 1
 	}
 	if len(jobs) > 1 && strings.TrimSpace(jobID) != jobs[0].ID {
@@ -101,7 +101,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 				job.Priority,
 				job.Status)
 		}
-		c.Ui.Output(fmt.Sprintf("Prefix matched multiple VSM(s)\n\n%s", formatList(out)))
+		c.Ui.Output(fmt.Sprintf("Prefix matched multiple Volume(s)\n\n%s", formatList(out)))
 		return 0
 	}
 	// Prefix lookup matched a single VSM
@@ -114,7 +114,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Confirm the stop if the VSM was a prefix match.
 	// to fix the --> pointers being printed while passing status commands
 	if jobID != *job.ID && !autoYes {
-		question := fmt.Sprintf("Are you sure you want to stop VSM %q? [y/N]", *job.ID)
+		question := fmt.Sprintf("Are you sure you want to stop Volume %q? [y/N]", *job.ID)
 		answer, err := c.Ui.Ask(question)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to parse answer: %v", err))
@@ -123,7 +123,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 
 		if answer == "" || strings.ToLower(answer)[0] == 'n' {
 			// No case
-			c.Ui.Output("Cancelling VSM stop")
+			c.Ui.Output("Cancelling Volume stop")
 			return 0
 		} else if strings.ToLower(answer)[0] == 'y' && len(answer) > 1 {
 			// Non exact match yes
@@ -138,7 +138,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Invoke the stop
 	evalID, _, err := client.Jobs().Deregister(*job.ID, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error deregistering VSM: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error deregistering Volume: %s", err))
 		return 1
 	}
 

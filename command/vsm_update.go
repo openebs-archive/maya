@@ -18,9 +18,9 @@ type VsmUpdateCommand struct {
 
 func (c *VsmUpdateCommand) Help() string {
 	helpText := `
-Usage: maya vsm-update [path-to-update-specs]
+Usage: maya volume update [path-to-update-specs]
 
-  Update the given vsm.   
+  Update the given volume.   
 
 General Options:
 
@@ -36,7 +36,7 @@ func (c *VsmUpdateCommand) Synopsis() string {
 func (c *VsmUpdateCommand) Run(args []string) int {
 	var runop int
 
-	flags := c.M.FlagSet("vsm-update", FlagSetClient)
+	flags := c.M.FlagSet("volume update", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
 	if err := flags.Parse(args); err != nil {
@@ -60,7 +60,7 @@ func (c *VsmUpdateCommand) Run(args []string) int {
 	c.Cmd = exec.Command(string(ExecNomad), args...)
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
-		c.M.Ui.Error("Error updating vsm")
+		c.M.Ui.Error("Error updating Volume")
 	}
 
 	return runop

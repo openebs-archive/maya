@@ -13,11 +13,18 @@ type SnapshotDeleteCommand struct {
 	//client *ControllerClient
 }
 
+/*func NewTask(controller string) *Task {
+	return &Task{
+		client: NewControllerClient(controller),
+	}
+}
+*/
+
 func (s *SnapshotDeleteCommand) Help() string {
 	helpText := `
-Usage: maya vsm-snapshot delete -name <vsm-name> 
+Usage: maya snapshot delete -volname <vsm-name> 
          
-  Command to delete the snapshot.
+  Command to delete the snapshot of a Volume.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -26,9 +33,8 @@ Usage: maya vsm-snapshot delete -name <vsm-name>
 func (s *SnapshotDeleteCommand) Synopsis() string {
 	return "delete the snapshots"
 }
-
 func (s *SnapshotDeleteCommand) Run(args []string) int {
-	flags := s.Meta.FlagSet("vsm-snapshot", FlagSetClient)
+	flags := s.Meta.FlagSet("snapshot", FlagSetClient)
 	flags.Usage = func() { s.Ui.Output(s.Help()) }
 
 	flags.StringVar(&s.Name, "volname", "", "")
@@ -48,7 +54,7 @@ func (s *SnapshotDeleteCommand) Run(args []string) int {
 
 func (s *SnapshotDeleteCommand) DeleteSnapshot(volume string, snapshot string) error {
 	var err error
-	//var path string
+
 	annotations, err := GetVolAnnotations(volume)
 	if err != nil || annotations == nil {
 
