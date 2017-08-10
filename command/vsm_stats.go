@@ -108,7 +108,7 @@ const (
 func (c *VsmStatsCommand) Help() string {
 	helpText := `Usage: maya vsm-stats <vsm-name> 
 
-	Display VSM Stats.`
+   Display VSM Stats.`
 	return strings.TrimSpace(helpText)
 }
 
