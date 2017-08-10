@@ -1,6 +1,24 @@
 package command
 
-import "github.com/rancher/go-rancher/client"
+import (
+	"strings"
+
+	"github.com/rancher/go-rancher/client"
+)
+
+const (
+	metadataSuffix     = ".meta"
+	imgSuffix          = ".img"
+	volumeMetaData     = "volume.meta"
+	defaultSectorSize  = 4096
+	headPrefix         = "volume-head-"
+	headSuffix         = ".img"
+	headName           = headPrefix + "%03d" + headSuffix
+	diskPrefix         = "volume-snap-"
+	diskSuffix         = ".img"
+	diskName           = diskPrefix + "%s" + diskSuffix
+	maximumChainLength = 250
+)
 
 type Volumes struct {
 	client.Resource
@@ -55,6 +73,11 @@ type MarkDiskAsRemovedInput struct {
 	Name string `json:"name"`
 }
 
+type RevertInput struct {
+	client.Resource
+	Name string `json:"name"`
+}
+
 func Filter(list []string, check func(string) bool) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
@@ -70,6 +93,12 @@ func Contains(arr []string, val string) bool {
 		if a == val {
 			return true
 		}
+	}
+	return false
+}
+func IsHeadDisk(diskName string) bool {
+	if strings.HasPrefix(diskName, headPrefix) && strings.HasSuffix(diskName, headSuffix) {
+		return true
 	}
 	return false
 }

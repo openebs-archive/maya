@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"strings"
-	"text/tabwriter"
 )
 
 type SnapshotListCommand struct {
@@ -48,7 +46,7 @@ func (c *SnapshotListCommand) Run(args []string) int {
 	return 0
 }
 func ListSnapshot(name string) error {
-	//var annotations Annotations
+
 	annotations, err := GetVolAnnotations(name)
 	if err != nil || annotations == nil {
 
@@ -66,45 +64,72 @@ func ListSnapshot(name string) error {
 	}
 
 	first := true
-	snapshots := []string{}
+	//snapshots := []string{}
 	for _, r := range replicas {
 		if r.Mode != "RW" {
 			continue
 		}
 
+		/*	if first {
+					first = false
+					chain, err := getChain(r.Address)
+					if err != nil {
+						return err
+					}
+					// Replica can just started and haven't prepare the head
+					// file yet
+					if len(chain) == 0 {
+						break
+					}
+					snapshots = chain[1:]
+					continue
+				}
+
+				chain, err := getChain(r.Address)
+				if err != nil {
+					return err
+				}
+
+			snapshots = Filter(snapshots, func(i string) bool {
+					return Contains(chain, i)
+				})
+				}
+
+			/*format := "%s\n"
+			tw := tabwriter.NewWriter(os.Stdout, 0, 20, 1, ' ', 0)
+			fmt.Fprintf(tw, format, "Snapshot_Name")
+			for _, s := range snapshots {
+				s = strings.TrimSuffix(strings.TrimPrefix(s, "volume-snap-"), ".img")
+				fmt.Fprintf(tw, format, s)
+			}
+			tw.Flush()
+		*/
+
+		//for _, r := range replicas {
 		if first {
 			first = false
-			chain, err := getChain(r.Address)
-			if err != nil {
+			snapdisk, err := getData(r.Address)
+			if err != err {
 				return err
 			}
-			// Replica can just started and haven't prepare the head
-			// file yet
-			if len(chain) == 0 {
-				break
+			out := make([]string, len(snapdisk)+1)
+
+			out[0] = "Name|Created At|Size"
+			var i int
+
+			for _, disk := range snapdisk {
+				//	if !IsHeadDisk(disk.Name) {
+				out[i+1] = fmt.Sprintf("%s|%s|%s",
+					strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
+					disk.Created,
+					disk.Size)
+				i = i + 1
+				//	}
 			}
-			snapshots = chain[1:]
-			continue
+			fmt.Println(formatList(out))
 		}
 
-		chain, err := getChain(r.Address)
-		if err != nil {
-			return err
-		}
-
-		snapshots = Filter(snapshots, func(i string) bool {
-			return Contains(chain, i)
-		})
 	}
-
-	format := "%s\n"
-	tw := tabwriter.NewWriter(os.Stdout, 0, 20, 1, ' ', 0)
-	fmt.Fprintf(tw, format, "Snapshot_Name")
-	for _, s := range snapshots {
-		s = strings.TrimSuffix(strings.TrimPrefix(s, "volume-snap-"), ".img")
-		fmt.Fprintf(tw, format, s)
-	}
-	tw.Flush()
 
 	return nil
 }
@@ -130,11 +155,26 @@ func getChain(address string) ([]string, error) {
 
 	return r.Chain, err
 }
+func getData(address string) (map[string]DiskInfo, error) {
+	repClient, err := NewReplicaClient(address)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := repClient.GetReplica()
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Disks, err
+
+}
 
 func (c *ReplicaClient) GetReplica() (InfoReplica, error) {
 	var replica InfoReplica
 
 	err := c.get(c.address+"/replicas/1", &replica)
+
 	return replica, err
 }
 
@@ -160,6 +200,7 @@ func (c *ReplicaClient) post(path string, req, resp interface{}) error {
 
 	bodyType := "application/json"
 	url := path
+	fmt.Println("Post path:", path)
 	if !strings.HasPrefix(url, "http") {
 		url = c.address + path
 	}

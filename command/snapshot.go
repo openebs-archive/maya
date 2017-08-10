@@ -26,15 +26,24 @@ Usage: maya vsm-snapshot <subcommand> [options] [args]
 
   Create a snapshot:
 
-      $ maya vsm-snapshot create -name <vsm-name>
+      $ maya vsm-snapshot create -volname <vol> -snapname <snapshot>
 
   list a snapshot:
 
       $ maya vsm-snapshot list -name <vsm-name>
+  
+  Remove a snapshot:
+
+     $ maya vsm-snapshot rm -volname <vol> -snapname <snapshot>
+
+  Revert a snapshot:
+
+     $ maya vsm-snapshot revert -volname <vol> -snapname <snapshot>
+
 
 `
 	return strings.TrimSpace(helpText)
 }
 func (c *SnapshotCommand) Synopsis() string {
-	return "Create a snapshot of a Vsm"
+	return "Create a snapshot of a Volume"
 }
