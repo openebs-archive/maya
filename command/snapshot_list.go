@@ -16,16 +16,16 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-	Usage: maya vsm-snapshot list -name <vsm-name> 
+Usage: maya snapshot list -name <vsm-name> 
 	    
-	Command to list the snapshot.
+  Command to list the snapshot of a Volume.
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (c *SnapshotListCommand) Synopsis() string {
-	return "List the snapshots"
+	return "List the created snapshots of a Volume"
 }
 
 func (c *SnapshotListCommand) Run(args []string) int {
@@ -200,7 +200,7 @@ func (c *ReplicaClient) post(path string, req, resp interface{}) error {
 
 	bodyType := "application/json"
 	url := path
-	fmt.Println("Post path:", path)
+
 	if !strings.HasPrefix(url, "http") {
 		url = c.address + path
 	}

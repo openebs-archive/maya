@@ -48,13 +48,7 @@ func (c *VsmCreateCommand) Help() string {
 	helpText := `
 Usage: maya vsm-create [options] <path>
 
-  Creates a new VSM using the specification located at <path>.
-
-  On successful vsm creation submission and scheduling, exit code 0 will be
-  returned. If there are placement issues encountered
-  (unsatisfiable constraints, resource exhaustion, etc), then the
-  exit code will be 2. Any other errors, including client connection
-  issues or internal errors, are indicated by exit code 1.
+  Creates a new Openebs volume.
 
 VSM Create Options:
   -name
@@ -67,7 +61,7 @@ VSM Create Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmCreateCommand) Synopsis() string {
-	return "Creates a new VSM"
+	return "Creates a new Volume"
 }
 
 // Run to get the flag values and start execution
@@ -77,7 +71,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 	var op int
 
-	flags := c.Meta.FlagSet("vsm-create", FlagSetClient)
+	flags := c.Meta.FlagSet("volume create", FlagSetClient)
 	flags.Usage = func() { c.Meta.Ui.Output(c.Help()) }
 	flags.StringVar(&c.vsmname, "name", "", "")
 	flags.StringVar(&c.size, "size", "5G", "")
@@ -107,7 +101,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		}
 
 		if op = ic.Execute(); 0 != op {
-			c.Ui.Error("Error creating vsm")
+			c.Ui.Error("Error creating Volume")
 			return op
 		}
 		return 1
@@ -128,13 +122,13 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		// Check if the VSM exists
 		job, _, err := client.Jobs().Info(jobID, nil)
 		if err == nil || job != nil {
-			c.Ui.Error(fmt.Sprintf("VSM already exist: %q", jobID))
+			c.Ui.Error(fmt.Sprintf("Volume already exist: %q", jobID))
 			return 1
 		}
 
 		resp := CreateAPIVsm(c.vsmname, c.size)
 		if resp != nil {
-			c.Ui.Error(fmt.Sprintf("Error Creating VSM %v", resp))
+			c.Ui.Error(fmt.Sprintf("Error Creating Volume %v", resp))
 		}
 	}
 	return op
@@ -161,7 +155,7 @@ func CreateAPIVsm(vname string, size string) error {
 	//Marshal serializes the value provided into a YAML document
 	yamlValue, _ := yaml.Marshal(vs)
 
-	fmt.Printf("VSM Spec Created:\n%v\n", string(yamlValue))
+	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 
@@ -190,7 +184,7 @@ func CreateAPIVsm(vname string, size string) error {
 		os.Exit(1)
 	}
 
-	fmt.Printf("VSM Successfully Created:\n%v\n", string(data))
+	fmt.Printf("Volume Successfully Created:\n%v\n", string(data))
 
 	return nil
 }

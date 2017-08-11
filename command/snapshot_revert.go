@@ -13,25 +13,18 @@ type SnapshotRevertCommand struct {
 	//client *ControllerClient
 }
 
-/*func NewTask(controller string) *Task {
-      return &Task{
-	           client: NewControllerClient(controller),
-	       }
-	     }
-*/
-
 func (s *SnapshotRevertCommand) Help() string {
 	helpText := `
-Usage: maya vsm-snapshot revert -volname <vol-name> -snapname <snapshot> 
+Usage: maya snapshot revert -volname <vol-name> -snapname <snapshot> 
 							           
-Command to revert snapshot.
+Command to revert snapshot of a Volume.
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (s *SnapshotRevertCommand) Synopsis() string {
-	return "Revert the snapshot"
+	return "Revert a snapshot of Volume"
 }
 func (s *SnapshotRevertCommand) Run(args []string) int {
 	flags := s.Meta.FlagSet("vsm-snapshot", FlagSetClient)
@@ -69,6 +62,7 @@ func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error
 	if err != nil {
 		return err
 	}
+
 	//var c *ControllerClient
 	volume, err := GetVolume(controller.address)
 	if err != nil {

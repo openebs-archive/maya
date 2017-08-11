@@ -45,52 +45,55 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 			}, nil
 		},
 
-		"vsm-create": func() (cli.Command, error) {
+		"volume": func() (cli.Command, error) {
+			return &command.VolumeCommand{}, nil
+		},
+		"volume create": func() (cli.Command, error) {
 			return &command.VsmCreateCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-list": func() (cli.Command, error) {
+		"volume list": func() (cli.Command, error) {
 			return &command.VsmListCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-stats": func() (cli.Command, error) {
+		"volume stats": func() (cli.Command, error) {
 			return &command.VsmStatsCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-update": func() (cli.Command, error) {
+		"volume update": func() (cli.Command, error) {
 			return &command.VsmUpdateCommand{
 				M: meta,
 			}, nil
 		},
-		"vsm-stop": func() (cli.Command, error) {
+		"volume stop": func() (cli.Command, error) {
 			return &command.VsmStopCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-snapshot": func() (cli.Command, error) {
+		"snapshot": func() (cli.Command, error) {
 			return &command.SnapshotCommand{}, nil
 		},
 
-		"vsm-snapshot create": func() (cli.Command, error) {
+		"snapshot create": func() (cli.Command, error) {
 			return &command.SnapshotCreateCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-snapshot list": func() (cli.Command, error) {
+		"snapshot list": func() (cli.Command, error) {
 			return &command.SnapshotListCommand{
 				Meta: meta,
 			}, nil
 		},
 
-		"vsm-snapshot rm": func() (cli.Command, error) {
+		"snapshot rm": func() (cli.Command, error) {
 			return &command.SnapshotDeleteCommand{
 				Meta: meta,
 			}, nil
 		},
-		"vsm-snapshot revert": func() (cli.Command, error) {
+		"snapshot revert": func() (cli.Command, error) {
 			return &command.SnapshotRevertCommand{
 				Meta: meta,
 			}, nil
