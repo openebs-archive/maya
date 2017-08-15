@@ -494,17 +494,6 @@ func (e *noSupportCtrlImgVolumeProfile) ControllerImage() (string, bool, error) 
 	return "", false, nil
 }
 
-// noSupportRepImgVolumeProfile focusses on returning not supported during
-// invocation of ReplicaImage() method
-type noSupportRepImgVolumeProfile struct {
-	volProfile.VolumeProvisionerProfile
-}
-
-// ReplicaImage returns not supported
-func (e *noSupportRepImgVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "", false, nil
-}
-
 // errRepImgVolumeProfile returns an error during invocation of ReplicaImage()
 // method
 type errRepImgVolumeProfile struct {
@@ -512,8 +501,8 @@ type errRepImgVolumeProfile struct {
 }
 
 // ReplicaImage returns an error
-func (e *errRepImgVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "", false, fmt.Errorf("err-rep-image")
+func (e *errRepImgVolumeProfile) ReplicaImage() (string, error) {
+	return "", fmt.Errorf("err-rep-image")
 }
 
 // errRepCountVolumeProfile returns an error during invocation of ReplicaCount()
@@ -523,8 +512,8 @@ type errRepCountVolumeProfile struct {
 }
 
 // ReplicaImage does not return any error
-func (e *errRepCountVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "ok-rep-img", true, nil
+func (e *errRepCountVolumeProfile) ReplicaImage() (string, error) {
+	return "ok-rep-img", nil
 }
 
 // ReplicaCount returns an error
@@ -534,45 +523,45 @@ func (e *errRepCountVolumeProfile) ReplicaCount() (int, error) {
 
 // errPersistentPathCountVolumeProfile returns an error during invocation of
 // PersistentPathCount() method
-type errPersistentPathCountVolumeProfile struct {
-	volProfile.VolumeProvisionerProfile
-}
+//type errPersistentPathCountVolumeProfile struct {
+//	volProfile.VolumeProvisionerProfile
+//}
 
 // ReplicaImage does not return any error
-func (e *errPersistentPathCountVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "ok-rep-img", true, nil
-}
+//func (e *errPersistentPathCountVolumeProfile) ReplicaImage() (string, bool, error) {
+//	return "ok-rep-img", true, nil
+//}
 
 // ReplicaCount does not return any error
-func (e *errPersistentPathCountVolumeProfile) ReplicaCount() (int, error) {
-	return 0, nil
-}
+//func (e *errPersistentPathCountVolumeProfile) ReplicaCount() (int, error) {
+//	return 0, nil
+//}
 
 // PersistentPathCount returns an error
-func (e *errPersistentPathCountVolumeProfile) PersistentPathCount() (int, error) {
-	return 0, fmt.Errorf("err-persistent-path-count")
-}
+//func (e *errPersistentPathCountVolumeProfile) PersistentPathCount() (int, error) {
+//	return 0, fmt.Errorf("err-persistent-path-count")
+//}
 
 // errReplicaCountMatchVolumeProfile returns an error due to mismatch of
 // replica count & persistent path count
-type errReplicaCountMatchVolumeProfile struct {
-	volProfile.VolumeProvisionerProfile
-}
+//type errReplicaCountMatchVolumeProfile struct {
+//	volProfile.VolumeProvisionerProfile
+//}
 
 // ReplicaImage does not return any error
-func (e *errReplicaCountMatchVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "ok-rep-img", true, nil
-}
+//func (e *errReplicaCountMatchVolumeProfile) ReplicaImage() (string, bool, error) {
+//	return "ok-rep-img", true, nil
+//}
 
 // ReplicaCount does not return any error
-func (e *errReplicaCountMatchVolumeProfile) ReplicaCount() (int, error) {
-	return 0, nil
-}
+//func (e *errReplicaCountMatchVolumeProfile) ReplicaCount() (int, error) {
+//	return 0, nil
+//}
 
 // PersistentPathCount does not return any error
-func (e *errReplicaCountMatchVolumeProfile) PersistentPathCount() (int, error) {
-	return 1, nil
-}
+//func (e *errReplicaCountMatchVolumeProfile) PersistentPathCount() (int, error) {
+//	return 1, nil
+//}
 
 // okCreateReplicaPodVolumeProfile does not return any error
 type okCreateReplicaPodVolumeProfile struct {
@@ -587,13 +576,13 @@ func (e *okCreateReplicaPodVolumeProfile) PVC() (*v1.PersistentVolumeClaim, erro
 }
 
 // PersistentPath does not return any error
-func (e *okCreateReplicaPodVolumeProfile) PersistentPath(position int, rCount int) (string, error) {
-	return "/tmp/ok-vsm-name/openebs" + string(position), nil
+func (e *okCreateReplicaPodVolumeProfile) PersistentPath() (string, error) {
+	return "/tmp/ok-vsm-name/openebs", nil
 }
 
 // ReplicaImage does not return any error
-func (e *okCreateReplicaPodVolumeProfile) ReplicaImage() (string, bool, error) {
-	return "ok-rep-img", true, nil
+func (e *okCreateReplicaPodVolumeProfile) ReplicaImage() (string, error) {
+	return "ok-rep-img", nil
 }
 
 // ReplicaCount does not return any error
@@ -1704,30 +1693,6 @@ func TestCreateDeploymentReplicasReturnsErrVsmName(t *testing.T) {
 	}
 }
 
-// TestCreateDeploymentReplicasReturnsNoSupportReplicaImage verifies the no support
-// during invocation of volProProfile.ReplicaImage()
-func TestCreateDeploymentReplicasReturnsNoSupportReplicaImage(t *testing.T) {
-	mockedO := &mockK8sOrch{
-		k8sOrchestrator: k8sOrchestrator{},
-	}
-
-	volProfile := &noSupportRepImgVolumeProfile{
-		&okVsmNameVolumeProfile{},
-	}
-
-	_, err := mockedO.createReplicaDeployment(volProfile, "1.1.1.1")
-	if err == nil {
-		t.Errorf("TestCase: Error Match \n\tExpectedErr: 'not-nil' \n\tActualErr: 'nil'")
-	}
-
-	n, _ := volProfile.VSMName()
-	expErr := fmt.Sprintf("VSM '%s' requires a replica container image", n)
-
-	if err != nil && err.Error() != expErr {
-		t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", expErr, err.Error())
-	}
-}
-
 // TestCreateDeploymentReplicasReturnsErrReplicaImage verifies the error during
 // invocation of volProProfile.ReplicaImage()
 func TestCreateDeploymentReplicasReturnsErrReplicaImage(t *testing.T) {
@@ -1772,47 +1737,47 @@ func TestCreateDeploymentReplicasReturnsErrReplicaCount(t *testing.T) {
 
 // TestCreateDeploymentReplicasReturnsErrPersistentPathCount verifies error
 // during invocation of volProProfile.PersistentPathCount()
-func TestCreateDeploymentReplicasReturnsErrPersistentPathCount(t *testing.T) {
-	mockedO := &mockK8sOrch{
-		k8sOrchestrator: k8sOrchestrator{},
-	}
+//func TestCreateDeploymentReplicasReturnsErrPersistentPathCount(t *testing.T) {
+//mockedO := &mockK8sOrch{
+//	k8sOrchestrator: k8sOrchestrator{},
+//}
 
-	volProfile := &errPersistentPathCountVolumeProfile{
-		&okVsmNameVolumeProfile{},
-	}
+//volProfile := &errPersistentPathCountVolumeProfile{
+//	&okVsmNameVolumeProfile{},
+//}
 
-	_, err := mockedO.createReplicaDeployment(volProfile, "1.1.1.1")
-	if err == nil {
-		t.Errorf("TestCase: Error Match \n\tExpectedErr: 'not-nil' \n\tActualErr: 'nil'")
-	}
+//err := mockedO.createReplicaDeployment(volProfile, "1.1.1.1")
+//if err == nil {
+//	t.Errorf("TestCase: Error Match \n\tExpectedErr: 'not-nil' \n\tActualErr: 'nil'")
+//}
 
-	if err != nil && err.Error() != "err-persistent-path-count" {
-		t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", "err-persistent-path-count", err.Error())
-	}
-}
+//if err != nil && err.Error() != "err-persistent-path-count" {
+//	t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", "err-persistent-path-count", err.Error())
+//}
+//}
 
 // TestCreateDeploymentReplicasReturnsErrCountMatch verifies error
 // during comparision of PersistentPathCount & ReplicaCount
-func TestCreateDeploymentReplicasReturnsErrCountMatch(t *testing.T) {
-	mockedO := &mockK8sOrch{
-		k8sOrchestrator: k8sOrchestrator{},
-	}
+//func TestCreateDeploymentReplicasReturnsErrCountMatch(t *testing.T) {
+//	mockedO := &mockK8sOrch{
+//		k8sOrchestrator: k8sOrchestrator{},
+//	}
 
-	volProfile := &errReplicaCountMatchVolumeProfile{
-		&okVsmNameVolumeProfile{},
-	}
+//	volProfile := &errReplicaCountMatchVolumeProfile{
+//		&okVsmNameVolumeProfile{},
+//	}
 
-	_, err := mockedO.createReplicaDeployment(volProfile, "1.1.1.1")
-	if err == nil {
-		t.Errorf("TestCase: Error Match \n\tExpectedErr: 'not-nil' \n\tActualErr: 'nil'")
-	}
+//	err := mockedO.createReplicaDeployment(volProfile, "1.1.1.1")
+//	if err == nil {
+//		t.Errorf("TestCase: Error Match \n\tExpectedErr: 'not-nil' \n\tActualErr: 'nil'")
+//	}
 
-	eError := "VSM 'ok-vsm-name' replica count '0' does not match persistent path count '1'"
+//	eError := "VSM 'ok-vsm-name' replica count '0' does not match persistent path count '1'"
 
-	if err != nil && err.Error() != eError {
-		t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", eError, err.Error())
-	}
-}
+//	if err != nil && err.Error() != eError {
+//		t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", eError, err.Error())
+//	}
+//}
 
 // TestCreateDeploymentReplicasReturnsOk verifies non error scenario
 func TestCreateDeploymentReplicasReturnsOk(t *testing.T) {

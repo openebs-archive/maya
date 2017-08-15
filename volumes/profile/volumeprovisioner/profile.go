@@ -2,7 +2,6 @@ package volumeprovisioner
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/openebs/maya/types/v1"
@@ -58,9 +57,8 @@ type VolumeProvisionerProfile interface {
 	// Get the IP addresses that needs to be assigned against the controller(s)
 	ControllerIPs() ([]string, error)
 
-	// Gets the replica's image e.g. docker image version. The second return value
-	// indicates if image based replica is supported or not.
-	ReplicaImage() (string, bool, error)
+	// Gets the replica's image e.g. docker image version.
+	ReplicaImage() (string, error)
 
 	// Get the storage size for each replica(s)
 	StorageSize() (string, error)
@@ -72,14 +70,31 @@ type VolumeProvisionerProfile interface {
 	ReplicaIPs() ([]string, error)
 
 	// Get the count of persistent paths required for all the replicas
-	PersistentPathCount() (int, error)
+	//PersistentPathCount() (int, error)
 
-	// Get the persistent path based on the replica position.
+	// Get the storage backend i.e. a persistent path of the replica.
+	PersistentPath() (string, error)
+
+	// NodeSelectorKey returns the key used for node selection. Node selection
+	// is useful for placement purposes. This key is based on the replica identifier.
 	//
 	// NOTE:
-	//    `position` is just a parameter that determines a particular replica out
-	// of the total replica count i.e. `rCount`.
-	PersistentPath(position int, rCount int) (string, error)
+	//    Key, Op & Value are used together to select a Node for placement
+	//NodeSelectorKey(repIdentifier string) string
+
+	// NodeSelectorOp returns the operator used for node selection. Node selection
+	// is useful for placement purposes. This operator is based on the replica identifier.
+	//
+	// NOTE:
+	//    Key, Op & Value are used together to select a Node for placement
+	//NodeSelectorOp(repIdentifier string) string
+
+	// NodeSelectorValue returns the value used for node selection. Node selection
+	// is useful for placement purposes. This value is based on the replica identifier.
+	//
+	// NOTE:
+	//    Key, Op & Value are used together to select a Node for placement
+	//NodeSelectorValue(repIdentifier string) string
 }
 
 // GetVolProProfileByPVC will return a specific persistent volume provisioner
@@ -236,6 +251,30 @@ func (pp *pvcVolProProfile) VSMName() (string, error) {
 	return vsmName, nil
 }
 
+// NodeSelectorKey gets the key used for node selection.
+//
+// Refer the interface level documentation for more details
+//func (pp *pvcVolProProfile) NodeSelectorKey(repIdentifier string) string {
+// Extract the node selector key from pvc
+//return v1.GetPVPNodeSelectorKey(repIdentifier, pp.pvc.Labels)
+//}
+
+// NodeSelectorOp gets the operator used for node selection.
+//
+// Refer the interface level documentation for more details
+//func (pp *pvcVolProProfile) NodeSelectorOp(repIdentifier string) string {
+// Extract the node selector operator from pvc
+//return v1.GetPVPNodeSelectorOp(repIdentifier, pp.pvc.Labels)
+//}
+
+// NodeSelectorValue gets the value used for node selection.
+//
+// Refer the interface level documentation for more details
+//func (pp *pvcVolProProfile) NodeSelectorValue(repIdentifier string) string {
+// Extract the node selector value from pvc
+//return v1.GetPVPNodeSelectorValue(repIdentifier, pp.pvc.Labels)
+//}
+
 // ControllerCount gets the number of controllers
 func (pp *pvcVolProProfile) ControllerCount() (int, error) {
 	// Extract the controller count from pvc
@@ -251,11 +290,11 @@ func (pp *pvcVolProProfile) ControllerImage() (string, bool, error) {
 }
 
 // ReplicaImage gets the replica's image currently its docker image label.
-func (pp *pvcVolProProfile) ReplicaImage() (string, bool, error) {
+func (pp *pvcVolProProfile) ReplicaImage() (string, error) {
 	// Extract the replica image from pvc
 	rImg := v1.GetPVPReplicaImage(pp.pvc.Labels)
 
-	return rImg, true, nil
+	return rImg, nil
 }
 
 // StorageSize gets the storage size for each persistent volume replica(s)
@@ -328,36 +367,29 @@ func (pp *pvcVolProProfile) ReplicaIPs() ([]string, error) {
 //
 // NOTE:
 //    The count needs to be equal to no of replicas.
-func (pp *pvcVolProProfile) PersistentPathCount() (int, error) {
-	// Extract the persistent path count from pvc
-	pCount := v1.PersistentPathCount(pp.pvc.Labels)
+//func (pp *pvcVolProProfile) PersistentPathCount() (int, error) {
+// Extract the persistent path count from pvc
+//pCount := v1.PersistentPathCount(pp.pvc.Labels)
 
-	if pCount == "" {
-		return v1.DefaultPersistentPathCount(), nil
-	}
+//if pCount == "" {
+//	return v1.DefaultPersistentPathCount(), nil
+//}
 
-	iPCount, err := strconv.Atoi(pCount)
-	if err != nil {
-		return 0, err
-	}
+//iPCount, err := strconv.Atoi(pCount)
+//if err != nil {
+//	return 0, err
+//}
 
-	return iPCount, nil
-}
+//return iPCount, nil
+//}
 
 // PersistentPath gets the persistent path based on the replica position.
 //
 // NOTE:
 //    `position` is just a positional value that determines a particular replica
 // out of the total replica count i.e. rCount.
-func (pp *pvcVolProProfile) PersistentPath(position int, rCount int) (string, error) {
-	if rCount <= 0 {
-		return "", fmt.Errorf("Invalid replica count '%d' provided", rCount)
-	}
-
-	if position <= 0 {
-		return "", fmt.Errorf("Invalid persistent path index '%d' provided", position)
-	}
-
+//func (pp *pvcVolProProfile) PersistentPath(position int, rCount int) (string, error) {
+func (pp *pvcVolProProfile) PersistentPath() (string, error) {
 	vsm, err := pp.VSMName()
 	if err != nil {
 		return "", err

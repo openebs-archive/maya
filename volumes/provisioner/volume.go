@@ -33,28 +33,6 @@ type VolumeInterface interface {
 	// invoking this method.
 	Profile(*v1.PersistentVolumeClaim) (bool, error)
 
-	// TODO
-	// Deprecate in favour of Adder
-	//
-	// Provisioner gets the instance capable of provisioning volumes w.r.t this
-	// persistent volume provisioner.
-	//
-	// Note:
-	//    Will return false if provisioning of volumes is not supported by the
-	// persistent volume provisioner.
-	//Provisioner() (Provisioner, bool)
-
-	// TODO
-	// Deprecate in favour of Remover
-	//
-	// Deleter gets the instance capable of deleting volumes w.r.t this
-	// persistent volume provisioner.
-	//
-	// Note:
-	//    Will return false if deletion of volumes is not supported by the
-	// persistent volume provisioner.
-	//Deleter() (Deleter, bool)
-
 	// Remover gets the instance capable of deleting volumes w.r.t this
 	// persistent volume provisioner.
 	//
@@ -62,17 +40,6 @@ type VolumeInterface interface {
 	//    Will return false if deletion of volumes is not supported by the
 	// persistent volume provisioner.
 	Remover() (Remover, bool, error)
-
-	// TODO
-	// Deprecate in favour of Reader
-	//
-	// Informer gets the instance capable of providing volume information w.r.t this
-	// persistent volume provisioner.
-	//
-	// Note:
-	//    Will return false if providing volume information is not supported by
-	// the persistent volume provisioner.
-	//Informer() (Informer, bool)
 
 	// Reader gets the instance capable of providing persistent volume information
 	// w.r.t this persistent volume provisioner.
@@ -107,17 +74,6 @@ type Lister interface {
 	List() (*v1.PersistentVolumeList, error)
 }
 
-// TODO
-// Deprecate in favour of Reader
-//
-// Informer interface abstracts fetching of volume related information
-// from a persistent volume provisioner.
-//type Informer interface {
-// Info tries to fetch the volume details from the persistent volume
-// provisioner.
-//Info(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
-//}
-
 // Reader interface abstracts fetching of persistent volume related information
 // from a persistent volume provisioner.
 type Reader interface {
@@ -126,16 +82,6 @@ type Reader interface {
 	Read(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
 }
 
-// TODO
-// Deprecate in favour of Adder
-//
-// Provisioner interface abstracts creation of volume from a persistent volume
-// provisioner.
-//type Provisioner interface {
-// Provision tries to create a volume of a persistent volume provisioner.
-//Provision(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
-//}
-
 // Adder interface abstracts creation of persistent volume from a persistent
 // volume provisioner.
 type Adder interface {
@@ -143,16 +89,9 @@ type Adder interface {
 	Add(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
 }
 
-// Deleter interface abstracts deletion of volume of a persistent volume
-// provisioner.
-//type Deleter interface {
-// Delete tries to delete a volume of a persistent volume provisioner.
-//Delete(*v1.PersistentVolume) (*v1.PersistentVolume, error)
-//}
-
 // Remover interface abstracts deletion of volume of a persistent volume
 // provisioner.
 type Remover interface {
 	// Delete tries to delete a volume of a persistent volume provisioner.
-	Remove() error
+	Remove() (bool, error)
 }

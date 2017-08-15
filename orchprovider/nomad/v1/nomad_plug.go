@@ -151,27 +151,32 @@ func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisione
 }
 
 // DeleteStorage will remove the VSM.
-func (n *NomadOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisionerProfile) error {
+func (n *NomadOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisionerProfile) (bool, error) {
 	pvc, err := volProProfile.PVC()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	job, err := MakeJob(pvc.Name)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	eval, err := n.nStorApis.DeleteStorage(job, pvc.Labels)
 
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	glog.Infof("Volume '%s' was placed for removal with eval '%v'", pvc.Name, eval)
 
 	_, err = JobEvalToPv(*job.Name, eval)
-	return err
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ListStorage will list a collections of VSMs

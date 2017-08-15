@@ -43,7 +43,7 @@ type StorageOps interface {
 	ListStorage() (*v1.PersistentVolumeList, error)
 
 	// Delete operation
-	RemoveStorage() error
+	RemoveStorage() (bool, error)
 }
 
 // jivaUtil is the concrete implementation for
@@ -192,31 +192,31 @@ func (j *jivaUtil) AddStorage(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolu
 }
 
 // RemoveStorage removes the peristent storage
-func (j *jivaUtil) RemoveStorage() error {
+func (j *jivaUtil) RemoveStorage() (bool, error) {
 	// TODO
 	// Move the below set of validations to StorageOps()
 	if j.jivaProProfile == nil {
-		return fmt.Errorf("Volume provisioner profile not set in '%s'", j.Name())
+		return false, fmt.Errorf("Volume provisioner profile not set in '%s'", j.Name())
 	}
 
 	oName, supported, err := j.jivaProProfile.Orchestrator()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !supported {
-		return fmt.Errorf("No orchestrator support in '%s:%s'", j.jivaProProfile.Label(), j.jivaProProfile.Name())
+		return false, fmt.Errorf("No orchestrator support in '%s:%s'", j.jivaProProfile.Label(), j.jivaProProfile.Name())
 	}
 
 	orchestrator, err := orchprovider.GetOrchestrator(oName)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	storageOrchestrator, ok := orchestrator.StorageOps()
 
 	if !ok {
-		return fmt.Errorf("Storage operations not supported by orchestrator '%s'", orchestrator.Name())
+		return false, fmt.Errorf("Storage operations not supported by orchestrator '%s'", orchestrator.Name())
 	}
 
 	return storageOrchestrator.DeleteStorage(j.jivaProProfile)

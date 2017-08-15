@@ -1,41 +1,32 @@
 package v1
 
-// TODO
-// Deprecate
-const (
-//VolumePluginNamePrefix string = "name.plugin.volume.openebs.io/"
-)
-
-// TODO
-// Deprecate
-const (
-//DefaultOrchestratorConfigPath string = "/etc/mayaserver/orchprovider/"
-)
-
-const (
-//JivaNomadPlacementSpecs string = "placement.specs.openebs.io/jnp-specs"
-//JivaK8sPlacementSpecs   string = "placement.specs.openebs.io/jk8sp-specs"
-)
-
+// NomadEnvironmentVariable is a typed label that defines environment variables
+// that are understood by Nomad
 type NomadEnvironmentVariable string
 
 const (
-	// NomadAddressEnvKey
+	// NomadAddressEnvKey is the environment variable that determines the
+	// Nomad server address where the Job request can be directed to.
 	NomadAddressEnvKey NomadEnvironmentVariable = "NOMAD_ADDR"
-	// NomadRegionEnvKey
+	// NomadRegionEnvKey is the environment variable that determines the Nomad region
+	// where the Job request can be directed to.
 	NomadRegionEnvKey NomadEnvironmentVariable = "NOMAD_REGION"
 )
 
-//
+// EnvironmentVariableLabel is a typed label that defines environment variable
+// labels that are passed as request options during provisioning.
 type EnvironmentVariableLabel string
 
 const (
-	//
+	// EnvVariableContextLbl is the label that can be optionally set as one of the
+	// request option during VSM provisioning operations. Its value is used
+	// to set the context (/ prefix) against the environment variables for that
+	// particular request.
 	EnvVariableContextLbl EnvironmentVariableLabel = "env.mapi.openebs.io/env-var-ctx"
 )
 
-// EnvironmentVariableDefaults is a typed label to provide default values w.r.t
-// environment variable properties.
+// EnvironmentVariableDefaults is a typed label that defines the environment variable
+// defaults
 type EnvironmentVariableDefaults string
 
 const (
@@ -43,49 +34,81 @@ const (
 	EnvVariableContextDef EnvironmentVariableDefaults = "DEFAULT"
 )
 
-//
+// EnvironmentVariableKey is a typed label that define the environment variables
 type EnvironmentVariableKey string
 
 const (
 	// PVPProfileNameEnvVarKey is the environment variable key for persistent
 	// volume provisioner's profile name
+	//
+	// Usage:
+	// <CTX>_PVP_PROFILE_NAME = <some value>
 	PVPProfileNameEnvVarKey EnvironmentVariableKey = "_PVP_PROFILE_NAME"
 	// PVPNameEnvVarKey is the environment variable key for persistent volume
 	// provisioner's name
+	//
+	// Usage:
+	// <CTX>_PVP_NAME = <some value>
 	PVPNameEnvVarKey EnvironmentVariableKey = "_PVP_NAME"
 	// PVPControllerImageEnvVarKey is the environment variable key for persistent
 	// volume provisioner's controller image
+	//
+	// Usage:
+	// <CTX>_CONTROLLER_IMAGE = <some value>
 	PVPControllerImageEnvVarKey EnvironmentVariableKey = "_CONTROLLER_IMAGE"
-	// PVPControllerIPsEnvVarKey is the environment variable key for persistent
-	// volume provisioner's controller IPs
-	//PVPControllerIPsEnvVarKey EnvironmentVariableKey = "_CONTROLLER_IPS"
-	// PVPReplicaIPsEnvVarKey is the environment variable key for persistent
-	// volume provisioner's replica IPs
-	//PVPReplicaIPsEnvVarKey EnvironmentVariableKey = "_REPLICA_IPS"
 	// PVPPersistentPathEnvVarKey is the environment variable key for persistent
 	// volume provisioner's replica persistent path
+	//
+	// Usage:
+	// <CTX>_PERSISTENT_PATH = <some value>
 	PVPPersistentPathEnvVarKey EnvironmentVariableKey = "_PERSISTENT_PATH"
 	// PVPStorageSizeEnvVarKey is the environment variable key for persistent
 	// volume provisioner's replica size
+	//
+	// Usage:
+	// <CTX>_STORAGE_SIZE = <some value>
 	PVPStorageSizeEnvVarKey EnvironmentVariableKey = "_STORAGE_SIZE"
 	// PVPReplicaCountEnvVarKey is the environment variable key for persistent
 	// volume provisioner's replica count
+	//
+	// Usage:
+	// <CTX>_REPLICA_COUNT = <some value>
 	PVPReplicaCountEnvVarKey EnvironmentVariableKey = "_REPLICA_COUNT"
 	// PVPReplicaImageEnvVarKey is the environment variable key for persistent
 	// volume provisioner's replica image
+	//
+	// Usage:
+	// <CTX>_REPLICA_IMAGE = <some value>
 	PVPReplicaImageEnvVarKey EnvironmentVariableKey = "_REPLICA_IMAGE"
 	// PVPControllerCountEnvVarKey is the environment variable key for persistent
 	// volume provisioner's controller count
+	//
+	// Usage:
+	// <CTX>_CONTROLLER_COUNT = <some value>
 	PVPControllerCountEnvVarKey EnvironmentVariableKey = "_CONTROLLER_COUNT"
-
+	// PVPReplicaTopologyKeyEnvVarKey is the environment variable key for persistent
+	// volume provisioner's replica topology key
+	//
+	// Usage:
+	// <CTX>_REPLICA_TOPOLOGY_KEY = <some value>
+	PVPReplicaTopologyKeyEnvVarKey EnvironmentVariableKey = "_REPLICA_TOPOLOGY_KEY"
 	// OrchestratorNameEnvVarKey is the environment variable key for
 	// orchestration provider's name
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_NAME = <some value>
 	OrchestratorNameEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_NAME"
 	// OrchestratorRegionEnvVarKey is the environment variable key for orchestration
 	// provider's region
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_REGION = <some value>
 	OrchestratorRegionEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_REGION"
 	// OrchestratorDCEnvVarKey is the environment variable key for orchestration
 	// provider's datacenter
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_DC = <some value>
 	OrchestratorDCEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_DC"
 	// OrchestratorAddressEnvVarKey is the environment variable key for orchestration
 	// provider's address
@@ -93,24 +116,35 @@ const (
 	// Usage:
 	// <CTX>_<REGION>_<DC>_ORCHESTRATOR_ADDR = 10.20.1.1
 	OrchestratorAddressEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_ADDR"
-
 	// OrchestratorCNTypeEnvVarKey is the environment variable key for orchestration
 	// provider's network type
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_CN_TYPE = <some value>
 	OrchestratorCNTypeEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_CN_TYPE"
-	// OrchestratorCNSubnetEnvVarKey is the environment variable key for orchestration
-	// provider's network subnet
-	//OrchestratorCNSubnetEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_CN_SUBNET"
 	// OrchestratorCNInterfaceEnvVarKey is the environment variable key for orchestration
 	// provider's network interface
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_CN_INTERFACE = <some value>
 	OrchestratorCNInterfaceEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_CN_INTERFACE"
 	// OrchestratorCNAddrEnvVarKey is the environment variable key for orchestration
 	// provider's network address
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_CN_ADDRESS = <some value>
 	OrchestratorCNAddrEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_CN_ADDRESS"
 	// OrchestratorNSEnvVarKey is the environment variable key for orchestration
 	// provider's namespace
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_NS = <some value>
 	OrchestratorNSEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_NS"
 	// OrchestratorInClusterEnvVarKey is the environment variable key for orchestration
 	// provider's in-cluster flag
+	//
+	// Usage:
+	// <CTX>_ORCHESTRATOR_IN_CLUSTER = <some value>
 	OrchestratorInClusterEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_IN_CLUSTER"
 )
 
@@ -129,11 +163,9 @@ const (
 	OrchAddrLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/address"
 	// Label / Tag for an orchestrator namespace
 	OrchNSLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/ns"
-	// Label / Tag for an orchestrator network address in CIDR format
-	//OPNetworkAddrLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/network-cidr"
-	//OrchCNAddrLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/cn-addr"
-	// Label / Tag for an orchestrator's in-cluster flag
-	//OPInClusterLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/in-cluster"
+	// OrchInClusterLbl is the label for setting the in cluster flag. This is used
+	// during provisioning operations. It sets if the provisioning is meant to be
+	// within cluster or outside the cluster.
 	OrchInClusterLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/in-cluster"
 	// OrchCNTypeLbl is the Label / Tag for an orchestrator's networking type
 	OrchCNTypeLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/cn-type"
@@ -153,12 +185,8 @@ type OrchProviderDefaults string
 const (
 	// Default value for orchestrator's network address
 	// NOTE: Should be in valid CIDR notation
-	//OPNetworkAddrDef OrchProviderDefaults = "172.28.128.1/24"
 	OrchNetworkAddrDef OrchProviderDefaults = "172.28.128.1/24"
-	// OrchCNSubnetDef is the default value for orchestrator's network subnet
-	//OrchCNSubnetDef OrchProviderDefaults = "24"
 	// Default value for orchestrator's in-cluster flag
-	//OPInClusterDef OrchProviderDefaults = "true"
 	OrchInClusterDef OrchProviderDefaults = "true"
 	// Default value for orchestrator namespace
 	OrchNSDef OrchProviderDefaults = "default"
@@ -181,9 +209,6 @@ type VolumeProvisionerProfileLabel string
 const (
 	// Label / Tag for a persistent volume provisioner profile's name
 	PVPProfileNameLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/profile-name"
-	// Label / Tag for a persistent volume provisioner's persistence location
-	//PVPPersistenceLocationLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/persistence-location"
-
 	// Label / Tag for a persistent volume provisioner's replica support
 	PVPReqReplicaLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/req-replica"
 	// Label / Tag for a persistent volume provisioner's networking support
@@ -206,6 +231,71 @@ const (
 	PVPControllerIPsLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/controller-ips"
 	// Label / Tag for a persistent volume provisioner's persistent path
 	PVPPersistentPathLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/persistent-path"
+
+	// PVPReplicaTopologyKeyLbl is the label for a persistent volume provisioner's
+	// VSM replica topology key
+	PVPReplicaTopologyKeyLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/replica-topology-key"
+
+	// PVPNodeAffinityExpressionsLbl is the label to determine the node affinity
+	// of the replica(s).
+	//
+	// NOTE:
+	//    1. These are comma separated key value pairs, where each
+	// key & value is separated by an operator e.g. In, NotIn, Exists, DoesNotExist
+	//
+	//    2. The key & value should have been labeled against a node or group of
+	// nodes belonging to the K8s cluster
+	//
+	//    3. The replica count should match the number of of pairs provided
+	//
+	// Usage:
+	// For OpenEBS volume with 2 replicas:
+	// volumeprovisioner.mapi.openebs.io/node-affinity-expressions=
+	//    "<replica-identifier>=kubernetes.io/hostname:In:node1,
+	//     <another-replica-identifier>=kubernetes.io/hostname:In:node2"
+	//
+	// Usage:
+	// For OpenEBS volume with 3 replicas:
+	// volumeprovisioner.mapi.openebs.io/node-affinity-expressions=
+	//    "<replica-identifier>=kubernetes.io/hostname:In:node1,
+	//     <another-replica-identifier>=kubernetes.io/hostname:In:node2,
+	//     <yet-another-replica-identifier>=kubernetes.io/hostname:In:node3"
+	//
+	// Usage:
+	// For OpenEBS volume with 3 replicas:
+	// volumeprovisioner.mapi.openebs.io/node-affinity-expressions=
+	//    "<replica-identifier>=volumeprovisioner.mapi.openebs.io/replica-zone-1-ssd-1:In:zone-1-ssd-1,
+	//     <another-replica-identifier>=openebs.io/replica-zone-1-ssd-2:In:zone-1-ssd-2,
+	//     <yet-another-replica-identifier>=openebs.io/replica-zone-2-ssd-1:In:zone-2-ssd-1"
+	//
+	// Usage:
+	// For OpenEBS volume with 3 replicas:
+	// volumeprovisioner.mapi.openebs.io/node-affinity-expressions=
+	//    "<replica-identifier>=openebs.io/replica-zone-1-grp-1:In:zone-1-grp-1,
+	//     <another-replica-identifier>=openebs.io/replica-zone-1-grp-2:In:zone-1-grp-2,
+	//     <yet-another-replica-identifier>=openebs.io/replica-zone-2-grp-1:In:zone-2-grp-1"
+	//PVPNodeAffinityExpressionsLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/node-affinity-expressions"
+
+	// PVPNodeSelectorKeyLbl is the label to build the node affinity
+	// of the replica based on the key & the replica identifier
+	//
+	// NOTE:
+	//  PVPNodeAffinityExpressionsLbl is used here as key is a part of the expressions
+	//PVPNodeSelectorKeyLbl VolumeProvisionerProfileLabel = PVPNodeAffinityExpressionsLbl
+
+	// PVPNodeSelectorOpLbl is the label to build the node affinity
+	// of the replica based on the operator & the replica identifier
+	//
+	// NOTE:
+	//  PVPNodeAffinityExpressionsLbl is used here as operator is a part of the expressions
+	//PVPNodeSelectorOpLbl VolumeProvisionerProfileLabel = PVPNodeAffinityExpressionsLbl
+
+	// PVPNodeSelectorValueLbl is the label to build the node affinity
+	// of the replica based on the operator & the replica identifier
+	//
+	// NOTE:
+	//  PVPNodeAffinityExpressionsLbl is used here as value is a part of the expressions
+	//PVPNodeSelectorValueLbl VolumeProvisionerProfileLabel = PVPNodeAffinityExpressionsLbl
 )
 
 type MayaAPIServiceOutputLabel string
@@ -250,18 +340,20 @@ const (
 	PVPReplicaImageDef VolumeProvisionerDefaults = "openebs/jiva:0.3-RC2"
 	// Default value for persistent volume provisioner's networking support
 	PVPReqNetworkingDef VolumeProvisionerDefaults = "false"
-	// PVPControllerIPsDef is the default value for persistent volume provisioner's
-	// controller IP(s)
-	//PVPControllerIPsDef VolumeProvisionerDefaults = "10.0.0.1"
-	// PVPReplicaIPsDef is the default value for persistent volume provisioner's
-	// replica IP(s)
-	//PVPReplicaIPsDef VolumeProvisionerDefaults = "10.0.0.2, 10.0.0.3"
 	// PVPPersistentPathDef is the default value for persistent volume provisioner's
 	// replica persistent path
 	PVPPersistentPathDef VolumeProvisionerDefaults = "/var/openebs"
 	// PVPStorageSizeDef is the default value for persistent volume provisioner's
 	// replica size
 	PVPStorageSizeDef VolumeProvisionerDefaults = "1G"
+
+	// PVPNodeSelectorKeyDef is the default value for volume replica's node selector
+	// key
+	//PVPNodeSelectorKeyDef VolumeProvisionerDefaults = "kubernetes.io/hostname"
+
+	// PVPNodeSelectorOpDef is the default value for volume replica's node selector
+	// operator
+	//PVPNodeSelectorOpDef VolumeProvisionerDefaults = "In"
 )
 
 // NameLabel type will be used to identify various maya api service components
@@ -337,6 +429,9 @@ const (
 	// ControllerSelectorKeyEquals is used to filter controller when
 	// selector logic is used
 	ControllerSelectorKeyEquals GenericAnnotations = ControllerSelectorKey + "="
+
+	// ReplicaCountSelectorKey is used to filter replicas
+	//ReplicaCountSelectorKey GenericAnnotations = "openebs/replica-count"
 
 	// ReplicaSelectorKey is used to filter replicas
 	ReplicaSelectorKey GenericAnnotations = "openebs/replica"
@@ -467,14 +562,6 @@ const (
 	// JivaBackEndIPPrefixLbl is used to provide the label for VSM replica IP on
 	// Nomad
 	JivaBackEndIPPrefixLbl JivaDefaults = "JIVA_REP_IP_"
-
-	// JivaPersistentPathDef is used to set default value for
-	// persistent volume's persist path
-	//JivaPersistentPathDef JivaDefaults = "/var/openebs"
-
-	// JivaStorSizeDef is used to set default value for
-	// persistent volume's persist path
-	//JivaStorSizeDef JivaDefaults = "1G"
 )
 
 // These will be used to provide array based constants that are
@@ -514,4 +601,6 @@ const (
 	K8sPodVersion K8sAnnotations = "v1"
 	// K8sDeploymentVersion is used to state the k8s Deployment version
 	K8sDeploymentVersion K8sAnnotations = "extensions/v1beta1"
+	// K8sHostnameTopologyKey is used to specify the hostname as topology key
+	K8sHostnameTopologyKey K8sAnnotations = "kubernetes.io/hostname"
 )
