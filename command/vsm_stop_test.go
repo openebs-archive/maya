@@ -31,7 +31,7 @@ func TestVsmStopCommand_Fails(t *testing.T) {
 	if code := cmd.Run([]string{"-address=" + url, "nope"}); code != 1 {
 		t.Fatalf("expect exit 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "No VSM(s) with prefix or id") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "No Volume(s) with prefix or id") {
 		t.Fatalf("expect not found error, got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
@@ -40,7 +40,7 @@ func TestVsmStopCommand_Fails(t *testing.T) {
 	if code := cmd.Run([]string{"-address=nope", "nope"}); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error deregistering VSM") {
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Error deregistering Volume") {
 		t.Fatalf("expected failed query error, got: %s", out)
 	}
 }

@@ -44,8 +44,8 @@ type Annotations struct {
 	ReplicaStatus    string `json:"vsm.openebs.io/replica-status"`
 	VolSize          string `json:"vsm.openebs.io/volume-size"`
 	ControllerIP     string `json:"vsm.openebs.io/controller-ips"`
-	VolAddr          string `json:"vsm.openebs.io/replica-ips"`
-	Replicas         string `json:"vsm.openebs.io/replica-ips"`
+	//	VolAddr          string `json:"vsm.openebs.io/replica-ips"`
+	Replicas string `json:"vsm.openebs.io/replica-ips"`
 }
 
 const (
