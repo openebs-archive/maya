@@ -12,6 +12,6 @@ go build -o $TEMPDIR/maya || exit 1
 # Run the tests
 echo "--> Running tests"
 GOBIN="`which go`"
-sudo -E PATH=$TEMPDIR:$PATH  -E GOPATH=$GOPATH \
+PATH=$TEMPDIR:$PATH \
     $GOBIN test ${GOTEST_FLAGS:--cover -timeout=900s} $($GOBIN list ./... | grep -v /vendor/)
 
