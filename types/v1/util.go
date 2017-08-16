@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/openebs/mayaserver/lib/nethelper"
+	"github.com/openebs/maya/pkg/nethelper"
 )
 
 // GetPVPNodeSelectorKey gets the not nil value of volume provisioner volume
