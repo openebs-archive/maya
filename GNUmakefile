@@ -33,6 +33,7 @@ initialize: bootstrap
 deps: 
 	rm -rf vendor
 	@glide up
+	glide install -v
 
 clean: 
 	rm -rf pkg
@@ -94,4 +95,8 @@ image:
 install: bin/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-.PHONY: all bin cov integ test vet test-nodep
+# Use this to build only the maya-agent. 
+maya-agent:
+	GOOS=linux go build ./cmd/maya-agent
+
+.PHONY: all bin cov integ test vet maya-agent test-nodep

@@ -11,6 +11,7 @@ import:
 - package: github.com/hashicorp/raft
   version: 3a6f3bdfe4fc69e300c6d122b1a92051af6f0b95
 - package: github.com/hashicorp/nomad
+  version: v0.5.5
   subpackages:
   - api
   - jobspec
