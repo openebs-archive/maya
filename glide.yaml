@@ -3,10 +3,14 @@ ignore:
 - github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
 - github.com/emicklei/go-restful/swagger
 import:
+- package: github.com/spf13/pflag
+  version: 1.0.0
+- package: github.com/spf13/cobra
 - package: github.com/dustin/go-humanize
 - package: github.com/hashicorp/go-getter
+- package: github.com/hashicorp/raft
+  version: 3a6f3bdfe4fc69e300c6d122b1a92051af6f0b95
 - package: github.com/hashicorp/nomad
-  version: v0.5.5
   subpackages:
   - api
   - jobspec
@@ -31,7 +35,7 @@ import:
   subpackages:
   - codec
 - package: k8s.io/client-go
-  version: v3.0.0
+  version: 4.0.0-beta.0
 - package: k8s.io/api
 - package: github.com/onsi/ginkgo
   version: v1.4.0

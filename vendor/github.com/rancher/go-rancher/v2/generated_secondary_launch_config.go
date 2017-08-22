@@ -37,6 +37,10 @@ type SecondaryLaunchConfig struct {
 
 	CpuQuota int64 `json:"cpuQuota,omitempty" yaml:"cpu_quota,omitempty"`
 
+	CpuRealtimePeriod int64 `json:"cpuRealtimePeriod,omitempty" yaml:"cpu_realtime_period,omitempty"`
+
+	CpuRealtimeRuntime int64 `json:"cpuRealtimeRuntime,omitempty" yaml:"cpu_realtime_runtime,omitempty"`
+
 	CpuSet string `json:"cpuSet,omitempty" yaml:"cpu_set,omitempty"`
 
 	CpuSetMems string `json:"cpuSetMems,omitempty" yaml:"cpu_set_mems,omitempty"`
@@ -106,8 +110,6 @@ type SecondaryLaunchConfig struct {
 	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 
 	ImageUuid string `json:"imageUuid,omitempty" yaml:"image_uuid,omitempty"`
-
-	RunInit bool `json:"runInit,omitempty" yaml:"runInit,omitempty"`
 
 	InstanceLinks map[string]interface{} `json:"instanceLinks,omitempty" yaml:"instance_links,omitempty"`
 
@@ -193,6 +195,8 @@ type SecondaryLaunchConfig struct {
 
 	RequestedIpAddress string `json:"requestedIpAddress,omitempty" yaml:"requested_ip_address,omitempty"`
 
+	RunInit bool `json:"runInit,omitempty" yaml:"run_init,omitempty"`
+
 	Secrets []SecretReference `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 
 	SecurityOpt []string `json:"securityOpt,omitempty" yaml:"security_opt,omitempty"`
@@ -214,6 +218,8 @@ type SecondaryLaunchConfig struct {
 	StdinOpen bool `json:"stdinOpen,omitempty" yaml:"stdin_open,omitempty"`
 
 	StopSignal string `json:"stopSignal,omitempty" yaml:"stop_signal,omitempty"`
+
+	StopTimeout int64 `json:"stopTimeout,omitempty" yaml:"stop_timeout,omitempty"`
 
 	StorageOpt map[string]interface{} `json:"storageOpt,omitempty" yaml:"storage_opt,omitempty"`
 

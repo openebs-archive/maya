@@ -67,12 +67,14 @@ func NewSystemBackend(core *Core) *SystemBackend {
 				"config/auditing/*",
 				"plugins/catalog/*",
 				"revoke-prefix/*",
+				"revoke-force/*",
 				"leases/revoke-prefix/*",
 				"leases/revoke-force/*",
 				"leases/lookup/*",
 			},
 
 			Unauthenticated: []string{
+				"wrapping/lookup",
 				"wrapping/pubkey",
 				"replication/status",
 			},
@@ -112,6 +114,10 @@ func NewSystemBackend(core *Core) *SystemBackend {
 					"allowed_origins": &framework.FieldSchema{
 						Type:        framework.TypeCommaStringSlice,
 						Description: "A comma-separated string or array of strings indicating origins that may make cross-origin requests.",
+					},
+					"allowed_headers": &framework.FieldSchema{
+						Type:        framework.TypeCommaStringSlice,
+						Description: "A comma-separated string or array of strings indicating headers that are allowed on cross-origin requests.",
 					},
 				},
 
@@ -724,6 +730,7 @@ func NewSystemBackend(core *Core) *SystemBackend {
 
 				Callbacks: map[logical.Operation]framework.OperationFunc{
 					logical.UpdateOperation: b.handleWrappingLookup,
+					logical.ReadOperation:   b.handleWrappingLookup,
 				},
 
 				HelpSynopsis:    strings.TrimSpace(sysHelp["wraplookup"][0]),
@@ -799,6 +806,10 @@ func NewSystemBackend(core *Core) *SystemBackend {
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["plugin-catalog_name"][0]),
 					},
+					"sha256": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-catalog_sha-256"][0]),
+					},
 					"sha_256": &framework.FieldSchema{
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["plugin-catalog_sha-256"][0]),
@@ -817,6 +828,27 @@ func NewSystemBackend(core *Core) *SystemBackend {
 
 				HelpSynopsis:    strings.TrimSpace(sysHelp["plugin-catalog"][0]),
 				HelpDescription: strings.TrimSpace(sysHelp["plugin-catalog"][1]),
+			},
+			&framework.Path{
+				Pattern: "plugins/reload/backend$",
+
+				Fields: map[string]*framework.FieldSchema{
+					"plugin": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["plugin-backend-reload-plugin"][0]),
+					},
+					"mounts": &framework.FieldSchema{
+						Type:        framework.TypeCommaStringSlice,
+						Description: strings.TrimSpace(sysHelp["plugin-backend-reload-mounts"][0]),
+					},
+				},
+
+				Callbacks: map[logical.Operation]framework.OperationFunc{
+					logical.UpdateOperation: b.handlePluginReloadUpdate,
+				},
+
+				HelpSynopsis:    strings.TrimSpace(sysHelp["plugin-reload"][0]),
+				HelpDescription: strings.TrimSpace(sysHelp["plugin-reload"][1]),
 			},
 		},
 	}
@@ -851,6 +883,7 @@ func (b *SystemBackend) handleCORSRead(req *logical.Request, d *framework.FieldD
 	if enabled {
 		corsConf.RLock()
 		resp.Data["allowed_origins"] = corsConf.AllowedOrigins
+		resp.Data["allowed_headers"] = corsConf.AllowedHeaders
 		corsConf.RUnlock()
 	}
 
@@ -861,12 +894,13 @@ func (b *SystemBackend) handleCORSRead(req *logical.Request, d *framework.FieldD
 // cross-origin requests and sets the CORS enabled flag to true
 func (b *SystemBackend) handleCORSUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	origins := d.Get("allowed_origins").([]string)
+	headers := d.Get("allowed_headers").([]string)
 
-	return nil, b.Core.corsConfig.Enable(origins)
+	return nil, b.Core.corsConfig.Enable(origins, headers)
 }
 
-// handleCORSDelete clears the allowed origins and sets the CORS enabled flag
-// to false
+// handleCORSDelete sets the CORS enabled flag to false and clears the list of
+// allowed origins & headers.
 func (b *SystemBackend) handleCORSDelete(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	return nil, b.Core.corsConfig.Disable()
 }
@@ -909,9 +943,12 @@ func (b *SystemBackend) handlePluginCatalogUpdate(req *logical.Request, d *frame
 		return logical.ErrorResponse("missing plugin name"), nil
 	}
 
-	sha256 := d.Get("sha_256").(string)
+	sha256 := d.Get("sha256").(string)
 	if sha256 == "" {
-		return logical.ErrorResponse("missing SHA-256 value"), nil
+		sha256 = d.Get("sha_256").(string)
+		if sha256 == "" {
+			return logical.ErrorResponse("missing SHA-256 value"), nil
+		}
 	}
 
 	command := d.Get("command").(string)
@@ -961,6 +998,32 @@ func (b *SystemBackend) handlePluginCatalogDelete(req *logical.Request, d *frame
 	err := b.Core.pluginCatalog.Delete(pluginName)
 	if err != nil {
 		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (b *SystemBackend) handlePluginReloadUpdate(req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+	pluginName := d.Get("plugin").(string)
+	pluginMounts := d.Get("mounts").([]string)
+
+	if pluginName != "" && len(pluginMounts) > 0 {
+		return logical.ErrorResponse("plugin and mounts cannot be set at the same time"), nil
+	}
+	if pluginName == "" && len(pluginMounts) == 0 {
+		return logical.ErrorResponse("plugin or mounts must be provided"), nil
+	}
+
+	if pluginName != "" {
+		err := b.Core.reloadMatchingPlugin(pluginName)
+		if err != nil {
+			return nil, err
+		}
+	} else if len(pluginMounts) > 0 {
+		err := b.Core.reloadMatchingPluginMounts(pluginMounts)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
@@ -1783,7 +1846,7 @@ func (b *SystemBackend) handlePolicyRead(
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"name":  name,
+			"name":  policy.Name,
 			"rules": policy.Raw,
 		},
 	}, nil
@@ -1810,8 +1873,9 @@ func (b *SystemBackend) handlePolicySet(
 		return handleError(err)
 	}
 
-	// Override the name
-	parse.Name = strings.ToLower(name)
+	if name != "" {
+		parse.Name = name
+	}
 
 	// Update the policy
 	if err := b.Core.policyStore.SetPolicy(parse); err != nil {
@@ -2170,10 +2234,14 @@ func (b *SystemBackend) handleWrappingUnwrap(
 
 func (b *SystemBackend) handleWrappingLookup(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	// This ordering of lookups has been validated already in the wrapping
+	// validation func, we're just doing this for a safety check
 	token := data.Get("token").(string)
-
 	if token == "" {
-		return logical.ErrorResponse("missing \"token\" value in input"), logical.ErrInvalidRequest
+		token = req.ClientToken
+		if token == "" {
+			return logical.ErrorResponse("missing \"token\" value in input"), logical.ErrInvalidRequest
+		}
 	}
 
 	cubbyReq := &logical.Request{
@@ -2197,6 +2265,7 @@ func (b *SystemBackend) handleWrappingLookup(
 
 	creationTTLRaw := cubbyResp.Data["creation_ttl"]
 	creationTime := cubbyResp.Data["creation_time"]
+	creationPath := cubbyResp.Data["creation_path"]
 
 	resp := &logical.Response{
 		Data: map[string]interface{}{},
@@ -2211,6 +2280,9 @@ func (b *SystemBackend) handleWrappingLookup(
 	if creationTime != nil {
 		// This was JSON marshaled so it's already a string in RFC3339 format
 		resp.Data["creation_time"] = cubbyResp.Data["creation_time"]
+	}
+	if creationPath != nil {
+		resp.Data["creation_path"] = cubbyResp.Data["creation_path"]
 	}
 
 	return resp, nil
@@ -2271,6 +2343,13 @@ func (b *SystemBackend) handleWrappingRewrap(
 		return nil, fmt.Errorf("error reading creation_ttl value from wrapping information: %v", err)
 	}
 
+	// Get creation_path to return as the response later
+	creationPathRaw := cubbyResp.Data["creation_path"]
+	if creationPathRaw == nil {
+		return nil, fmt.Errorf("creation_path value in wrapping information was nil")
+	}
+	creationPath := creationPathRaw.(string)
+
 	// Fetch the original response and return it as the data for the new response
 	cubbyReq = &logical.Request{
 		Operation:   logical.ReadOperation,
@@ -2303,7 +2382,8 @@ func (b *SystemBackend) handleWrappingRewrap(
 			"response": response,
 		},
 		WrapInfo: &wrapping.ResponseWrapInfo{
-			TTL: time.Duration(creationTTL),
+			TTL:          time.Duration(creationTTL),
+			CreationPath: creationPath,
 		},
 	}, nil
 }
@@ -2828,6 +2908,21 @@ This path responds to the following HTTP methods.
 
 	"leases-list-prefix": {
 		`The path to list leases under. Example: "aws/creds/deploy"`,
+		"",
+	},
+	"plugin-reload": {
+		"Reload mounts that use a particular backend plugin.",
+		`Reload mounts that use a particular backend plugin. Either the plugin name
+		or the desired plugin backend mounts must be provided, but not both. In the
+		case that the plugin name is provided, all mounted paths that use that plugin
+		backend will be reloaded.`,
+	},
+	"plugin-backend-reload-plugin": {
+		`The name of the plugin to reload, as registered in the plugin catalog.`,
+		"",
+	},
+	"plugin-backend-reload-mounts": {
+		`The mount paths of the plugin backends to reload.`,
 		"",
 	},
 }

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -10,6 +11,11 @@ import (
 
 	"github.com/posener/complete"
 )
+
+// envComplete is the env var that the complete library sets to specify
+// it should be calculating an auto-completion. This isn't exported so we
+// reproduce it here. If it changes then we'll have to update this.
+const envComplete = "COMP_LINE"
 
 func TestCLIIsHelp(t *testing.T) {
 	testCases := []struct {
@@ -750,6 +756,86 @@ func TestCLIRun_autocompleteNoName(t *testing.T) {
 	}
 }
 
+// Test that running `-autocomplete-install<tab>` doesn't execute
+// the autocomplete installer. This was a bug reported by Nomad.
+func TestCLIRun_autocompleteInstallTab(t *testing.T) {
+	command := new(MockCommand)
+	installer := new(mockAutocompleteInstaller)
+	cli := &CLI{
+		Args: []string{
+			"-" + defaultAutocompleteInstall,
+		},
+		Commands: map[string]CommandFactory{
+			"foo": func() (Command, error) {
+				return command, nil
+			},
+		},
+
+		Name:                  "foo",
+		Autocomplete:          true,
+		autocompleteInstaller: installer,
+	}
+
+	defer testAutocomplete(t, "foo -autocomplete-install")()
+
+	exitCode, err := cli.Run()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if exitCode != 0 {
+		t.Fatalf("bad: %d", exitCode)
+	}
+
+	if command.RunCalled {
+		t.Fatalf("run should not be called")
+	}
+
+	if installer.InstallCalled {
+		t.Fatal("should not call install")
+	}
+}
+
+func TestCLIRun_autocompleteHelpTab(t *testing.T) {
+	buf := new(bytes.Buffer)
+	command := new(MockCommand)
+	installer := new(mockAutocompleteInstaller)
+	cli := &CLI{
+		Args: []string{
+			"-help",
+		},
+		Commands: map[string]CommandFactory{
+			"foo": func() (Command, error) {
+				return command, nil
+			},
+		},
+
+		Name:                  "foo",
+		HelpWriter:            buf,
+		Autocomplete:          true,
+		autocompleteInstaller: installer,
+	}
+
+	defer testAutocomplete(t, "foo -help")()
+
+	exitCode, err := cli.Run()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if exitCode != 0 {
+		t.Fatalf("bad: %d", exitCode)
+	}
+
+	if command.RunCalled {
+		t.Fatalf("run should not be called")
+	}
+
+	if buf.String() != "" {
+		t.Fatal("help should be empty")
+	}
+}
+
 func TestCLIAutocomplete_root(t *testing.T) {
 	cases := []struct {
 		Completed []string
@@ -824,6 +910,50 @@ func TestCLIAutocomplete_rootGlobalFlags(t *testing.T) {
 				},
 
 				Autocomplete: true,
+				AutocompleteGlobalFlags: map[string]complete.Predictor{
+					"-tubes": complete.PredictNothing,
+				},
+			}
+
+			// Initialize
+			cli.init()
+
+			// Test the autocompleter
+			actual := cli.autocomplete.Command.Predict(complete.Args{
+				Completed: tc.Completed,
+				Last:      tc.Last,
+			})
+			sort.Strings(actual)
+
+			if !reflect.DeepEqual(actual, tc.Expected) {
+				t.Fatalf("bad prediction: %#v", actual)
+			}
+		})
+	}
+}
+
+func TestCLIAutocomplete_rootDisableDefaultFlags(t *testing.T) {
+	cases := []struct {
+		Completed []string
+		Last      string
+		Expected  []string
+	}{
+		{nil, "-v", nil},
+		{nil, "-h", nil},
+		{nil, "-auto", nil},
+		{nil, "-t", []string{"-tubes"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Last, func(t *testing.T) {
+			command := new(MockCommand)
+			cli := &CLI{
+				Commands: map[string]CommandFactory{
+					"foo": func() (Command, error) { return command, nil },
+				},
+
+				Autocomplete:               true,
+				AutocompleteNoDefaultFlags: true,
 				AutocompleteGlobalFlags: map[string]complete.Predictor{
 					"-tubes": complete.PredictNothing,
 				},
@@ -945,6 +1075,38 @@ func TestCLISubcommand_nested(t *testing.T) {
 			t.Errorf("Expected %#v, got %#v. Args: %#v",
 				testCase.subcommand, result, testCase.args)
 		}
+	}
+}
+
+// testAutocomplete sets up the environment to behave like a <tab> was
+// pressed in a shell to autocomplete a command.
+func testAutocomplete(t *testing.T, input string) func() {
+	// This env var is used to trigger autocomplete
+	os.Setenv(envComplete, input)
+
+	// Change stdout/stderr since the autocompleter writes directly to them.
+	oldStdout := os.Stdout
+	oldStderr := os.Stderr
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	os.Stdout = w
+	os.Stderr = w
+
+	return func() {
+		// Reset our env
+		os.Unsetenv(envComplete)
+
+		// Reset stdout, stderr
+		os.Stdout = oldStdout
+		os.Stderr = oldStderr
+
+		// Close our pipe
+		r.Close()
+		w.Close()
 	}
 }
 

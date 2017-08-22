@@ -1,6 +1,6 @@
 id: The unique identifier for the <resource>
 created: The date of when the <resource> was created.
-state: The current state of the <resource>. The options are <list of options>.
+state: The current state of the <resource>. The options are `<list of options>`.
 transitioning: Whether or not the <resource> is in a transitioning state
 transitioningMessage: The message to show while in a transitioning state
 transitioningProgress: The percentage remaining in the transitioning process of the <resource>

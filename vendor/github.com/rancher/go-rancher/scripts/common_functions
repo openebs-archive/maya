@@ -16,20 +16,21 @@ gen() {
     echo Saved schemas.json
 
     echo -n Generating go code...
-    rm -rf ../v2/generated_* || true
+    rm -rf ../output/generated_* || true
     go run generator.go
     echo " Done"
 
-    gofmt -w ../v2/generated_*
+    gofmt -w ../output/generated_*
     echo Formatted code
 
-    if [ -n "$2" ]; then
-        rm -rf ../$2
-        mv ../v2 ../$2
-        if [ -n "$3" ]; then
-            sed -i -e 's/package client/package '$2'/g' ../$2/*.go
-        fi
-        git checkout ../v2
+    if [ -n "$3" ]; then
+        rm -rf ../$2/generated_*
+        mv ../output/* ../$2
+        sed -i -e 's/package client/package '$2'/g' ../$2/*.go
+    else
+        mv ../output/* ../$2
     fi
+
+    rm -rf ../output
     rm schemas.json
 }

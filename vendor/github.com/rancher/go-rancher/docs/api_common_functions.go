@@ -21,6 +21,7 @@ var (
 	blacklistCollectionResources map[string]bool
 	blacklistActions             map[string]bool
 	blacklistResourceActions     map[string]bool
+	blacklistResourceFields      map[string]bool
 	resourceDescriptionsMap      map[string]string
 )
 
@@ -79,6 +80,15 @@ func readBlacklistFiles() error {
 		return err
 	}
 
+	//Create list of blacklist fields specific to a resource (list of fields to be hidden for certain resources)
+	composeBytes, err = ioutil.ReadFile(apiInputDir + "/schema-check//blacklist_resource_fields.yml")
+	if err != nil {
+		return err
+	}
+	if err = yaml.Unmarshal(composeBytes, &blacklistResourceFields); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -88,8 +98,16 @@ func isBlacklistCollection(resourceName string) bool {
 	}
 	return false
 }
+
 func isBlacklistAction(resourceName string, actionName string) bool {
 	if blacklistActions[actionName] || blacklistResourceActions[resourceName+"-"+actionName] {
+		return true
+	}
+	return false
+}
+
+func isBlacklistField(resourceName string, fieldName string) bool {
+	if blacklistResourceFields[resourceName+"-"+fieldName] {
 		return true
 	}
 	return false

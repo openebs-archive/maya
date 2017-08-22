@@ -37,6 +37,10 @@ type Container struct {
 
 	CpuQuota int64 `json:"cpuQuota,omitempty" yaml:"cpu_quota,omitempty"`
 
+	CpuRealtimePeriod int64 `json:"cpuRealtimePeriod,omitempty" yaml:"cpu_realtime_period,omitempty"`
+
+	CpuRealtimeRuntime int64 `json:"cpuRealtimeRuntime,omitempty" yaml:"cpu_realtime_runtime,omitempty"`
+
 	CpuSet string `json:"cpuSet,omitempty" yaml:"cpu_set,omitempty"`
 
 	CpuSetMems string `json:"cpuSetMems,omitempty" yaml:"cpu_set_mems,omitempty"`
@@ -102,8 +106,6 @@ type Container struct {
 	Hostname string `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 
 	ImageUuid string `json:"imageUuid,omitempty" yaml:"image_uuid,omitempty"`
-
-	RunInit bool `json:"runInit,omitempty" yaml:"runInit,omitempty"`
 
 	InstanceLinks map[string]interface{} `json:"instanceLinks,omitempty" yaml:"instance_links,omitempty"`
 
@@ -185,6 +187,8 @@ type Container struct {
 
 	RestartPolicy *RestartPolicy `json:"restartPolicy,omitempty" yaml:"restart_policy,omitempty"`
 
+	RunInit bool `json:"runInit,omitempty" yaml:"run_init,omitempty"`
+
 	Secrets []SecretReference `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 
 	SecurityOpt []string `json:"securityOpt,omitempty" yaml:"security_opt,omitempty"`
@@ -206,6 +210,8 @@ type Container struct {
 	StdinOpen bool `json:"stdinOpen,omitempty" yaml:"stdin_open,omitempty"`
 
 	StopSignal string `json:"stopSignal,omitempty" yaml:"stop_signal,omitempty"`
+
+	StopTimeout int64 `json:"stopTimeout,omitempty" yaml:"stop_timeout,omitempty"`
 
 	StorageOpt map[string]interface{} `json:"storageOpt,omitempty" yaml:"storage_opt,omitempty"`
 

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/agent/consul/structs"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -233,6 +233,34 @@ func TestAgent_Self_ACLDeny(t *testing.T) {
 	t.Run("read-only token", func(t *testing.T) {
 		ro := makeReadOnlyAgentACL(t, a.srv)
 		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/self?token=%s", ro), nil)
+		if _, err := a.srv.AgentSelf(nil, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+}
+
+func TestAgent_Metrics_ACLDeny(t *testing.T) {
+	t.Parallel()
+	a := NewTestAgent(t.Name(), TestACLConfig())
+	defer a.Shutdown()
+
+	t.Run("no token", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/metrics", nil)
+		if _, err := a.srv.AgentSelf(nil, req); !isPermissionDenied(err) {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	t.Run("agent master token", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/agent/metrics?token=towel", nil)
+		if _, err := a.srv.AgentSelf(nil, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
+	t.Run("read-only token", func(t *testing.T) {
+		ro := makeReadOnlyAgentACL(t, a.srv)
+		req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/agent/metrics?token=%s", ro), nil)
 		if _, err := a.srv.AgentSelf(nil, req); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1653,4 +1681,166 @@ func TestAgent_Monitor_ACLDeny(t *testing.T) {
 	// test to prove monitor works, which should be sufficient. The monitor
 	// logic is a little complex to set up so isn't worth repeating again
 	// here.
+}
+
+func TestAgent_Token(t *testing.T) {
+	t.Parallel()
+	cfg := TestACLConfig()
+	cfg.ACLToken = ""
+	cfg.ACLAgentToken = ""
+	cfg.ACLAgentMasterToken = ""
+	a := NewTestAgent(t.Name(), cfg)
+	defer a.Shutdown()
+
+	type tokens struct {
+		user, agent, master, repl string
+	}
+
+	resetTokens := func(got tokens) {
+		a.tokens.UpdateUserToken(got.user)
+		a.tokens.UpdateAgentToken(got.agent)
+		a.tokens.UpdateAgentMasterToken(got.master)
+		a.tokens.UpdateACLReplicationToken(got.repl)
+	}
+
+	body := func(token string) io.Reader {
+		return jsonReader(&api.AgentToken{Token: token})
+	}
+
+	badJSON := func() io.Reader {
+		return jsonReader(false)
+	}
+
+	tests := []struct {
+		name        string
+		method, url string
+		body        io.Reader
+		code        int
+		got, want   tokens
+	}{
+		{
+			name:   "bad method",
+			method: "GET",
+			url:    "acl_token",
+			code:   http.StatusMethodNotAllowed,
+		},
+		{
+			name:   "bad token name",
+			method: "PUT",
+			url:    "nope?token=root",
+			body:   body("X"),
+			code:   http.StatusNotFound,
+		},
+		{
+			name:   "bad JSON",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   badJSON(),
+			code:   http.StatusBadRequest,
+		},
+		{
+			name:   "set user",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   body("U"),
+			code:   http.StatusOK,
+			want:   tokens{user: "U", agent: "U"},
+		},
+		{
+			name:   "set agent",
+			method: "PUT",
+			url:    "acl_agent_token?token=root",
+			body:   body("A"),
+			code:   http.StatusOK,
+			got:    tokens{user: "U", agent: "U"},
+			want:   tokens{user: "U", agent: "A"},
+		},
+		{
+			name:   "set master",
+			method: "PUT",
+			url:    "acl_agent_master_token?token=root",
+			body:   body("M"),
+			code:   http.StatusOK,
+			want:   tokens{master: "M"},
+		},
+		{
+			name:   "set repl",
+			method: "PUT",
+			url:    "acl_replication_token?token=root",
+			body:   body("R"),
+			code:   http.StatusOK,
+			want:   tokens{repl: "R"},
+		},
+		{
+			name:   "clear user",
+			method: "PUT",
+			url:    "acl_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{user: "U"},
+		},
+		{
+			name:   "clear agent",
+			method: "PUT",
+			url:    "acl_agent_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{agent: "A"},
+		},
+		{
+			name:   "clear master",
+			method: "PUT",
+			url:    "acl_agent_master_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{master: "M"},
+		},
+		{
+			name:   "clear repl",
+			method: "PUT",
+			url:    "acl_replication_token?token=root",
+			body:   body(""),
+			code:   http.StatusOK,
+			got:    tokens{repl: "R"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetTokens(tt.got)
+			url := fmt.Sprintf("/v1/agent/token/%s", tt.url)
+			resp := httptest.NewRecorder()
+			req, _ := http.NewRequest(tt.method, url, tt.body)
+			if _, err := a.srv.AgentToken(resp, req); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if got, want := resp.Code, tt.code; got != want {
+				t.Fatalf("got %d want %d", got, want)
+			}
+			if got, want := a.tokens.UserToken(), tt.want.user; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+			if got, want := a.tokens.AgentToken(), tt.want.agent; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+			if tt.want.master != "" && !a.tokens.IsAgentMasterToken(tt.want.master) {
+				t.Fatalf("%q should be the master token", tt.want.master)
+			}
+			if got, want := a.tokens.ACLReplicationToken(), tt.want.repl; got != want {
+				t.Fatalf("got %q want %q", got, want)
+			}
+		})
+	}
+
+	// This one returns an error that is interpreted by the HTTP wrapper, so
+	// doesn't fit into our table above.
+	t.Run("permission denied", func(t *testing.T) {
+		resetTokens(tokens{})
+		req, _ := http.NewRequest("PUT", "/v1/agent/token/acl_token", body("X"))
+		if _, err := a.srv.AgentToken(nil, req); !isPermissionDenied(err) {
+			t.Fatalf("err: %v", err)
+		}
+		if got, want := a.tokens.UserToken(), ""; got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
 }

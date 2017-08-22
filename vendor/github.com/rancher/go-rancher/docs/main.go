@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	command  = flag.String("command", "", "generate-docs | generate-description | generate-collection-description")
-	version  = flag.String("version", "v1.0", "docs version")
-	language = flag.String("lang", "en", "docs language")
-	layout   = flag.String("layout", "rancher-default", "docs layout")
+	command    = flag.String("command", "", "generate-docs | generate-description | generate-collection-description")
+	version    = flag.String("version", "v1.0", "docs version")
+	apiVersion = flag.String("apiVersion", "v1.0", "api version")
+	language   = flag.String("lang", "en", "docs language")
+	layout     = flag.String("layout", "rancher-default", "docs layout")
 )
 
 func main() {

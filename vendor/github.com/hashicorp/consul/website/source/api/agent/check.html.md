@@ -120,6 +120,12 @@ The table below shows this endpoint's support for
   is expected. Certificate verification can be controlled using the
   `TLSSkipVerify`.
 
+- `Method` `(string: "")` - Specifies a different HTTP method to be used
+  for an `HTTP` check. When no value is specified, `GET` is used.
+
+- `Header` `(map[string][]string: {})` - Specifies a set of headers that should
+  be set for `HTTP` checks. Each header can have multiple values.
+
 - `TLSSkipVerify` `(bool: false)` - Specifies if the certificate for an HTTPS
   check should not be verified.
 
@@ -150,7 +156,9 @@ The table below shows this endpoint's support for
   "Script": "/usr/local/bin/check_mem.py",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
-  "HTTP": "http://example.com",
+  "HTTP": "https://example.com",
+  "Method": "POST",
+  "Header": {"x-foo":["bar", "baz"]},
   "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s",

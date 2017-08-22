@@ -35,6 +35,7 @@ func TestSystemBackend_RootPaths(t *testing.T) {
 		"config/auditing/*",
 		"plugins/catalog/*",
 		"revoke-prefix/*",
+		"revoke-force/*",
 		"leases/revoke-prefix/*",
 		"leases/revoke-force/*",
 		"leases/lookup/*",
@@ -55,6 +56,7 @@ func TestSystemConfigCORS(t *testing.T) {
 
 	req := logical.TestRequest(t, logical.UpdateOperation, "config/cors")
 	req.Data["allowed_origins"] = "http://www.example.com"
+	req.Data["allowed_headers"] = "X-Custom-Header"
 	_, err := b.HandleRequest(req)
 	if err != nil {
 		t.Fatal(err)
@@ -64,6 +66,7 @@ func TestSystemConfigCORS(t *testing.T) {
 		Data: map[string]interface{}{
 			"enabled":         true,
 			"allowed_origins": []string{"http://www.example.com"},
+			"allowed_headers": append(StdAllowedHeaders, "X-Custom-Header"),
 		},
 	}
 
@@ -1236,8 +1239,12 @@ func TestSystemBackend_policyCRUD(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if resp != nil {
-		t.Fatalf("err: expected nil response, got %#v", *resp)
+	exp = map[string]interface{}{
+		"name":  "foo",
+		"rules": rules,
+	}
+	if !reflect.DeepEqual(resp.Data, exp) {
+		t.Fatalf("got: %#v expect: %#v", resp.Data, exp)
 	}
 
 	// List the policies

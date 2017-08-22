@@ -38,7 +38,7 @@ func TestJSON(t *testing.T) {
 	}
 }
 
-func TestPartialJSONRead(t *testing.T) {
+func TestPartialJsonRead(t *testing.T) {
 	var buf bytes.Buffer
 	c := fakeNetConn{&buf, &buf}
 	wc := newConn(c, true, 1024, 1024)
@@ -87,7 +87,7 @@ func TestPartialJSONRead(t *testing.T) {
 	}
 
 	err = rc.ReadJSON(&v)
-	if _, ok := err.(*CloseError); !ok {
+	if err != io.EOF {
 		t.Error("final", err)
 	}
 }
