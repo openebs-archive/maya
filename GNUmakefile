@@ -36,9 +36,9 @@ deps:
 	glide install -v
 
 clean: 
-	rm -rf pkg
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
+	rm -rf ${GOPATH}/pkg/*
 
 release:
 	@$(MAKE) bin
