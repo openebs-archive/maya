@@ -86,7 +86,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-// Run the customization of the Tectonic assets
+// Run maya-agent
 func Run(cmd *cobra.Command, options *MayaAgentOptions) error {
 	glog.Infof("Starting maya-agent...")
 
