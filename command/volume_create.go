@@ -51,7 +51,7 @@ Usage: maya vsm-create [options] <path>
   Creates a new Openebs volume.
 
 VSM Create Options:
-  -name
+  -volname
     Name of the vsm
   -size
     Provisioning size of the vsm(default is 5G)
@@ -73,7 +73,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 
 	flags := c.Meta.FlagSet("volume create", FlagSetClient)
 	flags.Usage = func() { c.Meta.Ui.Output(c.Help()) }
-	flags.StringVar(&c.vsmname, "name", "", "")
+	flags.StringVar(&c.vsmname, "volname", "", "")
 	flags.StringVar(&c.size, "size", "5G", "")
 
 	if err := flags.Parse(args); err != nil {

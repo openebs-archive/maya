@@ -29,7 +29,7 @@ Usage: maya snapshot <subcommand> [options] [args]
 
   list a snapshot:
 
-      $ maya snapshot list -name <vsm-name>
+      $ maya snapshot list -volname <vsm-name>
   
   Remove a snapshot:
 

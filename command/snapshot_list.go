@@ -16,9 +16,9 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-Usage: maya snapshot list -name <vsm-name> 
+Usage: maya snapshot list -volname <volume-name> 
 	    
-  Command to list the snapshot of a Volume.
+  Command to list the snapshots of a Volume.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -30,10 +30,10 @@ func (c *SnapshotListCommand) Synopsis() string {
 
 func (c *SnapshotListCommand) Run(args []string) int {
 
-	flags := c.Meta.FlagSet("vsm-snapshot", FlagSetClient)
+	flags := c.Meta.FlagSet("volume snapshot", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.Name, "name", "", "")
+	flags.StringVar(&c.Name, "volname", "", "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1

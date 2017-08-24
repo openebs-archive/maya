@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
-	"github.com/rancher/go-rancher/client"
 )
 
 var (
@@ -25,17 +23,6 @@ type SnapshotCreateCommand struct {
 	Name   string
 	Sname  string
 	Labels map[string]string
-}
-type SnapshotInput struct {
-	client.Resource
-	Name        string            `json:"name"`
-	UserCreated bool              `json:"usercreated"`
-	Created     string            `json:"created"`
-	Labels      map[string]string `json:"labels"`
-}
-
-type SnapshotOutput struct {
-	client.Resource
 }
 
 // StringSlice is an opaque type for []string to satisfy flag.Value
@@ -60,8 +47,8 @@ func (f *StringSlice) Value() []string {
 // Help shows helpText for a particular CLI command
 func (c *SnapshotCreateCommand) Help() string {
 	helpText := `
-    Usage: maya snapshot create -volname <name> -snapname <snapshot-name>
-
+Usage: maya snapshot create -volname <name> -snapname <snapshot-name>
+  
   This command will create the snapshot of a given Volume.
 
 `

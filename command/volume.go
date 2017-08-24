@@ -25,15 +25,19 @@ Usage: maya volume <subcommand> [options] [args]
 
   Create a Volume:
 
-      $ maya volume create -name <vol> -size <size>
+      $ maya volume create -volname <vol> -size <size>
 
   list a Volume:
 
       $ maya volume list
   
-  Delete a snapshot:
+  Delete a Volume:
 
-     $ maya volume delete -name <vol>
+     $ maya volume delete -volname <vol>
+
+  Stats of Volume:
+
+     $ maya volume stats <volname>
 `
 	return strings.TrimSpace(helpText)
 }
