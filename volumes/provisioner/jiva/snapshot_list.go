@@ -1,58 +1,22 @@
-package command
+package jiva
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
+
+	"github.com/openebs/maya/command"
 )
 
-type SnapshotListCommand struct {
-	Meta
-	Name string
-}
-
-func (c *SnapshotListCommand) Help() string {
-	helpText := `
-Usage: maya snapshot list -volname <volume-name> 
-	    
-  Command to list the snapshots of a Volume.
-`
-	return strings.TrimSpace(helpText)
-}
-
-// Synopsis shows short information related to CLI command
-func (c *SnapshotListCommand) Synopsis() string {
-	return "List the created snapshots of a Volume"
-}
-
-func (c *SnapshotListCommand) Run(args []string) int {
-
-	flags := c.Meta.FlagSet("volume snapshot", FlagSetClient)
-	flags.Usage = func() { c.Ui.Output(c.Help()) }
-
-	flags.StringVar(&c.Name, "volname", "", "")
-
-	if err := flags.Parse(args); err != nil {
-		return 1
-	}
-
-	if err := ListSnapshot(c.Name); err != nil {
-		log.Fatalf("Error running list-snapshot command: %v", err)
-		return 1
-	}
-	return 0
-}
 func ListSnapshot(name string) error {
-
-	annotations, err := GetVolAnnotations(name)
+	annotations, err := command.GetVolumeSpec(name)
 	if err != nil || annotations == nil {
 
 		return err
 	}
-	controller, err := NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := command.NewControllerClient(annotations.ControllerIP + ":9501")
 
 	if err != nil {
 		return err
@@ -126,7 +90,7 @@ func ListSnapshot(name string) error {
 				i = i + 1
 				//	}
 			}
-			fmt.Println(formatList(out))
+			fmt.Println(command.FormatList(out))
 		}
 
 	}
@@ -143,7 +107,7 @@ func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 }
 
 func getChain(address string) ([]string, error) {
-	repClient, err := NewReplicaClient(address)
+	repClient, err := command.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +119,8 @@ func getChain(address string) ([]string, error) {
 
 	return r.Chain, err
 }
-func getData(address string) (map[string]DiskInfo, error) {
-	repClient, err := NewReplicaClient(address)
+func getData(address string) (map[string]command.DiskInfo, error) {
+	repClient, err := command.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}

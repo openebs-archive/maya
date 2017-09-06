@@ -53,15 +53,15 @@ type VsmStatsCommand struct {
 
 // ReplicaClient is Client structure
 type ReplicaClient struct {
-	address    string
-	syncAgent  string
-	host       string
+	Address    string
+	SyncAgent  string
+	Host       string
 	httpClient *http.Client
 }
 
 type ControllerClient struct {
-	address    string
-	host       string
+	Address    string
+	Host       string
 	httpClient *http.Client
 }
 
@@ -229,9 +229,9 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}
 
 	return &ReplicaClient{
-		host:       parts[0],
-		address:    address,
-		syncAgent:  syncAgent,
+		Host:       parts[0],
+		Address:    address,
+		SyncAgent:  syncAgent,
 		httpClient: client,
 	}, nil
 }
@@ -242,7 +242,7 @@ func GetStatus(address string, obj interface{}) (error, int) {
 	if err != nil {
 		return err, -1
 	}
-	url := replica.address + "/stats"
+	url := replica.Address + "/stats"
 	resp, err := replica.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
@@ -291,8 +291,8 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 	}
 
 	return &ControllerClient{
-		host:       parts[0],
-		address:    address,
+		Host:       parts[0],
+		Address:    address,
 		httpClient: client,
 	}, nil
 }
@@ -303,7 +303,7 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 	if err != nil {
 		return err, -1
 	}
-	url := controller.address + "/stats"
+	url := controller.Address + "/stats"
 	resp, err := controller.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {

@@ -122,3 +122,32 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 	}
 	return &annotations, nil
 }
+
+func GetVolumeSpec(volName string) (*Annotations, error) {
+	var volume Volume
+	var annotations Annotations
+
+	for key, value := range volume.Metadata.Annotations.(map[string]interface{}) {
+		switch key {
+		case "vsm.openebs.io/volume-size":
+			annotations.VolSize = value.(string)
+			//  case "fe.jiva.volume.openebs.io/ip":
+			//      annotations.VolAddr = value.(string)
+		case "vsm.openebs.io/iqn":
+			annotations.Iqn = value.(string)
+		case "vsm.openebs.io/replica-count":
+			annotations.ReplicaCount = value.(string)
+		case "vsm.openebs.io/cluster-ips":
+			annotations.ClusterIP = value.(string)
+		case "vsm.openebs.io/replica-ips":
+			annotations.Replicas = value.(string)
+		case "vsm.openebs.io/targetportals":
+			annotations.TargetPortal = value.(string)
+		case "vsm.openebs.io/controller-status":
+			annotations.ControllerStatus = value.(string)
+		case "vsm.openebs.io/controller-ips":
+			annotations.ControllerIP = value.(string)
+		}
+	}
+	return &annotations, nil
+}
