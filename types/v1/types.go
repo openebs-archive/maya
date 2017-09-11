@@ -360,6 +360,9 @@ type VolumeSnapshot struct {
 	// +optional
 	Spec VolumeSnapshotSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
+	// SnapshotName represents the name of the snapshot
+	SnapshotName string `json:"snapshotName" protobuf:"bytes,1,opt,name=snapshotName"`
+
 	// Status represents the latest observer state of the snapshot
 	// +optional
 	Status VolumeSnapshotStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
