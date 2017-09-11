@@ -137,7 +137,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	)
 	statusArray := make([]string, 6)
 
-	flags := c.Meta.FlagSet("vsm-stats", FlagSetClient)
+	flags := c.Meta.FlagSet("volume stats", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
 	flags.StringVar(&c.Json, "json", "", "")
 
