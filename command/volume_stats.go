@@ -153,6 +153,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	annotations, err := GetVolAnnotations(args[0])
 
 	if err != nil || annotations == nil {
+		fmt.Println(err)
 		return -1
 	}
 
@@ -283,8 +284,7 @@ func GetStatus(address string, obj interface{}) (error, int) {
 		return err, -1
 	}
 	defer resp.Body.Close()
-	rc := json.NewDecoder(resp.Body).Decode(obj)
-	return rc, 0
+	return json.NewDecoder(resp.Body).Decode(obj), 0
 }
 
 // NewControllerClient create the new replica client
