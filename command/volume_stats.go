@@ -23,7 +23,7 @@ type Status struct {
 }
 
 type VolumeStats struct {
-	Cl              client.Resource
+	Resource        client.Resource
 	RevisionCounter int64         `json:"RevisionCounter"`
 	ReplicaCounter  int64         `json:"ReplicaCounter"`
 	SCSIIOCount     map[int]int64 `json:"SCSIIOCount"`
