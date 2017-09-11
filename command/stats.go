@@ -53,13 +53,14 @@ const (
 )
 
 // getVolDetails gets response in json format of a volume from m-apiserver
-func getVolDetails(volName string, obj interface{}) error {
+func GetVolDetails(volName string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
 		err := errors.New("MAPI_ADDR environment variable not set")
 		fmt.Println(err)
 		return err
 	}
+
 	url := addr + "/latest/volumes/info/" + volName
 	client := &http.Client{
 		Timeout: timeout,
@@ -67,12 +68,16 @@ func getVolDetails(volName string, obj interface{}) error {
 	resp, err := client.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			fmt.Printf("VSM %s not found at M_API server\n", volName)
-			return err
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
+			return errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")
-			return err
+			return errors.New("Service Unavailable")
+		} else if resp.StatusCode == 404 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
+			return errors.New("Page Not Found")
 		}
+
 	} else {
 		fmt.Println("M_API server not reachable")
 		return err
@@ -83,7 +88,6 @@ func getVolDetails(volName string, obj interface{}) error {
 		return err
 	}
 	defer resp.Body.Close()
-
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
@@ -91,10 +95,10 @@ func getVolDetails(volName string, obj interface{}) error {
 func GetVolAnnotations(volName string) (*Annotations, error) {
 	var volume Volume
 	var annotations Annotations
-	err := getVolDetails(volName, &volume)
+	err := GetVolDetails(volName, &volume)
 	if err != nil || volume.Metadata.Annotations == nil {
 		if volume.Status.Reason == "pending" {
-			fmt.Println("VSM status Unknown to M_API server")
+			fmt.Println("VOLUME status Unknown to M_API server")
 		}
 		return nil, err
 	}
@@ -116,6 +120,8 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 			annotations.TargetPortal = value.(string)
 		case "vsm.openebs.io/controller-status":
 			annotations.ControllerStatus = value.(string)
+		case "vsm.openebs.io/replica-status":
+			annotations.ReplicaStatus = value.(string)
 		case "vsm.openebs.io/controller-ips":
 			annotations.ControllerIP = value.(string)
 		}
