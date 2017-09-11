@@ -17,7 +17,7 @@ import (
 )
 
 type Status struct {
-	Cl              client.Resource
+	Resource        client.Resource
 	ReplicaCounter  int64 `json:"replicacounter"`
 	RevisionCounter int64 `json:"revisioncounter"`
 }
@@ -158,7 +158,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 	}
 
 	if annotations.ControllerStatus != "Running" {
-		fmt.Printf("Volume not reachable")
+		fmt.Println("Volume not reachable")
 		return -1
 	}
 
