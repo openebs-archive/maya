@@ -10,7 +10,7 @@ import (
 	"github.com/openebs/maya/command"
 )
 
-func ListSnapshot(name string) error {
+func SnapshotList(name string) error {
 	annotations, err := command.GetVolumeSpec(name)
 	if err != nil || annotations == nil {
 

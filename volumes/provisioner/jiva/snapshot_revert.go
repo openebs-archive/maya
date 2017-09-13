@@ -6,7 +6,7 @@ import (
 	"github.com/openebs/maya/command"
 )
 
-func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error {
+func SnapshotRevert(volname string, snapshot string) error {
 
 	annotations, err := command.GetVolumeSpec(volname)
 	if err != nil || annotations == nil {
@@ -31,7 +31,7 @@ func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=revert"
-
+	var c ControllerClient
 	return c.post(url, RevertInput{
 		Name: snapshot,
 	}, nil)
