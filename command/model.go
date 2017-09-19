@@ -78,6 +78,18 @@ type RevertInput struct {
 	Name string `json:"name"`
 }
 
+type SnapshotInput struct {
+	client.Resource
+	Name        string            `json:"name"`
+	UserCreated bool              `json:"usercreated"`
+	Created     string            `json:"created"`
+	Labels      map[string]string `json:"labels"`
+}
+
+type SnapshotOutput struct {
+	client.Resource
+}
+
 func Filter(list []string, check func(string) bool) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {

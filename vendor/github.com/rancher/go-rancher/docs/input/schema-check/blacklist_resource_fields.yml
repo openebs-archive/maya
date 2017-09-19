@@ -1,0 +1,2 @@
+storageDriver-blockDevicePath: true
+storageDriver-volumeCapabilities: true

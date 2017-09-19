@@ -11,9 +11,8 @@ import (
 // backendPluginClient implements logical.Backend and is the
 // go-plugin client.
 type backendPluginClient struct {
-	broker       *plugin.MuxBroker
-	client       *rpc.Client
-	pluginClient *plugin.Client
+	broker *plugin.MuxBroker
+	client *rpc.Client
 
 	system logical.SystemView
 	logger log.Logger
@@ -84,10 +83,21 @@ type RegisterLicenseReply struct {
 }
 
 func (b *backendPluginClient) HandleRequest(req *logical.Request) (*logical.Response, error) {
+	// Do not send the storage, since go-plugin cannot serialize
+	// interfaces. The server will pick up the storage from the shim.
+	req.Storage = nil
 	args := &HandleRequestArgs{
 		Request: req,
 	}
 	var reply HandleRequestReply
+
+	if req.Connection != nil {
+		oldConnState := req.Connection.ConnState
+		req.Connection.ConnState = nil
+		defer func() {
+			req.Connection.ConnState = oldConnState
+		}()
+	}
 
 	err := b.client.Call("Plugin.HandleRequest", args, &reply)
 	if err != nil {
@@ -126,10 +136,21 @@ func (b *backendPluginClient) Logger() log.Logger {
 }
 
 func (b *backendPluginClient) HandleExistenceCheck(req *logical.Request) (bool, bool, error) {
+	// Do not send the storage, since go-plugin cannot serialize
+	// interfaces. The server will pick up the storage from the shim.
+	req.Storage = nil
 	args := &HandleExistenceCheckArgs{
 		Request: req,
 	}
 	var reply HandleExistenceCheckReply
+
+	if req.Connection != nil {
+		oldConnState := req.Connection.ConnState
+		req.Connection.ConnState = nil
+		defer func() {
+			req.Connection.ConnState = oldConnState
+		}()
+	}
 
 	err := b.client.Call("Plugin.HandleExistenceCheck", args, &reply)
 	if err != nil {

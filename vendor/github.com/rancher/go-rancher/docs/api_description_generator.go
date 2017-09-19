@@ -116,10 +116,14 @@ func generateDescriptionFile(emptyDesc bool, collectionOnly bool, showDesc bool,
 					var description string
 					if genericDesc, ok := genericDescMap[fieldName]; ok {
 						description = descRegexp.ReplaceAllString(genericDesc, resourceSchema.Id)
-						description = optionsRegexp.ReplaceAllString(description, "["+strings.Join(field.Options, ", ")+"]")
-					} /*else {
+						description = optionsRegexp.ReplaceAllString(description, strings.Join(field.Options, ", "))
+					} else {
+						//if enum, show list of options
+						if field.Type == "enum" {
+							description = "The options are " + strings.Join(field.Options, ", ") + "."
+						}
 						//description = "The " + fieldName + " for the " + schema.Id
-					}*/
+					}
 					resourceDescriptionsMap[resourceSchema.Id+"-resourceFields-"+fieldName] = description
 				}
 			}

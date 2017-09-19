@@ -10,6 +10,7 @@ externalHostEvent: true
 externalServiceEvent: true
 externalStoragePoolEvent: true
 externalVolumeEvent: true
+healthcheckInstanceHostMap: true
 image: true
 instance: true
 instanceLink: true
@@ -18,11 +19,12 @@ kubernetesService: true
 kubernetesStack: true
 label: true
 mount: true
-network: true
 password: true
 physicalHost: true
 port: true
 register: true
+serviceConsumeMap: true
+serviceExposeMap: true
 serviceEvent: true
 serviceProxy: true
 snapshot: true

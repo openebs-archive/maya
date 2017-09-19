@@ -8,19 +8,17 @@ package main
 import (
 	"errors"
 	"flag"
+	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net/http"
 	"time"
 	"unicode/utf8"
-
-	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize:    4096,
-	WriteBufferSize:   4096,
-	EnableCompression: true,
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -85,7 +83,7 @@ func echoCopyFull(w http.ResponseWriter, r *http.Request) {
 
 // echoReadAll echoes messages from the client by reading the entire message
 // with ioutil.ReadAll.
-func echoReadAll(w http.ResponseWriter, r *http.Request, writeMessage, writePrepared bool) {
+func echoReadAll(w http.ResponseWriter, r *http.Request, writeMessage bool) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Upgrade:", err)
@@ -109,21 +107,9 @@ func echoReadAll(w http.ResponseWriter, r *http.Request, writeMessage, writePrep
 			}
 		}
 		if writeMessage {
-			if !writePrepared {
-				err = conn.WriteMessage(mt, b)
-				if err != nil {
-					log.Println("WriteMessage:", err)
-				}
-			} else {
-				pm, err := websocket.NewPreparedMessage(mt, b)
-				if err != nil {
-					log.Println("NewPreparedMessage:", err)
-					return
-				}
-				err = conn.WritePreparedMessage(pm)
-				if err != nil {
-					log.Println("WritePreparedMessage:", err)
-				}
+			err = conn.WriteMessage(mt, b)
+			if err != nil {
+				log.Println("WriteMessage:", err)
 			}
 		} else {
 			w, err := conn.NextWriter(mt)
@@ -144,15 +130,11 @@ func echoReadAll(w http.ResponseWriter, r *http.Request, writeMessage, writePrep
 }
 
 func echoReadAllWriter(w http.ResponseWriter, r *http.Request) {
-	echoReadAll(w, r, false, false)
+	echoReadAll(w, r, false)
 }
 
 func echoReadAllWriteMessage(w http.ResponseWriter, r *http.Request) {
-	echoReadAll(w, r, true, false)
-}
-
-func echoReadAllWritePreparedMessage(w http.ResponseWriter, r *http.Request) {
-	echoReadAll(w, r, true, true)
+	echoReadAll(w, r, true)
 }
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +159,6 @@ func main() {
 	http.HandleFunc("/f", echoCopyFull)
 	http.HandleFunc("/r", echoReadAllWriter)
 	http.HandleFunc("/m", echoReadAllWriteMessage)
-	http.HandleFunc("/p", echoReadAllWritePreparedMessage)
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)

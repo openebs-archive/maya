@@ -33,11 +33,12 @@ initialize: bootstrap
 deps: 
 	rm -rf vendor
 	@glide up
+	glide install -v
 
 clean: 
-	rm -rf pkg
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
+	rm -rf ${GOPATH}/pkg/*
 
 release:
 	@$(MAKE) bin
@@ -67,7 +68,7 @@ vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
 	fi
-	@echo "--> Running go tool vet $(VETARGS) ${GOFILES_NOVENDOR}"
+	@echo "--> Running go tool vet ..."
 	@go tool vet $(VETARGS) ${GOFILES_NOVENDOR} ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "[LINT] Vet found suspicious constructs. Please check the reported constructs"; \
@@ -94,4 +95,8 @@ image:
 install: bin/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-.PHONY: all bin cov integ test vet test-nodep
+# Use this to build only the maya-agent. 
+maya-agent:
+	GOOS=linux go build ./cmd/maya-agent
+
+.PHONY: all bin cov integ test vet maya-agent test-nodep

@@ -25,9 +25,7 @@ const (
 	responseWrappingPolicyName = "response-wrapping"
 
 	// responseWrappingPolicy is the policy that ensures cubbyhole response
-	// wrapping can always succeed. Note that sys/wrapping/lookup isn't
-	// contained here because using it would revoke the token anyways, so there
-	// isn't much point.
+	// wrapping can always succeed.
 	responseWrappingPolicy = `
 path "cubbyhole/response" {
     capabilities = ["create", "read"]
@@ -202,6 +200,8 @@ func (ps *PolicyStore) SetPolicy(p *Policy) error {
 	if p.Name == "" {
 		return fmt.Errorf("policy name missing")
 	}
+	// Policies are normalized to lower-case
+	p.Name = strings.ToLower(strings.TrimSpace(p.Name))
 	if strutil.StrListContains(immutablePolicies, p.Name) {
 		return fmt.Errorf("cannot update %s policy", p.Name)
 	}
@@ -232,12 +232,16 @@ func (ps *PolicyStore) setPolicyInternal(p *Policy) error {
 // GetPolicy is used to fetch the named policy
 func (ps *PolicyStore) GetPolicy(name string) (*Policy, error) {
 	defer metrics.MeasureSince([]string{"policy", "get_policy"}, time.Now())
+
 	if ps.lru != nil {
 		// Check for cached policy
 		if raw, ok := ps.lru.Get(name); ok {
 			return raw.(*Policy), nil
 		}
 	}
+
+	// Policies are normalized to lower-case
+	name = strings.ToLower(strings.TrimSpace(name))
 
 	// Special case the root policy
 	if name == "root" {
@@ -322,6 +326,9 @@ func (ps *PolicyStore) ListPolicies() ([]string, error) {
 // DeletePolicy is used to delete the named policy
 func (ps *PolicyStore) DeletePolicy(name string) error {
 	defer metrics.MeasureSince([]string{"policy", "delete_policy"}, time.Now())
+
+	// Policies are normalized to lower-case
+	name = strings.ToLower(strings.TrimSpace(name))
 	if strutil.StrListContains(immutablePolicies, name) {
 		return fmt.Errorf("cannot delete %s policy", name)
 	}

@@ -38,17 +38,21 @@ func Backend() *backend {
 	var b backend
 	b.Backend = &framework.Backend{
 		Help: "",
-		Paths: []*framework.Path{
-			pathTesting(&b),
-			pathInternal(&b),
-		},
+		Paths: framework.PathAppend(
+			errorPaths(&b),
+			kvPaths(&b),
+			[]*framework.Path{
+				pathInternal(&b),
+			},
+		),
 		PathsSpecial: &logical.Paths{
 			Unauthenticated: []string{
 				"special",
 			},
 		},
-		Secrets:    []*framework.Secret{},
-		Invalidate: b.invalidate,
+		Secrets:     []*framework.Secret{},
+		Invalidate:  b.invalidate,
+		BackendType: logical.TypeLogical,
 	}
 	b.internal = "bar"
 	return &b

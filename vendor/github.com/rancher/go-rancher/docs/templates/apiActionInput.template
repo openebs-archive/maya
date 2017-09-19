@@ -3,6 +3,9 @@ title: API
 layout: {{.layout}}
 version: {{.version}}
 lang: {{.language}}
+apiVersion: {{.apiVersion}}
+redirect_from:
+  - /rancher/{{.version}}/zh/api/{{.apiVersion}}/api-resources/{{.schemaId}}/
 ---
 
 ## {{.schemaId}}

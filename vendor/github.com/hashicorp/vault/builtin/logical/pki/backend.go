@@ -39,15 +39,20 @@ func Backend() *backend {
 				"crl",
 				"certs/",
 			},
+
+			Root: []string{
+				"root",
+			},
 		},
 
 		Paths: []*framework.Path{
 			pathListRoles(&b),
 			pathRoles(&b),
 			pathGenerateRoot(&b),
+			pathSignIntermediate(&b),
+			pathDeleteRoot(&b),
 			pathGenerateIntermediate(&b),
 			pathSetSignedIntermediate(&b),
-			pathSignIntermediate(&b),
 			pathConfigCA(&b),
 			pathConfigCRL(&b),
 			pathConfigURLs(&b),
@@ -68,6 +73,8 @@ func Backend() *backend {
 		Secrets: []*framework.Secret{
 			secretCerts(&b),
 		},
+
+		BackendType: logical.TypeLogical,
 	}
 
 	b.crlLifetime = time.Hour * 72

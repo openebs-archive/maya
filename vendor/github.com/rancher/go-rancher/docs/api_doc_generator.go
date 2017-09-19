@@ -35,7 +35,6 @@ type APIField struct {
 	client.Field
 	Description string `json:"description"`
 	TypeURL     string
-	TypeHTMLURL string
 }
 
 type APIAction struct {
@@ -68,7 +67,7 @@ func generateFiles() error {
 		return err
 	}
 
-	if err = setupDirectory(apiOutputDir + "/api-resources/"); err != nil {
+	if err = setupDirectory(apiOutputDir + "/" + *apiVersion + "/api-resources/"); err != nil {
 		return err
 	}
 
@@ -137,7 +136,7 @@ func readInputFiles() error {
 	}
 
 	//Read API Description for the Manual Descriptions
-	composeBytes, err = ioutil.ReadFile(apiInputDir + "/api_description_override.yml")
+	composeBytes, err = ioutil.ReadFile(apiInputDir + "/api_description_override_apiVersion.yml")
 	if err != nil {
 		return err
 	}
@@ -149,14 +148,13 @@ func readInputFiles() error {
 	}
 
 	for key, desc := range descriptionsOverrideMap {
-		if desc != "" {
-			descriptionsMap[key] = desc
-
-		}
+		//if desc != "" {
+		descriptionsMap[key] = desc
+		//}
 	}
 
 	//Read API Description Files for Collection Only Resources
-	composeBytes, err = ioutil.ReadFile(apiInputDir + "/collection_api_description.yml")
+	composeBytes, err = ioutil.ReadFile(apiInputDir + "/collection_api_description_apiVersion.yml")
 	if err != nil {
 		return err
 	}
@@ -167,9 +165,9 @@ func readInputFiles() error {
 	}
 
 	for key, desc := range collectionDescriptionsMap {
-		if desc != "" {
-			descriptionsMap[key] = desc
-		}
+		//if desc != "" {
+		descriptionsMap[key] = desc
+		//}
 	}
 	//read yaml file to load the common fields
 	composeBytes, err = ioutil.ReadFile(apiInputDir + "/common_fields.yml")
@@ -192,10 +190,11 @@ func readInputFiles() error {
 
 func generateCollectionResourcePages() error {
 	data := map[string]interface{}{
-		"schemaMap": schemaMap,
-		"version":   version,
-		"language":  language,
-		"layout":    layout,
+		"schemaMap":  schemaMap,
+		"version":    version,
+		"language":   language,
+		"layout":     layout,
+		"apiVersion": apiVersion,
 	}
 
 	funcMap := template.FuncMap{
@@ -204,7 +203,7 @@ func generateCollectionResourcePages() error {
 	}
 
 	//Create main page of collection resources
-	output, err := os.Create(path.Join(apiOutputDir, "api-resources", "index.md"))
+	output, err := os.Create(path.Join(apiOutputDir, *apiVersion, "api-resources", "index.md"))
 
 	if err != nil {
 		return err
@@ -222,7 +221,7 @@ func generateCollectionResourcePages() error {
 	}
 
 	//Create Navigation Side Bar file for docs site
-	apiNavBarName := "rancher-api-sidebar-" + *version + ".html"
+	apiNavBarName := "rancher-api-" + *apiVersion + "-sidebar-" + *version + ".html"
 	fmt.Println(apiNavBarName)
 
 	output, err = os.Create(path.Join(apiOutputDir, apiNavBarName))
@@ -243,7 +242,7 @@ func generateCollectionResourcePages() error {
 	}
 
 	//Create operation-check file to look at what collection resources have create/update/delete
-	output, err = os.Create(path.Join(apiOutputDir, "operations.yml"))
+	output, err = os.Create(path.Join(apiOutputDir, *apiVersion, "operations.yml"))
 
 	if err != nil {
 		return err
@@ -259,11 +258,11 @@ func generateCollectionResourcePages() error {
 }
 
 func generateIndividualDocs(schema client.Schema, showActions bool) error {
-	if err := setupDirectory(apiOutputDir + "/api-resources/" + schema.Id); err != nil {
+	if err := setupDirectory(apiOutputDir + "/" + *apiVersion + "/api-resources/" + schema.Id); err != nil {
 		return err
 	}
 
-	output, err := os.Create(path.Join(apiOutputDir, "api-resources", schema.Id, "index.md"))
+	output, err := os.Create(path.Join(apiOutputDir, *apiVersion, "api-resources", schema.Id, "index.md"))
 
 	if err != nil {
 		return err
@@ -280,6 +279,7 @@ func generateIndividualDocs(schema client.Schema, showActions bool) error {
 		"actionMap":           getActionMap(schema, false),
 		"pluralName":          schema.PluralName,
 		"version":             version,
+		"apiVersion":          apiVersion,
 		"language":            language,
 		"layout":              layout,
 	}
@@ -309,10 +309,9 @@ func getResourceDescription(resourceID string) string {
 	var desc string
 
 	if updatedDesc, inDescMap := descriptionsMap[resourceID+"-description"]; inDescMap {
-		if updatedDesc != "" {
-			return updatedDesc
-		}
+		return updatedDesc
 	}
+
 	return desc
 }
 
@@ -323,7 +322,10 @@ func getFieldMap(schema client.Schema, includeCommon bool, writeable bool, readO
 		// Skip any fields that are in the common field list
 		if !includeCommon && commonFieldsMap[fieldName] {
 			continue
+		} else if isBlacklistField(schema.Id, fieldName) {
+			continue
 		}
+
 		includeAPIField := false
 
 		if writeable {
@@ -346,14 +348,11 @@ func getFieldMap(schema client.Schema, includeCommon bool, writeable bool, readO
 				//put the link to the referenced field in the form
 				//[type]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/api-resources/type/)
 				apiField.TypeURL = getRefTypeURL(field.Type)
-				apiField.TypeHTMLURL = getRefTypeHTMLURL(field.Type)
 			} else if strings.HasSuffix(field.Type, "]") {
 				//Update other types that have references to other resources
 				apiField.TypeURL = getTypeURL(field.Type)
-				apiField.TypeHTMLURL = getTypeHTMLURL(field.Type)
 			} else if _, isResourceType := schemaMap[field.Type]; isResourceType {
-				apiField.TypeURL = "[" + field.Type + "]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/api-resources/" + field.Type + "/)"
-				apiField.TypeHTMLURL = `<a href="/rancher/v1.2/en/api/api-resources/` + field.Type + `/">` + field.Type + `</a>`
+				apiField.TypeURL = "[" + field.Type + "]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/{{page.apiVersion}}/api-resources/" + field.Type + "/)"
 			}
 
 			if field.Default == nil {
@@ -373,25 +372,23 @@ func getFieldDescription(resourceID string, fieldID string, field client.Field) 
 	//If it's a generic Description, translate the <resource> and <options>
 	if genDescription, isGenericDescription := genericDescriptionsMap[fieldID]; isGenericDescription {
 		desc = descRegexp.ReplaceAllString(genDescription, resourceID)
-		desc = optionsRegexp.ReplaceAllString(desc, "["+strings.Join(field.Options, ", ")+"]")
+		desc = optionsRegexp.ReplaceAllString(desc, strings.Join(field.Options, "`, `"))
 		return desc
 	}
 
 	if updatedDesc, inDescMap := descriptionsMap[resourceID+"-resourceField-"+fieldID]; inDescMap {
-		if updatedDesc != "" {
-			return updatedDesc
-		}
+		return updatedDesc
+		//if enum, show list of options
+	} else if field.Type == "enum" {
+		updatedDesc = "The options are `" + strings.Join(field.Options, "`, `") + "`."
+		return updatedDesc
 	}
 
 	return desc
 }
 
 func getRefTypeURL(input string) string {
-	return referenceRegexp.ReplaceAllString(input, "[$1]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/api-resources/$1/)")
-}
-
-func getRefTypeHTMLURL(input string) string {
-	return referenceRegexp.ReplaceAllString(input, `<a href="{{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/api-resources/$1/">$1</a>`)
+	return referenceRegexp.ReplaceAllString(input, "[$1]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/{{page.apiVersion}}/api-resources/$1/)")
 }
 
 func getTypeURL(typeInput string) string {
@@ -407,26 +404,7 @@ func getTypeURL(typeInput string) string {
 	}
 
 	if _, isResourceType := schemaMap[resourceName]; isResourceType {
-		urlResourceName := "[" + resourceName + "]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/api-resources/" + resourceName + "/)"
-		return strings.Replace(typeInput, resourceName, urlResourceName, -1)
-	}
-	return typeInput
-}
-
-func getTypeHTMLURL(typeInput string) string {
-	var stringSliceByOpenBracket []string
-	stringSliceByOpenBracket = strings.SplitAfter(typeInput, "[")
-
-	var resourceName string
-
-	for _, value := range stringSliceByOpenBracket {
-		if strings.Contains(value, "]") {
-			resourceName = strings.Replace(value, "]", "", -1)
-		}
-	}
-
-	if _, isResourceType := schemaMap[resourceName]; isResourceType {
-		urlResourceName := `<a href="/rancher/v1.2/en/api/api-resources/` + resourceName + `/">` + resourceName + `</a>`
+		urlResourceName := "[" + resourceName + "]({{site.baseurl}}/rancher/{{page.version}}/{{page.lang}}/api/{{page.apiVersion}}/api-resources/" + resourceName + "/)"
 		return strings.Replace(typeInput, resourceName, urlResourceName, -1)
 	}
 	return typeInput
@@ -444,7 +422,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 				apiAction.ResourceName = schema.Id
 				apiAction.Description = getActionDescription(schema.Id, "create")
 				apiAction.Method = postAPI
-				apiAction.ActionURL = "/v1/" + schema.PluralName
+				apiAction.ActionURL = "/" + *apiVersion + "/projects/${PROJECT_ID}/" + schema.PluralName
 				resourceFields := make(map[string]client.Field)
 
 				for fieldName, field := range schema.ResourceFields {
@@ -453,6 +431,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 					}
 				}
 
+				//apiAction.Input.InputJSON = generateExampleJSONFromFields(schema.Id, resourceFields)
 				apiAction.Input.InputJSON = generateJSONFromFields(resourceFields)
 				actionMap["Create"] = apiAction
 			}
@@ -465,7 +444,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 				apiAction.ResourceName = schema.Id
 				apiAction.Description = getActionDescription(schema.Id, "update")
 				apiAction.Method = "PUT"
-				apiAction.ActionURL = "/v1/" + schema.PluralName + "/${ID}"
+				apiAction.ActionURL = "/" + *apiVersion + "/projects/${PROJECT_ID}/" + schema.PluralName + "/${ID}"
 				resourceFields := make(map[string]client.Field)
 
 				for fieldName, field := range schema.ResourceFields {
@@ -474,6 +453,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 					}
 				}
 
+				//apiAction.Input.InputJSON = generateExampleJSONFromFields(schema.Id, resourceFields)
 				apiAction.Input.InputJSON = generateJSONFromFields(resourceFields)
 				actionMap["Update"] = apiAction
 			} else if method == "DELETE" {
@@ -482,7 +462,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 				apiAction.ResourceName = schema.Id
 				apiAction.Description = getActionDescription(schema.Id, "delete")
 				apiAction.Method = "DELETE"
-				apiAction.ActionURL = "/v1/" + schema.PluralName + "/${ID}"
+				apiAction.ActionURL = "/" + *apiVersion + "/projects/${PROJECT_ID}/" + schema.PluralName + "/${ID}"
 				actionMap["Delete"] = apiAction
 			}
 		}
@@ -501,7 +481,7 @@ func getActionMap(schema client.Schema, operationsActions bool) map[string]APIAc
 			apiAction.Input = getActionInput(schema.Id, action.Input, true)
 			apiAction.Output = action.Output
 			apiAction.Method = postAPI
-			apiAction.ActionURL = "/v1/" + schema.PluralName + "/${ID}?action=" + actionName
+			apiAction.ActionURL = "/" + *apiVersion + "/projects/${PROJECT_ID}/" + schema.PluralName + "/${ID}?action=" + actionName
 
 			actionMap[actionName] = apiAction
 		}
@@ -515,9 +495,7 @@ func getActionDescription(resourceID string, fieldID string) string {
 	//desc := "This is the " + fieldID + " action"
 
 	if updatedDesc, inDescMap := descriptionsMap[resourceID+"-resourceAction-"+fieldID]; inDescMap {
-		if updatedDesc != "" {
-			return updatedDesc
-		}
+		return updatedDesc
 	}
 
 	return desc
@@ -527,6 +505,7 @@ func getActionInput(schemaID string, actionName string, includeCommonFields bool
 	actionInput := ActionInput{}
 	actionInput.Name = actionName
 	actionInput.FieldMap = getFieldMap(schemaMap[actionName], includeCommonFields, true, true)
+	//actionInput.InputJSON = generateExampleJSONFromFields(schemaID, schemaMap[actionName].ResourceFields)
 	actionInput.InputJSON = generateJSONFromFields(schemaMap[actionName].ResourceFields)
 
 	return actionInput
@@ -560,7 +539,82 @@ func generateFieldTypeMapRequired(resourceFields map[string]client.Field) map[st
 		}
 	}
 	return fieldTypeJSONMap
-}*/
+}
+
+/*
+
+func generateExampleJSONFromFields(schemaID string, resourceFields map[string]client.Field) string {
+	j, err := json.MarshalIndent(generateExampleFieldTypeMap(schemaID, resourceFields), "", "\t")
+
+	if err != nil {
+		return err.Error()
+	}
+	return strings.Replace(string(j), "&#34;", "", -1)
+
+}
+func generateExampleFieldTypeMap(schemaID string, resourceFields map[string]client.Field) map[string]interface{} {
+	fieldTypeJSONMap := make(map[string]interface{})
+	for fieldName, field := range resourceFields {
+		fieldTypeJSONMap[fieldName] = generateExampleTypeValue(schemaID, fieldName, field)
+	}
+	return fieldTypeJSONMap
+}
+
+func generateExampleTypeValue(schemaID string, fieldName string, field client.Field) interface{} {
+	//get default value if available
+	if field.Default != nil {
+		return field.Default
+	}
+
+	if schemaID == "service" {
+		fmt.Println(schemaID)
+		//Read JSON Files for All Resources
+		composeBytes, err := ioutil.ReadFile(apiInputDir + "/" + schemaID + "JSONExample.yml")
+		if err != nil {
+			return err
+		}
+
+		var exampleValues map[string]string
+		if err = json.Unmarshal(composeBytes, exampleValues); err != nil {
+			return err
+		}
+
+		for k, v := range exampleValues {
+			fmt.Println(k + v)
+		}
+		if exampleValues[fieldName] != "" {
+			fmt.Println(exampleValues[fieldName])
+			return exampleValues[fieldName]
+		}
+	}
+
+	//basic types
+	switch field.Type {
+	case "string":
+		return "string"
+	case "int":
+		return 0
+	case "boolean":
+		return false
+	case "array[string]":
+		return [...]string{"string1", "...stringN"}
+	case "map[string]":
+		return map[string]string{"key": "value-pairs"}
+	case "map[json]":
+		return map[string]string{"key": "value-pairs"}
+	case "password":
+		return field.Type
+	}
+
+	//another resourceType
+	subSchema, ok := schemaMap[field.Type]
+	if ok {
+		return generateExampleTypeValue(schemaID, fieldName, subSchema.ResourceFields)
+	}
+
+	return field.Type
+}
+*/
 
 func generateTypeValue(field client.Field) interface{} {
 	//get default value if available

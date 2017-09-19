@@ -4,48 +4,46 @@
 
 package main
 
-// hub maintains the set of active clients and broadcasts messages to the
-// clients.
-type Hub struct {
-	// Registered clients.
-	clients map[*Client]bool
+// hub maintains the set of active connections and broadcasts messages to the
+// connections.
+type hub struct {
+	// Registered connections.
+	connections map[*connection]bool
 
-	// Inbound messages from the clients.
+	// Inbound messages from the connections.
 	broadcast chan []byte
 
-	// Register requests from the clients.
-	register chan *Client
+	// Register requests from the connections.
+	register chan *connection
 
-	// Unregister requests from clients.
-	unregister chan *Client
+	// Unregister requests from connections.
+	unregister chan *connection
 }
 
-func newHub() *Hub {
-	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
-	}
+var h = hub{
+	broadcast:   make(chan []byte),
+	register:    make(chan *connection),
+	unregister:  make(chan *connection),
+	connections: make(map[*connection]bool),
 }
 
-func (h *Hub) run() {
+func (h *hub) run() {
 	for {
 		select {
-		case client := <-h.register:
-			h.clients[client] = true
-		case client := <-h.unregister:
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
+		case c := <-h.register:
+			h.connections[c] = true
+		case c := <-h.unregister:
+			if _, ok := h.connections[c]; ok {
+				delete(h.connections, c)
+				close(c.send)
 			}
-		case message := <-h.broadcast:
-			for client := range h.clients {
+		case m := <-h.broadcast:
+			for c := range h.connections {
 				select {
-				case client.send <- message:
+				case c.send <- m:
 				default:
-					close(client.send)
-					delete(h.clients, client)
+					close(c.send)
+					delete(h.connections, c)
 				}
 			}
 		}

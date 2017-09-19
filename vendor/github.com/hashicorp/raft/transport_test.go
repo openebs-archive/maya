@@ -14,7 +14,7 @@ const (
 	numTestTransports
 )
 
-func NewTestTransport(ttype int, addr string) (string, LoopbackTransport) {
+func NewTestTransport(ttype int, addr ServerAddress) (ServerAddress, LoopbackTransport) {
 	switch ttype {
 	case TT_Inmem:
 		addr, lt := NewInmemTransport(addr)
@@ -189,7 +189,6 @@ func TestTransport_RequestVote(t *testing.T) {
 		}
 		resp := RequestVoteResponse{
 			Term:    100,
-			Peers:   []byte("blah"),
 			Granted: false,
 		}
 

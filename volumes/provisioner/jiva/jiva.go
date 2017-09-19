@@ -239,7 +239,7 @@ func (j *jivaStor) Add(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, err
 //
 // NOTE:
 //    This is a concrete implementation of volume.Remover interface
-func (j *jivaStor) Remove() error {
+func (j *jivaStor) Remove() (bool, error) {
 
 	// Delegate to the storage util
 	storOps, _ := j.jivaProUtil.StorageOps()

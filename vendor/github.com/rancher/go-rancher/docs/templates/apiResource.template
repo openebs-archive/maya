@@ -3,6 +3,9 @@ title: Rancher API - {{.schemaId}}
 layout: {{.layout}}
 version: {{.version}}
 lang: {{.language}}
+apiVersion: {{.apiVersion}}
+redirect_from:
+  - /rancher/{{.version}}/zh/api/{{.apiVersion}}/api-resources/{{.schemaId}}/
 ---
 
 ## {{.schemaId | capitalize}}
@@ -27,7 +30,7 @@ Field | Type   | Notes
 
 <br>
 
-Please read more about the [common resource fields]({{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/common/). These fields are read only and applicable to almost every resource. We have segregated them from the list above.{{end}}
+Please read more about the [common resource fields]({{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/{{"{{"}}page.apiVersion{{"}}"}}/common/). These fields are read only and applicable to almost every resource. We have segregated them from the list above.{{end}}
 {{if .operationMap }}
 ### Operations
 {::options parse_block_html="true" /}{{end}}
@@ -53,11 +56,12 @@ curl -u "${{"{"}}RANCHER_ACCESS_KEY{{"}"}}:${{"{"}}RANCHER_SECRET_KEY{{"}"}}" \
 {{$action.Description}}
 <br>
 <span class="input">
-<strong>Input:</strong>{{if ne $action.Input.Name "" }} <a href="{{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/api-resources/{{$action.Input.Name}}/">{{$action.Input.Name | capitalize}}</a></span>
+<strong>Input:</strong>{{if ne $action.Input.Name "" }} <a href="{{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/{{"{{"}}page.apiVersion{{"}}"}}/api-resources/{{$action.Input.Name}}/">{{$action.Input.Name | capitalize}}</a></span>
 {{if $action.Input.FieldMap}}
 Field | Type | Required | Default | Notes
 ---|---|---|---|---
-{{range $key, $value := $action.Input.FieldMap}}{{$key}} | {{$value.TypeURL}} | {{if $value.Required}}Yes{{else}}No{{end}} | {{$value.Default}} | {{$value.Description}}{{end}}<br>{{end}}{{else}}This action has no inputs</span>{{end}}
+{{range $key, $value := $action.Input.FieldMap}}{{$key}} | {{$value.TypeURL}} | {{if $value.Required}}Yes{{else}}No{{end}} | {{$value.Default}} | {{$value.Description}}
+{{end}}{{end}}{{else}}This action has no inputs</span>{{end}}
 
 <br>
 {% highlight json %}
@@ -67,7 +71,7 @@ curl -u "${{"{"}}RANCHER_ACCESS_KEY{{"}"}}:${{"{"}}RANCHER_SECRET_KEY{{"}"}}" \
 -d '{{$action.Input.InputJSON}}' {{end}}'http://${{"{"}}RANCHER_URL{{"}"}}:8080{{$action.ActionURL}}'
 {% endhighlight %}
 <br>
-{{if ne $action.Output "" }}<span class="output"><strong>Output:</strong> An updated copy of the <a href="{{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/api-resources/{{$action.Output}}/">{{$action.Output}}</a> resource</span>{{end}}
+{{if ne $action.Output "" }}<span class="output"><strong>Output:</strong> An updated copy of the <a href="{{"{{"}}site.baseurl{{"}}"}}/rancher/{{"{{"}}page.version{{"}}"}}/{{"{{"}}page.lang{{"}}"}}/api/{{"{{"}}page.apiVersion{{"}}"}}/api-resources/{{$action.Output}}/">{{$action.Output}}</a> resource</span>{{end}}
 </div></div>
 {{end}}
 {{end}}

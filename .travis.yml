@@ -9,7 +9,7 @@ go:
 install:
   - make bootstrap
 script:
-  - make deps test bin
+  - make test bin
   - ls -la bin/
   - ./buildscripts/test-cov.sh
 after_success:

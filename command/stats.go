@@ -44,8 +44,8 @@ type Annotations struct {
 	ReplicaStatus    string `json:"vsm.openebs.io/replica-status"`
 	VolSize          string `json:"vsm.openebs.io/volume-size"`
 	ControllerIP     string `json:"vsm.openebs.io/controller-ips"`
-	VolAddr          string `json:"vsm.openebs.io/replica-ips"`
-	Replicas         string `json:"vsm.openebs.io/replica-ips"`
+	//	VolAddr          string `json:"vsm.openebs.io/replica-ips"`
+	Replicas string `json:"vsm.openebs.io/replica-ips"`
 }
 
 const (
@@ -68,12 +68,16 @@ func GetVolDetails(volName string, obj interface{}) error {
 	resp, err := client.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			fmt.Printf("VSM %s not found at M_API server\n", volName)
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
 			return errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")
 			return errors.New("Service Unavailable")
+		} else if resp.StatusCode == 404 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
+			return errors.New("Page Not Found")
 		}
+
 	} else {
 		fmt.Println("M_API server not reachable")
 		return err
@@ -94,7 +98,7 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 	err := GetVolDetails(volName, &volume)
 	if err != nil || volume.Metadata.Annotations == nil {
 		if volume.Status.Reason == "pending" {
-			fmt.Println("VSM status Unknown to M_API server")
+			fmt.Println("VOLUME status Unknown to M_API server")
 		}
 		return nil, err
 	}
@@ -116,6 +120,8 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 			annotations.TargetPortal = value.(string)
 		case "vsm.openebs.io/controller-status":
 			annotations.ControllerStatus = value.(string)
+		case "vsm.openebs.io/replica-status":
+			annotations.ReplicaStatus = value.(string)
 		case "vsm.openebs.io/controller-ips":
 			annotations.ControllerIP = value.(string)
 		}
