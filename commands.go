@@ -46,6 +46,7 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				}, nil
 			},
 		*/
+
 		"volume": func() (cli.Command, error) {
 			return &command.VolumeCommand{}, nil
 		},
