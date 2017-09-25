@@ -24,6 +24,9 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 	}
 
 	return map[string]cli.CommandFactory{
+		//the following CLI commands are deprecated with latest implementation.
+		//In kubernetes environment, it is no longer required to setup
+		//openebs master and host.
 		/*
 			"setup-omm": func() (cli.Command, error) {
 				return &command.InstallMayaCommand{
