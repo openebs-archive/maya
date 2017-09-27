@@ -66,7 +66,7 @@ func (s *SnapshotDeleteCommand) DeleteSnapshot(volume string, snapshot string) e
 		return err
 	}
 
-	replicas, err := controller.ListReplicas(controller.address)
+	replicas, err := controller.ListReplicas(controller.Address)
 	if err != nil {
 		return err
 	}

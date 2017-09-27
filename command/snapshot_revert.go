@@ -64,12 +64,12 @@ func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error
 	}
 
 	//var c *ControllerClient
-	volume, err := GetVolume(controller.address)
+	volume, err := GetVolume(controller.Address)
 	if err != nil {
 		return err
 	}
 
-	url := controller.address + "/volumes/" + volume.Id + "?action=revert"
+	url := controller.Address + "/volumes/" + volume.Id + "?action=revert"
 
 	return c.post(url, RevertInput{
 		Name: snapshot,
