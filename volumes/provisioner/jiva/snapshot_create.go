@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/openebs/maya/command"
 )
 
-var (
+/*var (
 	MaximumVolumeNameSize = 64
 	parsePattern          = regexp.MustCompile(`(.*):(\d+)`)
-)
+)*/
 
+// Snapshot will create the snapshot of a given volume name 'volname' with name of
+// snapshot 'snapname'. If there is no name provided for snapshot, an auto genrated
+// string will be genrated for this.
 func Snapshot(volname string, snapname string, labels map[string]string) (string, error) {
 
 	annotations, err := command.GetVolumeSpec(volname)
@@ -41,8 +43,6 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
-
-	fmt.Println("Url is:", url)
 
 	input := command.SnapshotInput{
 		Name:   snapname,
@@ -74,7 +74,7 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 		url = c.Address + path
 
 	}
-	fmt.Println("Do url:", url)
+
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
 	if err != nil {
 		return err
@@ -98,21 +98,6 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 	return json.NewDecoder(httpResp.Body).Decode(resp)
 }
 
-/*func GetVolume(path string) (*Volumes, error) {
-	var volume VolumeCollection
-	var c ControllerClient
-
-	err := c.get(path+"/volumes", &volume)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(volume.Data) == 0 {
-		return nil, errors.New("No volume found")
-	}
-
-	return &volume.Data[0], nil
-}*/
 func (c *ControllerClient) get(path string, obj interface{}) error {
 	//	resp, err := http.Get(c.address + path)
 	resp, err := http.Get(path)
@@ -124,15 +109,3 @@ func (c *ControllerClient) get(path string, obj interface{}) error {
 
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
-
-/*
-func lookupStringSlice(name string, set *flag.FlagSet) []string {
-	f := set.Lookup(name)
-	if f != nil {
-		return (f.Value.(*StringSlice)).Value()
-
-	}
-
-	return nil
-}
-*/

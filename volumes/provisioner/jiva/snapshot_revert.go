@@ -6,6 +6,10 @@ import (
 	"github.com/openebs/maya/command"
 )
 
+// SnapshotRevert will be responsible for reverting to a
+// particular snapshot. If there is more then one snapshot has been
+// created for a volume, then user can revert to any specific created
+// snaphot for that particular volume.
 func SnapshotRevert(volname string, snapshot string) error {
 
 	annotations, err := command.GetVolumeSpec(volname)

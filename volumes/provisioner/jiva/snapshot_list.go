@@ -10,6 +10,7 @@ import (
 	"github.com/openebs/maya/command"
 )
 
+// SnapshotList to list the created snapshot for given volume
 func SnapshotList(name string) error {
 	annotations, err := command.GetVolumeSpec(name)
 	if err != nil || annotations == nil {
@@ -92,12 +93,13 @@ func SnapshotList(name string) error {
 			}
 			fmt.Println(command.FormatList(out))
 		}
-
 	}
-
 	return nil
 }
 
+// ListReplicas to get the details of all the existing replicas
+// which contains address and mode of those replicas (RW/R/W) as well as
+// resource information.
 func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 	var resp ReplicaCollection
 
@@ -106,6 +108,7 @@ func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 	return resp.Data, err
 }
 
+// getChain contains the linked info related to replicas
 func getChain(address string) ([]string, error) {
 	repClient, err := command.NewReplicaClient(address)
 	if err != nil {
@@ -119,6 +122,8 @@ func getChain(address string) ([]string, error) {
 
 	return r.Chain, err
 }
+
+// getData to get the linked Diskinfo related to replicas
 func getData(address string) (map[string]command.DiskInfo, error) {
 	repClient, err := command.NewReplicaClient(address)
 	if err != nil {
@@ -134,6 +139,8 @@ func getData(address string) (map[string]command.DiskInfo, error) {
 
 }
 
+// GetReplica will return the InfoReplica struct which contains info
+// related to specific replica
 func (c *ReplicaClient) GetReplica() (InfoReplica, error) {
 	var replica InfoReplica
 

@@ -3,8 +3,6 @@ package jiva
 import (
 	"net/http"
 	"strings"
-
-	"github.com/rancher/go-rancher/client"
 )
 
 const (
@@ -22,25 +20,25 @@ const (
 )
 
 type Volumes struct {
-	client.Resource
+	Resource
 	Name         string `json:"name"`
 	ReplicaCount int    `json:"replicaCount"`
 	Endpoint     string `json:"endpoint"`
 }
 
 type VolumeCollection struct {
-	client.Collection
+	Collection
 	Data []Volumes `json:"data"`
 }
 
 type Replica struct {
-	client.Resource
+	Resource
 	Address string `json:"address"`
 	Mode    string `json:"mode"`
 }
 
 type InfoReplica struct {
-	client.Resource
+	Resource
 	Dirty           bool                `json:"dirty"`
 	Rebuilding      bool                `json:"rebuilding"`
 	Head            string              `json:"head"`
@@ -65,12 +63,12 @@ type DiskInfo struct {
 }
 
 type ReplicaCollection struct {
-	client.Collection
+	Collection
 	Data []Replica `json:"data"`
 }
 
 type MarkDiskAsRemovedInput struct {
-	client.Resource
+	Resource
 	Name string `json:"name"`
 }
 
@@ -89,12 +87,14 @@ type ControllerClient struct {
 }
 
 type RevertInput struct {
-	client.Resource
+	Resource
 	Name string `json:"name"`
 }
 
+// SnapshotInput is Input struct to create
+// snapshot
 type SnapshotInput struct {
-	client.Resource
+	Resource
 	Name        string            `json:"name"`
 	UserCreated bool              `json:"usercreated"`
 	Created     string            `json:"created"`
@@ -102,7 +102,47 @@ type SnapshotInput struct {
 }
 
 type SnapshotOutput struct {
-	client.Resource
+	Resource
+}
+
+type Resource struct {
+	Id      string            `json:"id,omitempty"`
+	Type    string            `json:"type,omitempty"`
+	Links   map[string]string `json:"links"`
+	Actions map[string]string `json:"actions"`
+}
+
+type Collection struct {
+	Type         string                 `json:"type,omitempty"`
+	ResourceType string                 `json:"resourceType,omitempty"`
+	Links        map[string]string      `json:"links,omitempty"`
+	CreateTypes  map[string]string      `json:"createTypes,omitempty"`
+	Actions      map[string]string      `json:"actions,omitempty"`
+	SortLinks    map[string]string      `json:"sortLinks,omitempty"`
+	Pagination   *Pagination            `json:"pagination,omitempty"`
+	Sort         *Sort                  `json:"sort,omitempty"`
+	Filters      map[string][]Condition `json:"filters,omitempty"`
+}
+
+type Sort struct {
+	Name    string `json:"name,omitempty"`
+	Order   string `json:"order,omitempty"`
+	Reverse string `json:"reverse,omitempty"`
+}
+
+type Condition struct {
+	Modifier string      `json:"modifier,omitempty"`
+	Value    interface{} `json:"value,omitempty"`
+}
+
+type Pagination struct {
+	Marker   string `json:"marker,omitempty"`
+	First    string `json:"first,omitempty"`
+	Previous string `json:"previous,omitempty"`
+	Next     string `json:"next,omitempty"`
+	Limit    *int64 `json:"limit,omitempty"`
+	Total    *int64 `json:"total,omitempty"`
+	Partial  bool   `json:"partial,omitempty"`
 }
 
 func Filter(list []string, check func(string) bool) []string {
@@ -123,6 +163,7 @@ func Contains(arr []string, val string) bool {
 	}
 	return false
 }
+
 func IsHeadDisk(diskName string) bool {
 	if strings.HasPrefix(diskName, headPrefix) && strings.HasSuffix(diskName, headSuffix) {
 		return true
