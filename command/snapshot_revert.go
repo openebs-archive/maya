@@ -17,14 +17,14 @@ func (s *SnapshotRevertCommand) Help() string {
 	helpText := `
 Usage: maya snapshot revert -volname <vol-name> -snapname <snapshot> 
 							           
-Command to revert snapshot of a Volume.
+Command to revert to specific snapshot of a Volume.
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (s *SnapshotRevertCommand) Synopsis() string {
-	return "Revert a snapshot of Volume"
+	return "Revert to specific snapshot of Volume"
 }
 func (s *SnapshotRevertCommand) Run(args []string) int {
 	flags := s.Meta.FlagSet("vsm-snapshot", FlagSetClient)

@@ -67,11 +67,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
-		"volume update": func() (cli.Command, error) {
+		/*	"volume update": func() (cli.Command, error) {
 			return &command.VsmUpdateCommand{
 				M: meta,
 			}, nil
-		},
+		},*/
 		"volume delete": func() (cli.Command, error) {
 			return &command.VsmStopCommand{
 				Meta: meta,
@@ -92,11 +92,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 			}, nil
 		},
 
-		"snapshot rm": func() (cli.Command, error) {
+		/*	"snapshot rm": func() (cli.Command, error) {
 			return &command.SnapshotDeleteCommand{
 				Meta: meta,
 			}, nil
-		},
+		},*/
 		"snapshot revert": func() (cli.Command, error) {
 			return &command.SnapshotRevertCommand{
 				Meta: meta,

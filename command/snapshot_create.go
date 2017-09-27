@@ -133,8 +133,6 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
 
-	fmt.Println("Url is:", url)
-
 	input := SnapshotInput{
 		Name:   snapname,
 		Labels: labels,
@@ -164,7 +162,7 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 		url = c.Address + path
 
 	}
-	fmt.Println("Do url:", url)
+
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
 	if err != nil {
 		return err

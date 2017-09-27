@@ -27,7 +27,7 @@ Usage: maya volume <subcommand> [options] [args]
 
       $ maya volume create -volname <vol> -size <size>
 
-  list a Volume:
+  list of Volumes:
 
       $ maya volume list
   
