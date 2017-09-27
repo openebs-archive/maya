@@ -30,7 +30,7 @@ General Options:
 }
 
 func (c *VsmUpdateCommand) Synopsis() string {
-	return "Updates the vsm with the provided specs"
+	return "Updates the volume with the provided specs"
 }
 
 func (c *VsmUpdateCommand) Run(args []string) int {

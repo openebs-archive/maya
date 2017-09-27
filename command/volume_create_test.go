@@ -70,8 +70,8 @@ func TestVsmCreateCommand_Negative(t *testing.T) {
 	if code := cmd.Run([]string{"some", "bad", "args"}); code != 1 {
 		t.Fatalf("expected exit code 1, got: %d", code)
 	}
-	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Usage: maya vsm") {
-		t.Fatalf("expected 'usage: maya vsm', got: %s", out)
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Usage: maya volume create") {
+		t.Fatalf("expected 'usage: maya volume create', got: %s", out)
 	}
 	ui.ErrorWriter.Reset()
 
