@@ -74,27 +74,6 @@ type VolumeProvisionerProfile interface {
 
 	// Get the storage backend i.e. a persistent path of the replica.
 	PersistentPath() (string, error)
-
-	// NodeSelectorKey returns the key used for node selection. Node selection
-	// is useful for placement purposes. This key is based on the replica identifier.
-	//
-	// NOTE:
-	//    Key, Op & Value are used together to select a Node for placement
-	//NodeSelectorKey(repIdentifier string) string
-
-	// NodeSelectorOp returns the operator used for node selection. Node selection
-	// is useful for placement purposes. This operator is based on the replica identifier.
-	//
-	// NOTE:
-	//    Key, Op & Value are used together to select a Node for placement
-	//NodeSelectorOp(repIdentifier string) string
-
-	// NodeSelectorValue returns the value used for node selection. Node selection
-	// is useful for placement purposes. This value is based on the replica identifier.
-	//
-	// NOTE:
-	//    Key, Op & Value are used together to select a Node for placement
-	//NodeSelectorValue(repIdentifier string) string
 }
 
 // GetVolProProfileByPVC will return a specific persistent volume provisioner
@@ -251,30 +230,6 @@ func (pp *pvcVolProProfile) VSMName() (string, error) {
 	return vsmName, nil
 }
 
-// NodeSelectorKey gets the key used for node selection.
-//
-// Refer the interface level documentation for more details
-//func (pp *pvcVolProProfile) NodeSelectorKey(repIdentifier string) string {
-// Extract the node selector key from pvc
-//return v1.GetPVPNodeSelectorKey(repIdentifier, pp.pvc.Labels)
-//}
-
-// NodeSelectorOp gets the operator used for node selection.
-//
-// Refer the interface level documentation for more details
-//func (pp *pvcVolProProfile) NodeSelectorOp(repIdentifier string) string {
-// Extract the node selector operator from pvc
-//return v1.GetPVPNodeSelectorOp(repIdentifier, pp.pvc.Labels)
-//}
-
-// NodeSelectorValue gets the value used for node selection.
-//
-// Refer the interface level documentation for more details
-//func (pp *pvcVolProProfile) NodeSelectorValue(repIdentifier string) string {
-// Extract the node selector value from pvc
-//return v1.GetPVPNodeSelectorValue(repIdentifier, pp.pvc.Labels)
-//}
-
 // ControllerCount gets the number of controllers
 func (pp *pvcVolProProfile) ControllerCount() (int, error) {
 	// Extract the controller count from pvc
@@ -358,30 +313,6 @@ func (pp *pvcVolProProfile) ReplicaIPs() ([]string, error) {
 
 	return rIPsArr, nil
 }
-
-// TODO
-// Return int32 ??
-//
-// PersistentPathCount gets the count of persistent paths required for all the
-// replicas.
-//
-// NOTE:
-//    The count needs to be equal to no of replicas.
-//func (pp *pvcVolProProfile) PersistentPathCount() (int, error) {
-// Extract the persistent path count from pvc
-//pCount := v1.PersistentPathCount(pp.pvc.Labels)
-
-//if pCount == "" {
-//	return v1.DefaultPersistentPathCount(), nil
-//}
-
-//iPCount, err := strconv.Atoi(pCount)
-//if err != nil {
-//	return 0, err
-//}
-
-//return iPCount, nil
-//}
 
 // PersistentPath gets the persistent path based on the replica position.
 //
