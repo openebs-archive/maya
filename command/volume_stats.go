@@ -122,7 +122,7 @@ Volume Stats Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmStatsCommand) Synopsis() string {
-	return "Display VSM Stats"
+	return "Display Runtime stats of a Volume"
 }
 
 // Run holds the flag values for CLI subcommands

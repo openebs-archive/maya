@@ -46,15 +46,15 @@ type VsmSpec struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmCreateCommand) Help() string {
 	helpText := `
-Usage: maya vsm-create [options] <path>
+Usage: maya volume create [options] <path>
 
   Creates a new Openebs volume.
 
 VSM Create Options:
   -volname
-    Name of the vsm
+    Name of the volume
   -size
-    Provisioning size of the vsm(default is 5G)
+    Provisioning size of the volume(default is 5G)
 `
 	return strings.TrimSpace(helpText)
 }

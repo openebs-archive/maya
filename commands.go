@@ -72,7 +72,7 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				M: meta,
 			}, nil
 		},
-		"volume stop": func() (cli.Command, error) {
+		"volume delete": func() (cli.Command, error) {
 			return &command.VsmStopCommand{
 				Meta: meta,
 			}, nil

@@ -1,22 +1,26 @@
 package command
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"os"
 	"strings"
 )
 
 // VsmStopCommand is a command implementation struct
 type VsmStopCommand struct {
 	Meta
+	volname string
 }
 
 // Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
-Usage: maya volume stop [options] <volume>
+Usage: maya volume delete <volume>
 
-  Stop an existing vsm. This command is used to signal allocations
-  to shut down for the given vsm ID. Upon successful deregistraion,
+  Stop an existing volume. This command is used to signal allocations
+  to shut down for the given volume ID. Upon successful deregistraion,
   an interactive monitor session will start to display log lines as
   the vsm unwinds its allocations and completes shutting down.
 
@@ -27,11 +31,11 @@ Stop Options:
     deregister command is submitted, a new evaluation ID is printed to the
     screen, which can be used to examine the evaluation using the eval-status
     command.
-  
+
   -purge
     Purge is used to stop the vsm and purge it from the system. If not set, the
     vsm will still be queryable and will be purged by the garbage collector.
-  
+
   -yes
     Automatic yes to prompts.
 
@@ -43,21 +47,31 @@ Stop Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmStopCommand) Synopsis() string {
-	return "Stop a running Volume"
+	return "Delete a running Volume"
 }
 
 // Run holds the flag values for CLI subcommands
 func (c *VsmStopCommand) Run(args []string) int {
 	var detach, verbose, autoYes bool
 
-	flags := c.Meta.FlagSet("volume stop", FlagSetClient)
+	flags := c.Meta.FlagSet("volume delete", FlagSetClient)
 	flags.Usage = func() { c.Ui.Output(c.Help()) }
+	flags.StringVar(&c.volname, "volname", "", "Volume name")
 	flags.BoolVar(&detach, "detach", false, "")
 	flags.BoolVar(&verbose, "verbose", false, "")
 	flags.BoolVar(&autoYes, "yes", false, "")
 
 	if err := flags.Parse(args); err != nil {
 		return 1
+	}
+
+	addr := os.Getenv("KUBERNETES_SERVICE_HOST")
+	if addr != "" {
+		err := DeleteVsm(c.volname)
+		if err != nil {
+			fmt.Sprintf("Error while deleting Volume: %s", err)
+		}
+		return 0
 	}
 
 	// Truncate the id unless full length is requested
@@ -155,4 +169,35 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Start monitoring the stop eval
 	mon := newMonitor(c.Ui, client, length)
 	return mon.monitor(evalID, false)
+}
+
+// DeleteVsm to get delete Volume through a API call to m-apiserver
+func DeleteVsm(vname string) error {
+
+	addr := os.Getenv("MAPI_ADDR")
+	if addr == "" {
+		err := errors.New("MAPI_ADDR environment variable not set")
+		fmt.Println("Error getting maya-api-server IP Address: %v", err)
+		return err
+	}
+	url := addr + "/latest/volumes/delete/" + vname
+
+	req, err := http.NewRequest("GET", url, nil)
+	c := &http.Client{
+		Timeout: timeout,
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		fmt.Println("http.Do() error: : %v", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	code := resp.StatusCode
+	if code != http.StatusOK {
+		fmt.Println("Status error: %v\n", http.StatusText(code))
+		return err
+	}
+	fmt.Println("Initiated Volume-Delete request for volume:", string(vname))
+	return nil
 }
