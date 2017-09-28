@@ -16,16 +16,17 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-Usage: maya snapshot list -volname <volume-name>
+Usage: maya snapshot list -volname <vol>
 
-  Command to list the snapshots of a Volume.
+This command will list all the snapshots of a Volume.
+
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (c *SnapshotListCommand) Synopsis() string {
-	return "List the created snapshots of a Volume"
+	return "Lists all the snapshots of a Volume"
 }
 
 func (c *SnapshotListCommand) Run(args []string) int {
