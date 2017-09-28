@@ -69,9 +69,6 @@ type VolumeProvisionerProfile interface {
 	// Get the IP addresses that needs to be assigned against the replica(s)
 	ReplicaIPs() ([]string, error)
 
-	// Get the count of persistent paths required for all the replicas
-	//PersistentPathCount() (int, error)
-
 	// Get the storage backend i.e. a persistent path of the replica.
 	PersistentPath() (string, error)
 }
