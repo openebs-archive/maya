@@ -126,14 +126,12 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 		return "", err
 	}
 
-	volume, err := GetVolume(controller.address)
+	volume, err := GetVolume(controller.Address)
 	if err != nil {
 		return "", err
 	}
 
-	url := controller.address + "/volumes/" + volume.Id + "?action=snapshot"
-
-	fmt.Println("Url is:", url)
+	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
 
 	input := SnapshotInput{
 		Name:   snapname,
@@ -161,10 +159,10 @@ func (c *ControllerClient) do(method, path string, req, resp interface{}) error 
 	bodyType := "application/json"
 	url := path
 	if !strings.HasPrefix(url, "http") {
-		url = c.address + path
+		url = c.Address + path
 
 	}
-	fmt.Println("Do url:", url)
+
 	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
 	if err != nil {
 		return err

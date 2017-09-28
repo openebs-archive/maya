@@ -13,6 +13,11 @@
 // a volume in OpenEBS can be considered as a StoragePod.
 package v1
 
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	core_v1 "k8s.io/client-go/pkg/api/v1"
+)
+
 // PersistentVolumeClaim is a user's REQUEST for and CLAIM to a persistent volume
 type PersistentVolumeClaim struct {
 	TypeMeta `json:",inline"`
@@ -340,4 +345,76 @@ type Volume struct {
 		CreationTimestamp interface{} `json:"creationTimestamp"`
 		Name              string      `json:"name"`
 	} `json:"metadata"`
+}
+
+// -------------Snapshot Structs ----------
+
+// The volume snapshot object accessible to the user. Upon succesful creation of the actual
+// snapshot by the volume provider it is bound to the corresponding VolumeSnapshotData through
+// the VolumeSnapshotSpec
+type VolumeSnapshot struct {
+	metav1.TypeMeta `json:",inline"`
+	Metadata        metav1.ObjectMeta `json:"metadata"`
+
+	// Spec represents the desired state of the snapshot
+	// +optional
+	Spec VolumeSnapshotSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
+
+	// SnapshotName represents the name of the snapshot
+	SnapshotName string `json:"snapshotName" protobuf:"bytes,1,opt,name=snapshotName"`
+
+	// Status represents the latest observer state of the snapshot
+	// +optional
+	Status VolumeSnapshotStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
+}
+
+type VolumeSnapshotList struct {
+	metav1.TypeMeta `json:",inline"`
+	Metadata        metav1.ListMeta  `json:"metadata"`
+	Items           []VolumeSnapshot `json:"items"`
+}
+
+// The desired state of the volume snapshot
+type VolumeSnapshotSpec struct {
+	// PersistentVolumeClaimName is the name of the PVC being snapshotted
+	// +optional
+	PersistentVolumeClaimName string `json:"persistentVolumeClaimName" protobuf:"bytes,1,opt,name=persistentVolumeClaimName"`
+
+	// SnapshotDataName binds the VolumeSnapshot object with the VolumeSnapshotData
+	// +optional
+	SnapshotDataName string `json:"snapshotDataName" protobuf:"bytes,2,opt,name=snapshotDataName"`
+}
+
+type VolumeSnapshotStatus struct {
+	// The time the snapshot was successfully created
+	// +optional
+	CreationTimestamp metav1.Time `json:"creationTimestamp" protobuf:"bytes,1,opt,name=creationTimestamp"`
+
+	// Representes the lates available observations about the volume snapshot
+	Conditions []VolumeSnapshotCondition `json:"conditions" protobuf:"bytes,2,rep,name=conditions"`
+}
+
+type VolumeSnapshotConditionType string
+
+// These are valid conditions of a volume snapshot.
+const (
+	// VolumeSnapshotReady is added when the snapshot has been successfully created and is ready to be used.
+	VolumeSnapshotConditionReady VolumeSnapshotConditionType = "Ready"
+)
+
+// VolumeSnapshot Condition describes the state of a volume snapshot  at a certain point.
+type VolumeSnapshotCondition struct {
+	// Type of replication controller condition.
+	Type VolumeSnapshotConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=VolumeSnapshotConditionType"`
+	// Status of the condition, one of True, False, Unknown.
+	Status core_v1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	// The last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	// The reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason" protobuf:"bytes,4,opt,name=reason"`
+	// A human readable message indicating details about the transition.
+	// +optional
+	Message string `json:"message" protobuf:"bytes,5,opt,name=message"`
 }

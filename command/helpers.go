@@ -25,6 +25,10 @@ func formatKV(in []string) string {
 	return columnize.Format(in, columnConf)
 }
 
+func FormatList(in []string) string {
+	return formatList(in)
+}
+
 // formatList takes a set of strings and formats them into properly
 // aligned output, replacing any blank fields with a placeholder
 // for awk-ability.

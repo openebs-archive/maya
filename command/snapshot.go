@@ -23,19 +23,15 @@ Usage: maya snapshot <subcommand> [options] [args]
 
   snapshot operations.
 
-  Create a snapshot:
+  Create snapshot:
 
       $ maya snapshot create -volname <vol> -snapname <snapshot>
 
-  list a snapshot:
+  list snapshot:
 
-      $ maya snapshot list -volname <vsm-name>
+      $ maya snapshot list -volname <volume-name>
   
-  Remove a snapshot:
-
-     $ maya snapshot rm -volname <vol> -snapname <snapshot>
-
-  Revert a snapshot:
+  Revert to snapshot:
 
      $ maya snapshot revert -volname <vol> -snapname <snapshot>
 

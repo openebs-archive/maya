@@ -24,27 +24,31 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 	}
 
 	return map[string]cli.CommandFactory{
-		"setup-omm": func() (cli.Command, error) {
-			return &command.InstallMayaCommand{
-				M: meta,
-			}, nil
-		},
-		"setup-osh": func() (cli.Command, error) {
-			return &command.InstallOpenEBSCommand{
-				M: meta,
-			}, nil
-		},
-		"omm-status": func() (cli.Command, error) {
-			return &command.ServerMembersCommand{
-				Meta: meta,
-			}, nil
-		},
-		"osh-status": func() (cli.Command, error) {
-			return &command.NodeStatusCommand{
-				Meta: meta,
-			}, nil
-		},
-
+		//the following CLI commands are deprecated with latest implementation.
+		//In kubernetes environment, it is no longer required to setup
+		//openebs master and host.
+		/*
+			"setup-omm": func() (cli.Command, error) {
+				return &command.InstallMayaCommand{
+					M: meta,
+				}, nil
+			},
+			"setup-osh": func() (cli.Command, error) {
+				return &command.InstallOpenEBSCommand{
+					M: meta,
+				}, nil
+			},
+			"omm-status": func() (cli.Command, error) {
+				return &command.ServerMembersCommand{
+					Meta: meta,
+				}, nil
+			},
+			"osh-status": func() (cli.Command, error) {
+				return &command.NodeStatusCommand{
+					Meta: meta,
+				}, nil
+			},
+		*/
 		"volume": func() (cli.Command, error) {
 			return &command.VolumeCommand{}, nil
 		},
@@ -63,12 +67,12 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 				Meta: meta,
 			}, nil
 		},
-		"volume update": func() (cli.Command, error) {
+		/*	"volume update": func() (cli.Command, error) {
 			return &command.VsmUpdateCommand{
 				M: meta,
 			}, nil
-		},
-		"volume stop": func() (cli.Command, error) {
+		},*/
+		"volume delete": func() (cli.Command, error) {
 			return &command.VsmStopCommand{
 				Meta: meta,
 			}, nil
@@ -88,11 +92,11 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 			}, nil
 		},
 
-		"snapshot rm": func() (cli.Command, error) {
+		/*	"snapshot rm": func() (cli.Command, error) {
 			return &command.SnapshotDeleteCommand{
 				Meta: meta,
 			}, nil
-		},
+		},*/
 		"snapshot revert": func() (cli.Command, error) {
 			return &command.SnapshotRevertCommand{
 				Meta: meta,
