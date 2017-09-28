@@ -47,9 +47,9 @@ func (f *StringSlice) Value() []string {
 // Help shows helpText for a particular CLI command
 func (c *SnapshotCreateCommand) Help() string {
 	helpText := `
-Usage: maya snapshot create -volname <name> -snapname <snapshot-name>
+Usage: maya snapshot create -volname <vol> -snapname <snap>
   
-  This command will create the snapshot of a given Volume.
+This command will create a snapshot of a given Volume.
 
 `
 	return strings.TrimSpace(helpText)
@@ -57,7 +57,7 @@ Usage: maya snapshot create -volname <name> -snapname <snapshot-name>
 
 // Synopsis shows short information related to CLI command
 func (c *SnapshotCreateCommand) Synopsis() string {
-	return "Create snapshot of a Volume"
+	return "Creates snapshot of a Volume"
 }
 
 // Run holds the flag values for CLI subcommands
