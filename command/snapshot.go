@@ -19,26 +19,20 @@ func (c *SnapshotCommand) Help() string {
 	helpText := `
 Usage: maya snapshot <subcommand> [options] [args]
 
-  This command has subcommands related to snapshot of Volume.
+This command provides operations related to snapshot of a Volume.
 
-  snapshot operations.
+    Create snapshot:
+    $ maya snapshot create -volname <vol> -snapname <snap>
 
-  Create snapshot:
-
-      $ maya snapshot create -volname <vol> -snapname <snapshot>
-
-  list snapshot:
-
-      $ maya snapshot list -volname <volume-name>
+    List snapshots:
+    $ maya snapshot list -volname <vol>
   
-  Revert to snapshot:
-
-     $ maya snapshot revert -volname <vol> -snapname <snapshot>
-
+    Revert to snapshot:
+    $ maya snapshot revert -volname <vol> -snapname <snap>
 
 `
 	return strings.TrimSpace(helpText)
 }
 func (c *SnapshotCommand) Synopsis() string {
-	return "Creates snapshot of a Volume"
+	return "Provides operations related to snapshot of a Volume"
 }

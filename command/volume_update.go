@@ -20,7 +20,7 @@ func (c *VsmUpdateCommand) Help() string {
 	helpText := `
 Usage: maya volume update [path-to-update-specs]
 
-  Update the given volume.   
+  This command update the given Volume.
 
 General Options:
 

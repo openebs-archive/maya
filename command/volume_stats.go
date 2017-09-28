@@ -107,14 +107,14 @@ const (
 // Help shows helpText for a particular CLI command
 func (c *VsmStatsCommand) Help() string {
 	helpText := `
-Usage: maya volume stats <volname> 
+Usage: maya volume stats <vol> [-json]
 
-  Display Volume Stats information including running status
-  and Read/Write.
+This command displays Volume statistics including running status
+and Read/Write.
 
-Volume Stats Options:
-  -json 
-    Output stats in json format
+Volume stats options:
+    -json
+      Output stats in json format
 
 `
 	return strings.TrimSpace(helpText)
@@ -122,7 +122,7 @@ Volume Stats Options:
 
 // Synopsis shows short information related to CLI command
 func (c *VsmStatsCommand) Synopsis() string {
-	return "Display Runtime stats of a Volume"
+	return "Displays runtime statistics of a Volume"
 }
 
 // Run holds the flag values for CLI subcommands

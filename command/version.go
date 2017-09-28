@@ -20,7 +20,13 @@ type VersionCommand struct {
 
 // Help shows helpText for a particular CLI command
 func (c *VersionCommand) Help() string {
-	return ""
+	helpText := `
+Usage: maya version
+							           
+This command provides versioning and other details relevant to maya.
+
+`
+	return strings.TrimSpace(helpText)
 }
 
 // Run holds the flag values for CLI subcommands
@@ -76,5 +82,5 @@ func (c *VersionCommand) Run(_ []string) int {
 
 // Synopsis shows short information related to CLI command
 func (c *VersionCommand) Synopsis() string {
-	return "Prints the Maya version"
+	return "Prints version and other details relevant to maya"
 }

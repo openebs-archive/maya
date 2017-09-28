@@ -22,16 +22,17 @@ type SnapshotDeleteCommand struct {
 
 func (s *SnapshotDeleteCommand) Help() string {
 	helpText := `
-Usage: maya snapshot delete -volname <vsm-name> 
+Usage: maya snapshot delete -volname <vol> 
          
-  Command to delete the snapshot of a Volume.
+This command will deletes all snapshots of a Volume.
+
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (s *SnapshotDeleteCommand) Synopsis() string {
-	return "delete the snapshots"
+	return "Deletes the snapshots of a Volume"
 }
 func (s *SnapshotDeleteCommand) Run(args []string) int {
 	flags := s.Meta.FlagSet("snapshot", FlagSetClient)
