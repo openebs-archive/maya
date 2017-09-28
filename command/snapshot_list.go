@@ -16,8 +16,8 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-Usage: maya snapshot list -volname <volume-name> 
-	    
+Usage: maya snapshot list -volname <volume-name>
+
   Command to list the snapshots of a Volume.
 `
 	return strings.TrimSpace(helpText)
@@ -109,7 +109,7 @@ func ListSnapshot(name string) error {
 		if first {
 			first = false
 			snapdisk, err := getData(r.Address)
-			if err != err {
+			if err != nil {
 				return err
 			}
 			out := make([]string, len(snapdisk)+1)

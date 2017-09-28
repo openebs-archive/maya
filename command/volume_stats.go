@@ -18,8 +18,8 @@ import (
 
 type Status struct {
 	Resource        client.Resource
-	ReplicaCounter  int64 `json:"replicacounter"`
-	RevisionCounter int64 `json:"revisioncounter"`
+	ReplicaCounter  int64  `json:"replicacounter"`
+	RevisionCounter string `json:"revisioncounter"`
 }
 
 type VolumeStats struct {
@@ -96,6 +96,7 @@ type Annotation struct {
 }
 
 const (
+	bytesToGB = 1073741824
 	bytesToMB = 1048567
 	mic_sec   = 1000000
 	bytesToKB = 1024
@@ -107,13 +108,13 @@ const (
 // Help shows helpText for a particular CLI command
 func (c *VsmStatsCommand) Help() string {
 	helpText := `
-Usage: maya volume stats <volname> 
+Usage: maya volume stats <volname>
 
   Display Volume Stats information including running status
   and Read/Write.
 
 Volume Stats Options:
-  -json 
+  -json
     Output stats in json format
 
 `
@@ -191,7 +192,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		} else {
 			statusArray[replicaCount] = replica
 			statusArray[replicaCount+1] = "Online"
-			statusArray[replicaCount+2] = strconv.FormatInt(status.RevisionCounter, 10)
+			statusArray[replicaCount+2] = status.RevisionCounter
 			replicaCount += 3
 		}
 
@@ -404,7 +405,7 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 	}
 
 	sectorSize, _ := strconv.ParseFloat(stats2.SectorSize, 64) // Sector Size
-	sectorSize = sectorSize / bytesToMB
+	sectorSize = sectorSize
 
 	logicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64) // Logical Size
 	logicalSize = logicalSize * sectorSize
@@ -441,8 +442,8 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 			AvgWriteBlockSize: AvgWriteBlockCountPS / bytesToKB,
 
 			SectorSize:  sectorSize,
-			ActualUsed:  actualUsed,
-			LogicalSize: logicalSize,
+			ActualUsed:  actualUsed / bytesToGB,
+			LogicalSize: logicalSize / bytesToGB,
 		}
 
 		data, err := json.MarshalIndent(stat1, "", "\t")
@@ -486,7 +487,7 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		x := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Println("\n------------ Capacity Stats -------------\n")
 		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
-		fmt.Fprintf(x, "%f\t%f\t\n", logicalSize, actualUsed)
+		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/bytesToGB, actualUsed/bytesToGB)
 		x.Flush()
 	}
 	return err
