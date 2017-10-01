@@ -13,7 +13,7 @@ LABEL org.label-schema.name="maya"
 LABEL org.label-schema.description="CLI for OpenEBS"
 LABEL org.label-schema.url="http://www.openebs.io/"
 LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
-org.label-schema.schema-version="1.0"
+LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.version=$VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE
 
