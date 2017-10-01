@@ -6,5 +6,12 @@ FROM ubuntu:16.04
 
 COPY maya /usr/local/bin
 
-ENTRYPOINT ["maya"]
+ARG VERSION
+ARG BUILD_DATE
 
+RUN echo $BUILD_DATE
+LABEL org.label-schema.vendor="Maya"
+LABEL org.label-schema.version=$VERSION
+LABEL org.label-schema.build-date=$BUILD_DATE
+
+ENTRYPOINT ["maya"]
