@@ -9,8 +9,7 @@ COPY maya /usr/local/bin
 ARG VERSION
 ARG BUILD_DATE
 
-RUN echo $BUILD_DATE
-LABEL org.label-schema.vendor="Maya"
+LABEL org.label-schema.vendor="OpenEBS"
 LABEL org.label-schema.version=$VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE
 
