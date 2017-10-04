@@ -7,7 +7,7 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	github.com/Masterminds/glide \
+	github.com/golang/dep \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
@@ -32,8 +32,7 @@ initialize: bootstrap
 
 deps: 
 	rm -rf vendor
-	@glide up
-	glide install -v
+	dep ensure
 
 clean: 
 	rm -rf bin
