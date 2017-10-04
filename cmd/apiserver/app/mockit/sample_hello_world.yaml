@@ -1,0 +1,18 @@
+job "placement-1" {
+  region = "global"
+  datacenters = ["dc1"]
+
+  type = "service"
+
+  group "fe" {
+      count = 1
+      
+      task "fe1" {
+        driver = "docker"
+        config {
+          image = "tutum/hello-world"
+        }
+      }
+
+  }
+}
