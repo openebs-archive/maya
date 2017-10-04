@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleGlacier_AbortMultipartUpload() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.AbortMultipartUploadInput{
 		AccountId: aws.String("string"), // Required
@@ -43,13 +37,7 @@ func ExampleGlacier_AbortMultipartUpload() {
 }
 
 func ExampleGlacier_AbortVaultLock() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.AbortVaultLockInput{
 		AccountId: aws.String("string"), // Required
@@ -69,13 +57,7 @@ func ExampleGlacier_AbortVaultLock() {
 }
 
 func ExampleGlacier_AddTagsToVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.AddTagsToVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -99,13 +81,7 @@ func ExampleGlacier_AddTagsToVault() {
 }
 
 func ExampleGlacier_CompleteMultipartUpload() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.CompleteMultipartUploadInput{
 		AccountId:   aws.String("string"), // Required
@@ -128,13 +104,7 @@ func ExampleGlacier_CompleteMultipartUpload() {
 }
 
 func ExampleGlacier_CompleteVaultLock() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.CompleteVaultLockInput{
 		AccountId: aws.String("string"), // Required
@@ -155,13 +125,7 @@ func ExampleGlacier_CompleteVaultLock() {
 }
 
 func ExampleGlacier_CreateVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.CreateVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -181,13 +145,7 @@ func ExampleGlacier_CreateVault() {
 }
 
 func ExampleGlacier_DeleteArchive() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DeleteArchiveInput{
 		AccountId: aws.String("string"), // Required
@@ -208,13 +166,7 @@ func ExampleGlacier_DeleteArchive() {
 }
 
 func ExampleGlacier_DeleteVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DeleteVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -234,13 +186,7 @@ func ExampleGlacier_DeleteVault() {
 }
 
 func ExampleGlacier_DeleteVaultAccessPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DeleteVaultAccessPolicyInput{
 		AccountId: aws.String("string"), // Required
@@ -260,13 +206,7 @@ func ExampleGlacier_DeleteVaultAccessPolicy() {
 }
 
 func ExampleGlacier_DeleteVaultNotifications() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DeleteVaultNotificationsInput{
 		AccountId: aws.String("string"), // Required
@@ -286,13 +226,7 @@ func ExampleGlacier_DeleteVaultNotifications() {
 }
 
 func ExampleGlacier_DescribeJob() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DescribeJobInput{
 		AccountId: aws.String("string"), // Required
@@ -313,13 +247,7 @@ func ExampleGlacier_DescribeJob() {
 }
 
 func ExampleGlacier_DescribeVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.DescribeVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -339,13 +267,7 @@ func ExampleGlacier_DescribeVault() {
 }
 
 func ExampleGlacier_GetDataRetrievalPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.GetDataRetrievalPolicyInput{
 		AccountId: aws.String("string"), // Required
@@ -364,13 +286,7 @@ func ExampleGlacier_GetDataRetrievalPolicy() {
 }
 
 func ExampleGlacier_GetJobOutput() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.GetJobOutputInput{
 		AccountId: aws.String("string"), // Required
@@ -392,13 +308,7 @@ func ExampleGlacier_GetJobOutput() {
 }
 
 func ExampleGlacier_GetVaultAccessPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.GetVaultAccessPolicyInput{
 		AccountId: aws.String("string"), // Required
@@ -418,13 +328,7 @@ func ExampleGlacier_GetVaultAccessPolicy() {
 }
 
 func ExampleGlacier_GetVaultLock() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.GetVaultLockInput{
 		AccountId: aws.String("string"), // Required
@@ -444,13 +348,7 @@ func ExampleGlacier_GetVaultLock() {
 }
 
 func ExampleGlacier_GetVaultNotifications() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.GetVaultNotificationsInput{
 		AccountId: aws.String("string"), // Required
@@ -470,13 +368,7 @@ func ExampleGlacier_GetVaultNotifications() {
 }
 
 func ExampleGlacier_InitiateJob() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.InitiateJobInput{
 		AccountId: aws.String("string"), // Required
@@ -493,7 +385,6 @@ func ExampleGlacier_InitiateJob() {
 			},
 			RetrievalByteRange: aws.String("string"),
 			SNSTopic:           aws.String("string"),
-			Tier:               aws.String("string"),
 			Type:               aws.String("string"),
 		},
 	}
@@ -511,13 +402,7 @@ func ExampleGlacier_InitiateJob() {
 }
 
 func ExampleGlacier_InitiateMultipartUpload() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.InitiateMultipartUploadInput{
 		AccountId:          aws.String("string"), // Required
@@ -539,13 +424,7 @@ func ExampleGlacier_InitiateMultipartUpload() {
 }
 
 func ExampleGlacier_InitiateVaultLock() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.InitiateVaultLockInput{
 		AccountId: aws.String("string"), // Required
@@ -568,13 +447,7 @@ func ExampleGlacier_InitiateVaultLock() {
 }
 
 func ExampleGlacier_ListJobs() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.ListJobsInput{
 		AccountId:  aws.String("string"), // Required
@@ -598,13 +471,7 @@ func ExampleGlacier_ListJobs() {
 }
 
 func ExampleGlacier_ListMultipartUploads() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.ListMultipartUploadsInput{
 		AccountId: aws.String("string"), // Required
@@ -626,13 +493,7 @@ func ExampleGlacier_ListMultipartUploads() {
 }
 
 func ExampleGlacier_ListParts() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.ListPartsInput{
 		AccountId: aws.String("string"), // Required
@@ -654,39 +515,8 @@ func ExampleGlacier_ListParts() {
 	fmt.Println(resp)
 }
 
-func ExampleGlacier_ListProvisionedCapacity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
-
-	params := &glacier.ListProvisionedCapacityInput{
-		AccountId: aws.String("string"), // Required
-	}
-	resp, err := svc.ListProvisionedCapacity(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleGlacier_ListTagsForVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.ListTagsForVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -706,13 +536,7 @@ func ExampleGlacier_ListTagsForVault() {
 }
 
 func ExampleGlacier_ListVaults() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.ListVaultsInput{
 		AccountId: aws.String("string"), // Required
@@ -732,39 +556,8 @@ func ExampleGlacier_ListVaults() {
 	fmt.Println(resp)
 }
 
-func ExampleGlacier_PurchaseProvisionedCapacity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
-
-	params := &glacier.PurchaseProvisionedCapacityInput{
-		AccountId: aws.String("string"), // Required
-	}
-	resp, err := svc.PurchaseProvisionedCapacity(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleGlacier_RemoveTagsFromVault() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.RemoveTagsFromVaultInput{
 		AccountId: aws.String("string"), // Required
@@ -788,13 +581,7 @@ func ExampleGlacier_RemoveTagsFromVault() {
 }
 
 func ExampleGlacier_SetDataRetrievalPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.SetDataRetrievalPolicyInput{
 		AccountId: aws.String("string"), // Required
@@ -822,13 +609,7 @@ func ExampleGlacier_SetDataRetrievalPolicy() {
 }
 
 func ExampleGlacier_SetVaultAccessPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.SetVaultAccessPolicyInput{
 		AccountId: aws.String("string"), // Required
@@ -851,13 +632,7 @@ func ExampleGlacier_SetVaultAccessPolicy() {
 }
 
 func ExampleGlacier_SetVaultNotifications() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.SetVaultNotificationsInput{
 		AccountId: aws.String("string"), // Required
@@ -884,13 +659,7 @@ func ExampleGlacier_SetVaultNotifications() {
 }
 
 func ExampleGlacier_UploadArchive() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.UploadArchiveInput{
 		AccountId:          aws.String("string"), // Required
@@ -913,13 +682,7 @@ func ExampleGlacier_UploadArchive() {
 }
 
 func ExampleGlacier_UploadMultipartPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := glacier.New(sess)
+	svc := glacier.New(session.New())
 
 	params := &glacier.UploadMultipartPartInput{
 		AccountId: aws.String("string"), // Required

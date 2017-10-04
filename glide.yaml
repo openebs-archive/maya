@@ -42,3 +42,4 @@ import:
   version: v1.4.0
 - package: github.com/onsi/gomega
   version: v1.2.0
+- package: github.com/hashicorp/go-syslog

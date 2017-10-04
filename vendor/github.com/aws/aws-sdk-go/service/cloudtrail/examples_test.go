@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleCloudTrail_AddTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.AddTagsInput{
 		ResourceId: aws.String("String"), // Required
@@ -48,13 +42,7 @@ func ExampleCloudTrail_AddTags() {
 }
 
 func ExampleCloudTrail_CreateTrail() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.CreateTrailInput{
 		Name:                       aws.String("String"), // Required
@@ -82,13 +70,7 @@ func ExampleCloudTrail_CreateTrail() {
 }
 
 func ExampleCloudTrail_DeleteTrail() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.DeleteTrailInput{
 		Name: aws.String("String"), // Required
@@ -107,13 +89,7 @@ func ExampleCloudTrail_DeleteTrail() {
 }
 
 func ExampleCloudTrail_DescribeTrails() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.DescribeTrailsInput{
 		IncludeShadowTrails: aws.Bool(true),
@@ -135,39 +111,8 @@ func ExampleCloudTrail_DescribeTrails() {
 	fmt.Println(resp)
 }
 
-func ExampleCloudTrail_GetEventSelectors() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
-
-	params := &cloudtrail.GetEventSelectorsInput{
-		TrailName: aws.String("String"),
-	}
-	resp, err := svc.GetEventSelectors(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleCloudTrail_GetTrailStatus() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.GetTrailStatusInput{
 		Name: aws.String("String"), // Required
@@ -186,13 +131,7 @@ func ExampleCloudTrail_GetTrailStatus() {
 }
 
 func ExampleCloudTrail_ListPublicKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.ListPublicKeysInput{
 		EndTime:   aws.Time(time.Now()),
@@ -213,13 +152,7 @@ func ExampleCloudTrail_ListPublicKeys() {
 }
 
 func ExampleCloudTrail_ListTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.ListTagsInput{
 		ResourceIdList: []*string{ // Required
@@ -242,13 +175,7 @@ func ExampleCloudTrail_ListTags() {
 }
 
 func ExampleCloudTrail_LookupEvents() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.LookupEventsInput{
 		EndTime: aws.Time(time.Now()),
@@ -276,56 +203,8 @@ func ExampleCloudTrail_LookupEvents() {
 	fmt.Println(resp)
 }
 
-func ExampleCloudTrail_PutEventSelectors() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
-
-	params := &cloudtrail.PutEventSelectorsInput{
-		EventSelectors: []*cloudtrail.EventSelector{
-			{ // Required
-				DataResources: []*cloudtrail.DataResource{
-					{ // Required
-						Type: aws.String("String"),
-						Values: []*string{
-							aws.String("String"), // Required
-							// More values...
-						},
-					},
-					// More values...
-				},
-				IncludeManagementEvents: aws.Bool(true),
-				ReadWriteType:           aws.String("ReadWriteType"),
-			},
-			// More values...
-		},
-		TrailName: aws.String("String"),
-	}
-	resp, err := svc.PutEventSelectors(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleCloudTrail_RemoveTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.RemoveTagsInput{
 		ResourceId: aws.String("String"), // Required
@@ -351,13 +230,7 @@ func ExampleCloudTrail_RemoveTags() {
 }
 
 func ExampleCloudTrail_StartLogging() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.StartLoggingInput{
 		Name: aws.String("String"), // Required
@@ -376,13 +249,7 @@ func ExampleCloudTrail_StartLogging() {
 }
 
 func ExampleCloudTrail_StopLogging() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.StopLoggingInput{
 		Name: aws.String("String"), // Required
@@ -401,13 +268,7 @@ func ExampleCloudTrail_StopLogging() {
 }
 
 func ExampleCloudTrail_UpdateTrail() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudtrail.New(sess)
+	svc := cloudtrail.New(session.New())
 
 	params := &cloudtrail.UpdateTrailInput{
 		Name: aws.String("String"), // Required

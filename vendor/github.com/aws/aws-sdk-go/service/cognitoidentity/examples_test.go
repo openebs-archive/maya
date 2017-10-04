@@ -16,30 +16,13 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleCognitoIdentity_CreateIdentityPool() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.CreateIdentityPoolInput{
 		AllowUnauthenticatedIdentities: aws.Bool(true),                 // Required
 		IdentityPoolName:               aws.String("IdentityPoolName"), // Required
-		CognitoIdentityProviders: []*cognitoidentity.Provider{
-			{ // Required
-				ClientId:     aws.String("ProviderClientId"),
-				ProviderName: aws.String("ProviderName"),
-			},
-			// More values...
-		},
-		DeveloperProviderName: aws.String("DeveloperProviderName"),
+		DeveloperProviderName:          aws.String("DeveloperProviderName"),
 		OpenIdConnectProviderARNs: []*string{
-			aws.String("ARNString"), // Required
-			// More values...
-		},
-		SamlProviderARNs: []*string{
 			aws.String("ARNString"), // Required
 			// More values...
 		},
@@ -62,13 +45,7 @@ func ExampleCognitoIdentity_CreateIdentityPool() {
 }
 
 func ExampleCognitoIdentity_DeleteIdentities() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.DeleteIdentitiesInput{
 		IdentityIdsToDelete: []*string{ // Required
@@ -90,13 +67,7 @@ func ExampleCognitoIdentity_DeleteIdentities() {
 }
 
 func ExampleCognitoIdentity_DeleteIdentityPool() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.DeleteIdentityPoolInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -115,13 +86,7 @@ func ExampleCognitoIdentity_DeleteIdentityPool() {
 }
 
 func ExampleCognitoIdentity_DescribeIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.DescribeIdentityInput{
 		IdentityId: aws.String("IdentityId"), // Required
@@ -140,13 +105,7 @@ func ExampleCognitoIdentity_DescribeIdentity() {
 }
 
 func ExampleCognitoIdentity_DescribeIdentityPool() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.DescribeIdentityPoolInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -165,17 +124,10 @@ func ExampleCognitoIdentity_DescribeIdentityPool() {
 }
 
 func ExampleCognitoIdentity_GetCredentialsForIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.GetCredentialsForIdentityInput{
-		IdentityId:    aws.String("IdentityId"), // Required
-		CustomRoleArn: aws.String("ARNString"),
+		IdentityId: aws.String("IdentityId"), // Required
 		Logins: map[string]*string{
 			"Key": aws.String("IdentityProviderToken"), // Required
 			// More values...
@@ -195,13 +147,7 @@ func ExampleCognitoIdentity_GetCredentialsForIdentity() {
 }
 
 func ExampleCognitoIdentity_GetId() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -225,13 +171,7 @@ func ExampleCognitoIdentity_GetId() {
 }
 
 func ExampleCognitoIdentity_GetIdentityPoolRoles() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.GetIdentityPoolRolesInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -250,13 +190,7 @@ func ExampleCognitoIdentity_GetIdentityPoolRoles() {
 }
 
 func ExampleCognitoIdentity_GetOpenIdToken() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.GetOpenIdTokenInput{
 		IdentityId: aws.String("IdentityId"), // Required
@@ -279,13 +213,7 @@ func ExampleCognitoIdentity_GetOpenIdToken() {
 }
 
 func ExampleCognitoIdentity_GetOpenIdTokenForDeveloperIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -310,13 +238,7 @@ func ExampleCognitoIdentity_GetOpenIdTokenForDeveloperIdentity() {
 }
 
 func ExampleCognitoIdentity_ListIdentities() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.ListIdentitiesInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
@@ -338,13 +260,7 @@ func ExampleCognitoIdentity_ListIdentities() {
 }
 
 func ExampleCognitoIdentity_ListIdentityPools() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.ListIdentityPoolsInput{
 		MaxResults: aws.Int64(1), // Required
@@ -364,13 +280,7 @@ func ExampleCognitoIdentity_ListIdentityPools() {
 }
 
 func ExampleCognitoIdentity_LookupDeveloperIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.LookupDeveloperIdentityInput{
 		IdentityPoolId:          aws.String("IdentityPoolId"), // Required
@@ -393,13 +303,7 @@ func ExampleCognitoIdentity_LookupDeveloperIdentity() {
 }
 
 func ExampleCognitoIdentity_MergeDeveloperIdentities() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.MergeDeveloperIdentitiesInput{
 		DestinationUserIdentifier: aws.String("DeveloperUserIdentifier"), // Required
@@ -421,36 +325,12 @@ func ExampleCognitoIdentity_MergeDeveloperIdentities() {
 }
 
 func ExampleCognitoIdentity_SetIdentityPoolRoles() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.SetIdentityPoolRolesInput{
 		IdentityPoolId: aws.String("IdentityPoolId"), // Required
 		Roles: map[string]*string{ // Required
 			"Key": aws.String("ARNString"), // Required
-			// More values...
-		},
-		RoleMappings: map[string]*cognitoidentity.RoleMapping{
-			"Key": { // Required
-				Type: aws.String("RoleMappingType"), // Required
-				AmbiguousRoleResolution: aws.String("AmbiguousRoleResolutionType"),
-				RulesConfiguration: &cognitoidentity.RulesConfigurationType{
-					Rules: []*cognitoidentity.MappingRule{ // Required
-						{ // Required
-							Claim:     aws.String("ClaimName"),            // Required
-							MatchType: aws.String("MappingRuleMatchType"), // Required
-							RoleARN:   aws.String("ARNString"),            // Required
-							Value:     aws.String("ClaimValue"),           // Required
-						},
-						// More values...
-					},
-				},
-			},
 			// More values...
 		},
 	}
@@ -468,13 +348,7 @@ func ExampleCognitoIdentity_SetIdentityPoolRoles() {
 }
 
 func ExampleCognitoIdentity_UnlinkDeveloperIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.UnlinkDeveloperIdentityInput{
 		DeveloperProviderName:   aws.String("DeveloperProviderName"),   // Required
@@ -496,13 +370,7 @@ func ExampleCognitoIdentity_UnlinkDeveloperIdentity() {
 }
 
 func ExampleCognitoIdentity_UnlinkIdentity() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.UnlinkIdentityInput{
 		IdentityId: aws.String("IdentityId"), // Required
@@ -529,31 +397,14 @@ func ExampleCognitoIdentity_UnlinkIdentity() {
 }
 
 func ExampleCognitoIdentity_UpdateIdentityPool() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cognitoidentity.New(sess)
+	svc := cognitoidentity.New(session.New())
 
 	params := &cognitoidentity.IdentityPool{
 		AllowUnauthenticatedIdentities: aws.Bool(true),                 // Required
 		IdentityPoolId:                 aws.String("IdentityPoolId"),   // Required
 		IdentityPoolName:               aws.String("IdentityPoolName"), // Required
-		CognitoIdentityProviders: []*cognitoidentity.Provider{
-			{ // Required
-				ClientId:     aws.String("ProviderClientId"),
-				ProviderName: aws.String("ProviderName"),
-			},
-			// More values...
-		},
-		DeveloperProviderName: aws.String("DeveloperProviderName"),
+		DeveloperProviderName:          aws.String("DeveloperProviderName"),
 		OpenIdConnectProviderARNs: []*string{
-			aws.String("ARNString"), // Required
-			// More values...
-		},
-		SamlProviderARNs: []*string{
 			aws.String("ARNString"), // Required
 			// More values...
 		},

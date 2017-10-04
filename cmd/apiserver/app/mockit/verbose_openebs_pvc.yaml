@@ -1,0 +1,22 @@
+# Similar to K8s' PersistentVolumeClaim
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: myjivavol
+  labels:
+    region: global
+    datacenter: dc1
+    jivafeversion: openebs/jiva:latest
+    jivafenetwork: host
+    jivafeip: 172.28.128.101
+    jivabeip: 172.28.128.102
+    jivafesubnet: 24
+    jivafeinterface: enp0s8
+  annotations:
+    volume.beta.openebs.io/orchestrator-class: nomad
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 3G

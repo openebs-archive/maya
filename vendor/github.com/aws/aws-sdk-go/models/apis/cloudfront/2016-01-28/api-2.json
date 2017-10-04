@@ -1,7 +1,6 @@
 {
   "version":"2.0",
   "metadata":{
-    "uid":"cloudfront-2016-01-28",
     "apiVersion":"2016-01-28",
     "endpointPrefix":"cloudfront",
     "globalEndpoint":"cloudfront.amazonaws.com",
@@ -2187,17 +2186,16 @@
     "ViewerCertificate":{
       "type":"structure",
       "members":{
-        "CloudFrontDefaultCertificate":{"shape":"boolean"},
-        "IAMCertificateId":{"shape":"string"},
-        "ACMCertificateArn":{"shape":"string"},
+        "Certificate":{"shape":"string"},
+        "CertificateSource":{"shape":"CertificateSource"},
         "SSLSupportMethod":{"shape":"SSLSupportMethod"},
         "MinimumProtocolVersion":{"shape":"MinimumProtocolVersion"},
-        "Certificate":{
+        "IAMCertificateId":{
           "shape":"string",
           "deprecated":true
         },
-        "CertificateSource":{
-          "shape":"CertificateSource",
+        "CloudFrontDefaultCertificate":{
+          "shape":"boolean",
           "deprecated":true
         }
       }

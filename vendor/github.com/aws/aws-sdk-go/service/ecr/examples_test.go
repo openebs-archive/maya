@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleECR_BatchCheckLayerAvailability() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.BatchCheckLayerAvailabilityInput{
 		LayerDigests: []*string{ // Required
@@ -46,13 +40,7 @@ func ExampleECR_BatchCheckLayerAvailability() {
 }
 
 func ExampleECR_BatchDeleteImage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.BatchDeleteImageInput{
 		ImageIds: []*ecr.ImageIdentifier{ // Required
@@ -79,13 +67,7 @@ func ExampleECR_BatchDeleteImage() {
 }
 
 func ExampleECR_BatchGetImage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.BatchGetImageInput{
 		ImageIds: []*ecr.ImageIdentifier{ // Required
@@ -96,11 +78,7 @@ func ExampleECR_BatchGetImage() {
 			// More values...
 		},
 		RepositoryName: aws.String("RepositoryName"), // Required
-		AcceptedMediaTypes: []*string{
-			aws.String("MediaType"), // Required
-			// More values...
-		},
-		RegistryId: aws.String("RegistryId"),
+		RegistryId:     aws.String("RegistryId"),
 	}
 	resp, err := svc.BatchGetImage(params)
 
@@ -116,13 +94,7 @@ func ExampleECR_BatchGetImage() {
 }
 
 func ExampleECR_CompleteLayerUpload() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.CompleteLayerUploadInput{
 		LayerDigests: []*string{ // Required
@@ -147,13 +119,7 @@ func ExampleECR_CompleteLayerUpload() {
 }
 
 func ExampleECR_CreateRepository() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.CreateRepositoryInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
@@ -172,13 +138,7 @@ func ExampleECR_CreateRepository() {
 }
 
 func ExampleECR_DeleteRepository() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.DeleteRepositoryInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
@@ -199,13 +159,7 @@ func ExampleECR_DeleteRepository() {
 }
 
 func ExampleECR_DeleteRepositoryPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.DeleteRepositoryPolicyInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
@@ -224,52 +178,8 @@ func ExampleECR_DeleteRepositoryPolicy() {
 	fmt.Println(resp)
 }
 
-func ExampleECR_DescribeImages() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
-
-	params := &ecr.DescribeImagesInput{
-		RepositoryName: aws.String("RepositoryName"), // Required
-		Filter: &ecr.DescribeImagesFilter{
-			TagStatus: aws.String("TagStatus"),
-		},
-		ImageIds: []*ecr.ImageIdentifier{
-			{ // Required
-				ImageDigest: aws.String("ImageDigest"),
-				ImageTag:    aws.String("ImageTag"),
-			},
-			// More values...
-		},
-		MaxResults: aws.Int64(1),
-		NextToken:  aws.String("NextToken"),
-		RegistryId: aws.String("RegistryId"),
-	}
-	resp, err := svc.DescribeImages(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleECR_DescribeRepositories() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.DescribeRepositoriesInput{
 		MaxResults: aws.Int64(1),
@@ -294,13 +204,7 @@ func ExampleECR_DescribeRepositories() {
 }
 
 func ExampleECR_GetAuthorizationToken() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.GetAuthorizationTokenInput{
 		RegistryIds: []*string{
@@ -322,13 +226,7 @@ func ExampleECR_GetAuthorizationToken() {
 }
 
 func ExampleECR_GetDownloadUrlForLayer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.GetDownloadUrlForLayerInput{
 		LayerDigest:    aws.String("LayerDigest"),    // Required
@@ -349,13 +247,7 @@ func ExampleECR_GetDownloadUrlForLayer() {
 }
 
 func ExampleECR_GetRepositoryPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.GetRepositoryPolicyInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
@@ -375,13 +267,7 @@ func ExampleECR_GetRepositoryPolicy() {
 }
 
 func ExampleECR_InitiateLayerUpload() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.InitiateLayerUploadInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
@@ -401,22 +287,13 @@ func ExampleECR_InitiateLayerUpload() {
 }
 
 func ExampleECR_ListImages() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.ListImagesInput{
 		RepositoryName: aws.String("RepositoryName"), // Required
-		Filter: &ecr.ListImagesFilter{
-			TagStatus: aws.String("TagStatus"),
-		},
-		MaxResults: aws.Int64(1),
-		NextToken:  aws.String("NextToken"),
-		RegistryId: aws.String("RegistryId"),
+		MaxResults:     aws.Int64(1),
+		NextToken:      aws.String("NextToken"),
+		RegistryId:     aws.String("RegistryId"),
 	}
 	resp, err := svc.ListImages(params)
 
@@ -432,18 +309,11 @@ func ExampleECR_ListImages() {
 }
 
 func ExampleECR_PutImage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.PutImageInput{
 		ImageManifest:  aws.String("ImageManifest"),  // Required
 		RepositoryName: aws.String("RepositoryName"), // Required
-		ImageTag:       aws.String("ImageTag"),
 		RegistryId:     aws.String("RegistryId"),
 	}
 	resp, err := svc.PutImage(params)
@@ -460,13 +330,7 @@ func ExampleECR_PutImage() {
 }
 
 func ExampleECR_SetRepositoryPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.SetRepositoryPolicyInput{
 		PolicyText:     aws.String("RepositoryPolicyText"), // Required
@@ -488,13 +352,7 @@ func ExampleECR_SetRepositoryPolicy() {
 }
 
 func ExampleECR_UploadLayerPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := ecr.New(sess)
+	svc := ecr.New(session.New())
 
 	params := &ecr.UploadLayerPartInput{
 		LayerPartBlob:  []byte("PAYLOAD"),            // Required

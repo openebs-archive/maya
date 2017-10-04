@@ -7,30 +7,33 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/query"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// AWS Elastic Beanstalk makes it easy for you to create, deploy, and manage
-// scalable, fault-tolerant applications running on the Amazon Web Services
-// cloud.
+// This is the AWS Elastic Beanstalk API Reference. This guide provides detailed
+// information about AWS Elastic Beanstalk actions, data types, parameters,
+// and errors.
 //
-// For more information about this product, go to the AWS Elastic Beanstalk
+// AWS Elastic Beanstalk is a tool that makes it easy for you to create, deploy,
+// and manage scalable, fault-tolerant applications running on Amazon Web Services
+// cloud resources.
+//
+//  For more information about this product, go to the AWS Elastic Beanstalk
 // (http://aws.amazon.com/elasticbeanstalk/) details page. The location of the
 // latest AWS Elastic Beanstalk WSDL is http://elasticbeanstalk.s3.amazonaws.com/doc/2010-12-01/AWSElasticBeanstalk.wsdl
 // (http://elasticbeanstalk.s3.amazonaws.com/doc/2010-12-01/AWSElasticBeanstalk.wsdl).
 // To install the Software Development Kits (SDKs), Integrated Development Environment
 // (IDE) Toolkits, and command line tools that enable you to access the API,
-// go to Tools for Amazon Web Services (http://aws.amazon.com/tools/).
+// go to Tools for Amazon Web Services (https://aws.amazon.com/tools/).
 //
-// Endpoints
+//  Endpoints
 //
 // For a list of region-specific endpoints that AWS Elastic Beanstalk supports,
 // go to Regions and Endpoints (http://docs.aws.amazon.com/general/latest/gr/rande.html#elasticbeanstalk_region)
 // in the Amazon Web Services Glossary.
-// The service client's operations are safe to be used concurrently.
+//The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/elasticbeanstalk-2010-12-01
 type ElasticBeanstalk struct {
 	*client.Client
 }
@@ -41,11 +44,8 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// Service information constants
-const (
-	ServiceName = "elasticbeanstalk" // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName        // Service ID for Regions and Endpoints metadata.
-)
+// A ServiceName is the name of the service the client will make API calls to.
+const ServiceName = "elasticbeanstalk"
 
 // New creates a new instance of the ElasticBeanstalk client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -58,18 +58,17 @@ const (
 //     // Create a ElasticBeanstalk client with additional configuration
 //     svc := elasticbeanstalk.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *ElasticBeanstalk {
-	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	c := p.ClientConfig(ServiceName, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *ElasticBeanstalk {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *ElasticBeanstalk {
 	svc := &ElasticBeanstalk{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2010-12-01",
@@ -79,7 +78,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
+	svc.Handlers.Sign.PushBack(v4.Sign)
 	svc.Handlers.Build.PushBackNamed(query.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(query.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(query.UnmarshalMetaHandler)

@@ -6,10 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
-// WaitUntilInstanceProfileExists uses the IAM API operation
-// GetInstanceProfile to wait for a condition to be met before returning.
-// If the condition is not meet within the max attempt window an error will
-// be returned.
 func (c *IAM) WaitUntilInstanceProfileExists(input *GetInstanceProfileInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetInstanceProfile",
@@ -39,10 +35,6 @@ func (c *IAM) WaitUntilInstanceProfileExists(input *GetInstanceProfileInput) err
 	return w.Wait()
 }
 
-// WaitUntilUserExists uses the IAM API operation
-// GetUser to wait for a condition to be met before returning.
-// If the condition is not meet within the max attempt window an error will
-// be returned.
 func (c *IAM) WaitUntilUserExists(input *GetUserInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "GetUser",

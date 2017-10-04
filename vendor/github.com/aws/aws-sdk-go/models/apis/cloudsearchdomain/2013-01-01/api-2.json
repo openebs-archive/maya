@@ -4,11 +4,10 @@
     "apiVersion":"2013-01-01",
     "endpointPrefix":"cloudsearchdomain",
     "jsonVersion":"1.1",
-    "protocol":"rest-json",
     "serviceFullName":"Amazon CloudSearch Domain",
     "signatureVersion":"v4",
     "signingName":"cloudsearch",
-    "uid":"cloudsearchdomain-2013-01-01"
+    "protocol":"rest-json"
   },
   "operations":{
     "Search":{
@@ -20,7 +19,10 @@
       "input":{"shape":"SearchRequest"},
       "output":{"shape":"SearchResponse"},
       "errors":[
-        {"shape":"SearchException"}
+        {
+          "shape":"SearchException",
+          "exception":true
+        }
       ]
     },
     "Suggest":{
@@ -32,7 +34,10 @@
       "input":{"shape":"SuggestRequest"},
       "output":{"shape":"SuggestResponse"},
       "errors":[
-        {"shape":"SearchException"}
+        {
+          "shape":"SearchException",
+          "exception":true
+        }
       ]
     },
     "UploadDocuments":{
@@ -44,7 +49,10 @@
       "input":{"shape":"UploadDocumentsRequest"},
       "output":{"shape":"UploadDocumentsResponse"},
       "errors":[
-        {"shape":"DocumentServiceException"}
+        {
+          "shape":"DocumentServiceException",
+          "exception":true
+        }
       ]
     }
   },
@@ -98,7 +106,6 @@
       "type":"list",
       "member":{"shape":"DocumentServiceWarning"}
     },
-    "Double":{"type":"double"},
     "Expr":{"type":"string"},
     "Exprs":{
       "type":"map",
@@ -110,19 +117,6 @@
       "type":"map",
       "key":{"shape":"String"},
       "value":{"shape":"BucketInfo"}
-    },
-    "FieldStats":{
-      "type":"structure",
-      "members":{
-        "min":{"shape":"String"},
-        "max":{"shape":"String"},
-        "count":{"shape":"Long"},
-        "missing":{"shape":"Long"},
-        "sum":{"shape":"Double"},
-        "sumOfSquares":{"shape":"Double"},
-        "mean":{"shape":"String"},
-        "stddev":{"shape":"Double"}
-      }
     },
     "FieldValue":{
       "type":"list",
@@ -251,11 +245,6 @@
           "shape":"Start",
           "location":"querystring",
           "locationName":"start"
-        },
-        "stats":{
-          "shape":"Stat",
-          "location":"querystring",
-          "locationName":"stats"
         }
       }
     },
@@ -264,8 +253,7 @@
       "members":{
         "status":{"shape":"SearchStatus"},
         "hits":{"shape":"Hits"},
-        "facets":{"shape":"Facets"},
-        "stats":{"shape":"Stats"}
+        "facets":{"shape":"Facets"}
       }
     },
     "SearchStatus":{
@@ -278,12 +266,6 @@
     "Size":{"type":"long"},
     "Sort":{"type":"string"},
     "Start":{"type":"long"},
-    "Stat":{"type":"string"},
-    "Stats":{
-      "type":"map",
-      "key":{"shape":"String"},
-      "value":{"shape":"FieldStats"}
-    },
     "String":{"type":"string"},
     "SuggestModel":{
       "type":"structure",

@@ -4,7 +4,6 @@
 package route53domains
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -13,31 +12,7 @@ import (
 
 const opCheckDomainAvailability = "CheckDomainAvailability"
 
-// CheckDomainAvailabilityRequest generates a "aws/request.Request" representing the
-// client's request for the CheckDomainAvailability operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See CheckDomainAvailability for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the CheckDomainAvailability method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the CheckDomainAvailabilityRequest method.
-//    req, resp := client.CheckDomainAvailabilityRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainAvailability
+// CheckDomainAvailabilityRequest generates a request for the CheckDomainAvailability operation.
 func (c *Route53Domains) CheckDomainAvailabilityRequest(input *CheckDomainAvailabilityInput) (req *request.Request, output *CheckDomainAvailabilityOutput) {
 	op := &request.Operation{
 		Name:       opCheckDomainAvailability,
@@ -49,34 +24,16 @@ func (c *Route53Domains) CheckDomainAvailabilityRequest(input *CheckDomainAvaila
 		input = &CheckDomainAvailabilityInput{}
 	}
 
-	output = &CheckDomainAvailabilityOutput{}
 	req = c.newRequest(op, input, output)
+	output = &CheckDomainAvailabilityOutput{}
+	req.Data = output
 	return
 }
 
-// CheckDomainAvailability API operation for Amazon Route 53 Domains.
-//
-// This operation checks the availability of one domain name. Note that if the
-// availability status of a domain is pending, you must submit another request
-// to determine the availability of the domain name.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation CheckDomainAvailability for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainAvailability
+// This operation checks the availability of one domain name. You can access
+// this API without authenticating. Note that if the availability status of
+// a domain is pending, you must submit another request to determine the availability
+// of the domain name.
 func (c *Route53Domains) CheckDomainAvailability(input *CheckDomainAvailabilityInput) (*CheckDomainAvailabilityOutput, error) {
 	req, out := c.CheckDomainAvailabilityRequest(input)
 	err := req.Send()
@@ -85,31 +42,7 @@ func (c *Route53Domains) CheckDomainAvailability(input *CheckDomainAvailabilityI
 
 const opDeleteTagsForDomain = "DeleteTagsForDomain"
 
-// DeleteTagsForDomainRequest generates a "aws/request.Request" representing the
-// client's request for the DeleteTagsForDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See DeleteTagsForDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DeleteTagsForDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the DeleteTagsForDomainRequest method.
-//    req, resp := client.DeleteTagsForDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DeleteTagsForDomain
+// DeleteTagsForDomainRequest generates a request for the DeleteTagsForDomain operation.
 func (c *Route53Domains) DeleteTagsForDomainRequest(input *DeleteTagsForDomainInput) (req *request.Request, output *DeleteTagsForDomainOutput) {
 	op := &request.Operation{
 		Name:       opDeleteTagsForDomain,
@@ -121,39 +54,16 @@ func (c *Route53Domains) DeleteTagsForDomainRequest(input *DeleteTagsForDomainIn
 		input = &DeleteTagsForDomainInput{}
 	}
 
-	output = &DeleteTagsForDomainOutput{}
 	req = c.newRequest(op, input, output)
+	output = &DeleteTagsForDomainOutput{}
+	req.Data = output
 	return
 }
 
-// DeleteTagsForDomain API operation for Amazon Route 53 Domains.
-//
 // This operation deletes the specified tags for a domain.
 //
-// All tag operations are eventually consistent; subsequent operations may not
-// immediately represent all issued operations.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation DeleteTagsForDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DeleteTagsForDomain
+// All tag operations are eventually consistent; subsequent operations may
+// not immediately represent all issued operations.
 func (c *Route53Domains) DeleteTagsForDomain(input *DeleteTagsForDomainInput) (*DeleteTagsForDomainOutput, error) {
 	req, out := c.DeleteTagsForDomainRequest(input)
 	err := req.Send()
@@ -162,31 +72,7 @@ func (c *Route53Domains) DeleteTagsForDomain(input *DeleteTagsForDomainInput) (*
 
 const opDisableDomainAutoRenew = "DisableDomainAutoRenew"
 
-// DisableDomainAutoRenewRequest generates a "aws/request.Request" representing the
-// client's request for the DisableDomainAutoRenew operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See DisableDomainAutoRenew for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableDomainAutoRenew method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the DisableDomainAutoRenewRequest method.
-//    req, resp := client.DisableDomainAutoRenewRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainAutoRenew
+// DisableDomainAutoRenewRequest generates a request for the DisableDomainAutoRenew operation.
 func (c *Route53Domains) DisableDomainAutoRenewRequest(input *DisableDomainAutoRenewInput) (req *request.Request, output *DisableDomainAutoRenewOutput) {
 	op := &request.Operation{
 		Name:       opDisableDomainAutoRenew,
@@ -198,33 +84,19 @@ func (c *Route53Domains) DisableDomainAutoRenewRequest(input *DisableDomainAutoR
 		input = &DisableDomainAutoRenewInput{}
 	}
 
-	output = &DisableDomainAutoRenewOutput{}
 	req = c.newRequest(op, input, output)
+	output = &DisableDomainAutoRenewOutput{}
+	req.Data = output
 	return
 }
 
-// DisableDomainAutoRenew API operation for Amazon Route 53 Domains.
-//
 // This operation disables automatic renewal of domain registration for the
 // specified domain.
 //
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation DisableDomainAutoRenew for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainAutoRenew
+// Caution! Amazon Route 53 doesn't have a manual renewal process, so if you
+// disable automatic renewal, registration for the domain will not be renewed
+// when the expiration date passes, and you will lose control of the domain
+// name.
 func (c *Route53Domains) DisableDomainAutoRenew(input *DisableDomainAutoRenewInput) (*DisableDomainAutoRenewOutput, error) {
 	req, out := c.DisableDomainAutoRenewRequest(input)
 	err := req.Send()
@@ -233,31 +105,7 @@ func (c *Route53Domains) DisableDomainAutoRenew(input *DisableDomainAutoRenewInp
 
 const opDisableDomainTransferLock = "DisableDomainTransferLock"
 
-// DisableDomainTransferLockRequest generates a "aws/request.Request" representing the
-// client's request for the DisableDomainTransferLock operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See DisableDomainTransferLock for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the DisableDomainTransferLock method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the DisableDomainTransferLockRequest method.
-//    req, resp := client.DisableDomainTransferLockRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainTransferLock
+// DisableDomainTransferLockRequest generates a request for the DisableDomainTransferLock operation.
 func (c *Route53Domains) DisableDomainTransferLockRequest(input *DisableDomainTransferLockInput) (req *request.Request, output *DisableDomainTransferLockOutput) {
 	op := &request.Operation{
 		Name:       opDisableDomainTransferLock,
@@ -269,13 +117,12 @@ func (c *Route53Domains) DisableDomainTransferLockRequest(input *DisableDomainTr
 		input = &DisableDomainTransferLockInput{}
 	}
 
-	output = &DisableDomainTransferLockOutput{}
 	req = c.newRequest(op, input, output)
+	output = &DisableDomainTransferLockOutput{}
+	req.Data = output
 	return
 }
 
-// DisableDomainTransferLock API operation for Amazon Route 53 Domains.
-//
 // This operation removes the transfer lock on the domain (specifically the
 // clientTransferProhibited status) to allow domain transfers. We recommend
 // you refrain from performing this action unless you intend to transfer the
@@ -283,34 +130,6 @@ func (c *Route53Domains) DisableDomainTransferLockRequest(input *DisableDomainTr
 // ID that you can use to track the progress and completion of the action. If
 // the request is not completed successfully, the domain registrant will be
 // notified by email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation DisableDomainTransferLock for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainTransferLock
 func (c *Route53Domains) DisableDomainTransferLock(input *DisableDomainTransferLockInput) (*DisableDomainTransferLockOutput, error) {
 	req, out := c.DisableDomainTransferLockRequest(input)
 	err := req.Send()
@@ -319,31 +138,7 @@ func (c *Route53Domains) DisableDomainTransferLock(input *DisableDomainTransferL
 
 const opEnableDomainAutoRenew = "EnableDomainAutoRenew"
 
-// EnableDomainAutoRenewRequest generates a "aws/request.Request" representing the
-// client's request for the EnableDomainAutoRenew operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See EnableDomainAutoRenew for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableDomainAutoRenew method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the EnableDomainAutoRenewRequest method.
-//    req, resp := client.EnableDomainAutoRenewRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainAutoRenew
+// EnableDomainAutoRenewRequest generates a request for the EnableDomainAutoRenew operation.
 func (c *Route53Domains) EnableDomainAutoRenewRequest(input *EnableDomainAutoRenewInput) (req *request.Request, output *EnableDomainAutoRenewOutput) {
 	op := &request.Operation{
 		Name:       opEnableDomainAutoRenew,
@@ -355,13 +150,12 @@ func (c *Route53Domains) EnableDomainAutoRenewRequest(input *EnableDomainAutoRen
 		input = &EnableDomainAutoRenewInput{}
 	}
 
-	output = &EnableDomainAutoRenewOutput{}
 	req = c.newRequest(op, input, output)
+	output = &EnableDomainAutoRenewOutput{}
+	req.Data = output
 	return
 }
 
-// EnableDomainAutoRenew API operation for Amazon Route 53 Domains.
-//
 // This operation configures Amazon Route 53 to automatically renew the specified
 // domain before the domain registration expires. The cost of renewing your
 // domain registration is billed to your AWS account.
@@ -372,27 +166,6 @@ func (c *Route53Domains) EnableDomainAutoRenewRequest(input *EnableDomainAutoRen
 // on the website for our registrar partner, Gandi. Route 53 requires that you
 // renew before the end of the renewal period that is listed on the Gandi website
 // so we can complete processing before the deadline.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation EnableDomainAutoRenew for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainAutoRenew
 func (c *Route53Domains) EnableDomainAutoRenew(input *EnableDomainAutoRenewInput) (*EnableDomainAutoRenewOutput, error) {
 	req, out := c.EnableDomainAutoRenewRequest(input)
 	err := req.Send()
@@ -401,31 +174,7 @@ func (c *Route53Domains) EnableDomainAutoRenew(input *EnableDomainAutoRenewInput
 
 const opEnableDomainTransferLock = "EnableDomainTransferLock"
 
-// EnableDomainTransferLockRequest generates a "aws/request.Request" representing the
-// client's request for the EnableDomainTransferLock operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See EnableDomainTransferLock for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the EnableDomainTransferLock method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the EnableDomainTransferLockRequest method.
-//    req, resp := client.EnableDomainTransferLockRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainTransferLock
+// EnableDomainTransferLockRequest generates a request for the EnableDomainTransferLock operation.
 func (c *Route53Domains) EnableDomainTransferLockRequest(input *EnableDomainTransferLockInput) (req *request.Request, output *EnableDomainTransferLockOutput) {
 	op := &request.Operation{
 		Name:       opEnableDomainTransferLock,
@@ -437,158 +186,26 @@ func (c *Route53Domains) EnableDomainTransferLockRequest(input *EnableDomainTran
 		input = &EnableDomainTransferLockInput{}
 	}
 
-	output = &EnableDomainTransferLockOutput{}
 	req = c.newRequest(op, input, output)
+	output = &EnableDomainTransferLockOutput{}
+	req.Data = output
 	return
 }
 
-// EnableDomainTransferLock API operation for Amazon Route 53 Domains.
-//
 // This operation sets the transfer lock on the domain (specifically the clientTransferProhibited
 // status) to prevent domain transfers. Successful submission returns an operation
 // ID that you can use to track the progress and completion of the action. If
 // the request is not completed successfully, the domain registrant will be
 // notified by email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation EnableDomainTransferLock for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainTransferLock
 func (c *Route53Domains) EnableDomainTransferLock(input *EnableDomainTransferLockInput) (*EnableDomainTransferLockOutput, error) {
 	req, out := c.EnableDomainTransferLockRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opGetContactReachabilityStatus = "GetContactReachabilityStatus"
-
-// GetContactReachabilityStatusRequest generates a "aws/request.Request" representing the
-// client's request for the GetContactReachabilityStatus operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See GetContactReachabilityStatus for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetContactReachabilityStatus method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the GetContactReachabilityStatusRequest method.
-//    req, resp := client.GetContactReachabilityStatusRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetContactReachabilityStatus
-func (c *Route53Domains) GetContactReachabilityStatusRequest(input *GetContactReachabilityStatusInput) (req *request.Request, output *GetContactReachabilityStatusOutput) {
-	op := &request.Operation{
-		Name:       opGetContactReachabilityStatus,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &GetContactReachabilityStatusInput{}
-	}
-
-	output = &GetContactReachabilityStatusOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// GetContactReachabilityStatus API operation for Amazon Route 53 Domains.
-//
-// For operations that require confirmation that the email address for the registrant
-// contact is valid, such as registering a new domain, this operation returns
-// information about whether the registrant contact has responded.
-//
-// If you want us to resend the email, use the ResendContactReachabilityEmail
-// operation.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation GetContactReachabilityStatus for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetContactReachabilityStatus
-func (c *Route53Domains) GetContactReachabilityStatus(input *GetContactReachabilityStatusInput) (*GetContactReachabilityStatusOutput, error) {
-	req, out := c.GetContactReachabilityStatusRequest(input)
-	err := req.Send()
-	return out, err
-}
-
 const opGetDomainDetail = "GetDomainDetail"
 
-// GetDomainDetailRequest generates a "aws/request.Request" representing the
-// client's request for the GetDomainDetail operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See GetDomainDetail for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDomainDetail method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the GetDomainDetailRequest method.
-//    req, resp := client.GetDomainDetailRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainDetail
+// GetDomainDetailRequest generates a request for the GetDomainDetail operation.
 func (c *Route53Domains) GetDomainDetailRequest(input *GetDomainDetailInput) (req *request.Request, output *GetDomainDetailOutput) {
 	op := &request.Operation{
 		Name:       opGetDomainDetail,
@@ -600,148 +217,23 @@ func (c *Route53Domains) GetDomainDetailRequest(input *GetDomainDetailInput) (re
 		input = &GetDomainDetailInput{}
 	}
 
-	output = &GetDomainDetailOutput{}
 	req = c.newRequest(op, input, output)
+	output = &GetDomainDetailOutput{}
+	req.Data = output
 	return
 }
 
-// GetDomainDetail API operation for Amazon Route 53 Domains.
-//
 // This operation returns detailed information about the domain. The domain's
 // contact information is also returned as part of the output.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation GetDomainDetail for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainDetail
 func (c *Route53Domains) GetDomainDetail(input *GetDomainDetailInput) (*GetDomainDetailOutput, error) {
 	req, out := c.GetDomainDetailRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opGetDomainSuggestions = "GetDomainSuggestions"
-
-// GetDomainSuggestionsRequest generates a "aws/request.Request" representing the
-// client's request for the GetDomainSuggestions operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See GetDomainSuggestions for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetDomainSuggestions method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the GetDomainSuggestionsRequest method.
-//    req, resp := client.GetDomainSuggestionsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainSuggestions
-func (c *Route53Domains) GetDomainSuggestionsRequest(input *GetDomainSuggestionsInput) (req *request.Request, output *GetDomainSuggestionsOutput) {
-	op := &request.Operation{
-		Name:       opGetDomainSuggestions,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &GetDomainSuggestionsInput{}
-	}
-
-	output = &GetDomainSuggestionsOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// GetDomainSuggestions API operation for Amazon Route 53 Domains.
-//
-// The GetDomainSuggestions operation returns a list of suggested domain names
-// given a string, which can either be a domain name or simply a word or phrase
-// (without spaces).
-//
-// Parameters: DomainName (string): The basis for your domain suggestion search,
-// a string with (or without) top-level domain specified.
-// SuggestionCount (int): The number of domain suggestions to be returned, maximum
-// 50, minimum 1.
-// OnlyAvailable (bool): If true, availability check will be performed on suggestion
-// results, and only available domains will be returned. If false, suggestions
-// will be returned without checking whether the domain is actually available,
-// and caller will have to call checkDomainAvailability for each suggestion
-// to determine availability for registration.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation GetDomainSuggestions for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainSuggestions
-func (c *Route53Domains) GetDomainSuggestions(input *GetDomainSuggestionsInput) (*GetDomainSuggestionsOutput, error) {
-	req, out := c.GetDomainSuggestionsRequest(input)
-	err := req.Send()
-	return out, err
-}
-
 const opGetOperationDetail = "GetOperationDetail"
 
-// GetOperationDetailRequest generates a "aws/request.Request" representing the
-// client's request for the GetOperationDetail operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See GetOperationDetail for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the GetOperationDetail method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the GetOperationDetailRequest method.
-//    req, resp := client.GetOperationDetailRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetOperationDetail
+// GetOperationDetailRequest generates a request for the GetOperationDetail operation.
 func (c *Route53Domains) GetOperationDetailRequest(input *GetOperationDetailInput) (req *request.Request, output *GetOperationDetailOutput) {
 	op := &request.Operation{
 		Name:       opGetOperationDetail,
@@ -753,29 +245,13 @@ func (c *Route53Domains) GetOperationDetailRequest(input *GetOperationDetailInpu
 		input = &GetOperationDetailInput{}
 	}
 
-	output = &GetOperationDetailOutput{}
 	req = c.newRequest(op, input, output)
+	output = &GetOperationDetailOutput{}
+	req.Data = output
 	return
 }
 
-// GetOperationDetail API operation for Amazon Route 53 Domains.
-//
 // This operation returns the current status of an operation that is not completed.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation GetOperationDetail for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetOperationDetail
 func (c *Route53Domains) GetOperationDetail(input *GetOperationDetailInput) (*GetOperationDetailOutput, error) {
 	req, out := c.GetOperationDetailRequest(input)
 	err := req.Send()
@@ -784,31 +260,7 @@ func (c *Route53Domains) GetOperationDetail(input *GetOperationDetailInput) (*Ge
 
 const opListDomains = "ListDomains"
 
-// ListDomainsRequest generates a "aws/request.Request" representing the
-// client's request for the ListDomains operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See ListDomains for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListDomains method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the ListDomainsRequest method.
-//    req, resp := client.ListDomainsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListDomains
+// ListDomainsRequest generates a request for the ListDomains operation.
 func (c *Route53Domains) ListDomainsRequest(input *ListDomainsInput) (req *request.Request, output *ListDomainsOutput) {
 	op := &request.Operation{
 		Name:       opListDomains,
@@ -826,53 +278,20 @@ func (c *Route53Domains) ListDomainsRequest(input *ListDomainsInput) (req *reque
 		input = &ListDomainsInput{}
 	}
 
-	output = &ListDomainsOutput{}
 	req = c.newRequest(op, input, output)
+	output = &ListDomainsOutput{}
+	req.Data = output
 	return
 }
 
-// ListDomains API operation for Amazon Route 53 Domains.
-//
 // This operation returns all the domain names registered with Amazon Route
 // 53 for the current AWS account.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation ListDomains for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListDomains
 func (c *Route53Domains) ListDomains(input *ListDomainsInput) (*ListDomainsOutput, error) {
 	req, out := c.ListDomainsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-// ListDomainsPages iterates over the pages of a ListDomains operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListDomains method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListDomains operation.
-//    pageNum := 0
-//    err := client.ListDomainsPages(params,
-//        func(page *ListDomainsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
 func (c *Route53Domains) ListDomainsPages(input *ListDomainsInput, fn func(p *ListDomainsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListDomainsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -883,31 +302,7 @@ func (c *Route53Domains) ListDomainsPages(input *ListDomainsInput, fn func(p *Li
 
 const opListOperations = "ListOperations"
 
-// ListOperationsRequest generates a "aws/request.Request" representing the
-// client's request for the ListOperations operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See ListOperations for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListOperations method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the ListOperationsRequest method.
-//    req, resp := client.ListOperationsRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListOperations
+// ListOperationsRequest generates a request for the ListOperations operation.
 func (c *Route53Domains) ListOperationsRequest(input *ListOperationsInput) (req *request.Request, output *ListOperationsOutput) {
 	op := &request.Operation{
 		Name:       opListOperations,
@@ -925,52 +320,19 @@ func (c *Route53Domains) ListOperationsRequest(input *ListOperationsInput) (req 
 		input = &ListOperationsInput{}
 	}
 
-	output = &ListOperationsOutput{}
 	req = c.newRequest(op, input, output)
+	output = &ListOperationsOutput{}
+	req.Data = output
 	return
 }
 
-// ListOperations API operation for Amazon Route 53 Domains.
-//
 // This operation returns the operation IDs of operations that are not yet complete.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation ListOperations for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListOperations
 func (c *Route53Domains) ListOperations(input *ListOperationsInput) (*ListOperationsOutput, error) {
 	req, out := c.ListOperationsRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-// ListOperationsPages iterates over the pages of a ListOperations operation,
-// calling the "fn" function with the response data for each page. To stop
-// iterating, return false from the fn function.
-//
-// See ListOperations method for more information on how to use this operation.
-//
-// Note: This operation can generate multiple requests to a service.
-//
-//    // Example iterating over at most 3 pages of a ListOperations operation.
-//    pageNum := 0
-//    err := client.ListOperationsPages(params,
-//        func(page *ListOperationsOutput, lastPage bool) bool {
-//            pageNum++
-//            fmt.Println(page)
-//            return pageNum <= 3
-//        })
-//
 func (c *Route53Domains) ListOperationsPages(input *ListOperationsInput, fn func(p *ListOperationsOutput, lastPage bool) (shouldContinue bool)) error {
 	page, _ := c.ListOperationsRequest(input)
 	page.Handlers.Build.PushBack(request.MakeAddToUserAgentFreeFormHandler("Paginator"))
@@ -981,31 +343,7 @@ func (c *Route53Domains) ListOperationsPages(input *ListOperationsInput, fn func
 
 const opListTagsForDomain = "ListTagsForDomain"
 
-// ListTagsForDomainRequest generates a "aws/request.Request" representing the
-// client's request for the ListTagsForDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See ListTagsForDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ListTagsForDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the ListTagsForDomainRequest method.
-//    req, resp := client.ListTagsForDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListTagsForDomain
+// ListTagsForDomainRequest generates a request for the ListTagsForDomain operation.
 func (c *Route53Domains) ListTagsForDomainRequest(input *ListTagsForDomainInput) (req *request.Request, output *ListTagsForDomainOutput) {
 	op := &request.Operation{
 		Name:       opListTagsForDomain,
@@ -1017,40 +355,17 @@ func (c *Route53Domains) ListTagsForDomainRequest(input *ListTagsForDomainInput)
 		input = &ListTagsForDomainInput{}
 	}
 
-	output = &ListTagsForDomainOutput{}
 	req = c.newRequest(op, input, output)
+	output = &ListTagsForDomainOutput{}
+	req.Data = output
 	return
 }
 
-// ListTagsForDomain API operation for Amazon Route 53 Domains.
-//
 // This operation returns all of the tags that are associated with the specified
 // domain.
 //
-// All tag operations are eventually consistent; subsequent operations may not
-// immediately represent all issued operations.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation ListTagsForDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListTagsForDomain
+// All tag operations are eventually consistent; subsequent operations may
+// not immediately represent all issued operations.
 func (c *Route53Domains) ListTagsForDomain(input *ListTagsForDomainInput) (*ListTagsForDomainOutput, error) {
 	req, out := c.ListTagsForDomainRequest(input)
 	err := req.Send()
@@ -1059,31 +374,7 @@ func (c *Route53Domains) ListTagsForDomain(input *ListTagsForDomainInput) (*List
 
 const opRegisterDomain = "RegisterDomain"
 
-// RegisterDomainRequest generates a "aws/request.Request" representing the
-// client's request for the RegisterDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See RegisterDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RegisterDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the RegisterDomainRequest method.
-//    req, resp := client.RegisterDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RegisterDomain
+// RegisterDomainRequest generates a request for the RegisterDomain operation.
 func (c *Route53Domains) RegisterDomainRequest(input *RegisterDomainInput) (req *request.Request, output *RegisterDomainOutput) {
 	op := &request.Operation{
 		Name:       opRegisterDomain,
@@ -1095,262 +386,40 @@ func (c *Route53Domains) RegisterDomainRequest(input *RegisterDomainInput) (req 
 		input = &RegisterDomainInput{}
 	}
 
-	output = &RegisterDomainOutput{}
 	req = c.newRequest(op, input, output)
+	output = &RegisterDomainOutput{}
+	req.Data = output
 	return
 }
 
-// RegisterDomain API operation for Amazon Route 53 Domains.
-//
 // This operation registers a domain. Domains are registered by the AWS registrar
 // partner, Gandi. For some top-level domains (TLDs), this operation requires
 // extra parameters.
 //
 // When you register a domain, Amazon Route 53 does the following:
 //
-//    * Creates a Amazon Route 53 hosted zone that has the same name as the
-//    domain. Amazon Route 53 assigns four name servers to your hosted zone
-//    and automatically updates your domain registration with the names of these
-//    name servers.
-//    * Enables autorenew, so your domain registration will renew automatically
-//    each year. We'll notify you in advance of the renewal date so you can
-//    choose whether to renew the registration.
-//    * Optionally enables privacy protection, so WHOIS queries return contact
-//    information for our registrar partner, Gandi, instead of the information
-//    you entered for registrant, admin, and tech contacts.
-//    * If registration is successful, returns an operation ID that you can
-//    use to track the progress and completion of the action. If the request
-//    is not completed successfully, the domain registrant is notified by email.
-//
-//    * Charges your AWS account an amount based on the top-level domain. For
-//    more information, see Amazon Route 53 Pricing (http://aws.amazon.com/route53/pricing/).
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation RegisterDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * DomainLimitExceeded
-//   The number of domains has exceeded the allowed threshold for the account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RegisterDomain
+//  Creates a Amazon Route 53 hosted zone that has the same name as the domain.
+// Amazon Route 53 assigns four name servers to your hosted zone and automatically
+// updates your domain registration with the names of these name servers. Enables
+// autorenew, so your domain registration will renew automatically each year.
+// We'll notify you in advance of the renewal date so you can choose whether
+// to renew the registration. Optionally enables privacy protection, so WHOIS
+// queries return contact information for our registrar partner, Gandi, instead
+// of the information you entered for registrant, admin, and tech contacts.
+// If registration is successful, returns an operation ID that you can use to
+// track the progress and completion of the action. If the request is not completed
+// successfully, the domain registrant is notified by email. Charges your AWS
+// account an amount based on the top-level domain. For more information, see
+// Amazon Route 53 Pricing (http://aws.amazon.com/route53/pricing/).
 func (c *Route53Domains) RegisterDomain(input *RegisterDomainInput) (*RegisterDomainOutput, error) {
 	req, out := c.RegisterDomainRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opRenewDomain = "RenewDomain"
-
-// RenewDomainRequest generates a "aws/request.Request" representing the
-// client's request for the RenewDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See RenewDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RenewDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the RenewDomainRequest method.
-//    req, resp := client.RenewDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RenewDomain
-func (c *Route53Domains) RenewDomainRequest(input *RenewDomainInput) (req *request.Request, output *RenewDomainOutput) {
-	op := &request.Operation{
-		Name:       opRenewDomain,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &RenewDomainInput{}
-	}
-
-	output = &RenewDomainOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// RenewDomain API operation for Amazon Route 53 Domains.
-//
-// This operation renews a domain for the specified number of years. The cost
-// of renewing your domain is billed to your AWS account.
-//
-// We recommend that you renew your domain several weeks before the expiration
-// date. Some TLD registries delete domains before the expiration date if you
-// haven't renewed far enough in advance. For more information about renewing
-// domain registration, see Renewing Registration for a Domain (http://docs.aws.amazon.com/console/route53/domain-renew)
-// in the Amazon Route 53 documentation.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation RenewDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RenewDomain
-func (c *Route53Domains) RenewDomain(input *RenewDomainInput) (*RenewDomainOutput, error) {
-	req, out := c.RenewDomainRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-const opResendContactReachabilityEmail = "ResendContactReachabilityEmail"
-
-// ResendContactReachabilityEmailRequest generates a "aws/request.Request" representing the
-// client's request for the ResendContactReachabilityEmail operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See ResendContactReachabilityEmail for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ResendContactReachabilityEmail method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the ResendContactReachabilityEmailRequest method.
-//    req, resp := client.ResendContactReachabilityEmailRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ResendContactReachabilityEmail
-func (c *Route53Domains) ResendContactReachabilityEmailRequest(input *ResendContactReachabilityEmailInput) (req *request.Request, output *ResendContactReachabilityEmailOutput) {
-	op := &request.Operation{
-		Name:       opResendContactReachabilityEmail,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &ResendContactReachabilityEmailInput{}
-	}
-
-	output = &ResendContactReachabilityEmailOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// ResendContactReachabilityEmail API operation for Amazon Route 53 Domains.
-//
-// For operations that require confirmation that the email address for the registrant
-// contact is valid, such as registering a new domain, this operation resends
-// the confirmation email to the current email address for the registrant contact.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation ResendContactReachabilityEmail for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ResendContactReachabilityEmail
-func (c *Route53Domains) ResendContactReachabilityEmail(input *ResendContactReachabilityEmailInput) (*ResendContactReachabilityEmailOutput, error) {
-	req, out := c.ResendContactReachabilityEmailRequest(input)
-	err := req.Send()
-	return out, err
-}
-
 const opRetrieveDomainAuthCode = "RetrieveDomainAuthCode"
 
-// RetrieveDomainAuthCodeRequest generates a "aws/request.Request" representing the
-// client's request for the RetrieveDomainAuthCode operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See RetrieveDomainAuthCode for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the RetrieveDomainAuthCode method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the RetrieveDomainAuthCodeRequest method.
-//    req, resp := client.RetrieveDomainAuthCodeRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RetrieveDomainAuthCode
+// RetrieveDomainAuthCodeRequest generates a request for the RetrieveDomainAuthCode operation.
 func (c *Route53Domains) RetrieveDomainAuthCodeRequest(input *RetrieveDomainAuthCodeInput) (req *request.Request, output *RetrieveDomainAuthCodeOutput) {
 	op := &request.Operation{
 		Name:       opRetrieveDomainAuthCode,
@@ -1362,33 +431,14 @@ func (c *Route53Domains) RetrieveDomainAuthCodeRequest(input *RetrieveDomainAuth
 		input = &RetrieveDomainAuthCodeInput{}
 	}
 
-	output = &RetrieveDomainAuthCodeOutput{}
 	req = c.newRequest(op, input, output)
+	output = &RetrieveDomainAuthCodeOutput{}
+	req.Data = output
 	return
 }
 
-// RetrieveDomainAuthCode API operation for Amazon Route 53 Domains.
-//
 // This operation returns the AuthCode for the domain. To transfer a domain
 // to another registrar, you provide this value to the new registrar.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation RetrieveDomainAuthCode for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RetrieveDomainAuthCode
 func (c *Route53Domains) RetrieveDomainAuthCode(input *RetrieveDomainAuthCodeInput) (*RetrieveDomainAuthCodeOutput, error) {
 	req, out := c.RetrieveDomainAuthCodeRequest(input)
 	err := req.Send()
@@ -1397,31 +447,7 @@ func (c *Route53Domains) RetrieveDomainAuthCode(input *RetrieveDomainAuthCodeInp
 
 const opTransferDomain = "TransferDomain"
 
-// TransferDomainRequest generates a "aws/request.Request" representing the
-// client's request for the TransferDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See TransferDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the TransferDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the TransferDomainRequest method.
-//    req, resp := client.TransferDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/TransferDomain
+// TransferDomainRequest generates a request for the TransferDomain operation.
 func (c *Route53Domains) TransferDomainRequest(input *TransferDomainInput) (req *request.Request, output *TransferDomainOutput) {
 	op := &request.Operation{
 		Name:       opTransferDomain,
@@ -1433,13 +459,12 @@ func (c *Route53Domains) TransferDomainRequest(input *TransferDomainInput) (req 
 		input = &TransferDomainInput{}
 	}
 
-	output = &TransferDomainOutput{}
 	req = c.newRequest(op, input, output)
+	output = &TransferDomainOutput{}
+	req.Data = output
 	return
 }
 
-// TransferDomain API operation for Amazon Route 53 Domains.
-//
 // This operation transfers a domain from another registrar to Amazon Route
 // 53. When the transfer is complete, the domain is registered with the AWS
 // registrar partner, Gandi.
@@ -1460,41 +485,10 @@ func (c *Route53Domains) TransferDomainRequest(input *TransferDomainInput) (req 
 // Caution! If the registrar for your domain is also the DNS service provider
 // for the domain and you don't transfer DNS service to another provider, your
 // website, email, and the web applications associated with the domain might
-// become unavailable.If the transfer is successful, this method returns an operation ID that you
-// can use to track the progress and completion of the action. If the transfer
-// doesn't complete successfully, the domain registrant will be notified by
-// email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation TransferDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * DomainLimitExceeded
-//   The number of domains has exceeded the allowed threshold for the account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/TransferDomain
+// become unavailable. If the transfer is successful, this method returns an
+// operation ID that you can use to track the progress and completion of the
+// action. If the transfer doesn't complete successfully, the domain registrant
+// will be notified by email.
 func (c *Route53Domains) TransferDomain(input *TransferDomainInput) (*TransferDomainOutput, error) {
 	req, out := c.TransferDomainRequest(input)
 	err := req.Send()
@@ -1503,31 +497,7 @@ func (c *Route53Domains) TransferDomain(input *TransferDomainInput) (*TransferDo
 
 const opUpdateDomainContact = "UpdateDomainContact"
 
-// UpdateDomainContactRequest generates a "aws/request.Request" representing the
-// client's request for the UpdateDomainContact operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See UpdateDomainContact for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDomainContact method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the UpdateDomainContactRequest method.
-//    req, resp := client.UpdateDomainContactRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContact
+// UpdateDomainContactRequest generates a request for the UpdateDomainContact operation.
 func (c *Route53Domains) UpdateDomainContactRequest(input *UpdateDomainContactInput) (req *request.Request, output *UpdateDomainContactOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDomainContact,
@@ -1539,13 +509,12 @@ func (c *Route53Domains) UpdateDomainContactRequest(input *UpdateDomainContactIn
 		input = &UpdateDomainContactInput{}
 	}
 
-	output = &UpdateDomainContactOutput{}
 	req = c.newRequest(op, input, output)
+	output = &UpdateDomainContactOutput{}
+	req.Data = output
 	return
 }
 
-// UpdateDomainContact API operation for Amazon Route 53 Domains.
-//
 // This operation updates the contact information for a particular domain. Information
 // for at least one contact (registrant, administrator, or technical) must be
 // supplied for update.
@@ -1554,34 +523,6 @@ func (c *Route53Domains) UpdateDomainContactRequest(input *UpdateDomainContactIn
 // can use to track the progress and completion of the action. If the request
 // is not completed successfully, the domain registrant will be notified by
 // email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation UpdateDomainContact for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContact
 func (c *Route53Domains) UpdateDomainContact(input *UpdateDomainContactInput) (*UpdateDomainContactOutput, error) {
 	req, out := c.UpdateDomainContactRequest(input)
 	err := req.Send()
@@ -1590,31 +531,7 @@ func (c *Route53Domains) UpdateDomainContact(input *UpdateDomainContactInput) (*
 
 const opUpdateDomainContactPrivacy = "UpdateDomainContactPrivacy"
 
-// UpdateDomainContactPrivacyRequest generates a "aws/request.Request" representing the
-// client's request for the UpdateDomainContactPrivacy operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See UpdateDomainContactPrivacy for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDomainContactPrivacy method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the UpdateDomainContactPrivacyRequest method.
-//    req, resp := client.UpdateDomainContactPrivacyRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactPrivacy
+// UpdateDomainContactPrivacyRequest generates a request for the UpdateDomainContactPrivacy operation.
 func (c *Route53Domains) UpdateDomainContactPrivacyRequest(input *UpdateDomainContactPrivacyInput) (req *request.Request, output *UpdateDomainContactPrivacyOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDomainContactPrivacy,
@@ -1626,52 +543,23 @@ func (c *Route53Domains) UpdateDomainContactPrivacyRequest(input *UpdateDomainCo
 		input = &UpdateDomainContactPrivacyInput{}
 	}
 
-	output = &UpdateDomainContactPrivacyOutput{}
 	req = c.newRequest(op, input, output)
+	output = &UpdateDomainContactPrivacyOutput{}
+	req.Data = output
 	return
 }
 
-// UpdateDomainContactPrivacy API operation for Amazon Route 53 Domains.
-//
 // This operation updates the specified domain contact's privacy setting. When
 // the privacy option is enabled, personal information such as postal or email
 // address is hidden from the results of a public WHOIS query. The privacy services
 // are provided by the AWS registrar, Gandi. For more information, see the Gandi
-// privacy features (http://www.gandi.net/domain/whois/?currency=USD&lang=en).
+// privacy features (http://www.gandi.net/domain/whois/?currency=USD&amp;lang=en).
 //
 // This operation only affects the privacy of the specified contact type (registrant,
 // administrator, or tech). Successful acceptance returns an operation ID that
 // you can use with GetOperationDetail to track the progress and completion
 // of the action. If the request is not completed successfully, the domain registrant
 // will be notified by email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation UpdateDomainContactPrivacy for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactPrivacy
 func (c *Route53Domains) UpdateDomainContactPrivacy(input *UpdateDomainContactPrivacyInput) (*UpdateDomainContactPrivacyOutput, error) {
 	req, out := c.UpdateDomainContactPrivacyRequest(input)
 	err := req.Send()
@@ -1680,31 +568,7 @@ func (c *Route53Domains) UpdateDomainContactPrivacy(input *UpdateDomainContactPr
 
 const opUpdateDomainNameservers = "UpdateDomainNameservers"
 
-// UpdateDomainNameserversRequest generates a "aws/request.Request" representing the
-// client's request for the UpdateDomainNameservers operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See UpdateDomainNameservers for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateDomainNameservers method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the UpdateDomainNameserversRequest method.
-//    req, resp := client.UpdateDomainNameserversRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainNameservers
+// UpdateDomainNameserversRequest generates a request for the UpdateDomainNameservers operation.
 func (c *Route53Domains) UpdateDomainNameserversRequest(input *UpdateDomainNameserversInput) (req *request.Request, output *UpdateDomainNameserversOutput) {
 	op := &request.Operation{
 		Name:       opUpdateDomainNameservers,
@@ -1716,13 +580,12 @@ func (c *Route53Domains) UpdateDomainNameserversRequest(input *UpdateDomainNames
 		input = &UpdateDomainNameserversInput{}
 	}
 
-	output = &UpdateDomainNameserversOutput{}
 	req = c.newRequest(op, input, output)
+	output = &UpdateDomainNameserversOutput{}
+	req.Data = output
 	return
 }
 
-// UpdateDomainNameservers API operation for Amazon Route 53 Domains.
-//
 // This operation replaces the current set of name servers for the domain with
 // the specified set of name servers. If you use Amazon Route 53 as your DNS
 // service, specify the four name servers in the delegation set for the hosted
@@ -1731,34 +594,6 @@ func (c *Route53Domains) UpdateDomainNameserversRequest(input *UpdateDomainNames
 // If successful, this operation returns an operation ID that you can use to
 // track the progress and completion of the action. If the request is not completed
 // successfully, the domain registrant will be notified by email.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation UpdateDomainNameservers for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * DuplicateRequest
-//   The request is already in progress for the domain.
-//
-//   * TLDRulesViolation
-//   The top-level domain does not support this operation.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainNameservers
 func (c *Route53Domains) UpdateDomainNameservers(input *UpdateDomainNameserversInput) (*UpdateDomainNameserversOutput, error) {
 	req, out := c.UpdateDomainNameserversRequest(input)
 	err := req.Send()
@@ -1767,31 +602,7 @@ func (c *Route53Domains) UpdateDomainNameservers(input *UpdateDomainNameserversI
 
 const opUpdateTagsForDomain = "UpdateTagsForDomain"
 
-// UpdateTagsForDomainRequest generates a "aws/request.Request" representing the
-// client's request for the UpdateTagsForDomain operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See UpdateTagsForDomain for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the UpdateTagsForDomain method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the UpdateTagsForDomainRequest method.
-//    req, resp := client.UpdateTagsForDomainRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateTagsForDomain
+// UpdateTagsForDomainRequest generates a request for the UpdateTagsForDomain operation.
 func (c *Route53Domains) UpdateTagsForDomainRequest(input *UpdateTagsForDomainInput) (req *request.Request, output *UpdateTagsForDomainOutput) {
 	op := &request.Operation{
 		Name:       opUpdateTagsForDomain,
@@ -1803,192 +614,23 @@ func (c *Route53Domains) UpdateTagsForDomainRequest(input *UpdateTagsForDomainIn
 		input = &UpdateTagsForDomainInput{}
 	}
 
-	output = &UpdateTagsForDomainOutput{}
 	req = c.newRequest(op, input, output)
+	output = &UpdateTagsForDomainOutput{}
+	req.Data = output
 	return
 }
 
-// UpdateTagsForDomain API operation for Amazon Route 53 Domains.
-//
 // This operation adds or updates tags for a specified domain.
 //
-// All tag operations are eventually consistent; subsequent operations may not
-// immediately represent all issued operations.
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation UpdateTagsForDomain for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-//   * OperationLimitExceeded
-//   The number of operations or jobs running exceeded the allowed threshold for
-//   the account.
-//
-//   * UnsupportedTLD
-//   Amazon Route 53 does not support this top-level domain.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateTagsForDomain
+// All tag operations are eventually consistent; subsequent operations may
+// not immediately represent all issued operations.
 func (c *Route53Domains) UpdateTagsForDomain(input *UpdateTagsForDomainInput) (*UpdateTagsForDomainOutput, error) {
 	req, out := c.UpdateTagsForDomainRequest(input)
 	err := req.Send()
 	return out, err
 }
 
-const opViewBilling = "ViewBilling"
-
-// ViewBillingRequest generates a "aws/request.Request" representing the
-// client's request for the ViewBilling operation. The "output" return
-// value can be used to capture response data after the request's "Send" method
-// is called.
-//
-// See ViewBilling for usage and error information.
-//
-// Creating a request object using this method should be used when you want to inject
-// custom logic into the request's lifecycle using a custom handler, or if you want to
-// access properties on the request object before or after sending the request. If
-// you just want the service response, call the ViewBilling method directly
-// instead.
-//
-// Note: You must call the "Send" method on the returned request object in order
-// to execute the request.
-//
-//    // Example sending a request using the ViewBillingRequest method.
-//    req, resp := client.ViewBillingRequest(params)
-//
-//    err := req.Send()
-//    if err == nil { // resp is now filled
-//        fmt.Println(resp)
-//    }
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ViewBilling
-func (c *Route53Domains) ViewBillingRequest(input *ViewBillingInput) (req *request.Request, output *ViewBillingOutput) {
-	op := &request.Operation{
-		Name:       opViewBilling,
-		HTTPMethod: "POST",
-		HTTPPath:   "/",
-	}
-
-	if input == nil {
-		input = &ViewBillingInput{}
-	}
-
-	output = &ViewBillingOutput{}
-	req = c.newRequest(op, input, output)
-	return
-}
-
-// ViewBilling API operation for Amazon Route 53 Domains.
-//
-// This operation returns all the domain-related billing records for the current
-// AWS account for a specified period
-//
-// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
-// with awserr.Error's Code and Message methods to get detailed information about
-// the error.
-//
-// See the AWS API reference guide for Amazon Route 53 Domains's
-// API operation ViewBilling for usage and error information.
-//
-// Returned Error Codes:
-//   * InvalidInput
-//   The requested item is not acceptable. For example, for an OperationId it
-//   may refer to the ID of an operation that is already completed. For a domain
-//   name, it may not be a valid domain name or belong to the requester account.
-//
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ViewBilling
-func (c *Route53Domains) ViewBilling(input *ViewBillingInput) (*ViewBillingOutput, error) {
-	req, out := c.ViewBillingRequest(input)
-	err := req.Send()
-	return out, err
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/BillingRecord
-type BillingRecord struct {
-	_ struct{} `type:"structure"`
-
-	// The date that the operation was billed, in Unix format.
-	//
-	// Type: Double
-	BillDate *time.Time `type:"timestamp" timestampFormat:"unix"`
-
-	// The name of a domain.
-	//
-	// Type: String
-	DomainName *string `type:"string"`
-
-	// The ID of the invoice that is associated with the billing record.
-	//
-	// Type: String
-	InvoiceId *string `type:"string"`
-
-	// The operation that you were charged for.
-	//
-	// Type: String
-	//
-	// Valid values: REGISTER_DOMAIN
-	// TRANSFER_IN_DOMAIN
-	// RENEW_DOMAIN
-	// CHANGE_DOMAIN_OWNER
-	Operation *string `type:"string" enum:"OperationType"`
-
-	// The price that you were charged for the operation, in US dollars.
-	//
-	// Type: Double
-	//
-	// Example value: 12.0
-	Price *float64 `type:"double"`
-}
-
-// String returns the string representation
-func (s BillingRecord) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s BillingRecord) GoString() string {
-	return s.String()
-}
-
-// SetBillDate sets the BillDate field's value.
-func (s *BillingRecord) SetBillDate(v time.Time) *BillingRecord {
-	s.BillDate = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *BillingRecord) SetDomainName(v string) *BillingRecord {
-	s.DomainName = &v
-	return s
-}
-
-// SetInvoiceId sets the InvoiceId field's value.
-func (s *BillingRecord) SetInvoiceId(v string) *BillingRecord {
-	s.InvoiceId = &v
-	return s
-}
-
-// SetOperation sets the Operation field's value.
-func (s *BillingRecord) SetOperation(v string) *BillingRecord {
-	s.Operation = &v
-	return s
-}
-
-// SetPrice sets the Price field's value.
-func (s *BillingRecord) SetPrice(v float64) *BillingRecord {
-	s.Price = &v
-	return s
-}
-
 // The CheckDomainAvailability request contains the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainAvailabilityRequest
 type CheckDomainAvailabilityInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2003,8 +645,6 @@ type CheckDomainAvailabilityInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// Reserved for future use.
@@ -2021,60 +661,28 @@ func (s CheckDomainAvailabilityInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *CheckDomainAvailabilityInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "CheckDomainAvailabilityInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *CheckDomainAvailabilityInput) SetDomainName(v string) *CheckDomainAvailabilityInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetIdnLangCode sets the IdnLangCode field's value.
-func (s *CheckDomainAvailabilityInput) SetIdnLangCode(v string) *CheckDomainAvailabilityInput {
-	s.IdnLangCode = &v
-	return s
-}
-
 // The CheckDomainAvailability response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/CheckDomainAvailabilityResponse
 type CheckDomainAvailabilityOutput struct {
 	_ struct{} `type:"structure"`
 
 	// Whether the domain name is available for registering.
 	//
-	// You can only register domains designated as AVAILABLE.
+	//  You can only register domains designated as AVAILABLE.
 	//
-	// Type: String
+	//  Type: String
 	//
 	// Valid values:
 	//
-	//    * AVAILABLE – The domain name is available.
-	//    * AVAILABLE_RESERVED – The domain name is reserved under specific conditions.
-	//
-	//    * AVAILABLE_PREORDER – The domain name is available and can be preordered.
-	//
-	//    * UNAVAILABLE – The domain name is not available.
-	//    * UNAVAILABLE_PREMIUM – The domain name is not available.
-	//    * UNAVAILABLE_RESTRICTED – The domain name is forbidden.
-	//    * RESERVED – The domain name has been reserved for another person or organization.
-	//
-	//    * DONT_KNOW – The TLD registry didn't reply with a definitive answer about
-	//    whether the domain name is available. Amazon Route 53 can return this
-	//    response for a variety of reasons, for example, the registry is performing
-	//    maintenance. Try again later.
-	//
-	// Availability is a required field
+	//   AVAILABLE – The domain name is available.  AVAILABLE_RESERVED – The domain
+	// name is reserved under specific conditions.  AVAILABLE_PREORDER – The domain
+	// name is available and can be preordered.  UNAVAILABLE – The domain name is
+	// not available.  UNAVAILABLE_PREMIUM – The domain name is not available.
+	// UNAVAILABLE_RESTRICTED – The domain name is forbidden.  RESERVED – The domain
+	// name has been reserved for another person or organization.  DONT_KNOW – The
+	// TLD registry didn't reply with a definitive answer about whether the domain
+	// name is available. Amazon Route 53 can return this response for a variety
+	// of reasons, for example, the registry is performing maintenance. Try again
+	// later.
 	Availability *string `type:"string" required:"true" enum:"DomainAvailability"`
 }
 
@@ -2088,14 +696,7 @@ func (s CheckDomainAvailabilityOutput) GoString() string {
 	return s.String()
 }
 
-// SetAvailability sets the Availability field's value.
-func (s *CheckDomainAvailabilityOutput) SetAvailability(v string) *CheckDomainAvailabilityOutput {
-	s.Availability = &v
-	return s
-}
-
 // ContactDetail includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ContactDetail
 type ContactDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -2300,112 +901,7 @@ func (s ContactDetail) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *ContactDetail) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "ContactDetail"}
-	if s.ExtraParams != nil {
-		for i, v := range s.ExtraParams {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "ExtraParams", i), err.(request.ErrInvalidParams))
-			}
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetAddressLine1 sets the AddressLine1 field's value.
-func (s *ContactDetail) SetAddressLine1(v string) *ContactDetail {
-	s.AddressLine1 = &v
-	return s
-}
-
-// SetAddressLine2 sets the AddressLine2 field's value.
-func (s *ContactDetail) SetAddressLine2(v string) *ContactDetail {
-	s.AddressLine2 = &v
-	return s
-}
-
-// SetCity sets the City field's value.
-func (s *ContactDetail) SetCity(v string) *ContactDetail {
-	s.City = &v
-	return s
-}
-
-// SetContactType sets the ContactType field's value.
-func (s *ContactDetail) SetContactType(v string) *ContactDetail {
-	s.ContactType = &v
-	return s
-}
-
-// SetCountryCode sets the CountryCode field's value.
-func (s *ContactDetail) SetCountryCode(v string) *ContactDetail {
-	s.CountryCode = &v
-	return s
-}
-
-// SetEmail sets the Email field's value.
-func (s *ContactDetail) SetEmail(v string) *ContactDetail {
-	s.Email = &v
-	return s
-}
-
-// SetExtraParams sets the ExtraParams field's value.
-func (s *ContactDetail) SetExtraParams(v []*ExtraParam) *ContactDetail {
-	s.ExtraParams = v
-	return s
-}
-
-// SetFax sets the Fax field's value.
-func (s *ContactDetail) SetFax(v string) *ContactDetail {
-	s.Fax = &v
-	return s
-}
-
-// SetFirstName sets the FirstName field's value.
-func (s *ContactDetail) SetFirstName(v string) *ContactDetail {
-	s.FirstName = &v
-	return s
-}
-
-// SetLastName sets the LastName field's value.
-func (s *ContactDetail) SetLastName(v string) *ContactDetail {
-	s.LastName = &v
-	return s
-}
-
-// SetOrganizationName sets the OrganizationName field's value.
-func (s *ContactDetail) SetOrganizationName(v string) *ContactDetail {
-	s.OrganizationName = &v
-	return s
-}
-
-// SetPhoneNumber sets the PhoneNumber field's value.
-func (s *ContactDetail) SetPhoneNumber(v string) *ContactDetail {
-	s.PhoneNumber = &v
-	return s
-}
-
-// SetState sets the State field's value.
-func (s *ContactDetail) SetState(v string) *ContactDetail {
-	s.State = &v
-	return s
-}
-
-// SetZipCode sets the ZipCode field's value.
-func (s *ContactDetail) SetZipCode(v string) *ContactDetail {
-	s.ZipCode = &v
-	return s
-}
-
 // The DeleteTagsForDomainRequest includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DeleteTagsForDomainRequest
 type DeleteTagsForDomainInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2418,14 +914,12 @@ type DeleteTagsForDomainInput struct {
 	// Default: None
 	//
 	// Constraints: The domain name can contain only the letters a through z, the
-	// numbers 0 through 9, and hyphen (-). Hyphens are allowed only when they're
-	// surrounded by letters, numbers, or other hyphens. You can't specify a hyphen
-	// at the beginning or end of a label. To specify an Internationalized Domain
-	// Name, you must convert the name to Punycode.
+	// numbers 0 through 9, and hyphen (-). Hyphens are allowed only when theyaposre
+	// surrounded by letters, numbers, or other hyphens. You canapost specify a
+	// hyphen at the beginning or end of a label. To specify an Internationalized
+	// Domain Name, you must convert the name to Punycode.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// A list of tag keys to delete.
@@ -2436,7 +930,7 @@ type DeleteTagsForDomainInput struct {
 	//
 	// Required: No
 	//
-	// TagsToDelete is a required field
+	// '>
 	TagsToDelete []*string `type:"list" required:"true"`
 }
 
@@ -2450,35 +944,6 @@ func (s DeleteTagsForDomainInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DeleteTagsForDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DeleteTagsForDomainInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.TagsToDelete == nil {
-		invalidParams.Add(request.NewErrParamRequired("TagsToDelete"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *DeleteTagsForDomainInput) SetDomainName(v string) *DeleteTagsForDomainInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetTagsToDelete sets the TagsToDelete field's value.
-func (s *DeleteTagsForDomainInput) SetTagsToDelete(v []*string) *DeleteTagsForDomainInput {
-	s.TagsToDelete = v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DeleteTagsForDomainResponse
 type DeleteTagsForDomainOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2493,11 +958,9 @@ func (s DeleteTagsForDomainOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainAutoRenewRequest
 type DisableDomainAutoRenewInput struct {
 	_ struct{} `type:"structure"`
 
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -2511,26 +974,6 @@ func (s DisableDomainAutoRenewInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DisableDomainAutoRenewInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DisableDomainAutoRenewInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *DisableDomainAutoRenewInput) SetDomainName(v string) *DisableDomainAutoRenewInput {
-	s.DomainName = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainAutoRenewResponse
 type DisableDomainAutoRenewOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2546,7 +989,6 @@ func (s DisableDomainAutoRenewOutput) GoString() string {
 }
 
 // The DisableDomainTransferLock request includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainTransferLockRequest
 type DisableDomainTransferLockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2561,8 +1003,6 @@ type DisableDomainTransferLockInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -2576,27 +1016,7 @@ func (s DisableDomainTransferLockInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *DisableDomainTransferLockInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "DisableDomainTransferLockInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *DisableDomainTransferLockInput) SetDomainName(v string) *DisableDomainTransferLockInput {
-	s.DomainName = &v
-	return s
-}
-
 // The DisableDomainTransferLock response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DisableDomainTransferLockResponse
 type DisableDomainTransferLockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2608,8 +1028,6 @@ type DisableDomainTransferLockOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -2623,44 +1041,6 @@ func (s DisableDomainTransferLockOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *DisableDomainTransferLockOutput) SetOperationId(v string) *DisableDomainTransferLockOutput {
-	s.OperationId = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DomainSuggestion
-type DomainSuggestion struct {
-	_ struct{} `type:"structure"`
-
-	Availability *string `type:"string"`
-
-	DomainName *string `type:"string"`
-}
-
-// String returns the string representation
-func (s DomainSuggestion) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s DomainSuggestion) GoString() string {
-	return s.String()
-}
-
-// SetAvailability sets the Availability field's value.
-func (s *DomainSuggestion) SetAvailability(v string) *DomainSuggestion {
-	s.Availability = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *DomainSuggestion) SetDomainName(v string) *DomainSuggestion {
-	s.DomainName = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/DomainSummary
 type DomainSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -2674,8 +1054,6 @@ type DomainSummary struct {
 	// The name of a domain.
 	//
 	// Type: String
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// Expiration date of the domain in Coordinated Universal Time (UTC).
@@ -2702,35 +1080,9 @@ func (s DomainSummary) GoString() string {
 	return s.String()
 }
 
-// SetAutoRenew sets the AutoRenew field's value.
-func (s *DomainSummary) SetAutoRenew(v bool) *DomainSummary {
-	s.AutoRenew = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *DomainSummary) SetDomainName(v string) *DomainSummary {
-	s.DomainName = &v
-	return s
-}
-
-// SetExpiry sets the Expiry field's value.
-func (s *DomainSummary) SetExpiry(v time.Time) *DomainSummary {
-	s.Expiry = &v
-	return s
-}
-
-// SetTransferLock sets the TransferLock field's value.
-func (s *DomainSummary) SetTransferLock(v bool) *DomainSummary {
-	s.TransferLock = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainAutoRenewRequest
 type EnableDomainAutoRenewInput struct {
 	_ struct{} `type:"structure"`
 
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -2744,26 +1096,6 @@ func (s EnableDomainAutoRenewInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *EnableDomainAutoRenewInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "EnableDomainAutoRenewInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *EnableDomainAutoRenewInput) SetDomainName(v string) *EnableDomainAutoRenewInput {
-	s.DomainName = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainAutoRenewResponse
 type EnableDomainAutoRenewOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2779,7 +1111,6 @@ func (s EnableDomainAutoRenewOutput) GoString() string {
 }
 
 // The EnableDomainTransferLock request includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainTransferLockRequest
 type EnableDomainTransferLockInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2794,8 +1125,6 @@ type EnableDomainTransferLockInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -2809,27 +1138,7 @@ func (s EnableDomainTransferLockInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *EnableDomainTransferLockInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "EnableDomainTransferLockInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *EnableDomainTransferLockInput) SetDomainName(v string) *EnableDomainTransferLockInput {
-	s.DomainName = &v
-	return s
-}
-
 // The EnableDomainTransferLock response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/EnableDomainTransferLockResponse
 type EnableDomainTransferLockOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2841,8 +1150,6 @@ type EnableDomainTransferLockOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -2856,14 +1163,7 @@ func (s EnableDomainTransferLockOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *EnableDomainTransferLockOutput) SetOperationId(v string) *EnableDomainTransferLockOutput {
-	s.OperationId = &v
-	return s
-}
-
 // ExtraParam includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ExtraParam
 type ExtraParam struct {
 	_ struct{} `type:"structure"`
 
@@ -2875,15 +1175,13 @@ type ExtraParam struct {
 	//
 	// Valid values: DUNS_NUMBER | BRAND_NUMBER | BIRTH_DEPARTMENT | BIRTH_DATE_IN_YYYY_MM_DD
 	// | BIRTH_COUNTRY | BIRTH_CITY | DOCUMENT_NUMBER | AU_ID_NUMBER | AU_ID_TYPE
-	// | CA_LEGAL_TYPE | CA_BUSINESS_ENTITY_TYPE |ES_IDENTIFICATION | ES_IDENTIFICATION_TYPE
-	// | ES_LEGAL_FORM | FI_BUSINESS_NUMBER | FI_ID_NUMBER | IT_PIN | RU_PASSPORT_DATA
-	// | SE_ID_NUMBER | SG_ID_NUMBER | VAT_NUMBER
+	// | CA_LEGAL_TYPE | ES_IDENTIFICATION | ES_IDENTIFICATION_TYPE | ES_LEGAL_FORM
+	// | FI_BUSINESS_NUMBER | FI_ID_NUMBER | IT_PIN | RU_PASSPORT_DATA | SE_ID_NUMBER
+	// | SG_ID_NUMBER | VAT_NUMBER
 	//
 	// Parent: ExtraParams
 	//
 	// Required: Yes
-	//
-	// Name is a required field
 	Name *string `type:"string" required:"true" enum:"ExtraParamName"`
 
 	// Values corresponding to the additional parameter names required by some top-level
@@ -2898,8 +1196,6 @@ type ExtraParam struct {
 	// Parent: ExtraParams
 	//
 	// Required: Yes
-	//
-	// Value is a required field
 	Value *string `type:"string" required:"true"`
 }
 
@@ -2913,108 +1209,7 @@ func (s ExtraParam) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *ExtraParam) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "ExtraParam"}
-	if s.Name == nil {
-		invalidParams.Add(request.NewErrParamRequired("Name"))
-	}
-	if s.Value == nil {
-		invalidParams.Add(request.NewErrParamRequired("Value"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetName sets the Name field's value.
-func (s *ExtraParam) SetName(v string) *ExtraParam {
-	s.Name = &v
-	return s
-}
-
-// SetValue sets the Value field's value.
-func (s *ExtraParam) SetValue(v string) *ExtraParam {
-	s.Value = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetContactReachabilityStatusRequest
-type GetContactReachabilityStatusInput struct {
-	_ struct{} `type:"structure"`
-
-	// The name of the domain for which you want to know whether the registrant
-	// contact has confirmed that the email address is valid.
-	//
-	// Type: String
-	//
-	// Default: None
-	//
-	// Required: Yes
-	DomainName *string `locationName:"domainName" type:"string"`
-}
-
-// String returns the string representation
-func (s GetContactReachabilityStatusInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s GetContactReachabilityStatusInput) GoString() string {
-	return s.String()
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *GetContactReachabilityStatusInput) SetDomainName(v string) *GetContactReachabilityStatusInput {
-	s.DomainName = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetContactReachabilityStatusResponse
-type GetContactReachabilityStatusOutput struct {
-	_ struct{} `type:"structure"`
-
-	// The domain name for which you requested the reachability status.
-	DomainName *string `locationName:"domainName" type:"string"`
-
-	// Whether the registrant contact has responded. PENDING indicates that we sent
-	// the confirmation email and haven't received a response yet, DONE indicates
-	// that we sent the email and got confirmation from the registrant contact,
-	// and EXPIRED indicates that the time limit expired before the registrant contact
-	// responded.
-	//
-	// Type: String
-	//
-	// Valid values: PENDING, DONE, EXPIRED
-	Status *string `locationName:"status" type:"string" enum:"ReachabilityStatus"`
-}
-
-// String returns the string representation
-func (s GetContactReachabilityStatusOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s GetContactReachabilityStatusOutput) GoString() string {
-	return s.String()
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *GetContactReachabilityStatusOutput) SetDomainName(v string) *GetContactReachabilityStatusOutput {
-	s.DomainName = &v
-	return s
-}
-
-// SetStatus sets the Status field's value.
-func (s *GetContactReachabilityStatusOutput) SetStatus(v string) *GetContactReachabilityStatusOutput {
-	s.Status = &v
-	return s
-}
-
 // The GetDomainDetail request includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainDetailRequest
 type GetDomainDetailInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3029,8 +1224,6 @@ type GetDomainDetailInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -3044,27 +1237,7 @@ func (s GetDomainDetailInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *GetDomainDetailInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "GetDomainDetailInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *GetDomainDetailInput) SetDomainName(v string) *GetDomainDetailInput {
-	s.DomainName = &v
-	return s
-}
-
 // The GetDomainDetail response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainDetailResponse
 type GetDomainDetailOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3087,8 +1260,6 @@ type GetDomainDetailOutput struct {
 	// Children: FirstName, MiddleName, LastName, ContactType, OrganizationName,
 	// AddressLine1, AddressLine2, City, State, CountryCode, ZipCode, PhoneNumber,
 	// Email, Fax, ExtraParams
-	//
-	// AdminContact is a required field
 	AdminContact *ContactDetail `type:"structure" required:"true"`
 
 	// Specifies whether contact information for the admin contact is concealed
@@ -3114,8 +1285,6 @@ type GetDomainDetailOutput struct {
 	// The name of a domain.
 	//
 	// Type: String
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// The date when the registration for the domain is set to expire. The date
@@ -3125,8 +1294,6 @@ type GetDomainDetailOutput struct {
 	// The name of the domain.
 	//
 	// Type: String
-	//
-	// Nameservers is a required field
 	Nameservers []*Nameserver `type:"list" required:"true"`
 
 	// Provides details about the domain registrant.
@@ -3136,8 +1303,6 @@ type GetDomainDetailOutput struct {
 	// Children: FirstName, MiddleName, LastName, ContactType, OrganizationName,
 	// AddressLine1, AddressLine2, City, State, CountryCode, ZipCode, PhoneNumber,
 	// Email, Fax, ExtraParams
-	//
-	// RegistrantContact is a required field
 	RegistrantContact *ContactDetail `type:"structure" required:"true"`
 
 	// Specifies whether contact information for the registrant contact is concealed
@@ -3193,8 +1358,6 @@ type GetDomainDetailOutput struct {
 	// Children: FirstName, MiddleName, LastName, ContactType, OrganizationName,
 	// AddressLine1, AddressLine2, City, State, CountryCode, ZipCode, PhoneNumber,
 	// Email, Fax, ExtraParams
-	//
-	// TechContact is a required field
 	TechContact *ContactDetail `type:"structure" required:"true"`
 
 	// Specifies whether contact information for the tech contact is concealed from
@@ -3226,218 +1389,7 @@ func (s GetDomainDetailOutput) GoString() string {
 	return s.String()
 }
 
-// SetAbuseContactEmail sets the AbuseContactEmail field's value.
-func (s *GetDomainDetailOutput) SetAbuseContactEmail(v string) *GetDomainDetailOutput {
-	s.AbuseContactEmail = &v
-	return s
-}
-
-// SetAbuseContactPhone sets the AbuseContactPhone field's value.
-func (s *GetDomainDetailOutput) SetAbuseContactPhone(v string) *GetDomainDetailOutput {
-	s.AbuseContactPhone = &v
-	return s
-}
-
-// SetAdminContact sets the AdminContact field's value.
-func (s *GetDomainDetailOutput) SetAdminContact(v *ContactDetail) *GetDomainDetailOutput {
-	s.AdminContact = v
-	return s
-}
-
-// SetAdminPrivacy sets the AdminPrivacy field's value.
-func (s *GetDomainDetailOutput) SetAdminPrivacy(v bool) *GetDomainDetailOutput {
-	s.AdminPrivacy = &v
-	return s
-}
-
-// SetAutoRenew sets the AutoRenew field's value.
-func (s *GetDomainDetailOutput) SetAutoRenew(v bool) *GetDomainDetailOutput {
-	s.AutoRenew = &v
-	return s
-}
-
-// SetCreationDate sets the CreationDate field's value.
-func (s *GetDomainDetailOutput) SetCreationDate(v time.Time) *GetDomainDetailOutput {
-	s.CreationDate = &v
-	return s
-}
-
-// SetDnsSec sets the DnsSec field's value.
-func (s *GetDomainDetailOutput) SetDnsSec(v string) *GetDomainDetailOutput {
-	s.DnsSec = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *GetDomainDetailOutput) SetDomainName(v string) *GetDomainDetailOutput {
-	s.DomainName = &v
-	return s
-}
-
-// SetExpirationDate sets the ExpirationDate field's value.
-func (s *GetDomainDetailOutput) SetExpirationDate(v time.Time) *GetDomainDetailOutput {
-	s.ExpirationDate = &v
-	return s
-}
-
-// SetNameservers sets the Nameservers field's value.
-func (s *GetDomainDetailOutput) SetNameservers(v []*Nameserver) *GetDomainDetailOutput {
-	s.Nameservers = v
-	return s
-}
-
-// SetRegistrantContact sets the RegistrantContact field's value.
-func (s *GetDomainDetailOutput) SetRegistrantContact(v *ContactDetail) *GetDomainDetailOutput {
-	s.RegistrantContact = v
-	return s
-}
-
-// SetRegistrantPrivacy sets the RegistrantPrivacy field's value.
-func (s *GetDomainDetailOutput) SetRegistrantPrivacy(v bool) *GetDomainDetailOutput {
-	s.RegistrantPrivacy = &v
-	return s
-}
-
-// SetRegistrarName sets the RegistrarName field's value.
-func (s *GetDomainDetailOutput) SetRegistrarName(v string) *GetDomainDetailOutput {
-	s.RegistrarName = &v
-	return s
-}
-
-// SetRegistrarUrl sets the RegistrarUrl field's value.
-func (s *GetDomainDetailOutput) SetRegistrarUrl(v string) *GetDomainDetailOutput {
-	s.RegistrarUrl = &v
-	return s
-}
-
-// SetRegistryDomainId sets the RegistryDomainId field's value.
-func (s *GetDomainDetailOutput) SetRegistryDomainId(v string) *GetDomainDetailOutput {
-	s.RegistryDomainId = &v
-	return s
-}
-
-// SetReseller sets the Reseller field's value.
-func (s *GetDomainDetailOutput) SetReseller(v string) *GetDomainDetailOutput {
-	s.Reseller = &v
-	return s
-}
-
-// SetStatusList sets the StatusList field's value.
-func (s *GetDomainDetailOutput) SetStatusList(v []*string) *GetDomainDetailOutput {
-	s.StatusList = v
-	return s
-}
-
-// SetTechContact sets the TechContact field's value.
-func (s *GetDomainDetailOutput) SetTechContact(v *ContactDetail) *GetDomainDetailOutput {
-	s.TechContact = v
-	return s
-}
-
-// SetTechPrivacy sets the TechPrivacy field's value.
-func (s *GetDomainDetailOutput) SetTechPrivacy(v bool) *GetDomainDetailOutput {
-	s.TechPrivacy = &v
-	return s
-}
-
-// SetUpdatedDate sets the UpdatedDate field's value.
-func (s *GetDomainDetailOutput) SetUpdatedDate(v time.Time) *GetDomainDetailOutput {
-	s.UpdatedDate = &v
-	return s
-}
-
-// SetWhoIsServer sets the WhoIsServer field's value.
-func (s *GetDomainDetailOutput) SetWhoIsServer(v string) *GetDomainDetailOutput {
-	s.WhoIsServer = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainSuggestionsRequest
-type GetDomainSuggestionsInput struct {
-	_ struct{} `type:"structure"`
-
-	// DomainName is a required field
-	DomainName *string `type:"string" required:"true"`
-
-	// OnlyAvailable is a required field
-	OnlyAvailable *bool `type:"boolean" required:"true"`
-
-	// SuggestionCount is a required field
-	SuggestionCount *int64 `type:"integer" required:"true"`
-}
-
-// String returns the string representation
-func (s GetDomainSuggestionsInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s GetDomainSuggestionsInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *GetDomainSuggestionsInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "GetDomainSuggestionsInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.OnlyAvailable == nil {
-		invalidParams.Add(request.NewErrParamRequired("OnlyAvailable"))
-	}
-	if s.SuggestionCount == nil {
-		invalidParams.Add(request.NewErrParamRequired("SuggestionCount"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *GetDomainSuggestionsInput) SetDomainName(v string) *GetDomainSuggestionsInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetOnlyAvailable sets the OnlyAvailable field's value.
-func (s *GetDomainSuggestionsInput) SetOnlyAvailable(v bool) *GetDomainSuggestionsInput {
-	s.OnlyAvailable = &v
-	return s
-}
-
-// SetSuggestionCount sets the SuggestionCount field's value.
-func (s *GetDomainSuggestionsInput) SetSuggestionCount(v int64) *GetDomainSuggestionsInput {
-	s.SuggestionCount = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetDomainSuggestionsResponse
-type GetDomainSuggestionsOutput struct {
-	_ struct{} `type:"structure"`
-
-	SuggestionsList []*DomainSuggestion `type:"list"`
-}
-
-// String returns the string representation
-func (s GetDomainSuggestionsOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s GetDomainSuggestionsOutput) GoString() string {
-	return s.String()
-}
-
-// SetSuggestionsList sets the SuggestionsList field's value.
-func (s *GetDomainSuggestionsOutput) SetSuggestionsList(v []*DomainSuggestion) *GetDomainSuggestionsOutput {
-	s.SuggestionsList = v
-	return s
-}
-
 // The GetOperationDetail request includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetOperationDetailRequest
 type GetOperationDetailInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3449,8 +1401,6 @@ type GetOperationDetailInput struct {
 	// Default: None
 	//
 	// Required: Yes
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -3464,27 +1414,7 @@ func (s GetOperationDetailInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *GetOperationDetailInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "GetOperationDetailInput"}
-	if s.OperationId == nil {
-		invalidParams.Add(request.NewErrParamRequired("OperationId"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetOperationId sets the OperationId field's value.
-func (s *GetOperationDetailInput) SetOperationId(v string) *GetOperationDetailInput {
-	s.OperationId = &v
-	return s
-}
-
 // The GetOperationDetail response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/GetOperationDetailResponse
 type GetOperationDetailOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3527,44 +1457,7 @@ func (s GetOperationDetailOutput) GoString() string {
 	return s.String()
 }
 
-// SetDomainName sets the DomainName field's value.
-func (s *GetOperationDetailOutput) SetDomainName(v string) *GetOperationDetailOutput {
-	s.DomainName = &v
-	return s
-}
-
-// SetMessage sets the Message field's value.
-func (s *GetOperationDetailOutput) SetMessage(v string) *GetOperationDetailOutput {
-	s.Message = &v
-	return s
-}
-
-// SetOperationId sets the OperationId field's value.
-func (s *GetOperationDetailOutput) SetOperationId(v string) *GetOperationDetailOutput {
-	s.OperationId = &v
-	return s
-}
-
-// SetStatus sets the Status field's value.
-func (s *GetOperationDetailOutput) SetStatus(v string) *GetOperationDetailOutput {
-	s.Status = &v
-	return s
-}
-
-// SetSubmittedDate sets the SubmittedDate field's value.
-func (s *GetOperationDetailOutput) SetSubmittedDate(v time.Time) *GetOperationDetailOutput {
-	s.SubmittedDate = &v
-	return s
-}
-
-// SetType sets the Type field's value.
-func (s *GetOperationDetailOutput) SetType(v string) *GetOperationDetailOutput {
-	s.Type = &v
-	return s
-}
-
 // The ListDomains request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListDomainsRequest
 type ListDomainsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3606,20 +1499,7 @@ func (s ListDomainsInput) GoString() string {
 	return s.String()
 }
 
-// SetMarker sets the Marker field's value.
-func (s *ListDomainsInput) SetMarker(v string) *ListDomainsInput {
-	s.Marker = &v
-	return s
-}
-
-// SetMaxItems sets the MaxItems field's value.
-func (s *ListDomainsInput) SetMaxItems(v int64) *ListDomainsInput {
-	s.MaxItems = &v
-	return s
-}
-
 // The ListDomains response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListDomainsResponse
 type ListDomainsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3628,8 +1508,6 @@ type ListDomainsOutput struct {
 	// Type: Complex type containing a list of domain summaries.
 	//
 	// Children: AutoRenew, DomainName, Expiry, TransferLock
-	//
-	// Domains is a required field
 	Domains []*DomainSummary `type:"list" required:"true"`
 
 	// If there are more domains than you specified for MaxItems in the request,
@@ -3652,20 +1530,7 @@ func (s ListDomainsOutput) GoString() string {
 	return s.String()
 }
 
-// SetDomains sets the Domains field's value.
-func (s *ListDomainsOutput) SetDomains(v []*DomainSummary) *ListDomainsOutput {
-	s.Domains = v
-	return s
-}
-
-// SetNextPageMarker sets the NextPageMarker field's value.
-func (s *ListDomainsOutput) SetNextPageMarker(v string) *ListDomainsOutput {
-	s.NextPageMarker = &v
-	return s
-}
-
 // The ListOperations request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListOperationsRequest
 type ListOperationsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3705,20 +1570,7 @@ func (s ListOperationsInput) GoString() string {
 	return s.String()
 }
 
-// SetMarker sets the Marker field's value.
-func (s *ListOperationsInput) SetMarker(v string) *ListOperationsInput {
-	s.Marker = &v
-	return s
-}
-
-// SetMaxItems sets the MaxItems field's value.
-func (s *ListOperationsInput) SetMaxItems(v int64) *ListOperationsInput {
-	s.MaxItems = &v
-	return s
-}
-
 // The ListOperations response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListOperationsResponse
 type ListOperationsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3736,8 +1588,6 @@ type ListOperationsOutput struct {
 	// Type: Complex type containing a list of operation summaries
 	//
 	// Children: OperationId, Status, SubmittedDate, Type
-	//
-	// Operations is a required field
 	Operations []*OperationSummary `type:"list" required:"true"`
 }
 
@@ -3751,26 +1601,11 @@ func (s ListOperationsOutput) GoString() string {
 	return s.String()
 }
 
-// SetNextPageMarker sets the NextPageMarker field's value.
-func (s *ListOperationsOutput) SetNextPageMarker(v string) *ListOperationsOutput {
-	s.NextPageMarker = &v
-	return s
-}
-
-// SetOperations sets the Operations field's value.
-func (s *ListOperationsOutput) SetOperations(v []*OperationSummary) *ListOperationsOutput {
-	s.Operations = v
-	return s
-}
-
 // The ListTagsForDomainRequest includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListTagsForDomainRequest
 type ListTagsForDomainInput struct {
 	_ struct{} `type:"structure"`
 
 	// The domain for which you want to get a list of tags.
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -3784,27 +1619,7 @@ func (s ListTagsForDomainInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *ListTagsForDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "ListTagsForDomainInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *ListTagsForDomainInput) SetDomainName(v string) *ListTagsForDomainInput {
-	s.DomainName = &v
-	return s
-}
-
 // The ListTagsForDomain response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ListTagsForDomainResponse
 type ListTagsForDomainOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3814,19 +1629,17 @@ type ListTagsForDomainOutput struct {
 	//
 	// Each tag includes the following elements.
 	//
-	//    * Key
+	//   Key
 	//
 	// The key (name) of a tag.
 	//
 	// Type: String
 	//
-	//    * Value
+	//   Value
 	//
 	// The value of a tag.
 	//
 	// Type: String
-	//
-	// TagList is a required field
 	TagList []*Tag `type:"list" required:"true"`
 }
 
@@ -3840,14 +1653,7 @@ func (s ListTagsForDomainOutput) GoString() string {
 	return s.String()
 }
 
-// SetTagList sets the TagList field's value.
-func (s *ListTagsForDomainOutput) SetTagList(v []*Tag) *ListTagsForDomainOutput {
-	s.TagList = v
-	return s
-}
-
 // Nameserver includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/Nameserver
 type Nameserver struct {
 	_ struct{} `type:"structure"`
 
@@ -3870,8 +1676,6 @@ type Nameserver struct {
 	// Constraint: Maximum 255 characterss
 	//
 	// Parent: Nameservers
-	//
-	// Name is a required field
 	Name *string `type:"string" required:"true"`
 }
 
@@ -3885,53 +1689,21 @@ func (s Nameserver) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *Nameserver) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "Nameserver"}
-	if s.Name == nil {
-		invalidParams.Add(request.NewErrParamRequired("Name"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetGlueIps sets the GlueIps field's value.
-func (s *Nameserver) SetGlueIps(v []*string) *Nameserver {
-	s.GlueIps = v
-	return s
-}
-
-// SetName sets the Name field's value.
-func (s *Nameserver) SetName(v string) *Nameserver {
-	s.Name = &v
-	return s
-}
-
 // OperationSummary includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/OperationSummary
 type OperationSummary struct {
 	_ struct{} `type:"structure"`
 
 	// Identifier returned to track the requested action.
 	//
 	// Type: String
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 
 	// The current status of the requested operation in the system.
 	//
 	// Type: String
-	//
-	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"OperationStatus"`
 
 	// The date when the request was submitted.
-	//
-	// SubmittedDate is a required field
 	SubmittedDate *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
 
 	// Type of the action requested.
@@ -3940,8 +1712,6 @@ type OperationSummary struct {
 	//
 	// Valid values: REGISTER_DOMAIN | DELETE_DOMAIN | TRANSFER_IN_DOMAIN | UPDATE_DOMAIN_CONTACT
 	// | UPDATE_NAMESERVER | CHANGE_PRIVACY_PROTECTION | DOMAIN_LOCK
-	//
-	// Type is a required field
 	Type *string `type:"string" required:"true" enum:"OperationType"`
 }
 
@@ -3955,32 +1725,7 @@ func (s OperationSummary) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *OperationSummary) SetOperationId(v string) *OperationSummary {
-	s.OperationId = &v
-	return s
-}
-
-// SetStatus sets the Status field's value.
-func (s *OperationSummary) SetStatus(v string) *OperationSummary {
-	s.Status = &v
-	return s
-}
-
-// SetSubmittedDate sets the SubmittedDate field's value.
-func (s *OperationSummary) SetSubmittedDate(v time.Time) *OperationSummary {
-	s.SubmittedDate = &v
-	return s
-}
-
-// SetType sets the Type field's value.
-func (s *OperationSummary) SetType(v string) *OperationSummary {
-	s.Type = &v
-	return s
-}
-
 // The RegisterDomain request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RegisterDomainRequest
 type RegisterDomainInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3993,8 +1738,6 @@ type RegisterDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// AdminContact is a required field
 	AdminContact *ContactDetail `type:"structure" required:"true"`
 
 	// Indicates whether the domain will be automatically renewed (true) or not
@@ -4020,8 +1763,6 @@ type RegisterDomainInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// The number of years the domain will be registered. Domains are registered
@@ -4034,8 +1775,6 @@ type RegisterDomainInput struct {
 	// Valid values: Integer from 1 to 10
 	//
 	// Required: Yes
-	//
-	// DurationInYears is a required field
 	DurationInYears *int64 `min:"1" type:"integer" required:"true"`
 
 	// Reserved for future use.
@@ -4092,8 +1831,6 @@ type RegisterDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// RegistrantContact is a required field
 	RegistrantContact *ContactDetail `type:"structure" required:"true"`
 
 	// Provides detailed contact information.
@@ -4105,8 +1842,6 @@ type RegisterDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// TechContact is a required field
 	TechContact *ContactDetail `type:"structure" required:"true"`
 }
 
@@ -4120,111 +1855,7 @@ func (s RegisterDomainInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *RegisterDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "RegisterDomainInput"}
-	if s.AdminContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("AdminContact"))
-	}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.DurationInYears == nil {
-		invalidParams.Add(request.NewErrParamRequired("DurationInYears"))
-	}
-	if s.DurationInYears != nil && *s.DurationInYears < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("DurationInYears", 1))
-	}
-	if s.RegistrantContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("RegistrantContact"))
-	}
-	if s.TechContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("TechContact"))
-	}
-	if s.AdminContact != nil {
-		if err := s.AdminContact.Validate(); err != nil {
-			invalidParams.AddNested("AdminContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.RegistrantContact != nil {
-		if err := s.RegistrantContact.Validate(); err != nil {
-			invalidParams.AddNested("RegistrantContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.TechContact != nil {
-		if err := s.TechContact.Validate(); err != nil {
-			invalidParams.AddNested("TechContact", err.(request.ErrInvalidParams))
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetAdminContact sets the AdminContact field's value.
-func (s *RegisterDomainInput) SetAdminContact(v *ContactDetail) *RegisterDomainInput {
-	s.AdminContact = v
-	return s
-}
-
-// SetAutoRenew sets the AutoRenew field's value.
-func (s *RegisterDomainInput) SetAutoRenew(v bool) *RegisterDomainInput {
-	s.AutoRenew = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *RegisterDomainInput) SetDomainName(v string) *RegisterDomainInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetDurationInYears sets the DurationInYears field's value.
-func (s *RegisterDomainInput) SetDurationInYears(v int64) *RegisterDomainInput {
-	s.DurationInYears = &v
-	return s
-}
-
-// SetIdnLangCode sets the IdnLangCode field's value.
-func (s *RegisterDomainInput) SetIdnLangCode(v string) *RegisterDomainInput {
-	s.IdnLangCode = &v
-	return s
-}
-
-// SetPrivacyProtectAdminContact sets the PrivacyProtectAdminContact field's value.
-func (s *RegisterDomainInput) SetPrivacyProtectAdminContact(v bool) *RegisterDomainInput {
-	s.PrivacyProtectAdminContact = &v
-	return s
-}
-
-// SetPrivacyProtectRegistrantContact sets the PrivacyProtectRegistrantContact field's value.
-func (s *RegisterDomainInput) SetPrivacyProtectRegistrantContact(v bool) *RegisterDomainInput {
-	s.PrivacyProtectRegistrantContact = &v
-	return s
-}
-
-// SetPrivacyProtectTechContact sets the PrivacyProtectTechContact field's value.
-func (s *RegisterDomainInput) SetPrivacyProtectTechContact(v bool) *RegisterDomainInput {
-	s.PrivacyProtectTechContact = &v
-	return s
-}
-
-// SetRegistrantContact sets the RegistrantContact field's value.
-func (s *RegisterDomainInput) SetRegistrantContact(v *ContactDetail) *RegisterDomainInput {
-	s.RegistrantContact = v
-	return s
-}
-
-// SetTechContact sets the TechContact field's value.
-func (s *RegisterDomainInput) SetTechContact(v *ContactDetail) *RegisterDomainInput {
-	s.TechContact = v
-	return s
-}
-
 // The RegisterDomain response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RegisterDomainResponse
 type RegisterDomainOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4236,8 +1867,6 @@ type RegisterDomainOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -4251,199 +1880,7 @@ func (s RegisterDomainOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *RegisterDomainOutput) SetOperationId(v string) *RegisterDomainOutput {
-	s.OperationId = &v
-	return s
-}
-
-// A RenewDomain request includes the number of years that you want to renew
-// for and the current expiration year.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RenewDomainRequest
-type RenewDomainInput struct {
-	_ struct{} `type:"structure"`
-
-	// The year when the registration for the domain is set to expire. This value
-	// must match the current expiration date for the domain.
-	//
-	// Type: Integer
-	//
-	// Default: None
-	//
-	// Valid values: Integer
-	//
-	// Required: Yes
-	//
-	// CurrentExpiryYear is a required field
-	CurrentExpiryYear *int64 `type:"integer" required:"true"`
-
-	// DomainName is a required field
-	DomainName *string `type:"string" required:"true"`
-
-	// The number of years that you want to renew the domain for. The maximum number
-	// of years depends on the top-level domain. For the range of valid values for
-	// your domain, see Domains that You Can Register with Amazon Route 53 (http://docs.aws.amazon.com/console/route53/domain-tld-list)
-	// in the Amazon Route 53 documentation.
-	//
-	// Type: Integer
-	//
-	// Default: 1
-	//
-	// Valid values: Integer from 1 to 10
-	//
-	// Required: No
-	DurationInYears *int64 `min:"1" type:"integer"`
-}
-
-// String returns the string representation
-func (s RenewDomainInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s RenewDomainInput) GoString() string {
-	return s.String()
-}
-
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *RenewDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "RenewDomainInput"}
-	if s.CurrentExpiryYear == nil {
-		invalidParams.Add(request.NewErrParamRequired("CurrentExpiryYear"))
-	}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.DurationInYears != nil && *s.DurationInYears < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("DurationInYears", 1))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetCurrentExpiryYear sets the CurrentExpiryYear field's value.
-func (s *RenewDomainInput) SetCurrentExpiryYear(v int64) *RenewDomainInput {
-	s.CurrentExpiryYear = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *RenewDomainInput) SetDomainName(v string) *RenewDomainInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetDurationInYears sets the DurationInYears field's value.
-func (s *RenewDomainInput) SetDurationInYears(v int64) *RenewDomainInput {
-	s.DurationInYears = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RenewDomainResponse
-type RenewDomainOutput struct {
-	_ struct{} `type:"structure"`
-
-	// OperationId is a required field
-	OperationId *string `type:"string" required:"true"`
-}
-
-// String returns the string representation
-func (s RenewDomainOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s RenewDomainOutput) GoString() string {
-	return s.String()
-}
-
-// SetOperationId sets the OperationId field's value.
-func (s *RenewDomainOutput) SetOperationId(v string) *RenewDomainOutput {
-	s.OperationId = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ResendContactReachabilityEmailRequest
-type ResendContactReachabilityEmailInput struct {
-	_ struct{} `type:"structure"`
-
-	// The name of the domain for which you want Amazon Route 53 to resend a confirmation
-	// email to the registrant contact.
-	//
-	// Type: String
-	//
-	// Default: None
-	//
-	// Required: Yes
-	DomainName *string `locationName:"domainName" type:"string"`
-}
-
-// String returns the string representation
-func (s ResendContactReachabilityEmailInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s ResendContactReachabilityEmailInput) GoString() string {
-	return s.String()
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *ResendContactReachabilityEmailInput) SetDomainName(v string) *ResendContactReachabilityEmailInput {
-	s.DomainName = &v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ResendContactReachabilityEmailResponse
-type ResendContactReachabilityEmailOutput struct {
-	_ struct{} `type:"structure"`
-
-	// The domain name for which you requested a confirmation email.
-	DomainName *string `locationName:"domainName" type:"string"`
-
-	// The email address for the registrant contact at the time that we sent the
-	// verification email.
-	EmailAddress *string `locationName:"emailAddress" type:"string"`
-
-	// True if the email address for the registrant contact has already been verified,
-	// and false otherwise. If the email address has already been verified, we don't
-	// send another confirmation email.
-	IsAlreadyVerified *bool `locationName:"isAlreadyVerified" type:"boolean"`
-}
-
-// String returns the string representation
-func (s ResendContactReachabilityEmailOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s ResendContactReachabilityEmailOutput) GoString() string {
-	return s.String()
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *ResendContactReachabilityEmailOutput) SetDomainName(v string) *ResendContactReachabilityEmailOutput {
-	s.DomainName = &v
-	return s
-}
-
-// SetEmailAddress sets the EmailAddress field's value.
-func (s *ResendContactReachabilityEmailOutput) SetEmailAddress(v string) *ResendContactReachabilityEmailOutput {
-	s.EmailAddress = &v
-	return s
-}
-
-// SetIsAlreadyVerified sets the IsAlreadyVerified field's value.
-func (s *ResendContactReachabilityEmailOutput) SetIsAlreadyVerified(v bool) *ResendContactReachabilityEmailOutput {
-	s.IsAlreadyVerified = &v
-	return s
-}
-
 // The RetrieveDomainAuthCode request includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RetrieveDomainAuthCodeRequest
 type RetrieveDomainAuthCodeInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4458,8 +1895,6 @@ type RetrieveDomainAuthCodeInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 }
 
@@ -4473,35 +1908,13 @@ func (s RetrieveDomainAuthCodeInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *RetrieveDomainAuthCodeInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "RetrieveDomainAuthCodeInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *RetrieveDomainAuthCodeInput) SetDomainName(v string) *RetrieveDomainAuthCodeInput {
-	s.DomainName = &v
-	return s
-}
-
 // The RetrieveDomainAuthCode response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/RetrieveDomainAuthCodeResponse
 type RetrieveDomainAuthCodeOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The authorization code for the domain.
 	//
 	// Type: String
-	//
-	// AuthCode is a required field
 	AuthCode *string `type:"string" required:"true"`
 }
 
@@ -4515,14 +1928,7 @@ func (s RetrieveDomainAuthCodeOutput) GoString() string {
 	return s.String()
 }
 
-// SetAuthCode sets the AuthCode field's value.
-func (s *RetrieveDomainAuthCodeOutput) SetAuthCode(v string) *RetrieveDomainAuthCodeOutput {
-	s.AuthCode = &v
-	return s
-}
-
 // Each tag includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/Tag
 type Tag struct {
 	_ struct{} `type:"structure"`
 
@@ -4563,20 +1969,7 @@ func (s Tag) GoString() string {
 	return s.String()
 }
 
-// SetKey sets the Key field's value.
-func (s *Tag) SetKey(v string) *Tag {
-	s.Key = &v
-	return s
-}
-
-// SetValue sets the Value field's value.
-func (s *Tag) SetValue(v string) *Tag {
-	s.Value = &v
-	return s
-}
-
 // The TransferDomain request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/TransferDomainRequest
 type TransferDomainInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4589,8 +1982,6 @@ type TransferDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// AdminContact is a required field
 	AdminContact *ContactDetail `type:"structure" required:"true"`
 
 	// The authorization code for the domain. You get this value from the current
@@ -4624,8 +2015,6 @@ type TransferDomainInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// The number of years the domain will be registered. Domains are registered
@@ -4638,8 +2027,6 @@ type TransferDomainInput struct {
 	// Valid values: Integer from 1 to 10
 	//
 	// Required: Yes
-	//
-	// DurationInYears is a required field
 	DurationInYears *int64 `min:"1" type:"integer" required:"true"`
 
 	// Reserved for future use.
@@ -4705,8 +2092,6 @@ type TransferDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// RegistrantContact is a required field
 	RegistrantContact *ContactDetail `type:"structure" required:"true"`
 
 	// Provides detailed contact information.
@@ -4718,8 +2103,6 @@ type TransferDomainInput struct {
 	// Email, Fax, ExtraParams
 	//
 	// Required: Yes
-	//
-	// TechContact is a required field
 	TechContact *ContactDetail `type:"structure" required:"true"`
 }
 
@@ -4733,133 +2116,7 @@ func (s TransferDomainInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *TransferDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "TransferDomainInput"}
-	if s.AdminContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("AdminContact"))
-	}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.DurationInYears == nil {
-		invalidParams.Add(request.NewErrParamRequired("DurationInYears"))
-	}
-	if s.DurationInYears != nil && *s.DurationInYears < 1 {
-		invalidParams.Add(request.NewErrParamMinValue("DurationInYears", 1))
-	}
-	if s.RegistrantContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("RegistrantContact"))
-	}
-	if s.TechContact == nil {
-		invalidParams.Add(request.NewErrParamRequired("TechContact"))
-	}
-	if s.AdminContact != nil {
-		if err := s.AdminContact.Validate(); err != nil {
-			invalidParams.AddNested("AdminContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.Nameservers != nil {
-		for i, v := range s.Nameservers {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Nameservers", i), err.(request.ErrInvalidParams))
-			}
-		}
-	}
-	if s.RegistrantContact != nil {
-		if err := s.RegistrantContact.Validate(); err != nil {
-			invalidParams.AddNested("RegistrantContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.TechContact != nil {
-		if err := s.TechContact.Validate(); err != nil {
-			invalidParams.AddNested("TechContact", err.(request.ErrInvalidParams))
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetAdminContact sets the AdminContact field's value.
-func (s *TransferDomainInput) SetAdminContact(v *ContactDetail) *TransferDomainInput {
-	s.AdminContact = v
-	return s
-}
-
-// SetAuthCode sets the AuthCode field's value.
-func (s *TransferDomainInput) SetAuthCode(v string) *TransferDomainInput {
-	s.AuthCode = &v
-	return s
-}
-
-// SetAutoRenew sets the AutoRenew field's value.
-func (s *TransferDomainInput) SetAutoRenew(v bool) *TransferDomainInput {
-	s.AutoRenew = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *TransferDomainInput) SetDomainName(v string) *TransferDomainInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetDurationInYears sets the DurationInYears field's value.
-func (s *TransferDomainInput) SetDurationInYears(v int64) *TransferDomainInput {
-	s.DurationInYears = &v
-	return s
-}
-
-// SetIdnLangCode sets the IdnLangCode field's value.
-func (s *TransferDomainInput) SetIdnLangCode(v string) *TransferDomainInput {
-	s.IdnLangCode = &v
-	return s
-}
-
-// SetNameservers sets the Nameservers field's value.
-func (s *TransferDomainInput) SetNameservers(v []*Nameserver) *TransferDomainInput {
-	s.Nameservers = v
-	return s
-}
-
-// SetPrivacyProtectAdminContact sets the PrivacyProtectAdminContact field's value.
-func (s *TransferDomainInput) SetPrivacyProtectAdminContact(v bool) *TransferDomainInput {
-	s.PrivacyProtectAdminContact = &v
-	return s
-}
-
-// SetPrivacyProtectRegistrantContact sets the PrivacyProtectRegistrantContact field's value.
-func (s *TransferDomainInput) SetPrivacyProtectRegistrantContact(v bool) *TransferDomainInput {
-	s.PrivacyProtectRegistrantContact = &v
-	return s
-}
-
-// SetPrivacyProtectTechContact sets the PrivacyProtectTechContact field's value.
-func (s *TransferDomainInput) SetPrivacyProtectTechContact(v bool) *TransferDomainInput {
-	s.PrivacyProtectTechContact = &v
-	return s
-}
-
-// SetRegistrantContact sets the RegistrantContact field's value.
-func (s *TransferDomainInput) SetRegistrantContact(v *ContactDetail) *TransferDomainInput {
-	s.RegistrantContact = v
-	return s
-}
-
-// SetTechContact sets the TechContact field's value.
-func (s *TransferDomainInput) SetTechContact(v *ContactDetail) *TransferDomainInput {
-	s.TechContact = v
-	return s
-}
-
 // The TranserDomain response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/TransferDomainResponse
 type TransferDomainOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -4871,8 +2128,6 @@ type TransferDomainOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -4886,14 +2141,7 @@ func (s TransferDomainOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *TransferDomainOutput) SetOperationId(v string) *TransferDomainOutput {
-	s.OperationId = &v
-	return s
-}
-
 // The UpdateDomainContact request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactRequest
 type UpdateDomainContactInput struct {
 	_ struct{} `type:"structure"`
 
@@ -4919,8 +2167,6 @@ type UpdateDomainContactInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// Provides detailed contact information.
@@ -4956,60 +2202,7 @@ func (s UpdateDomainContactInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *UpdateDomainContactInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "UpdateDomainContactInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.AdminContact != nil {
-		if err := s.AdminContact.Validate(); err != nil {
-			invalidParams.AddNested("AdminContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.RegistrantContact != nil {
-		if err := s.RegistrantContact.Validate(); err != nil {
-			invalidParams.AddNested("RegistrantContact", err.(request.ErrInvalidParams))
-		}
-	}
-	if s.TechContact != nil {
-		if err := s.TechContact.Validate(); err != nil {
-			invalidParams.AddNested("TechContact", err.(request.ErrInvalidParams))
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetAdminContact sets the AdminContact field's value.
-func (s *UpdateDomainContactInput) SetAdminContact(v *ContactDetail) *UpdateDomainContactInput {
-	s.AdminContact = v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *UpdateDomainContactInput) SetDomainName(v string) *UpdateDomainContactInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetRegistrantContact sets the RegistrantContact field's value.
-func (s *UpdateDomainContactInput) SetRegistrantContact(v *ContactDetail) *UpdateDomainContactInput {
-	s.RegistrantContact = v
-	return s
-}
-
-// SetTechContact sets the TechContact field's value.
-func (s *UpdateDomainContactInput) SetTechContact(v *ContactDetail) *UpdateDomainContactInput {
-	s.TechContact = v
-	return s
-}
-
 // The UpdateDomainContact response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactResponse
 type UpdateDomainContactOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5021,8 +2214,6 @@ type UpdateDomainContactOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -5036,14 +2227,7 @@ func (s UpdateDomainContactOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *UpdateDomainContactOutput) SetOperationId(v string) *UpdateDomainContactOutput {
-	s.OperationId = &v
-	return s
-}
-
 // The UpdateDomainContactPrivacy request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactPrivacyRequest
 type UpdateDomainContactPrivacyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5072,8 +2256,6 @@ type UpdateDomainContactPrivacyInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// Whether you want to conceal contact information from WHOIS queries. If you
@@ -5115,45 +2297,7 @@ func (s UpdateDomainContactPrivacyInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *UpdateDomainContactPrivacyInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "UpdateDomainContactPrivacyInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetAdminPrivacy sets the AdminPrivacy field's value.
-func (s *UpdateDomainContactPrivacyInput) SetAdminPrivacy(v bool) *UpdateDomainContactPrivacyInput {
-	s.AdminPrivacy = &v
-	return s
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *UpdateDomainContactPrivacyInput) SetDomainName(v string) *UpdateDomainContactPrivacyInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetRegistrantPrivacy sets the RegistrantPrivacy field's value.
-func (s *UpdateDomainContactPrivacyInput) SetRegistrantPrivacy(v bool) *UpdateDomainContactPrivacyInput {
-	s.RegistrantPrivacy = &v
-	return s
-}
-
-// SetTechPrivacy sets the TechPrivacy field's value.
-func (s *UpdateDomainContactPrivacyInput) SetTechPrivacy(v bool) *UpdateDomainContactPrivacyInput {
-	s.TechPrivacy = &v
-	return s
-}
-
 // The UpdateDomainContactPrivacy response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainContactPrivacyResponse
 type UpdateDomainContactPrivacyOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5165,8 +2309,6 @@ type UpdateDomainContactPrivacyOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -5180,14 +2322,7 @@ func (s UpdateDomainContactPrivacyOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *UpdateDomainContactPrivacyOutput) SetOperationId(v string) *UpdateDomainContactPrivacyOutput {
-	s.OperationId = &v
-	return s
-}
-
 // The UpdateDomainNameserver request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainNameserversRequest
 type UpdateDomainNameserversInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5202,8 +2337,6 @@ type UpdateDomainNameserversInput struct {
 	// supported.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// The authorization key for .fi domains
@@ -5216,8 +2349,6 @@ type UpdateDomainNameserversInput struct {
 	// Children: Name, GlueIps
 	//
 	// Required: Yes
-	//
-	// Nameservers is a required field
 	Nameservers []*Nameserver `type:"list" required:"true"`
 }
 
@@ -5231,52 +2362,7 @@ func (s UpdateDomainNameserversInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *UpdateDomainNameserversInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "UpdateDomainNameserversInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-	if s.Nameservers == nil {
-		invalidParams.Add(request.NewErrParamRequired("Nameservers"))
-	}
-	if s.Nameservers != nil {
-		for i, v := range s.Nameservers {
-			if v == nil {
-				continue
-			}
-			if err := v.Validate(); err != nil {
-				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Nameservers", i), err.(request.ErrInvalidParams))
-			}
-		}
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *UpdateDomainNameserversInput) SetDomainName(v string) *UpdateDomainNameserversInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetFIAuthKey sets the FIAuthKey field's value.
-func (s *UpdateDomainNameserversInput) SetFIAuthKey(v string) *UpdateDomainNameserversInput {
-	s.FIAuthKey = &v
-	return s
-}
-
-// SetNameservers sets the Nameservers field's value.
-func (s *UpdateDomainNameserversInput) SetNameservers(v []*Nameserver) *UpdateDomainNameserversInput {
-	s.Nameservers = v
-	return s
-}
-
 // The UpdateDomainNameservers response includes the following element.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateDomainNameserversResponse
 type UpdateDomainNameserversOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -5288,8 +2374,6 @@ type UpdateDomainNameserversOutput struct {
 	// Default: None
 	//
 	// Constraints: Maximum 255 characters.
-	//
-	// OperationId is a required field
 	OperationId *string `type:"string" required:"true"`
 }
 
@@ -5303,14 +2387,7 @@ func (s UpdateDomainNameserversOutput) GoString() string {
 	return s.String()
 }
 
-// SetOperationId sets the OperationId field's value.
-func (s *UpdateDomainNameserversOutput) SetOperationId(v string) *UpdateDomainNameserversOutput {
-	s.OperationId = &v
-	return s
-}
-
 // The UpdateTagsForDomainRequest includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateTagsForDomainRequest
 type UpdateTagsForDomainInput struct {
 	_ struct{} `type:"structure"`
 
@@ -5323,14 +2400,12 @@ type UpdateTagsForDomainInput struct {
 	// Default: None
 	//
 	// Constraints: The domain name can contain only the letters a through z, the
-	// numbers 0 through 9, and hyphen (-). Hyphens are allowed only when they're
-	// surrounded by letters, numbers, or other hyphens. You can't specify a hyphen
-	// at the beginning or end of a label. To specify an Internationalized Domain
-	// Name, you must convert the name to Punycode.
+	// numbers 0 through 9, and hyphen (-). Hyphens are allowed only when theyaposre
+	// surrounded by letters, numbers, or other hyphens. You canapost specify a
+	// hyphen at the beginning or end of a label. To specify an Internationalized
+	// Domain Name, you must convert the name to Punycode.
 	//
 	// Required: Yes
-	//
-	// DomainName is a required field
 	DomainName *string `type:"string" required:"true"`
 
 	// A list of the tag keys and values that you want to add or update. If you
@@ -5344,7 +2419,7 @@ type UpdateTagsForDomainInput struct {
 	//
 	// '> Each tag includes the following elements:
 	//
-	//    * Key
+	//   Key
 	//
 	// The key (name) of a tag.
 	//
@@ -5358,7 +2433,7 @@ type UpdateTagsForDomainInput struct {
 	//
 	// Required: Yes
 	//
-	//    * Value
+	//   Value
 	//
 	// The value of a tag.
 	//
@@ -5384,32 +2459,6 @@ func (s UpdateTagsForDomainInput) GoString() string {
 	return s.String()
 }
 
-// Validate inspects the fields of the type to determine if they are valid.
-func (s *UpdateTagsForDomainInput) Validate() error {
-	invalidParams := request.ErrInvalidParams{Context: "UpdateTagsForDomainInput"}
-	if s.DomainName == nil {
-		invalidParams.Add(request.NewErrParamRequired("DomainName"))
-	}
-
-	if invalidParams.Len() > 0 {
-		return invalidParams
-	}
-	return nil
-}
-
-// SetDomainName sets the DomainName field's value.
-func (s *UpdateTagsForDomainInput) SetDomainName(v string) *UpdateTagsForDomainInput {
-	s.DomainName = &v
-	return s
-}
-
-// SetTagsToUpdate sets the TagsToUpdate field's value.
-func (s *UpdateTagsForDomainInput) SetTagsToUpdate(v []*Tag) *UpdateTagsForDomainInput {
-	s.TagsToUpdate = v
-	return s
-}
-
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/UpdateTagsForDomainResponse
 type UpdateTagsForDomainOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -5424,982 +2473,568 @@ func (s UpdateTagsForDomainOutput) GoString() string {
 	return s.String()
 }
 
-// The ViewBilling request includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ViewBillingRequest
-type ViewBillingInput struct {
-	_ struct{} `type:"structure"`
-
-	// The end date and time for the time period for which you want a list of billing
-	// records. Specify the date in Unix time format.
-	//
-	// Type: Double
-	//
-	// Default: None
-	//
-	// Required: Yes
-	End *time.Time `type:"timestamp" timestampFormat:"unix"`
-
-	// For an initial request for a list of billing records, omit this element.
-	// If the number of billing records that are associated with the current AWS
-	// account during the specified period is greater than the value that you specified
-	// for MaxItems, you can use Marker to return additional billing records. Get
-	// the value of NextPageMarker from the previous response, and submit another
-	// request that includes the value of NextPageMarker in the Marker element.
-	//
-	// Type: String
-	//
-	// Default: None
-	//
-	// Constraints: The marker must match the value of NextPageMarker that was returned
-	// in the previous response.
-	//
-	// Required: No
-	Marker *string `type:"string"`
-
-	// The number of billing records to be returned.
-	//
-	// Type: Integer
-	//
-	// Default: 20
-	//
-	// Constraints: A value between 1 and 100.
-	//
-	// Required: No
-	MaxItems *int64 `type:"integer"`
-
-	// The beginning date and time for the time period for which you want a list
-	// of billing records. Specify the date in Unix time format.
-	//
-	// Type: Double
-	//
-	// Default: None
-	//
-	// Required: Yes
-	Start *time.Time `type:"timestamp" timestampFormat:"unix"`
-}
-
-// String returns the string representation
-func (s ViewBillingInput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s ViewBillingInput) GoString() string {
-	return s.String()
-}
-
-// SetEnd sets the End field's value.
-func (s *ViewBillingInput) SetEnd(v time.Time) *ViewBillingInput {
-	s.End = &v
-	return s
-}
-
-// SetMarker sets the Marker field's value.
-func (s *ViewBillingInput) SetMarker(v string) *ViewBillingInput {
-	s.Marker = &v
-	return s
-}
-
-// SetMaxItems sets the MaxItems field's value.
-func (s *ViewBillingInput) SetMaxItems(v int64) *ViewBillingInput {
-	s.MaxItems = &v
-	return s
-}
-
-// SetStart sets the Start field's value.
-func (s *ViewBillingInput) SetStart(v time.Time) *ViewBillingInput {
-	s.Start = &v
-	return s
-}
-
-// The ViewBilling response includes the following elements.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/route53domains-2014-05-15/ViewBillingResponse
-type ViewBillingOutput struct {
-	_ struct{} `type:"structure"`
-
-	// A summary of billing records.
-	//
-	// Type: Complex type containing a list of billing record summaries.
-	//
-	// Children: DomainName, Operation, InvoiceId, BillDate and Price
-	BillingRecords []*BillingRecord `type:"list"`
-
-	// If there are more billing records than you specified for MaxItems in the
-	// request, submit another request and include the value of NextPageMarker in
-	// the value of Marker.
-	//
-	// Type: String
-	//
-	// Parent: BillingRecords
-	NextPageMarker *string `type:"string"`
-}
-
-// String returns the string representation
-func (s ViewBillingOutput) String() string {
-	return awsutil.Prettify(s)
-}
-
-// GoString returns the string representation
-func (s ViewBillingOutput) GoString() string {
-	return s.String()
-}
-
-// SetBillingRecords sets the BillingRecords field's value.
-func (s *ViewBillingOutput) SetBillingRecords(v []*BillingRecord) *ViewBillingOutput {
-	s.BillingRecords = v
-	return s
-}
-
-// SetNextPageMarker sets the NextPageMarker field's value.
-func (s *ViewBillingOutput) SetNextPageMarker(v string) *ViewBillingOutput {
-	s.NextPageMarker = &v
-	return s
-}
-
 const (
-	// ContactTypePerson is a ContactType enum value
+	// @enum ContactType
 	ContactTypePerson = "PERSON"
-
-	// ContactTypeCompany is a ContactType enum value
+	// @enum ContactType
 	ContactTypeCompany = "COMPANY"
-
-	// ContactTypeAssociation is a ContactType enum value
+	// @enum ContactType
 	ContactTypeAssociation = "ASSOCIATION"
-
-	// ContactTypePublicBody is a ContactType enum value
+	// @enum ContactType
 	ContactTypePublicBody = "PUBLIC_BODY"
-
-	// ContactTypeReseller is a ContactType enum value
+	// @enum ContactType
 	ContactTypeReseller = "RESELLER"
 )
 
 const (
-	// CountryCodeAd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAd = "AD"
-
-	// CountryCodeAe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAe = "AE"
-
-	// CountryCodeAf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAf = "AF"
-
-	// CountryCodeAg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAg = "AG"
-
-	// CountryCodeAi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAi = "AI"
-
-	// CountryCodeAl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAl = "AL"
-
-	// CountryCodeAm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAm = "AM"
-
-	// CountryCodeAn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAn = "AN"
-
-	// CountryCodeAo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAo = "AO"
-
-	// CountryCodeAq is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAq = "AQ"
-
-	// CountryCodeAr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAr = "AR"
-
-	// CountryCodeAs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAs = "AS"
-
-	// CountryCodeAt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAt = "AT"
-
-	// CountryCodeAu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAu = "AU"
-
-	// CountryCodeAw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAw = "AW"
-
-	// CountryCodeAz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeAz = "AZ"
-
-	// CountryCodeBa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBa = "BA"
-
-	// CountryCodeBb is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBb = "BB"
-
-	// CountryCodeBd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBd = "BD"
-
-	// CountryCodeBe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBe = "BE"
-
-	// CountryCodeBf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBf = "BF"
-
-	// CountryCodeBg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBg = "BG"
-
-	// CountryCodeBh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBh = "BH"
-
-	// CountryCodeBi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBi = "BI"
-
-	// CountryCodeBj is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBj = "BJ"
-
-	// CountryCodeBl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBl = "BL"
-
-	// CountryCodeBm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBm = "BM"
-
-	// CountryCodeBn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBn = "BN"
-
-	// CountryCodeBo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBo = "BO"
-
-	// CountryCodeBr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBr = "BR"
-
-	// CountryCodeBs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBs = "BS"
-
-	// CountryCodeBt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBt = "BT"
-
-	// CountryCodeBw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBw = "BW"
-
-	// CountryCodeBy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBy = "BY"
-
-	// CountryCodeBz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeBz = "BZ"
-
-	// CountryCodeCa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCa = "CA"
-
-	// CountryCodeCc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCc = "CC"
-
-	// CountryCodeCd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCd = "CD"
-
-	// CountryCodeCf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCf = "CF"
-
-	// CountryCodeCg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCg = "CG"
-
-	// CountryCodeCh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCh = "CH"
-
-	// CountryCodeCi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCi = "CI"
-
-	// CountryCodeCk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCk = "CK"
-
-	// CountryCodeCl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCl = "CL"
-
-	// CountryCodeCm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCm = "CM"
-
-	// CountryCodeCn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCn = "CN"
-
-	// CountryCodeCo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCo = "CO"
-
-	// CountryCodeCr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCr = "CR"
-
-	// CountryCodeCu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCu = "CU"
-
-	// CountryCodeCv is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCv = "CV"
-
-	// CountryCodeCx is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCx = "CX"
-
-	// CountryCodeCy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCy = "CY"
-
-	// CountryCodeCz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeCz = "CZ"
-
-	// CountryCodeDe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDe = "DE"
-
-	// CountryCodeDj is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDj = "DJ"
-
-	// CountryCodeDk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDk = "DK"
-
-	// CountryCodeDm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDm = "DM"
-
-	// CountryCodeDo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDo = "DO"
-
-	// CountryCodeDz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeDz = "DZ"
-
-	// CountryCodeEc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEc = "EC"
-
-	// CountryCodeEe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEe = "EE"
-
-	// CountryCodeEg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEg = "EG"
-
-	// CountryCodeEr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEr = "ER"
-
-	// CountryCodeEs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEs = "ES"
-
-	// CountryCodeEt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeEt = "ET"
-
-	// CountryCodeFi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFi = "FI"
-
-	// CountryCodeFj is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFj = "FJ"
-
-	// CountryCodeFk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFk = "FK"
-
-	// CountryCodeFm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFm = "FM"
-
-	// CountryCodeFo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFo = "FO"
-
-	// CountryCodeFr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeFr = "FR"
-
-	// CountryCodeGa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGa = "GA"
-
-	// CountryCodeGb is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGb = "GB"
-
-	// CountryCodeGd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGd = "GD"
-
-	// CountryCodeGe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGe = "GE"
-
-	// CountryCodeGh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGh = "GH"
-
-	// CountryCodeGi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGi = "GI"
-
-	// CountryCodeGl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGl = "GL"
-
-	// CountryCodeGm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGm = "GM"
-
-	// CountryCodeGn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGn = "GN"
-
-	// CountryCodeGq is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGq = "GQ"
-
-	// CountryCodeGr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGr = "GR"
-
-	// CountryCodeGt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGt = "GT"
-
-	// CountryCodeGu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGu = "GU"
-
-	// CountryCodeGw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGw = "GW"
-
-	// CountryCodeGy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeGy = "GY"
-
-	// CountryCodeHk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeHk = "HK"
-
-	// CountryCodeHn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeHn = "HN"
-
-	// CountryCodeHr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeHr = "HR"
-
-	// CountryCodeHt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeHt = "HT"
-
-	// CountryCodeHu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeHu = "HU"
-
-	// CountryCodeId is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeId = "ID"
-
-	// CountryCodeIe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIe = "IE"
-
-	// CountryCodeIl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIl = "IL"
-
-	// CountryCodeIm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIm = "IM"
-
-	// CountryCodeIn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIn = "IN"
-
-	// CountryCodeIq is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIq = "IQ"
-
-	// CountryCodeIr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIr = "IR"
-
-	// CountryCodeIs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIs = "IS"
-
-	// CountryCodeIt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeIt = "IT"
-
-	// CountryCodeJm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeJm = "JM"
-
-	// CountryCodeJo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeJo = "JO"
-
-	// CountryCodeJp is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeJp = "JP"
-
-	// CountryCodeKe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKe = "KE"
-
-	// CountryCodeKg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKg = "KG"
-
-	// CountryCodeKh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKh = "KH"
-
-	// CountryCodeKi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKi = "KI"
-
-	// CountryCodeKm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKm = "KM"
-
-	// CountryCodeKn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKn = "KN"
-
-	// CountryCodeKp is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKp = "KP"
-
-	// CountryCodeKr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKr = "KR"
-
-	// CountryCodeKw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKw = "KW"
-
-	// CountryCodeKy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKy = "KY"
-
-	// CountryCodeKz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeKz = "KZ"
-
-	// CountryCodeLa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLa = "LA"
-
-	// CountryCodeLb is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLb = "LB"
-
-	// CountryCodeLc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLc = "LC"
-
-	// CountryCodeLi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLi = "LI"
-
-	// CountryCodeLk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLk = "LK"
-
-	// CountryCodeLr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLr = "LR"
-
-	// CountryCodeLs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLs = "LS"
-
-	// CountryCodeLt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLt = "LT"
-
-	// CountryCodeLu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLu = "LU"
-
-	// CountryCodeLv is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLv = "LV"
-
-	// CountryCodeLy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeLy = "LY"
-
-	// CountryCodeMa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMa = "MA"
-
-	// CountryCodeMc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMc = "MC"
-
-	// CountryCodeMd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMd = "MD"
-
-	// CountryCodeMe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMe = "ME"
-
-	// CountryCodeMf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMf = "MF"
-
-	// CountryCodeMg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMg = "MG"
-
-	// CountryCodeMh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMh = "MH"
-
-	// CountryCodeMk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMk = "MK"
-
-	// CountryCodeMl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMl = "ML"
-
-	// CountryCodeMm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMm = "MM"
-
-	// CountryCodeMn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMn = "MN"
-
-	// CountryCodeMo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMo = "MO"
-
-	// CountryCodeMp is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMp = "MP"
-
-	// CountryCodeMr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMr = "MR"
-
-	// CountryCodeMs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMs = "MS"
-
-	// CountryCodeMt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMt = "MT"
-
-	// CountryCodeMu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMu = "MU"
-
-	// CountryCodeMv is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMv = "MV"
-
-	// CountryCodeMw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMw = "MW"
-
-	// CountryCodeMx is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMx = "MX"
-
-	// CountryCodeMy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMy = "MY"
-
-	// CountryCodeMz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeMz = "MZ"
-
-	// CountryCodeNa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNa = "NA"
-
-	// CountryCodeNc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNc = "NC"
-
-	// CountryCodeNe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNe = "NE"
-
-	// CountryCodeNg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNg = "NG"
-
-	// CountryCodeNi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNi = "NI"
-
-	// CountryCodeNl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNl = "NL"
-
-	// CountryCodeNo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNo = "NO"
-
-	// CountryCodeNp is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNp = "NP"
-
-	// CountryCodeNr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNr = "NR"
-
-	// CountryCodeNu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNu = "NU"
-
-	// CountryCodeNz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeNz = "NZ"
-
-	// CountryCodeOm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeOm = "OM"
-
-	// CountryCodePa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePa = "PA"
-
-	// CountryCodePe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePe = "PE"
-
-	// CountryCodePf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePf = "PF"
-
-	// CountryCodePg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePg = "PG"
-
-	// CountryCodePh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePh = "PH"
-
-	// CountryCodePk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePk = "PK"
-
-	// CountryCodePl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePl = "PL"
-
-	// CountryCodePm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePm = "PM"
-
-	// CountryCodePn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePn = "PN"
-
-	// CountryCodePr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePr = "PR"
-
-	// CountryCodePt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePt = "PT"
-
-	// CountryCodePw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePw = "PW"
-
-	// CountryCodePy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodePy = "PY"
-
-	// CountryCodeQa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeQa = "QA"
-
-	// CountryCodeRo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeRo = "RO"
-
-	// CountryCodeRs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeRs = "RS"
-
-	// CountryCodeRu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeRu = "RU"
-
-	// CountryCodeRw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeRw = "RW"
-
-	// CountryCodeSa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSa = "SA"
-
-	// CountryCodeSb is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSb = "SB"
-
-	// CountryCodeSc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSc = "SC"
-
-	// CountryCodeSd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSd = "SD"
-
-	// CountryCodeSe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSe = "SE"
-
-	// CountryCodeSg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSg = "SG"
-
-	// CountryCodeSh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSh = "SH"
-
-	// CountryCodeSi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSi = "SI"
-
-	// CountryCodeSk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSk = "SK"
-
-	// CountryCodeSl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSl = "SL"
-
-	// CountryCodeSm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSm = "SM"
-
-	// CountryCodeSn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSn = "SN"
-
-	// CountryCodeSo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSo = "SO"
-
-	// CountryCodeSr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSr = "SR"
-
-	// CountryCodeSt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSt = "ST"
-
-	// CountryCodeSv is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSv = "SV"
-
-	// CountryCodeSy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSy = "SY"
-
-	// CountryCodeSz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeSz = "SZ"
-
-	// CountryCodeTc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTc = "TC"
-
-	// CountryCodeTd is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTd = "TD"
-
-	// CountryCodeTg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTg = "TG"
-
-	// CountryCodeTh is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTh = "TH"
-
-	// CountryCodeTj is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTj = "TJ"
-
-	// CountryCodeTk is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTk = "TK"
-
-	// CountryCodeTl is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTl = "TL"
-
-	// CountryCodeTm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTm = "TM"
-
-	// CountryCodeTn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTn = "TN"
-
-	// CountryCodeTo is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTo = "TO"
-
-	// CountryCodeTr is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTr = "TR"
-
-	// CountryCodeTt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTt = "TT"
-
-	// CountryCodeTv is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTv = "TV"
-
-	// CountryCodeTw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTw = "TW"
-
-	// CountryCodeTz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeTz = "TZ"
-
-	// CountryCodeUa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeUa = "UA"
-
-	// CountryCodeUg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeUg = "UG"
-
-	// CountryCodeUs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeUs = "US"
-
-	// CountryCodeUy is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeUy = "UY"
-
-	// CountryCodeUz is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeUz = "UZ"
-
-	// CountryCodeVa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVa = "VA"
-
-	// CountryCodeVc is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVc = "VC"
-
-	// CountryCodeVe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVe = "VE"
-
-	// CountryCodeVg is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVg = "VG"
-
-	// CountryCodeVi is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVi = "VI"
-
-	// CountryCodeVn is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVn = "VN"
-
-	// CountryCodeVu is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeVu = "VU"
-
-	// CountryCodeWf is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeWf = "WF"
-
-	// CountryCodeWs is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeWs = "WS"
-
-	// CountryCodeYe is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeYe = "YE"
-
-	// CountryCodeYt is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeYt = "YT"
-
-	// CountryCodeZa is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeZa = "ZA"
-
-	// CountryCodeZm is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeZm = "ZM"
-
-	// CountryCodeZw is a CountryCode enum value
+	// @enum CountryCode
 	CountryCodeZw = "ZW"
 )
 
 const (
-	// DomainAvailabilityAvailable is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityAvailable = "AVAILABLE"
-
-	// DomainAvailabilityAvailableReserved is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityAvailableReserved = "AVAILABLE_RESERVED"
-
-	// DomainAvailabilityAvailablePreorder is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityAvailablePreorder = "AVAILABLE_PREORDER"
-
-	// DomainAvailabilityUnavailable is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityUnavailable = "UNAVAILABLE"
-
-	// DomainAvailabilityUnavailablePremium is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityUnavailablePremium = "UNAVAILABLE_PREMIUM"
-
-	// DomainAvailabilityUnavailableRestricted is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityUnavailableRestricted = "UNAVAILABLE_RESTRICTED"
-
-	// DomainAvailabilityReserved is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityReserved = "RESERVED"
-
-	// DomainAvailabilityDontKnow is a DomainAvailability enum value
+	// @enum DomainAvailability
 	DomainAvailabilityDontKnow = "DONT_KNOW"
 )
 
 const (
-	// ExtraParamNameDunsNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameDunsNumber = "DUNS_NUMBER"
-
-	// ExtraParamNameBrandNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameBrandNumber = "BRAND_NUMBER"
-
-	// ExtraParamNameBirthDepartment is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameBirthDepartment = "BIRTH_DEPARTMENT"
-
-	// ExtraParamNameBirthDateInYyyyMmDd is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameBirthDateInYyyyMmDd = "BIRTH_DATE_IN_YYYY_MM_DD"
-
-	// ExtraParamNameBirthCountry is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameBirthCountry = "BIRTH_COUNTRY"
-
-	// ExtraParamNameBirthCity is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameBirthCity = "BIRTH_CITY"
-
-	// ExtraParamNameDocumentNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameDocumentNumber = "DOCUMENT_NUMBER"
-
-	// ExtraParamNameAuIdNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameAuIdNumber = "AU_ID_NUMBER"
-
-	// ExtraParamNameAuIdType is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameAuIdType = "AU_ID_TYPE"
-
-	// ExtraParamNameCaLegalType is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameCaLegalType = "CA_LEGAL_TYPE"
-
-	// ExtraParamNameCaBusinessEntityType is a ExtraParamName enum value
-	ExtraParamNameCaBusinessEntityType = "CA_BUSINESS_ENTITY_TYPE"
-
-	// ExtraParamNameEsIdentification is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameEsIdentification = "ES_IDENTIFICATION"
-
-	// ExtraParamNameEsIdentificationType is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameEsIdentificationType = "ES_IDENTIFICATION_TYPE"
-
-	// ExtraParamNameEsLegalForm is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameEsLegalForm = "ES_LEGAL_FORM"
-
-	// ExtraParamNameFiBusinessNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameFiBusinessNumber = "FI_BUSINESS_NUMBER"
-
-	// ExtraParamNameFiIdNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameFiIdNumber = "FI_ID_NUMBER"
-
-	// ExtraParamNameItPin is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameItPin = "IT_PIN"
-
-	// ExtraParamNameRuPassportData is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameRuPassportData = "RU_PASSPORT_DATA"
-
-	// ExtraParamNameSeIdNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameSeIdNumber = "SE_ID_NUMBER"
-
-	// ExtraParamNameSgIdNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameSgIdNumber = "SG_ID_NUMBER"
-
-	// ExtraParamNameVatNumber is a ExtraParamName enum value
+	// @enum ExtraParamName
 	ExtraParamNameVatNumber = "VAT_NUMBER"
 )
 
 const (
-	// OperationStatusSubmitted is a OperationStatus enum value
+	// @enum OperationStatus
 	OperationStatusSubmitted = "SUBMITTED"
-
-	// OperationStatusInProgress is a OperationStatus enum value
+	// @enum OperationStatus
 	OperationStatusInProgress = "IN_PROGRESS"
-
-	// OperationStatusError is a OperationStatus enum value
+	// @enum OperationStatus
 	OperationStatusError = "ERROR"
-
-	// OperationStatusSuccessful is a OperationStatus enum value
+	// @enum OperationStatus
 	OperationStatusSuccessful = "SUCCESSFUL"
-
-	// OperationStatusFailed is a OperationStatus enum value
+	// @enum OperationStatus
 	OperationStatusFailed = "FAILED"
 )
 
 const (
-	// OperationTypeRegisterDomain is a OperationType enum value
+	// @enum OperationType
 	OperationTypeRegisterDomain = "REGISTER_DOMAIN"
-
-	// OperationTypeDeleteDomain is a OperationType enum value
+	// @enum OperationType
 	OperationTypeDeleteDomain = "DELETE_DOMAIN"
-
-	// OperationTypeTransferInDomain is a OperationType enum value
+	// @enum OperationType
 	OperationTypeTransferInDomain = "TRANSFER_IN_DOMAIN"
-
-	// OperationTypeUpdateDomainContact is a OperationType enum value
+	// @enum OperationType
 	OperationTypeUpdateDomainContact = "UPDATE_DOMAIN_CONTACT"
-
-	// OperationTypeUpdateNameserver is a OperationType enum value
+	// @enum OperationType
 	OperationTypeUpdateNameserver = "UPDATE_NAMESERVER"
-
-	// OperationTypeChangePrivacyProtection is a OperationType enum value
+	// @enum OperationType
 	OperationTypeChangePrivacyProtection = "CHANGE_PRIVACY_PROTECTION"
-
-	// OperationTypeDomainLock is a OperationType enum value
+	// @enum OperationType
 	OperationTypeDomainLock = "DOMAIN_LOCK"
-)
-
-const (
-	// ReachabilityStatusPending is a ReachabilityStatus enum value
-	ReachabilityStatusPending = "PENDING"
-
-	// ReachabilityStatusDone is a ReachabilityStatus enum value
-	ReachabilityStatusDone = "DONE"
-
-	// ReachabilityStatusExpired is a ReachabilityStatus enum value
-	ReachabilityStatusExpired = "EXPIRED"
 )

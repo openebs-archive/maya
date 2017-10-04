@@ -7,29 +7,36 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
-// Amazon DynamoDB Streams provides API actions for accessing streams and processing
-// stream records. To learn more about application development with Streams,
-// see Capturing Table Activity with DynamoDB Streams (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html)
-// in the Amazon DynamoDB Developer Guide.
+// This is the Amazon DynamoDB Streams API Reference. This guide describes the
+// low-level API actions for accessing streams and processing stream records.
+// For information about application development with DynamoDB Streams, see
+// the Amazon DynamoDB Developer Guide (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide//Streams.html).
 //
-// The following are short descriptions of each low-level DynamoDB Streams action:
+// Note that this document is intended for use with the following DynamoDB
+// documentation:
 //
-//    * DescribeStream - Returns detailed information about a particular stream.
+//    Amazon DynamoDB Developer Guide (http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/)
 //
-//    * GetRecords - Retrieves the stream records from within a shard.
+//    Amazon DynamoDB API Reference (http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/)
 //
-//    * GetShardIterator - Returns information on how to retrieve the streams
-//    record from a shard with a given shard ID.
+//   The following are short descriptions of each low-level DynamoDB Streams
+// API action, organized by function.
 //
-//    * ListStreams - Returns a list of all the streams associated with the
-//    current AWS account and endpoint.
-// The service client's operations are safe to be used concurrently.
+//  DescribeStream - Returns detailed information about a particular stream.
+//
+//  GetRecords - Retrieves the stream records from within a shard.
+//
+//   GetShardIterator - Returns information on how to retrieve the streams
+// record from a shard with a given shard ID.
+//
+//   ListStreams - Returns a list of all the streams associated with the current
+// AWS account and endpoint.
+//The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/streams-dynamodb-2012-08-10
 type DynamoDBStreams struct {
 	*client.Client
 }
@@ -40,11 +47,8 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// Service information constants
-const (
-	ServiceName = "streams.dynamodb" // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName        // Service ID for Regions and Endpoints metadata.
-)
+// A ServiceName is the name of the service the client will make API calls to.
+const ServiceName = "streams.dynamodb"
 
 // New creates a new instance of the DynamoDBStreams client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -57,21 +61,18 @@ const (
 //     // Create a DynamoDBStreams client with additional configuration
 //     svc := dynamodbstreams.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *DynamoDBStreams {
-	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	c := p.ClientConfig(ServiceName, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *DynamoDBStreams {
-	if len(signingName) == 0 {
-		signingName = "dynamodb"
-	}
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *DynamoDBStreams {
 	svc := &DynamoDBStreams{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   signingName,
+				SigningName:   "dynamodb",
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2012-08-10",
@@ -83,7 +84,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
+	svc.Handlers.Sign.PushBack(v4.Sign)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)
