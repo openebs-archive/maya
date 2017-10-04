@@ -1,0 +1,44 @@
+package: github.com/openebs/maya
+ignore:
+- github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
+- github.com/emicklei/go-restful/swagger
+import:
+- package: github.com/spf13/pflag
+  version: 1.0.0
+- package: github.com/spf13/cobra
+- package: github.com/dustin/go-humanize
+- package: github.com/hashicorp/go-getter
+- package: github.com/hashicorp/raft
+  version: 3a6f3bdfe4fc69e300c6d122b1a92051af6f0b95
+- package: github.com/hashicorp/nomad
+  version: v0.5.5
+  subpackages:
+  - api
+  - jobspec
+  - nomad/structs
+- package: github.com/mitchellh/cli
+- package: github.com/rancher/go-rancher
+  subpackages:
+  - client
+- package: github.com/mitchellh/colorstring
+- package: github.com/ryanuber/columnize
+  version: v2.1.0
+- package: github.com/docker/docker
+  version: v1.13.0
+  subpackages:
+  - pkg
+  - opts
+  - contrib
+  - cli
+- package: github.com/pkg/errors
+  version: v0.8.0
+- package: github.com/ugorji/go
+  subpackages:
+  - codec
+- package: k8s.io/client-go
+  version: 4.0.0-beta.0
+- package: k8s.io/api
+- package: github.com/onsi/ginkgo
+  version: v1.4.0
+- package: github.com/onsi/gomega
+  version: v1.2.0

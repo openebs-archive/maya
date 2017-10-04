@@ -1,0 +1,20 @@
+---
+version: 0.3
+kind: install
+spec:
+  provider: nomad               # provider name 
+  bin:
+  - name: nomad                 # Name and version of Nomad to be Configure         
+    version: 0.5.5
+  - name: consul                # Name and version of Consul to be Configure  
+    version: 0.7.5
+metadeta:
+  - name: master                # Host Name of the node
+    role: server                # Role of the above mentioned node
+  - name: host                  # Host Name of the node
+    role: client                # Role of the above mentioned node
+args:
+- name: master-01               # Name of the OpenEBS Master Node
+  addr: 172.128.28.4            # IP of the OpenEBS Master Node
+- name: host-01                 # Name of the OpenEBS Host
+  addr: 172.128.28.5            # IP of the OpenEBS Host Node

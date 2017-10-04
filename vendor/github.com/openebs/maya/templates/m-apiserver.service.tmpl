@@ -1,0 +1,12 @@
+[Unit]
+Description=m-apiserver Daemon 
+
+[Service]
+Environment=GOMAXPROCS=2
+Restart=on-failure
+ExecStart=/usr/bin/m-apiserver up -bind=__SELF_IPV4__ &>mapiserver.log 
+ExecReload=/bin/kill -HUP $MAINPID
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target
