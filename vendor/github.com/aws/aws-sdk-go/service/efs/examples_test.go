@@ -16,17 +16,10 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleEFS_CreateFileSystem() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.CreateFileSystemInput{
-		CreationToken:   aws.String("CreationToken"), // Required
-		PerformanceMode: aws.String("PerformanceMode"),
+		CreationToken: aws.String("CreationToken"), // Required
 	}
 	resp, err := svc.CreateFileSystem(params)
 
@@ -42,13 +35,7 @@ func ExampleEFS_CreateFileSystem() {
 }
 
 func ExampleEFS_CreateMountTarget() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.CreateMountTargetInput{
 		FileSystemId: aws.String("FileSystemId"), // Required
@@ -73,13 +60,7 @@ func ExampleEFS_CreateMountTarget() {
 }
 
 func ExampleEFS_CreateTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.CreateTagsInput{
 		FileSystemId: aws.String("FileSystemId"), // Required
@@ -105,13 +86,7 @@ func ExampleEFS_CreateTags() {
 }
 
 func ExampleEFS_DeleteFileSystem() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DeleteFileSystemInput{
 		FileSystemId: aws.String("FileSystemId"), // Required
@@ -130,13 +105,7 @@ func ExampleEFS_DeleteFileSystem() {
 }
 
 func ExampleEFS_DeleteMountTarget() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DeleteMountTargetInput{
 		MountTargetId: aws.String("MountTargetId"), // Required
@@ -155,13 +124,7 @@ func ExampleEFS_DeleteMountTarget() {
 }
 
 func ExampleEFS_DeleteTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DeleteTagsInput{
 		FileSystemId: aws.String("FileSystemId"), // Required
@@ -184,13 +147,7 @@ func ExampleEFS_DeleteTags() {
 }
 
 func ExampleEFS_DescribeFileSystems() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DescribeFileSystemsInput{
 		CreationToken: aws.String("CreationToken"),
@@ -212,13 +169,7 @@ func ExampleEFS_DescribeFileSystems() {
 }
 
 func ExampleEFS_DescribeMountTargetSecurityGroups() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DescribeMountTargetSecurityGroupsInput{
 		MountTargetId: aws.String("MountTargetId"), // Required
@@ -237,13 +188,7 @@ func ExampleEFS_DescribeMountTargetSecurityGroups() {
 }
 
 func ExampleEFS_DescribeMountTargets() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DescribeMountTargetsInput{
 		FileSystemId:  aws.String("FileSystemId"),
@@ -265,13 +210,7 @@ func ExampleEFS_DescribeMountTargets() {
 }
 
 func ExampleEFS_DescribeTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.DescribeTagsInput{
 		FileSystemId: aws.String("FileSystemId"), // Required
@@ -292,13 +231,7 @@ func ExampleEFS_DescribeTags() {
 }
 
 func ExampleEFS_ModifyMountTargetSecurityGroups() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := efs.New(sess)
+	svc := efs.New(session.New())
 
 	params := &efs.ModifyMountTargetSecurityGroupsInput{
 		MountTargetId: aws.String("MountTargetId"), // Required

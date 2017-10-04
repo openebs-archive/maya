@@ -15,47 +15,8 @@ import (
 var _ time.Duration
 var _ bytes.Buffer
 
-func ExampleMachineLearning_AddTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
-
-	params := &machinelearning.AddTagsInput{
-		ResourceId:   aws.String("EntityId"),             // Required
-		ResourceType: aws.String("TaggableResourceType"), // Required
-		Tags: []*machinelearning.Tag{ // Required
-			{ // Required
-				Key:   aws.String("TagKey"),
-				Value: aws.String("TagValue"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.AddTags(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleMachineLearning_CreateBatchPrediction() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateBatchPredictionInput{
 		BatchPredictionDataSourceId: aws.String("EntityId"), // Required
@@ -78,13 +39,7 @@ func ExampleMachineLearning_CreateBatchPrediction() {
 }
 
 func ExampleMachineLearning_CreateDataSourceFromRDS() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateDataSourceFromRDSInput{
 		DataSourceId: aws.String("EntityId"), // Required
@@ -128,13 +83,7 @@ func ExampleMachineLearning_CreateDataSourceFromRDS() {
 }
 
 func ExampleMachineLearning_CreateDataSourceFromRedshift() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateDataSourceFromRedshiftInput{
 		DataSourceId: aws.String("EntityId"), // Required
@@ -171,13 +120,7 @@ func ExampleMachineLearning_CreateDataSourceFromRedshift() {
 }
 
 func ExampleMachineLearning_CreateDataSourceFromS3() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateDataSourceFromS3Input{
 		DataSourceId: aws.String("EntityId"), // Required
@@ -204,13 +147,7 @@ func ExampleMachineLearning_CreateDataSourceFromS3() {
 }
 
 func ExampleMachineLearning_CreateEvaluation() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateEvaluationInput{
 		EvaluationDataSourceId: aws.String("EntityId"), // Required
@@ -232,13 +169,7 @@ func ExampleMachineLearning_CreateEvaluation() {
 }
 
 func ExampleMachineLearning_CreateMLModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateMLModelInput{
 		MLModelId:            aws.String("EntityId"),    // Required
@@ -266,13 +197,7 @@ func ExampleMachineLearning_CreateMLModel() {
 }
 
 func ExampleMachineLearning_CreateRealtimeEndpoint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.CreateRealtimeEndpointInput{
 		MLModelId: aws.String("EntityId"), // Required
@@ -291,13 +216,7 @@ func ExampleMachineLearning_CreateRealtimeEndpoint() {
 }
 
 func ExampleMachineLearning_DeleteBatchPrediction() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DeleteBatchPredictionInput{
 		BatchPredictionId: aws.String("EntityId"), // Required
@@ -316,13 +235,7 @@ func ExampleMachineLearning_DeleteBatchPrediction() {
 }
 
 func ExampleMachineLearning_DeleteDataSource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DeleteDataSourceInput{
 		DataSourceId: aws.String("EntityId"), // Required
@@ -341,13 +254,7 @@ func ExampleMachineLearning_DeleteDataSource() {
 }
 
 func ExampleMachineLearning_DeleteEvaluation() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DeleteEvaluationInput{
 		EvaluationId: aws.String("EntityId"), // Required
@@ -366,13 +273,7 @@ func ExampleMachineLearning_DeleteEvaluation() {
 }
 
 func ExampleMachineLearning_DeleteMLModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DeleteMLModelInput{
 		MLModelId: aws.String("EntityId"), // Required
@@ -391,13 +292,7 @@ func ExampleMachineLearning_DeleteMLModel() {
 }
 
 func ExampleMachineLearning_DeleteRealtimeEndpoint() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DeleteRealtimeEndpointInput{
 		MLModelId: aws.String("EntityId"), // Required
@@ -415,44 +310,8 @@ func ExampleMachineLearning_DeleteRealtimeEndpoint() {
 	fmt.Println(resp)
 }
 
-func ExampleMachineLearning_DeleteTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
-
-	params := &machinelearning.DeleteTagsInput{
-		ResourceId:   aws.String("EntityId"),             // Required
-		ResourceType: aws.String("TaggableResourceType"), // Required
-		TagKeys: []*string{ // Required
-			aws.String("TagKey"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.DeleteTags(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleMachineLearning_DescribeBatchPredictions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DescribeBatchPredictionsInput{
 		EQ:             aws.String("ComparatorValue"),
@@ -481,13 +340,7 @@ func ExampleMachineLearning_DescribeBatchPredictions() {
 }
 
 func ExampleMachineLearning_DescribeDataSources() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DescribeDataSourcesInput{
 		EQ:             aws.String("ComparatorValue"),
@@ -516,13 +369,7 @@ func ExampleMachineLearning_DescribeDataSources() {
 }
 
 func ExampleMachineLearning_DescribeEvaluations() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DescribeEvaluationsInput{
 		EQ:             aws.String("ComparatorValue"),
@@ -551,13 +398,7 @@ func ExampleMachineLearning_DescribeEvaluations() {
 }
 
 func ExampleMachineLearning_DescribeMLModels() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.DescribeMLModelsInput{
 		EQ:             aws.String("ComparatorValue"),
@@ -585,40 +426,8 @@ func ExampleMachineLearning_DescribeMLModels() {
 	fmt.Println(resp)
 }
 
-func ExampleMachineLearning_DescribeTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
-
-	params := &machinelearning.DescribeTagsInput{
-		ResourceId:   aws.String("EntityId"),             // Required
-		ResourceType: aws.String("TaggableResourceType"), // Required
-	}
-	resp, err := svc.DescribeTags(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleMachineLearning_GetBatchPrediction() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.GetBatchPredictionInput{
 		BatchPredictionId: aws.String("EntityId"), // Required
@@ -637,13 +446,7 @@ func ExampleMachineLearning_GetBatchPrediction() {
 }
 
 func ExampleMachineLearning_GetDataSource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.GetDataSourceInput{
 		DataSourceId: aws.String("EntityId"), // Required
@@ -663,13 +466,7 @@ func ExampleMachineLearning_GetDataSource() {
 }
 
 func ExampleMachineLearning_GetEvaluation() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.GetEvaluationInput{
 		EvaluationId: aws.String("EntityId"), // Required
@@ -688,13 +485,7 @@ func ExampleMachineLearning_GetEvaluation() {
 }
 
 func ExampleMachineLearning_GetMLModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.GetMLModelInput{
 		MLModelId: aws.String("EntityId"), // Required
@@ -714,13 +505,7 @@ func ExampleMachineLearning_GetMLModel() {
 }
 
 func ExampleMachineLearning_Predict() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.PredictInput{
 		MLModelId:       aws.String("EntityId"), // Required
@@ -744,13 +529,7 @@ func ExampleMachineLearning_Predict() {
 }
 
 func ExampleMachineLearning_UpdateBatchPrediction() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.UpdateBatchPredictionInput{
 		BatchPredictionId:   aws.String("EntityId"),   // Required
@@ -770,13 +549,7 @@ func ExampleMachineLearning_UpdateBatchPrediction() {
 }
 
 func ExampleMachineLearning_UpdateDataSource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.UpdateDataSourceInput{
 		DataSourceId:   aws.String("EntityId"),   // Required
@@ -796,13 +569,7 @@ func ExampleMachineLearning_UpdateDataSource() {
 }
 
 func ExampleMachineLearning_UpdateEvaluation() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.UpdateEvaluationInput{
 		EvaluationId:   aws.String("EntityId"),   // Required
@@ -822,13 +589,7 @@ func ExampleMachineLearning_UpdateEvaluation() {
 }
 
 func ExampleMachineLearning_UpdateMLModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := machinelearning.New(sess)
+	svc := machinelearning.New(session.New())
 
 	params := &machinelearning.UpdateMLModelInput{
 		MLModelId:      aws.String("EntityId"), // Required
