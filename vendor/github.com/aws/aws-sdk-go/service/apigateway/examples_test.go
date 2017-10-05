@@ -16,20 +16,12 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleAPIGateway_CreateApiKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateApiKeyInput{
-		CustomerId:         aws.String("String"),
-		Description:        aws.String("String"),
-		Enabled:            aws.Bool(true),
-		GenerateDistinctId: aws.Bool(true),
-		Name:               aws.String("String"),
+		Description: aws.String("String"),
+		Enabled:     aws.Bool(true),
+		Name:        aws.String("String"),
 		StageKeys: []*apigateway.StageKey{
 			{ // Required
 				RestApiId: aws.String("String"),
@@ -37,7 +29,6 @@ func ExampleAPIGateway_CreateApiKey() {
 			},
 			// More values...
 		},
-		Value: aws.String("String"),
 	}
 	resp, err := svc.CreateApiKey(params)
 
@@ -52,51 +43,8 @@ func ExampleAPIGateway_CreateApiKey() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_CreateAuthorizer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.CreateAuthorizerInput{
-		IdentitySource:               aws.String("String"),         // Required
-		Name:                         aws.String("String"),         // Required
-		RestApiId:                    aws.String("String"),         // Required
-		Type:                         aws.String("AuthorizerType"), // Required
-		AuthType:                     aws.String("String"),
-		AuthorizerCredentials:        aws.String("String"),
-		AuthorizerResultTtlInSeconds: aws.Int64(1),
-		AuthorizerUri:                aws.String("String"),
-		IdentityValidationExpression: aws.String("String"),
-		ProviderARNs: []*string{
-			aws.String("ProviderARN"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.CreateAuthorizer(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_CreateBasePathMapping() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateBasePathMappingInput{
 		DomainName: aws.String("String"), // Required
@@ -118,21 +66,15 @@ func ExampleAPIGateway_CreateBasePathMapping() {
 }
 
 func ExampleAPIGateway_CreateDeployment() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateDeploymentInput{
 		RestApiId:           aws.String("String"), // Required
+		StageName:           aws.String("String"), // Required
 		CacheClusterEnabled: aws.Bool(true),
 		CacheClusterSize:    aws.String("CacheClusterSize"),
 		Description:         aws.String("String"),
 		StageDescription:    aws.String("String"),
-		StageName:           aws.String("String"),
 		Variables: map[string]*string{
 			"Key": aws.String("String"), // Required
 			// More values...
@@ -151,75 +93,8 @@ func ExampleAPIGateway_CreateDeployment() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_CreateDocumentationPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.CreateDocumentationPartInput{
-		Location: &apigateway.DocumentationPartLocation{ // Required
-			Type:       aws.String("DocumentationPartType"), // Required
-			Method:     aws.String("String"),
-			Name:       aws.String("String"),
-			Path:       aws.String("String"),
-			StatusCode: aws.String("DocumentationPartLocationStatusCode"),
-		},
-		Properties: aws.String("String"), // Required
-		RestApiId:  aws.String("String"), // Required
-	}
-	resp, err := svc.CreateDocumentationPart(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_CreateDocumentationVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.CreateDocumentationVersionInput{
-		DocumentationVersion: aws.String("String"), // Required
-		RestApiId:            aws.String("String"), // Required
-		Description:          aws.String("String"),
-		StageName:            aws.String("String"),
-	}
-	resp, err := svc.CreateDocumentationVersion(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_CreateDomainName() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateDomainNameInput{
 		CertificateBody:       aws.String("String"), // Required
@@ -242,13 +117,7 @@ func ExampleAPIGateway_CreateDomainName() {
 }
 
 func ExampleAPIGateway_CreateModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateModelInput{
 		ContentType: aws.String("String"), // Required
@@ -271,13 +140,7 @@ func ExampleAPIGateway_CreateModel() {
 }
 
 func ExampleAPIGateway_CreateResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateResourceInput{
 		ParentId:  aws.String("String"), // Required
@@ -298,23 +161,12 @@ func ExampleAPIGateway_CreateResource() {
 }
 
 func ExampleAPIGateway_CreateRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateRestApiInput{
-		Name: aws.String("String"), // Required
-		BinaryMediaTypes: []*string{
-			aws.String("String"), // Required
-			// More values...
-		},
+		Name:        aws.String("String"), // Required
 		CloneFrom:   aws.String("String"),
 		Description: aws.String("String"),
-		Version:     aws.String("String"),
 	}
 	resp, err := svc.CreateRestApi(params)
 
@@ -330,22 +182,15 @@ func ExampleAPIGateway_CreateRestApi() {
 }
 
 func ExampleAPIGateway_CreateStage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.CreateStageInput{
-		DeploymentId:         aws.String("String"), // Required
-		RestApiId:            aws.String("String"), // Required
-		StageName:            aws.String("String"), // Required
-		CacheClusterEnabled:  aws.Bool(true),
-		CacheClusterSize:     aws.String("CacheClusterSize"),
-		Description:          aws.String("String"),
-		DocumentationVersion: aws.String("String"),
+		DeploymentId:        aws.String("String"), // Required
+		RestApiId:           aws.String("String"), // Required
+		StageName:           aws.String("String"), // Required
+		CacheClusterEnabled: aws.Bool(true),
+		CacheClusterSize:    aws.String("CacheClusterSize"),
+		Description:         aws.String("String"),
 		Variables: map[string]*string{
 			"Key": aws.String("String"), // Required
 			// More values...
@@ -364,83 +209,8 @@ func ExampleAPIGateway_CreateStage() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_CreateUsagePlan() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.CreateUsagePlanInput{
-		Name: aws.String("String"), // Required
-		ApiStages: []*apigateway.ApiStage{
-			{ // Required
-				ApiId: aws.String("String"),
-				Stage: aws.String("String"),
-			},
-			// More values...
-		},
-		Description: aws.String("String"),
-		Quota: &apigateway.QuotaSettings{
-			Limit:  aws.Int64(1),
-			Offset: aws.Int64(1),
-			Period: aws.String("QuotaPeriodType"),
-		},
-		Throttle: &apigateway.ThrottleSettings{
-			BurstLimit: aws.Int64(1),
-			RateLimit:  aws.Float64(1.0),
-		},
-	}
-	resp, err := svc.CreateUsagePlan(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_CreateUsagePlanKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.CreateUsagePlanKeyInput{
-		KeyId:       aws.String("String"), // Required
-		KeyType:     aws.String("String"), // Required
-		UsagePlanId: aws.String("String"), // Required
-	}
-	resp, err := svc.CreateUsagePlanKey(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_DeleteApiKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteApiKeyInput{
 		ApiKey: aws.String("String"), // Required
@@ -458,40 +228,8 @@ func ExampleAPIGateway_DeleteApiKey() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_DeleteAuthorizer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.DeleteAuthorizerInput{
-		AuthorizerId: aws.String("String"), // Required
-		RestApiId:    aws.String("String"), // Required
-	}
-	resp, err := svc.DeleteAuthorizer(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_DeleteBasePathMapping() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteBasePathMappingInput{
 		BasePath:   aws.String("String"), // Required
@@ -511,13 +249,7 @@ func ExampleAPIGateway_DeleteBasePathMapping() {
 }
 
 func ExampleAPIGateway_DeleteClientCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteClientCertificateInput{
 		ClientCertificateId: aws.String("String"), // Required
@@ -536,13 +268,7 @@ func ExampleAPIGateway_DeleteClientCertificate() {
 }
 
 func ExampleAPIGateway_DeleteDeployment() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteDeploymentInput{
 		DeploymentId: aws.String("String"), // Required
@@ -561,66 +287,8 @@ func ExampleAPIGateway_DeleteDeployment() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_DeleteDocumentationPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.DeleteDocumentationPartInput{
-		DocumentationPartId: aws.String("String"), // Required
-		RestApiId:           aws.String("String"), // Required
-	}
-	resp, err := svc.DeleteDocumentationPart(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_DeleteDocumentationVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.DeleteDocumentationVersionInput{
-		DocumentationVersion: aws.String("String"), // Required
-		RestApiId:            aws.String("String"), // Required
-	}
-	resp, err := svc.DeleteDocumentationVersion(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_DeleteDomainName() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteDomainNameInput{
 		DomainName: aws.String("String"), // Required
@@ -639,13 +307,7 @@ func ExampleAPIGateway_DeleteDomainName() {
 }
 
 func ExampleAPIGateway_DeleteIntegration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteIntegrationInput{
 		HttpMethod: aws.String("String"), // Required
@@ -666,13 +328,7 @@ func ExampleAPIGateway_DeleteIntegration() {
 }
 
 func ExampleAPIGateway_DeleteIntegrationResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteIntegrationResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -694,13 +350,7 @@ func ExampleAPIGateway_DeleteIntegrationResponse() {
 }
 
 func ExampleAPIGateway_DeleteMethod() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteMethodInput{
 		HttpMethod: aws.String("String"), // Required
@@ -721,13 +371,7 @@ func ExampleAPIGateway_DeleteMethod() {
 }
 
 func ExampleAPIGateway_DeleteMethodResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteMethodResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -749,13 +393,7 @@ func ExampleAPIGateway_DeleteMethodResponse() {
 }
 
 func ExampleAPIGateway_DeleteModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteModelInput{
 		ModelName: aws.String("String"), // Required
@@ -775,13 +413,7 @@ func ExampleAPIGateway_DeleteModel() {
 }
 
 func ExampleAPIGateway_DeleteResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteResourceInput{
 		ResourceId: aws.String("String"), // Required
@@ -801,13 +433,7 @@ func ExampleAPIGateway_DeleteResource() {
 }
 
 func ExampleAPIGateway_DeleteRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteRestApiInput{
 		RestApiId: aws.String("String"), // Required
@@ -826,13 +452,7 @@ func ExampleAPIGateway_DeleteRestApi() {
 }
 
 func ExampleAPIGateway_DeleteStage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.DeleteStageInput{
 		RestApiId: aws.String("String"), // Required
@@ -851,91 +471,8 @@ func ExampleAPIGateway_DeleteStage() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_DeleteUsagePlan() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.DeleteUsagePlanInput{
-		UsagePlanId: aws.String("String"), // Required
-	}
-	resp, err := svc.DeleteUsagePlan(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_DeleteUsagePlanKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.DeleteUsagePlanKeyInput{
-		KeyId:       aws.String("String"), // Required
-		UsagePlanId: aws.String("String"), // Required
-	}
-	resp, err := svc.DeleteUsagePlanKey(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_FlushStageAuthorizersCache() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.FlushStageAuthorizersCacheInput{
-		RestApiId: aws.String("String"), // Required
-		StageName: aws.String("String"), // Required
-	}
-	resp, err := svc.FlushStageAuthorizersCache(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_FlushStageCache() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.FlushStageCacheInput{
 		RestApiId: aws.String("String"), // Required
@@ -955,13 +492,7 @@ func ExampleAPIGateway_FlushStageCache() {
 }
 
 func ExampleAPIGateway_GenerateClientCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GenerateClientCertificateInput{
 		Description: aws.String("String"),
@@ -980,13 +511,7 @@ func ExampleAPIGateway_GenerateClientCertificate() {
 }
 
 func ExampleAPIGateway_GetAccount() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	var params *apigateway.GetAccountInput
 	resp, err := svc.GetAccount(params)
@@ -1003,17 +528,10 @@ func ExampleAPIGateway_GetAccount() {
 }
 
 func ExampleAPIGateway_GetApiKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetApiKeyInput{
-		ApiKey:       aws.String("String"), // Required
-		IncludeValue: aws.Bool(true),
+		ApiKey: aws.String("String"), // Required
 	}
 	resp, err := svc.GetApiKey(params)
 
@@ -1029,20 +547,11 @@ func ExampleAPIGateway_GetApiKey() {
 }
 
 func ExampleAPIGateway_GetApiKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetApiKeysInput{
-		CustomerId:    aws.String("String"),
-		IncludeValues: aws.Bool(true),
-		Limit:         aws.Int64(1),
-		NameQuery:     aws.String("String"),
-		Position:      aws.String("String"),
+		Limit:    aws.Int64(1),
+		Position: aws.String("String"),
 	}
 	resp, err := svc.GetApiKeys(params)
 
@@ -1057,67 +566,8 @@ func ExampleAPIGateway_GetApiKeys() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_GetAuthorizer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetAuthorizerInput{
-		AuthorizerId: aws.String("String"), // Required
-		RestApiId:    aws.String("String"), // Required
-	}
-	resp, err := svc.GetAuthorizer(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetAuthorizers() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetAuthorizersInput{
-		RestApiId: aws.String("String"), // Required
-		Limit:     aws.Int64(1),
-		Position:  aws.String("String"),
-	}
-	resp, err := svc.GetAuthorizers(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_GetBasePathMapping() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetBasePathMappingInput{
 		BasePath:   aws.String("String"), // Required
@@ -1137,13 +587,7 @@ func ExampleAPIGateway_GetBasePathMapping() {
 }
 
 func ExampleAPIGateway_GetBasePathMappings() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetBasePathMappingsInput{
 		DomainName: aws.String("String"), // Required
@@ -1164,13 +608,7 @@ func ExampleAPIGateway_GetBasePathMappings() {
 }
 
 func ExampleAPIGateway_GetClientCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetClientCertificateInput{
 		ClientCertificateId: aws.String("String"), // Required
@@ -1189,13 +627,7 @@ func ExampleAPIGateway_GetClientCertificate() {
 }
 
 func ExampleAPIGateway_GetClientCertificates() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetClientCertificatesInput{
 		Limit:    aws.Int64(1),
@@ -1215,13 +647,7 @@ func ExampleAPIGateway_GetClientCertificates() {
 }
 
 func ExampleAPIGateway_GetDeployment() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetDeploymentInput{
 		DeploymentId: aws.String("String"), // Required
@@ -1241,13 +667,7 @@ func ExampleAPIGateway_GetDeployment() {
 }
 
 func ExampleAPIGateway_GetDeployments() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetDeploymentsInput{
 		RestApiId: aws.String("String"), // Required
@@ -1267,123 +687,8 @@ func ExampleAPIGateway_GetDeployments() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_GetDocumentationPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetDocumentationPartInput{
-		DocumentationPartId: aws.String("String"), // Required
-		RestApiId:           aws.String("String"), // Required
-	}
-	resp, err := svc.GetDocumentationPart(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetDocumentationParts() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetDocumentationPartsInput{
-		RestApiId: aws.String("String"), // Required
-		Limit:     aws.Int64(1),
-		NameQuery: aws.String("String"),
-		Path:      aws.String("String"),
-		Position:  aws.String("String"),
-		Type:      aws.String("DocumentationPartType"),
-	}
-	resp, err := svc.GetDocumentationParts(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetDocumentationVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetDocumentationVersionInput{
-		DocumentationVersion: aws.String("String"), // Required
-		RestApiId:            aws.String("String"), // Required
-	}
-	resp, err := svc.GetDocumentationVersion(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetDocumentationVersions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetDocumentationVersionsInput{
-		RestApiId: aws.String("String"), // Required
-		Limit:     aws.Int64(1),
-		Position:  aws.String("String"),
-	}
-	resp, err := svc.GetDocumentationVersions(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_GetDomainName() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetDomainNameInput{
 		DomainName: aws.String("String"), // Required
@@ -1402,13 +707,7 @@ func ExampleAPIGateway_GetDomainName() {
 }
 
 func ExampleAPIGateway_GetDomainNames() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetDomainNamesInput{
 		Limit:    aws.Int64(1),
@@ -1427,46 +726,8 @@ func ExampleAPIGateway_GetDomainNames() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_GetExport() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetExportInput{
-		ExportType: aws.String("String"), // Required
-		RestApiId:  aws.String("String"), // Required
-		StageName:  aws.String("String"), // Required
-		Accepts:    aws.String("String"),
-		Parameters: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.GetExport(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_GetIntegration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetIntegrationInput{
 		HttpMethod: aws.String("String"), // Required
@@ -1487,13 +748,7 @@ func ExampleAPIGateway_GetIntegration() {
 }
 
 func ExampleAPIGateway_GetIntegrationResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetIntegrationResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -1515,13 +770,7 @@ func ExampleAPIGateway_GetIntegrationResponse() {
 }
 
 func ExampleAPIGateway_GetMethod() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetMethodInput{
 		HttpMethod: aws.String("String"), // Required
@@ -1542,13 +791,7 @@ func ExampleAPIGateway_GetMethod() {
 }
 
 func ExampleAPIGateway_GetMethodResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetMethodResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -1570,13 +813,7 @@ func ExampleAPIGateway_GetMethodResponse() {
 }
 
 func ExampleAPIGateway_GetModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetModelInput{
 		ModelName: aws.String("String"), // Required
@@ -1597,13 +834,7 @@ func ExampleAPIGateway_GetModel() {
 }
 
 func ExampleAPIGateway_GetModelTemplate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetModelTemplateInput{
 		ModelName: aws.String("String"), // Required
@@ -1623,13 +854,7 @@ func ExampleAPIGateway_GetModelTemplate() {
 }
 
 func ExampleAPIGateway_GetModels() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetModelsInput{
 		RestApiId: aws.String("String"), // Required
@@ -1650,13 +875,7 @@ func ExampleAPIGateway_GetModels() {
 }
 
 func ExampleAPIGateway_GetResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetResourceInput{
 		ResourceId: aws.String("String"), // Required
@@ -1676,13 +895,7 @@ func ExampleAPIGateway_GetResource() {
 }
 
 func ExampleAPIGateway_GetResources() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetResourcesInput{
 		RestApiId: aws.String("String"), // Required
@@ -1703,13 +916,7 @@ func ExampleAPIGateway_GetResources() {
 }
 
 func ExampleAPIGateway_GetRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetRestApiInput{
 		RestApiId: aws.String("String"), // Required
@@ -1728,13 +935,7 @@ func ExampleAPIGateway_GetRestApi() {
 }
 
 func ExampleAPIGateway_GetRestApis() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetRestApisInput{
 		Limit:    aws.Int64(1),
@@ -1754,13 +955,7 @@ func ExampleAPIGateway_GetRestApis() {
 }
 
 func ExampleAPIGateway_GetSdk() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetSdkInput{
 		RestApiId: aws.String("String"), // Required
@@ -1784,65 +979,8 @@ func ExampleAPIGateway_GetSdk() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_GetSdkType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetSdkTypeInput{
-		Id: aws.String("String"), // Required
-	}
-	resp, err := svc.GetSdkType(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetSdkTypes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetSdkTypesInput{
-		Limit:    aws.Int64(1),
-		Position: aws.String("String"),
-	}
-	resp, err := svc.GetSdkTypes(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_GetStage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetStageInput{
 		RestApiId: aws.String("String"), // Required
@@ -1862,13 +1000,7 @@ func ExampleAPIGateway_GetStage() {
 }
 
 func ExampleAPIGateway_GetStages() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.GetStagesInput{
 		RestApiId:    aws.String("String"), // Required
@@ -1887,235 +1019,8 @@ func ExampleAPIGateway_GetStages() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_GetUsage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetUsageInput{
-		EndDate:     aws.String("String"), // Required
-		StartDate:   aws.String("String"), // Required
-		UsagePlanId: aws.String("String"), // Required
-		KeyId:       aws.String("String"),
-		Limit:       aws.Int64(1),
-		Position:    aws.String("String"),
-	}
-	resp, err := svc.GetUsage(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetUsagePlan() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetUsagePlanInput{
-		UsagePlanId: aws.String("String"), // Required
-	}
-	resp, err := svc.GetUsagePlan(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetUsagePlanKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetUsagePlanKeyInput{
-		KeyId:       aws.String("String"), // Required
-		UsagePlanId: aws.String("String"), // Required
-	}
-	resp, err := svc.GetUsagePlanKey(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetUsagePlanKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetUsagePlanKeysInput{
-		UsagePlanId: aws.String("String"), // Required
-		Limit:       aws.Int64(1),
-		NameQuery:   aws.String("String"),
-		Position:    aws.String("String"),
-	}
-	resp, err := svc.GetUsagePlanKeys(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_GetUsagePlans() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.GetUsagePlansInput{
-		KeyId:    aws.String("String"),
-		Limit:    aws.Int64(1),
-		Position: aws.String("String"),
-	}
-	resp, err := svc.GetUsagePlans(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_ImportApiKeys() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.ImportApiKeysInput{
-		Body:           []byte("PAYLOAD"),           // Required
-		Format:         aws.String("ApiKeysFormat"), // Required
-		FailOnWarnings: aws.Bool(true),
-	}
-	resp, err := svc.ImportApiKeys(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_ImportDocumentationParts() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.ImportDocumentationPartsInput{
-		Body:           []byte("PAYLOAD"),    // Required
-		RestApiId:      aws.String("String"), // Required
-		FailOnWarnings: aws.Bool(true),
-		Mode:           aws.String("PutMode"),
-	}
-	resp, err := svc.ImportDocumentationParts(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_ImportRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.ImportRestApiInput{
-		Body:           []byte("PAYLOAD"), // Required
-		FailOnWarnings: aws.Bool(true),
-		Parameters: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.ImportRestApi(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_PutIntegration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.PutIntegrationInput{
 		HttpMethod: aws.String("String"),          // Required
@@ -2127,10 +1032,8 @@ func ExampleAPIGateway_PutIntegration() {
 			// More values...
 		},
 		CacheNamespace:        aws.String("String"),
-		ContentHandling:       aws.String("ContentHandlingStrategy"),
 		Credentials:           aws.String("String"),
 		IntegrationHttpMethod: aws.String("String"),
-		PassthroughBehavior:   aws.String("String"),
 		RequestParameters: map[string]*string{
 			"Key": aws.String("String"), // Required
 			// More values...
@@ -2155,20 +1058,13 @@ func ExampleAPIGateway_PutIntegration() {
 }
 
 func ExampleAPIGateway_PutIntegrationResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.PutIntegrationResponseInput{
-		HttpMethod:      aws.String("String"),     // Required
-		ResourceId:      aws.String("String"),     // Required
-		RestApiId:       aws.String("String"),     // Required
-		StatusCode:      aws.String("StatusCode"), // Required
-		ContentHandling: aws.String("ContentHandlingStrategy"),
+		HttpMethod: aws.String("String"),     // Required
+		ResourceId: aws.String("String"),     // Required
+		RestApiId:  aws.String("String"),     // Required
+		StatusCode: aws.String("StatusCode"), // Required
 		ResponseParameters: map[string]*string{
 			"Key": aws.String("String"), // Required
 			// More values...
@@ -2193,13 +1089,7 @@ func ExampleAPIGateway_PutIntegrationResponse() {
 }
 
 func ExampleAPIGateway_PutMethod() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.PutMethodInput{
 		AuthorizationType: aws.String("String"), // Required
@@ -2207,8 +1097,6 @@ func ExampleAPIGateway_PutMethod() {
 		ResourceId:        aws.String("String"), // Required
 		RestApiId:         aws.String("String"), // Required
 		ApiKeyRequired:    aws.Bool(true),
-		AuthorizerId:      aws.String("String"),
-		OperationName:     aws.String("String"),
 		RequestModels: map[string]*string{
 			"Key": aws.String("String"), // Required
 			// More values...
@@ -2232,13 +1120,7 @@ func ExampleAPIGateway_PutMethod() {
 }
 
 func ExampleAPIGateway_PutMethodResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.PutMethodResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -2267,86 +1149,8 @@ func ExampleAPIGateway_PutMethodResponse() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_PutRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.PutRestApiInput{
-		Body:           []byte("PAYLOAD"),    // Required
-		RestApiId:      aws.String("String"), // Required
-		FailOnWarnings: aws.Bool(true),
-		Mode:           aws.String("PutMode"),
-		Parameters: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.PutRestApi(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_TestInvokeAuthorizer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.TestInvokeAuthorizerInput{
-		AuthorizerId: aws.String("String"), // Required
-		RestApiId:    aws.String("String"), // Required
-		AdditionalContext: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-		Body: aws.String("String"),
-		Headers: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-		PathWithQueryString: aws.String("String"),
-		StageVariables: map[string]*string{
-			"Key": aws.String("String"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.TestInvokeAuthorizer(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_TestInvokeMethod() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.TestInvokeMethodInput{
 		HttpMethod:          aws.String("String"), // Required
@@ -2378,19 +1182,13 @@ func ExampleAPIGateway_TestInvokeMethod() {
 }
 
 func ExampleAPIGateway_UpdateAccount() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateAccountInput{
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2411,20 +1209,14 @@ func ExampleAPIGateway_UpdateAccount() {
 }
 
 func ExampleAPIGateway_UpdateApiKey() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateApiKeyInput{
 		ApiKey: aws.String("String"), // Required
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2444,49 +1236,8 @@ func ExampleAPIGateway_UpdateApiKey() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_UpdateAuthorizer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.UpdateAuthorizerInput{
-		AuthorizerId: aws.String("String"), // Required
-		RestApiId:    aws.String("String"), // Required
-		PatchOperations: []*apigateway.PatchOperation{
-			{ // Required
-				From:  aws.String("String"),
-				Op:    aws.String("Op"),
-				Path:  aws.String("String"),
-				Value: aws.String("String"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.UpdateAuthorizer(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_UpdateBasePathMapping() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateBasePathMappingInput{
 		BasePath:   aws.String("String"), // Required
@@ -2494,7 +1245,7 @@ func ExampleAPIGateway_UpdateBasePathMapping() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2515,20 +1266,14 @@ func ExampleAPIGateway_UpdateBasePathMapping() {
 }
 
 func ExampleAPIGateway_UpdateClientCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateClientCertificateInput{
 		ClientCertificateId: aws.String("String"), // Required
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2549,13 +1294,7 @@ func ExampleAPIGateway_UpdateClientCertificate() {
 }
 
 func ExampleAPIGateway_UpdateDeployment() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateDeploymentInput{
 		DeploymentId: aws.String("String"), // Required
@@ -2563,7 +1302,7 @@ func ExampleAPIGateway_UpdateDeployment() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2583,91 +1322,15 @@ func ExampleAPIGateway_UpdateDeployment() {
 	fmt.Println(resp)
 }
 
-func ExampleAPIGateway_UpdateDocumentationPart() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.UpdateDocumentationPartInput{
-		DocumentationPartId: aws.String("String"), // Required
-		RestApiId:           aws.String("String"), // Required
-		PatchOperations: []*apigateway.PatchOperation{
-			{ // Required
-				From:  aws.String("String"),
-				Op:    aws.String("Op"),
-				Path:  aws.String("String"),
-				Value: aws.String("String"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.UpdateDocumentationPart(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_UpdateDocumentationVersion() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.UpdateDocumentationVersionInput{
-		DocumentationVersion: aws.String("String"), // Required
-		RestApiId:            aws.String("String"), // Required
-		PatchOperations: []*apigateway.PatchOperation{
-			{ // Required
-				From:  aws.String("String"),
-				Op:    aws.String("Op"),
-				Path:  aws.String("String"),
-				Value: aws.String("String"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.UpdateDocumentationVersion(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleAPIGateway_UpdateDomainName() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateDomainNameInput{
 		DomainName: aws.String("String"), // Required
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2688,13 +1351,7 @@ func ExampleAPIGateway_UpdateDomainName() {
 }
 
 func ExampleAPIGateway_UpdateIntegration() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateIntegrationInput{
 		HttpMethod: aws.String("String"), // Required
@@ -2703,7 +1360,7 @@ func ExampleAPIGateway_UpdateIntegration() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2724,13 +1381,7 @@ func ExampleAPIGateway_UpdateIntegration() {
 }
 
 func ExampleAPIGateway_UpdateIntegrationResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateIntegrationResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -2740,7 +1391,7 @@ func ExampleAPIGateway_UpdateIntegrationResponse() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2761,13 +1412,7 @@ func ExampleAPIGateway_UpdateIntegrationResponse() {
 }
 
 func ExampleAPIGateway_UpdateMethod() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateMethodInput{
 		HttpMethod: aws.String("String"), // Required
@@ -2776,7 +1421,7 @@ func ExampleAPIGateway_UpdateMethod() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2797,13 +1442,7 @@ func ExampleAPIGateway_UpdateMethod() {
 }
 
 func ExampleAPIGateway_UpdateMethodResponse() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateMethodResponseInput{
 		HttpMethod: aws.String("String"),     // Required
@@ -2813,7 +1452,7 @@ func ExampleAPIGateway_UpdateMethodResponse() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2834,13 +1473,7 @@ func ExampleAPIGateway_UpdateMethodResponse() {
 }
 
 func ExampleAPIGateway_UpdateModel() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateModelInput{
 		ModelName: aws.String("String"), // Required
@@ -2848,7 +1481,7 @@ func ExampleAPIGateway_UpdateModel() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2869,13 +1502,7 @@ func ExampleAPIGateway_UpdateModel() {
 }
 
 func ExampleAPIGateway_UpdateResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateResourceInput{
 		ResourceId: aws.String("String"), // Required
@@ -2883,7 +1510,7 @@ func ExampleAPIGateway_UpdateResource() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2904,20 +1531,14 @@ func ExampleAPIGateway_UpdateResource() {
 }
 
 func ExampleAPIGateway_UpdateRestApi() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateRestApiInput{
 		RestApiId: aws.String("String"), // Required
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2938,13 +1559,7 @@ func ExampleAPIGateway_UpdateRestApi() {
 }
 
 func ExampleAPIGateway_UpdateStage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
+	svc := apigateway.New(session.New())
 
 	params := &apigateway.UpdateStageInput{
 		RestApiId: aws.String("String"), // Required
@@ -2952,7 +1567,7 @@ func ExampleAPIGateway_UpdateStage() {
 		PatchOperations: []*apigateway.PatchOperation{
 			{ // Required
 				From:  aws.String("String"),
-				Op:    aws.String("Op"),
+				Op:    aws.String("op"),
 				Path:  aws.String("String"),
 				Value: aws.String("String"),
 			},
@@ -2960,75 +1575,6 @@ func ExampleAPIGateway_UpdateStage() {
 		},
 	}
 	resp, err := svc.UpdateStage(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_UpdateUsage() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.UpdateUsageInput{
-		KeyId:       aws.String("String"), // Required
-		UsagePlanId: aws.String("String"), // Required
-		PatchOperations: []*apigateway.PatchOperation{
-			{ // Required
-				From:  aws.String("String"),
-				Op:    aws.String("Op"),
-				Path:  aws.String("String"),
-				Value: aws.String("String"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.UpdateUsage(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleAPIGateway_UpdateUsagePlan() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := apigateway.New(sess)
-
-	params := &apigateway.UpdateUsagePlanInput{
-		UsagePlanId: aws.String("String"), // Required
-		PatchOperations: []*apigateway.PatchOperation{
-			{ // Required
-				From:  aws.String("String"),
-				Op:    aws.String("Op"),
-				Path:  aws.String("String"),
-				Value: aws.String("String"),
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.UpdateUsagePlan(params)
 
 	if err != nil {
 		// Print the error, cast err to awserr.Error to get the Code and

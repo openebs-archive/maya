@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleIoTDataPlane_DeleteThingShadow() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iotdataplane.New(sess)
+	svc := iotdataplane.New(session.New())
 
 	params := &iotdataplane.DeleteThingShadowInput{
 		ThingName: aws.String("ThingName"), // Required
@@ -41,13 +35,7 @@ func ExampleIoTDataPlane_DeleteThingShadow() {
 }
 
 func ExampleIoTDataPlane_GetThingShadow() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iotdataplane.New(sess)
+	svc := iotdataplane.New(session.New())
 
 	params := &iotdataplane.GetThingShadowInput{
 		ThingName: aws.String("ThingName"), // Required
@@ -66,13 +54,7 @@ func ExampleIoTDataPlane_GetThingShadow() {
 }
 
 func ExampleIoTDataPlane_Publish() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iotdataplane.New(sess)
+	svc := iotdataplane.New(session.New())
 
 	params := &iotdataplane.PublishInput{
 		Topic:   aws.String("Topic"), // Required
@@ -93,13 +75,7 @@ func ExampleIoTDataPlane_Publish() {
 }
 
 func ExampleIoTDataPlane_UpdateThingShadow() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := iotdataplane.New(sess)
+	svc := iotdataplane.New(session.New())
 
 	params := &iotdataplane.UpdateThingShadowInput{
 		Payload:   []byte("PAYLOAD"),       // Required

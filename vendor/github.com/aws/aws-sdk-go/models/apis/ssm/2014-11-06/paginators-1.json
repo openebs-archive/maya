@@ -1,11 +1,5 @@
 {
   "pagination": {
-    "DescribeInstanceInformation": {
-      "input_token": "NextToken",
-      "output_token": "NextToken",
-      "limit_key": "MaxResults",
-      "result_key": "InstanceInformationList"
-    },
     "ListAssociations": {
       "input_token": "NextToken",
       "output_token": "NextToken",
@@ -29,12 +23,6 @@
       "output_token": "NextToken",
       "limit_key": "MaxResults",
       "result_key": "DocumentIdentifiers"
-    },
-    "DescribeActivations": {
-      "input_token": "NextToken",
-      "output_token": "NextToken",
-      "limit_key": "MaxResults",
-      "result_key": "ActivationList"
     }
   }
 }

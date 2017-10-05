@@ -1,4 +1,4 @@
-// Package jsonutil provides JSON serialization of AWS requests and responses.
+// Package jsonutil provides JSON serialisation of AWS requests and responses.
 package jsonutil
 
 import (
@@ -98,9 +98,6 @@ func buildStruct(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) 
 		if field.Tag.Get("location") != "" {
 			continue // ignore non-body elements
 		}
-		if field.Tag.Get("ignore") != "" {
-			continue
-		}
 
 		if protocol.CanSetIdempotencyToken(member, field) {
 			token := protocol.GetIdempotencyToken()
@@ -123,8 +120,7 @@ func buildStruct(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) 
 			name = locName
 		}
 
-		writeString(name, buf)
-		buf.WriteString(`:`)
+		fmt.Fprintf(buf, "%q:", name)
 
 		err := buildAny(member, buf, field.Tag)
 		if err != nil {
@@ -163,7 +159,7 @@ func (sv sortedValues) Less(i, j int) bool { return sv[i].String() < sv[j].Strin
 func buildMap(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) error {
 	buf.WriteString("{")
 
-	sv := sortedValues(value.MapKeys())
+	var sv sortedValues = value.MapKeys()
 	sort.Sort(sv)
 
 	for i, k := range sv {
@@ -171,9 +167,7 @@ func buildMap(value reflect.Value, buf *bytes.Buffer, tag reflect.StructTag) err
 			buf.WriteByte(',')
 		}
 
-		writeString(k.String(), buf)
-		buf.WriteString(`:`)
-
+		fmt.Fprintf(buf, "%q:", k)
 		buildAny(value.MapIndex(k), buf, "")
 	}
 

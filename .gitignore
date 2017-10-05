@@ -1,10 +1,4 @@
-experimental/install/etcdcluster/
-*.log
 .vagrant/
 demo/temp/*
 bin/
 nohup.out
-hello.nomad
-clientpeers
-serverpeers
-vendor/

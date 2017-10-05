@@ -15,46 +15,8 @@ import (
 var _ time.Duration
 var _ bytes.Buffer
 
-func ExampleCloudHSM_AddTagsToResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
-
-	params := &cloudhsm.AddTagsToResourceInput{
-		ResourceArn: aws.String("String"), // Required
-		TagList: []*cloudhsm.Tag{ // Required
-			{ // Required
-				Key:   aws.String("TagKey"),   // Required
-				Value: aws.String("TagValue"), // Required
-			},
-			// More values...
-		},
-	}
-	resp, err := svc.AddTagsToResource(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleCloudHSM_CreateHapg() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.CreateHapgInput{
 		Label: aws.String("Label"), // Required
@@ -73,13 +35,7 @@ func ExampleCloudHSM_CreateHapg() {
 }
 
 func ExampleCloudHSM_CreateHsm() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.CreateHsmInput{
 		IamRoleArn:       aws.String("IamRoleArn"),       // Required
@@ -105,13 +61,7 @@ func ExampleCloudHSM_CreateHsm() {
 }
 
 func ExampleCloudHSM_CreateLunaClient() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.CreateLunaClientInput{
 		Certificate: aws.String("Certificate"), // Required
@@ -131,13 +81,7 @@ func ExampleCloudHSM_CreateLunaClient() {
 }
 
 func ExampleCloudHSM_DeleteHapg() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DeleteHapgInput{
 		HapgArn: aws.String("HapgArn"), // Required
@@ -156,13 +100,7 @@ func ExampleCloudHSM_DeleteHapg() {
 }
 
 func ExampleCloudHSM_DeleteHsm() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DeleteHsmInput{
 		HsmArn: aws.String("HsmArn"), // Required
@@ -181,13 +119,7 @@ func ExampleCloudHSM_DeleteHsm() {
 }
 
 func ExampleCloudHSM_DeleteLunaClient() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DeleteLunaClientInput{
 		ClientArn: aws.String("ClientArn"), // Required
@@ -206,13 +138,7 @@ func ExampleCloudHSM_DeleteLunaClient() {
 }
 
 func ExampleCloudHSM_DescribeHapg() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DescribeHapgInput{
 		HapgArn: aws.String("HapgArn"), // Required
@@ -231,13 +157,7 @@ func ExampleCloudHSM_DescribeHapg() {
 }
 
 func ExampleCloudHSM_DescribeHsm() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DescribeHsmInput{
 		HsmArn:          aws.String("HsmArn"),
@@ -257,13 +177,7 @@ func ExampleCloudHSM_DescribeHsm() {
 }
 
 func ExampleCloudHSM_DescribeLunaClient() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.DescribeLunaClientInput{
 		CertificateFingerprint: aws.String("CertificateFingerprint"),
@@ -283,13 +197,7 @@ func ExampleCloudHSM_DescribeLunaClient() {
 }
 
 func ExampleCloudHSM_GetConfig() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.GetConfigInput{
 		ClientArn:     aws.String("ClientArn"),     // Required
@@ -313,13 +221,7 @@ func ExampleCloudHSM_GetConfig() {
 }
 
 func ExampleCloudHSM_ListAvailableZones() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	var params *cloudhsm.ListAvailableZonesInput
 	resp, err := svc.ListAvailableZones(params)
@@ -336,13 +238,7 @@ func ExampleCloudHSM_ListAvailableZones() {
 }
 
 func ExampleCloudHSM_ListHapgs() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ListHapgsInput{
 		NextToken: aws.String("PaginationToken"),
@@ -361,13 +257,7 @@ func ExampleCloudHSM_ListHapgs() {
 }
 
 func ExampleCloudHSM_ListHsms() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ListHsmsInput{
 		NextToken: aws.String("PaginationToken"),
@@ -386,13 +276,7 @@ func ExampleCloudHSM_ListHsms() {
 }
 
 func ExampleCloudHSM_ListLunaClients() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ListLunaClientsInput{
 		NextToken: aws.String("PaginationToken"),
@@ -410,39 +294,8 @@ func ExampleCloudHSM_ListLunaClients() {
 	fmt.Println(resp)
 }
 
-func ExampleCloudHSM_ListTagsForResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
-
-	params := &cloudhsm.ListTagsForResourceInput{
-		ResourceArn: aws.String("String"), // Required
-	}
-	resp, err := svc.ListTagsForResource(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
 func ExampleCloudHSM_ModifyHapg() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ModifyHapgInput{
 		HapgArn: aws.String("HapgArn"), // Required
@@ -466,13 +319,7 @@ func ExampleCloudHSM_ModifyHapg() {
 }
 
 func ExampleCloudHSM_ModifyHsm() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ModifyHsmInput{
 		HsmArn:     aws.String("HsmArn"), // Required
@@ -496,48 +343,13 @@ func ExampleCloudHSM_ModifyHsm() {
 }
 
 func ExampleCloudHSM_ModifyLunaClient() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
+	svc := cloudhsm.New(session.New())
 
 	params := &cloudhsm.ModifyLunaClientInput{
 		Certificate: aws.String("Certificate"), // Required
 		ClientArn:   aws.String("ClientArn"),   // Required
 	}
 	resp, err := svc.ModifyLunaClient(params)
-
-	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return
-	}
-
-	// Pretty-print the response data.
-	fmt.Println(resp)
-}
-
-func ExampleCloudHSM_RemoveTagsFromResource() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudhsm.New(sess)
-
-	params := &cloudhsm.RemoveTagsFromResourceInput{
-		ResourceArn: aws.String("String"), // Required
-		TagKeyList: []*string{ // Required
-			aws.String("TagKey"), // Required
-			// More values...
-		},
-	}
-	resp, err := svc.RemoveTagsFromResource(params)
 
 	if err != nil {
 		// Print the error, cast err to awserr.Error to get the Code and

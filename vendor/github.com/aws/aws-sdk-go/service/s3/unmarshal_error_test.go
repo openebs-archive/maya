@@ -1,8 +1,6 @@
 package s3_test
 
 import (
-	"bytes"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,10 +16,9 @@ import (
 )
 
 type testErrorCase struct {
-	RespFn           func() *http.Response
-	ReqID            string
-	Code, Msg        string
-	WithoutStatusMsg bool
+	RespFn    func() *http.Response
+	ReqID     string
+	Code, Msg string
 }
 
 var testUnmarshalCases = []testErrorCase{
@@ -30,7 +27,7 @@ var testUnmarshalCases = []testErrorCase{
 			return &http.Response{
 				StatusCode:    301,
 				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
+				Body:          ioutil.NopCloser(nil),
 				ContentLength: -1,
 			}
 		},
@@ -42,7 +39,7 @@ var testUnmarshalCases = []testErrorCase{
 			return &http.Response{
 				StatusCode:    403,
 				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
+				Body:          ioutil.NopCloser(nil),
 				ContentLength: 0,
 			}
 		},
@@ -54,7 +51,7 @@ var testUnmarshalCases = []testErrorCase{
 			return &http.Response{
 				StatusCode:    400,
 				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
+				Body:          ioutil.NopCloser(nil),
 				ContentLength: 0,
 			}
 		},
@@ -66,7 +63,7 @@ var testUnmarshalCases = []testErrorCase{
 			return &http.Response{
 				StatusCode:    404,
 				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
+				Body:          ioutil.NopCloser(nil),
 				ContentLength: 0,
 			}
 		},
@@ -86,30 +83,6 @@ var testUnmarshalCases = []testErrorCase{
 		ReqID: "abc123",
 		Code:  "SomeException", Msg: "Exception message",
 	},
-	{
-		RespFn: func() *http.Response {
-			return &http.Response{
-				StatusCode:    404,
-				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
-				ContentLength: -1,
-			}
-		},
-		ReqID: "abc123",
-		Code:  "NotFound", Msg: "Not Found", WithoutStatusMsg: true,
-	},
-	{
-		RespFn: func() *http.Response {
-			return &http.Response{
-				StatusCode:    404,
-				Header:        http.Header{"X-Amz-Request-Id": []string{"abc123"}},
-				Body:          ioutil.NopCloser(bytes.NewReader(nil)),
-				ContentLength: -1,
-			}
-		},
-		ReqID: "abc123",
-		Code:  "NotFound", Msg: "Not Found",
-	},
 }
 
 func TestUnmarshalError(t *testing.T) {
@@ -118,11 +91,7 @@ func TestUnmarshalError(t *testing.T) {
 		s.Handlers.Send.Clear()
 		s.Handlers.Send.PushBack(func(r *request.Request) {
 			r.HTTPResponse = c.RespFn()
-			if !c.WithoutStatusMsg {
-				r.HTTPResponse.Status = fmt.Sprintf("%d%s",
-					r.HTTPResponse.StatusCode,
-					http.StatusText(r.HTTPResponse.StatusCode))
-			}
+			r.HTTPResponse.Status = http.StatusText(r.HTTPResponse.StatusCode)
 		})
 		_, err := s.PutBucketAcl(&s3.PutBucketAclInput{
 			Bucket: aws.String("bucket"), ACL: aws.String("public-read"),

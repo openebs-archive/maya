@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleCloudSearchDomain_Search() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearchdomain.New(sess)
+	svc := cloudsearchdomain.New(session.New())
 
 	params := &cloudsearchdomain.SearchInput{
 		Query:        aws.String("Query"), // Required
@@ -38,7 +32,6 @@ func ExampleCloudSearchDomain_Search() {
 		Size:         aws.Int64(1),
 		Sort:         aws.String("Sort"),
 		Start:        aws.Int64(1),
-		Stats:        aws.String("Stat"),
 	}
 	resp, err := svc.Search(params)
 
@@ -54,13 +47,7 @@ func ExampleCloudSearchDomain_Search() {
 }
 
 func ExampleCloudSearchDomain_Suggest() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearchdomain.New(sess)
+	svc := cloudsearchdomain.New(session.New())
 
 	params := &cloudsearchdomain.SuggestInput{
 		Query:     aws.String("Query"),     // Required
@@ -81,13 +68,7 @@ func ExampleCloudSearchDomain_Suggest() {
 }
 
 func ExampleCloudSearchDomain_UploadDocuments() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := cloudsearchdomain.New(sess)
+	svc := cloudsearchdomain.New(session.New())
 
 	params := &cloudsearchdomain.UploadDocumentsInput{
 		ContentType: aws.String("ContentType"),          // Required
