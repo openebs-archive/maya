@@ -14,9 +14,10 @@
 
 package main
 
-import "github.com/openebs/maya/cmd/cli/app"
+import "github.com/openebs/maya/cmd/mayactl/app/command"
 
 func main() {
-	err := app.NewMayaCommand().Execute()
-	app.CheckError(err)
+	err := command.NewMayaCommand().Execute()
+
+	command.CheckError(err)
 }

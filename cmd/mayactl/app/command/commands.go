@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package app
+package command
 
 import (
 	"flag"
 
-	"github.com/openebs/maya/cmd/cli/app/version"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ func NewMayaCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		version.NewCmdVersion(),
+		NewCmdVersion(),
 	)
 
 	// add the glog flags
