@@ -17,37 +17,17 @@ type VsmStopCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
-Usage: maya volume delete <volume>
+Usage: maya volume delete <vol>
 
-  Stop an existing volume. This command is used to signal allocations
-  to shut down for the given volume ID. Upon successful deregistraion,
-  an interactive monitor session will start to display log lines as
-  the vsm unwinds its allocations and completes shutting down.
+This command deletes an existing volume.
 
-Stop Options:
-
-  -detach
-    Return immediately instead of entering monitor mode. After the
-    deregister command is submitted, a new evaluation ID is printed to the
-    screen, which can be used to examine the evaluation using the eval-status
-    command.
-
-  -purge
-    Purge is used to stop the vsm and purge it from the system. If not set, the
-    vsm will still be queryable and will be purged by the garbage collector.
-
-  -yes
-    Automatic yes to prompts.
-
-  -verbose
-    Display full information.
 `
 	return strings.TrimSpace(helpText)
 }
 
 // Synopsis shows short information related to CLI command
 func (c *VsmStopCommand) Synopsis() string {
-	return "Delete a running Volume"
+	return "Deletes a running Volume"
 }
 
 // Run holds the flag values for CLI subcommands

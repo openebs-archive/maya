@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleELB_AddTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.AddTagsInput{
 		LoadBalancerNames: []*string{ // Required
@@ -51,13 +45,7 @@ func ExampleELB_AddTags() {
 }
 
 func ExampleELB_ApplySecurityGroupsToLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.ApplySecurityGroupsToLoadBalancerInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -80,13 +68,7 @@ func ExampleELB_ApplySecurityGroupsToLoadBalancer() {
 }
 
 func ExampleELB_AttachLoadBalancerToSubnets() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.AttachLoadBalancerToSubnetsInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -109,13 +91,7 @@ func ExampleELB_AttachLoadBalancerToSubnets() {
 }
 
 func ExampleELB_ConfigureHealthCheck() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.ConfigureHealthCheckInput{
 		HealthCheck: &elb.HealthCheck{ // Required
@@ -141,13 +117,7 @@ func ExampleELB_ConfigureHealthCheck() {
 }
 
 func ExampleELB_CreateAppCookieStickinessPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.CreateAppCookieStickinessPolicyInput{
 		CookieName:       aws.String("CookieName"),      // Required
@@ -168,13 +138,7 @@ func ExampleELB_CreateAppCookieStickinessPolicy() {
 }
 
 func ExampleELB_CreateLBCookieStickinessPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.CreateLBCookieStickinessPolicyInput{
 		LoadBalancerName:       aws.String("AccessPointName"), // Required
@@ -195,13 +159,7 @@ func ExampleELB_CreateLBCookieStickinessPolicy() {
 }
 
 func ExampleELB_CreateLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.CreateLoadBalancerInput{
 		Listeners: []*elb.Listener{ // Required
@@ -250,13 +208,7 @@ func ExampleELB_CreateLoadBalancer() {
 }
 
 func ExampleELB_CreateLoadBalancerListeners() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.CreateLoadBalancerListenersInput{
 		Listeners: []*elb.Listener{ // Required
@@ -285,13 +237,7 @@ func ExampleELB_CreateLoadBalancerListeners() {
 }
 
 func ExampleELB_CreateLoadBalancerPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.CreateLoadBalancerPolicyInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -319,13 +265,7 @@ func ExampleELB_CreateLoadBalancerPolicy() {
 }
 
 func ExampleELB_DeleteLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DeleteLoadBalancerInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -344,13 +284,7 @@ func ExampleELB_DeleteLoadBalancer() {
 }
 
 func ExampleELB_DeleteLoadBalancerListeners() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DeleteLoadBalancerListenersInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -373,13 +307,7 @@ func ExampleELB_DeleteLoadBalancerListeners() {
 }
 
 func ExampleELB_DeleteLoadBalancerPolicy() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DeleteLoadBalancerPolicyInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -399,13 +327,7 @@ func ExampleELB_DeleteLoadBalancerPolicy() {
 }
 
 func ExampleELB_DeregisterInstancesFromLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DeregisterInstancesFromLoadBalancerInput{
 		Instances: []*elb.Instance{ // Required
@@ -430,13 +352,7 @@ func ExampleELB_DeregisterInstancesFromLoadBalancer() {
 }
 
 func ExampleELB_DescribeInstanceHealth() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeInstanceHealthInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -461,13 +377,7 @@ func ExampleELB_DescribeInstanceHealth() {
 }
 
 func ExampleELB_DescribeLoadBalancerAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeLoadBalancerAttributesInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -486,13 +396,7 @@ func ExampleELB_DescribeLoadBalancerAttributes() {
 }
 
 func ExampleELB_DescribeLoadBalancerPolicies() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeLoadBalancerPoliciesInput{
 		LoadBalancerName: aws.String("AccessPointName"),
@@ -515,13 +419,7 @@ func ExampleELB_DescribeLoadBalancerPolicies() {
 }
 
 func ExampleELB_DescribeLoadBalancerPolicyTypes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeLoadBalancerPolicyTypesInput{
 		PolicyTypeNames: []*string{
@@ -543,13 +441,7 @@ func ExampleELB_DescribeLoadBalancerPolicyTypes() {
 }
 
 func ExampleELB_DescribeLoadBalancers() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{
@@ -573,13 +465,7 @@ func ExampleELB_DescribeLoadBalancers() {
 }
 
 func ExampleELB_DescribeTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DescribeTagsInput{
 		LoadBalancerNames: []*string{ // Required
@@ -601,13 +487,7 @@ func ExampleELB_DescribeTags() {
 }
 
 func ExampleELB_DetachLoadBalancerFromSubnets() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DetachLoadBalancerFromSubnetsInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required
@@ -630,13 +510,7 @@ func ExampleELB_DetachLoadBalancerFromSubnets() {
 }
 
 func ExampleELB_DisableAvailabilityZonesForLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.DisableAvailabilityZonesForLoadBalancerInput{
 		AvailabilityZones: []*string{ // Required
@@ -659,13 +533,7 @@ func ExampleELB_DisableAvailabilityZonesForLoadBalancer() {
 }
 
 func ExampleELB_EnableAvailabilityZonesForLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.EnableAvailabilityZonesForLoadBalancerInput{
 		AvailabilityZones: []*string{ // Required
@@ -688,13 +556,7 @@ func ExampleELB_EnableAvailabilityZonesForLoadBalancer() {
 }
 
 func ExampleELB_ModifyLoadBalancerAttributes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.ModifyLoadBalancerAttributesInput{
 		LoadBalancerAttributes: &elb.LoadBalancerAttributes{ // Required
@@ -706,8 +568,8 @@ func ExampleELB_ModifyLoadBalancerAttributes() {
 			},
 			AdditionalAttributes: []*elb.AdditionalAttribute{
 				{ // Required
-					Key:   aws.String("AdditionalAttributeKey"),
-					Value: aws.String("AdditionalAttributeValue"),
+					Key:   aws.String("StringVal"),
+					Value: aws.String("StringVal"),
 				},
 				// More values...
 			},
@@ -738,13 +600,7 @@ func ExampleELB_ModifyLoadBalancerAttributes() {
 }
 
 func ExampleELB_RegisterInstancesWithLoadBalancer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.RegisterInstancesWithLoadBalancerInput{
 		Instances: []*elb.Instance{ // Required
@@ -769,13 +625,7 @@ func ExampleELB_RegisterInstancesWithLoadBalancer() {
 }
 
 func ExampleELB_RemoveTags() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.RemoveTagsInput{
 		LoadBalancerNames: []*string{ // Required
@@ -803,13 +653,7 @@ func ExampleELB_RemoveTags() {
 }
 
 func ExampleELB_SetLoadBalancerListenerSSLCertificate() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.SetLoadBalancerListenerSSLCertificateInput{
 		LoadBalancerName: aws.String("AccessPointName"),  // Required
@@ -830,13 +674,7 @@ func ExampleELB_SetLoadBalancerListenerSSLCertificate() {
 }
 
 func ExampleELB_SetLoadBalancerPoliciesForBackendServer() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.SetLoadBalancerPoliciesForBackendServerInput{
 		InstancePort:     aws.Int64(1),                  // Required
@@ -860,13 +698,7 @@ func ExampleELB_SetLoadBalancerPoliciesForBackendServer() {
 }
 
 func ExampleELB_SetLoadBalancerPoliciesOfListener() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := elb.New(sess)
+	svc := elb.New(session.New())
 
 	params := &elb.SetLoadBalancerPoliciesOfListenerInput{
 		LoadBalancerName: aws.String("AccessPointName"), // Required

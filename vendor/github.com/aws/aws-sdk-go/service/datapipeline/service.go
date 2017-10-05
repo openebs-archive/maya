@@ -7,8 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/client/metadata"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
+	"github.com/aws/aws-sdk-go/private/signer/v4"
 )
 
 // AWS Data Pipeline configures and manages a data-driven workflow called a
@@ -16,12 +16,12 @@ import (
 // that data dependencies are met so that your application can focus on processing
 // the data.
 //
-// AWS Data Pipeline provides a JAR implementation of a task runner called AWS
-// Data Pipeline Task Runner. AWS Data Pipeline Task Runner provides logic for
-// common data management scenarios, such as performing database queries and
-// running data analysis using Amazon Elastic MapReduce (Amazon EMR). You can
-// use AWS Data Pipeline Task Runner as your task runner, or you can write your
-// own task runner to provide custom data management.
+// AWS Data Pipeline provides a JAR implementation of a task runner called
+// AWS Data Pipeline Task Runner. AWS Data Pipeline Task Runner provides logic
+// for common data management scenarios, such as performing database queries
+// and running data analysis using Amazon Elastic MapReduce (Amazon EMR). You
+// can use AWS Data Pipeline Task Runner as your task runner, or you can write
+// your own task runner to provide custom data management.
 //
 // AWS Data Pipeline implements two main sets of functionality. Use the first
 // set to create a pipeline and define data sources, schedules, dependencies,
@@ -33,9 +33,8 @@ import (
 // service, reporting progress to the web service as it does so. When the task
 // is done, the task runner reports the final success or failure of the task
 // to the web service.
-// The service client's operations are safe to be used concurrently.
+//The service client's operations are safe to be used concurrently.
 // It is not safe to mutate any of the client's properties though.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/datapipeline-2012-10-29
 type DataPipeline struct {
 	*client.Client
 }
@@ -46,11 +45,8 @@ var initClient func(*client.Client)
 // Used for custom request initialization logic
 var initRequest func(*request.Request)
 
-// Service information constants
-const (
-	ServiceName = "datapipeline" // Service endpoint prefix API calls made to.
-	EndpointsID = ServiceName    // Service ID for Regions and Endpoints metadata.
-)
+// A ServiceName is the name of the service the client will make API calls to.
+const ServiceName = "datapipeline"
 
 // New creates a new instance of the DataPipeline client with a session.
 // If additional configuration is needed for the client instance use the optional
@@ -63,18 +59,17 @@ const (
 //     // Create a DataPipeline client with additional configuration
 //     svc := datapipeline.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *DataPipeline {
-	c := p.ClientConfig(EndpointsID, cfgs...)
-	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion, c.SigningName)
+	c := p.ClientConfig(ServiceName, cfgs...)
+	return newClient(*c.Config, c.Handlers, c.Endpoint, c.SigningRegion)
 }
 
 // newClient creates, initializes and returns a new service client instance.
-func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion, signingName string) *DataPipeline {
+func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegion string) *DataPipeline {
 	svc := &DataPipeline{
 		Client: client.New(
 			cfg,
 			metadata.ClientInfo{
 				ServiceName:   ServiceName,
-				SigningName:   signingName,
 				SigningRegion: signingRegion,
 				Endpoint:      endpoint,
 				APIVersion:    "2012-10-29",
@@ -86,7 +81,7 @@ func newClient(cfg aws.Config, handlers request.Handlers, endpoint, signingRegio
 	}
 
 	// Handlers
-	svc.Handlers.Sign.PushBackNamed(v4.SignRequestHandler)
+	svc.Handlers.Sign.PushBack(v4.Sign)
 	svc.Handlers.Build.PushBackNamed(jsonrpc.BuildHandler)
 	svc.Handlers.Unmarshal.PushBackNamed(jsonrpc.UnmarshalHandler)
 	svc.Handlers.UnmarshalMeta.PushBackNamed(jsonrpc.UnmarshalMetaHandler)

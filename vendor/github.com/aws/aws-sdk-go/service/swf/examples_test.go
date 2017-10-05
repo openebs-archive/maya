@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleSWF_CountClosedWorkflowExecutions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.CountClosedWorkflowExecutionsInput{
 		Domain: aws.String("DomainName"), // Required
@@ -62,13 +56,7 @@ func ExampleSWF_CountClosedWorkflowExecutions() {
 }
 
 func ExampleSWF_CountOpenWorkflowExecutions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.CountOpenWorkflowExecutionsInput{
 		Domain: aws.String("DomainName"), // Required
@@ -101,13 +89,7 @@ func ExampleSWF_CountOpenWorkflowExecutions() {
 }
 
 func ExampleSWF_CountPendingActivityTasks() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.CountPendingActivityTasksInput{
 		Domain: aws.String("DomainName"), // Required
@@ -129,13 +111,7 @@ func ExampleSWF_CountPendingActivityTasks() {
 }
 
 func ExampleSWF_CountPendingDecisionTasks() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.CountPendingDecisionTasksInput{
 		Domain: aws.String("DomainName"), // Required
@@ -157,13 +133,7 @@ func ExampleSWF_CountPendingDecisionTasks() {
 }
 
 func ExampleSWF_DeprecateActivityType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DeprecateActivityTypeInput{
 		ActivityType: &swf.ActivityType{ // Required
@@ -186,13 +156,7 @@ func ExampleSWF_DeprecateActivityType() {
 }
 
 func ExampleSWF_DeprecateDomain() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DeprecateDomainInput{
 		Name: aws.String("DomainName"), // Required
@@ -211,13 +175,7 @@ func ExampleSWF_DeprecateDomain() {
 }
 
 func ExampleSWF_DeprecateWorkflowType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DeprecateWorkflowTypeInput{
 		Domain: aws.String("DomainName"), // Required
@@ -240,13 +198,7 @@ func ExampleSWF_DeprecateWorkflowType() {
 }
 
 func ExampleSWF_DescribeActivityType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DescribeActivityTypeInput{
 		ActivityType: &swf.ActivityType{ // Required
@@ -269,13 +221,7 @@ func ExampleSWF_DescribeActivityType() {
 }
 
 func ExampleSWF_DescribeDomain() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DescribeDomainInput{
 		Name: aws.String("DomainName"), // Required
@@ -294,13 +240,7 @@ func ExampleSWF_DescribeDomain() {
 }
 
 func ExampleSWF_DescribeWorkflowExecution() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DescribeWorkflowExecutionInput{
 		Domain: aws.String("DomainName"), // Required
@@ -323,13 +263,7 @@ func ExampleSWF_DescribeWorkflowExecution() {
 }
 
 func ExampleSWF_DescribeWorkflowType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.DescribeWorkflowTypeInput{
 		Domain: aws.String("DomainName"), // Required
@@ -352,13 +286,7 @@ func ExampleSWF_DescribeWorkflowType() {
 }
 
 func ExampleSWF_GetWorkflowExecutionHistory() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.GetWorkflowExecutionHistoryInput{
 		Domain: aws.String("DomainName"), // Required
@@ -384,13 +312,7 @@ func ExampleSWF_GetWorkflowExecutionHistory() {
 }
 
 func ExampleSWF_ListActivityTypes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.ListActivityTypesInput{
 		Domain:             aws.String("DomainName"),         // Required
@@ -414,13 +336,7 @@ func ExampleSWF_ListActivityTypes() {
 }
 
 func ExampleSWF_ListClosedWorkflowExecutions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.ListClosedWorkflowExecutionsInput{
 		Domain: aws.String("DomainName"), // Required
@@ -463,13 +379,7 @@ func ExampleSWF_ListClosedWorkflowExecutions() {
 }
 
 func ExampleSWF_ListDomains() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.ListDomainsInput{
 		RegistrationStatus: aws.String("RegistrationStatus"), // Required
@@ -491,13 +401,7 @@ func ExampleSWF_ListDomains() {
 }
 
 func ExampleSWF_ListOpenWorkflowExecutions() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.ListOpenWorkflowExecutionsInput{
 		Domain: aws.String("DomainName"), // Required
@@ -533,13 +437,7 @@ func ExampleSWF_ListOpenWorkflowExecutions() {
 }
 
 func ExampleSWF_ListWorkflowTypes() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.ListWorkflowTypesInput{
 		Domain:             aws.String("DomainName"),         // Required
@@ -563,13 +461,7 @@ func ExampleSWF_ListWorkflowTypes() {
 }
 
 func ExampleSWF_PollForActivityTask() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.PollForActivityTaskInput{
 		Domain: aws.String("DomainName"), // Required
@@ -592,13 +484,7 @@ func ExampleSWF_PollForActivityTask() {
 }
 
 func ExampleSWF_PollForDecisionTask() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.PollForDecisionTaskInput{
 		Domain: aws.String("DomainName"), // Required
@@ -624,13 +510,7 @@ func ExampleSWF_PollForDecisionTask() {
 }
 
 func ExampleSWF_RecordActivityTaskHeartbeat() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RecordActivityTaskHeartbeatInput{
 		TaskToken: aws.String("TaskToken"), // Required
@@ -650,13 +530,7 @@ func ExampleSWF_RecordActivityTaskHeartbeat() {
 }
 
 func ExampleSWF_RegisterActivityType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RegisterActivityTypeInput{
 		Domain:                      aws.String("DomainName"), // Required
@@ -686,13 +560,7 @@ func ExampleSWF_RegisterActivityType() {
 }
 
 func ExampleSWF_RegisterDomain() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RegisterDomainInput{
 		Name: aws.String("DomainName"), // Required
@@ -713,13 +581,7 @@ func ExampleSWF_RegisterDomain() {
 }
 
 func ExampleSWF_RegisterWorkflowType() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RegisterWorkflowTypeInput{
 		Domain:                              aws.String("DomainName"), // Required
@@ -749,13 +611,7 @@ func ExampleSWF_RegisterWorkflowType() {
 }
 
 func ExampleSWF_RequestCancelWorkflowExecution() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RequestCancelWorkflowExecutionInput{
 		Domain:     aws.String("DomainName"), // Required
@@ -776,13 +632,7 @@ func ExampleSWF_RequestCancelWorkflowExecution() {
 }
 
 func ExampleSWF_RespondActivityTaskCanceled() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RespondActivityTaskCanceledInput{
 		TaskToken: aws.String("TaskToken"), // Required
@@ -802,13 +652,7 @@ func ExampleSWF_RespondActivityTaskCanceled() {
 }
 
 func ExampleSWF_RespondActivityTaskCompleted() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RespondActivityTaskCompletedInput{
 		TaskToken: aws.String("TaskToken"), // Required
@@ -828,13 +672,7 @@ func ExampleSWF_RespondActivityTaskCompleted() {
 }
 
 func ExampleSWF_RespondActivityTaskFailed() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RespondActivityTaskFailedInput{
 		TaskToken: aws.String("TaskToken"), // Required
@@ -855,13 +693,7 @@ func ExampleSWF_RespondActivityTaskFailed() {
 }
 
 func ExampleSWF_RespondDecisionTaskCompleted() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.RespondDecisionTaskCompletedInput{
 		TaskToken: aws.String("TaskToken"), // Required
@@ -984,13 +816,7 @@ func ExampleSWF_RespondDecisionTaskCompleted() {
 }
 
 func ExampleSWF_SignalWorkflowExecution() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.SignalWorkflowExecutionInput{
 		Domain:     aws.String("DomainName"), // Required
@@ -1013,13 +839,7 @@ func ExampleSWF_SignalWorkflowExecution() {
 }
 
 func ExampleSWF_StartWorkflowExecution() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.StartWorkflowExecutionInput{
 		Domain:     aws.String("DomainName"), // Required
@@ -1056,13 +876,7 @@ func ExampleSWF_StartWorkflowExecution() {
 }
 
 func ExampleSWF_TerminateWorkflowExecution() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := swf.New(sess)
+	svc := swf.New(session.New())
 
 	params := &swf.TerminateWorkflowExecutionInput{
 		Domain:      aws.String("DomainName"), // Required

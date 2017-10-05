@@ -50,7 +50,7 @@ type InfoReplica struct {
 	Chain           []string            `json:"chain"`
 	Disks           map[string]DiskInfo `json:"disks"`
 	RemainSnapshots int                 `json:"remainsnapshots"`
-	RevisionCounter int64               `json:"revisioncounter"`
+	RevisionCounter string              `json:"revisioncounter"`
 }
 
 type DiskInfo struct {

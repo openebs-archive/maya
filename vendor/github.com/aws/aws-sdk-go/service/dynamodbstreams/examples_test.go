@@ -16,13 +16,7 @@ var _ time.Duration
 var _ bytes.Buffer
 
 func ExampleDynamoDBStreams_DescribeStream() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := dynamodbstreams.New(sess)
+	svc := dynamodbstreams.New(session.New())
 
 	params := &dynamodbstreams.DescribeStreamInput{
 		StreamArn:             aws.String("StreamArn"), // Required
@@ -43,13 +37,7 @@ func ExampleDynamoDBStreams_DescribeStream() {
 }
 
 func ExampleDynamoDBStreams_GetRecords() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := dynamodbstreams.New(sess)
+	svc := dynamodbstreams.New(session.New())
 
 	params := &dynamodbstreams.GetRecordsInput{
 		ShardIterator: aws.String("ShardIterator"), // Required
@@ -69,13 +57,7 @@ func ExampleDynamoDBStreams_GetRecords() {
 }
 
 func ExampleDynamoDBStreams_GetShardIterator() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := dynamodbstreams.New(sess)
+	svc := dynamodbstreams.New(session.New())
 
 	params := &dynamodbstreams.GetShardIteratorInput{
 		ShardId:           aws.String("ShardId"),           // Required
@@ -97,13 +79,7 @@ func ExampleDynamoDBStreams_GetShardIterator() {
 }
 
 func ExampleDynamoDBStreams_ListStreams() {
-	sess, err := session.NewSession()
-	if err != nil {
-		fmt.Println("failed to create session,", err)
-		return
-	}
-
-	svc := dynamodbstreams.New(sess)
+	svc := dynamodbstreams.New(session.New())
 
 	params := &dynamodbstreams.ListStreamsInput{
 		ExclusiveStartStreamArn: aws.String("StreamArn"),

@@ -99,4 +99,8 @@ install: bin/${MAYACTL}
 maya-agent:
 	GOOS=linux go build ./cmd/maya-agent
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep
+# Use this to build only the maya apiserver. 
+apiserver:
+	GOOS=linux go build ./cmd/apiserver
+
+.PHONY: all apiserver bin cov integ test vet maya-agent test-nodep
