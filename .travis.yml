@@ -5,7 +5,7 @@ services:
   - docker
 language: go
 go:
-  - 1.8
+  - 1.9.1
 install:
   - make bootstrap
 script:
