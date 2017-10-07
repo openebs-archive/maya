@@ -1,0 +1,20 @@
+# This is Nomad client's config file
+
+bind_addr = "__SELF_IPV4__"
+
+# log verbosity
+log_level = "INFO"
+enable_syslog = true
+
+# Setup data dir
+data_dir = "/opt/nomad/data"
+
+# Enable the client
+client {
+  enabled = true
+  options = {
+    "docker.privileged.enabled" = "true"
+    "driver.raw_exec.enable" = "1"
+  }
+  servers=[__ALL_SERVERS_IPV4_N_PORTS__]
+}

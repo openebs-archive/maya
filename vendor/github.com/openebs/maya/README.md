@@ -92,10 +92,5 @@ vagrant ssh master-01
 make dev 
 ```
 
-#### Dependency management
-Maya uses [golang dep] to manage dependencies. Usage can be found on [dep README].
-
 [Go environment]: https://golang.org/doc/install
 [developer's documentation]: https://github.com/openebs/maya/blob/master/docs/developer.md
-[golang dep]: https://github.com/golang/dep
-[dep README]: https://github.com/golang/dep#usage

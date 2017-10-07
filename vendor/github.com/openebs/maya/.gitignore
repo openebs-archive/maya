@@ -1,0 +1,11 @@
+experimental/install/etcdcluster/
+*.log
+.vagrant/
+demo/temp/*
+bin/
+glide.lock
+nohup.out
+hello.nomad
+clientpeers
+serverpeers
+vendor/

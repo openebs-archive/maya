@@ -1,0 +1,37 @@
+# This is Nomad server's config file
+
+bind_addr = "__SELF_IPV4__"
+
+advertise {
+  # We need to specify this host's IP because we can't
+  # advertise 0.0.0.0 to other nodes in our cluster.
+  http = "__SELF_IPV4__:4646"
+  rpc = "__SELF_IPV4__:4647"
+  serf = "__SELF_IPV4__:4648"
+}
+
+# log verbosity
+log_level = "INFO"
+enable_syslog = true
+
+# Setup data dir
+data_dir = "/opt/nomad/data"
+
+# Enable the server
+server {
+    enabled = true
+    bootstrap_expect = __S_NODES__
+    start_join = [__ALL_SERVERS_IPV4__]
+    retry_join = [__ALL_SERVERS_IPV4__]
+    retry_interval = "15s"
+}
+
+# these settings allow Nomad to automatically find its peers through Consul
+consul {
+  address = "__SELF_IPV4__:8500"
+  server_service_name = "nomad-server"
+  server_auto_join = true
+  client_service_name = "nomad-client"
+  client_auto_join = true
+  auto_advertise = true
+}

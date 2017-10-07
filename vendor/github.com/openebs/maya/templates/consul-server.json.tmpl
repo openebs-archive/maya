@@ -1,0 +1,12 @@
+{
+  "data_dir": "/opt/consul/data",
+  "log_level": "INFO",
+  "enable_syslog" : true, 
+  "node_name": "__SELF_HOSTNAME__",
+  "server": true,
+  "bootstrap_expect": __S_NODES__,
+  "advertise_addr": "__SELF_IPV4__",
+  "start_join" : [__ALL_SERVERS_IPV4__],
+  "retry_join" : [__ALL_SERVERS_IPV4__],
+  "retry_interval" : "15s"
+}

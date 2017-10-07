@@ -7,7 +7,7 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	github.com/golang/dep \
+	github.com/Masterminds/glide \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
@@ -32,7 +32,8 @@ initialize: bootstrap
 
 deps: 
 	rm -rf vendor
-	dep ensure
+	@glide up
+	glide install -v
 
 clean: 
 	rm -rf bin
@@ -98,8 +99,4 @@ install: bin/${MAYACTL}
 maya-agent:
 	GOOS=linux go build ./cmd/maya-agent
 
-# Use this to build only the maya apiserver. 
-apiserver:
-	GOOS=linux go build ./cmd/apiserver
-
-.PHONY: all apiserver bin cov integ test vet maya-agent test-nodep
+.PHONY: all bin cov integ test vet maya-agent test-nodep

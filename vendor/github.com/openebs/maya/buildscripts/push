@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+IMAGEID=$( sudo docker images -q openebs/maya:ci )
+
+if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
+then 
+  sudo docker login -u "${DNAME}" -p "${DPASS}"; 
+  sudo docker push openebs/maya:ci ; 
+  if [ ! -z "${TRAVIS_TAG}" ] ; 
+  then
+    #Push the release tag image to docker hub repository
+    #When a git hub is tagged with a release, the travis will 
+    #hold the release tag in env TRAVIS_TAG
+    sudo docker tag ${IMAGEID} openebs/maya:${TRAVIS_TAG}
+    sudo docker push openebs/maya:${TRAVIS_TAG}; 
+    sudo docker tag ${IMAGEID} openebs/maya:latest
+    sudo docker push openebs/maya:latest; 
+  fi;
+else
+  echo "No docker credentials provided. Skip uploading openebs/maya:ci to docker hub"; 
+fi;

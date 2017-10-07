@@ -1,0 +1,12 @@
+[Unit]
+Description=etcd
+Requires=network-online.target
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+# This is a single member cluster only
+ExecStart=/usr/bin/etcd --data-dir=/var/lib/etcd
+Restart=always
