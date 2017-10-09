@@ -8,23 +8,9 @@ Vagrant.require_version ">= 1.6.0"
 # Maya Nodes
 M_NODES = ENV['M_NODES'] || 1
 
-# Storage Hosts
-#H_NODES = ENV['H_NODES'] || 2
-
-# Client
-#C_NODES = ENV['C_NODES'] || 1
-
 # Maya Memory & CPUs
 M_MEM = ENV['M_MEM'] || 1024
 M_CPUS = ENV['M_CPUS'] || 1
-
-# Storage Host Memory & CPUs
-#H_MEM = ENV['H_MEM'] || 1024
-#H_CPUS = ENV['H_CPUS'] || 1
-
-# Client Memory & CPUs
-#C_MEM = ENV['C_MEM'] || 512
-#C_CPUS = ENV['C_CPUS'] || 1
 
 # Generic installer script common for server(s) & client(s)
 # This expects arguments that provide runtime values
@@ -55,38 +41,6 @@ grep "cd /opt/gopath/src/github.com/openebs/maya" /home/vagrant/.profile || \
 echo "In-order to compile maya, look at various options provided in GNUmakefile"
 echo -e "\n\tTIP: Start with command:- make"
 SCRIPT
-
-#$mayamaster = <<SCRIPT
-#!/bin/bash
-
-#cd /opt/gopath/src/github.com/openebs/maya
-#make bootstrap 
-#make dev
-#maya setup-omm
-#echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
-#echo "export MAPI_ADDR=http://172.28.128.3:5656" >> /home/vagrant/.profile
-
-#SCRIPT
-
-#$storagehost = <<SCRIPT
-#!/bin/bash
-
-#echo "Testing output redirection"
-
-#cd /opt/gopath/src/github.com/openebs/maya
-#make bootstrap
-#make dev
-#maya setup-osh -omm-ips=172.28.128.3
-#echo "export NOMAD_ADDR=http://172.28.128.3:4646" >> /home/vagrant/.profile
-
-#SCRIPT
-
-
-#$clientinstaller = <<SCRIPT
-
-#sudo apt-get install -y open-iscsi fio
-
-#SCRIPT
 
 required_plugins = %w(vagrant-cachier)
 
@@ -138,10 +92,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # I do not want this
   #config.vbguest.auto_update = false
   
-  # Placeholder to store comma separated ip addresses
-  #all_servers_ipv4 = ""
-  #all_clients_ipv4 = ""
-
   # maya master related only !!
   1.upto(M_NODES.to_i) do |i|
     hostname = "maya-%02d" % [i]
@@ -150,33 +100,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     
     config.vm.define hostname do |vmCfg|
       vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-      #vmCfg.vm.provision "shell", inline: $mayamaster, privileged: false 
     end     
   end
-  
-  # storage host related only !!
-  #1.upto(H_NODES.to_i) do |i|
-  #  hostname = "host-%02d" % [i]
-  #  cpus = H_CPUS
-  #  mem = H_MEM
-    
-  #  config.vm.define hostname do |vmCfg|
-  #    vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-  #    vmCfg.vm.provision "shell", inline: $storagehost, privileged: false
-  #  end
-  #end
-
-  # client related only !!
-  #1.upto(C_NODES.to_i) do |i|
-  #  hostname = "client-%02d" % [i]
-  #  cpus = C_CPUS
-  #  mem = C_MEM
-    
-  #  config.vm.define hostname do |vmCfg|
-  #    vmCfg = configureVM(vmCfg, hostname, cpus, mem)
-  #    vmCfg.vm.provision "shell", inline: $clientinstaller, privileged: false
-  #  end
-  #end
-
 
 end
