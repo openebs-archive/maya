@@ -20,6 +20,9 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Specify the name for the maya binary
 MAYACTL=maya
 
+# Specify the date o build
+BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
+
 all: test
 
 dev: format
@@ -87,7 +90,7 @@ bootstrap:
 
 image:
 	@cp bin/maya buildscripts/docker/
-	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci .
+	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@sh buildscripts/push
 
 # You might need to use sudo
