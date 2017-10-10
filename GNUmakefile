@@ -7,7 +7,7 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	github.com/golang/dep \
+	github.com/golang/dep/cmd/dep \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
@@ -33,11 +33,10 @@ bin:
 
 initialize: bootstrap
 
-deps: 
-	rm -rf vendor
+deps:
 	dep ensure
 
-clean: 
+clean:
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/pkg/*
@@ -50,14 +49,9 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
-test:
-	@echo "--> Running go fmt" ;
-	@if [ -n "`go fmt ${PACKAGES}`" ]; then \
-		echo "[ERR] go fmt updated formatting. Please commit formatted code first."; \
-		exit 1; \
-	fi
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/test.sh'"
-	@$(MAKE) vet
+test: format
+	@echo "--> Running go test" ;
+	@go test $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover

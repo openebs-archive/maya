@@ -31,6 +31,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/beorn7/perks"
+  packages = ["quantile"]
+  revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
+
+[[projects]]
+  branch = "master"
   name = "github.com/bgentry/go-netrc"
   packages = ["netrc"]
   revision = "9fd32a8b3d3d3f9d43c341bfe098430e07609480"
@@ -125,6 +131,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/golang/protobuf"
+  packages = ["proto"]
+  revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+
+[[projects]]
+  branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
@@ -192,6 +204,12 @@
   revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-syslog"
+  packages = ["."]
+  revision = "326bf4a7f709d263f964a6a96558676b103f3534"
+
+[[projects]]
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   revision = "03c5bf6be031b6dd45afec16b1cf94fc8938bc77"
@@ -205,6 +223,12 @@
   name = "github.com/hashicorp/hcl"
   packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "d8c773c4cba11b11539e3d45f93daeaa5dcf1fa1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/logutils"
+  packages = ["."]
+  revision = "0dc08b1671f34c4250ce212759ebd880f743d883"
 
 [[projects]]
   name = "github.com/hashicorp/nomad"
@@ -255,6 +279,12 @@
   packages = ["."]
   revision = "fc9e8d8ef48496124e79ae0df75490096eccf6fe"
   version = "v0.0.2"
+
+[[projects]]
+  name = "github.com/matttproud/golang_protobuf_extensions"
+  packages = ["pbutil"]
+  revision = "3247c84500bff8d9fb6d579d800f20b3e091582c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/mitchellh/cli"
@@ -314,12 +344,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  name = "github.com/openebs/maya"
-  packages = ["cmd/maya-agent/app","cmd/maya-agent/types/v1","command","kit/logs","orchprovider","pkg/nethelper","pkg/util","types/v1","types/v1/profile/orchestrator","volumes/profile/volumeprovisioner","volumes/provisioner"]
-  revision = "1ea038626183cc0f2ecc0ddcb1d573a99903b681"
-  version = "0.4.0"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -329,6 +353,30 @@
   name = "github.com/posener/complete"
   packages = [".","cmd","cmd/install","match"]
   revision = "f4461a52b6329c11190f11fe3384ec8aa964e21c"
+
+[[projects]]
+  name = "github.com/prometheus/client_golang"
+  packages = ["prometheus","prometheus/promhttp"]
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/client_model"
+  packages = ["go"]
+  revision = "6f3806018612930941127f2a7c6c453ba2c527d2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/common"
+  packages = ["expfmt","internal/bitbucket.org/ww/goautoneg","model"]
+  revision = "1bab55dd05dbff384524a6a1c99006d9eb5f139b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/prometheus/procfs"
+  packages = [".","xfs"]
+  revision = "e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2"
 
 [[projects]]
   name = "github.com/rancher/go-rancher"
@@ -408,6 +456,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d7f126e5c7defd1cb486c8f5b74f36d578a0fe7c86f7ae5c33f64bceac4e517c"
+  inputs-digest = "7ffec536b8b444e81c1eca2080a1577c5ac6e7b826c9e20633d80711353055e3"
   solver-name = "gps-cdcl"
   solver-version = 1
