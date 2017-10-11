@@ -88,8 +88,9 @@ bootstrap:
 	done 
 
 image:
-	@cp bin/maya buildscripts/docker/
+	@cp bin/${MAYACTL} buildscripts/docker/
 	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/docker/${MAYACTL}
 	@sh buildscripts/push
 
 # You might need to use sudo
@@ -116,6 +117,8 @@ apiserver-image: bin apiserver
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/apiserver/${APISERVER}
+	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
 .PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image

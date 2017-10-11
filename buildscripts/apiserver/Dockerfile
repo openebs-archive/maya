@@ -25,6 +25,15 @@ COPY maya /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+ARG BUILD_DATE
+
+LABEL org.label-schema.name="m-apiserver"
+LABEL org.label-schema.description="API server for OpenEBS"
+LABEL org.label-schema.url="http://www.openebs.io/"
+LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.build-date=$BUILD_DATE
+
 ENTRYPOINT entrypoint.sh "${MAYA_API_SERVER_NETWORK}"
 
 EXPOSE 5656
