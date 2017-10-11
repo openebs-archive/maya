@@ -9,7 +9,7 @@ Vagrant.require_version ">= 1.6.0"
 M_NODES = ENV['M_NODES'] || 1
 
 # Maya Memory & CPUs
-M_MEM = ENV['M_MEM'] || 1024
+M_MEM = ENV['M_MEM'] || 2048
 M_CPUS = ENV['M_CPUS'] || 1
 
 # Generic installer script common for server(s) & client(s)
@@ -75,7 +75,10 @@ def configureVM(vmCfg, hostname, cpus, mem)
     vb.cpus = cpus
     vb.customize ["modifyvm", :id, "--cableconnected1", "on"]
   end
-  
+
+  # ensure docker is installed
+  vmCfg.vm.provision "docker"
+
   # sync your laptop's development with this Vagrant VM
   vmCfg.vm.synced_folder '.', '/opt/gopath/src/github.com/openebs/maya'
 

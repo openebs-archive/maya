@@ -17,8 +17,9 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-# Specify the name for the maya binary
+# Specify the name for the binaries
 MAYACTL=maya
+APISERVER=apiserver
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -29,6 +30,9 @@ dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 bin:
+	@echo "----------------------------"
+	@echo "--> maya                    "
+	@echo "----------------------------"
 	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 initialize: bootstrap
@@ -39,6 +43,7 @@ deps:
 clean:
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
+	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -97,6 +102,20 @@ maya-agent:
 
 # Use this to build only the maya apiserver. 
 apiserver:
-	GOOS=linux go build ./cmd/apiserver
+	@echo "----------------------------"
+	@echo "--> apiserver               "
+	@echo "----------------------------"
+	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/apiserver/build.sh'"
 
-.PHONY: all apiserver bin cov integ test vet maya-agent test-nodep
+# Currently both mayactl & apiserver binaries are pushed into
+# m-apiserver image. This is going to be decoupled soon.
+apiserver-image: bin apiserver
+	@echo "----------------------------"
+	@echo "--> apiserver image         "
+	@echo "----------------------------"
+	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
+	@cp bin/${MAYACTL} buildscripts/apiserver/
+	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@sh buildscripts/apiserver/push
+
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image

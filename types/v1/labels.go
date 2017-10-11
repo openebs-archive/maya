@@ -92,6 +92,21 @@ const (
 	// Usage:
 	// <CTX>_REPLICA_TOPOLOGY_KEY = <some value>
 	PVPReplicaTopologyKeyEnvVarKey EnvironmentVariableKey = "_REPLICA_TOPOLOGY_KEY"
+
+	// PVPControllerNodeTaintTolerationEnvVarKey is the environment variable key
+	// for persistent volume provisioner's node taint toleration
+	//
+	// Usage:
+	// <CTX>_CONTROLLER_NODE_TAINT_TOLERATION = <some value>
+	PVPControllerNodeTaintTolerationEnvVarKey EnvironmentVariableKey = "_CONTROLLER_NODE_TAINT_TOLERATION"
+
+	// PVPReplicaNodeTaintTolerationEnvVarKey is the environment variable key for
+	// persistent volume provisioner's node taint toleration
+	//
+	// Usage:
+	// <CTX>__REPLICA_NODE_TAINT_TOLERATION = <some value>
+	PVPReplicaNodeTaintTolerationEnvVarKey EnvironmentVariableKey = "_REPLICA_NODE_TAINT_TOLERATION"
+
 	// OrchestratorNameEnvVarKey is the environment variable key for
 	// orchestration provider's name
 	//
@@ -231,6 +246,10 @@ const (
 	PVPControllerIPsLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/controller-ips"
 	// Label / Tag for a persistent volume provisioner's persistent path
 	PVPPersistentPathLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/persistent-path"
+	// Label / Tag for a persistent volume provisioner's controller node taint toleration
+	PVPControllerNodeTaintTolerationLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/controller-node-taint-toleration"
+	// Label / Tag for a persistent volume provisioner's replica node taint toleration
+	PVPReplicaNodeTaintTolerationLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/replica-node-taint-toleration"
 
 	// PVPReplicaTopologyKeyLbl is the label for a persistent volume provisioner's
 	// VSM replica topology key
