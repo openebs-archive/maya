@@ -729,6 +729,54 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 	return pvl, nil
 }
 
+// addNodeTolerationsToDeploy
+func (k *k8sOrchestrator) addNodeTolerationsToDeploy(nodeTaintTolerations []string, deploy *k8sApisExtnsBeta1.Deployment) error {
+
+	// nTT is expected to be in key=value:effect
+	for _, nTT := range nodeTaintTolerations {
+		kveArr := strings.Split(nTT, ":")
+		if len(kveArr) != 2 {
+			return fmt.Errorf("Invalid args '%s' provided for node taint toleration", nTT)
+		}
+
+		kv := kveArr[0]
+		effect := strings.TrimSpace(kveArr[1])
+
+		kvArr := strings.Split(kv, "=")
+		if len(kvArr) != 2 {
+			return fmt.Errorf("Invalid kv '%s' provided for node taint toleration", kv)
+		}
+		k := strings.TrimSpace(kvArr[0])
+		v := strings.TrimSpace(kvArr[1])
+
+		// Setting to blank to validate later
+		e := k8sApiV1.TaintEffect("")
+
+		// Supports only these two effects
+		if string(k8sApiV1.TaintEffectNoExecute) == effect {
+			e = k8sApiV1.TaintEffectNoExecute
+		} else if string(k8sApiV1.TaintEffectNoSchedule) == effect {
+			e = k8sApiV1.TaintEffectNoSchedule
+		}
+
+		if string(e) == "" {
+			return fmt.Errorf("Invalid effect '%s' provided for node taint toleration", effect)
+		}
+
+		toleration := k8sApiV1.Toleration{
+			Key:      k,
+			Operator: k8sApiV1.TolerationOpEqual,
+			Value:    v,
+			Effect:   e,
+		}
+
+		tls := append(deploy.Spec.Template.Spec.Tolerations, toleration)
+		deploy.Spec.Template.Spec.Tolerations = tls
+	}
+
+	return nil
+}
+
 // createControllerDeployment creates a persistent volume controller deployment in
 // kubernetes
 func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.VolumeProvisionerProfile, clusterIP string) (*k8sApisExtnsBeta1.Deployment, error) {
@@ -824,6 +872,19 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 				},
 			},
 		},
+	}
+
+	// check if node level taint toleration is required ?
+	nTTs, reqd, err := volProProfile.IsControllerNodeTaintTolerations()
+	if err != nil {
+		return nil, err
+	}
+
+	if reqd {
+		err = k.addNodeTolerationsToDeploy(nTTs, deploy)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// add persistent volume controller deployment
@@ -1020,6 +1081,19 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 				},
 			},
 		},
+	}
+
+	// check if node level taint toleration is required ?
+	nTTs, reqd, err := volProProfile.IsReplicaNodeTaintTolerations()
+	if err != nil {
+		return nil, err
+	}
+
+	if reqd {
+		err = k.addNodeTolerationsToDeploy(nTTs, deploy)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	d, err := dOps.Create(deploy)
