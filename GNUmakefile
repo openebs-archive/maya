@@ -7,7 +7,7 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
-	github.com/Masterminds/glide \
+	github.com/golang/dep/cmd/dep \
 	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
@@ -17,8 +17,12 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-# Specify the name for the maya binary
+# Specify the name for the binaries
 MAYACTL=maya
+APISERVER=apiserver
+
+# Specify the date o build
+BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
 all: test
 
@@ -26,18 +30,20 @@ dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 bin:
+	@echo "----------------------------"
+	@echo "--> maya                    "
+	@echo "----------------------------"
 	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 initialize: bootstrap
 
-deps: 
-	rm -rf vendor
-	@glide up
-	glide install -v
+deps:
+	dep ensure
 
-clean: 
+clean:
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
+	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -48,14 +54,9 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
-test:
-	@echo "--> Running go fmt" ;
-	@if [ -n "`go fmt ${PACKAGES}`" ]; then \
-		echo "[ERR] go fmt updated formatting. Please commit formatted code first."; \
-		exit 1; \
-	fi
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/test.sh'"
-	@$(MAKE) vet
+test: format
+	@echo "--> Running go test" ;
+	@go test $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
@@ -87,8 +88,9 @@ bootstrap:
 	done 
 
 image:
-	@cp bin/maya buildscripts/docker/
-	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci .
+	@cp bin/${MAYACTL} buildscripts/docker/
+	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/docker/${MAYACTL}
 	@sh buildscripts/push
 
 # You might need to use sudo
@@ -101,6 +103,22 @@ maya-agent:
 
 # Use this to build only the maya apiserver. 
 apiserver:
-	GOOS=linux go build ./cmd/apiserver
+	@echo "----------------------------"
+	@echo "--> apiserver               "
+	@echo "----------------------------"
+	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/apiserver/build.sh'"
 
-.PHONY: all apiserver bin cov integ test vet maya-agent test-nodep
+# Currently both mayactl & apiserver binaries are pushed into
+# m-apiserver image. This is going to be decoupled soon.
+apiserver-image: bin apiserver
+	@echo "----------------------------"
+	@echo "--> apiserver image         "
+	@echo "----------------------------"
+	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
+	@cp bin/${MAYACTL} buildscripts/apiserver/
+	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/apiserver/${APISERVER}
+	@rm buildscripts/apiserver/${MAYACTL}
+	@sh buildscripts/apiserver/push
+
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image

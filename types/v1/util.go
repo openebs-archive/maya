@@ -516,6 +516,82 @@ func DefaultControllerImage() string {
 	return string(PVPControllerImageDef)
 }
 
+// GetControllerNodeTaintTolerations gets the node taint tolerations if
+// available
+func GetControllerNodeTaintTolerations(profileMap map[string]string) (string, error) {
+	val, err := ControllerNodeTaintTolerations(profileMap)
+	if err != nil {
+		return "", err
+	}
+
+	if val == "" {
+		val, err = DefaultControllerNodeTaintTolerations()
+	}
+
+	return val, err
+}
+
+// ControllerNodeTaintTolerations extracts the node taint tolerations
+func ControllerNodeTaintTolerations(profileMap map[string]string) (string, error) {
+	val := ""
+	if profileMap != nil {
+		val = strings.TrimSpace(profileMap[string(PVPControllerNodeTaintTolerationLbl)])
+	}
+
+	if val != "" {
+		return val, nil
+	}
+
+	// else get from environment variable
+	return OSGetEnv(string(PVPControllerNodeTaintTolerationEnvVarKey), profileMap), nil
+}
+
+// DefaultControllerNodeTaintTolerations will fetch the default value for node
+// taint tolerations
+func DefaultControllerNodeTaintTolerations() (string, error) {
+	// Controller node taint toleration property is optional. Hence returns blank
+	// (i.e. not required) as default.
+	return "", nil
+}
+
+// GetReplicaNodeTaintTolerations gets the node taint tolerations if
+// available
+func GetReplicaNodeTaintTolerations(profileMap map[string]string) (string, error) {
+	val, err := ReplicaNodeTaintTolerations(profileMap)
+	if err != nil {
+		return "", err
+	}
+
+	if val == "" {
+		val, err = DefaultReplicaNodeTaintTolerations()
+	}
+
+	return val, err
+}
+
+// ReplicaNodeTaintTolerations extracts the node taint tolerations for replica
+func ReplicaNodeTaintTolerations(profileMap map[string]string) (string, error) {
+	val := ""
+	if profileMap != nil {
+		val = strings.TrimSpace(profileMap[string(PVPReplicaNodeTaintTolerationLbl)])
+	}
+
+	if val != "" {
+		return val, nil
+	}
+
+	// else get from environment variable
+	return OSGetEnv(string(PVPReplicaNodeTaintTolerationEnvVarKey), profileMap), nil
+}
+
+// DefaultReplicaNodeTaintTolerations will fetch the default value for node
+// taint tolerations
+func DefaultReplicaNodeTaintTolerations() (string, error) {
+	// Replica node taint toleration property is optional. Hence returns blank
+	// (i.e. not required) as default.
+	return "", nil
+}
+
 // GetOrchestratorNetworkType gets the not nil orchestration provider's network
 // type
 func GetOrchestratorNetworkType(profileMap map[string]string) string {

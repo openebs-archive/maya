@@ -71,6 +71,12 @@ type VolumeProvisionerProfile interface {
 
 	// Get the storage backend i.e. a persistent path of the replica.
 	PersistentPath() (string, error)
+
+	// Verify if node level taint tolerations are required for controller?
+	IsControllerNodeTaintTolerations() ([]string, bool, error)
+
+	// Verify if node level taint tolerations are required for replica?
+	IsReplicaNodeTaintTolerations() ([]string, bool, error)
 }
 
 // GetVolProProfileByPVC will return a specific persistent volume provisioner
@@ -247,6 +253,48 @@ func (pp *pvcVolProProfile) ReplicaImage() (string, error) {
 	rImg := v1.GetPVPReplicaImage(pp.pvc.Labels)
 
 	return rImg, nil
+}
+
+// IsControllerNodeTaintTolerations provides the node level taint tolerations.
+// Since node level taint toleration for controller is an optional feature, it
+// can return false.
+func (pp *pvcVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, error) {
+	// Extract the node taint toleration for controller
+	nTTs, err := v1.GetControllerNodeTaintTolerations(pp.pvc.Labels)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if strings.TrimSpace(nTTs) == "" {
+		return nil, false, nil
+	}
+
+	// nTTs is expected of below form
+	// key=value:effect, key1=value1:effect1
+	// __or__
+	// key=value:effect
+	return strings.Split(nTTs, ","), true, nil
+}
+
+// IsReplicaNodeTaintTolerations provides the node level taint tolerations.
+// Since node level taint toleration for replica is an optional feature, it
+// can return false.
+func (pp *pvcVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
+	// Extract the node taint toleration for replica
+	nTTs, err := v1.GetReplicaNodeTaintTolerations(pp.pvc.Labels)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if strings.TrimSpace(nTTs) == "" {
+		return nil, false, nil
+	}
+
+	// nTTs is expected of below form
+	// key=value:effect, key1=value1:effect1
+	// __or__
+	// key=value:effect
+	return strings.Split(nTTs, ","), true, nil
 }
 
 // StorageSize gets the storage size for each persistent volume replica(s)

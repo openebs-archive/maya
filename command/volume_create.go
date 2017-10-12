@@ -157,6 +157,10 @@ func CreateAPIVsm(vname string, size string) error {
 	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
+	if err != nil {
+		fmt.Printf("http.NewRequest() error: %v\n", err)
+		return err
+	}
 
 	req.Header.Add("Content-Type", "application/yaml")
 

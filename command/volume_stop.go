@@ -163,6 +163,10 @@ func DeleteVsm(vname string) error {
 	url := addr + "/latest/volumes/delete/" + vname
 
 	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Println("http.NewRequest() error: : %v", err)
+		return err
+	}
 	c := &http.Client{
 		Timeout: timeout,
 	}

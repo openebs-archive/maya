@@ -410,6 +410,11 @@ func (e *okVsmNameVolumeProfile) VSMName() (string, error) {
 	return "ok-vsm-name", nil
 }
 
+// ControllerImage does not return any error
+func (e *okVsmNameVolumeProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
+	return []string{"k=v:NoSchedule"}, true, nil
+}
+
 // okCtrlImgVolumeProfile focusses on not returning any error during invocation
 // of ControllerImage() method
 type okCtrlImgVolumeProfile struct {
@@ -419,6 +424,11 @@ type okCtrlImgVolumeProfile struct {
 // ControllerImage does not return any error
 func (e *okCtrlImgVolumeProfile) ControllerImage() (string, bool, error) {
 	return "ok-ctrl-img", true, nil
+}
+
+// ControllerImage does not return any error
+func (e *okCtrlImgVolumeProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
+	return []string{"k=v:NoSchedule"}, true, nil
 }
 
 // errVsmNameVolumeProfile focusses on returning error during invocation of
