@@ -11,22 +11,14 @@ your repository with the upstream openebs/maya master. Syncing ensures your repo
 ### 2. Clone fork to local storage
 
 Place openebs/maya' code on your `GOPATH` using the following cloning procedure.
-
-Define a local working directory:
-
-```sh
-working_dir=$GOPATH/src/github.com/openebs
-```
 Create your clone:
 
 ```sh
-mkdir -p $working_dir
-cd $working_dir
-git clone https://github.com/$user/maya.git 
+go get github.com/$user/maya.git 
 
 # Note: Here user= your github profile name
 
-cd $working_dir/maya
+cd $GOPATH/github.com/$user/maya
 git remote add upstream https://github.com/openebs/maya.git
 
 # Never push to upstream master
@@ -40,7 +32,7 @@ git remote -v
 Open a terminal on your local host. Change directory to the maya-fork root.
 
 ```sh
-$ cd ~/$working_dir/maya
+$ cd $GOPATH/github.com/$user/maya
 ```
 
  Checkout the master branch.
@@ -137,7 +129,7 @@ $ cd ~/$working_dir/maya
  ### 4. Build
 
  ```sh
- cd $working_dir/maya
+ cd $GOPATH/github.com/$user/maya
  make dev
  ```
 
@@ -150,7 +142,7 @@ $ cd ~/$working_dir/maya
  #### Test
 
  ```sh
- cd $working_dir/maya
+ cd $GOPATH/github.com/$user/maya
 
  # Run every unit test
  make test 
