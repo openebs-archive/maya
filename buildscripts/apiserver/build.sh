@@ -57,7 +57,7 @@ gox \
         -X main.CtlName='${CTLNAME}' \
         -X main.Version='${GIT_TAG}'" \
     -output "bin/apiserver/{{.OS}}_{{.Arch}}/${CTLNAME}" \
-    .
+    ./cmd/apiserver
 
 echo ""
 
