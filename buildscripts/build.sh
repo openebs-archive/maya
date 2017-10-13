@@ -60,7 +60,11 @@ do
             output_name+='.exe'
         fi
         echo $GOARCH
-        env GOOS=$GOOS GOARCH=$GOARCH go build -o $output_name
+        env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+           "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
+            -X main.CtlName='${CTLNAME}' \
+            -X main.Version='${GIT_TAG}'"\
+            -o $output_name
 
     done
 
