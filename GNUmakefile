@@ -8,7 +8,6 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
 	github.com/golang/dep/cmd/dep \
-	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
