@@ -18,7 +18,9 @@ GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64"}
 XC_OS=${XC_OS:-"linux"}
-XC_EXCLUDE=${XC_EXCLUDE:-"!darwin/arm !darwin/386"}
+
+XC_ARCHS=(${XC_ARCH// / })
+XC_OSS=(${XC_OS// / })
 
 # Delete the old contents
 echo "==> Removing old bin/apiserver contents..."
@@ -48,16 +50,25 @@ fi
 # Build!
 echo "==> Building ${CTLNAME} ..."
 
-gox \
-    -os="${XC_OS}" \
-    -arch="${XC_ARCH}" \
-    -osarch="${XC_EXCLUDE}" \
-    -ldflags \
-       "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
-        -X main.CtlName='${CTLNAME}' \
-        -X main.Version='${GIT_TAG}'" \
-    -output "bin/apiserver/{{.OS}}_{{.Arch}}/${CTLNAME}" \
-    ./cmd/apiserver
+for GOOS in "${XC_OSS[@]}"
+do
+    for GOARCH in "${XC_ARCHS[@]}"
+    do
+        output_name="bin/apiserver/"$GOOS"_"$GOARCH"/"$CTLNAME
+
+        if [ $GOOS = "windows" ]; then
+            output_name+='.exe'
+        fi
+	echo $GOARCH
+        env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+           "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
+            -X main.CtlName='${CTLNAME}' \
+            -X main.Version='${GIT_TAG}'"\
+            -o $output_name\
+           ./cmd/apiserver
+
+    done
+done
 
 echo ""
 
