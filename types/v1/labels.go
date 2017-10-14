@@ -352,11 +352,11 @@ const (
 	// This should be equal to persistent volume provisioner's replica count
 	PVPPersistentPathCountDef VolumeProvisionerDefaults = PVPReplicaCountDef
 	// Default value for persistent volume provisioner's controller image
-	PVPControllerImageDef VolumeProvisionerDefaults = "openebs/jiva:0.3-RC2"
+	PVPControllerImageDef VolumeProvisionerDefaults = "openebs/jiva:latest"
 	// Default value for persistent volume provisioner's support for replica
 	PVPReqReplicaDef VolumeProvisionerDefaults = "true"
 	// Default value for persistent volume provisioner's replica image
-	PVPReplicaImageDef VolumeProvisionerDefaults = "openebs/jiva:0.3-RC2"
+	PVPReplicaImageDef VolumeProvisionerDefaults = "openebs/jiva:latest"
 	// Default value for persistent volume provisioner's networking support
 	PVPReqNetworkingDef VolumeProvisionerDefaults = "false"
 	// PVPPersistentPathDef is the default value for persistent volume provisioner's
