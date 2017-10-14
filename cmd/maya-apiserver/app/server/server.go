@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/openebs/maya/cmd/apiserver/app/config"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/orchprovider/k8s/v1"
 	"github.com/openebs/maya/orchprovider/nomad/v1"
