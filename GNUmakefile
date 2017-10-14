@@ -18,7 +18,7 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # Specify the name for the binaries
 MAYACTL=maya
-APISERVER=apiserver
+APISERVER=maya-apiserver
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -84,7 +84,7 @@ bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "Installing $$tool" ; \
 		go get $$tool; \
-	done 
+	done
 
 image:
 	@cp bin/${MAYACTL} buildscripts/docker/
@@ -96,14 +96,14 @@ image:
 install: bin/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-# Use this to build only the maya-agent. 
+# Use this to build only the maya-agent.
 maya-agent:
 	GOOS=linux go build ./cmd/maya-agent
 
-# Use this to build only the maya apiserver. 
+# Use this to build only the maya apiserver.
 apiserver:
 	@echo "----------------------------"
-	@echo "--> apiserver               "
+	@echo "--> maya-apiserver               "
 	@echo "----------------------------"
 	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/apiserver/build.sh'"
 

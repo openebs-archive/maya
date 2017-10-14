@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openebs/maya/cmd/apiserver/app/config"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/ugorji/go/codec"
 	"io"
