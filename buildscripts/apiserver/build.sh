@@ -65,7 +65,7 @@ do
             -X main.CtlName='${CTLNAME}' \
             -X main.Version='${GIT_TAG}'"\
             -o $output_name\
-           ./cmd/apiserver
+           ./cmd/maya-apiserver
 
     done
 done
