@@ -8,6 +8,12 @@ go:
   - 1.9.1
 install:
   - make bootstrap
+before_script:
+<<<<<<< HEAD
+  - make deps
+=======
+>>>>>>> 9c7e9143... Adds golint target in makefile, and execution in travis.yml
+  - make golint
 script:
   - make all
   - ./buildscripts/test-cov.sh

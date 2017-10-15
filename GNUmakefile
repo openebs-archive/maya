@@ -11,7 +11,12 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/ugorji/go/codec/codecgen
+	github.com/ugorji/go/codec/codecgen \
+<<<<<<< HEAD
+	gopkg.in/alecthomas/gometalinter.v1
+=======
+	github.com/golang/lint/golint
+>>>>>>> 9c7e9143... Adds golint target in makefile, and execution in travis.yml
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -63,6 +68,11 @@ cover:
 format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
+
+# Run the bootstrap target once before trying golint
+golint:
+	@gometalinter.v1 --install
+	@gometalinter.v1 --vendor ./...
 
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
@@ -120,4 +130,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image golint
