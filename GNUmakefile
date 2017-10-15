@@ -23,7 +23,7 @@ APISERVER=maya-apiserver
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test
+all: test bin apiserver
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
@@ -87,7 +87,7 @@ bootstrap:
 	done
 
 image:
-	@cp bin/${MAYACTL} buildscripts/docker/
+	@cp bin/maya/${MAYACTL} buildscripts/docker/
 	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/docker/${MAYACTL}
 	@sh buildscripts/push
@@ -114,7 +114,7 @@ apiserver-image: bin apiserver
 	@echo "--> apiserver image         "
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/${MAYACTL} buildscripts/apiserver/
+	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
