@@ -7,7 +7,7 @@ import (
 	"fmt"
 	//	"github.com/NYTimes/gziphandler"
 	"github.com/ghodss/yaml"
-	"github.com/openebs/maya/cmd/apiserver/app/config"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"

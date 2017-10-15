@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/openebs/maya/cmd/apiserver/app/config"
-	"github.com/openebs/maya/cmd/apiserver/app/server"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"

@@ -31,12 +31,12 @@ mkdir -p bin/apiserver/
 git fetch --tags >/dev/null 2>&1
 GIT_TAG="$(git describe --tags $(git rev-list --tags --max-count=1))"
 
-if [ -z "${GIT_TAG}" ]; 
+if [ -z "${GIT_TAG}" ];
 then
     GIT_TAG="0.0.1"
 fi
 
-if [ -z "${CTLNAME}" ]; 
+if [ -z "${CTLNAME}" ];
 then
     CTLNAME="apiserver"
 fi
@@ -65,7 +65,7 @@ do
             -X main.CtlName='${CTLNAME}' \
             -X main.Version='${GIT_TAG}'"\
             -o $output_name\
-           ./cmd/apiserver
+           ./cmd/maya-apiserver
 
     done
 done
