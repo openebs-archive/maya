@@ -23,16 +23,16 @@ APISERVER=maya-apiserver
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test bin apiserver
+all: test mayactl apiserver
 
 dev: format
-	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/ctl/build.sh'"
 
-bin:
+mayactl:
 	@echo "----------------------------"
 	@echo "--> maya                    "
 	@echo "----------------------------"
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/ctl/build.sh'"
 
 initialize: bootstrap
 
@@ -87,10 +87,10 @@ bootstrap:
 	done
 
 image:
-	@cp bin/maya/${MAYACTL} buildscripts/docker/
-	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/docker/${MAYACTL}
-	@sh buildscripts/push
+	@cp bin/maya/${MAYACTL} buildscripts/ctl/
+	@cd buildscripts/ctl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/ctl/${MAYACTL}
+	@sh buildscripts/ctl/push
 
 # You might need to use sudo
 install: bin/${MAYACTL}
