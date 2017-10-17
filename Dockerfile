@@ -21,5 +21,7 @@ RUN apt-get update && \
 
 WORKDIR /usr/local/go/src/github.com/openebs/maya
 
-# TODO: Ignore files copied and copy the ones needed (add an entrypoint as well)
+# TODO: Add entrypoint to improve building
 COPY . .
+
+RUN make bootstrap && make bin && make apiserver && make maya-agent && make install
