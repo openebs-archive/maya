@@ -59,7 +59,6 @@ do
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
         fi
-	echo $GOARCH
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
            "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
             -X main.CtlName='${CTLNAME}' \
