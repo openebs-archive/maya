@@ -26,13 +26,13 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 all: test mayactl apiserver
 
 dev: format
-	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/ctl/build.sh'"
+	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
 
 mayactl:
 	@echo "----------------------------"
 	@echo "--> maya                    "
 	@echo "----------------------------"
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/ctl/build.sh'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
 
 initialize: bootstrap
 
@@ -86,15 +86,15 @@ bootstrap:
 		go get $$tool; \
 	done
 
-image:
-	@cp bin/maya/${MAYACTL} buildscripts/ctl/
-	@cd buildscripts/ctl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/ctl/${MAYACTL}
-	@sh buildscripts/ctl/push
+maya-image:
+	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
+	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/mayactl/${MAYACTL}
+	@sh buildscripts/mayactl/push
 
 # You might need to use sudo
-install: bin/${MAYACTL}
-	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
+install: bin/maya/${MAYACTL}
+	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
 # Use this to build only the maya-agent.
 maya-agent:
@@ -109,7 +109,7 @@ apiserver:
 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
-apiserver-image: bin apiserver
+apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@echo "--> apiserver image         "
 	@echo "----------------------------"
@@ -120,4 +120,4 @@ apiserver-image: bin apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image
