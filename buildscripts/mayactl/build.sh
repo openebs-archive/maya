@@ -82,10 +82,13 @@ OLDIFS=$IFS
 IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
 
+# Create the gopath bin if not already available
+mkdir -p ${MAIN_GOPATH}/bin/
+
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./bin/maya/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/maya
+    cp ${F} bin/maya/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
 
@@ -105,4 +108,4 @@ fi
 # Done!
 echo
 echo "==> Results:"
-ls -hl bin/maya
+ls -hl bin/maya/
