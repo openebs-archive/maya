@@ -6,7 +6,7 @@ import (
 
 	"github.com/openebs/maya/types/v1"
 	orchProfile "github.com/openebs/maya/types/v1/profile/orchestrator"
-	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
+	volProfile "github.com/openebs/maya/volume/profiles"
 	"k8s.io/client-go/kubernetes"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/openebs/maya/types/v1"
-	"github.com/openebs/maya/volumes/provisioner"
+	"github.com/openebs/maya/volume/provisioners"
 )
 
 // VSMSpecificRequest is a http handler implementation. It deals with HTTP
@@ -62,7 +62,7 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 	pvc := &v1.PersistentVolumeClaim{}
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioner.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 	pvc.Name = vsmName
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioner.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 	pvc.Name = vsmName
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioner.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 	}
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioner.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
 	if err != nil {
 		return nil, err
 	}
