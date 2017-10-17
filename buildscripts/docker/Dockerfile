@@ -2,7 +2,9 @@
 # This Dockerfile builds a recent maya container with latest code
 #
 
-FROM ubuntu:16.04
+FROM alpine:3.6
+
+RUN apk --no-cache add libc6-compat
 
 COPY maya /usr/local/bin
 
