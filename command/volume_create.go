@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/openebs/maya/types/v1"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -21,26 +22,6 @@ type VsmCreateCommand struct {
 	Cmd     *exec.Cmd
 	vsmname string
 	size    string
-}
-
-// VsmSpec holds the config for creating a VSM
-type VsmSpec struct {
-	Kind       string `yaml:"kind"`
-	APIVersion string `yaml:"apiVersion"`
-	Metadata   struct {
-		Name   string `yaml:"name"`
-		Labels struct {
-			Storage string `yaml:"volumeprovisioner.mapi.openebs.io/storage-size"`
-		}
-	} `yaml:"metadata"`
-	//Spec struct {
-	//	AccessModes []string `yaml:"accessModes"`
-	//	Resources   struct {
-	//		Requests struct {
-	//			Storage string `yaml:"storage"`
-	//		} `yaml:"requests"`
-	//	} `yaml:"resources"`
-	//} `yaml:"spec"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -136,7 +117,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 // CreateAPIVsm to create the Vsm through a API call to m-apiserver
 func CreateAPIVsm(vname string, size string) error {
 
-	var vs VsmSpec
+	var vs v1.Volume
 
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
@@ -154,7 +135,7 @@ func CreateAPIVsm(vname string, size string) error {
 	//Marshal serializes the value provided into a YAML document
 	yamlValue, _ := yaml.Marshal(vs)
 
-	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
+	//	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 	if err != nil {
