@@ -25,7 +25,7 @@ git clone https://github.com/$user/maya.git
 cd $GOPATH/github.com/openebs/maya
 git remote add upstream https://github.com/openebs/maya.git
 
-# Never push to upstream mastr
+# Never push to upstream master
 git remote set-url --push upstream no_push
 
 # Confirm that your remotes make sense:
