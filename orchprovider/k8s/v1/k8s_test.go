@@ -8,7 +8,7 @@ import (
 
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/types/v1"
-	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
+	volProfile "github.com/openebs/maya/volume/profiles"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"

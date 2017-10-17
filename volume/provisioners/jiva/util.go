@@ -12,7 +12,7 @@ import (
 
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/types/v1"
-	vProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
+	vProfile "github.com/openebs/maya/volume/profiles"
 )
 
 type JivaInterface interface {

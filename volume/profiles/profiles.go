@@ -1,4 +1,4 @@
-package volumeprovisioner
+package profiles
 
 import (
 	"fmt"
