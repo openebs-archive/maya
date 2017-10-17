@@ -14,14 +14,18 @@ Place openebs/maya' code on your `GOPATH` using the following cloning procedure.
 Create your clone:
 
 ```sh
-go get github.com/$user/maya.git 
+
+mkdir -p $GOPATH/src/github.com/openebs
+cd $GOPATH/src/github.com/openebs
 
 # Note: Here user= your github profile name
+git clone https://github.com/$user/maya.git
 
-cd $GOPATH/github.com/$user/maya
+# Configure remote upstream
+cd $GOPATH/github.com/openebs/maya
 git remote add upstream https://github.com/openebs/maya.git
 
-# Never push to upstream master
+# Never push to upstream mastr
 git remote set-url --push upstream no_push
 
 # Confirm that your remotes make sense:
@@ -32,7 +36,7 @@ git remote -v
 Open a terminal on your local host. Change directory to the maya-fork root.
 
 ```sh
-$ cd $GOPATH/github.com/$user/maya
+$ cd $GOPATH/github.com/openebs/maya
 ```
 
  Checkout the master branch.
@@ -129,7 +133,7 @@ $ cd $GOPATH/github.com/$user/maya
  ### 4. Build
 
  ```sh
- cd $GOPATH/github.com/$user/maya
+ cd $GOPATH/github.com/openebs/maya
  make dev
  ```
 
@@ -142,7 +146,7 @@ $ cd $GOPATH/github.com/$user/maya
  #### Test
 
  ```sh
- cd $GOPATH/github.com/$user/maya
+ cd $GOPATH/github.com/openebs/maya
 
  # Run every unit test
  make test 
