@@ -59,7 +59,6 @@ do
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
         fi
-	echo $GOARCH
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
            "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
             -X main.CtlName='${CTLNAME}' \
@@ -82,6 +81,9 @@ esac
 OLDIFS=$IFS
 IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
+
+# Create the gopath bin if not already available
+mkdir -p ${MAIN_GOPATH}/bin/
 
 # Copy our OS/Arch to ${MAIN_GOPATH}/bin/ directory
 DEV_PLATFORM="./bin/apiserver/$(go env GOOS)_$(go env GOARCH)"

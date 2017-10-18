@@ -6,7 +6,7 @@ set -e
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
-DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
+DIR="$( cd -P "$( dirname "$SOURCE" )/../.." && pwd )"
 
 # Change into that directory
 cd "$DIR"
@@ -28,15 +28,15 @@ XC_OSS=(${XC_OS// / })
 
 # Delete the old dir
 echo "==> Removing old directory..."
-rm -rf bin/*
-mkdir -p bin/
+rm -rf bin/maya/*
+mkdir -p bin/maya/
 
-if [ -z "${GIT_TAG}" ]; 
+if [ -z "${GIT_TAG}" ];
 then
     GIT_TAG="0.0.1"
 fi
 
-if [ -z "${MAYACTL}" ]; 
+if [ -z "${MAYACTL}" ];
 then
     MAYACTL="mayactl"
 fi
@@ -54,12 +54,11 @@ for GOOS in "${XC_OSS[@]}"
 do
     for GOARCH in "${XC_ARCHS[@]}"
     do
-        output_name="bin/"$GOOS"_"$GOARCH"/"$MAYACTL
+        output_name="bin/maya/"$GOOS"_"$GOARCH"/"$MAYACTL
 
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
         fi
-        echo $GOARCH
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
            "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
             -X main.CtlName='${CTLNAME}' \
@@ -83,17 +82,20 @@ OLDIFS=$IFS
 IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
 
+# Create the gopath bin if not already available
+mkdir -p ${MAIN_GOPATH}/bin/
+
 # Copy our OS/Arch to the bin/ directory
-DEV_PLATFORM="./bin/$(go env GOOS)_$(go env GOARCH)"
+DEV_PLATFORM="./bin/maya/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/
+    cp ${F} bin/maya/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
 
 if [[ "x${MAYA_DEV}" == "x" ]]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
-    for PLATFORM in $(find ./bin -mindepth 1 -maxdepth 1 -type d); do
+    for PLATFORM in $(find ./bin/maya -mindepth 1 -maxdepth 1 -type d); do
         OSARCH=$(basename ${PLATFORM})
         echo "--> ${OSARCH}"
 
@@ -106,4 +108,4 @@ fi
 # Done!
 echo
 echo "==> Results:"
-ls -hl bin/
+ls -hl bin/maya/

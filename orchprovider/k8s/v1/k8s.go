@@ -10,7 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/types/v1"
-	volProfile "github.com/openebs/maya/volumes/profile/volumeprovisioner"
+	volProfile "github.com/openebs/maya/volume/profiles"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	//k8sUnversioned "k8s.io/client-go/pkg/api/unversioned"

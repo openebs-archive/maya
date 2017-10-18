@@ -219,7 +219,7 @@ const (
 	VolumeAvailable PersistentVolumePhase = "Available"
 	// used for PersistentVolumes that are bound
 	VolumeBound PersistentVolumePhase = "Bound"
-	// used for PersistentVolumes where the bound PersistentVolumeClaim was deleted
+	// used for PersistentVolumes where the bound PersistentVol:syntime onumeClaim was deleted
 	// released volumes must be recycled before becoming available again
 	// this phase is used by the persistent volume claim binder to signal to another process to reclaim the resource
 	VolumeReleased PersistentVolumePhase = "Released"
@@ -324,27 +324,31 @@ type VsmSpec struct {
 
 // Volume is a command implementation struct
 type Volume struct {
+	Kind       string `yaml:"kind" json:"kind"`
+	APIVersion string `yaml:"api_version" json:"api_version"`
+	Metadata   struct {
+		Annotations       interface{} `yaml:"annotations" json:"annotations"`
+		CreationTimestamp interface{} `yaml:"creation_timestamp" json:"creation_timestamp"`
+		Name              string      `yaml:"name" json:"name"`
+		Labels            struct {
+			Storage string `yaml:"storage" json:"storage"`
+		} `yaml:"labels" json:"labels"`
+	} `yaml:"metadata" json:"metadata"`
 	Spec struct {
-		AccessModes interface{} `json:"AccessModes"`
-		Capacity    interface{} `json:"Capacity"`
-		ClaimRef    interface{} `json:"ClaimRef"`
+		AccessModes interface{} `yaml:"access_modes" json:"access_modes"`
+		Capacity    interface{} `yaml:"capacity" json:"capacity"`
+		ClaimRef    interface{} `yaml:"claim_ref" json:"claim_ref"`
 		OpenEBS     struct {
-			VolumeID string `json:"volumeID"`
-		} `json:"OpenEBS"`
-		PersistentVolumeReclaimPolicy string `json:"PersistentVolumeReclaimPolicy"`
-		StorageClassName              string `json:"StorageClassName"`
-	} `json:"Spec"`
-
+			VolumeID string `yaml:"volume_id" json:"volume_id"`
+		} `yaml:"open_ebs" json:"open_ebs"`
+		PersistentVolumeReclaimPolicy string `yaml:"persistent_volume_reclaim_policy" json:"persistent_volume_reclaim_policy"`
+		StorageClassName              string `yaml:"storage_class_name" json:"storage_class_name"`
+	} `yaml:"spec" json:"spec"`
 	Status struct {
-		Message string `json:"Message"`
-		Phase   string `json:"Phase"`
-		Reason  string `json:"Reason"`
-	} `json:"Status"`
-	Metadata struct {
-		Annotations       interface{} `json:"annotations"`
-		CreationTimestamp interface{} `json:"creationTimestamp"`
-		Name              string      `json:"name"`
-	} `json:"metadata"`
+		Message string `yaml:"message" json:"message"`
+		Phase   string `yaml:"phase" json:"phase"`
+		Reason  string `yaml:"reason" json:"reason"`
+	} `yaml:"status" json:"status"`
 }
 
 // -------------Snapshot Structs ----------
