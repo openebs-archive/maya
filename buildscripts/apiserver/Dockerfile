@@ -3,17 +3,18 @@
 # maya api server's releases.
 #
 
-FROM ubuntu:16.04
+FROM alpine:3.6
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_API_SERVER_NETWORK="eth0"
 
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     iproute2 \
     curl \
     net-tools \
-    watch \
- && rm -rf /var/lib/apt/lists/*
+    mii-tool \
+    procps \
+    libc6-compat
 
 RUN mkdir -p /etc/apiserver/orchprovider
 RUN mkdir -p /etc/apiserver/specs
