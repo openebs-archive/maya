@@ -12,11 +12,7 @@ EXTERNAL_TOOLS=\
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
 	github.com/ugorji/go/codec/codecgen \
-<<<<<<< HEAD
 	gopkg.in/alecthomas/gometalinter.v1
-=======
-	github.com/golang/lint/golint
->>>>>>> 9c7e9143... Adds golint target in makefile, and execution in travis.yml
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -72,7 +68,7 @@ format:
 # Run the bootstrap target once before trying golint
 golint:
 	@gometalinter.v1 --install
-	@gometalinter.v1 --vendor ./...
+	-gometalinter.v1 --vendor --deadline=600s ./...
 
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
