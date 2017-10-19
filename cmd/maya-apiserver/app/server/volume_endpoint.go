@@ -56,10 +56,10 @@ func (s *HTTPServer) vsmSpecificGetRequest(resp http.ResponseWriter, req *http.R
 // vsmList is the http handler that lists VSMs
 func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing VSM list request")
+	fmt.Println("[DEBUG] Processing Volume list request")
 
 	// Create a PVC
-	pvc := &v1.PersistentVolumeClaim{}
+	pvc := &v1.Volume{}
 
 	// Get the persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
@@ -79,7 +79,7 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("VSM list is not supported by '%s:%s'", pvp.Label(), pvp.Name())
+		return nil, fmt.Errorf("Volume list is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	l, err := lister.List()
@@ -87,7 +87,7 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Processed VSM list request successfully")
+	fmt.Println("[DEBUG] Processed Volume list request successfully")
 
 	return l, nil
 }
@@ -95,14 +95,14 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 // vsmRead is the http handler that fetches the details of a VSM
 func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmName string) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing VSM read request")
+	fmt.Println("[DEBUG] Processing Volume read request")
 
 	if vsmName == "" {
-		return nil, CodedError(400, fmt.Sprintf("VSM name is missing"))
+		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
 	// Create a PVC
-	pvc := &v1.PersistentVolumeClaim{}
+	pvc := &v1.Volume{}
 	pvc.Name = vsmName
 
 	// Get persistent volume provisioner instance
@@ -119,7 +119,7 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 
 	reader, ok := pvp.Reader()
 	if !ok {
-		return nil, fmt.Errorf("VSM read is not supported by '%s:%s'", pvp.Label(), pvp.Name())
+		return nil, fmt.Errorf("Volume read is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	// TODO
@@ -133,7 +133,7 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 		return nil, CodedError(404, fmt.Sprintf("VSM '%s' not found", vsmName))
 	}
 
-	fmt.Println("[DEBUG] Processed VSM read request successfully for '" + vsmName + "'")
+	fmt.Println("[DEBUG] Processed Volume read request successfully for '" + vsmName + "'")
 
 	return details, nil
 }
@@ -141,14 +141,14 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 // vsmDelete is the http handler that fetches the details of a VSM
 func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmName string) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing VSM delete request")
+	fmt.Println("[DEBUG] Processing Volume delete request")
 
 	if vsmName == "" {
-		return nil, CodedError(400, fmt.Sprintf("VSM name is missing"))
+		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
 	// Create a PVC
-	pvc := &v1.PersistentVolumeClaim{}
+	pvc := &v1.Volume{}
 	pvc.Name = vsmName
 
 	// Get the persistent volume provisioner instance
@@ -169,7 +169,7 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 	}
 
 	if !ok {
-		return nil, fmt.Errorf("VSM delete is not supported by '%s:%s'", pvp.Label(), pvp.Name())
+		return nil, fmt.Errorf("Volume delete is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	removed, err := remover.Remove()
@@ -179,20 +179,20 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 
 	// If there was not any err & still no removal
 	if !removed {
-		return nil, CodedError(404, fmt.Sprintf("VSM '%s' not found", vsmName))
+		return nil, CodedError(404, fmt.Sprintf("Volume '%s' not found", vsmName))
 	}
 
-	fmt.Println("[DEBUG] Processed VSM delete request successfully for '" + vsmName + "'")
+	fmt.Println("[DEBUG] Processed Volume delete request successfully for '" + vsmName + "'")
 
-	return fmt.Sprintf("VSM '%s' deleted successfully", vsmName), nil
+	return fmt.Sprintf("Volume '%s' deleted successfully", vsmName), nil
 }
 
 // vsmAdd is the http handler that fetches the details of a VSM
 func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing VSM add request")
+	fmt.Println("[DEBUG] Processing Volume add request")
 
-	pvc := v1.PersistentVolumeClaim{}
+	pvc := v1.Volume{}
 
 	// The yaml/json spec is decoded to pvc struct
 	if err := decodeBody(req, &pvc); err != nil {
@@ -201,7 +201,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 
 	// Name is expected to be available even in the minimalist specs
 	if pvc.Name == "" {
-		return nil, CodedError(400, fmt.Sprintf("VSM name missing in '%v'", pvc))
+		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", pvc))
 	}
 
 	// Get persistent volume provisioner instance
@@ -218,7 +218,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 
 	adder, ok := pvp.Adder()
 	if !ok {
-		return nil, fmt.Errorf("VSM add is not supported by '%s:%s'", pvp.Label(), pvp.Name())
+		return nil, fmt.Errorf("Volume add operation is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	// TODO
@@ -228,7 +228,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Processed VSM add request successfully for '" + pvc.Name + "'")
+	fmt.Println("[DEBUG] Processed Volume add request successfully for '" + pvc.Name + "'")
 
 	return details, nil
 }

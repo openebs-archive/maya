@@ -87,7 +87,7 @@ func (j *jivaStor) Name() string {
 // NOTE:
 //    This method is expected to be invoked when pvc is available. In other
 // words this is lazily invoked after the creation of jivaStor.
-func (j *jivaStor) Profile(pvc *v1.PersistentVolumeClaim) (bool, error) {
+func (j *jivaStor) Profile(pvc *v1.Volume) (bool, error) {
 	// Get the persistent volume provisioner profile
 	vProfl, err := volProfile.GetVolProProfileByPVC(pvc)
 	if err != nil {
@@ -180,7 +180,7 @@ func (j *jivaStor) Remover() (provisioners.Remover, bool, error) {
 //
 // NOTE:
 //    This is a concrete implementation of volume.Lister interface
-func (j *jivaStor) List() (*v1.PersistentVolumeList, error) {
+func (j *jivaStor) List() (*v1.VolumeList, error) {
 	// Delegate to the storage util
 	storOps, _ := j.jivaProUtil.StorageOps()
 
@@ -198,7 +198,7 @@ func (j *jivaStor) List() (*v1.PersistentVolumeList, error) {
 //
 // NOTE:
 //    This is a concrete implementation of volume.Informer interface
-func (j *jivaStor) Read(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, error) {
+func (j *jivaStor) Read(pvc *v1.Volume) (*v1.Volume, error) {
 	// TODO
 	// Move the validations to j.Reader()
 
@@ -222,7 +222,7 @@ func (j *jivaStor) Read(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, er
 //
 // NOTE:
 //    This is a concrete implementation of volume.Adder interface
-func (j *jivaStor) Add(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, error) {
+func (j *jivaStor) Add(pvc *v1.Volume) (*v1.Volume, error) {
 	// TODO
 	// Move the validations to j.Adder()
 

@@ -21,7 +21,7 @@ type VolumeProvisionerProfile interface {
 	Name() v1.VolumeProvisionerProfileRegistry
 
 	// Get the persistent volume claim associated with this provisioner profile
-	PVC() (*v1.PersistentVolumeClaim, error)
+	PVC() (*v1.Volume, error)
 
 	// Gets the orchestration provider name.
 	// A persistent volume provisioner plugin may be linked with a orchestrator
@@ -82,7 +82,7 @@ type VolumeProvisionerProfile interface {
 // GetVolProProfileByPVC will return a specific persistent volume provisioner
 // profile. It will decide first based on the provided specifications failing
 // which will ensure a default profile is returned.
-func GetVolProProfileByPVC(pvc *v1.PersistentVolumeClaim) (VolumeProvisionerProfile, error) {
+func GetVolProProfileByPVC(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
 	if pvc == nil {
 		return nil, fmt.Errorf("PVC is required to create a volume provisioner profile")
 	}
@@ -102,7 +102,7 @@ func GetVolProProfileByPVC(pvc *v1.PersistentVolumeClaim) (VolumeProvisionerProf
 //
 // NOTE:
 //    PVC based volume provisioner profile is considered as default
-func GetDefaultVolProProfile(pvc *v1.PersistentVolumeClaim) (VolumeProvisionerProfile, error) {
+func GetDefaultVolProProfile(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
 
 	if pvc == nil {
 		return nil, fmt.Errorf("PVC is required to create default volume provisioner profile")
@@ -115,7 +115,7 @@ func GetDefaultVolProProfile(pvc *v1.PersistentVolumeClaim) (VolumeProvisionerPr
 //
 // GetVolProProfileByName will return a volume provisioner profile by
 // looking up from the provided profile name.
-func GetVolProProfileByName(name string, pvc *v1.PersistentVolumeClaim) (VolumeProvisionerProfile, error) {
+func GetVolProProfileByName(name string, pvc *v1.Volume) (VolumeProvisionerProfile, error) {
 	// TODO
 	// Search from the in-memory registry
 
@@ -136,13 +136,13 @@ func GetVolProProfileByName(name string, pvc *v1.PersistentVolumeClaim) (VolumeP
 //    This is a concrete implementation of
 // volumeprovisioner.VolumeProvisionerProfile
 type pvcVolProProfile struct {
-	pvc     *v1.PersistentVolumeClaim
+	pvc     *v1.Volume
 	vsmName string
 }
 
 // newPvcVolProProfile provides a new instance of VolumeProvisionerProfile that is
 // based on pvc (i.e. persistent volume claim).
-func newPvcVolProProfile(pvc *v1.PersistentVolumeClaim) (VolumeProvisionerProfile, error) {
+func newPvcVolProProfile(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
 	return &pvcVolProProfile{
 		pvc: pvc,
 	}, nil
@@ -172,7 +172,7 @@ func (pp *pvcVolProProfile) Name() v1.VolumeProvisionerProfileRegistry {
 // NOTE:
 //    This method provides a convinient way to access pvc. In other words
 // volume provisioner profile acts as a wrapper over pvc.
-func (pp *pvcVolProProfile) PVC() (*v1.PersistentVolumeClaim, error) {
+func (pp *pvcVolProProfile) PVC() (*v1.Volume, error) {
 	return pp.pvc, nil
 }
 
@@ -201,7 +201,7 @@ func (pp *pvcVolProProfile) Copy(vsm string) (VolumeProvisionerProfile, error) {
 
 	t := strings.TrimSpace(vsm)
 	if t == "" {
-		return nil, fmt.Errorf("VSM name can not be empty")
+		return nil, fmt.Errorf("Volume name can not be empty")
 	}
 
 	// copy
@@ -391,5 +391,5 @@ func (pp *pvcVolProProfile) PersistentPath() (string, error) {
 // NOTE:
 //    This is a concrete implementation of volume.VolumeProvisionerProfile
 type etcdVolProProfile struct {
-	pvc *v1.PersistentVolumeClaim
+	pvc *v1.Volume
 }

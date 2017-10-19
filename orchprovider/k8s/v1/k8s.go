@@ -342,7 +342,7 @@ func (k *k8sOrchestrator) StorageOps() (orchprovider.StorageOps, bool) {
 
 // AddStorage will add persistent volume running as containers. In OpenEBS
 // terms AddStorage will add a VSM.
-func (k *k8sOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error) {
+func (k *k8sOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 
 	// TODO
 	// This is jiva specific
@@ -379,7 +379,7 @@ func (k *k8sOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerP
 	// TODO
 	// This is a temporary type that is used
 	// Will move to VSM type
-	pv := &v1.PersistentVolume{}
+	pv := &v1.Volume{}
 	vsm, _ := volProProfile.VSMName()
 	pv.Name = vsm
 
@@ -542,13 +542,13 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 
 // ReadStorage will fetch information about the persistent volume
 //func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
-func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error) {
+func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 	// volProProfile is expected to have the VSM name
 	return k.readVSM("", volProProfile)
 }
 
 // readVSM will fetch information about a VSM
-func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error) {
+func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 
 	// flag that checks if at-least one child object of VSM exists
 	doesExist := false
@@ -674,7 +674,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	// TODO
 	// This is a temporary type that is used
 	// Will move to VSM type
-	pv := &v1.PersistentVolume{}
+	pv := &v1.Volume{}
 	pv.Name = vsm
 	pv.Annotations = annotations
 
@@ -684,7 +684,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 }
 
 // ListStorage will list a collections of VSMs
-func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
+func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error) {
 	if volProProfile == nil {
 		return nil, fmt.Errorf("Nil volume provisioner profile provided")
 	}
@@ -700,7 +700,7 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 		return nil, nil
 	}
 
-	pvl := &v1.PersistentVolumeList{}
+	pvl := &v1.VolumeList{}
 
 	for _, d := range dl.Items {
 
@@ -1133,7 +1133,7 @@ func (k *k8sOrchestrator) createControllerService(volProProfile volProfile.Volum
 
 	// TODO
 	// log levels & logging context to be taken care of
-	glog.Infof("Adding service for VSM 'name : %s'", vsm)
+	glog.Infof("Adding service for Volume 'name : %s'", vsm)
 
 	// TODO
 	// Code this like a golang struct template

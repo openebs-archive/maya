@@ -117,7 +117,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 // CreateAPIVsm to create the Vsm through a API call to m-apiserver
 func CreateAPIVsm(vname string, size string) error {
 
-	var vs v1.Volume
+	var vs v1.VolumeSpec
 
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
@@ -135,7 +135,7 @@ func CreateAPIVsm(vname string, size string) error {
 	//Marshal serializes the value provided into a YAML document
 	yamlValue, _ := yaml.Marshal(vs)
 
-	//	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
+	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 	if err != nil {

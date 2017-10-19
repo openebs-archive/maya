@@ -22,7 +22,7 @@ type OrchProviderProfile interface {
 	Name() v1.OrchProviderProfileRegistry
 
 	// Get the persistent volume claim associated with this orchestration provider
-	PVC() (*v1.PersistentVolumeClaim, error)
+	PVC() (*v1.Volume, error)
 
 	// Get the network address in CIDR format
 	NetworkAddr() (string, error)
@@ -48,7 +48,7 @@ type OrchProviderProfile interface {
 // TODO
 //  It will decide first based on the provided specifications failing which will
 // ensure a default profile is returned.
-func GetOrchProviderProfile(pvc *v1.PersistentVolumeClaim) (OrchProviderProfile, error) {
+func GetOrchProviderProfile(pvc *v1.Volume) (OrchProviderProfile, error) {
 	var profileMap map[string]string
 
 	if pvc != nil && pvc.Labels != nil {
@@ -95,7 +95,7 @@ func GetOrchProviderProfile(pvc *v1.PersistentVolumeClaim) (OrchProviderProfile,
 // NOTE:
 //    This is a concrete implementation of orchprovider.VolumeProvisionerProfile
 type pvcOrchProviderProfile struct {
-	pvc        *v1.PersistentVolumeClaim
+	pvc        *v1.Volume
 	profileMap map[string]string
 }
 
@@ -132,7 +132,7 @@ func (op *pvcOrchProviderProfile) Name() v1.OrchProviderProfileRegistry {
 // NOTE:
 //    This method provides a convinient way to access pvc. In other words
 // orchestration provider profile acts as a wrapper over pvc.
-func (op *pvcOrchProviderProfile) PVC() (*v1.PersistentVolumeClaim, error) {
+func (op *pvcOrchProviderProfile) PVC() (*v1.Volume, error) {
 	return op.pvc, nil
 }
 
