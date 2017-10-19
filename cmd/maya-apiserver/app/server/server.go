@@ -5,13 +5,13 @@ import (
 	"log"
 	"sync"
 
-	"github.com/openebs/maya/cmd/apiserver/app/config"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/orchprovider/k8s/v1"
 	"github.com/openebs/maya/orchprovider/nomad/v1"
 	"github.com/openebs/maya/types/v1"
-	"github.com/openebs/maya/volumes/provisioner"
-	"github.com/openebs/maya/volumes/provisioner/jiva"
+	"github.com/openebs/maya/volume/provisioners"
+	"github.com/openebs/maya/volume/provisioners/jiva"
 )
 
 // MayaApiServer is a long running stateless daemon that runs
@@ -68,15 +68,15 @@ func NewMayaApiServer(config *config.MayaConfig, logOutput io.Writer) (*MayaApiS
 // initialized at runtime.
 func (ms *MayaApiServer) BootstrapPlugins() error {
 	// Register persistent volume provisioner(s)
-	isJivaProvisionerReg := provisioner.HasVolumeProvisioner(v1.JivaVolumeProvisioner)
+	isJivaProvisionerReg := provisioners.HasVolumeProvisioner(v1.JivaVolumeProvisioner)
 	if !isJivaProvisionerReg {
-		provisioner.RegisterVolumeProvisioner(
+		provisioners.RegisterVolumeProvisioner(
 			// Registration entry when Jiva is a persistent volume provisioner
 			v1.JivaVolumeProvisioner,
 
 			// Below is a callback function that creates a new instance of jiva as persistent
 			// volume provisioner
-			func(label, name string) (provisioner.VolumeInterface, error) {
+			func(label, name string) (provisioners.VolumeInterface, error) {
 				return jiva.NewJivaProvisioner(label, name)
 			})
 	}

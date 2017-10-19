@@ -8,7 +8,6 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
 	github.com/golang/dep/cmd/dep \
-	github.com/mitchellh/gox \
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
@@ -19,21 +18,21 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # Specify the name for the binaries
 MAYACTL=maya
-APISERVER=apiserver
+APISERVER=maya-apiserver
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test
+all: test mayactl apiserver
 
 dev: format
-	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
 
-bin:
+mayactl:
 	@echo "----------------------------"
 	@echo "--> maya                    "
 	@echo "----------------------------"
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
 
 initialize: bootstrap
 
@@ -85,40 +84,40 @@ bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "Installing $$tool" ; \
 		go get $$tool; \
-	done 
+	done
 
-image:
-	@cp bin/${MAYACTL} buildscripts/docker/
-	@cd buildscripts/docker && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/docker/${MAYACTL}
-	@sh buildscripts/push
+maya-image:
+	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
+	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/mayactl/${MAYACTL}
+	@sh buildscripts/mayactl/push
 
 # You might need to use sudo
-install: bin/${MAYACTL}
-	install -o root -g root -m 0755 ./bin/${MAYACTL} /usr/local/bin/${MAYACTL}
+install: bin/maya/${MAYACTL}
+	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-# Use this to build only the maya-agent. 
+# Use this to build only the maya-agent.
 maya-agent:
 	GOOS=linux go build ./cmd/maya-agent
 
-# Use this to build only the maya apiserver. 
+# Use this to build only the maya apiserver.
 apiserver:
 	@echo "----------------------------"
-	@echo "--> apiserver               "
+	@echo "--> maya-apiserver               "
 	@echo "----------------------------"
 	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/apiserver/build.sh'"
 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
-apiserver-image: bin apiserver
+apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@echo "--> apiserver image         "
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
-	@cp bin/${MAYACTL} buildscripts/apiserver/
+	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image
