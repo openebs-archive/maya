@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -169,19 +168,7 @@ func CreateAPIVsm(vname string, size string) error {
 		os.Exit(1)
 	}
 
-	list, _ := getdata(data)
-
-	fmt.Printf("Volume Successfully Created:\n%v\n", list.Annotations)
+	fmt.Printf("Volume Successfully Created:\n%v\n", string(data))
 
 	return nil
-}
-
-func getdata(body []byte) (*v1.Volume, error) {
-	var list = new(v1.Volume)
-	err := json.Unmarshal(body, &list)
-	if err != nil {
-		fmt.Println("UnMarshling Error:", err)
-		os.Exit(1)
-	}
-	return list, err
 }
