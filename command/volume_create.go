@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -117,7 +118,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 // CreateAPIVsm to create the Vsm through a API call to m-apiserver
 func CreateAPIVsm(vname string, size string) error {
 
-	var vs v1.VolumeSpec
+	var vs v1.VolumeAPISpec
 
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
@@ -168,7 +169,19 @@ func CreateAPIVsm(vname string, size string) error {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Volume Successfully Created:\n%v\n", string(data))
+	list, _ := getdata(data)
+
+	fmt.Printf("Volume Successfully Created:\n%v\n", list.Annotations)
 
 	return nil
+}
+
+func getdata(body []byte) (*v1.Volume, error) {
+	var list = new(v1.Volume)
+	err := json.Unmarshal(body, &list)
+	if err != nil {
+		fmt.Println("UnMarshling Error:", err)
+		os.Exit(1)
+	}
+	return list, err
 }
