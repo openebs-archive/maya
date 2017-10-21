@@ -65,10 +65,15 @@ format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
 
-# Run the bootstrap target once before trying golint
+# Target to run gometalinter in Travis (deadcode, golint, errcheck, unconvert, goconst)
+golint-travis:
+	@gometalinter.v1 --install
+	-gometalinter.v1 --config=metalinter.config ./...
+
+# Run the bootstrap target once before trying gometalinter in Develop environment
 golint:
 	@gometalinter.v1 --install
-	-gometalinter.v1 --vendor --deadline=600s ./...
+	@gometalinter.v1 --vendor --deadline=600s ./...
 
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \

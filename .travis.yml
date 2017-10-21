@@ -9,8 +9,7 @@ go:
 install:
   - make bootstrap
 before_script:
-  - make deps
-  - make golint
+  - make golint-travis
 script:
   - make all
   - ./buildscripts/test-cov.sh
