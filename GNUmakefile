@@ -11,7 +11,8 @@ EXTERNAL_TOOLS=\
 	golang.org/x/tools/cmd/cover \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
-	github.com/ugorji/go/codec/codecgen
+	github.com/ugorji/go/codec/codecgen \
+	gopkg.in/alecthomas/gometalinter.v1
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -63,6 +64,16 @@ cover:
 format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
+
+# Target to run gometalinter in Travis (deadcode, golint, errcheck, unconvert, goconst)
+golint-travis:
+	@gometalinter.v1 --install
+	-gometalinter.v1 --config=metalinter.config ./...
+
+# Run the bootstrap target once before trying gometalinter in Develop environment
+golint:
+	@gometalinter.v1 --install
+	@gometalinter.v1 --vendor --deadline=600s ./...
 
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
@@ -120,4 +131,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image golint

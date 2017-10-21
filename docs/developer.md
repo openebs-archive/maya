@@ -1,6 +1,6 @@
 # Contributing Guide
 
-To contribute openebs/maya firstly, you have to fork the openebs/maya repository. In any case, before you start working on your issue, sync 
+To contribute openebs/maya firstly, you have to fork the openebs/maya repository. In any case, before you start working on your issue, sync
 your repository with the upstream openebs/maya master. Syncing ensures your repository has the latest changes.
 
 ### 1. Fork in the cloud
@@ -46,7 +46,7 @@ $ cd $GOPATH/github.com/openebs/maya
  Switched to branch 'master'
  Your branch is up-to-date with 'origin/master'.
  ```
- 
+
  Recall that origin/master is a branch on your remote GitHub repository.
  Make sure you have the upstream remote openebs/maya by listing them.
 
@@ -56,8 +56,8 @@ $ cd $GOPATH/github.com/openebs/maya
  origin	https://github.com/prateek/maya.git (push)
  upstream	https://github.com/openebs/maya.git (fetch)
  upstream	https://github.com/openebs/maya.git (no_push)
- ``` 
-	 
+ ```
+
  If the upstream is missing, add it by using below command.
 
  ```sh
@@ -97,7 +97,7 @@ $ cd $GOPATH/github.com/openebs/maya
  Your local repository now has all the changes from the upstream remote. You need to push the changes to your own remote fork which is origin master.
 
  Push the rebased master to origin master.
- 
+
  ```sh
  $ git push origin master
  Username for 'https://github.com': username
@@ -126,15 +126,21 @@ $ cd $GOPATH/github.com/openebs/maya
  $ git rebase upstream/master
  Current branch fix-dep is up to date.
  ```
- At this point, your local branch, your remote repository, and the `maya` repository all have identical code. You are ready to make changes 
+ At this point, your local branch, your remote repository, and the `maya` repository all have identical code. You are ready to make changes
  for your issue.
 
 
  ### 4. Build
 
- ```sh
+```sh
  cd $GOPATH/github.com/openebs/maya
  make dev
+ ```
+
+ Check your linting
+
+ ```sh
+ make golint
  ```
 
  To build binaries for other distributions:
@@ -149,7 +155,7 @@ $ cd $GOPATH/github.com/openebs/maya
  cd $GOPATH/github.com/openebs/maya
 
  # Run every unit test
- make test 
+ make test
 ```
 #### Keep your branch in sync
 

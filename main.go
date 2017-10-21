@@ -10,7 +10,7 @@ import (
 
 // MayaCtlName will be fiiled in by the GNUMakefile using an EVN variable
 //  MAYACTL
-var MayaCtlName string = "maya"
+var MayaCtlName = "maya"
 
 func init() {
 
@@ -28,10 +28,12 @@ func main() {
 	os.Exit(Run(os.Args[1:]))
 }
 
+// Run executes the command with passed args
 func Run(args []string) int {
 	return RunCustom(args, Commands(nil))
 }
 
+// RunCustom executes the command with passed args and custom commands
 func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 	// Get the command line args. We shortcut "--version" and "-v" to
 	// just show the version.
@@ -47,7 +49,7 @@ func RunCustom(args []string, commands map[string]cli.CommandFactory) int {
 
 	// Extract the commands to include in the help
 	commandNames := make([]string, 0, len(commands))
-	for k, _ := range commands {
+	for k := range commands {
 		commandNames = append(commandNames, k)
 	}
 
