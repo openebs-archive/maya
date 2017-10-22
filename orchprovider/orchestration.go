@@ -43,7 +43,7 @@ type StorageOps interface {
 	//
 	// TODO
 	//    Use VSM as the return type
-	AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error)
+	AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error)
 
 	// DeleteStorage will remove the persistent volume
 	//
@@ -55,9 +55,9 @@ type StorageOps interface {
 	//
 	// TODO
 	//    Use VSM as the return type
-	ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error)
+	ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error)
 
 	// ListStorage will list a collection of VSMs in a given context e.g. namespace
 	// if working in a K8s setup, etc.
-	ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error)
+	ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error)
 }

@@ -118,7 +118,7 @@ func TestAddStorage(t *testing.T) {
 
 	for _, c := range cases {
 
-		pvc := &v1.PersistentVolumeClaim{}
+		pvc := &v1.Volume{}
 		pvc.Name = c.vsmname
 		//pvc.Labels = map[string]string{
 		//	string(v1.PVPVSMNameLbl): c.vsmname,
@@ -579,8 +579,8 @@ type okCreateReplicaPodVolumeProfile struct {
 }
 
 // PVC does not return any error
-func (e *okCreateReplicaPodVolumeProfile) PVC() (*v1.PersistentVolumeClaim, error) {
-	pvc := &v1.PersistentVolumeClaim{}
+func (e *okCreateReplicaPodVolumeProfile) PVC() (*v1.Volume, error) {
+	pvc := &v1.Volume{}
 	pvc.Labels = map[string]string{}
 	return pvc, nil
 }

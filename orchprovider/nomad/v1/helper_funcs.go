@@ -13,7 +13,7 @@ import (
 )
 
 // Get the job name from a persistent volume claim
-func PvcToJobName(pvc *v1.PersistentVolumeClaim) (string, error) {
+func PvcToJobName(pvc *v1.Volume) (string, error) {
 
 	if pvc == nil {
 		return "", fmt.Errorf("Nil persistent volume claim provided")
@@ -27,7 +27,7 @@ func PvcToJobName(pvc *v1.PersistentVolumeClaim) (string, error) {
 }
 
 // Transform a PersistentVolumeClaim type to Nomad job type
-func PvcToJob(pvc *v1.PersistentVolumeClaim) (*api.Job, error) {
+func PvcToJob(pvc *v1.Volume) (*api.Job, error) {
 
 	if pvc == nil {
 		return nil, fmt.Errorf("Nil persistent volume claim provided")
@@ -274,13 +274,13 @@ func setBEIPs(beEnv, jobMeta map[string]string, jivaBeIPArr []string, iJivaBECou
 }
 
 // Transform the evaluation of a job to a PersistentVolume
-func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.PersistentVolume, error) {
+func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.Volume, error) {
 
 	if eval == nil {
 		return nil, fmt.Errorf("Nil job evaluation provided")
 	}
 
-	pv := &v1.PersistentVolume{}
+	pv := &v1.Volume{}
 	pv.Name = jobName
 
 	evalProps := map[string]string{
@@ -294,7 +294,7 @@ func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.PersistentVolume, er
 	}
 	pv.Annotations = evalProps
 
-	pvs := v1.PersistentVolumeStatus{
+	pvs := v1.VolumeStatus{
 		Message: eval.StatusDescription,
 		Reason:  eval.Status,
 	}
@@ -317,15 +317,15 @@ func MakeJob(name string) (*api.Job, error) {
 }
 
 // Transform a Nomad Job to a PersistentVolume
-func JobToPv(job *api.Job) (*v1.PersistentVolume, error) {
+func JobToPv(job *api.Job) (*v1.Volume, error) {
 	if job == nil {
 		return nil, fmt.Errorf("Nil job provided")
 	}
 
-	pv := &v1.PersistentVolume{}
+	pv := &v1.Volume{}
 	pv.Name = *job.Name
 
-	pvs := v1.PersistentVolumeStatus{
+	pvs := v1.VolumeStatus{
 		Message: *job.StatusDescription,
 		Reason:  *job.Status,
 	}

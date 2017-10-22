@@ -34,13 +34,13 @@ type JivaInterface interface {
 // volume provisioner.
 type StorageOps interface {
 	// Info / Read operation
-	ReadStorage(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
+	ReadStorage(*v1.Volume) (*v1.Volume, error)
 
 	// Add operation
-	AddStorage(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
+	AddStorage(*v1.Volume) (*v1.Volume, error)
 
 	// ListStorage will list a collection of persistent volumes
-	ListStorage() (*v1.PersistentVolumeList, error)
+	ListStorage() (*v1.VolumeList, error)
 
 	// Delete operation
 	RemoveStorage() (bool, error)
@@ -93,7 +93,7 @@ func (j *jivaUtil) StorageOps() (StorageOps, bool) {
 
 // ListStorage fetches a collection of jiva persistent volumes.
 // It gets the appropriate orchestration provider to delegate further execution.
-func (j *jivaUtil) ListStorage() (*v1.PersistentVolumeList, error) {
+func (j *jivaUtil) ListStorage() (*v1.VolumeList, error) {
 	// TODO
 	// Move the below set of validations to StorageOps()
 	if j.jivaProProfile == nil {
@@ -128,7 +128,7 @@ func (j *jivaUtil) ListStorage() (*v1.PersistentVolumeList, error) {
 //
 // ReadStorage fetches details of a jiva persistent volume.
 // It gets the appropriate orchestration provider to delegate further execution.
-func (j *jivaUtil) ReadStorage(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, error) {
+func (j *jivaUtil) ReadStorage(pvc *v1.Volume) (*v1.Volume, error) {
 
 	// TODO
 	// Move the below set of validations to StorageOps()
@@ -160,7 +160,7 @@ func (j *jivaUtil) ReadStorage(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVol
 }
 
 // AddStorage adds a jiva persistent volume
-func (j *jivaUtil) AddStorage(pvc *v1.PersistentVolumeClaim) (*v1.PersistentVolume, error) {
+func (j *jivaUtil) AddStorage(pvc *v1.Volume) (*v1.Volume, error) {
 
 	// TODO
 	// Move the below set of validations to StorageOps() method

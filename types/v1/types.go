@@ -13,43 +13,6 @@
 // a volume in OpenEBS can be considered as a StoragePod.
 package v1
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	core_v1 "k8s.io/client-go/pkg/api/v1"
-)
-
-// PersistentVolumeClaim is a user's REQUEST for and CLAIM to a persistent volume
-type PersistentVolumeClaim struct {
-	TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
-	// +optional
-	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// Spec defines the desired characteristics of a volume requested by a pod author.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#persistentvolumeclaims
-	// +optional
-	Spec PersistentVolumeClaimSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-
-	// Status represents the current information/status of a persistent volume claim.
-	// Read-only.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#persistentvolumeclaims
-	// +optional
-	Status PersistentVolumeClaimStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-}
-
-// PersistentVolumeClaimList is a list of PersistentVolumeClaim items.
-type PersistentVolumeClaimList struct {
-	TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
-	// +optional
-	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	// A list of persistent volume claims.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#persistentvolumeclaims
-	Items []PersistentVolumeClaim `json:"items" protobuf:"bytes,2,rep,name=items"`
-}
-
 // PersistentVolumeClaimSpec describes the common attributes of storage devices
 // and allows a Source for provider-specific attributes
 type PersistentVolumeClaimSpec struct {
@@ -100,36 +63,6 @@ const (
 	ClaimLost PersistentVolumeClaimPhase = "Lost"
 )
 
-// PersistentVolume represents a named volume in OpenEBS that may be accessed
-// by any container, VM, etc. This represents a CREATED resource.
-type PersistentVolume struct {
-	TypeMeta `json:",inline"`
-	// +optional
-	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	//Spec defines a persistent volume owned by OpenEBS cluster
-	// +optional
-	Spec PersistentVolumeSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-
-	// Status represents the current information about persistent volume.
-	// +optional
-	Status PersistentVolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-}
-
-// PersistentVolumeList is a list of PersistentVolume items.
-type PersistentVolumeList struct {
-	TypeMeta `json:",inline"`
-
-	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
-	// +optional
-	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// List of persistent volumes.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes
-	Items []PersistentVolume `json:"items" protobuf:"bytes,2,rep,name=items"`
-}
-
 // PersistentVolumeSource represents the source type of the persistent volume.
 //
 // NOTE:
@@ -147,7 +80,7 @@ type PersistentVolumeSource struct {
 // NOTE:
 //    Only one of its members may be specified. Currently OpenEBS is the only
 // member. There may be other members in future.
-type PersistentVolumeSpec struct {
+type VolumeSpec struct {
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList
 	// Source represents the location and type of a volume to mount.
@@ -197,10 +130,10 @@ const (
 	ReadWriteMany PersistentVolumeAccessMode = "ReadWriteMany"
 )
 
-type PersistentVolumeStatus struct {
+type VolumeStatus struct {
 	// Phase indicates if a volume is available, bound to a claim, or released by a claim
 	// +optional
-	Phase PersistentVolumePhase
+	Phase VolumePhase
 	// A human-readable message indicating details about why the volume is in this state.
 	// +optional
 	Message string
@@ -209,22 +142,22 @@ type PersistentVolumeStatus struct {
 	Reason string
 }
 
-type PersistentVolumePhase string
+type VolumePhase string
 
 const (
 	// used for PersistentVolumes that are not available
-	VolumePending PersistentVolumePhase = "Pending"
+	VolumePending VolumePhase = "Pending"
 	// used for PersistentVolumes that are not yet bound
 	// Available volumes are held by the binder and matched to PersistentVolumeClaims
-	VolumeAvailable PersistentVolumePhase = "Available"
+	VolumeAvailable VolumePhase = "Available"
 	// used for PersistentVolumes that are bound
-	VolumeBound PersistentVolumePhase = "Bound"
+	VolumeBound VolumePhase = "Bound"
 	// used for PersistentVolumes where the bound PersistentVol:syntime onumeClaim was deleted
 	// released volumes must be recycled before becoming available again
 	// this phase is used by the persistent volume claim binder to signal to another process to reclaim the resource
-	VolumeReleased PersistentVolumePhase = "Released"
+	VolumeReleased VolumePhase = "Released"
 	// used for PersistentVolumes that failed to be correctly recycled or deleted after being released from a claim
-	VolumeFailed PersistentVolumePhase = "Failed"
+	VolumeFailed VolumePhase = "Failed"
 )
 
 // Represents a Persistent Disk resource in OpenEBS.
@@ -310,8 +243,8 @@ type ObjectReference struct {
 	FieldPath string
 }
 
-//VsmSpec holds the config for creating a VSM
-type VsmSpec struct {
+// VolumeAPISpec holds the config for creating a Volume
+type VolumeAPISpec struct {
 	Kind       string `yaml:"kind"`
 	APIVersion string `yaml:"apiVersion"`
 	Metadata   struct {
@@ -322,43 +255,37 @@ type VsmSpec struct {
 	} `yaml:"metadata"`
 }
 
-// Volume is a command implementation struct
+//Volume is a user's Request for a Openebs volume
 type Volume struct {
-	Kind       string `yaml:"kind" json:"kind"`
-	APIVersion string `yaml:"api_version" json:"api_version"`
-	Metadata   struct {
-		Annotations       interface{} `yaml:"annotations" json:"annotations"`
-		CreationTimestamp interface{} `yaml:"creation_timestamp" json:"creation_timestamp"`
-		Name              string      `yaml:"name" json:"name"`
-		Labels            struct {
-			Storage string `yaml:"storage" json:"storage"`
-		} `yaml:"labels" json:"labels"`
-	} `yaml:"metadata" json:"metadata"`
-	Spec struct {
-		AccessModes interface{} `yaml:"access_modes" json:"access_modes"`
-		Capacity    interface{} `yaml:"capacity" json:"capacity"`
-		ClaimRef    interface{} `yaml:"claim_ref" json:"claim_ref"`
-		OpenEBS     struct {
-			VolumeID string `yaml:"volume_id" json:"volume_id"`
-		} `yaml:"open_ebs" json:"open_ebs"`
-		PersistentVolumeReclaimPolicy string `yaml:"persistent_volume_reclaim_policy" json:"persistent_volume_reclaim_policy"`
-		StorageClassName              string `yaml:"storage_class_name" json:"storage_class_name"`
-	} `yaml:"spec" json:"spec"`
-	Status struct {
-		Message string `yaml:"message" json:"message"`
-		Phase   string `yaml:"phase" json:"phase"`
-		Reason  string `yaml:"reason" json:"reason"`
-	} `yaml:"status" json:"status"`
+	TypeMeta `json:",inline"`
+	// Standard object's metadata
+	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	//Spec defines a persistent volume owned by OpenEBS cluster
+	// +optional
+	Spec VolumeSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	// Status represents the current information/status of a volume
+	Status VolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+}
+
+// VolumeList is a list of PersistentVolume items.
+type VolumeList struct {
+	TypeMeta `json:",inline"`
+	// Standard list metadata.
+	// +optional
+	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// List of persistent volumes.
+	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes
+	Items []Volume `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // -------------Snapshot Structs ----------
 
-// The volume snapshot object accessible to the user. Upon succesful creation of the actual
+// VolumeSnapshot is volume snapshot object accessible to the user. Upon successful creation of the actual
 // snapshot by the volume provider it is bound to the corresponding VolumeSnapshotData through
 // the VolumeSnapshotSpec
 type VolumeSnapshot struct {
-	metav1.TypeMeta `json:",inline"`
-	Metadata        metav1.ObjectMeta `json:"metadata"`
+	TypeMeta `json:",inline"`
+	Metadata ObjectMeta `json:"metadata"`
 
 	// Spec represents the desired state of the snapshot
 	// +optional
@@ -373,16 +300,16 @@ type VolumeSnapshot struct {
 }
 
 type VolumeSnapshotList struct {
-	metav1.TypeMeta `json:",inline"`
-	Metadata        metav1.ListMeta  `json:"metadata"`
-	Items           []VolumeSnapshot `json:"items"`
+	TypeMeta `json:",inline"`
+	Metadata ListMeta         `json:"metadata"`
+	Items    []VolumeSnapshot `json:"items"`
 }
 
 // The desired state of the volume snapshot
 type VolumeSnapshotSpec struct {
 	// PersistentVolumeClaimName is the name of the PVC being snapshotted
 	// +optional
-	PersistentVolumeClaimName string `json:"persistentVolumeClaimName" protobuf:"bytes,1,opt,name=persistentVolumeClaimName"`
+	VolumeName string `json:"volumeName" protobuf:"bytes,1,opt,name=persistentVolumeClaimName"`
 
 	// SnapshotDataName binds the VolumeSnapshot object with the VolumeSnapshotData
 	// +optional
@@ -392,7 +319,7 @@ type VolumeSnapshotSpec struct {
 type VolumeSnapshotStatus struct {
 	// The time the snapshot was successfully created
 	// +optional
-	CreationTimestamp metav1.Time `json:"creationTimestamp" protobuf:"bytes,1,opt,name=creationTimestamp"`
+	CreationTimestamp Time `json:"creationTimestamp" protobuf:"bytes,1,opt,name=creationTimestamp"`
 
 	// Representes the lates available observations about the volume snapshot
 	Conditions []VolumeSnapshotCondition `json:"conditions" protobuf:"bytes,2,rep,name=conditions"`
@@ -411,10 +338,10 @@ type VolumeSnapshotCondition struct {
 	// Type of replication controller condition.
 	Type VolumeSnapshotConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=VolumeSnapshotConditionType"`
 	// Status of the condition, one of True, False, Unknown.
-	Status core_v1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	//Status core_v1.ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
 	// The last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	LastTransitionTime Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason" protobuf:"bytes,4,opt,name=reason"`

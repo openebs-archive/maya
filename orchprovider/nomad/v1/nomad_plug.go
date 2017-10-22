@@ -103,7 +103,7 @@ func (n *NomadOrchestrator) StorageOps() (orchprovider.StorageOps, bool) {
 }
 
 // ReadStorage will fetch information about the persistent volume
-func (n *NomadOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error) {
+func (n *NomadOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 	pvc, err := volProProfile.PVC()
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (n *NomadOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvision
 
 // AddStorage will add persistent volume running as containers. In OpenEBS
 // terms AddStorage will add a VSM.
-func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolume, error) {
+func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 	// TODO
 	// This is jiva specific
 	// Move this entire logic to a separate package that will couple jiva
@@ -180,6 +180,6 @@ func (n *NomadOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisi
 }
 
 // ListStorage will list a collections of VSMs
-func (n *NomadOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
+func (n *NomadOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error) {
 	return nil, fmt.Errorf("ListStorage is not implemented by '%s: %s'", n.Label(), n.Name())
 }

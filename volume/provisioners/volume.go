@@ -31,7 +31,7 @@ type VolumeInterface interface {
 	// i.e. much after the initialization of persistent volume provisioner instance.
 	// It is assumed that persistent volume claim will be available at the time of
 	// invoking this method.
-	Profile(*v1.PersistentVolumeClaim) (bool, error)
+	Profile(*v1.Volume) (bool, error)
 
 	// Remover gets the instance capable of deleting volumes w.r.t this
 	// persistent volume provisioner.
@@ -71,7 +71,7 @@ type VolumeInterface interface {
 type Lister interface {
 	// List fetches a collection of persistent volumes created by this volume
 	// provisioner
-	List() (*v1.PersistentVolumeList, error)
+	List() (*v1.VolumeList, error)
 }
 
 // Reader interface abstracts fetching of persistent volume related information
@@ -79,14 +79,14 @@ type Lister interface {
 type Reader interface {
 	// Read fetches the volume details from the persistent volume
 	// provisioner.
-	Read(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
+	Read(*v1.Volume) (*v1.Volume, error)
 }
 
 // Adder interface abstracts creation of persistent volume from a persistent
 // volume provisioner.
 type Adder interface {
 	// Add creates a new persistent volume
-	Add(*v1.PersistentVolumeClaim) (*v1.PersistentVolume, error)
+	Add(*v1.Volume) (*v1.Volume, error)
 }
 
 // Remover interface abstracts deletion of volume of a persistent volume
