@@ -1,5 +1,24 @@
 package v1
 
+// OpenEBSKind is a typed label that defines any OpenEBS
+// object
+type OpenEBSKind string
+
+const (
+	// VolumeKind is a typed label that represents OpenEBS volume
+	// Kind
+	VolumeKind OpenEBSKind = "volume"
+)
+
+// VolumeType is a typed label that represents the type of
+// OpenEBS volume
+type VolumeType string
+
+const (
+	// JivaVolume is an OpenEBS volume type
+	JivaVolume VolumeType = "jiva"
+)
+
 // NomadEnvironmentVariable is a typed label that defines environment variables
 // that are understood by Nomad
 type NomadEnvironmentVariable string
