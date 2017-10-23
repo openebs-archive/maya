@@ -6,20 +6,18 @@ const (
 
 type ProcessExecution struct {
 	Resource
-
-	Created string `json:"created,omitempty" yaml:"created,omitempty"`
-
-	Log map[string]interface{} `json:"log,omitempty" yaml:"log,omitempty"`
-
-	ProcessInstanceId string `json:"processInstanceId,omitempty" yaml:"process_instance_id,omitempty"`
-
-	Uuid string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+    
+    Log map[string]interface{} `json:"log,omitempty"`
+    
+    ProcessInstanceId string `json:"processInstanceId,omitempty"`
+    
+    Uuid string `json:"uuid,omitempty"`
+    
 }
 
 type ProcessExecutionCollection struct {
 	Collection
-	Data   []ProcessExecution `json:"data,omitempty"`
-	client *ProcessExecutionClient
+	Data []ProcessExecution `json:"data,omitempty"`
 }
 
 type ProcessExecutionClient struct {
@@ -55,28 +53,12 @@ func (c *ProcessExecutionClient) Update(existing *ProcessExecution, updates inte
 func (c *ProcessExecutionClient) List(opts *ListOpts) (*ProcessExecutionCollection, error) {
 	resp := &ProcessExecutionCollection{}
 	err := c.rancherClient.doList(PROCESS_EXECUTION_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ProcessExecutionCollection) Next() (*ProcessExecutionCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ProcessExecutionCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ProcessExecutionClient) ById(id string) (*ProcessExecution, error) {
 	resp := &ProcessExecution{}
 	err := c.rancherClient.doById(PROCESS_EXECUTION_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

@@ -18,7 +18,8 @@ This endpoint lists the plugins in the catalog.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
-| `LIST`   | `/sys/plugins/catalog/`      | `200 application/json` |
+| `LIST`   | `/sys/plugins/catalog`      | `200 application/json` |
+| `GET`   | `/sys/plugins/catalog?list=true`      | `200 application/json` |
 
 ### Sample Request
 
@@ -119,13 +120,11 @@ $ curl \
 ```javascript
 {
 	"data": {
-		"plugin": {
-			"args": [],
-			"builtin": false,
-			"command": "/tmp/vault-plugins/mysql-database-plugin",
-			"name": "example-plugin",
-			"sha256": "0TC5oPv93vlwnY/5Ll5gU8zSRreGMvwDuFSEVwJpYek="
-		}
+		"args": [],
+		"builtin": false,
+		"command": "/tmp/vault-plugins/mysql-database-plugin",
+		"name": "example-plugin",
+		"sha256": "0TC5oPv93vlwnY/5Ll5gU8zSRreGMvwDuFSEVwJpYek="
 	}
 }
 ```

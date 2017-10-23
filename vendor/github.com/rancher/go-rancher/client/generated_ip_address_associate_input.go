@@ -6,14 +6,14 @@ const (
 
 type IpAddressAssociateInput struct {
 	Resource
-
-	IpAddressId string `json:"ipAddressId,omitempty" yaml:"ip_address_id,omitempty"`
+    
+    IpAddressId string `json:"ipAddressId,omitempty"`
+    
 }
 
 type IpAddressAssociateInputCollection struct {
 	Collection
-	Data   []IpAddressAssociateInput `json:"data,omitempty"`
-	client *IpAddressAssociateInputClient
+	Data []IpAddressAssociateInput `json:"data,omitempty"`
 }
 
 type IpAddressAssociateInputClient struct {
@@ -49,28 +49,12 @@ func (c *IpAddressAssociateInputClient) Update(existing *IpAddressAssociateInput
 func (c *IpAddressAssociateInputClient) List(opts *ListOpts) (*IpAddressAssociateInputCollection, error) {
 	resp := &IpAddressAssociateInputCollection{}
 	err := c.rancherClient.doList(IP_ADDRESS_ASSOCIATE_INPUT_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *IpAddressAssociateInputCollection) Next() (*IpAddressAssociateInputCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &IpAddressAssociateInputCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *IpAddressAssociateInputClient) ById(id string) (*IpAddressAssociateInput, error) {
 	resp := &IpAddressAssociateInput{}
 	err := c.rancherClient.doById(IP_ADDRESS_ASSOCIATE_INPUT_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

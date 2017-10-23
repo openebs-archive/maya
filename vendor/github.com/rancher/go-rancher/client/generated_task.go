@@ -6,14 +6,14 @@ const (
 
 type Task struct {
 	Resource
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
 }
 
 type TaskCollection struct {
 	Collection
-	Data   []Task `json:"data,omitempty"`
-	client *TaskClient
+	Data []Task `json:"data,omitempty"`
 }
 
 type TaskClient struct {
@@ -26,8 +26,7 @@ type TaskOperations interface {
 	Update(existing *Task, updates interface{}) (*Task, error)
 	ById(id string) (*Task, error)
 	Delete(container *Task) error
-
-	ActionExecute(*Task) (*Task, error)
+    ActionExecute (*Task) (*Task, error)
 }
 
 func newTaskClient(rancherClient *RancherClient) *TaskClient {
@@ -51,28 +50,12 @@ func (c *TaskClient) Update(existing *Task, updates interface{}) (*Task, error) 
 func (c *TaskClient) List(opts *ListOpts) (*TaskCollection, error) {
 	resp := &TaskCollection{}
 	err := c.rancherClient.doList(TASK_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *TaskCollection) Next() (*TaskCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &TaskCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *TaskClient) ById(id string) (*Task, error) {
 	resp := &Task{}
 	err := c.rancherClient.doById(TASK_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
@@ -81,10 +64,7 @@ func (c *TaskClient) Delete(container *Task) error {
 }
 
 func (c *TaskClient) ActionExecute(resource *Task) (*Task, error) {
-
 	resp := &Task{}
-
-	err := c.rancherClient.doAction(TASK_TYPE, "execute", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(TASK_TYPE, "execute", &resource.Resource, resp)
 	return resp, err
 }

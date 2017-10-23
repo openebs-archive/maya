@@ -6,44 +6,44 @@ const (
 
 type ExternalHandler struct {
 	Resource
-
-	Created string `json:"created,omitempty" yaml:"created,omitempty"`
-
-	Data map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
-
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-
-	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	Priority int64 `json:"priority,omitempty" yaml:"priority,omitempty"`
-
-	ProcessConfigs []interface{} `json:"processConfigs,omitempty" yaml:"process_configs,omitempty"`
-
-	RemoveTime string `json:"removeTime,omitempty" yaml:"remove_time,omitempty"`
-
-	Removed string `json:"removed,omitempty" yaml:"removed,omitempty"`
-
-	Retries int64 `json:"retries,omitempty" yaml:"retries,omitempty"`
-
-	State string `json:"state,omitempty" yaml:"state,omitempty"`
-
-	TimeoutMillis int64 `json:"timeoutMillis,omitempty" yaml:"timeout_millis,omitempty"`
-
-	Transitioning string `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
-
-	TransitioningMessage string `json:"transitioningMessage,omitempty" yaml:"transitioning_message,omitempty"`
-
-	TransitioningProgress int64 `json:"transitioningProgress,omitempty" yaml:"transitioning_progress,omitempty"`
-
-	Uuid string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+    
+    Created string `json:"created,omitempty"`
+    
+    Data map[string]interface{} `json:"data,omitempty"`
+    
+    Description string `json:"description,omitempty"`
+    
+    Kind string `json:"kind,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    Priority int `json:"priority,omitempty"`
+    
+    ProcessNames []string `json:"processNames,omitempty"`
+    
+    RemoveTime string `json:"removeTime,omitempty"`
+    
+    Removed string `json:"removed,omitempty"`
+    
+    Retries int `json:"retries,omitempty"`
+    
+    State string `json:"state,omitempty"`
+    
+    TimeoutMillis int `json:"timeoutMillis,omitempty"`
+    
+    Transitioning string `json:"transitioning,omitempty"`
+    
+    TransitioningMessage string `json:"transitioningMessage,omitempty"`
+    
+    TransitioningProgress int `json:"transitioningProgress,omitempty"`
+    
+    Uuid string `json:"uuid,omitempty"`
+    
 }
 
 type ExternalHandlerCollection struct {
 	Collection
-	Data   []ExternalHandler `json:"data,omitempty"`
-	client *ExternalHandlerClient
+	Data []ExternalHandler `json:"data,omitempty"`
 }
 
 type ExternalHandlerClient struct {
@@ -56,20 +56,13 @@ type ExternalHandlerOperations interface {
 	Update(existing *ExternalHandler, updates interface{}) (*ExternalHandler, error)
 	ById(id string) (*ExternalHandler, error)
 	Delete(container *ExternalHandler) error
-
-	ActionActivate(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionCreate(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionDeactivate(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionPurge(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionRemove(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionRestore(*ExternalHandler) (*ExternalHandler, error)
-
-	ActionUpdate(*ExternalHandler) (*ExternalHandler, error)
+    ActionActivate (*ExternalHandler) (*ExternalHandler, error)
+    ActionCreate (*ExternalHandler) (*ExternalHandler, error)
+    ActionDeactivate (*ExternalHandler) (*ExternalHandler, error)
+    ActionPurge (*ExternalHandler) (*ExternalHandler, error)
+    ActionRemove (*ExternalHandler) (*ExternalHandler, error)
+    ActionRestore (*ExternalHandler) (*ExternalHandler, error)
+    ActionUpdate (*ExternalHandler) (*ExternalHandler, error)
 }
 
 func newExternalHandlerClient(rancherClient *RancherClient) *ExternalHandlerClient {
@@ -93,28 +86,12 @@ func (c *ExternalHandlerClient) Update(existing *ExternalHandler, updates interf
 func (c *ExternalHandlerClient) List(opts *ListOpts) (*ExternalHandlerCollection, error) {
 	resp := &ExternalHandlerCollection{}
 	err := c.rancherClient.doList(EXTERNAL_HANDLER_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ExternalHandlerCollection) Next() (*ExternalHandlerCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ExternalHandlerCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ExternalHandlerClient) ById(id string) (*ExternalHandler, error) {
 	resp := &ExternalHandler{}
 	err := c.rancherClient.doById(EXTERNAL_HANDLER_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
@@ -123,64 +100,43 @@ func (c *ExternalHandlerClient) Delete(container *ExternalHandler) error {
 }
 
 func (c *ExternalHandlerClient) ActionActivate(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "activate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "activate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionCreate(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "create", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "create", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionDeactivate(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "deactivate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "deactivate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionPurge(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "purge", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "purge", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionRemove(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "remove", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "remove", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionRestore(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "restore", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "restore", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *ExternalHandlerClient) ActionUpdate(resource *ExternalHandler) (*ExternalHandler, error) {
-
 	resp := &ExternalHandler{}
-
-	err := c.rancherClient.doAction(EXTERNAL_HANDLER_TYPE, "update", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(EXTERNAL_HANDLER_TYPE, "update", &resource.Resource, resp)
 	return resp, err
 }

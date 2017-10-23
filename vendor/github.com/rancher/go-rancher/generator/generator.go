@@ -10,11 +10,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/rancher/go-rancher/client"
+	"github.com/rancherio/go-rancher/client"
 )
 
 const (
-	CLIENT_OUTPUT_DIR = "../output"
+	CLIENT_OUTPUT_DIR = "../client"
 )
 
 var (
@@ -32,6 +32,7 @@ func init() {
 
 	noConversionTypes = make(map[string]bool)
 	noConversionTypes["string"] = true
+	noConversionTypes["int"] = true
 
 	schemaExists = make(map[string]bool)
 }
@@ -55,29 +56,20 @@ func getTypeMap(schema client.Schema) map[string]string {
 
 		if strings.HasPrefix(field.Type, "reference") || strings.HasPrefix(field.Type, "date") || strings.HasPrefix(field.Type, "enum") {
 			result[fieldName] = "string"
-		} else if strings.HasPrefix(field.Type, "array[reference[") {
-			result[fieldName] = "[]string"
 		} else if strings.HasPrefix(field.Type, "array") {
-			switch field.Type {
-			case "array[reference]":
-				fallthrough
-			case "array[date]":
-				fallthrough
-			case "array[enum]":
-				fallthrough
-			case "array[string]":
+			if strings.Contains(field.Type, "reference") || strings.Contains(field.Type, "date") ||
+				strings.Contains(field.Type, "enum") || strings.Contains(field.Type, "string") {
 				result[fieldName] = "[]string"
-			case "array[int]":
-				result[fieldName] = "[]int64"
-			case "array[float64]":
-				result[fieldName] = "[]float64"
-			case "array[json]":
+			} else if strings.Contains(field.Type, "resource") {
 				result[fieldName] = "[]interface{}"
-			default:
-				s := strings.TrimLeft(field.Type, "array[")
-				s = strings.TrimRight(s, "]")
-				result[fieldName] = "[]" + capitalize(s)
+			} else if strings.Contains(field.Type, "int") {
+				result[fieldName] = "[]int"
+			} else if strings.Contains(field.Type, "float") {
+				result[fieldName] = "[]float64"
+			} else {
+				result[fieldName] = "[]interface{}"
 			}
+
 		} else if strings.HasPrefix(field.Type, "map") {
 			result[fieldName] = "map[string]interface{}"
 		} else if strings.HasPrefix(field.Type, "json") {
@@ -88,16 +80,8 @@ func getTypeMap(schema client.Schema) map[string]string {
 			result[fieldName] = "interface{}"
 		} else if strings.HasPrefix(field.Type, "float") {
 			result[fieldName] = "float64"
-		} else if strings.HasPrefix(field.Type, "int") {
-			result[fieldName] = "int64"
-		} else if strings.HasPrefix(field.Type, "password") {
-			result[fieldName] = "string"
-		} else if strings.HasPrefix(field.Type, "bool") {
-			result[fieldName] = "bool"
 		} else if _, noConvert := noConversionTypes[field.Type]; noConvert {
 			result[fieldName] = field.Type
-		} else if field.Nullable {
-			result[fieldName] = "*" + capitalize(field.Type)
 		} else {
 			result[fieldName] = capitalize(field.Type)
 		}
@@ -109,7 +93,7 @@ func getTypeMap(schema client.Schema) map[string]string {
 func getResourceActions(schema client.Schema) map[string]client.Action {
 	result := map[string]client.Action{}
 	for name, action := range schema.ResourceActions {
-		if _, ok := schemaExists[action.Output]; ok {
+		if _, ok := schemaExists[action.Output]; action.Input == "" && ok {
 			result[name] = action
 		}
 	}
@@ -134,10 +118,9 @@ func generateType(schema client.Schema) error {
 	}
 
 	funcMap := template.FuncMap{
-		"toLowerCamelCase":  ToLowerCamelCase,
-		"toLowerUnderscore": addUnderscore,
-		"capitalize":        capitalize,
-		"upper":             strings.ToUpper,
+		"toLowerCamelCase": ToLowerCamelCase,
+		"capitalize":       capitalize,
+		"upper":            strings.ToUpper,
 	}
 
 	typeTemplate, err := template.New("type.template").Funcs(funcMap).ParseFiles("type.template")
@@ -153,7 +136,7 @@ func ToLowerCamelCase(input string) string {
 }
 
 func addUnderscore(input string) string {
-	return strings.ToLower(underscoreRegexp.ReplaceAllString(input, `${1}_${2}`))
+	return underscoreRegexp.ReplaceAllString(input, `${1}_${2}`)
 }
 
 func generateClient(schema []client.Schema) error {
@@ -168,11 +151,14 @@ func generateClient(schema []client.Schema) error {
 	}
 
 	defer output.Close()
-	buffer := make([]client.Schema, 0, len(schema))
+	buffer := make([]client.Schema, len(schema)-1)
+	i := 0
 	for _, val := range schema {
+
 		if !(val.Id == "collection" || val.Id == "resource" || val.Id == "schema") {
 			val.Id = strings.ToUpper(val.Id[:1]) + val.Id[1:]
-			buffer = append(buffer, val)
+			buffer[i] = val
+			i++
 		}
 	}
 
@@ -220,13 +206,6 @@ func generateFiles() error {
 		}
 
 		schemaExists[schema.Id] = true
-	}
-
-	for _, schema := range schemas.Data {
-		if _, ok := blackListTypes[schema.Id]; ok {
-			continue
-		}
-
 		err = generateType(schema)
 		if err != nil {
 			return err

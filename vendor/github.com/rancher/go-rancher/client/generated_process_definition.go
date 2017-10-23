@@ -6,26 +6,24 @@ const (
 
 type ProcessDefinition struct {
 	Resource
-
-	ExtensionBased bool `json:"extensionBased,omitempty" yaml:"extension_based,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	PostProcessListeners interface{} `json:"postProcessListeners,omitempty" yaml:"post_process_listeners,omitempty"`
-
-	PreProcessListeners interface{} `json:"preProcessListeners,omitempty" yaml:"pre_process_listeners,omitempty"`
-
-	ProcessHandlers interface{} `json:"processHandlers,omitempty" yaml:"process_handlers,omitempty"`
-
-	ResourceType string `json:"resourceType,omitempty" yaml:"resource_type,omitempty"`
-
-	StateTransitions []interface{} `json:"stateTransitions,omitempty" yaml:"state_transitions,omitempty"`
+    
+    ExtensionBased bool `json:"extensionBased,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    PostProcessListeners interface{} `json:"postProcessListeners,omitempty"`
+    
+    PreProcessListeners interface{} `json:"preProcessListeners,omitempty"`
+    
+    ProcessHandlers interface{} `json:"processHandlers,omitempty"`
+    
+    ResourceType string `json:"resourceType,omitempty"`
+    
 }
 
 type ProcessDefinitionCollection struct {
 	Collection
-	Data   []ProcessDefinition `json:"data,omitempty"`
-	client *ProcessDefinitionClient
+	Data []ProcessDefinition `json:"data,omitempty"`
 }
 
 type ProcessDefinitionClient struct {
@@ -61,28 +59,12 @@ func (c *ProcessDefinitionClient) Update(existing *ProcessDefinition, updates in
 func (c *ProcessDefinitionClient) List(opts *ListOpts) (*ProcessDefinitionCollection, error) {
 	resp := &ProcessDefinitionCollection{}
 	err := c.rancherClient.doList(PROCESS_DEFINITION_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ProcessDefinitionCollection) Next() (*ProcessDefinitionCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ProcessDefinitionCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ProcessDefinitionClient) ById(id string) (*ProcessDefinition, error) {
 	resp := &ProcessDefinition{}
 	err := c.rancherClient.doById(PROCESS_DEFINITION_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

@@ -33,6 +33,7 @@ type RaftEnv struct {
 	logger   *log.Logger
 }
 
+// Release shuts down and cleans up any stored data, its not restartable after this
 func (r *RaftEnv) Release() {
 	r.Shutdown()
 	os.RemoveAll(r.dir)
@@ -109,7 +110,6 @@ func MakeRaft(t *testing.T, conf *Config, bootstrap bool) *RaftEnv {
 			t.Fatalf("err: %v", err)
 		}
 	}
-
 	log.Printf("[INFO] Starting node at %v", trans.LocalAddr())
 	conf.Logger = env.logger
 	raft, err := NewRaft(conf, env.fsm, stable, stable, snap, trans)
@@ -266,6 +266,7 @@ func TestRaft_Integ(t *testing.T) {
 
 	// Snapshot the leader
 	NoErr(WaitFuture(leader.raft.Snapshot(), t), t)
+
 	CheckConsistent(append([]*RaftEnv{env1}, envs...), t)
 
 	// shutdown a follower

@@ -6,16 +6,16 @@ const (
 
 type HostAccess struct {
 	Resource
-
-	Token string `json:"token,omitempty" yaml:"token,omitempty"`
-
-	Url string `json:"url,omitempty" yaml:"url,omitempty"`
+    
+    Token string `json:"token,omitempty"`
+    
+    Url string `json:"url,omitempty"`
+    
 }
 
 type HostAccessCollection struct {
 	Collection
-	Data   []HostAccess `json:"data,omitempty"`
-	client *HostAccessClient
+	Data []HostAccess `json:"data,omitempty"`
 }
 
 type HostAccessClient struct {
@@ -51,28 +51,12 @@ func (c *HostAccessClient) Update(existing *HostAccess, updates interface{}) (*H
 func (c *HostAccessClient) List(opts *ListOpts) (*HostAccessCollection, error) {
 	resp := &HostAccessCollection{}
 	err := c.rancherClient.doList(HOST_ACCESS_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *HostAccessCollection) Next() (*HostAccessCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &HostAccessCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *HostAccessClient) ById(id string) (*HostAccess, error) {
 	resp := &HostAccess{}
 	err := c.rancherClient.doById(HOST_ACCESS_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

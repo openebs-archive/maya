@@ -6,42 +6,42 @@ const (
 
 type IpAddress struct {
 	Resource
-
-	AccountId string `json:"accountId,omitempty" yaml:"account_id,omitempty"`
-
-	Address string `json:"address,omitempty" yaml:"address,omitempty"`
-
-	Created string `json:"created,omitempty" yaml:"created,omitempty"`
-
-	Data map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
-
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-
-	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	NetworkId string `json:"networkId,omitempty" yaml:"network_id,omitempty"`
-
-	RemoveTime string `json:"removeTime,omitempty" yaml:"remove_time,omitempty"`
-
-	Removed string `json:"removed,omitempty" yaml:"removed,omitempty"`
-
-	State string `json:"state,omitempty" yaml:"state,omitempty"`
-
-	Transitioning string `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
-
-	TransitioningMessage string `json:"transitioningMessage,omitempty" yaml:"transitioning_message,omitempty"`
-
-	TransitioningProgress int64 `json:"transitioningProgress,omitempty" yaml:"transitioning_progress,omitempty"`
-
-	Uuid string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+    
+    AccountId string `json:"accountId,omitempty"`
+    
+    Address string `json:"address,omitempty"`
+    
+    Created string `json:"created,omitempty"`
+    
+    Data map[string]interface{} `json:"data,omitempty"`
+    
+    Description string `json:"description,omitempty"`
+    
+    Kind string `json:"kind,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    NetworkId string `json:"networkId,omitempty"`
+    
+    RemoveTime string `json:"removeTime,omitempty"`
+    
+    Removed string `json:"removed,omitempty"`
+    
+    State string `json:"state,omitempty"`
+    
+    Transitioning string `json:"transitioning,omitempty"`
+    
+    TransitioningMessage string `json:"transitioningMessage,omitempty"`
+    
+    TransitioningProgress int `json:"transitioningProgress,omitempty"`
+    
+    Uuid string `json:"uuid,omitempty"`
+    
 }
 
 type IpAddressCollection struct {
 	Collection
-	Data   []IpAddress `json:"data,omitempty"`
-	client *IpAddressClient
+	Data []IpAddress `json:"data,omitempty"`
 }
 
 type IpAddressClient struct {
@@ -54,22 +54,14 @@ type IpAddressOperations interface {
 	Update(existing *IpAddress, updates interface{}) (*IpAddress, error)
 	ById(id string) (*IpAddress, error)
 	Delete(container *IpAddress) error
-
-	ActionActivate(*IpAddress) (*IpAddress, error)
-
-	ActionCreate(*IpAddress) (*IpAddress, error)
-
-	ActionDeactivate(*IpAddress) (*IpAddress, error)
-
-	ActionDisassociate(*IpAddress) (*IpAddress, error)
-
-	ActionPurge(*IpAddress) (*IpAddress, error)
-
-	ActionRemove(*IpAddress) (*IpAddress, error)
-
-	ActionRestore(*IpAddress) (*IpAddress, error)
-
-	ActionUpdate(*IpAddress) (*IpAddress, error)
+    ActionActivate (*IpAddress) (*IpAddress, error)
+    ActionCreate (*IpAddress) (*IpAddress, error)
+    ActionDeactivate (*IpAddress) (*IpAddress, error)
+    ActionDisassociate (*IpAddress) (*IpAddress, error)
+    ActionPurge (*IpAddress) (*IpAddress, error)
+    ActionRemove (*IpAddress) (*IpAddress, error)
+    ActionRestore (*IpAddress) (*IpAddress, error)
+    ActionUpdate (*IpAddress) (*IpAddress, error)
 }
 
 func newIpAddressClient(rancherClient *RancherClient) *IpAddressClient {
@@ -93,28 +85,12 @@ func (c *IpAddressClient) Update(existing *IpAddress, updates interface{}) (*IpA
 func (c *IpAddressClient) List(opts *ListOpts) (*IpAddressCollection, error) {
 	resp := &IpAddressCollection{}
 	err := c.rancherClient.doList(IP_ADDRESS_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *IpAddressCollection) Next() (*IpAddressCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &IpAddressCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *IpAddressClient) ById(id string) (*IpAddress, error) {
 	resp := &IpAddress{}
 	err := c.rancherClient.doById(IP_ADDRESS_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
@@ -123,73 +99,49 @@ func (c *IpAddressClient) Delete(container *IpAddress) error {
 }
 
 func (c *IpAddressClient) ActionActivate(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "activate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "activate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionCreate(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "create", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "create", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionDeactivate(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "deactivate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "deactivate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionDisassociate(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "disassociate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "disassociate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionPurge(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "purge", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "purge", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionRemove(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "remove", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "remove", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionRestore(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "restore", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "restore", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *IpAddressClient) ActionUpdate(resource *IpAddress) (*IpAddress, error) {
-
 	resp := &IpAddress{}
-
-	err := c.rancherClient.doAction(IP_ADDRESS_TYPE, "update", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(IP_ADDRESS_TYPE, "update", &resource.Resource, resp)
 	return resp, err
 }

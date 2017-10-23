@@ -12,16 +12,6 @@ type Collection struct {
 	Filters      map[string][]Condition `json:"filters,omitempty"`
 }
 
-type GenericCollection struct {
-	Collection
-	Data []interface{} `json:"data,omitempty"`
-}
-
-type ResourceCollection struct {
-	Collection
-	Data []Resource `json:"data,omitempty"`
-}
-
 type Sort struct {
 	Name    string `json:"name,omitempty"`
 	Order   string `json:"order,omitempty"`
@@ -46,8 +36,13 @@ type Pagination struct {
 type Resource struct {
 	Id      string            `json:"id,omitempty"`
 	Type    string            `json:"type,omitempty"`
-	Links   map[string]string `json:"links"`
-	Actions map[string]string `json:"actions"`
+	Links   map[string]string `json:"links,omitempty"`
+	Actions map[string]string `json:"actions,omitempty"`
+}
+
+type Schemas struct {
+	Collection
+	Data []Schema `json:"data,omitempty"`
 }
 
 type Schema struct {
@@ -78,7 +73,6 @@ type Field struct {
 	Options      []string    `json:"options,omitempty"`
 	ValidChars   string      `json:"validChars,omitempty"`
 	InvalidChars string      `json:"invalidChars,omitempty"`
-	Description  string      `json:"description,omitempty"`
 }
 
 type Action struct {

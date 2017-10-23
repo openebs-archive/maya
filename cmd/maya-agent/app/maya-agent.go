@@ -73,6 +73,9 @@ func NewMayaAgent() (*cobra.Command, error) {
 		},
 	}
 
+	cmd.AddCommand(
+		NewCmdOpenEBSExporter(),
+	)
 	// Bind & parse flags defined by external projects.
 	// e.g. This imports the golang/glog pkg flags into the cmd flagset
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
@@ -82,7 +85,6 @@ func NewMayaAgent() (*cobra.Command, error) {
 	// as a flag, into the MayaAgentOptions
 	AddKubeConfigFlag(cmd, &options.KubeConfig)
 	AddNamespaceFlag(cmd, &options.Namespace)
-
 	return cmd, nil
 }
 

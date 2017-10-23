@@ -35,9 +35,7 @@ RADIUS.
 - `unregistered_user_policies` `(string: "")` - A comma-separated list of 
   policies to be granted to unregistered users.
 - `dial_timeout` `(integer: 10)` - Number of second to wait for a backend 
-  connection before timing out. Defaults is 10.
-- `read_timeout` `(integer: 10)` - Number of second to wait for a backend 
-  response before timing out. Defaults is 10.
+  connection before timing out. Default is 10.
 - `nas_port` `(integer: 10)` - The NAS-Port attribute of the RADIUS request. 
   Defaults is 10.
 
@@ -155,6 +153,7 @@ List the users registered with the backend.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/auth/radius/users`         | `200 application/json` |
+| `GET`   | `/auth/radius/users?list=true` | `200 application/json` |
 
 ### Sample Request
 
@@ -210,8 +209,8 @@ Login with the username and password.
 
 ```
 $ curl \
-    --header "X-Vault-Token: ..." \
     --request POST \
+    --data @payload.json \
     https://vault.rocks/v1/auth/radius/login/test-user
 ```
 

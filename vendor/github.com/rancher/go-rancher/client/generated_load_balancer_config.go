@@ -6,16 +6,44 @@ const (
 
 type LoadBalancerConfig struct {
 	Resource
-
-	HaproxyConfig *HaproxyConfig `json:"haproxyConfig,omitempty" yaml:"haproxy_config,omitempty"`
-
-	LbCookieStickinessPolicy *LoadBalancerCookieStickinessPolicy `json:"lbCookieStickinessPolicy,omitempty" yaml:"lb_cookie_stickiness_policy,omitempty"`
+    
+    AccountId string `json:"accountId,omitempty"`
+    
+    AppCookieStickinessPolicy LoadBalancerAppCookieStickinessPolicy `json:"appCookieStickinessPolicy,omitempty"`
+    
+    Created string `json:"created,omitempty"`
+    
+    Data map[string]interface{} `json:"data,omitempty"`
+    
+    Description string `json:"description,omitempty"`
+    
+    HealthCheck LoadBalancerHealthCheck `json:"healthCheck,omitempty"`
+    
+    Kind string `json:"kind,omitempty"`
+    
+    LbCookieStickinessPolicy LoadBalancerCookieStickinessPolicy `json:"lbCookieStickinessPolicy,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    RemoveTime string `json:"removeTime,omitempty"`
+    
+    Removed string `json:"removed,omitempty"`
+    
+    State string `json:"state,omitempty"`
+    
+    Transitioning string `json:"transitioning,omitempty"`
+    
+    TransitioningMessage string `json:"transitioningMessage,omitempty"`
+    
+    TransitioningProgress int `json:"transitioningProgress,omitempty"`
+    
+    Uuid string `json:"uuid,omitempty"`
+    
 }
 
 type LoadBalancerConfigCollection struct {
 	Collection
-	Data   []LoadBalancerConfig `json:"data,omitempty"`
-	client *LoadBalancerConfigClient
+	Data []LoadBalancerConfig `json:"data,omitempty"`
 }
 
 type LoadBalancerConfigClient struct {
@@ -28,6 +56,9 @@ type LoadBalancerConfigOperations interface {
 	Update(existing *LoadBalancerConfig, updates interface{}) (*LoadBalancerConfig, error)
 	ById(id string) (*LoadBalancerConfig, error)
 	Delete(container *LoadBalancerConfig) error
+    ActionCreate (*LoadBalancerConfig) (*LoadBalancerConfig, error)
+    ActionRemove (*LoadBalancerConfig) (*LoadBalancerConfig, error)
+    ActionUpdate (*LoadBalancerConfig) (*LoadBalancerConfig, error)
 }
 
 func newLoadBalancerConfigClient(rancherClient *RancherClient) *LoadBalancerConfigClient {
@@ -51,31 +82,33 @@ func (c *LoadBalancerConfigClient) Update(existing *LoadBalancerConfig, updates 
 func (c *LoadBalancerConfigClient) List(opts *ListOpts) (*LoadBalancerConfigCollection, error) {
 	resp := &LoadBalancerConfigCollection{}
 	err := c.rancherClient.doList(LOAD_BALANCER_CONFIG_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *LoadBalancerConfigCollection) Next() (*LoadBalancerConfigCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &LoadBalancerConfigCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *LoadBalancerConfigClient) ById(id string) (*LoadBalancerConfig, error) {
 	resp := &LoadBalancerConfig{}
 	err := c.rancherClient.doById(LOAD_BALANCER_CONFIG_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
 func (c *LoadBalancerConfigClient) Delete(container *LoadBalancerConfig) error {
 	return c.rancherClient.doResourceDelete(LOAD_BALANCER_CONFIG_TYPE, &container.Resource)
+}
+
+func (c *LoadBalancerConfigClient) ActionCreate(resource *LoadBalancerConfig) (*LoadBalancerConfig, error) {
+	resp := &LoadBalancerConfig{}
+	err := c.rancherClient.doEmptyAction(LOAD_BALANCER_CONFIG_TYPE, "create", &resource.Resource, resp)
+	return resp, err
+}
+
+func (c *LoadBalancerConfigClient) ActionRemove(resource *LoadBalancerConfig) (*LoadBalancerConfig, error) {
+	resp := &LoadBalancerConfig{}
+	err := c.rancherClient.doEmptyAction(LOAD_BALANCER_CONFIG_TYPE, "remove", &resource.Resource, resp)
+	return resp, err
+}
+
+func (c *LoadBalancerConfigClient) ActionUpdate(resource *LoadBalancerConfig) (*LoadBalancerConfig, error) {
+	resp := &LoadBalancerConfig{}
+	err := c.rancherClient.doEmptyAction(LOAD_BALANCER_CONFIG_TYPE, "update", &resource.Resource, resp)
+	return resp, err
 }

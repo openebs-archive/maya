@@ -6,46 +6,46 @@ const (
 
 type InstanceLink struct {
 	Resource
-
-	AccountId string `json:"accountId,omitempty" yaml:"account_id,omitempty"`
-
-	Created string `json:"created,omitempty" yaml:"created,omitempty"`
-
-	Data map[string]interface{} `json:"data,omitempty" yaml:"data,omitempty"`
-
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-
-	InstanceId string `json:"instanceId,omitempty" yaml:"instance_id,omitempty"`
-
-	Kind string `json:"kind,omitempty" yaml:"kind,omitempty"`
-
-	LinkName string `json:"linkName,omitempty" yaml:"link_name,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	Ports []interface{} `json:"ports,omitempty" yaml:"ports,omitempty"`
-
-	RemoveTime string `json:"removeTime,omitempty" yaml:"remove_time,omitempty"`
-
-	Removed string `json:"removed,omitempty" yaml:"removed,omitempty"`
-
-	State string `json:"state,omitempty" yaml:"state,omitempty"`
-
-	TargetInstanceId string `json:"targetInstanceId,omitempty" yaml:"target_instance_id,omitempty"`
-
-	Transitioning string `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
-
-	TransitioningMessage string `json:"transitioningMessage,omitempty" yaml:"transitioning_message,omitempty"`
-
-	TransitioningProgress int64 `json:"transitioningProgress,omitempty" yaml:"transitioning_progress,omitempty"`
-
-	Uuid string `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+    
+    AccountId string `json:"accountId,omitempty"`
+    
+    Created string `json:"created,omitempty"`
+    
+    Data map[string]interface{} `json:"data,omitempty"`
+    
+    Description string `json:"description,omitempty"`
+    
+    InstanceId string `json:"instanceId,omitempty"`
+    
+    Kind string `json:"kind,omitempty"`
+    
+    LinkName string `json:"linkName,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    Ports []interface{} `json:"ports,omitempty"`
+    
+    RemoveTime string `json:"removeTime,omitempty"`
+    
+    Removed string `json:"removed,omitempty"`
+    
+    State string `json:"state,omitempty"`
+    
+    TargetInstanceId string `json:"targetInstanceId,omitempty"`
+    
+    Transitioning string `json:"transitioning,omitempty"`
+    
+    TransitioningMessage string `json:"transitioningMessage,omitempty"`
+    
+    TransitioningProgress int `json:"transitioningProgress,omitempty"`
+    
+    Uuid string `json:"uuid,omitempty"`
+    
 }
 
 type InstanceLinkCollection struct {
 	Collection
-	Data   []InstanceLink `json:"data,omitempty"`
-	client *InstanceLinkClient
+	Data []InstanceLink `json:"data,omitempty"`
 }
 
 type InstanceLinkClient struct {
@@ -58,20 +58,13 @@ type InstanceLinkOperations interface {
 	Update(existing *InstanceLink, updates interface{}) (*InstanceLink, error)
 	ById(id string) (*InstanceLink, error)
 	Delete(container *InstanceLink) error
-
-	ActionActivate(*InstanceLink) (*InstanceLink, error)
-
-	ActionCreate(*InstanceLink) (*InstanceLink, error)
-
-	ActionDeactivate(*InstanceLink) (*InstanceLink, error)
-
-	ActionPurge(*InstanceLink) (*InstanceLink, error)
-
-	ActionRemove(*InstanceLink) (*InstanceLink, error)
-
-	ActionRestore(*InstanceLink) (*InstanceLink, error)
-
-	ActionUpdate(*InstanceLink) (*InstanceLink, error)
+    ActionActivate (*InstanceLink) (*InstanceLink, error)
+    ActionCreate (*InstanceLink) (*InstanceLink, error)
+    ActionDeactivate (*InstanceLink) (*InstanceLink, error)
+    ActionPurge (*InstanceLink) (*InstanceLink, error)
+    ActionRemove (*InstanceLink) (*InstanceLink, error)
+    ActionRestore (*InstanceLink) (*InstanceLink, error)
+    ActionUpdate (*InstanceLink) (*InstanceLink, error)
 }
 
 func newInstanceLinkClient(rancherClient *RancherClient) *InstanceLinkClient {
@@ -95,28 +88,12 @@ func (c *InstanceLinkClient) Update(existing *InstanceLink, updates interface{})
 func (c *InstanceLinkClient) List(opts *ListOpts) (*InstanceLinkCollection, error) {
 	resp := &InstanceLinkCollection{}
 	err := c.rancherClient.doList(INSTANCE_LINK_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *InstanceLinkCollection) Next() (*InstanceLinkCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &InstanceLinkCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *InstanceLinkClient) ById(id string) (*InstanceLink, error) {
 	resp := &InstanceLink{}
 	err := c.rancherClient.doById(INSTANCE_LINK_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
@@ -125,64 +102,43 @@ func (c *InstanceLinkClient) Delete(container *InstanceLink) error {
 }
 
 func (c *InstanceLinkClient) ActionActivate(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "activate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "activate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionCreate(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "create", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "create", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionDeactivate(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "deactivate", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "deactivate", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionPurge(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "purge", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "purge", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionRemove(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "remove", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "remove", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionRestore(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "restore", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "restore", &resource.Resource, resp)
 	return resp, err
 }
 
 func (c *InstanceLinkClient) ActionUpdate(resource *InstanceLink) (*InstanceLink, error) {
-
 	resp := &InstanceLink{}
-
-	err := c.rancherClient.doAction(INSTANCE_LINK_TYPE, "update", &resource.Resource, nil, resp)
-
+	err := c.rancherClient.doEmptyAction(INSTANCE_LINK_TYPE, "update", &resource.Resource, resp)
 	return resp, err
 }

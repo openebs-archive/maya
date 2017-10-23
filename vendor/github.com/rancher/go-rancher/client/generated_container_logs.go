@@ -6,16 +6,16 @@ const (
 
 type ContainerLogs struct {
 	Resource
-
-	Follow bool `json:"follow,omitempty" yaml:"follow,omitempty"`
-
-	Lines int64 `json:"lines,omitempty" yaml:"lines,omitempty"`
+    
+    Follow bool `json:"follow,omitempty"`
+    
+    Lines int `json:"lines,omitempty"`
+    
 }
 
 type ContainerLogsCollection struct {
 	Collection
-	Data   []ContainerLogs `json:"data,omitempty"`
-	client *ContainerLogsClient
+	Data []ContainerLogs `json:"data,omitempty"`
 }
 
 type ContainerLogsClient struct {
@@ -51,28 +51,12 @@ func (c *ContainerLogsClient) Update(existing *ContainerLogs, updates interface{
 func (c *ContainerLogsClient) List(opts *ListOpts) (*ContainerLogsCollection, error) {
 	resp := &ContainerLogsCollection{}
 	err := c.rancherClient.doList(CONTAINER_LOGS_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ContainerLogsCollection) Next() (*ContainerLogsCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ContainerLogsCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ContainerLogsClient) ById(id string) (*ContainerLogs, error) {
 	resp := &ContainerLogs{}
 	err := c.rancherClient.doById(CONTAINER_LOGS_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

@@ -15,6 +15,28 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Nomad 0.5.5
+
+### Docker `load` changes
+
+Nomad 0.5.5 has a backward incompatible change in the `docker` driver's
+configuration. Prior to 0.5.5 the `load` configuration option accepted a list
+images to load, in 0.5.5 it has been changed to a single string. No
+functionality was changed. Even if more than one item was specificed prior to
+0.5.5 only the first item was used.
+
+If you have jobs that use the `load` option first upgrade all nodes to 0.5.5,
+then resubmit those jobs with `load` as a single string.
+
+### Validation changes
+
+Due to internal job serialization and validation changes you may run into
+issues using 0.5.5 command line tools such as `nomad run` and `nomad validate`
+with 0.5.4 or earlier agents.
+
+It is recommended you upgrade agents before or alongside your command line
+tools.
+
 ## Nomad 0.4.0
 
 Nomad 0.4.0 has backward incompatible changes in the logic for Consul

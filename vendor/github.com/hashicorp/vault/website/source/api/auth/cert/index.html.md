@@ -107,6 +107,7 @@ Lists configured certificate names.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/auth/cert/certs`           | `200 application/json` |
+| `GET`   | `/auth/cert/certs?list=true`  | `200 application/json` |
 
 ### Sample Request
 
@@ -227,9 +228,9 @@ $ curl \
 }
 ```
 
-## Delete Certificate Role
+## Delete CRL
 
-Deletes the named role and CA cert from the backend mount.
+Deletes the named CRL from the backend mount.
 
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |

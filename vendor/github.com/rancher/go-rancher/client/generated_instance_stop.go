@@ -6,16 +6,18 @@ const (
 
 type InstanceStop struct {
 	Resource
-
-	Remove bool `json:"remove,omitempty" yaml:"remove,omitempty"`
-
-	Timeout int64 `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+    
+    DeallocateFromHost bool `json:"deallocateFromHost,omitempty"`
+    
+    Remove bool `json:"remove,omitempty"`
+    
+    Timeout int `json:"timeout,omitempty"`
+    
 }
 
 type InstanceStopCollection struct {
 	Collection
-	Data   []InstanceStop `json:"data,omitempty"`
-	client *InstanceStopClient
+	Data []InstanceStop `json:"data,omitempty"`
 }
 
 type InstanceStopClient struct {
@@ -51,28 +53,12 @@ func (c *InstanceStopClient) Update(existing *InstanceStop, updates interface{})
 func (c *InstanceStopClient) List(opts *ListOpts) (*InstanceStopCollection, error) {
 	resp := &InstanceStopCollection{}
 	err := c.rancherClient.doList(INSTANCE_STOP_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *InstanceStopCollection) Next() (*InstanceStopCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &InstanceStopCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *InstanceStopClient) ById(id string) (*InstanceStop, error) {
 	resp := &InstanceStop{}
 	err := c.rancherClient.doById(INSTANCE_STOP_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

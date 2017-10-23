@@ -6,16 +6,16 @@ const (
 
 type ConfigItem struct {
 	Resource
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	SourceVersion string `json:"sourceVersion,omitempty" yaml:"source_version,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    SourceVersion string `json:"sourceVersion,omitempty"`
+    
 }
 
 type ConfigItemCollection struct {
 	Collection
-	Data   []ConfigItem `json:"data,omitempty"`
-	client *ConfigItemClient
+	Data []ConfigItem `json:"data,omitempty"`
 }
 
 type ConfigItemClient struct {
@@ -51,28 +51,12 @@ func (c *ConfigItemClient) Update(existing *ConfigItem, updates interface{}) (*C
 func (c *ConfigItemClient) List(opts *ListOpts) (*ConfigItemCollection, error) {
 	resp := &ConfigItemCollection{}
 	err := c.rancherClient.doList(CONFIG_ITEM_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ConfigItemCollection) Next() (*ConfigItemCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ConfigItemCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ConfigItemClient) ById(id string) (*ConfigItem, error) {
 	resp := &ConfigItem{}
 	err := c.rancherClient.doById(CONFIG_ITEM_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 
