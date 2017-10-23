@@ -89,7 +89,7 @@ type OpenEBSExporter struct {
 	OpenEBSControllerURL string
 }
 
-// NewExporter instantiates a new OpenEBSExporter.
+// NewExporter returns OpenEBS controller URL along with Path.
 func NewExporter(openEBSControllerURL *url.URL) *OpenEBSExporter {
 	openEBSControllerURL.Path = "/v1/stats"
 	return &OpenEBSExporter{
