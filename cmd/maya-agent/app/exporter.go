@@ -12,9 +12,13 @@ import (
 
 // Entrypoint is used to monitor OpenEBS volumes. It's used by maya-agent to
 // start an instance of openebs exporter.
+
+// We need to run several instances of Exporter for each volume just like node
+// exporter on every node. At a time one instance can gather only the metrics
+// from the requested volume. You need to pass the controller IP using flag -c
+// at runtime as a command line argument. Type maya-agent monitor -h for more info.
 func Entrypoint(options *OpenEBSExporterOptions) {
 	controllerURL, err := url.Parse(options.ControllerAddress)
-
 	if err != nil {
 		log.Fatal(err)
 	}

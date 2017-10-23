@@ -8,23 +8,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-// openEBSMetrics is used to store the collected metrics
-type openEBSMetrics struct {
-	ReadIOPS            string `json:"ReadIOPS"`
-	TotalReadTime       string `json:"TotalReadTime"`
-	TotalReadBlockCount string `json:"TotalReadBlockCount"`
-
-	WriteIOPS            string `json:"WriteIOPS"`
-	TotalWriteTime       string `json:"TotalWriteTime"`
-	TotalWriteBlockCount string `json:"TotatWriteBlockCount"`
-
-	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
-	UsedBlocks        string `json:"UsedBlocks"`
-	SectorSize        string `json:"SectorSize"`
-}
 
 // A gauge is a metric that represents a single numerical value that can
 // arbitrarily go up and down.
@@ -93,19 +79,35 @@ var (
 	})
 )
 
-// Exporter implements the prometheus.Collector interface. It exposes the metrics
+// Collector is the interface implemented by anything that can be used by
+// Prometheus to collect metrics. A Collector has to be registered for
+// collection of  metrics. Basically it has two methods Describe and Collect.
+
+// OpenEBSExporter implements the prometheus.Collector interface. It exposes the metrics
 // of a openebs volume.
 type OpenEBSExporter struct {
 	OpenEBSControllerURL string
 }
 
-// NewExporter instantiates a new OpenEBS Exporter.
+// NewExporter instantiates a new OpenEBSExporter.
 func NewExporter(openEBSControllerURL *url.URL) *OpenEBSExporter {
 	openEBSControllerURL.Path = "/v1/stats"
 	return &OpenEBSExporter{
 		OpenEBSControllerURL: openEBSControllerURL.String(),
 	}
 }
+
+// Describe sends the super-set of all possible descriptors of metrics
+// collected by this Collector to the provided channel and returns once
+// the last descriptor has been sent. The sent descriptors fulfill the
+// consistency and uniqueness requirements described in the Desc
+// documentation. (It is valid if one and the same Collector sends
+// duplicate descriptors. Those duplicates are simply ignored. However,
+// two different Collectors must not send duplicate descriptors.) This
+// method idempotently sends the same descriptors throughout the
+// lifetime of the Collector. If a Collector encounters an error while
+// executing this method, it must send an invalid descriptor (created
+// with NewInvalidDesc) to signal the error to the registry.
 
 // Describe describes all the registered stats metrics from the OpenEBS volumes.
 func (e *OpenEBSExporter) Describe(ch chan<- *prometheus.Desc) {
@@ -119,6 +121,17 @@ func (e *OpenEBSExporter) Describe(ch chan<- *prometheus.Desc) {
 	usedBlocks.Describe(ch)
 	sectorSize.Describe(ch)
 }
+
+// Collect is called by the Prometheus registry when collecting
+// metrics. The implementation sends each collected metric via the
+// provided channel and returns once the last metric has been sent. The
+// descriptor of each sent metric is one of those returned by
+// Describe. Returned metrics that share the same descriptor must differ
+// in their variable label values. This method may be called
+// concurrently and must therefore be implemented in a concurrency safe
+// way. Blocking occurs at the expense of total performance of rendering
+// all registered metrics. Ideally, Collector implementations support
+// concurrent readers.
 
 // Collect collects all the registered stats metrics from the OpenEBS volumes.
 func (e *OpenEBSExporter) Collect(ch chan<- prometheus.Metric) {
@@ -136,20 +149,21 @@ func (e *OpenEBSExporter) Collect(ch chan<- prometheus.Metric) {
 	sectorSize.Collect(ch)
 }
 
+// collect is used to set the values gathered from OpenEBS volume controller
 func (e *OpenEBSExporter) collect() error {
-	var metrics openEBSMetrics
+	var metrics v1.OpenEBSVolumeMetrics
 
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 1 * time.Second
 	resp, err := httpClient.Get(e.OpenEBSControllerURL)
 	if err != nil {
-		log.Printf("could not retrieve OpenEBS controller metrics: %v", err)
+		log.Printf("could not retrieve OpenEBS Volume controller metrics: %v", err)
 		return err
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&metrics)
 	if err != nil {
-		log.Printf("could not decode OpenEBS controller metrics: %v", err)
+		log.Printf("could not decode OpenEBS Volume controller metrics: %v", err)
 		return err
 	}
 
