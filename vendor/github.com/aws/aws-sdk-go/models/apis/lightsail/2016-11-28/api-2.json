@@ -749,6 +749,24 @@
         {"shape":"UnauthenticatedException"}
       ]
     },
+    "PutInstancePublicPorts":{
+      "name":"PutInstancePublicPorts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutInstancePublicPortsRequest"},
+      "output":{"shape":"PutInstancePublicPortsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ]
+    },
     "RebootInstance":{
       "name":"RebootInstance",
       "http":{
@@ -941,7 +959,8 @@
         "version":{"shape":"string"},
         "versionCode":{"shape":"string"},
         "productUrl":{"shape":"string"},
-        "licenseUrl":{"shape":"string"}
+        "licenseUrl":{"shape":"string"},
+        "platform":{"shape":"InstancePlatform"}
       }
     },
     "BlueprintList":{
@@ -967,7 +986,8 @@
         "name":{"shape":"string"},
         "power":{"shape":"integer"},
         "ramSizeInGb":{"shape":"float"},
-        "transferPerMonthInGb":{"shape":"integer"}
+        "transferPerMonthInGb":{"shape":"integer"},
+        "supportedPlatforms":{"shape":"InstancePlatformList"}
       }
     },
     "BundleList":{
@@ -1072,7 +1092,10 @@
       "members":{
         "instanceNames":{"shape":"StringList"},
         "availabilityZone":{"shape":"string"},
-        "customImageName":{"shape":"ResourceName"},
+        "customImageName":{
+          "shape":"ResourceName",
+          "deprecated":true
+        },
         "blueprintId":{"shape":"NonEmptyString"},
         "bundleId":{"shape":"NonEmptyString"},
         "userData":{"shape":"string"},
@@ -1375,7 +1398,7 @@
     "GetInstancePortStatesResult":{
       "type":"structure",
       "members":{
-        "portStates":{"shape":"PortStateList"}
+        "portStates":{"shape":"InstancePortStateList"}
       }
     },
     "GetInstanceRequest":{
@@ -1494,7 +1517,11 @@
       "type":"structure",
       "members":{
         "operations":{"shape":"OperationList"},
-        "nextPageCount":{"shape":"string"}
+        "nextPageCount":{
+          "shape":"string",
+          "deprecated":true
+        },
+        "nextPageToken":{"shape":"string"}
       }
     },
     "GetOperationsRequest":{
@@ -1595,6 +1622,7 @@
         "expiresAt":{"shape":"IsoDate"},
         "ipAddress":{"shape":"IpAddress"},
         "password":{"shape":"string"},
+        "passwordData":{"shape":"PasswordData"},
         "privateKey":{"shape":"string"},
         "protocol":{"shape":"InstanceAccessProtocol"},
         "instanceName":{"shape":"ResourceName"},
@@ -1638,6 +1666,17 @@
         "ports":{"shape":"InstancePortInfoList"}
       }
     },
+    "InstancePlatform":{
+      "type":"string",
+      "enum":[
+        "LINUX_UNIX",
+        "WINDOWS"
+      ]
+    },
+    "InstancePlatformList":{
+      "type":"list",
+      "member":{"shape":"InstancePlatform"}
+    },
     "InstancePortInfo":{
       "type":"structure",
       "members":{
@@ -1653,6 +1692,19 @@
     "InstancePortInfoList":{
       "type":"list",
       "member":{"shape":"InstancePortInfo"}
+    },
+    "InstancePortState":{
+      "type":"structure",
+      "members":{
+        "fromPort":{"shape":"Port"},
+        "toPort":{"shape":"Port"},
+        "protocol":{"shape":"NetworkProtocol"},
+        "state":{"shape":"PortState"}
+      }
+    },
+    "InstancePortStateList":{
+      "type":"list",
+      "member":{"shape":"InstancePortState"}
     },
     "InstanceSnapshot":{
       "type":"structure",
@@ -1898,6 +1950,7 @@
         "StartInstance",
         "RebootInstance",
         "OpenInstancePublicPorts",
+        "PutInstancePublicPorts",
         "CloseInstancePublicPorts",
         "AllocateStaticIp",
         "ReleaseStaticIp",
@@ -1911,6 +1964,13 @@
         "DeleteInstanceSnapshot",
         "CreateInstancesFromSnapshot"
       ]
+    },
+    "PasswordData":{
+      "type":"structure",
+      "members":{
+        "ciphertext":{"shape":"string"},
+        "keyPairName":{"shape":"ResourceName"}
+      }
     },
     "PeerVpcRequest":{
       "type":"structure",
@@ -1943,6 +2003,10 @@
         "protocol":{"shape":"NetworkProtocol"}
       }
     },
+    "PortInfoList":{
+      "type":"list",
+      "member":{"shape":"PortInfo"}
+    },
     "PortState":{
       "type":"string",
       "enum":[
@@ -1950,9 +2014,22 @@
         "closed"
       ]
     },
-    "PortStateList":{
-      "type":"list",
-      "member":{"shape":"PortState"}
+    "PutInstancePublicPortsRequest":{
+      "type":"structure",
+      "required":[
+        "portInfos",
+        "instanceName"
+      ],
+      "members":{
+        "portInfos":{"shape":"PortInfoList"},
+        "instanceName":{"shape":"ResourceName"}
+      }
+    },
+    "PutInstancePublicPortsResult":{
+      "type":"structure",
+      "members":{
+        "operation":{"shape":"Operation"}
+      }
     },
     "RebootInstanceRequest":{
       "type":"structure",
@@ -1985,6 +2062,7 @@
       "type":"string",
       "enum":[
         "us-east-1",
+        "us-east-2",
         "us-west-1",
         "us-west-2",
         "eu-west-1",
@@ -2039,7 +2117,8 @@
         "message":{"shape":"string"},
         "tip":{"shape":"string"}
       },
-      "exception":true
+      "exception":true,
+      "fault":true
     },
     "StartInstanceRequest":{
       "type":"structure",

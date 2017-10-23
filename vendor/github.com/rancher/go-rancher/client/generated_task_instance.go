@@ -6,24 +6,24 @@ const (
 
 type TaskInstance struct {
 	Resource
-
-	EndTime string `json:"endTime,omitempty" yaml:"end_time,omitempty"`
-
-	Exception string `json:"exception,omitempty" yaml:"exception,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	ServerId string `json:"serverId,omitempty" yaml:"server_id,omitempty"`
-
-	StartTime string `json:"startTime,omitempty" yaml:"start_time,omitempty"`
-
-	TaskId string `json:"taskId,omitempty" yaml:"task_id,omitempty"`
+    
+    EndTime string `json:"endTime,omitempty"`
+    
+    Exception string `json:"exception,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    ServerId string `json:"serverId,omitempty"`
+    
+    StartTime string `json:"startTime,omitempty"`
+    
+    TaskId string `json:"taskId,omitempty"`
+    
 }
 
 type TaskInstanceCollection struct {
 	Collection
-	Data   []TaskInstance `json:"data,omitempty"`
-	client *TaskInstanceClient
+	Data []TaskInstance `json:"data,omitempty"`
 }
 
 type TaskInstanceClient struct {
@@ -59,28 +59,12 @@ func (c *TaskInstanceClient) Update(existing *TaskInstance, updates interface{})
 func (c *TaskInstanceClient) List(opts *ListOpts) (*TaskInstanceCollection, error) {
 	resp := &TaskInstanceCollection{}
 	err := c.rancherClient.doList(TASK_INSTANCE_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *TaskInstanceCollection) Next() (*TaskInstanceCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &TaskInstanceCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *TaskInstanceClient) ById(id string) (*TaskInstance, error) {
 	resp := &TaskInstance{}
 	err := c.rancherClient.doById(TASK_INSTANCE_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

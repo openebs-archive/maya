@@ -1,10 +1,21 @@
-#!/bin/bash
-set -e
-
-source $(dirname $0)/version
+#!/bin/bash -e
 
 cd $(dirname $0)/..
 
+export GOPATH=$(pwd)/Godeps/_workspace:$(pwd)/gopath
+
+PACKAGE=./gopath/src/$(<.package)
+
+if [ -L ${PACKAGE} ]; then
+    rm ${PACKAGE}
+fi
+
+if [ ! -e ${PACKAGE} ]; then
+    mkdir -p $(dirname $PACKAGE)
+    ln -s $(pwd) $PACKAGE
+fi
+
+echo export GOPATH=$GOPATH
+
 mkdir -p bin
-[ "$(uname)" != "Darwin" ] && LINKFLAGS="-linkmode external -extldflags -static -s"
-go build -ldflags "-X main.VERSION=$VERSION $LINKFLAGS" -o bin/go-rancher
+go build -o bin/go-rancher

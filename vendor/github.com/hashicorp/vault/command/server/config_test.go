@@ -62,11 +62,16 @@ func TestLoadConfigFile(t *testing.T) {
 		EnableUI:        true,
 		EnableUIRaw:     true,
 
+		EnableRawEndpoint:    true,
+		EnableRawEndpointRaw: true,
+
 		MaxLeaseTTL:        10 * time.Hour,
 		MaxLeaseTTLRaw:     "10h",
 		DefaultLeaseTTL:    10 * time.Hour,
 		DefaultLeaseTTLRaw: "10h",
 		ClusterName:        "testcluster",
+
+		PidFile: "./pidfile",
 	}
 	if !reflect.DeepEqual(config, expected) {
 		t.Fatalf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
@@ -99,6 +104,8 @@ func TestLoadConfigFile_json(t *testing.T) {
 			DisableClustering: true,
 		},
 
+		ClusterCipherSuites: "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+
 		Telemetry: &Telemetry{
 			StatsiteAddr:                       "baz",
 			StatsdAddr:                         "",
@@ -118,15 +125,18 @@ func TestLoadConfigFile_json(t *testing.T) {
 			CirconusBrokerSelectTag:            "",
 		},
 
-		MaxLeaseTTL:        10 * time.Hour,
-		MaxLeaseTTLRaw:     "10h",
-		DefaultLeaseTTL:    10 * time.Hour,
-		DefaultLeaseTTLRaw: "10h",
-		ClusterName:        "testcluster",
-		DisableCacheRaw:    interface{}(nil),
-		DisableMlockRaw:    interface{}(nil),
-		EnableUI:           true,
-		EnableUIRaw:        true,
+		MaxLeaseTTL:          10 * time.Hour,
+		MaxLeaseTTLRaw:       "10h",
+		DefaultLeaseTTL:      10 * time.Hour,
+		DefaultLeaseTTLRaw:   "10h",
+		ClusterName:          "testcluster",
+		DisableCacheRaw:      interface{}(nil),
+		DisableMlockRaw:      interface{}(nil),
+		EnableUI:             true,
+		EnableUIRaw:          true,
+		PidFile:              "./pidfile",
+		EnableRawEndpoint:    true,
+		EnableRawEndpointRaw: true,
 	}
 	if !reflect.DeepEqual(config, expected) {
 		t.Fatalf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
@@ -175,6 +185,8 @@ func TestLoadConfigFile_json2(t *testing.T) {
 		CacheSize: 45678,
 
 		EnableUI: true,
+
+		EnableRawEndpoint: true,
 
 		Telemetry: &Telemetry{
 			StatsiteAddr:                       "foo",
@@ -229,6 +241,8 @@ func TestLoadConfigDir(t *testing.T) {
 		},
 
 		EnableUI: true,
+
+		EnableRawEndpoint: true,
 
 		Telemetry: &Telemetry{
 			StatsiteAddr:    "qux",

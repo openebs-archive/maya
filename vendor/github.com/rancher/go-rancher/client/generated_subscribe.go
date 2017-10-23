@@ -6,16 +6,16 @@ const (
 
 type Subscribe struct {
 	Resource
-
-	AgentId string `json:"agentId,omitempty" yaml:"agent_id,omitempty"`
-
-	EventNames []string `json:"eventNames,omitempty" yaml:"event_names,omitempty"`
+    
+    AgentId string `json:"agentId,omitempty"`
+    
+    EventNames []string `json:"eventNames,omitempty"`
+    
 }
 
 type SubscribeCollection struct {
 	Collection
-	Data   []Subscribe `json:"data,omitempty"`
-	client *SubscribeClient
+	Data []Subscribe `json:"data,omitempty"`
 }
 
 type SubscribeClient struct {
@@ -51,28 +51,12 @@ func (c *SubscribeClient) Update(existing *Subscribe, updates interface{}) (*Sub
 func (c *SubscribeClient) List(opts *ListOpts) (*SubscribeCollection, error) {
 	resp := &SubscribeCollection{}
 	err := c.rancherClient.doList(SUBSCRIBE_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *SubscribeCollection) Next() (*SubscribeCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &SubscribeCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *SubscribeClient) ById(id string) (*Subscribe, error) {
 	resp := &Subscribe{}
 	err := c.rancherClient.doById(SUBSCRIBE_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

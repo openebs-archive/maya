@@ -6,18 +6,18 @@ const (
 
 type Databasechangeloglock struct {
 	Resource
-
-	Locked bool `json:"locked,omitempty" yaml:"locked,omitempty"`
-
-	Lockedby string `json:"lockedby,omitempty" yaml:"lockedby,omitempty"`
-
-	Lockgranted string `json:"lockgranted,omitempty" yaml:"lockgranted,omitempty"`
+    
+    Locked bool `json:"locked,omitempty"`
+    
+    Lockedby string `json:"lockedby,omitempty"`
+    
+    Lockgranted string `json:"lockgranted,omitempty"`
+    
 }
 
 type DatabasechangeloglockCollection struct {
 	Collection
-	Data   []Databasechangeloglock `json:"data,omitempty"`
-	client *DatabasechangeloglockClient
+	Data []Databasechangeloglock `json:"data,omitempty"`
 }
 
 type DatabasechangeloglockClient struct {
@@ -53,28 +53,12 @@ func (c *DatabasechangeloglockClient) Update(existing *Databasechangeloglock, up
 func (c *DatabasechangeloglockClient) List(opts *ListOpts) (*DatabasechangeloglockCollection, error) {
 	resp := &DatabasechangeloglockCollection{}
 	err := c.rancherClient.doList(DATABASECHANGELOGLOCK_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *DatabasechangeloglockCollection) Next() (*DatabasechangeloglockCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &DatabasechangeloglockCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *DatabasechangeloglockClient) ById(id string) (*Databasechangeloglock, error) {
 	resp := &Databasechangeloglock{}
 	err := c.rancherClient.doById(DATABASECHANGELOGLOCK_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

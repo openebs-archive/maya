@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/systemd"
@@ -30,8 +32,8 @@ import (
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"github.com/shirou/gopsutil/host"
 )
@@ -55,9 +57,11 @@ const (
 // consul.Client and consul.Server.
 type delegate interface {
 	Encrypted() bool
-	GetLANCoordinate() (*coordinate.Coordinate, error)
+	GetLANCoordinate() (lib.CoordinateSet, error)
 	Leave() error
 	LANMembers() []serf.Member
+	LANMembersAllSegments() ([]serf.Member, error)
+	LANSegmentMembers(segment string) ([]serf.Member, error)
 	LocalMember() serf.Member
 	JoinLAN(addrs []string) (n int, err error)
 	RemoveFailedNode(node string) error
@@ -80,7 +84,7 @@ type notifier interface {
 // requests to other Consul servers.
 type Agent struct {
 	// config is the agent configuration.
-	config *Config
+	config *config.RuntimeConfig
 
 	// Used for writing our logs
 	logger *log.Logger
@@ -161,14 +165,8 @@ type Agent struct {
 	endpoints     map[string]string
 	endpointsLock sync.RWMutex
 
-	// dnsAddr is the address the DNS server binds to
-	dnsAddrs []ProtoAddr
-
 	// dnsServer provides the DNS API
 	dnsServers []*DNSServer
-
-	// httpAddrs are the addresses per protocol the HTTP server binds to
-	httpAddrs []ProtoAddr
 
 	// httpServers provides the HTTP API on various endpoints
 	httpServers []*HTTPServer
@@ -186,20 +184,12 @@ type Agent struct {
 	tokens *token.Store
 }
 
-func New(c *Config) (*Agent, error) {
+func New(c *config.RuntimeConfig) (*Agent, error) {
 	if c.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
 	if c.DataDir == "" && !c.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
-	}
-	dnsAddrs, err := c.DNSAddrs()
-	if err != nil {
-		return nil, fmt.Errorf("Invalid DNS bind address: %s", err)
-	}
-	httpAddrs, err := c.HTTPAddrs()
-	if err != nil {
-		return nil, fmt.Errorf("Invalid HTTP bind address: %s", err)
 	}
 	acls, err := newACLManager(c)
 	if err != nil {
@@ -222,8 +212,6 @@ func New(c *Config) (*Agent, error) {
 		retryJoinCh:     make(chan error),
 		shutdownCh:      make(chan struct{}),
 		endpoints:       make(map[string]string),
-		dnsAddrs:        dnsAddrs,
-		httpAddrs:       httpAddrs,
 		tokens:          new(token.Store),
 	}
 
@@ -266,7 +254,7 @@ func (a *Agent) Start() error {
 	consulCfg.ServerUp = a.state.ConsulServerUp
 
 	// Setup either the client or the server.
-	if c.Server {
+	if c.ServerMode {
 		server, err := consul.NewServerLogger(consulCfg, a.logger, a.tokens)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
@@ -319,14 +307,14 @@ func (a *Agent) Start() error {
 
 	// create listeners and unstarted servers
 	// see comment on listenHTTP why we are doing this
-	httpln, err := a.listenHTTP(a.httpAddrs)
+	httpln, err := a.listenHTTP()
 	if err != nil {
 		return err
 	}
 
-	// start HTTP servers
+	// start HTTP and HTTPS servers
 	for _, l := range httpln {
-		srv := NewHTTPServer(l.Addr().String(), a)
+		srv := NewHTTPServer(l.Addr(), a)
 		if err := a.serveHTTP(l, srv); err != nil {
 			return err
 		}
@@ -339,17 +327,15 @@ func (a *Agent) Start() error {
 	}
 
 	// start retry join
-	go a.retryJoin()
-	go a.retryJoinWan()
+	go a.retryJoinLAN()
+	go a.retryJoinWAN()
 
 	return nil
 }
 
 func (a *Agent) listenAndServeDNS() error {
-	notif := make(chan ProtoAddr, len(a.dnsAddrs))
-	for _, p := range a.dnsAddrs {
-		p := p // capture loop var
-
+	notif := make(chan net.Addr, len(a.config.DNSAddrs))
+	for _, addr := range a.config.DNSAddrs {
 		// create server
 		s, err := NewDNSServer(a)
 		if err != nil {
@@ -359,22 +345,21 @@ func (a *Agent) listenAndServeDNS() error {
 
 		// start server
 		a.wgServers.Add(1)
-		go func() {
+		go func(addr net.Addr) {
 			defer a.wgServers.Done()
-
-			err := s.ListenAndServe(p.Net, p.Addr, func() { notif <- p })
+			err := s.ListenAndServe(addr.Network(), addr.String(), func() { notif <- addr })
 			if err != nil && !strings.Contains(err.Error(), "accept") {
-				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", p.Addr, p.Net, err)
+				a.logger.Printf("[ERR] agent: Error starting DNS server %s (%s): %v", addr.String(), addr.Network(), err)
 			}
-		}()
+		}(addr)
 	}
 
 	// wait for servers to be up
 	timeout := time.After(time.Second)
-	for range a.dnsAddrs {
+	for range a.config.DNSAddrs {
 		select {
-		case p := <-notif:
-			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", p.Addr, p.Net)
+		case addr := <-notif:
+			a.logger.Printf("[INFO] agent: Started DNS server %s (%s)", addr.String(), addr.Network())
 			continue
 		case <-timeout:
 			return fmt.Errorf("agent: timeout starting DNS servers")
@@ -398,43 +383,56 @@ func (a *Agent) listenAndServeDNS() error {
 //
 // This approach should ultimately be refactored to the point where we just
 // start the server and any error should trigger a proper shutdown of the agent.
-func (a *Agent) listenHTTP(addrs []ProtoAddr) ([]net.Listener, error) {
+func (a *Agent) listenHTTP() ([]net.Listener, error) {
 	var ln []net.Listener
-	for _, p := range addrs {
-		var l net.Listener
-		var err error
 
-		switch {
-		case p.Net == "unix":
-			l, err = a.listenSocket(p.Addr, a.config.UnixSockets)
+	start := func(proto string, addrs []net.Addr) error {
+		for _, addr := range addrs {
+			var l net.Listener
+			var err error
 
-		case p.Net == "tcp" && p.Proto == "http":
-			l, err = net.Listen("tcp", p.Addr)
+			switch x := addr.(type) {
+			case *net.UnixAddr:
+				l, err = a.listenSocket(x.Name)
+				if err != nil {
+					return err
+				}
 
-		case p.Net == "tcp" && p.Proto == "https":
-			var tlscfg *tls.Config
-			tlscfg, err = a.config.IncomingHTTPSConfig()
-			if err != nil {
-				break
+			case *net.TCPAddr:
+				l, err = net.Listen("tcp", x.String())
+				if err != nil {
+					return err
+				}
+
+				l = &tcpKeepAliveListener{l.(*net.TCPListener)}
+
+				if proto == "https" {
+					tlscfg, err := a.config.IncomingHTTPSConfig()
+					if err != nil {
+						return err
+					}
+					l = tls.NewListener(l, tlscfg)
+				}
+
+			default:
+				return fmt.Errorf("unsupported address type %T", addr)
 			}
-			l, err = tls.Listen("tcp", p.Addr, tlscfg)
-
-		default:
-			return nil, fmt.Errorf("%s:%s listener not supported", p.Net, p.Proto)
+			ln = append(ln, l)
 		}
+		return nil
+	}
 
-		if err != nil {
-			for _, l := range ln {
-				l.Close()
-			}
-			return nil, err
+	if err := start("http", a.config.HTTPAddrs); err != nil {
+		for _, l := range ln {
+			l.Close()
 		}
-
-		if tcpl, ok := l.(*net.TCPListener); ok {
-			l = &tcpKeepAliveListener{tcpl}
+		return nil, err
+	}
+	if err := start("https", a.config.HTTPSAddrs); err != nil {
+		for _, l := range ln {
+			l.Close()
 		}
-
-		ln = append(ln, l)
+		return nil, err
 	}
 	return ln, nil
 }
@@ -456,7 +454,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 	return tc, nil
 }
 
-func (a *Agent) listenSocket(path string, perm FilePermissions) (net.Listener, error) {
+func (a *Agent) listenSocket(path string) (net.Listener, error) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		a.logger.Printf("[WARN] agent: Replacing socket %q", path)
 	}
@@ -467,8 +465,9 @@ func (a *Agent) listenSocket(path string, perm FilePermissions) (net.Listener, e
 	if err != nil {
 		return nil, err
 	}
-	if err := setFilePermissions(path, perm); err != nil {
-		return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
+	user, group, mode := a.config.UnixSocketUser, a.config.UnixSocketGroup, a.config.UnixSocketMode
+	if err := setFilePermissions(path, user, group, mode); err != nil {
+		return nil, fmt.Errorf("Failed setting up socket: %s", err)
 	}
 	return l, nil
 }
@@ -489,11 +488,11 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	if strings.Contains("*tls.listener", fmt.Sprintf("%T", l)) {
 		srv.proto = "https"
 	}
-	notif := make(chan string)
+	notif := make(chan net.Addr)
 	a.wgServers.Add(1)
 	go func() {
 		defer a.wgServers.Done()
-		notif <- srv.Addr
+		notif <- l.Addr()
 		err := srv.Serve(l)
 		if err != nil && err != http.ErrServerClosed {
 			a.logger.Print(err)
@@ -503,9 +502,9 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 	select {
 	case addr := <-notif:
 		if srv.proto == "https" {
-			a.logger.Printf("[INFO] agent: Started HTTPS server on %s", addr)
+			a.logger.Printf("[INFO] agent: Started HTTPS server on %s (%s)", addr.String(), addr.Network())
 		} else {
-			a.logger.Printf("[INFO] agent: Started HTTP server on %s", addr)
+			a.logger.Printf("[INFO] agent: Started HTTP server on %s (%s)", addr.String(), addr.Network())
 		}
 		return nil
 	case <-time.After(time.Second):
@@ -515,32 +514,90 @@ func (a *Agent) serveHTTP(l net.Listener, srv *HTTPServer) error {
 
 // reloadWatches stops any existing watch plans and attempts to load the given
 // set of watches.
-func (a *Agent) reloadWatches(cfg *Config) error {
-	// Watches use the API to talk to this agent, so that must be enabled.
-	addrs, err := cfg.HTTPAddrs()
-	if err != nil {
-		return err
-	}
-	if len(addrs) == 0 {
-		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
-	}
-
+func (a *Agent) reloadWatches(cfg *config.RuntimeConfig) error {
 	// Stop the current watches.
 	for _, wp := range a.watchPlans {
 		wp.Stop()
 	}
 	a.watchPlans = nil
 
+	// Return if there are no watches now.
+	if len(cfg.Watches) == 0 {
+		return nil
+	}
+
+	// Watches use the API to talk to this agent, so that must be enabled.
+	if len(cfg.HTTPAddrs) == 0 && len(cfg.HTTPSAddrs) == 0 {
+		return fmt.Errorf("watch plans require an HTTP or HTTPS endpoint")
+	}
+
+	// Compile the watches
+	var watchPlans []*watch.Plan
+	for _, params := range cfg.Watches {
+		// Parse the watches, excluding the handler
+		wp, err := watch.ParseExempt(params, []string{"handler", "args"})
+		if err != nil {
+			return fmt.Errorf("Failed to parse watch (%#v): %v", params, err)
+		}
+
+		// Get the handler and subprocess arguments
+		handler, hasHandler := wp.Exempt["handler"]
+		args, hasArgs := wp.Exempt["args"]
+		if hasHandler {
+			a.logger.Printf("[WARN] agent: The 'handler' field in watches has been deprecated " +
+				"and replaced with the 'args' field. See https://www.consul.io/docs/agent/watches.html")
+		}
+		if _, ok := handler.(string); hasHandler && !ok {
+			return fmt.Errorf("Watch handler must be a string")
+		}
+		if raw, ok := args.([]interface{}); hasArgs && ok {
+			var parsed []string
+			for _, arg := range raw {
+				if v, ok := arg.(string); !ok {
+					return fmt.Errorf("Watch args must be a list of strings")
+				} else {
+					parsed = append(parsed, v)
+				}
+			}
+			wp.Exempt["args"] = parsed
+		} else if hasArgs && !ok {
+			return fmt.Errorf("Watch args must be a list of strings")
+		}
+		if hasHandler && hasArgs {
+			return fmt.Errorf("Cannot define both watch handler and args")
+		}
+		if !hasHandler && !hasArgs {
+			return fmt.Errorf("Must define either watch handler or args")
+		}
+
+		// Store the watch plan
+		watchPlans = append(watchPlans, wp)
+	}
+
+	// Determine the primary http(s) endpoint.
+	var netaddr net.Addr
+	if len(cfg.HTTPAddrs) > 0 {
+		netaddr = cfg.HTTPAddrs[0]
+	} else {
+		netaddr = cfg.HTTPSAddrs[0]
+	}
+	addr := netaddr.String()
+	if netaddr.Network() == "unix" {
+		addr = "unix://" + addr
+	}
+
 	// Fire off a goroutine for each new watch plan.
-	for _, wp := range cfg.WatchPlans {
+	for _, wp := range watchPlans {
 		a.watchPlans = append(a.watchPlans, wp)
 		go func(wp *watch.Plan) {
-			wp.Handler = makeWatchHandler(a.LogOutput, wp.Exempt["handler"])
-			wp.LogOutput = a.LogOutput
-			addr := addrs[0].String()
-			if addrs[0].Net == "unix" {
-				addr = "unix://" + addr
+			var handler interface{}
+			if h, ok := wp.Exempt["handler"]; ok {
+				handler = h
+			} else {
+				handler = wp.Exempt["args"]
 			}
+			wp.Handler = makeWatchHandler(a.LogOutput, handler)
+			wp.LogOutput = a.LogOutput
 			if err := wp.Run(addr); err != nil {
 				a.logger.Printf("[ERR] Failed to run watch: %v", err)
 			}
@@ -554,97 +611,66 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Start with the provided config or default config
 	base := consul.DefaultConfig()
 
-	// a.config.ConsulConfig, if set, is a partial configuration for the
-	// consul server or client. Therefore, clone and augment it but
-	// don't use it as base directly.
-	if a.config.ConsulConfig != nil {
-		base = new(consul.Config)
-		*base = *a.config.ConsulConfig
-	}
-
 	// This is set when the agent starts up
 	base.NodeID = a.config.NodeID
 
 	// Apply dev mode
 	base.DevMode = a.config.DevMode
 
-	// Apply performance factors
-	if a.config.Performance.RaftMultiplier > 0 {
-		base.ScaleRaft(a.config.Performance.RaftMultiplier)
-	}
-
 	// Override with our config
-	if a.config.Datacenter != "" {
-		base.Datacenter = a.config.Datacenter
-	}
-	if a.config.DataDir != "" {
-		base.DataDir = a.config.DataDir
-	}
-	if a.config.NodeName != "" {
-		base.NodeName = a.config.NodeName
-	}
-	if a.config.Ports.SerfLan != 0 {
-		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.Ports.SerfLan
-		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfLan
-	}
-	if a.config.Ports.SerfWan != 0 {
-		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.Ports.SerfWan
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfWan
-	}
-	if a.config.BindAddr != "" {
-		bindAddr := &net.TCPAddr{
-			IP:   net.ParseIP(a.config.BindAddr),
-			Port: a.config.Ports.Server,
-		}
-		base.RPCAddr = bindAddr
+	// todo(fs): these are now always set in the runtime config so we can simplify this
+	// todo(fs): or is there a reason to keep it like that?
+	base.Datacenter = a.config.Datacenter
+	base.DataDir = a.config.DataDir
+	base.NodeName = a.config.NodeName
 
-		// Set the Serf configs using the old default behavior, we may
-		// override these in the code right below.
-		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
+	base.CoordinateUpdateBatchSize = a.config.ConsulCoordinateUpdateBatchSize
+	base.CoordinateUpdateMaxBatches = a.config.ConsulCoordinateUpdateMaxBatches
+	base.CoordinateUpdatePeriod = a.config.ConsulCoordinateUpdatePeriod
+
+	base.RaftConfig.HeartbeatTimeout = a.config.ConsulRaftHeartbeatTimeout
+	base.RaftConfig.LeaderLeaseTimeout = a.config.ConsulRaftLeaderLeaseTimeout
+	base.RaftConfig.ElectionTimeout = a.config.ConsulRaftElectionTimeout
+
+	base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrLAN.IP.String()
+	base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrLAN.Port
+	base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrLAN.IP.String()
+	base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrLAN.Port
+	base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
+	base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
+	base.SerfLANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfLANGossipInterval
+	base.SerfLANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfLANProbeInterval
+	base.SerfLANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfLANProbeTimeout
+	base.SerfLANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfLANSuspicionMult
+
+	base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddrWAN.IP.String()
+	base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfBindAddrWAN.Port
+	base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.SerfAdvertiseAddrWAN.IP.String()
+	base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfAdvertiseAddrWAN.Port
+	base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = a.config.EncryptVerifyIncoming
+	base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = a.config.EncryptVerifyOutgoing
+	base.SerfWANConfig.MemberlistConfig.GossipInterval = a.config.ConsulSerfWANGossipInterval
+	base.SerfWANConfig.MemberlistConfig.ProbeInterval = a.config.ConsulSerfWANProbeInterval
+	base.SerfWANConfig.MemberlistConfig.ProbeTimeout = a.config.ConsulSerfWANProbeTimeout
+	base.SerfWANConfig.MemberlistConfig.SuspicionMult = a.config.ConsulSerfWANSuspicionMult
+
+	base.RPCAddr = a.config.RPCBindAddr
+	base.RPCAdvertise = a.config.RPCAdvertiseAddr
+
+	if a.config.ReconnectTimeoutLAN != 0 {
+		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLAN
 	}
-	if a.config.SerfLanBindAddr != "" {
-		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfLanBindAddr
-	}
-	if a.config.SerfWanBindAddr != "" {
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfWanBindAddr
+	if a.config.ReconnectTimeoutWAN != 0 {
+		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWAN
 	}
 
-	if a.config.AdvertiseAddr != "" {
-		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
-		if a.config.AdvertiseAddrWan != "" {
-			base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrWan
+	base.Segment = a.config.SegmentName
+	if len(a.config.Segments) > 0 {
+		segments, err := a.segmentConfig()
+		if err != nil {
+			return nil, err
 		}
-		base.RPCAdvertise = &net.TCPAddr{
-			IP:   net.ParseIP(a.config.AdvertiseAddr),
-			Port: a.config.Ports.Server,
-		}
-	}
-	if a.config.AdvertiseAddrs.SerfLan != nil {
-		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfLan.IP.String()
-		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfLan.Port
-	}
-	if a.config.AdvertiseAddrs.SerfWan != nil {
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfWan.IP.String()
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfWan.Port
-	}
-	if a.config.ReconnectTimeoutLan != 0 {
-		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLan
-	}
-	if a.config.ReconnectTimeoutWan != 0 {
-		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWan
-	}
-	if a.config.EncryptVerifyIncoming != nil {
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyIncoming = *a.config.EncryptVerifyIncoming
-		base.SerfLANConfig.MemberlistConfig.GossipVerifyIncoming = *a.config.EncryptVerifyIncoming
-	}
-	if a.config.EncryptVerifyOutgoing != nil {
-		base.SerfWANConfig.MemberlistConfig.GossipVerifyOutgoing = *a.config.EncryptVerifyOutgoing
-		base.SerfLANConfig.MemberlistConfig.GossipVerifyOutgoing = *a.config.EncryptVerifyOutgoing
-	}
-	if a.config.AdvertiseAddrs.RPC != nil {
-		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
+		base.Segments = segments
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
@@ -655,8 +681,8 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.BootstrapExpect != 0 {
 		base.BootstrapExpect = a.config.BootstrapExpect
 	}
-	if a.config.Protocol > 0 {
-		base.ProtocolVersion = uint8(a.config.Protocol)
+	if a.config.RPCProtocol > 0 {
+		base.ProtocolVersion = uint8(a.config.RPCProtocol)
 	}
 	if a.config.RaftProtocol != 0 {
 		base.RaftConfig.ProtocolVersion = raft.ProtocolVersion(a.config.RaftProtocol)
@@ -667,7 +693,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	if a.config.ACLDatacenter != "" {
 		base.ACLDatacenter = a.config.ACLDatacenter
 	}
-	if a.config.ACLTTLRaw != "" {
+	if a.config.ACLTTL != 0 {
 		base.ACLTTL = a.config.ACLTTL
 	}
 	if a.config.ACLDefaultPolicy != "" {
@@ -677,40 +703,59 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
 	base.EnableACLReplication = a.config.EnableACLReplication
-	if a.config.ACLEnforceVersion8 != nil {
-		base.ACLEnforceVersion8 = *a.config.ACLEnforceVersion8
+	if a.config.ACLEnforceVersion8 {
+		base.ACLEnforceVersion8 = a.config.ACLEnforceVersion8
 	}
-	if a.config.SessionTTLMinRaw != "" {
+	if a.config.ACLEnableKeyListPolicy {
+		base.ACLEnableKeyListPolicy = a.config.ACLEnableKeyListPolicy
+	}
+	if a.config.SessionTTLMin != 0 {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
-	if a.config.Autopilot.CleanupDeadServers != nil {
-		base.AutopilotConfig.CleanupDeadServers = *a.config.Autopilot.CleanupDeadServers
+	if a.config.AutopilotCleanupDeadServers {
+		base.AutopilotConfig.CleanupDeadServers = a.config.AutopilotCleanupDeadServers
 	}
-	if a.config.Autopilot.LastContactThreshold != nil {
-		base.AutopilotConfig.LastContactThreshold = *a.config.Autopilot.LastContactThreshold
+	if a.config.AutopilotLastContactThreshold != 0 {
+		base.AutopilotConfig.LastContactThreshold = a.config.AutopilotLastContactThreshold
 	}
-	if a.config.Autopilot.MaxTrailingLogs != nil {
-		base.AutopilotConfig.MaxTrailingLogs = *a.config.Autopilot.MaxTrailingLogs
+	if a.config.AutopilotMaxTrailingLogs != 0 {
+		base.AutopilotConfig.MaxTrailingLogs = uint64(a.config.AutopilotMaxTrailingLogs)
 	}
-	if a.config.Autopilot.ServerStabilizationTime != nil {
-		base.AutopilotConfig.ServerStabilizationTime = *a.config.Autopilot.ServerStabilizationTime
+	if a.config.AutopilotServerStabilizationTime != 0 {
+		base.AutopilotConfig.ServerStabilizationTime = a.config.AutopilotServerStabilizationTime
 	}
 	if a.config.NonVotingServer {
 		base.NonVoter = a.config.NonVotingServer
 	}
-	if a.config.Autopilot.RedundancyZoneTag != "" {
-		base.AutopilotConfig.RedundancyZoneTag = a.config.Autopilot.RedundancyZoneTag
+	if a.config.AutopilotRedundancyZoneTag != "" {
+		base.AutopilotConfig.RedundancyZoneTag = a.config.AutopilotRedundancyZoneTag
 	}
-	if a.config.Autopilot.DisableUpgradeMigration != nil {
-		base.AutopilotConfig.DisableUpgradeMigration = *a.config.Autopilot.DisableUpgradeMigration
+	if a.config.AutopilotDisableUpgradeMigration {
+		base.AutopilotConfig.DisableUpgradeMigration = a.config.AutopilotDisableUpgradeMigration
 	}
-	if a.config.Autopilot.UpgradeVersionTag != "" {
-		base.AutopilotConfig.UpgradeVersionTag = a.config.Autopilot.UpgradeVersionTag
+	if a.config.AutopilotUpgradeVersionTag != "" {
+		base.AutopilotConfig.UpgradeVersionTag = a.config.AutopilotUpgradeVersionTag
 	}
 
 	// make sure the advertise address is always set
 	if base.RPCAdvertise == nil {
 		base.RPCAdvertise = base.RPCAddr
+	}
+
+	// Rate limiting for RPC calls.
+	if a.config.RPCRateLimit > 0 {
+		base.RPCRate = a.config.RPCRateLimit
+	}
+	if a.config.RPCMaxBurst > 0 {
+		base.RPCMaxBurst = a.config.RPCMaxBurst
+	}
+
+	// RPC-related performance configs.
+	if a.config.RPCHoldTimeout > 0 {
+		base.RPCHoldTimeout = a.config.RPCHoldTimeout
+	}
+	if a.config.LeaveDrainTime > 0 {
+		base.LeaveDrainTime = a.config.LeaveDrainTime
 	}
 
 	// set the src address for outgoing rpc connections
@@ -738,7 +783,7 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
 	base.ServerName = a.config.ServerName
-	base.Domain = a.config.Domain
+	base.Domain = a.config.DNSDomain
 	base.TLSMinVersion = a.config.TLSMinVersion
 	base.TLSCipherSuites = a.config.TLSCipherSuites
 	base.TLSPreferServerCipherSuites = a.config.TLSPreferServerCipherSuites
@@ -754,12 +799,57 @@ func (a *Agent) consulConfig() (*consul.Config, error) {
 	// Setup the loggers
 	base.LogOutput = a.LogOutput
 
-	// This will set up the LAN keyring, as well as the WAN for servers.
+	// This will set up the LAN keyring, as well as the WAN and any segments
+	// for servers.
 	if err := a.setupKeyrings(base); err != nil {
 		return nil, fmt.Errorf("Failed to configure keyring: %v", err)
 	}
 
 	return base, nil
+}
+
+// Setup the serf and memberlist config for any defined network segments.
+func (a *Agent) segmentConfig() ([]consul.NetworkSegment, error) {
+	var segments []consul.NetworkSegment
+	config := a.config
+
+	for _, s := range config.Segments {
+		serfConf := consul.DefaultConfig().SerfLANConfig
+
+		serfConf.MemberlistConfig.BindAddr = s.Bind.IP.String()
+		serfConf.MemberlistConfig.BindPort = s.Bind.Port
+		serfConf.MemberlistConfig.AdvertiseAddr = s.Advertise.IP.String()
+		serfConf.MemberlistConfig.AdvertisePort = s.Advertise.Port
+
+		if config.ReconnectTimeoutLAN != 0 {
+			serfConf.ReconnectTimeout = config.ReconnectTimeoutLAN
+		}
+		if config.EncryptVerifyIncoming {
+			serfConf.MemberlistConfig.GossipVerifyIncoming = config.EncryptVerifyIncoming
+		}
+		if config.EncryptVerifyOutgoing {
+			serfConf.MemberlistConfig.GossipVerifyOutgoing = config.EncryptVerifyOutgoing
+		}
+
+		var rpcAddr *net.TCPAddr
+		if s.RPCListener {
+			rpcAddr = &net.TCPAddr{
+				IP:   s.Bind.IP,
+				Port: a.config.ServerPort,
+			}
+		}
+
+		segments = append(segments, consul.NetworkSegment{
+			Name:       s.Name,
+			Bind:       serfConf.MemberlistConfig.BindAddr,
+			Advertise:  serfConf.MemberlistConfig.AdvertiseAddr,
+			Port:       s.Bind.Port,
+			RPCAddr:    rpcAddr,
+			SerfConfig: serfConf,
+		})
+	}
+
+	return segments, nil
 }
 
 // makeRandomID will generate a random UUID for a node.
@@ -780,7 +870,7 @@ func (a *Agent) makeRandomID() (string, error) {
 // gopsutil change implementations without affecting in-place upgrades of nodes.
 func (a *Agent) makeNodeID() (string, error) {
 	// If they've disabled host-based IDs then just make a random one.
-	if *a.config.DisableHostNodeID {
+	if a.config.DisableHostNodeID {
 		return a.makeRandomID()
 	}
 
@@ -817,7 +907,7 @@ func (a *Agent) makeNodeID() (string, error) {
 
 // setupNodeID will pull the persisted node ID, if any, or create a random one
 // and persist it.
-func (a *Agent) setupNodeID(config *Config) error {
+func (a *Agent) setupNodeID(config *config.RuntimeConfig) error {
 	// If they've configured a node ID manually then just use that, as
 	// long as it's valid.
 	if config.NodeID != "" {
@@ -876,8 +966,8 @@ func (a *Agent) setupNodeID(config *Config) error {
 	return nil
 }
 
-// setupKeyrings is used to initialize and load keyrings during agent startup
-func (a *Agent) setupKeyrings(config *consul.Config) error {
+// setupBaseKeyrings configures the LAN and WAN keyrings.
+func (a *Agent) setupBaseKeyrings(config *consul.Config) error {
 	// If the keyring file is disabled then just poke the provided key
 	// into the in-memory keyring.
 	if a.config.DisableKeyringFile {
@@ -889,7 +979,7 @@ func (a *Agent) setupKeyrings(config *consul.Config) error {
 		if err := loadKeyring(config.SerfLANConfig, keys); err != nil {
 			return err
 		}
-		if a.config.Server {
+		if a.config.ServerMode {
 			if err := loadKeyring(config.SerfWANConfig, keys); err != nil {
 				return err
 			}
@@ -909,7 +999,7 @@ func (a *Agent) setupKeyrings(config *consul.Config) error {
 			return err
 		}
 	}
-	if a.config.Server {
+	if a.config.ServerMode {
 		if _, err := os.Stat(fileWAN); err != nil {
 			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
 				return err
@@ -924,7 +1014,7 @@ LOAD:
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
-	if a.config.Server {
+	if a.config.ServerMode {
 		if _, err := os.Stat(fileWAN); err == nil {
 			config.SerfWANConfig.KeyringFile = fileWAN
 		}
@@ -933,6 +1023,34 @@ LOAD:
 		}
 	}
 
+	return nil
+}
+
+// setupKeyrings is used to initialize and load keyrings during agent startup.
+func (a *Agent) setupKeyrings(config *consul.Config) error {
+	// First set up the LAN and WAN keyrings.
+	if err := a.setupBaseKeyrings(config); err != nil {
+		return err
+	}
+
+	// If there's no LAN keyring then there's nothing else to set up for
+	// any segments.
+	lanKeyring := config.SerfLANConfig.MemberlistConfig.Keyring
+	if lanKeyring == nil {
+		return nil
+	}
+
+	// Copy the initial state of the LAN keyring into each segment config.
+	// Segments don't have their own keyring file, they rely on the LAN
+	// holding the state so things can't get out of sync.
+	k, pk := lanKeyring.GetKeys(), lanKeyring.GetPrimaryKey()
+	for _, segment := range config.Segments {
+		keyring, err := memberlist.NewKeyring(k, pk)
+		if err != nil {
+			return err
+		}
+		segment.SerfConfig.MemberlistConfig.Keyring = keyring
+	}
 	return nil
 }
 
@@ -1050,12 +1168,12 @@ func (a *Agent) ShutdownEndpoints() {
 	a.dnsServers = nil
 
 	for _, srv := range a.httpServers {
-		a.logger.Printf("[INFO] agent: Stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+		a.logger.Printf("[INFO] agent: Stopping %s server %s (%s)", strings.ToUpper(srv.proto), srv.addr.String(), srv.addr.Network())
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		srv.Shutdown(ctx)
 		if ctx.Err() == context.DeadlineExceeded {
-			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s", strings.ToUpper(srv.proto), srv.Addr)
+			a.logger.Printf("[WARN] agent: Timeout stopping %s server %s (%s)", strings.ToUpper(srv.proto), srv.addr.String(), srv.addr.Network())
 		}
 	}
 	a.httpServers = nil
@@ -1153,15 +1271,16 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// GetLANCoordinate returns the coordinate of this node in the local pool (assumes coordinates
-// are enabled, so check that before calling).
-func (a *Agent) GetLANCoordinate() (*coordinate.Coordinate, error) {
+// GetLANCoordinate returns the coordinates of this node in the local pools
+// (assumes coordinates are enabled, so check that before calling).
+func (a *Agent) GetLANCoordinate() (lib.CoordinateSet, error) {
 	return a.delegate.GetLANCoordinate()
 }
 
 // sendCoordinate is a long-running loop that periodically sends our coordinate
 // to the server. Closing the agent's shutdownChannel will cause this to exit.
 func (a *Agent) sendCoordinate() {
+OUTER:
 	for {
 		rate := a.config.SyncCoordinateRateTarget
 		min := a.config.SyncCoordinateIntervalMin
@@ -1181,26 +1300,29 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
-			c, err := a.GetLANCoordinate()
+			cs, err := a.GetLANCoordinate()
 			if err != nil {
 				a.logger.Printf("[ERR] agent: Failed to get coordinate: %s", err)
 				continue
 			}
 
-			req := structs.CoordinateUpdateRequest{
-				Datacenter:   a.config.Datacenter,
-				Node:         a.config.NodeName,
-				Coord:        c,
-				WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
-			}
-			var reply struct{}
-			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				if strings.Contains(err.Error(), permissionDenied) {
-					a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
-				} else {
-					a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+			for segment, coord := range cs {
+				req := structs.CoordinateUpdateRequest{
+					Datacenter:   a.config.Datacenter,
+					Node:         a.config.NodeName,
+					Segment:      segment,
+					Coord:        coord,
+					WriteRequest: structs.WriteRequest{Token: a.tokens.AgentToken()},
 				}
-				continue
+				var reply struct{}
+				if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
+					if acl.IsErrPermissionDenied(err) {
+						a.logger.Printf("[WARN] agent: Coordinate update blocked by ACLs")
+					} else {
+						a.logger.Printf("[ERR] agent: Coordinate update error: %v", err)
+					}
+					continue OUTER
+				}
 			}
 		case <-a.shutdownCh:
 			return
@@ -1363,8 +1485,8 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes []*structs.Che
 		service.ID = service.Service
 	}
 	for _, check := range chkTypes {
-		if !check.Valid() {
-			return fmt.Errorf("Check type is not valid")
+		if err := check.Validate(); err != nil {
+			return fmt.Errorf("Check is not valid: %v", err)
 		}
 	}
 
@@ -1480,8 +1602,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 	}
 
 	if chkType != nil {
-		if !chkType.Valid() {
-			return fmt.Errorf("Check type is not valid")
+		if err := chkType.Validate(); err != nil {
+			return fmt.Errorf("Check is not valid: %v", err)
 		}
 
 		if chkType.IsScript() && !a.config.EnableScriptChecks {
@@ -1583,6 +1705,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 					check.CheckID, MinInterval))
 				chkType.Interval = MinInterval
 			}
+			if chkType.Script != "" {
+				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
+					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
+					check.CheckID)
+			}
 
 			if a.dockerClient == nil {
 				dc, err := NewDockerClient(os.Getenv("DOCKER_HOST"), CheckBufSize)
@@ -1600,6 +1727,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
 				Script:            chkType.Script,
+				ScriptArgs:        chkType.ScriptArgs,
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
 				client:            a.dockerClient,
@@ -1613,18 +1741,24 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				delete(a.checkMonitors, check.CheckID)
 			}
 			if chkType.Interval < MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
+				a.logger.Printf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval)
 				chkType.Interval = MinInterval
+			}
+			if chkType.Script != "" {
+				a.logger.Printf("[WARN] agent: check %q has the 'script' field, which has been deprecated "+
+					"and replaced with the 'args' field. See https://www.consul.io/docs/agent/checks.html",
+					check.CheckID)
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   a.state,
-				CheckID:  check.CheckID,
-				Script:   chkType.Script,
-				Interval: chkType.Interval,
-				Timeout:  chkType.Timeout,
-				Logger:   a.logger,
+				Notify:     a.state,
+				CheckID:    check.CheckID,
+				Script:     chkType.Script,
+				ScriptArgs: chkType.ScriptArgs,
+				Interval:   chkType.Interval,
+				Timeout:    chkType.Timeout,
+				Logger:     a.logger,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
@@ -1903,13 +2037,16 @@ func (a *Agent) deletePid() error {
 
 // loadServices will load service definitions from configuration and persisted
 // definitions on disk, and load them into the local agent.
-func (a *Agent) loadServices(conf *Config) error {
+func (a *Agent) loadServices(conf *config.RuntimeConfig) error {
 	// Register the services from config
 	for _, service := range conf.Services {
 		ns := service.NodeService()
-		chkTypes := service.CheckTypes()
+		chkTypes, err := service.CheckTypes()
+		if err != nil {
+			return fmt.Errorf("Failed to validate checks for service %q: %v", service.Name, err)
+		}
 		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
-			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
+			return fmt.Errorf("Failed to register service %q: %v", service.Name, err)
 		}
 	}
 
@@ -1992,7 +2129,7 @@ func (a *Agent) unloadServices() error {
 
 // loadChecks loads check definitions and/or persisted check definitions from
 // disk and re-registers them with the local agent.
-func (a *Agent) loadChecks(conf *Config) error {
+func (a *Agent) loadChecks(conf *config.RuntimeConfig) error {
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
@@ -2096,13 +2233,15 @@ func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 
 // loadMetadata loads node metadata fields from the agent config and
 // updates them on the local agent.
-func (a *Agent) loadMetadata(conf *Config) error {
+func (a *Agent) loadMetadata(conf *config.RuntimeConfig) error {
 	a.state.Lock()
 	defer a.state.Unlock()
 
-	for key, value := range conf.Meta {
+	for key, value := range conf.NodeMeta {
 		a.state.metadata[key] = value
 	}
+
+	a.state.metadata[structs.MetaSegmentKey] = conf.SegmentName
 
 	a.state.changeMade()
 
@@ -2210,7 +2349,7 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-func (a *Agent) ReloadConfig(newCfg *Config) error {
+func (a *Agent) ReloadConfig(newCfg *config.RuntimeConfig) error {
 	// Bulk update the services and checks
 	a.PauseSync()
 	defer a.ResumeSync()
@@ -2245,7 +2384,9 @@ func (a *Agent) ReloadConfig(newCfg *Config) error {
 	}
 
 	// Update filtered metrics
-	metrics.UpdateFilter(newCfg.Telemetry.AllowedPrefixes, newCfg.Telemetry.BlockedPrefixes)
+	metrics.UpdateFilter(newCfg.TelemetryAllowedPrefixes, newCfg.TelemetryBlockedPrefixes)
+
+	a.state.SetDiscardCheckOutput(newCfg.DiscardCheckOutput)
 
 	return nil
 }

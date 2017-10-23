@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/rancher/go-rancher/client"
+	_ "github.com/rancherio/go-rancher/client"
 )
 
 func main() {

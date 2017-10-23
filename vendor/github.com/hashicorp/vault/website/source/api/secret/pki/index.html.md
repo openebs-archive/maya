@@ -41,6 +41,7 @@ update your API calls accordingly.
 * [Generate Root](#generate-root)
 * [Delete Root](#delete-root)
 * [Sign Intermediate](#sign-intermediate)
+* [Sign Self-Issued](#sign-self-issued)
 * [Sign Certificate](#sign-certificate)
 * [Sign Verbatim](#sign-verbatim)
 * [Tidy](#tidy)
@@ -140,6 +141,7 @@ This endpoint returns a list of the current certificates by serial number only.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/pki/certs`                 | `200 application/json` |
+| `GET`    | `/pki/certs?list=true`       | `200 application/json` |
 
 
 ### Sample Request
@@ -833,6 +835,7 @@ returned, not any values.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/pki/roles`                 | `200 application/json` |
+| `GET`    | `/pki/roles?list=true`       | `200 application/json` |
 
 ### Sample Request
 
@@ -1032,7 +1035,8 @@ verbatim.
 
 - `ttl` `(string: "")` – Specifies the requested Time To Live (after which the
   certificate will be expired). This cannot be larger than the mount max (or, if
-  not set, the system max).
+  not set, the system max). However, this can be after the expiration of the
+  signing CA.
 
 - `format` `(string: "pem")` – Specifies the format for returned data. Can be
   `pem`, `der`, or `pem_bundle`. If `der`, the output is base64 encoded. If
@@ -1071,7 +1075,6 @@ verbatim.
 {
   "csr": "...",
   "common_name": "example.com"
-
 }
 ```
 
@@ -1101,6 +1104,65 @@ $ curl \
   "auth": null
 }
 ```
+## Sign Self-Issued
+
+This endpoint uses the configured CA certificate to sign a self-issued
+certificate (which will usually be a self-signed certificate as well).
+
+**_This is an extremely privileged endpoint_**. The given certificate will be
+signed as-is with only minimal validation performed (is it a CA cert, and is it
+actually self-issued). The only values that will be changed will be the
+authority key ID, the issuer DN, and, if set, any distribution points.
+
+This is generally only needed for root certificate rolling in cases where you
+don't want/can't get access to a CSR (such as if it's a root stored in Vault
+where the key is not exposed). If you don't know whether you need this
+endpoint, you most likely should be using a different endpoint (such as
+`sign-intermediate`).
+
+This endpoint requires `sudo` capability.
+
+| Method   | Path                         | Produces               |
+| :------- | :--------------------------- | :--------------------- |
+| `POST`   | `/pki/root/sign-self-issued` | `200 application/json` |
+
+### Parameters
+
+- `certificate` `(string: <required>)` – Specifies the PEM-encoded self-issued certificate.
+
+### Sample Payload
+
+```json
+{
+  "certificate": "..."
+}
+```
+
+### Sample Request
+
+```
+$ curl \
+    --header "X-Vault-Token: ..." \
+    --request POST \
+    --data @payload.json \
+    https://vault.rocks/v1/pki/root/sign-self-issued
+```
+
+### Sample Response
+
+```json
+{
+  "lease_id": "",
+  "renewable": false,
+  "lease_duration": 0,
+  "data": {
+    "certificate": "-----BEGIN CERTIFICATE-----\nMIIDzDCCAragAwIBAgIUOd0ukLcjH43TfTHFG9qE0FtlMVgwCwYJKoZIhvcNAQEL\n...\numkqeYeO30g1uYvDuWLXVA==\n-----END CERTIFICATE-----\n",
+    "issuing_ca": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIJAKM+z4MSfw2mMA0GCSqGSIb3DQEBCwUAMBsxGTAXBgNV\n...\nG/7g4koczXLoUM3OQXd5Aq2cs4SS1vODrYmgbioFsQ3eDHd1fg==\n-----END CERTIFICATE-----\n",
+  },
+  "auth": null
+}
+```
+
 
 ## Sign Certificate
 

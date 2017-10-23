@@ -180,6 +180,75 @@ func TestClient_RPC(t *testing.T) {
 	})
 }
 
+type leaderFailer struct {
+	totalCalls int
+	onceCalls  int
+}
+
+func (l *leaderFailer) Always(args struct{}, reply *struct{}) error {
+	l.totalCalls++
+	return structs.ErrNoLeader
+}
+
+func (l *leaderFailer) Once(args struct{}, reply *struct{}) error {
+	l.totalCalls++
+	l.onceCalls++
+
+	switch {
+	case l.onceCalls == 1:
+		return structs.ErrNoLeader
+
+	default:
+		return nil
+	}
+}
+
+func TestClient_RPC_Retry(t *testing.T) {
+	t.Parallel()
+
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClientWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.NodeName = uniqueNodeName(t.Name())
+		c.RPCHoldTimeout = 2 * time.Second
+	})
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	joinLAN(t, c1, s1)
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+			r.Fatalf("err: %v", err)
+		}
+	})
+
+	failer := &leaderFailer{}
+	if err := s1.RegisterEndpoint("Fail", failer); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var out struct{}
+	if err := c1.RPC("Fail.Always", struct{}{}, &out); !structs.IsErrNoLeader(err) {
+		t.Fatalf("err: %v", err)
+	}
+	if got, want := failer.totalCalls, 2; got < want {
+		t.Fatalf("got %d want >= %d", got, want)
+	}
+	if err := c1.RPC("Fail.Once", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if got, want := failer.onceCalls, 2; got < want {
+		t.Fatalf("got %d want >= %d", got, want)
+	}
+	if got, want := failer.totalCalls, 4; got < want {
+		t.Fatalf("got %d want >= %d", got, want)
+	}
+}
+
 func TestClient_RPC_Pool(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -333,6 +402,36 @@ func TestClient_RPC_TLS(t *testing.T) {
 	})
 }
 
+func TestClient_RPC_RateLimit(t *testing.T) {
+	t.Parallel()
+	dir1, conf1 := testServerConfig(t)
+	s1, err := NewServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	dir2, conf2 := testClientConfig(t)
+	conf2.RPCRate = 2
+	conf2.RPCMaxBurst = 2
+	c1, err := NewClient(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	joinLAN(t, c1, s1)
+	retry.Run(t, func(r *retry.R) {
+		var out struct{}
+		if err := c1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrRPCRateExceeded {
+			r.Fatalf("err: %v", err)
+		}
+	})
+}
+
 func TestClient_SnapshotRPC(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -348,9 +447,6 @@ func TestClient_SnapshotRPC(t *testing.T) {
 
 	// Try to join.
 	joinLAN(t, c1, s1)
-	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
-		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
-	}
 
 	// Wait until we've got a healthy server.
 	retry.Run(t, func(r *retry.R) {
@@ -374,6 +470,42 @@ func TestClient_SnapshotRPC(t *testing.T) {
 	if err := c1.SnapshotRPC(&args, &snap, nil, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestClient_SnapshotRPC_RateLimit(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+
+	dir2, conf1 := testClientConfig(t)
+	conf1.RPCRate = 2
+	conf1.RPCMaxBurst = 2
+	c1, err := NewClient(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	joinLAN(t, c1, s1)
+	retry.Run(t, func(r *retry.R) {
+		if got, want := c1.routers.NumServers(), 1; got != want {
+			r.Fatalf("got %d servers want %d", got, want)
+		}
+	})
+
+	retry.Run(t, func(r *retry.R) {
+		var snap bytes.Buffer
+		args := structs.SnapshotRequest{
+			Datacenter: "dc1",
+			Op:         structs.SnapshotSave,
+		}
+		if err := c1.SnapshotRPC(&args, bytes.NewReader([]byte("")), &snap, nil); err != structs.ErrRPCRateExceeded {
+			r.Fatalf("err: %v", err)
+		}
+	})
 }
 
 func TestClient_SnapshotRPC_TLS(t *testing.T) {

@@ -57,8 +57,7 @@ unarchived before the starting the task.
   documentation][go-getter] for a complete list of options and examples
 
 - `source` `(string: <required>)` - Specifies the URL of the artifact to download.
-  Only `http`, `https`, and `s3` URLs are supported. See [`go-getter`][go-getter]
-  for details.
+  See [`go-getter`][go-getter] for details.
 
 ## `artifact` Examples
 
@@ -85,6 +84,31 @@ This example downloads the artifact from the provided URL and places it at
 artifact {
   source      = "https://example.com/file.txt"
   destination = "/tmp/example.txt"
+}
+```
+
+### Download using git
+
+This example downloads the artifact from the provided github url and places it at
+`local/repo`, as specified by the optional `destination` parameter.
+
+```hcl
+artifact {
+  source      = "git::https://github.com/example/nomad-examples"
+  destination = "local/repo"
+}
+```
+
+To download from private repo, sshkeys need to be set. The key must be
+base64-encoded string. Run `base64 -w0 <file>`
+
+```hcl
+artifact {
+  source      = "git@github.com:example/nomad-examples"
+  destination = "local/repo"
+  options {
+    sshkeys = "<string>"
+  }
 }
 ```
 

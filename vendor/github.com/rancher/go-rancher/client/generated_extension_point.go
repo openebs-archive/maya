@@ -6,22 +6,22 @@ const (
 
 type ExtensionPoint struct {
 	Resource
-
-	ExcludeSetting string `json:"excludeSetting,omitempty" yaml:"exclude_setting,omitempty"`
-
-	Implementations []interface{} `json:"implementations,omitempty" yaml:"implementations,omitempty"`
-
-	IncludeSetting string `json:"includeSetting,omitempty" yaml:"include_setting,omitempty"`
-
-	ListSetting string `json:"listSetting,omitempty" yaml:"list_setting,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+    
+    ExcludeSetting string `json:"excludeSetting,omitempty"`
+    
+    Implementations []interface{} `json:"implementations,omitempty"`
+    
+    IncludeSetting string `json:"includeSetting,omitempty"`
+    
+    ListSetting string `json:"listSetting,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
 }
 
 type ExtensionPointCollection struct {
 	Collection
-	Data   []ExtensionPoint `json:"data,omitempty"`
-	client *ExtensionPointClient
+	Data []ExtensionPoint `json:"data,omitempty"`
 }
 
 type ExtensionPointClient struct {
@@ -57,28 +57,12 @@ func (c *ExtensionPointClient) Update(existing *ExtensionPoint, updates interfac
 func (c *ExtensionPointClient) List(opts *ListOpts) (*ExtensionPointCollection, error) {
 	resp := &ExtensionPointCollection{}
 	err := c.rancherClient.doList(EXTENSION_POINT_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ExtensionPointCollection) Next() (*ExtensionPointCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ExtensionPointCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ExtensionPointClient) ById(id string) (*ExtensionPoint, error) {
 	resp := &ExtensionPoint{}
 	err := c.rancherClient.doById(EXTENSION_POINT_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

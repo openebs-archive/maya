@@ -6,16 +6,14 @@ const (
 
 type TypeDocumentation struct {
 	Resource
-
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-
-	ResourceFields map[string]interface{} `json:"resourceFields,omitempty" yaml:"resource_fields,omitempty"`
+    
+    Description string `json:"description,omitempty"`
+    
 }
 
 type TypeDocumentationCollection struct {
 	Collection
-	Data   []TypeDocumentation `json:"data,omitempty"`
-	client *TypeDocumentationClient
+	Data []TypeDocumentation `json:"data,omitempty"`
 }
 
 type TypeDocumentationClient struct {
@@ -51,28 +49,12 @@ func (c *TypeDocumentationClient) Update(existing *TypeDocumentation, updates in
 func (c *TypeDocumentationClient) List(opts *ListOpts) (*TypeDocumentationCollection, error) {
 	resp := &TypeDocumentationCollection{}
 	err := c.rancherClient.doList(TYPE_DOCUMENTATION_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *TypeDocumentationCollection) Next() (*TypeDocumentationCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &TypeDocumentationCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *TypeDocumentationClient) ById(id string) (*TypeDocumentation, error) {
 	resp := &TypeDocumentation{}
 	err := c.rancherClient.doById(TYPE_DOCUMENTATION_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

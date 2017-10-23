@@ -6,18 +6,18 @@ const (
 
 type ExtensionImplementation struct {
 	Resource
-
-	ClassName string `json:"className,omitempty" yaml:"class_name,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-
-	Properties map[string]interface{} `json:"properties,omitempty" yaml:"properties,omitempty"`
+    
+    ClassName string `json:"className,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
+    Properties map[string]interface{} `json:"properties,omitempty"`
+    
 }
 
 type ExtensionImplementationCollection struct {
 	Collection
-	Data   []ExtensionImplementation `json:"data,omitempty"`
-	client *ExtensionImplementationClient
+	Data []ExtensionImplementation `json:"data,omitempty"`
 }
 
 type ExtensionImplementationClient struct {
@@ -53,28 +53,12 @@ func (c *ExtensionImplementationClient) Update(existing *ExtensionImplementation
 func (c *ExtensionImplementationClient) List(opts *ListOpts) (*ExtensionImplementationCollection, error) {
 	resp := &ExtensionImplementationCollection{}
 	err := c.rancherClient.doList(EXTENSION_IMPLEMENTATION_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *ExtensionImplementationCollection) Next() (*ExtensionImplementationCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &ExtensionImplementationCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *ExtensionImplementationClient) ById(id string) (*ExtensionImplementation, error) {
 	resp := &ExtensionImplementation{}
 	err := c.rancherClient.doById(EXTENSION_IMPLEMENTATION_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

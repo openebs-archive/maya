@@ -1,5 +1,4 @@
-/.dapper
-/bin
-/dist
 *.swp
-/.trash-cache
+
+bin
+gopath

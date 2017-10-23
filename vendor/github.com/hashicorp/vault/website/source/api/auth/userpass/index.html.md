@@ -177,6 +177,7 @@ List available userpass users.
 | Method   | Path                         | Produces               |
 | :------- | :--------------------------- | :--------------------- |
 | `LIST`   | `/auth/userpass/users`          | `200 application/json` |
+| `GET`    | `/auth/userpass/users?list=true` | `200 application/json` |
 
 ### Sample Request
 
@@ -225,7 +226,6 @@ Login with the username and password.
 
 ```
 $ curl \
-    --header "X-Vault-Token: ..." \
     --request POST \
     --data @payload.json \
     https://vault.rocks/v1/auth/userpass/login/mitchellh

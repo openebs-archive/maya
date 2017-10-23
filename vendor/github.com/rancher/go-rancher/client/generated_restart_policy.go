@@ -6,16 +6,16 @@ const (
 
 type RestartPolicy struct {
 	Resource
-
-	MaximumRetryCount int64 `json:"maximumRetryCount,omitempty" yaml:"maximum_retry_count,omitempty"`
-
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+    
+    MaximumRetryCount int `json:"maximumRetryCount,omitempty"`
+    
+    Name string `json:"name,omitempty"`
+    
 }
 
 type RestartPolicyCollection struct {
 	Collection
-	Data   []RestartPolicy `json:"data,omitempty"`
-	client *RestartPolicyClient
+	Data []RestartPolicy `json:"data,omitempty"`
 }
 
 type RestartPolicyClient struct {
@@ -51,28 +51,12 @@ func (c *RestartPolicyClient) Update(existing *RestartPolicy, updates interface{
 func (c *RestartPolicyClient) List(opts *ListOpts) (*RestartPolicyCollection, error) {
 	resp := &RestartPolicyCollection{}
 	err := c.rancherClient.doList(RESTART_POLICY_TYPE, opts, resp)
-	resp.client = c
 	return resp, err
-}
-
-func (cc *RestartPolicyCollection) Next() (*RestartPolicyCollection, error) {
-	if cc != nil && cc.Pagination != nil && cc.Pagination.Next != "" {
-		resp := &RestartPolicyCollection{}
-		err := cc.client.rancherClient.doNext(cc.Pagination.Next, resp)
-		resp.client = cc.client
-		return resp, err
-	}
-	return nil, nil
 }
 
 func (c *RestartPolicyClient) ById(id string) (*RestartPolicy, error) {
 	resp := &RestartPolicy{}
 	err := c.rancherClient.doById(RESTART_POLICY_TYPE, id, resp)
-	if apiError, ok := err.(*ApiError); ok {
-		if apiError.StatusCode == 404 {
-			return nil, nil
-		}
-	}
 	return resp, err
 }
 

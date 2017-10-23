@@ -101,7 +101,12 @@ function notify(message, ttl) {
 // TODO: not sure how to how do to this more Ember.js-y
 function tomographyMouseOver(el) {
   var buf = el.getAttribute('data-node') + ' - ' + el.getAttribute('data-distance') + 'ms';
-  document.getElementById('tomography-node-info').innerHTML = buf;
+  var segment = el.getAttribute('data-segment');
+  if (segment !== "") {
+    buf += ' (Segment: ' + segment + ')';
+  }
+  document.getElementById('tomography-node-info').textContent = buf;
+
 }
 
 Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
@@ -146,7 +151,7 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   }
   distances.forEach(function (d, i) {
     buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (d.distance / max)) + '" ' +
-      'data-node="' + d.node + '" data-distance="' + d.distance + '" onmouseover="tomographyMouseOver(this);"/>';
+      'data-node="' + Handlebars.Utils.escapeExpression(d.node) + '" data-distance="' + d.distance + '" data-segment="' + Handlebars.Utils.escapeExpression(d.segment) + '" onmouseover="tomographyMouseOver(this);"/>';
   });
   buf += '' +
 '          </g>' +
