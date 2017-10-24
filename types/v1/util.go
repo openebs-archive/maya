@@ -874,7 +874,6 @@ func DefaultPVPReplicaCount() string {
 	return string(PVPReplicaCountDef)
 }
 
-
 // GetReplicaCount gets the not nil volume replica count
 func GetReplicaCount(spec VolumeSpec) *int32 {
 	val := ReplicaCount(spec)
@@ -902,8 +901,8 @@ func ReplicaCount(spec VolumeSpec) *int32 {
 // DefaultReplicaCount will fetch the coded default value of volume
 // replica count
 func DefaultReplicaCount() *int32 {
-  count, _ := strconv.ParseInt(string(PVPReplicaCountDef), 10, 32)
-  count32 := int32(count)
+	count, _ := strconv.ParseInt(string(PVPReplicaCountDef), 10, 32)
+	count32 := int32(count)
 	return &count32
 }
 

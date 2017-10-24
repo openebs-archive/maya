@@ -340,7 +340,7 @@ const (
 
 	VolumeSizeAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/volume-size"
 
-  // Deprecate
+	// Deprecate
 	ReplicaCountAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-count"
 )
 

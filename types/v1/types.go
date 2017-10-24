@@ -81,16 +81,16 @@ type PersistentVolumeSource struct {
 //    Only one of its members may be specified. Currently OpenEBS is the only
 // member. There may be other members in future.
 type VolumeSpec struct {
-  // The context of this volume specification. 
-  // Examples: "controller", "replica". Implicitly inferred to be "replica" 
-  // if unspecified.
-  // +optional
-  Context VolumeContext `json:"context,omitempty" protobuf:"bytes,1,opt,name=context,casttype=VolumeContext"`
+	// The context of this volume specification.
+	// Examples: "controller", "replica". Implicitly inferred to be "replica"
+	// if unspecified.
+	// +optional
+	Context VolumeContext `json:"context,omitempty" protobuf:"bytes,1,opt,name=context,casttype=VolumeContext"`
 
-  // Number of desired replicas. This is a pointer to distinguish between explicit
-  // zero and not specified. Defaults to 1.
-  // +optional
-  Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+	// Number of desired replicas. This is a pointer to distinguish between explicit
+	// zero and not specified. Defaults to 1.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList
@@ -118,13 +118,13 @@ type VolumeSpec struct {
 type VolumeContext string
 
 const (
-  // ReplicaVolumeContext represents a volume w.r.t 
-  // replica context
-  ReplicaVolumeContext VolumeContext = "Replica"
-  
-  // ControllerVolumeContext represents a volume w.r.t 
-  // controller context
-  ControllerVolumeContext VolumeContext = "Controller"
+	// ReplicaVolumeContext represents a volume w.r.t
+	// replica context
+	ReplicaVolumeContext VolumeContext = "Replica"
+
+	// ControllerVolumeContext represents a volume w.r.t
+	// controller context
+	ControllerVolumeContext VolumeContext = "Controller"
 )
 
 // PersistentVolumeReclaimPolicy describes a policy for end-of-life maintenance of persistent volumes
@@ -286,7 +286,7 @@ type Volume struct {
 	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specs contains the desired specifications the volume should have.
-  // +optional
+	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
 
 	// Status represents the current information/status of a volume

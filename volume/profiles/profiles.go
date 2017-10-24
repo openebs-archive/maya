@@ -311,16 +311,16 @@ func (pp *pvcVolProProfile) StorageSize() (string, error) {
 
 // ReplicaCount get the number of replicas required
 func (pp *pvcVolProProfile) ReplicaCount() (*int32, error) {
-  specs := pp.pvc.Specs
-  
-  for _, spec := range specs {
-    if spec.Context == v1.ReplicaVolumeContext {
-      return v1.GetReplicaCount(spec), nil
-    }
-  }
-  
+	specs := pp.pvc.Specs
+
+	for _, spec := range specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			return v1.GetReplicaCount(spec), nil
+		}
+	}
+
 	// If you are here, then get from defaults
-  return v1.GetReplicaCount(v1.VolumeSpec{}), nil
+	return v1.GetReplicaCount(v1.VolumeSpec{}), nil
 }
 
 // ControllerIPs gets the IP addresses that needs to be assigned against the
