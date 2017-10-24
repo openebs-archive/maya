@@ -63,10 +63,3 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	Entrypoint(options)
 	return nil
 }
-
-/*func CheckErr(err error, handleErr func(string)) {
-	if err == nil {
-		return
-	}
-	handleErr(err.Error())
-}*/
