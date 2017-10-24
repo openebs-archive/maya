@@ -228,6 +228,8 @@ const (
 	PVPReqReplicaLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/req-replica"
 	// Label / Tag for a persistent volume provisioner's networking support
 	PVPReqNetworkingLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/req-networking"
+
+	// Deprecate
 	// Label / Tag for a persistent volume provisioner's replica count
 	PVPReplicaCountLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/replica-count"
 	// Label / Tag for a persistent volume provisioner's persistent path count
@@ -317,8 +319,10 @@ const (
 	//PVPNodeSelectorValueLbl VolumeProvisionerProfileLabel = PVPNodeAffinityExpressionsLbl
 )
 
+// Deprecate
 type MayaAPIServiceOutputLabel string
 
+// Deprecate all these constants
 const (
 	ReplicaStatusAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-status"
 
@@ -336,6 +340,7 @@ const (
 
 	VolumeSizeAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/volume-size"
 
+  // Deprecate
 	ReplicaCountAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-count"
 )
 

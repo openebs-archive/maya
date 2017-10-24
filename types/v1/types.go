@@ -81,6 +81,17 @@ type PersistentVolumeSource struct {
 //    Only one of its members may be specified. Currently OpenEBS is the only
 // member. There may be other members in future.
 type VolumeSpec struct {
+  // The context of this volume specification. 
+  // Examples: "controller", "replica". Implicitly inferred to be "replica" 
+  // if unspecified.
+  // +optional
+  Context VolumeContext `json:"context,omitempty" protobuf:"bytes,1,opt,name=context,casttype=VolumeContext"`
+
+  // Number of desired replicas. This is a pointer to distinguish between explicit
+  // zero and not specified. Defaults to 1.
+  // +optional
+  Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList
 	// Source represents the location and type of a volume to mount.
@@ -103,6 +114,18 @@ type VolumeSpec struct {
 	// +optional
 	StorageClassName string
 }
+
+type VolumeContext string
+
+const (
+  // ReplicaVolumeContext represents a volume w.r.t 
+  // replica context
+  ReplicaVolumeContext VolumeContext = "Replica"
+  
+  // ControllerVolumeContext represents a volume w.r.t 
+  // controller context
+  ControllerVolumeContext VolumeContext = "Controller"
+)
 
 // PersistentVolumeReclaimPolicy describes a policy for end-of-life maintenance of persistent volumes
 type PersistentVolumeReclaimPolicy string
@@ -258,11 +281,14 @@ type VolumeAPISpec struct {
 //Volume is a user's Request for a Openebs volume
 type Volume struct {
 	TypeMeta `json:",inline"`
+
 	// Standard object's metadata
 	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	//Spec defines a persistent volume owned by OpenEBS cluster
-	// +optional
-	Spec VolumeSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+
+	// Specs contains the desired specifications the volume should have.
+  // +optional
+	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
+
 	// Status represents the current information/status of a volume
 	Status VolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }

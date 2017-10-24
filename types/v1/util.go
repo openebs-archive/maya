@@ -874,6 +874,39 @@ func DefaultPVPReplicaCount() string {
 	return string(PVPReplicaCountDef)
 }
 
+
+// GetReplicaCount gets the not nil volume replica count
+func GetReplicaCount(spec VolumeSpec) *int32 {
+	val := ReplicaCount(spec)
+	if val == nil {
+		val = DefaultReplicaCount()
+	}
+
+	return val
+}
+
+// ReplicaCount will fetch the value specified against volume replica
+// count if available otherwise will return blank.
+func ReplicaCount(spec VolumeSpec) *int32 {
+	if spec.Replicas != nil {
+		return spec.Replicas
+	}
+
+	// else get from environment variable
+	countStr := OSGetEnv(string(PVPReplicaCountEnvVarKey), nil)
+	count, _ := strconv.ParseInt(countStr, 10, 32)
+	count32 := int32(count)
+	return &count32
+}
+
+// DefaultReplicaCount will fetch the coded default value of volume
+// replica count
+func DefaultReplicaCount() *int32 {
+  count, _ := strconv.ParseInt(string(PVPReplicaCountDef), 10, 32)
+  count32 := int32(count)
+	return &count32
+}
+
 // MakeOrDefJivaReplicaArgs will set the placeholders in jiva replica args with
 // their appropriate runtime values.
 //
