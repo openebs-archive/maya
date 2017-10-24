@@ -527,8 +527,8 @@ func (e *errRepCountVolumeProfile) ReplicaImage() (string, error) {
 }
 
 // ReplicaCount returns an error
-func (e *errRepCountVolumeProfile) ReplicaCount() (int, error) {
-	return 0, fmt.Errorf("err-rep-count")
+func (e *errRepCountVolumeProfile) ReplicaCount() (*int32, error) {
+	return nil, fmt.Errorf("err-rep-count")
 }
 
 // errPersistentPathCountVolumeProfile returns an error during invocation of
@@ -596,8 +596,10 @@ func (e *okCreateReplicaPodVolumeProfile) ReplicaImage() (string, error) {
 }
 
 // ReplicaCount does not return any error
-func (e *okCreateReplicaPodVolumeProfile) ReplicaCount() (int, error) {
-	return 2, nil
+func (e *okCreateReplicaPodVolumeProfile) ReplicaCount() (*int32, error) {
+	count := 2
+	count32 := int32(count)
+	return &count32, nil
 }
 
 // PersistentPathCount does not return any error

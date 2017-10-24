@@ -982,7 +982,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		},
 		Spec: k8sApisExtnsBeta1.DeploymentSpec{
 			// -- automated K8s way of replica count management
-			Replicas: v1.Replicas(rCount),
+			Replicas: rCount,
 			Template: k8sApiV1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
