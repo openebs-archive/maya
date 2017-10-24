@@ -2,12 +2,12 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"strings"
 
 	goflag "flag"
 
 	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/maya-agent/app/exporter"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -23,27 +23,13 @@ type MayaAgentOptions struct {
 }
 
 func AddKubeConfigFlag(cmd *cobra.Command, value *string) {
-	cmd.Flags().StringVarP(value, "kubeconfig", "", *value, "Path to a kube config. Only required if out-of-cluster.")
+	cmd.Flags().StringVarP(value, "kubeconfig", "", *value,
+		"Path to a kube config. Only required if out-of-cluster.")
 }
 
 func AddNamespaceFlag(cmd *cobra.Command, value *string) {
-	cmd.Flags().StringVarP(value, "namespace", "n", *value, "Namespace to deploy in. If no namespace is provided, POD_NAMESPACE env. var is used. Lastly, the 'default' namespace will be used as a last option.")
-}
-
-// Fatal prints the message (if provided) and then exits. If V(2) or greater,
-// glog.Fatal is invoked for extended information.
-func fatal(msg string) {
-	if glog.V(2) {
-		glog.FatalDepth(2, msg)
-	}
-	if len(msg) > 0 {
-		// add newline if needed
-		if !strings.HasSuffix(msg, "\n") {
-			msg += "\n"
-		}
-		fmt.Fprint(os.Stderr, msg)
-	}
-	os.Exit(1)
+	cmd.Flags().StringVarP(value, "namespace", "n", *value,
+		"Namespace to deploy in. If no namespace is provided, POD_NAMESPACE env.var is used. Lastly, the 'default' namespace will be used as a last option.")
 }
 
 // NewCmdOptions creates an options Cobra command to return usage
@@ -69,7 +55,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 		Use:   usage,
 		Short: "",
 		Run: func(cmd *cobra.Command, args []string) {
-			checkErr(Run(cmd, &options), fatal)
+			util.CheckErr(Run(cmd, &options), util.Fatal)
 		},
 	}
 
@@ -77,7 +63,9 @@ func NewMayaAgent() (*cobra.Command, error) {
 	// e.g. This imports the golang/glog pkg flags into the cmd flagset
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	goflag.CommandLine.Parse([]string{})
-
+	cmd.AddCommand(
+		exporter.NewCmdVolumeExporter(),
+	)
 	// Define the flags allowed in this command & store each option provided
 	// as a flag, into the MayaAgentOptions
 	AddKubeConfigFlag(cmd, &options.KubeConfig)
@@ -91,11 +79,4 @@ func Run(cmd *cobra.Command, options *MayaAgentOptions) error {
 	glog.Infof("Starting maya-agent...")
 
 	return nil
-}
-
-func checkErr(err error, handleErr func(string)) {
-	if err == nil {
-		return
-	}
-	handleErr(err.Error())
 }
