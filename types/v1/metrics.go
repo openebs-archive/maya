@@ -1,11 +1,9 @@
 package v1
 
-import "github.com/rancher/go-rancher/client"
-
 // OpenEBSVolumeMetrics is used to store the collected metrics
 // all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
-type OpenEBSVolumeMetrics struct {
-	Resource        client.Resource
+type VolumeMetrics struct {
+	Resource        Resource
 	RevisionCounter int64         `json:"RevisionCounter"`
 	ReplicaCounter  int64         `json:"ReplicaCounter"`
 	SCSIIOCount     map[int]int64 `json:"SCSIIOCount"`
@@ -21,4 +19,11 @@ type OpenEBSVolumeMetrics struct {
 	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
 	UsedBlocks        string `json:"UsedBlocks"`
 	SectorSize        string `json:"SectorSize"`
+}
+
+type Resource struct {
+	Id      string            `json:"id,omitempty"`
+	Type    string            `json:"type,omitempty"`
+	Links   map[string]string `json:"links"`
+	Actions map[string]string `json:"actions"`
 }
