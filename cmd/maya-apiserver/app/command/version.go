@@ -24,9 +24,9 @@ func (c *VersionCommand) Help() string {
 func (c *VersionCommand) Run(_ []string) int {
 	var versionString bytes.Buffer
 
-	fmt.Fprintf(&versionString, "m-apiserver v%s", c.Version)
+	fmt.Fprintf(&versionString, "m-apiserver %s", c.Version)
 	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
+		fmt.Fprintf(&versionString, "%s", c.VersionPrerelease)
 
 		if c.Revision != "" {
 			fmt.Fprintf(&versionString, " (%s)", c.Revision)

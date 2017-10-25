@@ -3,11 +3,12 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 
 	"github.com/mitchellh/cli"
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -32,10 +33,9 @@ This command provides versioning and other details relevant to maya.
 // Run holds the flag values for CLI subcommands
 func (c *VersionCommand) Run(_ []string) int {
 	var versionString bytes.Buffer
-	var s *ServerMembersCommand
-	fmt.Fprintf(&versionString, "Maya v%s", c.Version)
+	fmt.Fprintf(&versionString, "Maya %s", c.Version)
 	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
+		fmt.Fprintf(&versionString, "%s", c.VersionPrerelease)
 
 		if c.Revision != "" {
 			fmt.Fprintf(&versionString, " (%s)", c.Revision)
@@ -46,36 +46,11 @@ func (c *VersionCommand) Run(_ []string) int {
 
 	fmt.Println("Go Version:", runtime.Version())
 	fmt.Println("OS/Arch:", runtime.GOOS, "/", runtime.GOARCH)
-	addr := os.Getenv("MAPI_ADDR")
 
-	/*if addr == "" {
-		addr = getEnvOrDefault(addr)
+	fmt.Println("m-apiserver url: ", mapiserver.GetURL())
+	fmt.Println("m-apiserver status: ", mapiserver.GetConnectionStatus())
 
-		os.Setenv("MAPI_ADDR", addr)
-		addr = os.Getenv("MAPI_ADDR")
-
-	}*/
-	_, err := s.mserverStatus()
-	if err != nil {
-		fmt.Println("M-apiserver: Unable to contact M-apiserver :", addr)
-	}
-	if err == nil {
-		fmt.Printf("M-apiserver: %v\n", addr)
-	}
-	_, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST")
-	if !ok {
-		for _, e := range os.Environ() {
-			ok := strings.Contains(e, "NOMAD_ADDR")
-			if !ok {
-				fmt.Println("Provider : Unknown")
-				return 0
-			}
-			fmt.Println("Provider : NOMAD")
-			return 0
-		}
-
-	}
-	fmt.Println("Provider: KUBERNETES")
+	fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
 
 	return 0
 }
