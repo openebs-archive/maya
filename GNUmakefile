@@ -20,6 +20,7 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Specify the name for the binaries
 MAYACTL=maya
 APISERVER=maya-apiserver
+AGENT=maya-agent
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -109,7 +110,20 @@ install: bin/maya/${MAYACTL}
 
 # Use this to build only the maya-agent.
 maya-agent:
-	GOOS=linux go build ./cmd/maya-agent
+	@echo "----------------------------"
+	@echo "--> maya-agent              "
+	@echo "----------------------------"
+	@CTLNAME=${AGENT} sh -c "'$(PWD)/buildscripts/agent/build.sh'"
+
+# m-agent image. This is going to be decoupled soon.
+agent-image: maya-agent
+	@echo "----------------------------"
+	@echo "--> m-agent image         "
+	@echo "----------------------------"
+	@cp bin/agent/${AGENT} buildscripts/agent/
+	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/agent/${AGENT}
+	@sh buildscripts/agent/push
 
 # Use this to build only the maya apiserver.
 apiserver:
