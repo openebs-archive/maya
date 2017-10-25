@@ -13,68 +13,32 @@
 // a volume in OpenEBS can be considered as a StoragePod.
 package v1
 
-// PersistentVolumeClaimSpec describes the common attributes of storage devices
-// and allows a Source for provider-specific attributes
-type PersistentVolumeClaimSpec struct {
-	// AccessModes contains the desired access modes the volume should have.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#access-modes-1
+//Volume is a user's Request for a OpenEBS volume
+type Volume struct {
+	TypeMeta `json:",inline"`
+
+	// Standard object's metadata
+	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Specs contains the desired specifications the volume should have.
 	// +optional
-	AccessModes []PersistentVolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=PersistentVolumeAccessMode"`
-	// A label query over volumes to consider for binding.
-	// +optional
-	Selector *LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
-	// Resources represents the minimum resources the volume should have.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#resources
-	// +optional
-	Resources ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,2,opt,name=resources"`
-	// VolumeName is the binding reference to the PersistentVolume backing this claim.
-	// +optional
-	VolumeName string `json:"volumeName,omitempty" protobuf:"bytes,3,opt,name=volumeName"`
-	// Name of the StorageClass required by the claim.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#class-1
-	// +optional
-	StorageClassName *string `json:"storageClassName,omitempty"`
+	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
+
+	// Status represents the current information/status of a volume
+	Status VolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
-// PersistentVolumeClaimStatus is the current status of a persistent volume claim.
-type PersistentVolumeClaimStatus struct {
-	// Phase represents the current phase of PersistentVolumeClaim.
+// VolumeList is a list of OpenEBS Volume items.
+type VolumeList struct {
+	TypeMeta `json:",inline"`
+	// Standard list metadata.
 	// +optional
-	Phase PersistentVolumeClaimPhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=PersistentVolumeClaimPhase"`
-	// AccessModes contains the actual access modes the volume backing the PVC has.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes#access-modes-1
-	// +optional
-	AccessModes []PersistentVolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,2,rep,name=accessModes,casttype=PersistentVolumeAccessMode"`
-	// Represents the actual resources of the underlying volume.
-	// +optional
-	Capacity ResourceList `json:"capacity,omitempty" protobuf:"bytes,3,rep,name=capacity,casttype=ResourceList,castkey=ResourceName"`
+	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// List of openebs volumes.
+	Items []Volume `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-type PersistentVolumeClaimPhase string
-
-const (
-	// used for PersistentVolumeClaims that are not yet bound
-	ClaimPending PersistentVolumeClaimPhase = "Pending"
-	// used for PersistentVolumeClaims that are bound
-	ClaimBound PersistentVolumeClaimPhase = "Bound"
-	// used for PersistentVolumeClaims that lost their underlying
-	// PersistentVolume. The claim was bound to a PersistentVolume and this
-	// volume does not exist any longer and all data on it was lost.
-	ClaimLost PersistentVolumeClaimPhase = "Lost"
-)
-
-// PersistentVolumeSource represents the source type of the persistent volume.
-//
-// NOTE:
-//   Exactly one of its members must be set. Currently OpenEBS is the only
-// member.
-type PersistentVolumeSource struct {
-	// OpenEBS represents an OpenEBS disk
-	// +optional
-	OpenEBS OpenEBS
-}
-
-// PersistentVolumeSpec provides various characteristics of a volume
+// VolumeSpec provides various characteristics of a volume
 // that can be mounted, used, etc.
 //
 // NOTE:
@@ -95,24 +59,14 @@ type VolumeSpec struct {
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList
 	// Source represents the location and type of a volume to mount.
-	PersistentVolumeSource
+	VolumeSource
 	// AccessModes contains all ways the volume can be mounted
 	// +optional
-	AccessModes []PersistentVolumeAccessMode
-	// ClaimRef is part of a bi-directional binding between PersistentVolume and PersistentVolumeClaim.
-	// ClaimRef is expected to be non-nil when bound.
-	// claim.VolumeName is the authoritative bind between PV and PVC.
-	// When set to non-nil value, PVC.Spec.Selector of the referenced PVC is
-	// ignored, i.e. labels of this PV do not need to match PVC selector.
-	// +optional
-	ClaimRef *ObjectReference
-	// Optional: what happens to a persistent volume when released from its claim.
-	// +optional
-	PersistentVolumeReclaimPolicy PersistentVolumeReclaimPolicy
+	AccessModes []VolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=VolumeAccessMode"`
 	// Name of StorageClass to which this persistent volume belongs. Empty value
 	// means that this volume does not belong to any StorageClass.
 	// +optional
-	StorageClassName string
+	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
 type VolumeContext string
@@ -127,30 +81,26 @@ const (
 	ControllerVolumeContext VolumeContext = "Controller"
 )
 
-// PersistentVolumeReclaimPolicy describes a policy for end-of-life maintenance of persistent volumes
-type PersistentVolumeReclaimPolicy string
+// VolumeSource represents the source type of the Openebs volume.
+// NOTE:
+//   Exactly one of its members must be set. Currently OpenEBS is the only
+// member.
+type VolumeSource struct {
+	// OpenEBS represents an OpenEBS disk
+	// +optional
+	OpenEBS OpenEBS
+}
 
-const (
-	// PersistentVolumeReclaimRecycle means the volume will be recycled back into the pool of unbound persistent volumes on release from its claim.
-	// The volume plugin must support Recycling.
-	PersistentVolumeReclaimRecycle PersistentVolumeReclaimPolicy = "Recycle"
-	// PersistentVolumeReclaimDelete means the volume will be deleted from Kubernetes on release from its claim.
-	// The volume plugin must support Deletion.
-	PersistentVolumeReclaimDelete PersistentVolumeReclaimPolicy = "Delete"
-	// PersistentVolumeReclaimRetain means the volume will be left in its current phase (Released) for manual reclamation by the administrator.
-	// The default policy is Retain.
-	PersistentVolumeReclaimRetain PersistentVolumeReclaimPolicy = "Retain"
-)
-
-type PersistentVolumeAccessMode string
+// VolumeAccessMode defines different modes of volume access
+type VolumeAccessMode string
 
 const (
 	// can be mounted read/write mode to exactly 1 host
-	ReadWriteOnce PersistentVolumeAccessMode = "ReadWriteOnce"
+	ReadWriteOnce VolumeAccessMode = "ReadWriteOnce"
 	// can be mounted in read-only mode to many hosts
-	ReadOnlyMany PersistentVolumeAccessMode = "ReadOnlyMany"
+	ReadOnlyMany VolumeAccessMode = "ReadOnlyMany"
 	// can be mounted in read/write mode to many hosts
-	ReadWriteMany PersistentVolumeAccessMode = "ReadWriteMany"
+	ReadWriteMany VolumeAccessMode = "ReadWriteMany"
 )
 
 type VolumeStatus struct {
@@ -168,18 +118,17 @@ type VolumeStatus struct {
 type VolumePhase string
 
 const (
-	// used for PersistentVolumes that are not available
+	// used for Volumes that are not available
 	VolumePending VolumePhase = "Pending"
-	// used for PersistentVolumes that are not yet bound
-	// Available volumes are held by the binder and matched to PersistentVolumeClaims
+	// used for Volumes that are not yet bound
 	VolumeAvailable VolumePhase = "Available"
-	// used for PersistentVolumes that are bound
+	// used for Volumes that are bound
 	VolumeBound VolumePhase = "Bound"
-	// used for PersistentVolumes where the bound PersistentVol:syntime onumeClaim was deleted
+	// used for Volumes where the bound PersistentVol:syntime onumeClaim was deleted
 	// released volumes must be recycled before becoming available again
-	// this phase is used by the persistent volume claim binder to signal to another process to reclaim the resource
+	// this phase is used by the volume claim binder to signal to another process to reclaim the resource
 	VolumeReleased VolumePhase = "Released"
-	// used for PersistentVolumes that failed to be correctly recycled or deleted after being released from a claim
+	// used for Volumes that failed to be correctly recycled or deleted after being released from a claim
 	VolumeFailed VolumePhase = "Failed"
 )
 
@@ -276,32 +225,6 @@ type VolumeAPISpec struct {
 			Storage string `yaml:"volumeprovisioner.mapi.openebs.io/storage-size"`
 		}
 	} `yaml:"metadata"`
-}
-
-//Volume is a user's Request for a Openebs volume
-type Volume struct {
-	TypeMeta `json:",inline"`
-
-	// Standard object's metadata
-	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// Specs contains the desired specifications the volume should have.
-	// +optional
-	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
-
-	// Status represents the current information/status of a volume
-	Status VolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-}
-
-// VolumeList is a list of PersistentVolume items.
-type VolumeList struct {
-	TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// +optional
-	ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	// List of persistent volumes.
-	// More info: http://kubernetes.io/docs/user-guide/persistent-volumes
-	Items []Volume `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // -------------Snapshot Structs ----------
