@@ -10,6 +10,7 @@ ENV MAYA_API_SERVER_NETWORK="eth0"
 
 RUN apk add --no-cache \
     iproute2 \
+    bash \
     curl \
     net-tools \
     mii-tool \
