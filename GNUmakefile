@@ -57,7 +57,7 @@ cov:
 
 test: format
 	@echo "--> Running go test" ;
-	@go test $(PACKAGES)
+	@go test -v $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
