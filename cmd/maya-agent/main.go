@@ -1,10 +1,9 @@
 package main
 
 import (
-	"os"
-
 	"github.com/openebs/maya/cmd/maya-agent/app"
 	mayalogger "github.com/openebs/maya/kit/logs"
+	"os"
 )
 
 func main() {

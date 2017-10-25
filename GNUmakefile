@@ -25,7 +25,7 @@ AGENT=maya-agent
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test mayactl apiserver
+all: maya-agent test mayactl apiserver
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -57,7 +57,7 @@ cov:
 
 test: format
 	@echo "--> Running go test" ;
-	@go test $(PACKAGES)
+	@go test -v $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
