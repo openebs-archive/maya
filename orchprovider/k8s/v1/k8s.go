@@ -11,10 +11,9 @@ import (
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	//k8sUnversioned "k8s.io/client-go/pkg/api/unversioned"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sApiV1 "k8s.io/client-go/pkg/api/v1"
 	k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
@@ -36,42 +35,6 @@ type k8sOrchestrator struct {
 	// NOTE:
 	//    This will be set at runtime.
 	k8sUtlGtr K8sUtilGetter
-
-	// rCount is the number of replica counts
-	//rCount int
-
-	// vsm is the name of the openebs volume
-	//vsm string
-
-	// rImg is the replica image
-	//rImg string
-
-	// persistPath is the persistent path i.e. storage backend of the openebs volume
-	//persistPath string
-
-	// pvc is an instance of persistent volume claim which is provided during
-	// openebs volume operations
-	//pvc *v1.PersistentVolumeClaim
-
-	// k8sClient is an instance of K8sClient that exposes Kubernetes based
-	// operations
-	//k8sClient K8sClient
-
-	// dOps is an instance capable of performing Kubernetes related Deployment
-	// operations
-	//dOps k8sExtnsV1Beta1.DeploymentInterface
-
-	// nodeSelKeysByName contains a mapping of replica identifier & respective
-	// node selector key
-	//nodeSelKeysByName map[string]string
-
-	// nodeSelOpsByName contains a mapping of replica identifier & respective
-	// node selector operator
-	//nodeSelOpsByName map[string]string
-
-	// nodeSelValuesByName contains a mapping of replica identifier & respective
-	// node selector value
-	//nodeSelValuesByName map[string]string
 }
 
 // NewK8sOrchestrator provides a new instance of K8sOrchestrator.
@@ -118,175 +81,6 @@ func (k *k8sOrchestrator) Name() string {
 func (k *k8sOrchestrator) Region() string {
 	return ""
 }
-
-//
-//func (k *k8sOrchestrator) getReplicaCount(volProfile volProfile.VolumeProvisionerProfile) (int, error) {
-// is already set ?
-//	if k.rCount != 0 {
-//		return k.rCount, nil
-//	}
-// else extract it
-//	rCount, err := volProfile.ReplicaCount()
-//	if err != nil {
-//		return 0, err
-//	}
-// set it so that it can be used later as well
-//k.rCount = rCount
-//return k.rCount, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getVSM(volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.vsm != "" {
-//	return k.vsm, nil
-//}
-// else extract it
-//vsm, err := volProfile.VSMName()
-//if err != nil {
-//	return "", err
-//}
-// set it so that it can be used later as well
-//k.vsm = vsm
-//return k.vsm, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getReplicaImg(volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.rImg != "" {
-//	return k.rImg, nil
-//}
-// else extract it
-//rImg, err := volProfile.ReplicaImage()
-//if err != nil {
-//	return "", err
-//}
-// set it so that it can be used later as well
-//k.rImg = rImg
-//return k.rImg, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getPersistPath(volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.persistPath != "" {
-//	return k.persistPath, nil
-//}
-// else extract it
-//persistPath, err := volProfile.PersistentPath()
-//if err != nil {
-//	return "", err
-//}
-// set it so that it can be used later as well
-//k.persistPath = persistPath
-//return k.persistPath, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getPVC(volProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeClaim, error) {
-// is already set ?
-//if k.pvc != nil {
-//	return k.pvc, nil
-//}
-// else extract it
-//pvc, err := volProfile.PVC()
-//if err != nil {
-//	return nil, err
-//}
-// set it so that it can be used later as well
-//k.pvc = pvc
-//return k.pvc, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getK8sClient(volProfile volProfile.VolumeProvisionerProfile) (K8sClient, error) {
-// is already set ?
-//if k.k8sClient != nil {
-//	return k.k8sClient, nil
-//}
-// else extract it
-//k8sUtl := k8sOrchUtil(k, volProfile)
-//k8sClient, supported := k8sUtl.K8sClient()
-//if !supported {
-//	return nil, fmt.Errorf("K8s client not supported by '%s'", k8sUtl.Name())
-//}
-// set it so that it can be used later as well
-//k.k8sClient = k8sClient
-//return k.k8sClient, nil
-//}
-
-//
-//func (k *k8sOrchestrator) getDeploymentOps(volProfile volProfile.VolumeProvisionerProfile) (k8sExtnsV1Beta1.DeploymentInterface, error) {
-// is already set ?
-//if k.dOps != nil {
-//	return k.dOps, nil
-//}
-// else extract it
-//kc, err := k.getK8sClient(volProfile)
-//if err != nil {
-//	return nil, err
-//}
-// fetch k8s deployment operations
-//dOps, err := kc.DeploymentOps()
-//if err != nil {
-//	return nil, err
-//}
-// set it so that it can be used later as well
-//k.dOps = dOps
-//return k.dOps, nil
-//}
-
-// getNodeSelectorKey gets the key to select a node for replica placement.
-// repIdentifier can be the replica pod name or a user provided replica pod
-// identifier to associate the node selector key with its corresponding node
-// selector value.
-//func (k *k8sOrchestrator) getNodeSelectorKey(repIdentifier string, volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.nodeSelKeysByName != nil && k.nodeSelKeysByName[repIdentifier] != "" {
-//	return k.nodeSelKeysByName[repIdentifier], nil
-//}
-// else extract it
-//nodeSelKey := volProfile.NodeSelectorKey(repIdentifier)
-
-// set it (blank value is valid as well) so that it can be used later as well
-//k.nodeSelKeysByName[repIdentifier] = nodeSelKey
-//return k.nodeSelKeysByName[repIdentifier], nil
-//}
-
-// getNodeSelectorOp gets the operator to select a node for replica placement.
-// repIdentifier can be the replica pod name or a user provided replica pod
-// identifier to associate the node selector operator with its corresponding node
-// selector key & node selector value.
-//func (k *k8sOrchestrator) getNodeSelectorOp(repIdentifier string, volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.nodeSelOpsByName != nil && k.nodeSelOpsByName[repIdentifier] != "" {
-//	return k.nodeSelOpsByName[repIdentifier], nil
-//}
-// else extract it
-//nodeSelOp := volProfile.NodeSelectorOp(repIdentifier)
-
-// set it (blank value is valid as well) so that it can be used later as well
-//k.nodeSelOpsByName[repIdentifier] = nodeSelOp
-//return k.nodeSelOpsByName[repIdentifier], nil
-//}
-
-// getNodeSelectorValues gets the value(s) to select a node for replica placement.
-// repIdentifier can be the replica pod name or a user provided replica pod
-// identifier to associate the node selector value with its corresponding node
-// selector key.
-//func (k *k8sOrchestrator) getNodeSelectorValues(repName string, volProfile volProfile.VolumeProvisionerProfile) (string, error) {
-// is already set ?
-//if k.nodeSelValuesByName != nil && k.nodeSelValuesByName[repName] != "" {
-//	return k.nodeSelValuesByName[repName], nil
-//}
-// else extract it
-//nodeSelVal := volProfile.NodeSelectorValue(repName)
-
-// set it (blank value is valid as well) so that it can be used later as well
-//k.nodeSelValuesByName[repName] = nodeSelVal
-//return k.nodeSelValuesByName[repName], nil
-//}
 
 // TODO
 // Check if StorageOps() can do these stuff in a better way. This method &
@@ -921,16 +715,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	//pCount, err := volProProfile.PersistentPathCount()
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//if pCount != rCount {
-	//	return nil, fmt.Errorf("VSM '%s' replica count '%d' does not match persistent path count '%d'", vsm, rCount, pCount)
-	//}
-
-	pvc, err := volProProfile.PVC()
+	vol, err := volProProfile.Volume()
 	if err != nil {
 		return nil, err
 	}
@@ -1036,7 +821,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// Considering above scenarios, it might make more sense to have
 									// separate K8s Deployment for each replica. However,
 									// there are dis-advantages in diverging from K8s replica set.
-									TopologyKey: v1.GetPVPReplicaTopologyKey(pvc.Labels),
+									TopologyKey: v1.GetPVPReplicaTopologyKey(vol.Labels),
 								},
 							},
 						},
@@ -1048,7 +833,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Name:    vsm + string(v1.ReplicaSuffix) + string(v1.ContainerSuffix),
 							Image:   rImg,
 							Command: v1.JivaReplicaCmd,
-							Args:    v1.MakeOrDefJivaReplicaArgs(pvc.Labels, clusterIP),
+							Args:    v1.MakeOrDefJivaReplicaArgs(vol.Labels, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
 								k8sApiV1.ContainerPort{
 									ContainerPort: v1.DefaultJivaReplicaPort1(),
