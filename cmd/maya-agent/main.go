@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/openebs/maya/cmd/maya-agent/app"
-	mayalogger "github.com/openebs/maya/kit/logs"
+	mayalogger "github.com/openebs/maya/pkg/logs"
 )
 
 func main() {
