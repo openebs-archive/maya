@@ -5,6 +5,7 @@ import (
 
 	"github.com/mitchellh/cli"
 	"github.com/openebs/maya/command"
+	"github.com/openebs/maya/pkg/version"
 )
 
 // Commands returns the mapping of CLI commands for Maya. The meta
@@ -110,23 +111,10 @@ func Commands(metaPtr *command.Meta) map[string]cli.CommandFactory {
 			},
 		*/
 		"version": func() (cli.Command, error) {
-			ver := Version
-			rel := VersionPrerelease
-			if GitDescribe != "" {
-				ver = GitDescribe
-				// Trim off a leading 'v', we append it anyways.
-				if ver[0] == 'v' {
-					ver = ver[1:]
-				}
-			}
-			if GitDescribe == "" && rel == "" && VersionPrerelease != "" {
-				rel = "dev"
-			}
-
 			return &command.VersionCommand{
-				Revision:          GitCommit,
-				Version:           ver,
-				VersionPrerelease: rel,
+				Revision:          version.GetGitCommit(),
+				Version:           version.GetVersion(),
+				VersionPrerelease: version.GetBuildMeta(),
 				Ui:                meta.Ui,
 			}, nil
 		},

@@ -18,80 +18,40 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime"
 
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/pkg/client/mapiserver"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
-)
-
-var (
-	// Version is the current version of Ark, set by the go linker's -X flag at build time.
-	Version string
-
-	// GitSHA is the actual commit that is being built, set by the go linker's -X flag at build time.
-	GitSHA string
-
-	// GitTreeState indicates if the git tree is clean or dirty, set by the go linker's -X flag at build
-	// time.
-	GitTreeState string
 )
 
 // NewCommand creates the version command
 func NewCmdVersion() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print Maya version information",
-		Long: `Print Maya version information for the current context
+		Short: "Prints version and other details relevant to maya",
+		Long: `Prints version and other details relevant to maya
 
-Example:
+Usage:
 maya version
 	`,
 
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Version: %s\n", getVersion())
-			fmt.Printf("Git commit: %s", getGitCommit())
-			//fmt.Printf("Git tree state: %s\n", GitTreeState)
-			fmt.Printf("Go-Version: %s\n", runtime.Version())
-			fmt.Printf("GOARCH: %s\n", runtime.GOARCH)
-			fmt.Printf("GOOS: %s\n", runtime.GOOS)
+			fmt.Printf("Version: %s\n",
+				version.GetVersion()+version.GetBuildMeta())
+			fmt.Printf("Git commit: %s\n", version.GetGitCommit())
 
+			fmt.Printf("GO Version: %s\n", runtime.Version())
+			fmt.Printf("GO ARCH: %s\n", runtime.GOARCH)
+			fmt.Printf("GO OS: %s\n", runtime.GOOS)
+
+			fmt.Println("m-apiserver url: ", mapiserver.GetURL())
+			fmt.Println("m-apiserver status: ", mapiserver.GetConnectionStatus())
+
+			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
 		},
 	}
 
 	return cmd
-}
-
-// FormattedGitSHA renders the Git SHA with an indicator of the tree state.
-func FormattedGitSHA() string {
-	if GitTreeState != "clean" {
-		return fmt.Sprintf("%s-%s", GitSHA, GitTreeState)
-	}
-	return GitSHA
-}
-
-var (
-	versionFile = "/src/github.com/openebs/maya/VERSION"
-)
-
-func getVersion() string {
-	path := filepath.Join(os.Getenv("GOPATH") + versionFile)
-	vBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		// ignore error
-		return ""
-	}
-	return string(vBytes)
-}
-
-func getGitCommit() string {
-	cmd := exec.Command("git", "rev-parse", "--verify", "HEAD")
-	output, err := cmd.Output()
-	if err != nil {
-		// ignore error
-		return ""
-	}
-	return string(output)
 }

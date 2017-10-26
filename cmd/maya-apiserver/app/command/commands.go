@@ -12,19 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package command
 
 import (
-	"github.com/openebs/maya/cmd/mayactl/app/command"
-	"github.com/openebs/maya/pkg/client/mapiserver"
+	"github.com/spf13/cobra"
 )
 
-func init() {
-	mapiserver.Initialize()
-}
+// NewCommand creates the `maya-apiserver` command and its nested children.
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "maya-apiserver",
+		Short: "CLI for managing maya-apiserver",
+		Long:  `CLI for managing maya-apiserver`,
+	}
 
-func main() {
-	err := command.NewMayaCommand().Execute()
+	cmd.AddCommand(
+		NewCmdVersion(),
+		NewCmdStart(),
+	)
 
-	command.CheckError(err)
+	return cmd
 }
