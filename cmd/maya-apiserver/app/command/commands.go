@@ -12,18 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package command
 
 import (
-	"github.com/openebs/maya/cmd/maya-apiserver/app/command"
-	mlogger "github.com/openebs/maya/kit/logs"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	// Init logging
-	mlogger.InitLogs()
-	defer mlogger.FlushLogs()
+// NewCommand creates the `maya-apiserver` command and its nested children.
+func NewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "maya-apiserver",
+		Short: "CLI for managing maya-apiserver",
+		Long:  `CLI for managing maya-apiserver`,
+	}
 
-	err := command.NewCommand().Execute()
-	command.CheckError(err)
+	cmd.AddCommand(
+		NewCmdVersion(),
+		NewCmdStart(),
+	)
+
+	return cmd
 }

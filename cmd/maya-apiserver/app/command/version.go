@@ -1,43 +1,53 @@
+/*
+Copyright 2017 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package command
 
 import (
-	"bytes"
 	"fmt"
+	"runtime"
 
-	"github.com/mitchellh/cli"
+	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/pkg/version"
+	"github.com/spf13/cobra"
 )
 
-// VersionCommand is a cli implementation that prints the version.
-type VersionCommand struct {
-	Revision          string
-	Version           string
-	VersionPrerelease string
-	Ui                cli.Ui
-}
+// NewCmdVersion creates the version command
+func NewCmdVersion() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Prints maya-apiserver version",
+		Long: `Prints maya-apiserver version and other details
 
-// Help returns empty string
-func (c *VersionCommand) Help() string {
-	return ""
-}
+Usage:
+maya-apiserver version
+	`,
 
-// Run displays the m-apiserver version details
-func (c *VersionCommand) Run(_ []string) int {
-	var versionString bytes.Buffer
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Version: %s\n",
+				version.GetVersion()+version.GetBuildMeta())
+			fmt.Printf("Git commit: %s\n", version.GetGitCommit())
 
-	fmt.Fprintf(&versionString, "m-apiserver %s", c.Version)
-	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, "%s", c.VersionPrerelease)
+			fmt.Printf("GO Version: %s\n", runtime.Version())
+			fmt.Printf("GO ARCH: %s\n", runtime.GOARCH)
+			fmt.Printf("GO OS: %s\n", runtime.GOOS)
 
-		if c.Revision != "" {
-			fmt.Fprintf(&versionString, " (%s)", c.Revision)
-		}
+			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
+		},
 	}
 
-	c.Ui.Output(versionString.String())
-	return 0
-}
-
-// Synopsis return string
-func (c *VersionCommand) Synopsis() string {
-	return "Prints maya api server's version"
+	return cmd
 }
