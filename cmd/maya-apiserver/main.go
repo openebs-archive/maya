@@ -16,7 +16,7 @@ package main
 
 import (
 	"github.com/openebs/maya/cmd/maya-apiserver/app/command"
-	mlogger "github.com/openebs/maya/kit/logs"
+	mlogger "github.com/openebs/maya/pkg/logs"
 )
 
 func main() {
