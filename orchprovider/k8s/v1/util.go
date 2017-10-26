@@ -277,14 +277,14 @@ func (k *k8sUtil) getClientSet() (*kubernetes.Clientset, error) {
 	// Get if already available in current instance
 	// NOTE: A new instance of k8sUtil is created per http request
 	if k.inCS != nil {
-		return cs, nil
+		return k.inCS, nil
 	}
 
-	if cs == nil && k.outCS != nil {
-		return cs, nil
+	if k.outCS != nil {
+		return k.outCS, nil
 	}
 
-	// Get it fresh for this instance/http request
+	// Else get it fresh for this instance/http request
 	inC, err := k.IsInCluster()
 	if err != nil {
 		return nil, err
@@ -293,9 +293,11 @@ func (k *k8sUtil) getClientSet() (*kubernetes.Clientset, error) {
 	// set based on in-cluster or out-of-cluster
 	if inC {
 		cs, err = k.getInClusterCS()
+		// set it for future retrievals in same http request
 		k.inCS = cs
 	} else {
 		cs, err = k.getOutClusterCS()
+		// set it for future retrievals in same http request
 		k.outCS = cs
 	}
 
