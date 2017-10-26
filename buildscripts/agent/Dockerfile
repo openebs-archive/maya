@@ -3,18 +3,17 @@
 # maya-agent  releases.
 #
 
-FROM alpine:3.6
+FROM ubuntu:16.04
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_AGENT_NETWORK="eth0"
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     iproute2 \
     curl \
-    net-tools \
-    mii-tool \
+    net-tools \   
     procps \
-    libc6-compat
+    open-iscsi
 
 COPY maya-agent /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
