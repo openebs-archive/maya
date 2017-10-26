@@ -39,45 +39,45 @@ type NodeStatusCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *NodeStatusCommand) Help() string {
 	helpText := `
-Usage: maya osh-status [options] <node>
+	Usage: maya osh-status [options] <node>
 
-  Display status information about a given node. The list of nodes
-  returned includes only nodes which jobs may be scheduled to, and
-  includes status and other high-level information.
+	Display status information about a given node. The list of nodes
+	returned includes only nodes which jobs may be scheduled to, and
+	includes status and other high-level information.
 
-  If a node ID is passed, information for that specific node will be displayed,
-  including resource usage statistics. If no node ID's are passed, then a
-  short-hand list of all nodes will be displayed. The -self flag is useful to
-  quickly access the status of the local node.
+	If a node ID is passed, information for that specific node will be displayed,
+	including resource usage statistics. If no node ID's are passed, then a
+	short-hand list of all nodes will be displayed. The -self flag is useful to
+	quickly access the status of the local node.
 
-General Options:
+	General Options:
 
-  ` + generalOptionsUsage() + `
+	` + generalOptionsUsage() + `
 
-Node Status Options:
+	Node Status Options:
 
-  -self
-    Query the status of the local node.
+	-self
+	Query the status of the local node.
 
-  -stats 
-    Display detailed resource usage statistics.
+	-stats 
+	Display detailed resource usage statistics.
 
-  -allocs
-    Display a count of running allocations for each node.
+	-allocs
+	Display a count of running allocations for each node.
 
-  -short
-    Display short output. Used only when a single node is being
-    queried, and drops verbose output about node allocations.
+	-short
+	Display short output. Used only when a single node is being
+	queried, and drops verbose output about node allocations.
 
-  -verbose
-    Display full information.
+	-verbose
+	Display full information.
 
-  -json
-    Output the node in its JSON format.
+	-json
+	Output the node in its JSON format.
 
-  -t
-    Format and display node using a Go template.
-`
+	-t
+	Format and display node using a Go template.
+	`
 	return strings.TrimSpace(helpText)
 }
 

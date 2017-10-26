@@ -22,11 +22,11 @@ type SnapshotDeleteCommand struct {
 
 func (s *SnapshotDeleteCommand) Help() string {
 	helpText := `
-Usage: maya snapshot delete -volname <vol> 
-         
-This command will delete all snapshots of a Volume.
+	Usage: maya snapshot delete -volname <vol> 
 
-`
+	This command will delete all snapshots of a Volume.
+
+	`
 	return strings.TrimSpace(helpText)
 }
 
