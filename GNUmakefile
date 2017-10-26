@@ -25,7 +25,7 @@ AGENT=maya-agent
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test mayactl apiserver maya-agent
+all: test mayactl apiserver-image agent-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
