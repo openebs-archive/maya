@@ -85,11 +85,11 @@ func (j *jivaStor) Name() string {
 // volume provisioner.
 //
 // NOTE:
-//    This method is expected to be invoked when pvc is available. In other
+//    This method is expected to be invoked when vol is available. In other
 // words this is lazily invoked after the creation of jivaStor.
-func (j *jivaStor) Profile(pvc *v1.Volume) (bool, error) {
+func (j *jivaStor) Profile(vol *v1.Volume) (bool, error) {
 	// Get the persistent volume provisioner profile
-	vProfl, err := volProfile.GetVolProProfileByPVC(pvc)
+	vProfl, err := volProfile.GetVolProProfile(vol)
 	if err != nil {
 		return true, err
 	}
@@ -188,7 +188,7 @@ func (j *jivaStor) List() (*v1.VolumeList, error) {
 }
 
 // TODO
-// pvc need not be passed at all as it should have been set via Profile()
+// vol need not be passed at all as it should have been set via Profile()
 //
 // Read provides information about a jiva persistent volume
 //
@@ -198,7 +198,7 @@ func (j *jivaStor) List() (*v1.VolumeList, error) {
 //
 // NOTE:
 //    This is a concrete implementation of volume.Informer interface
-func (j *jivaStor) Read(pvc *v1.Volume) (*v1.Volume, error) {
+func (j *jivaStor) Read(vol *v1.Volume) (*v1.Volume, error) {
 	// TODO
 	// Move the validations to j.Reader()
 
@@ -208,11 +208,11 @@ func (j *jivaStor) Read(pvc *v1.Volume) (*v1.Volume, error) {
 		return nil, fmt.Errorf("Storage operations not supported in '%s:%s' '%s'", j.Label(), j.Name(), j.jivaProUtil.Name())
 	}
 
-	return storOps.ReadStorage(pvc)
+	return storOps.ReadStorage(vol)
 }
 
 // TODO
-// pvc need not be passed at all as it should have been set via Profile()
+// vol need not be passed at all as it should have been set via Profile()
 //
 // Add creates a new jiva persistent volume
 //
@@ -222,7 +222,7 @@ func (j *jivaStor) Read(pvc *v1.Volume) (*v1.Volume, error) {
 //
 // NOTE:
 //    This is a concrete implementation of volume.Adder interface
-func (j *jivaStor) Add(pvc *v1.Volume) (*v1.Volume, error) {
+func (j *jivaStor) Add(vol *v1.Volume) (*v1.Volume, error) {
 	// TODO
 	// Move the validations to j.Adder()
 
@@ -232,7 +232,7 @@ func (j *jivaStor) Add(pvc *v1.Volume) (*v1.Volume, error) {
 		return nil, fmt.Errorf("Storage operations not supported in '%s:%s' '%s'", j.Label(), j.Name(), j.jivaProUtil.Name())
 	}
 
-	return storOps.AddStorage(pvc)
+	return storOps.AddStorage(vol)
 }
 
 // Remove removes a jiva volume

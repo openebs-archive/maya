@@ -20,8 +20,8 @@ type VolumeProvisionerProfile interface {
 	// Registered volume provisioner profile name.
 	Name() v1.VolumeProvisionerProfileRegistry
 
-	// Get the persistent volume claim associated with this provisioner profile
-	PVC() (*v1.Volume, error)
+	// Get the volume associated with this provisioner profile
+	Volume() (*v1.Volume, error)
 
 	// Gets the orchestration provider name.
 	// A persistent volume provisioner plugin may be linked with a orchestrator
@@ -79,54 +79,30 @@ type VolumeProvisionerProfile interface {
 	IsReplicaNodeTaintTolerations() ([]string, bool, error)
 }
 
-// GetVolProProfileByPVC will return a specific persistent volume provisioner
+// GetVolProProfile will return a specific persistent volume provisioner
 // profile. It will decide first based on the provided specifications failing
 // which will ensure a default profile is returned.
-func GetVolProProfileByPVC(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
-	if pvc == nil {
-		return nil, fmt.Errorf("PVC is required to create a volume provisioner profile")
+func GetVolProProfile(vol *v1.Volume) (VolumeProvisionerProfile, error) {
+	if vol == nil {
+		return nil, fmt.Errorf("Volume is required to create a volume provisioner profile")
 	}
 
-	// Extract the name of volume provisioner profile
-	volProflName := v1.VolumeProvisionerProfileName(pvc.Labels)
-
-	if volProflName == "" {
-		return GetDefaultVolProProfile(pvc)
-	}
-
-	return GetVolProProfileByName(volProflName, pvc)
+	return GetDefaultVolProProfile(vol)
 }
 
 // GetDefaultVolProProfile will return the default volume provisioner
 // profile.
-//
-// NOTE:
-//    PVC based volume provisioner profile is considered as default
-func GetDefaultVolProProfile(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
+func GetDefaultVolProProfile(vol *v1.Volume) (VolumeProvisionerProfile, error) {
 
-	if pvc == nil {
-		return nil, fmt.Errorf("PVC is required to create default volume provisioner profile")
+	if vol == nil {
+		return nil, fmt.Errorf("Volume is required to create default volume provisioner profile")
 	}
 
-	return newPvcVolProProfile(pvc)
+	return newDefVolProProfile(vol)
 }
 
-// TODO
-//
-// GetVolProProfileByName will return a volume provisioner profile by
-// looking up from the provided profile name.
-func GetVolProProfileByName(name string, pvc *v1.Volume) (VolumeProvisionerProfile, error) {
-	// TODO
-	// Search from the in-memory registry
-
-	// TODO
-	// Alternatively, search from external discoverable DBs if any
-
-	return nil, fmt.Errorf("GetVolProProfileByName is not yet implemented")
-}
-
-// pvcVolProProfile is a persistent volume provisioner profile that is based on
-// persistent volume claim.
+// defVolProProfile is a persistent volume provisioner profile that is based on
+// volume.
 //
 // NOTE:
 //    This will use defaults in-case the values are not set in persistent volume
@@ -135,16 +111,16 @@ func GetVolProProfileByName(name string, pvc *v1.Volume) (VolumeProvisionerProfi
 // NOTE:
 //    This is a concrete implementation of
 // volumeprovisioner.VolumeProvisionerProfile
-type pvcVolProProfile struct {
-	pvc     *v1.Volume
+type defVolProProfile struct {
+	vol     *v1.Volume
 	vsmName string
 }
 
-// newPvcVolProProfile provides a new instance of VolumeProvisionerProfile that is
-// based on pvc (i.e. persistent volume claim).
-func newPvcVolProProfile(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
-	return &pvcVolProProfile{
-		pvc: pvc,
+// newDefVolProProfile provides a new instance of VolumeProvisionerProfile that is
+// based on volume
+func newDefVolProProfile(vol *v1.Volume) (VolumeProvisionerProfile, error) {
+	return &defVolProProfile{
+		vol: vol,
 	}, nil
 }
 
@@ -154,7 +130,7 @@ func newPvcVolProProfile(pvc *v1.Volume) (VolumeProvisionerProfile, error) {
 // NOTE:
 //    There can be many persistent volume provisioner profiles with this same label.
 // This is used along with Name() method.
-func (pp *pvcVolProProfile) Label() v1.VolumeProvisionerProfileLabel {
+func (pp *defVolProProfile) Label() v1.VolumeProvisionerProfileLabel {
 	return v1.PVPProfileNameLbl
 }
 
@@ -163,25 +139,25 @@ func (pp *pvcVolProProfile) Label() v1.VolumeProvisionerProfileLabel {
 // NOTE:
 //    Name provides the uniqueness among various variants of persistent volume
 // provisioner profiles.
-func (pp *pvcVolProProfile) Name() v1.VolumeProvisionerProfileRegistry {
-	return v1.PVCProvisionerProfile
+func (pp *defVolProProfile) Name() v1.VolumeProvisionerProfileRegistry {
+	return v1.VolumeProvisionerProfile
 }
 
-// PVC provides the persistent volume claim associated with this profile.
+// Volume provides the volume associated with this profile.
 //
 // NOTE:
-//    This method provides a convinient way to access pvc. In other words
-// volume provisioner profile acts as a wrapper over pvc.
-func (pp *pvcVolProProfile) PVC() (*v1.Volume, error) {
-	return pp.pvc, nil
+//    This method provides a convinient way to access volume. In other words
+// volume provisioner profile acts as a wrapper over volume.
+func (pp *defVolProProfile) Volume() (*v1.Volume, error) {
+	return pp.vol, nil
 }
 
 // Orchestrator gets the suitable orchestration provider.
 // A persistent volume provisioner plugin may be linked with a orchestrator
 // e.g. K8s, Nomad, Mesos, Swarm, etc. It can be Docker engine as well.
-func (pp *pvcVolProProfile) Orchestrator() (v1.OrchProviderRegistry, bool, error) {
+func (pp *defVolProProfile) Orchestrator() (v1.OrchProviderRegistry, bool, error) {
 	// Extract the name of orchestration provider
-	oName := v1.GetOrchestratorName(pp.pvc.Labels)
+	oName := v1.GetOrchestratorName(pp.vol.Labels)
 
 	// Get the orchestrator instance
 	return oName, true, nil
@@ -193,7 +169,7 @@ func (pp *pvcVolProProfile) Orchestrator() (v1.OrchProviderRegistry, bool, error
 //    In certain cases, name of VSM is derived much later & hence this
 // method provides the runtime option to set VSM name against a copy of this
 // volume provisioner profile.
-func (pp *pvcVolProProfile) Copy(vsm string) (VolumeProvisionerProfile, error) {
+func (pp *defVolProProfile) Copy(vsm string) (VolumeProvisionerProfile, error) {
 
 	if pp == nil {
 		return nil, nil
@@ -205,7 +181,7 @@ func (pp *pvcVolProProfile) Copy(vsm string) (VolumeProvisionerProfile, error) {
 	}
 
 	// copy
-	n := new(pvcVolProProfile)
+	n := new(defVolProProfile)
 	*n = *pp
 	n.vsmName = t
 
@@ -214,10 +190,9 @@ func (pp *pvcVolProProfile) Copy(vsm string) (VolumeProvisionerProfile, error) {
 
 // VSMName gets the name of the VSM
 // Operator must provide this.
-func (pp *pvcVolProProfile) VSMName() (string, error) {
-	// Extract the VSM name from PVC
-	// Name of PVC is the name of VSM
-	vsmName := strings.TrimSpace(v1.VSMName(pp.pvc.Name))
+func (pp *defVolProProfile) VSMName() (string, error) {
+	// Extract the VSM name from Volume
+	vsmName := strings.TrimSpace(v1.VSMName(pp.vol.Name))
 
 	// This might be a case where VSM name was set at runtime
 	// during the life span of the request & not during the initiation of
@@ -234,23 +209,23 @@ func (pp *pvcVolProProfile) VSMName() (string, error) {
 }
 
 // ControllerCount gets the number of controllers
-func (pp *pvcVolProProfile) ControllerCount() (int, error) {
-	// Extract the controller count from pvc
-	return v1.GetPVPControllerCountInt(pp.pvc.Labels)
+func (pp *defVolProProfile) ControllerCount() (int, error) {
+	// Extract the controller count
+	return v1.GetPVPControllerCountInt(pp.vol.Labels)
 }
 
 // ControllerImage gets the controller's image currently its docker image label.
-func (pp *pvcVolProProfile) ControllerImage() (string, bool, error) {
-	// Extract the controller image from pvc
-	cImg := v1.GetControllerImage(pp.pvc.Labels)
+func (pp *defVolProProfile) ControllerImage() (string, bool, error) {
+	// Extract the controller image
+	cImg := v1.GetControllerImage(pp.vol.Labels)
 
 	return cImg, true, nil
 }
 
 // ReplicaImage gets the replica's image currently its docker image label.
-func (pp *pvcVolProProfile) ReplicaImage() (string, error) {
-	// Extract the replica image from pvc
-	rImg := v1.GetPVPReplicaImage(pp.pvc.Labels)
+func (pp *defVolProProfile) ReplicaImage() (string, error) {
+	// Extract the replica image
+	rImg := v1.GetPVPReplicaImage(pp.vol.Labels)
 
 	return rImg, nil
 }
@@ -258,9 +233,9 @@ func (pp *pvcVolProProfile) ReplicaImage() (string, error) {
 // IsControllerNodeTaintTolerations provides the node level taint tolerations.
 // Since node level taint toleration for controller is an optional feature, it
 // can return false.
-func (pp *pvcVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, error) {
+func (pp *defVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, error) {
 	// Extract the node taint toleration for controller
-	nTTs, err := v1.GetControllerNodeTaintTolerations(pp.pvc.Labels)
+	nTTs, err := v1.GetControllerNodeTaintTolerations(pp.vol.Labels)
 	if err != nil {
 		return nil, false, err
 	}
@@ -279,9 +254,9 @@ func (pp *pvcVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, 
 // IsReplicaNodeTaintTolerations provides the node level taint tolerations.
 // Since node level taint toleration for replica is an optional feature, it
 // can return false.
-func (pp *pvcVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
+func (pp *defVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
 	// Extract the node taint toleration for replica
-	nTTs, err := v1.GetReplicaNodeTaintTolerations(pp.pvc.Labels)
+	nTTs, err := v1.GetReplicaNodeTaintTolerations(pp.vol.Labels)
 	if err != nil {
 		return nil, false, err
 	}
@@ -298,9 +273,9 @@ func (pp *pvcVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, err
 }
 
 // StorageSize gets the storage size for each persistent volume replica(s)
-func (pp *pvcVolProProfile) StorageSize() (string, error) {
-	// Extract the storage size from pvc
-	sSize := v1.GetPVPStorageSize(pp.pvc.Labels)
+func (pp *defVolProProfile) StorageSize() (string, error) {
+	// Extract the storage size
+	sSize := v1.GetPVPStorageSize(pp.vol.Labels)
 
 	if sSize == "" {
 		return "", fmt.Errorf("Missing storage size in '%s:%s'", pp.Label(), pp.Name())
@@ -310,8 +285,8 @@ func (pp *pvcVolProProfile) StorageSize() (string, error) {
 }
 
 // ReplicaCount get the number of replicas required
-func (pp *pvcVolProProfile) ReplicaCount() (*int32, error) {
-	specs := pp.pvc.Specs
+func (pp *defVolProProfile) ReplicaCount() (*int32, error) {
+	specs := pp.vol.Specs
 
 	for _, spec := range specs {
 		if spec.Context == v1.ReplicaVolumeContext {
@@ -328,9 +303,9 @@ func (pp *pvcVolProProfile) ReplicaCount() (*int32, error) {
 //
 // NOTE:
 //    There is no default assignment of IPs
-func (pp *pvcVolProProfile) ControllerIPs() ([]string, error) {
-	// Extract the controller IPs from pvc
-	cIPs := v1.ControllerIPs(pp.pvc.Labels)
+func (pp *defVolProProfile) ControllerIPs() ([]string, error) {
+	// Extract the controller IPs
+	cIPs := v1.ControllerIPs(pp.vol.Labels)
 
 	if cIPs == "" {
 		return nil, nil
@@ -350,9 +325,9 @@ func (pp *pvcVolProProfile) ControllerIPs() ([]string, error) {
 //
 // NOTE:
 //    There is no default assignment of IPs
-func (pp *pvcVolProProfile) ReplicaIPs() ([]string, error) {
-	// Extract the controller IPs from pvc
-	rIPs := v1.ReplicaIPs(pp.pvc.Labels)
+func (pp *defVolProProfile) ReplicaIPs() ([]string, error) {
+	// Extract the controller IPs
+	rIPs := v1.ReplicaIPs(pp.vol.Labels)
 
 	if rIPs == "" {
 		return nil, nil
@@ -372,15 +347,14 @@ func (pp *pvcVolProProfile) ReplicaIPs() ([]string, error) {
 // NOTE:
 //    `position` is just a positional value that determines a particular replica
 // out of the total replica count i.e. rCount.
-//func (pp *pvcVolProProfile) PersistentPath(position int, rCount int) (string, error) {
-func (pp *pvcVolProProfile) PersistentPath() (string, error) {
+func (pp *defVolProProfile) PersistentPath() (string, error) {
 	vsm, err := pp.VSMName()
 	if err != nil {
 		return "", err
 	}
 
-	// Extract the persistent path from pvc
-	pPath := v1.GetPVPPersistentPath(pp.pvc.Labels, vsm, string(v1.JivaPersistentMountPathDef))
+	// Extract the persistent path
+	pPath := v1.GetPVPPersistentPath(pp.vol.Labels, vsm, string(v1.JivaPersistentMountPathDef))
 
 	return pPath, nil
 }
@@ -398,6 +372,6 @@ func (pp *pvcVolProProfile) PersistentPath() (string, error) {
 //
 // NOTE:
 //    This is a concrete implementation of volume.VolumeProvisionerProfile
-type etcdVolProProfile struct {
-	pvc *v1.Volume
-}
+//type etcdVolProProfile struct {
+//	pvc *v1.Volume
+//}

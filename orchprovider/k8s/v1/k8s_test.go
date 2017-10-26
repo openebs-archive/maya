@@ -3,7 +3,6 @@ package k8s
 import (
 	"errors"
 	"fmt"
-	//"reflect"
 	"testing"
 
 	"github.com/openebs/maya/orchprovider"
@@ -15,7 +14,7 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	//k8sApi "k8s.io/client-go/pkg/api"
+	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	k8sApiv1 "k8s.io/client-go/pkg/api/v1"
 	k8sApisExtnsV1Beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	policy "k8s.io/client-go/pkg/apis/policy/v1beta1"
@@ -118,13 +117,10 @@ func TestAddStorage(t *testing.T) {
 
 	for _, c := range cases {
 
-		pvc := &v1.Volume{}
-		pvc.Name = c.vsmname
-		//pvc.Labels = map[string]string{
-		//	string(v1.PVPVSMNameLbl): c.vsmname,
-		//}
+		vol := &v1.Volume{}
+		vol.Name = c.vsmname
 
-		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+		volP, _ := volProfile.GetDefaultVolProProfile(vol)
 
 		sOps, _ := o.StorageOps()
 
@@ -176,22 +172,21 @@ func (m *mockK8sOrch) StorageOps() (orchprovider.StorageOps, bool) {
 // K8sUtil is the mocked version of the original's i.e. k8sOrchestrator.K8sUtil()
 func (m *mockK8sOrch) GetK8sUtil(volProfile volProfile.VolumeProvisionerProfile) K8sUtilInterface {
 
-	pvc, _ := volProfile.PVC()
+	vol, _ := volProfile.Volume()
 
 	// mockK8sUtil is instantiated based on a 'Value Based Test' record/row
 	return &mockK8sUtil{
-		name: pvc.Labels[string(testK8sUtlNameLbl)],
-		//vsmName:            pvc.Labels[string(v1.PVPVSMNameLbl)],
-		vsmName:            pvc.Name,
-		kcSupport:          pvc.Labels[string(testK8sClientSupportLbl)],
-		ns:                 pvc.Labels[string(v1.OrchNSLbl)],
-		injectNSErr:        pvc.Labels[string(testK8sInjectNSErrLbl)],
-		inCluster:          pvc.Labels[string(testK8sInClusterLbl)],
-		injectInClusterErr: pvc.Labels[string(testK8sInjectInClusterErrLbl)],
-		injectPodErr:       pvc.Labels[string(testK8sInjectPodErrLbl)],
-		injectSvcErr:       pvc.Labels[string(testK8sInjectSvcErrLbl)],
-		injectVsm:          pvc.Labels[string(testK8sInjectVSMLbl)],
-		resultingErr:       pvc.Labels[string(testK8sErrorLbl)],
+		name:               vol.Labels[string(testK8sUtlNameLbl)],
+		vsmName:            vol.Name,
+		kcSupport:          vol.Labels[string(testK8sClientSupportLbl)],
+		ns:                 vol.Labels[string(v1.OrchNSLbl)],
+		injectNSErr:        vol.Labels[string(testK8sInjectNSErrLbl)],
+		inCluster:          vol.Labels[string(testK8sInClusterLbl)],
+		injectInClusterErr: vol.Labels[string(testK8sInjectInClusterErrLbl)],
+		injectPodErr:       vol.Labels[string(testK8sInjectPodErrLbl)],
+		injectSvcErr:       vol.Labels[string(testK8sInjectSvcErrLbl)],
+		injectVsm:          vol.Labels[string(testK8sInjectVSMLbl)],
+		resultingErr:       vol.Labels[string(testK8sErrorLbl)],
 	}
 }
 
@@ -234,7 +229,7 @@ func (m *mockK8sUtil) K8sClient() (K8sClient, bool) {
 	}
 }
 
-func (m *mockK8sUtil) InCluster() (bool, error) {
+func (m *mockK8sUtil) IsInCluster() (bool, error) {
 	if m.injectInClusterErr != "" {
 		return false, errors.New(m.injectInClusterErr)
 	}
@@ -275,6 +270,10 @@ func (m *mockK8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 }
 
 func (m *mockK8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
+	return nil, nil
+}
+
+func (m *mockK8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error) {
 	return nil, nil
 }
 
@@ -578,11 +577,11 @@ type okCreateReplicaPodVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile
 }
 
-// PVC does not return any error
-func (e *okCreateReplicaPodVolumeProfile) PVC() (*v1.Volume, error) {
-	pvc := &v1.Volume{}
-	pvc.Labels = map[string]string{}
-	return pvc, nil
+// Volume does not return any error
+func (e *okCreateReplicaPodVolumeProfile) Volume() (*v1.Volume, error) {
+	vol := &v1.Volume{}
+	vol.Labels = map[string]string{}
+	return vol, nil
 }
 
 // PersistentPath does not return any error

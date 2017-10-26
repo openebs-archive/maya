@@ -104,17 +104,17 @@ func (n *NomadOrchestrator) StorageOps() (orchprovider.StorageOps, bool) {
 
 // ReadStorage will fetch information about the persistent volume
 func (n *NomadOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
-	pvc, err := volProProfile.PVC()
+	vol, err := volProProfile.Volume()
 	if err != nil {
 		return nil, err
 	}
 
-	jobName, err := PvcToJobName(pvc)
+	jobName, err := VolToJobName(vol)
 	if err != nil {
 		return nil, err
 	}
 
-	job, err := n.nStorApis.StorageInfo(jobName, pvc.Labels)
+	job, err := n.nStorApis.StorageInfo(jobName, vol.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -130,17 +130,17 @@ func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisione
 	// Move this entire logic to a separate package that will couple jiva
 	// provisioner with nomad orchestrator
 
-	pvc, err := volProProfile.PVC()
+	vol, err := volProProfile.Volume()
 	if err != nil {
 		return nil, err
 	}
 
-	job, err := PvcToJob(pvc)
+	job, err := VolToJob(vol)
 	if err != nil {
 		return nil, err
 	}
 
-	eval, err := n.nStorApis.CreateStorage(job, pvc.Labels)
+	eval, err := n.nStorApis.CreateStorage(job, vol.Labels)
 	if err != nil {
 		return nil, err
 	}
@@ -152,23 +152,23 @@ func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisione
 
 // DeleteStorage will remove the VSM.
 func (n *NomadOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisionerProfile) (bool, error) {
-	pvc, err := volProProfile.PVC()
+	vol, err := volProProfile.Volume()
 	if err != nil {
 		return false, err
 	}
 
-	job, err := MakeJob(pvc.Name)
+	job, err := MakeJob(vol.Name)
 	if err != nil {
 		return false, err
 	}
 
-	eval, err := n.nStorApis.DeleteStorage(job, pvc.Labels)
+	eval, err := n.nStorApis.DeleteStorage(job, vol.Labels)
 
 	if err != nil {
 		return false, err
 	}
 
-	glog.Infof("Volume '%s' was placed for removal with eval '%v'", pvc.Name, eval)
+	glog.Infof("Volume '%s' was placed for removal with eval '%v'", vol.Name, eval)
 
 	_, err = JobEvalToPv(*job.Name, eval)
 

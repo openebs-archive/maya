@@ -12,43 +12,43 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
-// Get the job name from a persistent volume claim
-func PvcToJobName(pvc *v1.Volume) (string, error) {
+// Get the job name from volume
+func VolToJobName(vol *v1.Volume) (string, error) {
 
-	if pvc == nil {
-		return "", fmt.Errorf("Nil persistent volume claim provided")
+	if vol == nil {
+		return "", fmt.Errorf("Nil volume provided")
 	}
 
-	if pvc.Name == "" {
-		return "", fmt.Errorf("Missing VSM name in pvc")
+	if vol.Name == "" {
+		return "", fmt.Errorf("Volume name is missing")
 	}
 
-	return pvc.Name, nil
+	return vol.Name, nil
 }
 
 // Transform a PersistentVolumeClaim type to Nomad job type
-func PvcToJob(pvc *v1.Volume) (*api.Job, error) {
+func VolToJob(vol *v1.Volume) (*api.Job, error) {
 
-	if pvc == nil {
-		return nil, fmt.Errorf("Nil persistent volume claim provided")
+	if vol == nil {
+		return nil, fmt.Errorf("Nil volume provided")
 	}
 
-	if pvc.Name == "" {
-		return nil, fmt.Errorf("Missing VSM name in pvc")
+	if vol.Name == "" {
+		return nil, fmt.Errorf("Volume name is missing")
 	}
 
-	jivaFEVolSize := v1.GetPVPStorageSize(pvc.Labels)
+	jivaFEVolSize := v1.GetPVPStorageSize(vol.Labels)
 	jivaBEVolSize := jivaFEVolSize
 
 	// TODO
 	// ID is same as Name currently
 	// Do we need to think on it ?
-	jobName := helper.StringToPtr(pvc.Name)
-	region := helper.StringToPtr(v1.GetOrchestratorRegion(pvc.Labels))
-	dc := v1.GetOrchestratorDC(pvc.Labels)
+	jobName := helper.StringToPtr(vol.Name)
+	region := helper.StringToPtr(v1.GetOrchestratorRegion(vol.Labels))
+	dc := v1.GetOrchestratorDC(vol.Labels)
 
 	jivaGroupName := "jiva-pod"
-	jivaVolName := pvc.Name
+	jivaVolName := vol.Name
 
 	// Set storage size
 	feTaskGroup := "fe" + "-" + jivaGroupName
@@ -58,29 +58,29 @@ func PvcToJob(pvc *v1.Volume) (*api.Job, error) {
 	feTaskName := "fe"
 	beTaskName := "be"
 
-	jivaFeVersion := v1.GetControllerImage(pvc.Labels)
-	jivaNetworkType := v1.GetOrchestratorNetworkType(pvc.Labels)
+	jivaFeVersion := v1.GetControllerImage(vol.Labels)
+	jivaNetworkType := v1.GetOrchestratorNetworkType(vol.Labels)
 
-	jivaBEPersistentStor := v1.GetPVPPersistentPathOnly(pvc.Labels)
+	jivaBEPersistentStor := v1.GetPVPPersistentPathOnly(vol.Labels)
 
-	iJivaBECount, err := v1.GetPVPReplicaCountInt(pvc.Labels)
+	iJivaBECount, err := v1.GetPVPReplicaCountInt(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
-	jivaFeIPs, jivaBeIPs, err := v1.GetPVPVSMIPs(pvc.Labels)
+	jivaFeIPs, jivaBeIPs, err := v1.GetPVPVSMIPs(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	jivaFeIPArr := strings.Split(jivaFeIPs, ",")
 	jivaBeIPArr := strings.Split(jivaBeIPs, ",")
-	jivaFeSubnet, err := v1.GetOrchestratorNetworkSubnet(pvc.Labels)
+	jivaFeSubnet, err := v1.GetOrchestratorNetworkSubnet(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
-	jivaFeInterface := v1.GetOrchestratorNetworkInterface(pvc.Labels)
+	jivaFeInterface := v1.GetOrchestratorNetworkInterface(vol.Labels)
 
 	// Meta information will be used to:
 	//    1. Persist metadata w.r.t this job
@@ -103,7 +103,7 @@ func PvcToJob(pvc *v1.Volume) (*api.Job, error) {
 
 	// Jiva FE's ENV among other things interpolates Nomad's built-in properties
 	feEnv := map[string]string{
-		"JIVA_CTL_NAME":    pvc.Name + "-" + feTaskName + "${NOMAD_ALLOC_INDEX}",
+		"JIVA_CTL_NAME":    vol.Name + "-" + feTaskName + "${NOMAD_ALLOC_INDEX}",
 		"JIVA_CTL_VERSION": jivaFeVersion,
 		"JIVA_CTL_VOLNAME": jivaVolName,
 		"JIVA_CTL_VOLSIZE": jivaFEVolSize,
@@ -115,11 +115,11 @@ func PvcToJob(pvc *v1.Volume) (*api.Job, error) {
 	// Jiva BE's ENV among other things interpolates Nomad's built-in properties
 	beEnv := map[string]string{
 		"NOMAD_ALLOC_INDEX": "${NOMAD_ALLOC_INDEX}",
-		"JIVA_REP_NAME":     pvc.Name + "-" + beTaskName + "${NOMAD_ALLOC_INDEX}",
+		"JIVA_REP_NAME":     vol.Name + "-" + beTaskName + "${NOMAD_ALLOC_INDEX}",
 		"JIVA_CTL_IP":       jivaFeIPArr[0],
 		"JIVA_REP_VOLNAME":  jivaVolName,
 		"JIVA_REP_VOLSIZE":  jivaBEVolSize,
-		"JIVA_REP_VOLSTORE": jivaBEPersistentStor + pvc.Name + "/" + beTaskName + "${NOMAD_ALLOC_INDEX}",
+		"JIVA_REP_VOLSTORE": jivaBEPersistentStor + vol.Name + "/" + beTaskName + "${NOMAD_ALLOC_INDEX}",
 		"JIVA_REP_VERSION":  jivaFeVersion,
 		"JIVA_REP_NETWORK":  jivaNetworkType,
 		"JIVA_REP_IFACE":    jivaFeInterface,

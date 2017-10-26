@@ -58,17 +58,17 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 
 	fmt.Println("[DEBUG] Processing Volume list request")
 
-	// Create a PVC
-	pvc := &v1.Volume{}
+	// Create a Volume
+	vol := &v1.Volume{}
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the volume provisioner profile to provisioner
-	_, err = pvp.Profile(pvc)
+	_, err = pvp.Profile(vol)
 	if err != nil {
 		return nil, err
 	}
@@ -101,18 +101,18 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
-	// Create a PVC
-	pvc := &v1.Volume{}
-	pvc.Name = vsmName
+	// Create a Volume
+	vol := &v1.Volume{}
+	vol.Name = vsmName
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the volume provisioner profile to provisioner
-	_, err = pvp.Profile(pvc)
+	_, err = pvp.Profile(vol)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +123,8 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 	}
 
 	// TODO
-	// pvc should not be passed again !!
-	details, err := reader.Read(pvc)
+	// vol should not be passed again !!
+	details, err := reader.Read(vol)
 	if err != nil {
 		return nil, err
 	}
@@ -147,18 +147,18 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
-	// Create a PVC
-	pvc := &v1.Volume{}
-	pvc.Name = vsmName
+	// Create a Volume
+	vol := &v1.Volume{}
+	vol.Name = vsmName
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set the volume provisioner profile to provisioner
-	_, err = pvp.Profile(pvc)
+	// Set the volume provisioner profile
+	_, err = pvp.Profile(vol)
 	if err != nil {
 		return nil, err
 	}
@@ -192,26 +192,26 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 
 	fmt.Println("[DEBUG] Processing Volume add request")
 
-	pvc := v1.Volume{}
+	vol := v1.Volume{}
 
-	// The yaml/json spec is decoded to pvc struct
-	if err := decodeBody(req, &pvc); err != nil {
+	// The yaml/json spec is decoded to vol struct
+	if err := decodeBody(req, &vol); err != nil {
 		return nil, CodedError(400, err.Error())
 	}
 
 	// Name is expected to be available even in the minimalist specs
-	if pvc.Name == "" {
-		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", pvc))
+	if vol.Name == "" {
+		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", vol))
 	}
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(pvc.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the volume provisioner profile to provisioner
-	_, err = pvp.Profile(&pvc)
+	_, err = pvp.Profile(&vol)
 	if err != nil {
 		return nil, err
 	}
@@ -222,13 +222,13 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 	}
 
 	// TODO
-	// pvc should not be passed again !!
-	details, err := adder.Add(&pvc)
+	// vol should not be passed again !!
+	details, err := adder.Add(&vol)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Processed Volume add request successfully for '" + pvc.Name + "'")
+	fmt.Println("[DEBUG] Processed Volume add request successfully for '" + vol.Name + "'")
 
 	return details, nil
 }
