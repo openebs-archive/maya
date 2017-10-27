@@ -231,7 +231,7 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	glog.Info("Starting maya api server ...")
 
 	// Setup maya service i.e. maya api server
-	maya, err := server.NewMayaApiServer(mconfig, nil)
+	maya, err := server.NewMayaApiServer(mconfig, os.Stdout)
 	if err != nil {
 		glog.Errorf("Error starting maya api server: %s", err)
 		return err
@@ -240,7 +240,7 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	c.maya = maya
 
 	// Setup the HTTP server
-	http, err := server.NewHTTPServer(maya, mconfig, nil)
+	http, err := server.NewHTTPServer(maya, mconfig, os.Stdout)
 	if err != nil {
 		maya.Shutdown()
 		glog.Errorf("Error starting http server: %s", err)
