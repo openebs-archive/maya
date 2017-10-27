@@ -11,9 +11,10 @@ import (
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	//k8sUnversioned "k8s.io/client-go/pkg/api/unversioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sApiV1 "k8s.io/client-go/pkg/api/v1"
 	k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
@@ -35,6 +36,8 @@ type k8sOrchestrator struct {
 	// NOTE:
 	//    This will be set at runtime.
 	k8sUtlGtr K8sUtilGetter
+
+	
 }
 
 // NewK8sOrchestrator provides a new instance of K8sOrchestrator.
@@ -81,6 +84,7 @@ func (k *k8sOrchestrator) Name() string {
 func (k *k8sOrchestrator) Region() string {
 	return ""
 }
+
 
 // TODO
 // Check if StorageOps() can do these stuff in a better way. This method &
@@ -335,7 +339,6 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 }
 
 // ReadStorage will fetch information about the persistent volume
-//func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
 func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 	// volProProfile is expected to have the VSM name
 	return k.readVSM("", volProProfile)
@@ -715,7 +718,8 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	vol, err := volProProfile.Volume()
+	
+	pvc, err := volProProfile.PVC()
 	if err != nil {
 		return nil, err
 	}
@@ -723,7 +727,6 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	// The position is always send as 1
 	// We might want to get the replica index & send it
 	// However, this does not matter if replicas are placed on different hosts !!
-	//persistPath, err := volProProfile.PersistentPath(1, rCount)
 	persistPath, err := volProProfile.PersistentPath()
 	if err != nil {
 		return nil, err
@@ -821,7 +824,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// Considering above scenarios, it might make more sense to have
 									// separate K8s Deployment for each replica. However,
 									// there are dis-advantages in diverging from K8s replica set.
-									TopologyKey: v1.GetPVPReplicaTopologyKey(vol.Labels),
+									TopologyKey: v1.GetPVPReplicaTopologyKey(pvc.Labels),
 								},
 							},
 						},
@@ -833,7 +836,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Name:    vsm + string(v1.ReplicaSuffix) + string(v1.ContainerSuffix),
 							Image:   rImg,
 							Command: v1.JivaReplicaCmd,
-							Args:    v1.MakeOrDefJivaReplicaArgs(vol.Labels, clusterIP),
+							Args:    v1.MakeOrDefJivaReplicaArgs(pvc.Labels, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
 								k8sApiV1.ContainerPort{
 									ContainerPort: v1.DefaultJivaReplicaPort1(),
@@ -888,8 +891,6 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 
 	glog.Infof("Successfully added replica(s) 'count: %d' for VSM '%s'", rCount, d.Name)
 
-	//glog.Infof("Successfully added replica #%d for VSM '%s'", rcIndex, d.Name)
-	//} -- end of for loop -- if manual replica addition
 
 	return d, nil
 }
