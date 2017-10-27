@@ -25,7 +25,7 @@ script:
   - kubectl cluster-info
   - kubectl get deployment
   - make all
-  - ./buildscripts/test-cov.sh 
+  - ./buildscripts/test-cov.sh
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 notifications:
