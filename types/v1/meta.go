@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This is extracted from k8s.io/apimachinery/pkg/apis/meta/v1/types.go
+// Package v1 extracted from k8s.io/apimachinery/pkg/apis/meta/v1/types.go
 package v1
 
 // TypeMeta describes an individual object in an API response or request
@@ -224,7 +224,7 @@ type ObjectMeta struct {
 // newer style that is structured.  LabelSelector is an internal representation for the
 // latter style.
 
-// A label selector is a label query over a set of resources. The result of matchLabels and
+// LabelSelector is a label query over a set of resources. The result of matchLabels and
 // matchExpressions are ANDed. An empty label selector matches all objects. A null
 // label selector matches no objects.
 type LabelSelector struct {
@@ -238,7 +238,7 @@ type LabelSelector struct {
 	MatchExpressions []LabelSelectorRequirement `json:"matchExpressions,omitempty" protobuf:"bytes,2,rep,name=matchExpressions"`
 }
 
-// A label selector requirement is a selector that contains values, a key, and an operator that
+// LabelSelectorRequirement is a selector that contains values, a key, and an operator that
 // relates the key and values.
 type LabelSelectorRequirement struct {
 	// key is the label key that the selector applies to.
@@ -256,11 +256,11 @@ type LabelSelectorRequirement struct {
 	Values []string `json:"values,omitempty" protobuf:"bytes,3,rep,name=values"`
 }
 
-// A label selector operator is the set of operators that can be used in a selector requirement.
+// LabelSelectorOperator is the set of operators that can be used in a selector requirement.
 type LabelSelectorOperator string
 
 const (
-	LabelSelectorOpIn           LabelSelectorOperator = "In"
+	//LabelSelectorOpIn           LabelSelectorOperator = "In"
 	LabelSelectorOpNotIn        LabelSelectorOperator = "NotIn"
 	LabelSelectorOpExists       LabelSelectorOperator = "Exists"
 	LabelSelectorOpDoesNotExist LabelSelectorOperator = "DoesNotExist"
