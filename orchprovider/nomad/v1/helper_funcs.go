@@ -12,7 +12,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
-// Get the job name from volume
+// VolToJobName Get the job name from volume
 func VolToJobName(vol *v1.Volume) (string, error) {
 
 	if vol == nil {
@@ -26,7 +26,7 @@ func VolToJobName(vol *v1.Volume) (string, error) {
 	return vol.Name, nil
 }
 
-// Transform a PersistentVolumeClaim type to Nomad job type
+// VolToJob Transform a PersistentVolumeClaim type to Nomad job type
 func VolToJob(vol *v1.Volume) (*api.Job, error) {
 
 	if vol == nil {
@@ -273,7 +273,7 @@ func setBEIPs(beEnv, jobMeta map[string]string, jivaBeIPArr []string, iJivaBECou
 	return nil
 }
 
-// Transform the evaluation of a job to a PersistentVolume
+// JobEvalToPv Transform the evaluation of a job to a PersistentVolume
 func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.Volume, error) {
 
 	if eval == nil {
@@ -303,6 +303,7 @@ func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.Volume, error) {
 	return pv, nil
 }
 
+// MakeJob Allocate a job
 func MakeJob(name string) (*api.Job, error) {
 	if name == "" {
 		return nil, fmt.Errorf("Job name required to create a Job")
@@ -316,7 +317,7 @@ func MakeJob(name string) (*api.Job, error) {
 	}, nil
 }
 
-// Transform a Nomad Job to a PersistentVolume
+// JobToPv Transform a Nomad Job to a PersistentVolume
 func JobToPv(job *api.Job) (*v1.Volume, error) {
 	if job == nil {
 		return nil, fmt.Errorf("Nil job provided")
