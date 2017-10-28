@@ -16,19 +16,19 @@ type InstallMayaCommand struct {
 	Cmd *exec.Cmd
 
 	// all servers excluding self
-	member_ips string
+	memberIps string
 
 	// all servers including self
-	server_count int
+	serverCount int
 
 	// all servers ipv4, in a comma separated format
-	all_servers_ipv4 string
+	allServersIpv4 string
 
 	// self ip address
-	self_ip string
+	selfIP string
 
 	// self hostname
-	self_hostname string
+	selfHostname string
 
 	//Contains the version info
 	nomad  string
@@ -93,8 +93,8 @@ func (c *InstallMayaCommand) Run(args []string) int {
 	flags := c.M.FlagSet("setup-omm", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.member_ips, "omm-ips", "", "")
-	flags.StringVar(&c.self_ip, "self-ip", "", "")
+	flags.StringVar(&c.memberIps, "omm-ips", "", "")
+	flags.StringVar(&c.selfIP, "self-ip", "", "")
 	flags.StringVar(&c.conf, "config", "", "Config file for setup omm")
 
 	if err := flags.Parse(args); err != nil {
@@ -117,7 +117,7 @@ func (c *InstallMayaCommand) Run(args []string) int {
 			return 1
 		}
 
-		c.self_ip = config.Args[0].Addr
+		c.selfIP = config.Args[0].Addr
 		c.nomad = config.Spec.Bin[0].Version
 		c.consul = config.Spec.Bin[1].Version
 	}
@@ -252,40 +252,40 @@ func (c *InstallMayaCommand) bootTheInstall() int {
 func (c *InstallMayaCommand) init() int {
 
 	var runop int
-	var server_members []string
+	var serverMembers []string
 
 	c.Cmd = exec.Command("hostname")
 
-	if runop = execute(c.Cmd, c.M.Ui, &c.self_hostname); runop != 0 {
+	if runop = execute(c.Cmd, c.M.Ui, &c.selfHostname); runop != 0 {
 		c.M.Ui.Error("Install failed: hostname could not be determined")
 		return runop
 	}
 
-	if len(strings.TrimSpace(c.self_ip)) == 0 {
+	if len(strings.TrimSpace(c.selfIP)) == 0 {
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
-		if runop = execute(c.Cmd, c.M.Ui, &c.self_ip); runop != 0 {
+		if runop = execute(c.Cmd, c.M.Ui, &c.selfIP); runop != 0 {
 			c.M.Ui.Error("Install failed: Error fetching local IP address")
 			return runop
 		}
 	}
 
-	if len(strings.TrimSpace(c.self_ip)) == 0 {
+	if len(strings.TrimSpace(c.selfIP)) == 0 {
 		c.M.Ui.Error("Install failed: IP address could not be determined")
 		return 1
 	}
 
 	// server count will be count(members) + self
-	c.server_count = 1
-	if len(strings.TrimSpace(c.member_ips)) > 0 {
-		server_members = strings.Split(strings.TrimSpace(c.member_ips), ",")
-		c.server_count = len(server_members) + 1
+	c.serverCount = 1
+	if len(strings.TrimSpace(c.memberIps)) > 0 {
+		serverMembers = strings.Split(strings.TrimSpace(c.memberIps), ",")
+		c.serverCount = len(serverMembers) + 1
 	}
 
-	c.all_servers_ipv4 = `"` + c.self_ip + `"`
+	c.allServersIpv4 = `"` + c.selfIP + `"`
 
-	for _, server_ip := range server_members {
-		c.all_servers_ipv4 = c.all_servers_ipv4 + `,"` + server_ip + `"`
+	for _, serverIP := range serverMembers {
+		c.allServersIpv4 = c.allServersIpv4 + `,"` + serverIP + `"`
 	}
 
 	return runop
@@ -295,7 +295,7 @@ func (c *InstallMayaCommand) setConsulAsServer() int {
 
 	var runop int
 
-	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
+	c.Cmd = exec.Command("sh", SetConsulAsServerScript, c.selfIP, c.selfHostname, c.allServersIpv4, strconv.Itoa(c.serverCount))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting consul as server")
@@ -308,7 +308,7 @@ func (c *InstallMayaCommand) setNomadAsServer() int {
 
 	var runop int
 
-	c.Cmd = exec.Command("bash", SetNomadAsServerScript, c.self_ip, c.self_hostname, c.all_servers_ipv4, strconv.Itoa(c.server_count))
+	c.Cmd = exec.Command("bash", SetNomadAsServerScript, c.selfIP, c.selfHostname, c.allServersIpv4, strconv.Itoa(c.serverCount))
 
 	if runop = execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Error setting nomad as server")
@@ -346,7 +346,7 @@ func (c *InstallMayaCommand) startMayaserver() int {
 
 	var runop int
 
-	c.Cmd = exec.Command("sh", StartMayaServerScript, c.self_ip)
+	c.Cmd = exec.Command("sh", StartMayaServerScript, c.selfIP)
 
 	if runop := execute(c.Cmd, c.M.Ui); runop != 0 {
 		c.M.Ui.Error("Install failed: Systemd failed: Error starting mayaserver")
