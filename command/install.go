@@ -61,7 +61,7 @@ func (c *MayaAsNomadInstaller) Install() int {
 	var runop int
 
 	if runop = c.verifyBootstrap(); runop != 0 {
-		//Run the bootstrap only if required
+		//Run the bootstrap only if reqUIred
 		if runop = c.bootstrap(); runop != 0 {
 			return runop
 		}
@@ -120,23 +120,23 @@ func (c *MayaAsNomadInstaller) bootstrap() int {
 
 	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error(fmt.Sprintf("Install failed: Bootstrap failed: Could not fetch file: %s", BootstrapScriptPath))
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error(fmt.Sprintf("Install failed: Bootstrap failed: Could not fetch file: %s", BootstrapScriptPath))
 
 		c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
-		execute(c.Cmd, c.Ui)
+		execute(c.Cmd, c.UI)
 
 		return runop
 	}
 
 	c.Cmd = exec.Command("sh", "./"+BootstrapScript)
-	runop = execute(c.Cmd, c.Ui)
+	runop = execute(c.Cmd, c.UI)
 
 	c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
-	execute(c.Cmd, c.Ui)
+	execute(c.Cmd, c.UI)
 
 	if runop != 0 {
-		c.Ui.Error("Install failed: Error while bootstraping")
+		c.UI.Error("Install failed: Error while bootstraping")
 	}
 
 	return runop
@@ -148,8 +148,8 @@ func (c *MayaAsNomadInstaller) verifyBootstrap() int {
 
 	c.Cmd = exec.Command("ls", MayaScriptsPath)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error(fmt.Sprintf("Install failed: Bootstrap failed: Missing path: %s", MayaScriptsPath))
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error(fmt.Sprintf("Install failed: Bootstrap failed: Missing path: %s", MayaScriptsPath))
 	}
 
 	return runop
@@ -172,14 +172,14 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 	if len(strings.TrimSpace(c.selfIP)) == 0 {
 		c.Cmd = exec.Command("sh", GetPrivateIPScript)
 
-		if runop = execute(c.Cmd, c.Ui, &c.selfIP); runop != 0 {
-			c.Ui.Error("Install failed: Error fetching local IP address")
+		if runop = execute(c.Cmd, c.UI, &c.selfIP); runop != 0 {
+			c.UI.Error("Install failed: Error fetching local IP address")
 			return runop
 		}
 	}
 
 	if len(strings.TrimSpace(c.selfIP)) == 0 {
-		c.Ui.Error("Install failed: IP address could not be determined")
+		c.UI.Error("Install failed: IP address could not be determined")
 		return 1
 	}
 
@@ -243,8 +243,8 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 
 	c.Cmd = exec.Command("bash", InstallDockerScript)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error installing docker")
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Error installing docker")
 	}
 
 	return runop
@@ -256,8 +256,8 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 
 //	c.Cmd = exec.Command("sh", InstallEtcdScript)
 
-//	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-//		c.Ui.Error("Install failed: Error installing etcd")
+//	if runop = execute(c.Cmd, c.UI); runop != 0 {
+//		c.UI.Error("Install failed: Error installing etcd")
 //	}
 
 //	return runop
@@ -269,8 +269,8 @@ func (c *MayaAsNomadInstaller) installConsul() int {
 
 	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error installing consul")
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Error installing consul")
 	}
 
 	return runop
@@ -282,8 +282,8 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 
 	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error installing nomad")
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Error installing nomad")
 	}
 
 	return runop
@@ -295,8 +295,8 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 
 //	c.Cmd = exec.Command("sh", StartEtcdScript)
 
-//	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-//		c.Ui.Error("Install failed: Systemd failed: Error starting etcd")
+//	if runop := execute(c.Cmd, c.UI); runop != 0 {
+//		c.UI.Error("Install failed: Systemd failed: Error starting etcd")
 //	}
 
 //	return runop
@@ -308,8 +308,8 @@ func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 
 	c.Cmd = exec.Command("sh", StartConsulClientScript)
 
-	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Systemd failed: Error starting consul in client mode")
+	if runop := execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Systemd failed: Error starting consul in client mode")
 	}
 
 	return runop
@@ -321,8 +321,8 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
 	c.Cmd = exec.Command("sh", StartNomadClientScript)
 
-	if runop := execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Systemd failed: Error starting nomad in client mode")
+	if runop := execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Systemd failed: Error starting nomad in client mode")
 	}
 
 	return runop
@@ -334,8 +334,8 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 
 //	c.Cmd = exec.Command("sh", SetEtcdScript, c.selfIP, c.selfIPTrim, c.etcdCluster)
 
-//	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-//		c.Ui.Error("Install failed: Error setting etcd")
+//	if runop = execute(c.Cmd, c.UI); runop != 0 {
+//		c.UI.Error("Install failed: Error setting etcd")
 //	}
 
 //	return runop
@@ -347,8 +347,8 @@ func (c *MayaAsNomadInstaller) setConsulAsClient() int {
 
 	c.Cmd = exec.Command("sh", SetConsulAsClientScript, c.selfIP, c.fmtMasterIps)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error setting consul as client")
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Error setting consul as client")
 	}
 
 	return runop
@@ -360,8 +360,8 @@ func (c *MayaAsNomadInstaller) setNomadAsClient() int {
 
 	c.Cmd = exec.Command("sh", SetNomadAsClientScript, c.selfIP, c.fmtMasterIpnports)
 
-	if runop = execute(c.Cmd, c.Ui); runop != 0 {
-		c.Ui.Error("Install failed: Error setting nomad as client")
+	if runop = execute(c.Cmd, c.UI); runop != 0 {
+		c.UI.Error("Install failed: Error setting nomad as client")
 	}
 
 	return runop

@@ -107,14 +107,14 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 
 	mi := &MayaAsNomadInstaller{
 		InstallCommand: InstallCommand{
-			Ui: c.M.Ui,
+			UI: c.M.Ui,
 		},
-		self_ip:    c.self_ip,
-		client_ips: c.member_ips,
-		master_ips: c.master_ips,
-		is_master:  false,
-		nomad:      c.nomad,
-		consul:     c.consul,
+		selfIP:    c.self_ip,
+		clientIps: c.member_ips,
+		masterIps: c.master_ips,
+		ismaster:  false,
+		nomad:     c.nomad,
+		consul:    c.consul,
 	}
 
 	if runop = mi.Install(); runop != 0 {
