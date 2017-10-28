@@ -11,22 +11,22 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// Main command that Maya will use internally
+// ExecCmdType Main command that Maya will use internally
 type ExecCmdType string
 
-// Sub command that will be used with above main command
+// SubCmdType Sub command that will be used with above main command
 type SubCmdType string
 
 const (
-	// Nomad is currently the underlying lib used by Maya
+	// ExecNomad Nomad is currently the underlying lib used by Maya
 	// for VSM provisioning
 	ExecNomad ExecCmdType = "nomad"
 
-	// Kubernetes may be another lib that can be used
+	// ExecKube Kubernetes may be another lib that can be used
 	// for VSM provisioning
 	ExecKube ExecCmdType = "kubectl"
 
-	// Will be used for unit testing purposes
+	// ExecTesting Will be used for unit testing purposes
 	ExecTesting ExecCmdType = "nopes"
 )
 
@@ -71,11 +71,13 @@ const (
 	InstallFlannelScript string = MayaScriptsPath + "install_flannel.sh"
 )
 
+// ErrMissingCommand is a new error type
 var ErrMissingCommand error = errors.New("missing command")
 
+// InternalCommand is an internal command
 type InternalCommand struct {
 	Cmd *exec.Cmd
-	Ui  cli.Ui
+	UI  cli.Ui
 }
 
 // This executes the provided OS command (`assuming the command
