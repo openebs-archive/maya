@@ -303,6 +303,7 @@ func JobEvalToPv(jobName string, eval *api.Evaluation) (*v1.Volume, error) {
 	return pv, nil
 }
 
+// MakeJob Allocate a job
 func MakeJob(name string) (*api.Job, error) {
 	if name == "" {
 		return nil, fmt.Errorf("Job name required to create a Job")
