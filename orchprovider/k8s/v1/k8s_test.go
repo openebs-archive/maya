@@ -224,9 +224,8 @@ func (m *mockK8sUtil) Name() string {
 func (m *mockK8sUtil) K8sClient() (K8sClient, bool) {
 	if m.kcSupport == "true" {
 		return m, true
-	} else {
-		return nil, false
 	}
+	return nil, false
 }
 
 func (m *mockK8sUtil) IsInCluster() (bool, error) {
@@ -236,17 +235,15 @@ func (m *mockK8sUtil) IsInCluster() (bool, error) {
 
 	if m.inCluster == "true" {
 		return true, nil
-	} else {
-		return false, nil
 	}
+	return false, nil
 }
 
 func (m *mockK8sUtil) NS() (string, error) {
 	if m.injectNSErr == "" {
 		return m.ns, nil
-	} else {
-		return m.ns, errors.New(m.injectNSErr)
 	}
+      	return m.ns, errors.New(m.injectNSErr)
 }
 
 func (m *mockK8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
@@ -256,17 +253,15 @@ func (m *mockK8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
 			vsmName:   m.vsmName,
 			injectVsm: m.injectVsm,
 		}, nil
-	} else {
-		return nil, errors.New(m.injectPodErr)
 	}
+	return nil, errors.New(m.injectPodErr)
 }
 
 func (m *mockK8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 	if m.injectSvcErr == "" {
 		return &mockSvcOps{}, nil
-	} else {
-		return nil, errors.New(m.injectSvcErr)
 	}
+      	return nil, errors.New(m.injectSvcErr)
 }
 
 func (m *mockK8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
