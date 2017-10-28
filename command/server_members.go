@@ -25,22 +25,22 @@ type ServerMembersCommand struct {
 // Help is helper function
 func (c *ServerMembersCommand) Help() string {
 	helpText := `
-Usage: maya omm-status [options]
+	Usage: maya omm-status [options]
 
-  Display a list of the known servers and their status. Only Nomad servers are
-  able to service this command.
+	Display a list of the known servers and their status. Only Nomad servers are
+	able to service this command.
 
-General Options:
+	General Options:
 
-  ` + generalOptionsUsage() + `
+	` + generalOptionsUsage() + `
 
-Server Members Options:
+	Server Members Options:
 
-  -detailed
-    Show detailed information about each member. This dumps
-    a raw set of tags which shows more information than the
-    default output format.
-`
+	-detailed
+	Show detailed information about each member. This dumps
+	a raw set of tags which shows more information than the
+	default output format.
+	`
 	return strings.TrimSpace(helpText)
 }
 

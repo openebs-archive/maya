@@ -28,28 +28,28 @@ type NetworkInstallCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *NetworkInstallCommand) Help() string {
 	helpText := `
-Usage: maya network-install <cni> <name> <ip>
+	Usage: maya network-install <cni> <name> <ip>
 
-  Configure the virtual network for containers on OpenEBS Host (osh)
+	Configure the virtual network for containers on OpenEBS Host (osh)
 
-  Note: This requires a PEM encoded SSL Certificate Authority (ca.crt) 
-        file used to secure etcd communication inside a /etc/etcd/ directory 
-        PATH to configure network for containers  
+	Note: This requires a PEM encoded SSL Certificate Authority (ca.crt) 
+	file used to secure etcd communication inside a /etc/etcd/ directory 
+	PATH to configure network for containers  
 
-Maya Network options:
-  
-  -cni=<Name>
-    Name of the CNI plugin to configure as a virtual container network.
-    Currently only flannel is supported.
+	Maya Network options:
 
-  -name=<Name>
-    This is name of the host which is running
-    the etcd server to manage the key-value pair.
- 
-  -ip=<IP Address> 
-    This args is ip-address of the same etcd server mentioned
-    above running on kubernetes-master.
-`
+	-cni=<Name>
+	Name of the CNI plugin to configure as a virtual container network.
+	Currently only flannel is supported.
+
+	-name=<Name>
+	This is name of the host which is running
+	the etcd server to manage the key-value pair.
+
+	-ip=<IP Address> 
+	This args is ip-address of the same etcd server mentioned
+	above running on kubernetes-master.
+	`
 	return strings.TrimSpace(helpText)
 }
 

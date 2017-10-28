@@ -42,42 +42,42 @@ type InstallMayaCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *InstallMayaCommand) Help() string {
 	helpText := `
-Usage: maya setup-omm <config>
+	Usage: maya setup-omm <config>
 
-  Configure this machine as OpenEBS Maya Master (omm) 
-  OMM is a clustered management server node that can either be
-  run in VMs or Physical Hosts and is responsible for managing 
-  and scheduling OpenEBS hosts and VSMs. 
+	Configure this machine as OpenEBS Maya Master (omm) 
+	OMM is a clustered management server node that can either be
+	run in VMs or Physical Hosts and is responsible for managing 
+	and scheduling OpenEBS hosts and VSMs. 
 
-  OMM also comes with an clustered configuration store. 
-  
-  OMM can be clustered with other local or remote OMMs.
+	OMM also comes with an clustered configuration store. 
 
-General Options:
+	OMM can be clustered with other local or remote OMMs.
 
-  ` + generalOptionsUsage() + `
+	General Options:
 
-OpenEBS Maya Master (omm) setup Options:
+	` + generalOptionsUsage() + `
 
-  -config=<config yaml file>
-    Congifuration file in Yaml format,example config file is available
+	OpenEBS Maya Master (omm) setup Options:
+
+	-config=<config yaml file>
+	Congifuration file in Yaml format,example config file is available
 	at example/maya_config.yaml dir.
 
-  -omm-ips=<IP Address(es) of peer OMMs>
-    Comma separated list of IP addresses of all management nodes
-    participating in the cluster.
-    
-    NOTE: Do not include the IP address of this local machine i.e.
-    the machine where this command is being run.
+	-omm-ips=<IP Address(es) of peer OMMs>
+	Comma separated list of IP addresses of all management nodes
+	participating in the cluster.
 
-    If not provided, this machine will be added as the first node
-    in the cluster. 
+	NOTE: Do not include the IP address of this local machine i.e.
+	the machine where this command is being run.
 
-  -self-ip=<IP Address>
-    The IP Address of this local machine i.e. the machine where
-    this command is being run. This is required when the machine
-    has many private IPs and you want to use a specific IP.
-`
+	If not provided, this machine will be added as the first node
+	in the cluster. 
+
+	-self-ip=<IP Address>
+	The IP Address of this local machine i.e. the machine where
+	this command is being run. This is required when the machine
+	has many private IPs and you want to use a specific IP.
+	`
 	return strings.TrimSpace(helpText)
 }
 

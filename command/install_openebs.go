@@ -30,29 +30,29 @@ type InstallOpenEBSCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *InstallOpenEBSCommand) Help() string {
 	helpText := `
-Usage: maya setup-osh
+	Usage: maya setup-osh
 
-  Configure this machine as OpenEBS Host and enable it 
-  to run OpenEBS VSMs. 
+	Configure this machine as OpenEBS Host and enable it 
+	to run OpenEBS VSMs. 
 
-General Options:
+	General Options:
 
-  ` + generalOptionsUsage() + `
+	` + generalOptionsUsage() + `
 
-OpenEBS Storage Host (osh) setup options:
+	OpenEBS Storage Host (osh) setup options:
 
-  -omm-ips=<IP Address(es) of all maya masters>
-    Comma separated list of IP addresses of all maya masters
-    participating in the cluster.
-    
-  -self-ip=<IP Address>
-    The IP Address of this local machine i.e. the machine where
-    this command is being run. This is required when the machine
-    has many private IPs and you want to use a specific IP.
-  
-    NOTE: Do not include the IP address of this local machine i.e.
-    the machine where this command is being run.
-`
+	-omm-ips=<IP Address(es) of all maya masters>
+	Comma separated list of IP addresses of all maya masters
+	participating in the cluster.
+
+	-self-ip=<IP Address>
+	The IP Address of this local machine i.e. the machine where
+	this command is being run. This is required when the machine
+	has many private IPs and you want to use a specific IP.
+
+	NOTE: Do not include the IP address of this local machine i.e.
+	the machine where this command is being run.
+	`
 	return strings.TrimSpace(helpText)
 }
 

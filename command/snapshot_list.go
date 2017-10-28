@@ -16,11 +16,11 @@ type SnapshotListCommand struct {
 
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
-Usage: maya snapshot list -volname <vol>
+	Usage: maya snapshot list -volname <vol>
 
-This command will list all the snapshots of a Volume.
+	This command will list all the snapshots of a Volume.
 
-`
+	`
 	return strings.TrimSpace(helpText)
 }
 
@@ -91,10 +91,10 @@ func ListSnapshot(name string) error {
 					return err
 				}
 
-			snapshots = Filter(snapshots, func(i string) bool {
+				snapshots = Filter(snapshots, func(i string) bool {
 					return Contains(chain, i)
 				})
-				}
+			}
 
 			/*format := "%s\n"
 			tw := tabwriter.NewWriter(os.Stdout, 0, 20, 1, ' ', 0)
