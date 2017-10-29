@@ -27,7 +27,7 @@ type MayaAsNomadInstaller struct {
 	InstallCommand
 
 	// if the installation is in server mode or client mode
-	ismaster bool
+	isMaster bool
 
 	// all maya master ips, in a comma separated format
 	masterIps string
@@ -55,68 +55,64 @@ type MayaAsNomadInstaller struct {
 	consul string
 }
 
-//Install is the public command
-func (c *MayaAsNomadInstaller) Install() int {
-
-	var runop int
+// Install is the public command
+func (c *MayaAsNomadInstaller) Install() (runop int) {
 
 	if runop = c.verifyBootstrap(); runop != 0 {
 		//Run the bootstrap only if required
 		if runop = c.bootstrap(); runop != 0 {
-			return runop
+			return
 		}
 	}
 
 	if runop = c.initAsClient(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.installDocker(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.installConsul(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.setConsulAsClient(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.startConsulAsClient(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.installNomad(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.setNomadAsClient(); runop != 0 {
-		return runop
+		return
 	}
 
 	if runop = c.startNomadAsClient(); runop != 0 {
-		return runop
+		return
 	}
 	//Not installing the etcd on Maya-host
 	//if runop = c.installEtcd(); runop != 0 {
-	//	return runop
+	//	return
 	//}
 
 	//if runop = c.setEtcd(); runop != 0 {
-	//	return runop
+	//	return
 	//}
 
 	//if runop = c.startEtcd(); runop != 0 {
-	//	return runop
+	//	return
 	//}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) bootstrap() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) bootstrap() (runop int) {
 
 	c.Cmd = exec.Command("curl", "-sSL", BootstrapScriptPath, "-o", BootstrapScript)
 
@@ -126,7 +122,7 @@ func (c *MayaAsNomadInstaller) bootstrap() int {
 		c.Cmd = exec.Command("rm", "-rf", BootstrapScript)
 		execute(c.Cmd, c.UI)
 
-		return runop
+		return
 	}
 
 	c.Cmd = exec.Command("sh", "./"+BootstrapScript)
@@ -139,12 +135,10 @@ func (c *MayaAsNomadInstaller) bootstrap() int {
 		c.UI.Error("Install failed: Error while bootstraping")
 	}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) verifyBootstrap() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) verifyBootstrap() (runop int) {
 
 	c.Cmd = exec.Command("ls", MayaScriptsPath)
 
@@ -152,19 +146,18 @@ func (c *MayaAsNomadInstaller) verifyBootstrap() int {
 		c.UI.Error(fmt.Sprintf("Install failed: Bootstrap failed: Missing path: %s", MayaScriptsPath))
 	}
 
-	return runop
+	return
 }
 
 //TODO
-func (c *MayaAsNomadInstaller) validateIPs() int {
+func (c *MayaAsNomadInstaller) validateIPs() (runop int) {
 	return 0
 }
 
 // Set the instance variables i.e. properties of
 // MayaAsNomadInstaller
-func (c *MayaAsNomadInstaller) initAsClient() int {
+func (c *MayaAsNomadInstaller) initAsClient() (runop int) {
 
-	var runop int
 	var masterIparr []string
 	var clientIParr []string
 	var ipTrimmed string
@@ -174,7 +167,7 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 
 		if runop = execute(c.Cmd, c.UI, &c.selfIP); runop != 0 {
 			c.UI.Error("Install failed: Error fetching local IP address")
-			return runop
+			return
 		}
 	}
 
@@ -234,12 +227,10 @@ func (c *MayaAsNomadInstaller) initAsClient() int {
 		c.fmtMasterIpnports = c.fmtMasterIpnports + `"` + masterIP + `:4647"`
 	}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) installDocker() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) installDocker() (runop int) {
 
 	c.Cmd = exec.Command("bash", InstallDockerScript)
 
@@ -247,7 +238,7 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 		c.UI.Error("Install failed: Error installing docker")
 	}
 
-	return runop
+	return
 }
 
 //func (c *MayaAsNomadInstaller) installEtcd() int {
@@ -263,9 +254,7 @@ func (c *MayaAsNomadInstaller) installDocker() int {
 //	return runop
 //}
 
-func (c *MayaAsNomadInstaller) installConsul() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) installConsul() (runop int) {
 
 	c.Cmd = exec.Command("sh", InstallConsulScript, c.consul)
 
@@ -273,12 +262,10 @@ func (c *MayaAsNomadInstaller) installConsul() int {
 		c.UI.Error("Install failed: Error installing consul")
 	}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) installNomad() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) installNomad() (runop int) {
 
 	c.Cmd = exec.Command("sh", InstallNomadScript, c.nomad)
 
@@ -286,7 +273,7 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 		c.UI.Error("Install failed: Error installing nomad")
 	}
 
-	return runop
+	return
 }
 
 //func (c *MayaAsNomadInstaller) startEtcd() int {
@@ -302,9 +289,7 @@ func (c *MayaAsNomadInstaller) installNomad() int {
 //	return runop
 //}
 
-func (c *MayaAsNomadInstaller) startConsulAsClient() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) startConsulAsClient() (runop int) {
 
 	c.Cmd = exec.Command("sh", StartConsulClientScript)
 
@@ -312,12 +297,10 @@ func (c *MayaAsNomadInstaller) startConsulAsClient() int {
 		c.UI.Error("Install failed: Systemd failed: Error starting consul in client mode")
 	}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) startNomadAsClient() int {
-
-	var runop int
+func (c *MayaAsNomadInstaller) startNomadAsClient() (runop int) {
 
 	c.Cmd = exec.Command("sh", StartNomadClientScript)
 
@@ -325,7 +308,7 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 		c.UI.Error("Install failed: Systemd failed: Error starting nomad in client mode")
 	}
 
-	return runop
+	return
 }
 
 //func (c *MayaAsNomadInstaller) setEtcd() int {
@@ -341,9 +324,9 @@ func (c *MayaAsNomadInstaller) startNomadAsClient() int {
 //	return runop
 //}
 
-func (c *MayaAsNomadInstaller) setConsulAsClient() int {
+func (c *MayaAsNomadInstaller) setConsulAsClient() (runop int) {
 
-	var runop int
+	c.Cmd = exec.Command("sh", SetConsulAsClientScript, c.selfIP, c.fmtMasterIps)
 
 	c.Cmd = exec.Command("sh", SetConsulAsClientScript, c.selfIP, c.fmtMasterIps)
 
@@ -351,12 +334,12 @@ func (c *MayaAsNomadInstaller) setConsulAsClient() int {
 		c.UI.Error("Install failed: Error setting consul as client")
 	}
 
-	return runop
+	return
 }
 
-func (c *MayaAsNomadInstaller) setNomadAsClient() int {
+func (c *MayaAsNomadInstaller) setNomadAsClient() (runop int) {
 
-	var runop int
+	c.Cmd = exec.Command("sh", SetNomadAsClientScript, c.selfIP, c.fmtMasterIpnports)
 
 	c.Cmd = exec.Command("sh", SetNomadAsClientScript, c.selfIP, c.fmtMasterIpnports)
 
@@ -364,5 +347,5 @@ func (c *MayaAsNomadInstaller) setNomadAsClient() int {
 		c.UI.Error("Install failed: Error setting nomad as client")
 	}
 
-	return runop
+	return
 }
