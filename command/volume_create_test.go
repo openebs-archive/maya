@@ -30,20 +30,20 @@ func TestVsmCreateCommand_With_Meta(t *testing.T) {
 	defer os.Remove(fh.Name())
 
 	_, err = fh.WriteString(`
-job "job1" {
-	type = "service"
-	datacenters = [ "dc1" ]
-	group "group1" {
-		count = 1
-		task "task1" {
-			driver = "exec"
-			resources = {
-				cpu = 1000
-				memory = 512
+	job "job1" {
+		type = "service"
+		datacenters = [ "dc1" ]
+		group "group1" {
+			count = 1
+			task "task1" {
+				driver = "exec"
+				resources = {
+					cpu = 1000
+					memory = 512
+				}
 			}
 		}
-	}
-}`)
+	}`)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -137,20 +137,20 @@ func TestVsmCreateCommand_Negative(t *testing.T) {
 	defer os.Remove(fh3.Name())
 
 	_, err = fh3.WriteString(`
-job "job1" {
-	type = "service"
-	datacenters = [ "dc1" ]
-	group "group1" {
-		count = 1
-		task "task1" {
-			driver = "exec"
-			resources = {
-				cpu = 1000
-				memory = 512
+	job "job1" {
+		type = "service"
+		datacenters = [ "dc1" ]
+		group "group1" {
+			count = 1
+			task "task1" {
+				driver = "exec"
+				resources = {
+					cpu = 1000
+					memory = 512
+				}
 			}
 		}
-	}
-}`)
+	}`)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -194,20 +194,20 @@ func TestVsmCreateCommand_From_STDIN(t *testing.T) {
 
 	go func() {
 		stdinW.WriteString(`
-job "job1" {
-  type = "service"
-  datacenters = [ "dc1" ]
-  group "group1" {
-		count = 1
-		task "task1" {
-			driver = "exec"
-			resources = {
-				cpu = 1000
-				memory = 512
+		job "job1" {
+			type = "service"
+			datacenters = [ "dc1" ]
+			group "group1" {
+				count = 1
+				task "task1" {
+					driver = "exec"
+					resources = {
+						cpu = 1000
+						memory = 512
+					}
+				}
 			}
-		}
-	}
-}`)
+		}`)
 		stdinW.Close()
 	}()
 

@@ -15,11 +15,11 @@ type SnapshotRevertCommand struct {
 
 func (s *SnapshotRevertCommand) Help() string {
 	helpText := `
-Usage: maya snapshot revert -volname <vol> -snapname <snap>
-							           
-This command will revert to specific snapshot of a Volume.
+	Usage: maya snapshot revert -volname <vol> -snapname <snap>
 
-`
+	This command will revert to specific snapshot of a Volume.
+
+	`
 	return strings.TrimSpace(helpText)
 }
 
