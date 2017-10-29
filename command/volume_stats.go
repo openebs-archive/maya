@@ -324,11 +324,11 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 	}, nil
 }
 
-// GetStatuStats will return json response and statusCode
+// GetVolumeStats will return json statusCode and response
 func GetVolumeStats(address string, obj interface{}) (int, error) {
 	controller, err := NewControllerClient(address)
 	if err != nil {
-		return err, -1
+		return -1, err
 	}
 	url := controller.Address + "/stats"
 	resp, err := controller.httpClient.Get(url)
