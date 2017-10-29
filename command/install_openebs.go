@@ -15,16 +15,16 @@ type InstallOpenEBSCommand struct {
 	Cmd *exec.Cmd
 
 	// all maya master ips, in a comma separated format
-	master_ips string
+	masterIps string
 
 	// self ip address
-	self_ip string
+	selfIP string
 
 	// all maya client ips, in a comma separated format
-	member_ips string
-	conf       string
-	nomad      string
-	consul     string
+	memberIps string
+	conf      string
+	nomad     string
+	consul    string
 }
 
 // Help shows helpText for a particular CLI command
@@ -62,15 +62,14 @@ func (c *InstallOpenEBSCommand) Synopsis() string {
 }
 
 // Run holds the flag values for CLI subcommands
-func (c *InstallOpenEBSCommand) Run(args []string) int {
-	var runop int
+func (c *InstallOpenEBSCommand) Run(args []string) (runop int) {
 
 	flags := c.M.FlagSet("setup-osh", FlagSetClient)
 	flags.Usage = func() { c.M.Ui.Output(c.Help()) }
 
-	flags.StringVar(&c.master_ips, "omm-ips", "", "")
-	flags.StringVar(&c.self_ip, "self-ip", "", "")
-	flags.StringVar(&c.member_ips, "member-ips", "", "")
+	flags.StringVar(&c.masterIps, "omm-ips", "", "")
+	flags.StringVar(&c.selfIP, "self-ip", "", "")
+	flags.StringVar(&c.memberIps, "member-ips", "", "")
 	flags.StringVar(&c.conf, "config", "", "")
 
 	if err := flags.Parse(args); err != nil {
@@ -86,8 +85,8 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 			return 1
 		}
 
-		c.self_ip = config.Args[1].Addr
-		c.master_ips = config.Args[0].Addr
+		c.selfIP = config.Args[1].Addr
+		c.masterIps = config.Args[0].Addr
 		c.nomad = config.Spec.Bin[0].Version
 		c.consul = config.Spec.Bin[1].Version
 	}
@@ -99,7 +98,7 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(strings.TrimSpace(c.master_ips)) == 0 {
+	if len(strings.TrimSpace(c.masterIps)) == 0 {
 		c.M.Ui.Error("-omm-ips option is mandatory")
 		c.M.Ui.Error(c.Help())
 		return 1
@@ -109,10 +108,10 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 		InstallCommand: InstallCommand{
 			UI: c.M.Ui,
 		},
-		selfIP:    c.self_ip,
-		clientIps: c.member_ips,
-		masterIps: c.master_ips,
-		ismaster:  false,
+		selfIP:    c.selfIP,
+		clientIps: c.memberIps,
+		masterIps: c.masterIps,
+		isMaster:  false,
 		nomad:     c.nomad,
 		consul:    c.consul,
 	}
@@ -121,5 +120,5 @@ func (c *InstallOpenEBSCommand) Run(args []string) int {
 		c.M.Ui.Error("OpenEBS Host setup failed")
 	}
 
-	return runop
+	return
 }
