@@ -1120,7 +1120,7 @@ func DefaultPVPVSMIPs(profileMap map[string]string, requestCtrlIPs bool, request
 		return "", "", err
 	}
 
-	if uIPs == nil || len(uIPs) == 0 {
+	if len(uIPs) == 0 {
 		return "", "", fmt.Errorf("Could not find unused IPs")
 	}
 

@@ -501,6 +501,7 @@ func GetVsm(obj interface{}) error {
 
 	body, err := RestClient()
 	if err != nil {
+		// do something
 		fmt.Sprintf("Error querying Volumes: %s", err)
 		return err
 	}

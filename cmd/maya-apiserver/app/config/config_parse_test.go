@@ -57,7 +57,7 @@ func TestMayaConfig_Parse(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("file: %s\nactual:%q\n\nexpected:%q", tc.File, actual, tc.Result)
+			t.Fatalf("file: %s\nactual:%v\n\nexpected:%v", tc.File, actual, tc.Result)
 		}
 	}
 }

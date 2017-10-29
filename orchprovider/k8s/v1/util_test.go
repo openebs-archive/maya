@@ -49,7 +49,7 @@ func TestK8sUtil(t *testing.T) {
 		}
 
 		if incActual != c.incluster {
-			t.Errorf("TestCase: '%d' ExpectedInCluster: '%s' ActualInCluster: '%s'", i, c.incluster, incActual)
+			t.Errorf("TestCase: '%d' ExpectedInCluster: '%t' ActualInCluster: '%t'", i, c.incluster, incActual)
 		}
 
 		nsActual, err := k8sUtl.NS()
