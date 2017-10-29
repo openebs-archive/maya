@@ -260,7 +260,8 @@ type LabelSelectorRequirement struct {
 type LabelSelectorOperator string
 
 const (
-	//LabelSelectorOpIn           LabelSelectorOperator = "In"
+	//LabelSelectorOpIn : LabelSelectorOperator for In
+	LabelSelectorOpIn           LabelSelectorOperator = "In"
 	LabelSelectorOpNotIn        LabelSelectorOperator = "NotIn"
 	LabelSelectorOpExists       LabelSelectorOperator = "Exists"
 	LabelSelectorOpDoesNotExist LabelSelectorOperator = "DoesNotExist"
