@@ -24,6 +24,24 @@ make bootstrap
 make deps
 make dev
 ```
+### Steps to build artifacts with Docker:
+
+1. Build Docker image along with the binaries specified by the Makefile:
+ ```
+   $ docker build -t maya-build-image
+ ```
+2. After building and generating the binaries, run the image into a container:
+```
+   $ docker run --name maya-build-container maya-build-image
+   ```
+3. Then you can retrieve the binaries from the Docker instance with `docker cp`:
+```
+   $ docker cp maya-build-container:/usr/local/go/src/github.com/openebs/maya/bin ./bin
+```
+**OBS**: Notice you have to retrieve the maya-agent separately, since it's currently being generated in the project's root:
+```
+   $ docker cp maya-build-container:/usr/local/go/src/github.com/openebs/maya/maya-agent ./
+```
 
 
 ### Sign your work
@@ -44,3 +62,4 @@ If you set your `user.name` and `user.email` git configs, you can sign your
 commit automatically with `git commit -s`. You can also use git [aliases](https://git-scm.com/book/tr/v2/Git-Basics-Git-Aliases)
 like `git config --global alias.ci 'commit -s'`. Now you can commit with
 `git ci` and the commit will be signed.
+
