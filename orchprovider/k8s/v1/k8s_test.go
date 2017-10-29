@@ -243,7 +243,7 @@ func (m *mockK8sUtil) NS() (string, error) {
 	if m.injectNSErr == "" {
 		return m.ns, nil
 	}
-      	return m.ns, errors.New(m.injectNSErr)
+	return m.ns, errors.New(m.injectNSErr)
 }
 
 func (m *mockK8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
@@ -261,7 +261,7 @@ func (m *mockK8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 	if m.injectSvcErr == "" {
 		return &mockSvcOps{}, nil
 	}
-      	return nil, errors.New(m.injectSvcErr)
+	return nil, errors.New(m.injectSvcErr)
 }
 
 func (m *mockK8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
@@ -985,7 +985,7 @@ type errDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns an error
+// List returns an error
 func (e *errDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	return nil, fmt.Errorf("err-deployment-list")
 }
@@ -996,7 +996,7 @@ type errPodListPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns an error
+// List returns an error
 func (e *errPodListPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	return nil, fmt.Errorf("err-pod-list")
 }
@@ -1051,7 +1051,7 @@ type errMissDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns a list of deployments which are not expected
+// List returns a list of deployments which are not expected
 func (e *errMissDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	d := k8sApisExtnsV1Beta1.Deployment{}
 	d.Name = "err-deployment-list"
@@ -1113,7 +1113,7 @@ type errPodListMissPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns a list of pods which are not expected
+// List returns a list of pods which are not expected
 func (e *errPodListMissPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	p := k8sApiv1.Pod{}
 	p.Name = "err-pod-list"
@@ -1175,7 +1175,7 @@ type errNilDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns nil
+// List returns nil
 func (e *errNilDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	return nil, nil
 }
@@ -1227,7 +1227,7 @@ type errPodListNilPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns nil
+// List returns nil
 func (e *errPodListNilPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	return nil, nil
 }
@@ -1284,7 +1284,7 @@ type okReadStorageDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns a list of expected deployments
+// List returns a list of expected deployments
 func (e *okReadStorageDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	d := k8sApisExtnsV1Beta1.Deployment{}
 	d.Name = "ok-vsm-name"
@@ -1305,7 +1305,7 @@ type okReadStoragePodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns a list of expected pods
+// List returns a list of expected pods
 func (e *okReadStoragePodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	p := k8sApiv1.Pod{}
 	p.Name = "ok-vsm-name"
@@ -1763,7 +1763,7 @@ func TestCreateDeploymentReplicasReturnsErrReplicaCount(t *testing.T) {
 //}
 
 // TestCreateDeploymentReplicasReturnsErrCountMatch verifies error
-// during comparision of PersistentPathCount & ReplicaCount
+// during comparison of PersistentPathCount & ReplicaCount
 //func TestCreateDeploymentReplicasReturnsErrCountMatch(t *testing.T) {
 //	mockedO := &mockK8sOrch{
 //		k8sOrchestrator: k8sOrchestrator{},
