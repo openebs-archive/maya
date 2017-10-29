@@ -12,7 +12,12 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/../.." && pwd )"
 cd "$DIR"
 
 # Get the git commit
-GIT_COMMIT="$(git rev-parse HEAD)"
+if [ -f $GOPATH/src/github.com/openebs/maya/GITCOMMIT ];
+then
+	GIT_CIMMIT="`cat $GOPATH/src/github.com/openebs/maya/GITCOMMIT`"
+else
+	GIT_COMMIT="$(git rev-parse HEAD)"
+fi
 
 # Get the version details
 VERSION="`cat $GOPATH/src/github.com/openebs/maya/VERSION`"
