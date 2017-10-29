@@ -44,11 +44,11 @@ type VolumeStats struct {
 // VsmStatsCommand is a command implementation struct
 type VsmStatsCommand struct {
 	Meta
-	Address     string
-	Host        string
-	Length      int
-	Replica_ips string
-	Json        string
+	Address    string
+	Host       string
+	Length     int
+	ReplicaIps string
+	Json       string
 }
 
 // ReplicaClient is Client structure
@@ -98,7 +98,7 @@ type Annotation struct {
 const (
 	bytesToGB = 1073741824
 	bytesToMB = 1048567
-	mic_sec   = 1000000
+	micSec    = 1000000
 	bytesToKB = 1024
 	minwidth  = 0
 	maxwidth  = 0
@@ -176,7 +176,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 	replicas := strings.Split(annotations.Replicas, ",")
 	for _, replica := range replicas {
-		err, errCode1 := GetStatus(replica+":9502", &status)
+		errCode1, err := GetStatus(replica+":9502", &status)
 		if err != nil {
 			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
 				statusArray[replicaCount] = replica
@@ -198,7 +198,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 	}
 	//GetVolumeStats gets volume stats
-	err1, err2 = GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
+	err2, err1 = GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
 	if err1 != nil {
 		if (err2 == 500) || (err2 == 503) || err1 != nil {
 			fmt.Println("Volume not Reachable\n", err1)
@@ -206,7 +206,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err3, err4 = GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
+		err4, err3 = GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
 		if err3 != nil {
 			if err4 == 500 || err4 == 503 || err3 != nil {
 				fmt.Println("Volume not Reachable\n", err3)
@@ -265,27 +265,27 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 }
 
 // GetStatus will return json response and statusCode
-func GetStatus(address string, obj interface{}) (error, int) {
+func GetStatus(address string, obj interface{}) (int, error) {
 	replica, err := NewReplicaClient(address)
 	if err != nil {
-		return err, -1
+		return -1, err
 	}
 	url := replica.Address + "/stats"
 	resp, err := replica.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return errors.New("Internal Server Error"), 500
+			return 500, errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
-			return errors.New("Service Unavailable"), 503
+			return 503, errors.New("Service Unavailable")
 		}
 	} else {
-		return errors.New("Server Not Reachable"), -1
+		return -1, errors.New("Server Not Reachable")
 	}
 	if err != nil {
-		return err, -1
+		return -1, err
 	}
 	defer resp.Body.Close()
-	return json.NewDecoder(resp.Body).Decode(obj), 0
+	return 0, json.NewDecoder(resp.Body).Decode(obj)
 }
 
 // NewControllerClient create the new replica client
@@ -324,8 +324,8 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 	}, nil
 }
 
-// GetStatus will return json response and statusCode
-func GetVolumeStats(address string, obj interface{}) (error, int) {
+// GetStatuStats will return json response and statusCode
+func GetVolumeStats(address string, obj interface{}) (int, error) {
 	controller, err := NewControllerClient(address)
 	if err != nil {
 		return err, -1
@@ -334,19 +334,19 @@ func GetVolumeStats(address string, obj interface{}) (error, int) {
 	resp, err := controller.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return errors.New("Internal Server Error"), 500
+			return 500, errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
-			return errors.New("Service Unavailable"), 503
+			return 503, errors.New("Service Unavailable")
 		}
 	} else {
-		return errors.New("Server Not Reachable"), -1
+		return -1, errors.New("Server Not Reachable")
 	}
 	if err != nil {
-		return err, -1
+		return -1, err
 	}
 	defer resp.Body.Close()
 	rc := json.NewDecoder(resp.Body).Decode(obj)
-	return rc, 0
+	return 0, rc
 }
 
 // StatsOutput will return error code if any otherwise return zero
@@ -435,8 +435,8 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 			ReadThroughput:  float64(rThroughput) / bytesToMB, // bytes to MB
 			WriteThroughput: float64(wThroughput) / bytesToMB,
 
-			ReadLatency:  float64(ReadLatency) / mic_sec, // Microsecond
-			WriteLatency: float64(WriteLatency) / mic_sec,
+			ReadLatency:  float64(ReadLatency) / micSec, // Microsecond
+			WriteLatency: float64(WriteLatency) / micSec,
 
 			AvgReadBlockSize:  AvgReadBlockCountPS / bytesToKB, // Bytes to KB
 			AvgWriteBlockSize: AvgWriteBlockCountPS / bytesToKB,
@@ -481,7 +481,7 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		w := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Println("\n----------- Performance Stats -----------\n")
 		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
-		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/bytesToMB, float64(wThroughput)/bytesToMB, float64(ReadLatency)/mic_sec, float64(WriteLatency)/mic_sec)
+		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/bytesToMB, float64(wThroughput)/bytesToMB, float64(ReadLatency)/micSec, float64(WriteLatency)/micSec)
 		w.Flush()
 
 		x := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
