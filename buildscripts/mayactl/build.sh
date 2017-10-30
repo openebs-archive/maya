@@ -12,12 +12,16 @@ DIR="$( cd -P "$( dirname "$SOURCE" )/../.." && pwd )"
 cd "$DIR"
 
 # Get the git commit
-GIT_COMMIT="$(git rev-parse HEAD)"
-GIT_DIRTY="$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)"
+if [ -f $GOPATH/src/github.com/openebs/maya/GITCOMMIT ];
+then
+	GIT_CIMMIT="`cat $GOPATH/src/github.com/openebs/maya/GITCOMMIT`"
+else
+	GIT_COMMIT="$(git rev-parse HEAD)"
+fi
 
-# Fetch the tags before using git rev-list --tags
-git fetch --tags >/dev/null 2>&1
-GIT_TAG="$(git describe --tags $(git rev-list --tags --max-count=1))"
+# Get the version details
+VERSION="`cat $GOPATH/src/github.com/openebs/maya/VERSION`"
+VERSION_META="`cat $GOPATH/src/github.com/openebs/maya/BUILDMETA`"
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64"}
@@ -30,11 +34,6 @@ XC_OSS=(${XC_OS// / })
 echo "==> Removing old directory..."
 rm -rf bin/maya/*
 mkdir -p bin/maya/
-
-if [ -z "${GIT_TAG}" ];
-then
-    GIT_TAG="0.0.1"
-fi
 
 if [ -z "${MAYACTL}" ];
 then
@@ -60,9 +59,10 @@ do
             output_name+='.exe'
         fi
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-           "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' \
+           "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
             -X main.CtlName='${CTLNAME}' \
-            -X main.Version='${GIT_TAG}'"\
+            -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
+            -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
             -o $output_name
 
     done

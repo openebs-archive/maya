@@ -43,7 +43,7 @@ func TestK8sUtil(t *testing.T) {
 
 	for i, c := range cases {
 
-		incActual, err := k8sUtl.InCluster()
+		incActual, err := k8sUtl.IsInCluster()
 		if err != nil {
 			t.Errorf("TestCase: '%d' ExpectedInClusterErr: 'nil' ActualInClusterErr: '%s'", i, err.Error())
 		}

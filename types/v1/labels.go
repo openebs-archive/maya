@@ -317,6 +317,15 @@ const (
 	// NOTE:
 	//  PVPNodeAffinityExpressionsLbl is used here as value is a part of the expressions
 	//PVPNodeSelectorValueLbl VolumeProvisionerProfileLabel = PVPNodeAffinityExpressionsLbl
+
+	// PVPSCNameLbl is the key used to specify the name of storage class. This
+	// applies when OpenEBS volume is orchestrated by Maya using Kubernetes.
+	PVPSCNameLbl VolumeProvisionerProfileLabel = "sc/name"
+
+	// PVPSCNamespaceLbl is the key used to specify the namespace of storage
+	// class. This applies when OpenEBS volume is orchestrated by Maya using
+	// Kubernetes.
+	//PVPSCNamespaceLbl VolumeProvisionerProfileLabel = "sc/namespace"
 )
 
 // Deprecate
@@ -436,9 +445,8 @@ const (
 type VolumeProvisionerProfileRegistry string
 
 const (
-	// This is the name of PVC as persistent volume provisioner profile
-	// This is used for labelling PVC as a persistent volume provisioner profile
-	PVCProvisionerProfile VolumeProvisionerProfileRegistry = "pvc"
+	// This is the name of volume provisioner profile
+	VolumeProvisionerProfile VolumeProvisionerProfileRegistry = "vol"
 )
 
 type GenericAnnotations string

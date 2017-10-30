@@ -47,11 +47,11 @@ func (f *StringSlice) Value() []string {
 // Help shows helpText for a particular CLI command
 func (c *SnapshotCreateCommand) Help() string {
 	helpText := `
-Usage: maya snapshot create -volname <vol> -snapname <snap>
-  
-This command will create a snapshot of a given Volume.
+	Usage: maya snapshot create -volname <vol> -snapname <snap>
 
-`
+	This command will create a snapshot of a given Volume.
+
+	`
 	return strings.TrimSpace(helpText)
 }
 
@@ -78,9 +78,9 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 		return 1
 	}
 	/* var name string
-	   if len(c.Args()) > 0 {
-	       name = c.Args()[0]
-	   } */
+	if len(c.Args()) > 0 {
+		name = c.Args()[0]
+	} */
 	/*	var flagset *flag.FlagSet
 		labels := lookupStringSlice("label", flagset)
 		fmt.Sprint(labels)
@@ -215,14 +215,14 @@ func (c *ControllerClient) get(path string, obj interface{}) error {
 
 /*func Snapshot(name string, userCreated bool, created string, labels map[string]string) error {
 	fmt.Println("Snapshot: %s %s UserCreated %v Created at %v, Labels %v",
-		r.name, name, userCreated, created, labels)
+	r.name, name, userCreated, created, labels)
 	return r.doAction("snapshot",
-		&map[string]interface{}{
-			"name":        name,
-			"usercreated": userCreated,
-			"created":     created,
-			"labels":      labels,
-		})
+	&map[string]interface{}{
+		"name":        name,
+		"usercreated": userCreated,
+		"created":     created,
+		"labels":      labels,
+	})
 }*/
 
 func ParseLabels(labels []string) (map[string]string, error) {

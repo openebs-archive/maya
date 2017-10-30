@@ -11,10 +11,10 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// Main command that Maya will use internally
+// ExecCmdType is the main command that Maya will use internally
 type ExecCmdType string
 
-// Sub command that will be used with above main command
+// SubCmdType that will be used with above main command
 type SubCmdType string
 
 const (
@@ -23,7 +23,7 @@ const (
 	ExecNomad ExecCmdType = "nomad"
 
 	// Kubernetes may be another lib that can be used
-	// for VSM provisioning
+	// ExecCmdType
 	ExecKube ExecCmdType = "kubectl"
 
 	// Will be used for unit testing purposes

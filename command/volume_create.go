@@ -155,7 +155,7 @@ func CreateAPIVsm(vname string, size string) error {
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Printf("ioutil.ReadAll() error: %v\n", err)
 		return err
@@ -168,7 +168,7 @@ func CreateAPIVsm(vname string, size string) error {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Volume Successfully Created:\n%v\n", string(data))
+	fmt.Printf("Volume Successfully Created:%v\n", vname)
 
 	return nil
 }

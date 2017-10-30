@@ -3,7 +3,6 @@ package k8s
 import (
 	"errors"
 	"fmt"
-	//"reflect"
 	"testing"
 
 	"github.com/openebs/maya/orchprovider"
@@ -15,7 +14,7 @@ import (
 	watch "k8s.io/apimachinery/pkg/watch"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	//k8sApi "k8s.io/client-go/pkg/api"
+	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	k8sApiv1 "k8s.io/client-go/pkg/api/v1"
 	k8sApisExtnsV1Beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	policy "k8s.io/client-go/pkg/apis/policy/v1beta1"
@@ -118,13 +117,10 @@ func TestAddStorage(t *testing.T) {
 
 	for _, c := range cases {
 
-		pvc := &v1.Volume{}
-		pvc.Name = c.vsmname
-		//pvc.Labels = map[string]string{
-		//	string(v1.PVPVSMNameLbl): c.vsmname,
-		//}
+		vol := &v1.Volume{}
+		vol.Name = c.vsmname
 
-		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+		volP, _ := volProfile.GetDefaultVolProProfile(vol)
 
 		sOps, _ := o.StorageOps()
 
@@ -176,22 +172,21 @@ func (m *mockK8sOrch) StorageOps() (orchprovider.StorageOps, bool) {
 // K8sUtil is the mocked version of the original's i.e. k8sOrchestrator.K8sUtil()
 func (m *mockK8sOrch) GetK8sUtil(volProfile volProfile.VolumeProvisionerProfile) K8sUtilInterface {
 
-	pvc, _ := volProfile.PVC()
+	vol, _ := volProfile.Volume()
 
 	// mockK8sUtil is instantiated based on a 'Value Based Test' record/row
 	return &mockK8sUtil{
-		name: pvc.Labels[string(testK8sUtlNameLbl)],
-		//vsmName:            pvc.Labels[string(v1.PVPVSMNameLbl)],
-		vsmName:            pvc.Name,
-		kcSupport:          pvc.Labels[string(testK8sClientSupportLbl)],
-		ns:                 pvc.Labels[string(v1.OrchNSLbl)],
-		injectNSErr:        pvc.Labels[string(testK8sInjectNSErrLbl)],
-		inCluster:          pvc.Labels[string(testK8sInClusterLbl)],
-		injectInClusterErr: pvc.Labels[string(testK8sInjectInClusterErrLbl)],
-		injectPodErr:       pvc.Labels[string(testK8sInjectPodErrLbl)],
-		injectSvcErr:       pvc.Labels[string(testK8sInjectSvcErrLbl)],
-		injectVsm:          pvc.Labels[string(testK8sInjectVSMLbl)],
-		resultingErr:       pvc.Labels[string(testK8sErrorLbl)],
+		name:               vol.Labels[string(testK8sUtlNameLbl)],
+		vsmName:            vol.Name,
+		kcSupport:          vol.Labels[string(testK8sClientSupportLbl)],
+		ns:                 vol.Labels[string(v1.OrchNSLbl)],
+		injectNSErr:        vol.Labels[string(testK8sInjectNSErrLbl)],
+		inCluster:          vol.Labels[string(testK8sInClusterLbl)],
+		injectInClusterErr: vol.Labels[string(testK8sInjectInClusterErrLbl)],
+		injectPodErr:       vol.Labels[string(testK8sInjectPodErrLbl)],
+		injectSvcErr:       vol.Labels[string(testK8sInjectSvcErrLbl)],
+		injectVsm:          vol.Labels[string(testK8sInjectVSMLbl)],
+		resultingErr:       vol.Labels[string(testK8sErrorLbl)],
 	}
 }
 
@@ -229,29 +224,26 @@ func (m *mockK8sUtil) Name() string {
 func (m *mockK8sUtil) K8sClient() (K8sClient, bool) {
 	if m.kcSupport == "true" {
 		return m, true
-	} else {
-		return nil, false
 	}
+	return nil, false
 }
 
-func (m *mockK8sUtil) InCluster() (bool, error) {
+func (m *mockK8sUtil) IsInCluster() (bool, error) {
 	if m.injectInClusterErr != "" {
 		return false, errors.New(m.injectInClusterErr)
 	}
 
 	if m.inCluster == "true" {
 		return true, nil
-	} else {
-		return false, nil
 	}
+	return false, nil
 }
 
 func (m *mockK8sUtil) NS() (string, error) {
 	if m.injectNSErr == "" {
 		return m.ns, nil
-	} else {
-		return m.ns, errors.New(m.injectNSErr)
 	}
+	return m.ns, errors.New(m.injectNSErr)
 }
 
 func (m *mockK8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
@@ -261,20 +253,22 @@ func (m *mockK8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
 			vsmName:   m.vsmName,
 			injectVsm: m.injectVsm,
 		}, nil
-	} else {
-		return nil, errors.New(m.injectPodErr)
 	}
+	return nil, errors.New(m.injectPodErr)
 }
 
 func (m *mockK8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 	if m.injectSvcErr == "" {
 		return &mockSvcOps{}, nil
-	} else {
-		return nil, errors.New(m.injectSvcErr)
 	}
+	return nil, errors.New(m.injectSvcErr)
 }
 
 func (m *mockK8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
+	return nil, nil
+}
+
+func (m *mockK8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error) {
 	return nil, nil
 }
 
@@ -578,11 +572,11 @@ type okCreateReplicaPodVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile
 }
 
-// PVC does not return any error
-func (e *okCreateReplicaPodVolumeProfile) PVC() (*v1.Volume, error) {
-	pvc := &v1.Volume{}
-	pvc.Labels = map[string]string{}
-	return pvc, nil
+// Volume does not return any error
+func (e *okCreateReplicaPodVolumeProfile) Volume() (*v1.Volume, error) {
+	vol := &v1.Volume{}
+	vol.Labels = map[string]string{}
+	return vol, nil
 }
 
 // PersistentPath does not return any error
@@ -991,7 +985,7 @@ type errDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns an error
+// List returns an error
 func (e *errDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	return nil, fmt.Errorf("err-deployment-list")
 }
@@ -1002,7 +996,7 @@ type errPodListPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns an error
+// List returns an error
 func (e *errPodListPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	return nil, fmt.Errorf("err-pod-list")
 }
@@ -1057,7 +1051,7 @@ type errMissDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns a list of deployments which are not expected
+// List returns a list of deployments which are not expected
 func (e *errMissDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	d := k8sApisExtnsV1Beta1.Deployment{}
 	d.Name = "err-deployment-list"
@@ -1119,7 +1113,7 @@ type errPodListMissPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns a list of pods which are not expected
+// List returns a list of pods which are not expected
 func (e *errPodListMissPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	p := k8sApiv1.Pod{}
 	p.Name = "err-pod-list"
@@ -1181,7 +1175,7 @@ type errNilDeploymentListDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns nil
+// List returns nil
 func (e *errNilDeploymentListDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	return nil, nil
 }
@@ -1233,7 +1227,7 @@ type errPodListNilPodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns nil
+// List returns nil
 func (e *errPodListNilPodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	return nil, nil
 }
@@ -1290,7 +1284,7 @@ type okReadStorageDeploymentOps struct {
 	k8sExtnsV1Beta1.DeploymentInterface
 }
 
-// List retuns a list of expected deployments
+// List returns a list of expected deployments
 func (e *okReadStorageDeploymentOps) List(opts metav1.ListOptions) (*k8sApisExtnsV1Beta1.DeploymentList, error) {
 	d := k8sApisExtnsV1Beta1.Deployment{}
 	d.Name = "ok-vsm-name"
@@ -1311,7 +1305,7 @@ type okReadStoragePodOps struct {
 	k8sCoreV1.PodInterface
 }
 
-// List retuns a list of expected pods
+// List returns a list of expected pods
 func (e *okReadStoragePodOps) List(opts metav1.ListOptions) (*k8sApiv1.PodList, error) {
 	p := k8sApiv1.Pod{}
 	p.Name = "ok-vsm-name"
@@ -1769,7 +1763,7 @@ func TestCreateDeploymentReplicasReturnsErrReplicaCount(t *testing.T) {
 //}
 
 // TestCreateDeploymentReplicasReturnsErrCountMatch verifies error
-// during comparision of PersistentPathCount & ReplicaCount
+// during comparison of PersistentPathCount & ReplicaCount
 //func TestCreateDeploymentReplicasReturnsErrCountMatch(t *testing.T) {
 //	mockedO := &mockK8sOrch{
 //		k8sOrchestrator: k8sOrchestrator{},

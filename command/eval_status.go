@@ -14,28 +14,28 @@ type EvalStatusCommand struct {
 
 func (c *EvalStatusCommand) Help() string {
 	helpText := `
-  Display information about evaluations. This command can be used to inspect the
-  current status of an evaluation as well as determine the reason an evaluation
-  did not place all allocations.
+	Display information about evaluations. This command can be used to inspect the
+	current status of an evaluation as well as determine the reason an evaluation
+	did not place all allocations.
 
-General Options:
+	General Options:
 
-  ` + generalOptionsUsage() + `
+	` + generalOptionsUsage() + `
 
-Eval Status Options:
+	Eval Status Options:
 
-  -monitor
-    Monitor an outstanding evaluation
+	-monitor
+	Monitor an outstanding evaluation
 
-  -verbose
-    Show full information.
+	-verbose
+	Show full information.
 
-  -json
-    Output the evaluation in its JSON format.
+	-json
+	Output the evaluation in its JSON format.
 
-  -t
-    Format and display evaluation using a Go template.
-`
+	-t
+	Format and display evaluation using a Go template.
+	`
 
 	return strings.TrimSpace(helpText)
 }
