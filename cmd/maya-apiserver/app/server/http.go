@@ -6,11 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	//	"github.com/NYTimes/gziphandler"
-	"github.com/ghodss/yaml"
-	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/ugorji/go/codec"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,6 +14,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -213,6 +214,9 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	// Request w.r.t to a single VSM entity is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.VSMSpecificRequest))
+
+	s.mux.HandleFunc("/latest/snapshot/", s.wrap(latestOpenEBSMetaDataRequestCounter,
+		latestOpenEBSVolumeRequestDuration, s.SnapshotSpecificRequest))
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and the custom metrics created.
 	s.mux.Handle("/metrics", promhttp.Handler())

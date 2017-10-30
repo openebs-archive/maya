@@ -19,27 +19,19 @@ import (
 // Snapshot will create the snapshot of a given volume name 'volname' with name of
 // snapshot 'snapname'. If there is no name provided for snapshot, an auto genrated
 // string will be genrated for this.
-func Snapshot(volname string, snapname string, labels map[string]string) (string, error) {
+func Snapshot(volname string, snapname string, controllerIP string, labels map[string]string) (command.SnapshotOutput, error) {
+	output := command.SnapshotOutput{}
+	var c ControllerClient
 
-	annotations, err := command.GetVolumeSpec(volname)
-	if err != nil || annotations == nil {
-
-		return "", err
-	}
-
-	if annotations.ControllerStatus != "Running" {
-		fmt.Println("Volume not reachable")
-		return "", err
-	}
-	controller, err := command.NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := command.NewControllerClient(controllerIP + ":9501")
 
 	if err != nil {
-		return "", err
+		return output, err
 	}
 
 	volume, err := command.GetVolume(controller.Address)
 	if err != nil {
-		return "", err
+		return output, err
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
@@ -48,14 +40,13 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 		Name:   snapname,
 		Labels: labels,
 	}
-	output := command.SnapshotOutput{}
-	var c ControllerClient
+
 	err = c.post(url, input, &output)
 	if err != nil {
-		return "", err
+		return output, err
 	}
 
-	return output.Id, err
+	return output, nil
 }
 
 func (c *ControllerClient) post(path string, req, resp interface{}) error {
