@@ -24,7 +24,6 @@ func SnapshotList(name string, controllerIP string) (map[string]command.DiskInfo
 	}
 
 	first := true
-	//snapshots := []string{}
 	for _, r := range replicas {
 		if r.Mode != "RW" {
 			continue
@@ -72,23 +71,8 @@ func SnapshotList(name string, controllerIP string) (map[string]command.DiskInfo
 			if err != err {
 				return snapdisk, err
 			}
-			//out := make([]string, len(snapdisk)+1)
-
-			//out[0] = "Name|Created At|Size"
-			//var i int
 			return snapdisk, nil
 
-			/*	for _, disk := range snapdisk {
-					//	if !IsHeadDisk(disk.Name) {
-					out[i+1] = fmt.Sprintf("%s|%s|%s",
-						strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
-						disk.Created,
-						disk.Size)
-					i = i + 1
-					//	}
-				}
-			*/
-			//fmt.Println(command.FormatList(out))
 		}
 	}
 	return nil, nil

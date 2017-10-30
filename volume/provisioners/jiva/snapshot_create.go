@@ -19,7 +19,7 @@ import (
 // Snapshot will create the snapshot of a given volume name 'volname' with name of
 // snapshot 'snapname'. If there is no name provided for snapshot, an auto genrated
 // string will be genrated for this.
-func Snapshot(volname string, snapname string, controllerIP string, labels map[string]string) (command.SnapshotOutput, error) {
+func Snapshot(snapname string, controllerIP string, labels map[string]string) (command.SnapshotOutput, error) {
 	output := command.SnapshotOutput{}
 	var c ControllerClient
 

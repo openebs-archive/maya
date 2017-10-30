@@ -2,22 +2,21 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
 	"github.com/openebs/maya/volume/provisioners/jiva"
 )
 
-// SnapshotSpecificGetRequest deals with HTTP GET request w.r.t a Volume Snapshot
+// SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
 func (s *HTTPServer) SnapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Extract info from path after trimming
-	path := strings.TrimPrefix(req.URL.Path, "/latest/snapshot")
+	path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
 
-	// Is req valid ?
+	// Check request validity
 	if path == req.URL.Path {
-		fmt.Println("Request coming", path)
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 
@@ -41,11 +40,11 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 
-	fmt.Println("[DEBUG] Processing Volume Snapshot request")
+	glog.Infof("Processing Volume create snapshot request")
 
 	snap := v1.VolumeSnapshot{}
 
-	// The yaml/json spec is decoded to pvc struct
+	// The yaml/json spec is decoded to VolumeSnapshot struct
 	if err := decodeBody(req, &snap); err != nil {
 
 		return nil, CodedError(400, err.Error())
@@ -53,17 +52,16 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 
 	// SnapshotName is expected to be available even in the minimalist specs
 	if snap.Metadata.Name == "" {
-		return nil, CodedError(400, fmt.Sprintf("Snapshot name missing in '%v'", snap.SnapshotName))
+		return nil, CodedError(400, fmt.Sprintf("Error: snapshot name missing in '%v'", snap.SnapshotName))
 	}
 
 	// Name is expected to be available even in the minimalist specs
 	if snap.Spec.VolumeName == "" {
 
-		return nil, CodedError(400, fmt.Sprintf("PVC Volume name missing in '%v'", snap.Spec.VolumeName))
+		return nil, CodedError(400, fmt.Sprintf("Error: volume name missing in '%v'", snap.Spec.VolumeName))
 	}
 
-	fmt.Println("Volume Name :", snap.Spec.VolumeName)
-	fmt.Println("[DEBUG] Processing snapshot-create request of volume:", snap.Spec.VolumeName)
+	glog.Infof("Processing snapshot-create request of volume: %s", snap.Spec.VolumeName)
 
 	voldetails, err := s.vsmRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
@@ -73,13 +71,13 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
 
 	var labelMap map[string]string
-	snapinfo, err := jiva.Snapshot(snap.Spec.VolumeName, snap.Metadata.Name, ControllerIP, labelMap)
+	snapinfo, err := jiva.Snapshot(snap.Metadata.Name, ControllerIP, labelMap)
 	if err != nil {
-		log.Printf("Error running create snapshot command: %v", err)
+		glog.Errorf("Failed to create snapshot of volume %v : %v", snap.Spec.VolumeName, err)
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Snapshot created:", snap.Metadata.Name)
+	glog.Infof("Snapshot created for volume [%s] is [%s]\n", snap.Spec.VolumeName, snap.Metadata.Name)
 
 	return snapinfo, nil
 }
@@ -91,11 +89,11 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 	if req.Method != "PUT" && req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
-	fmt.Println("[DEBUG] Processing Volume snapshot-revert request")
+	glog.Infof("Processing Volume snapshot-revert request")
 
 	snap := v1.VolumeSnapshot{}
 
-	// The yaml/json spec is decoded to pvc struct
+	// The yaml/json spec is decoded to VolumeSnapshot struct
 	if err := decodeBody(req, &snap); err != nil {
 
 		return nil, CodedError(400, err.Error())
@@ -103,17 +101,16 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 
 	// SnapshotName is expected to be available even in the minimalist specs
 	if snap.Metadata.Name == "" {
-		return nil, CodedError(400, fmt.Sprintf("[ERROR] Snapshot name missing in '%v'", snap.Metadata.Name))
+		return nil, CodedError(400, fmt.Sprintf("ERROR: Snapshot name missing in '%v'", snap.Metadata.Name))
 	}
 
 	// Name is expected to be available even in the minimalist specs
 	if snap.Spec.VolumeName == "" {
 
-		return nil, CodedError(400, fmt.Sprintf("[ERROR] Volume name missing in '%v'", snap))
+		return nil, CodedError(400, fmt.Sprintf("ERROR: Volume name missing in '%v'", snap))
 	}
 
-	fmt.Println("Volume Name :", snap.Spec.VolumeName)
-	fmt.Println("[DEBUG] Processing snapshot-revert request of volume:", snap.Spec.VolumeName)
+	glog.Infof("Processing snapshot-revert request of volume: %s", snap.Spec.VolumeName)
 
 	voldetails, err := s.vsmRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
@@ -122,13 +119,13 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 
 	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
 
-	err = jiva.SnapshotRevert(snap.Spec.VolumeName, snap.Metadata.Name, ControllerIP)
+	err = jiva.SnapshotRevert(snap.Metadata.Name, ControllerIP)
 	if err != nil {
-		log.Fatalf("[ERROR] Error running revert snapshot command: %v", err)
+		glog.Errorf("Failed to revert snapshot of volume %s: %v", snap.Spec.VolumeName, err)
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Reverting to snapshot:", snap.Metadata.Name)
+	glog.Infof("Reverting to snapshot [%s] of volume [%s]", snap.Metadata.Name, snap.Spec.VolumeName)
 	return nil, nil
 
 }
@@ -139,15 +136,15 @@ func (s *HTTPServer) SnapshotList(resp http.ResponseWriter, req *http.Request, v
 	if req.Method != "GET" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
-	fmt.Println("[DEBUG] Processing Volume snapshot-list request")
+	glog.Infof("Processing Volume snapshot-list request")
 
 	snap := v1.VolumeSnapshot{}
 	snap.Spec.VolumeName = volName
 
-	// Name is expected to be available in specs
+	// Name is expected to be available in snapshot specs
 	if snap.Spec.VolumeName == "" {
 
-		return nil, CodedError(400, fmt.Sprintf("[ERROR] Volume name missing in '%v'", snap.Spec.VolumeName))
+		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", snap.Spec.VolumeName))
 	}
 
 	voldetails, err := s.vsmRead(resp, req, volName)
@@ -160,11 +157,11 @@ func (s *HTTPServer) SnapshotList(resp http.ResponseWriter, req *http.Request, v
 	// list all created snapshot specific to particular volume
 	snapChain, err := jiva.SnapshotList(snap.Spec.VolumeName, ControllerIP)
 	if err != nil {
-		log.Fatalf("[ERROR] Error running list snapshot command: %v", err)
+		glog.Errorf("Error getting snapshots of volume %s: %v", snap.Spec.VolumeName, err)
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Successfully created snapshot of volume", snap.Spec.VolumeName)
+	glog.Infof("Successfully list snapshot of volume: %s", snap.Spec.VolumeName)
 	return snapChain, nil
 
 }

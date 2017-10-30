@@ -8,7 +8,7 @@ import (
 // particular snapshot. If there is more then one snapshot has been
 // created for a volume, then user can revert to any specific created
 // snaphot for that particular volume.
-func SnapshotRevert(volname string, snapshot string, controllerIP string) error {
+func SnapshotRevert(snapshot string, controllerIP string) error {
 
 	controller, err := command.NewControllerClient(controllerIP + ":9501")
 

@@ -215,7 +215,7 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.VSMSpecificRequest))
 
-	s.mux.HandleFunc("/latest/snapshot/", s.wrap(latestOpenEBSMetaDataRequestCounter,
+	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.SnapshotSpecificRequest))
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and the custom metrics created.
