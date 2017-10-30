@@ -1,17 +1,11 @@
 package command
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/openebs/maya/types/v1"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 )
 
 // VsmCreateCommand is a command implementation struct
@@ -106,69 +100,12 @@ func (c *VsmCreateCommand) Run(args []string) int {
 			return 1
 		}
 
-		resp := CreateAPIVsm(c.vsmname, c.size)
+		resp := mapiserver.CreateVolume(c.vsmname, c.size)
 		if resp != nil {
-			c.Ui.Error(fmt.Sprintf("Error Creating Volume %v", resp))
+			c.Ui.Error(fmt.Sprintf("Error Creating Volume: %v", resp))
+			return 1
 		}
+		fmt.Printf("Volume Successfully Created:%v\n", c.vsmname)
 	}
 	return op
-}
-
-// CreateAPIVsm to create the Vsm through a API call to m-apiserver
-func CreateAPIVsm(vname string, size string) error {
-
-	var vs v1.VolumeAPISpec
-
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		fmt.Println(err)
-		return err
-	}
-	url := addr + "/latest/volumes/"
-
-	vs.Kind = "PersistentVolumeClaim"
-	vs.APIVersion = "v1"
-	vs.Metadata.Name = vname
-	vs.Metadata.Labels.Storage = size
-
-	//Marshal serializes the value provided into a YAML document
-	yamlValue, _ := yaml.Marshal(vs)
-
-	fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
-
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
-	if err != nil {
-		fmt.Printf("http.NewRequest() error: %v\n", err)
-		return err
-	}
-
-	req.Header.Add("Content-Type", "application/yaml")
-
-	c := &http.Client{
-		Timeout: timeout,
-	}
-	resp, err := c.Do(req)
-	if err != nil {
-		fmt.Printf("http.Do() error: %v\n", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Printf("ioutil.ReadAll() error: %v\n", err)
-		return err
-	}
-	code := resp.StatusCode
-
-	if code != http.StatusOK {
-
-		fmt.Printf("Status error: %v\n", http.StatusText(code))
-		os.Exit(1)
-	}
-
-	fmt.Printf("Volume Successfully Created:%v\n", vname)
-
-	return nil
 }
