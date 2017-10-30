@@ -17,11 +17,11 @@ type VsmStopCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
-Usage: maya volume delete <vol>
+	Usage: maya volume delete <vol>
 
-This command deletes an existing volume.
+	This command deletes an existing volume.
 
-`
+	`
 	return strings.TrimSpace(helpText)
 }
 

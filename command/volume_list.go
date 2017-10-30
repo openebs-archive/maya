@@ -65,28 +65,28 @@ type ListStub struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmListCommand) Help() string {
 	helpText := `
-Usage: maya volume list [options]
+	Usage: maya volume list [options]
 
-This command displays status of available Volumes. 
-If no volume ID is given, a list of all known volume will be dumped.
+	This command displays status of available Volumes.
+	If no volume ID is given, a list of all known volume will be dumped.
 
-Volume list options:
+	Volume list options:
 
-    -short
-      Display short output. Used only when a single job is being
-      queried, and drops verbose information about allocations.
+	-short
+	Display short output. Used only when a single job is being
+	queried, and drops verbose information about allocations.
 
-    -evals
-      Display the evaluations associated with the job.
+	-evals
+	Display the evaluations associated with the job.
 
-    -all-allocs
-      Display all allocations matching the job ID, including those
-      from an older instance of the job.
+	-all-allocs
+	Display all allocations matching the job ID, including those
+	from an older instance of the job.
 
-    -verbose
-      Display full information.
+	-verbose
+	Display full information.
 
-`
+	`
 	return strings.TrimSpace(helpText)
 }
 

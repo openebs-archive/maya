@@ -18,14 +18,14 @@ type VsmUpdateCommand struct {
 
 func (c *VsmUpdateCommand) Help() string {
 	helpText := `
-Usage: maya volume update [path-to-update-specs]
+	Usage: maya volume update [path-to-update-specs]
 
-This command updates the given volume.   
+	This command updates the given volume.
 
-General Options:
+	General Options:
 
-  ` + generalOptionsUsage() + `
-`
+	` + generalOptionsUsage() + `
+	`
 	return strings.TrimSpace(helpText)
 }
 
