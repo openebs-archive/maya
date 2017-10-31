@@ -25,12 +25,12 @@ func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "maya",
 		Short: "Maya means 'Magic'a tool for storage orchestration",
-		Long: `Maya means 'Magic' a tool for storage orchestration
-		`,
+		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 	}
 
 	cmd.AddCommand(
 		NewCmdVersion(),
+		NewCmdVolume(),
 	)
 
 	// add the glog flags

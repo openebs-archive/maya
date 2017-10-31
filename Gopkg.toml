@@ -64,7 +64,6 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
 
 [[constraint]]
   name = "github.com/spf13/pflag"
-  version = "1.0.0"
 
 [[constraint]]
   name = "gopkg.in/inf.v0"

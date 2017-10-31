@@ -204,12 +204,6 @@
   revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/go-syslog"
-  packages = ["."]
-  revision = "326bf4a7f709d263f964a6a96558676b103f3534"
-
-[[projects]]
   name = "github.com/hashicorp/go-version"
   packages = ["."]
   revision = "03c5bf6be031b6dd45afec16b1cf94fc8938bc77"
@@ -223,12 +217,6 @@
   name = "github.com/hashicorp/hcl"
   packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "d8c773c4cba11b11539e3d45f93daeaa5dcf1fa1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/logutils"
-  packages = ["."]
-  revision = "0dc08b1671f34c4250ce212759ebd880f743d883"
 
 [[projects]]
   name = "github.com/hashicorp/nomad"
@@ -339,7 +327,7 @@
 
 [[projects]]
   name = "github.com/onsi/gomega"
-  packages = [".","format","ghttp","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  packages = [".","format","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
   revision = "c893efa28eb45626cdaa76c9f653b62488858837"
   version = "v1.2.0"
 
@@ -456,6 +444,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2bb4bbf351d01577422313379a864a494b0035f2faa0f17b3cb79fbd58e2adbb"
+  inputs-digest = "cfbc9be2c590fdc2ded66c2e44fc6f497ec2720f763129840ef4e7d6821de985"
   solver-name = "gps-cdcl"
   solver-version = 1
