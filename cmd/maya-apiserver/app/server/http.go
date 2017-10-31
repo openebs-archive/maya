@@ -213,7 +213,7 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 
 	// Request w.r.t to a single VSM entity is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
-		latestOpenEBSVolumeRequestDuration, s.VSMSpecificRequest))
+		latestOpenEBSVolumeRequestDuration, s.VolumeSpecificRequest))
 
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.SnapshotSpecificRequest))

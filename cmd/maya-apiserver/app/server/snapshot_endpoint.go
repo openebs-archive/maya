@@ -63,7 +63,7 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-create request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.vsmRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := s.VolumeRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-revert request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.vsmRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := s.VolumeRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,8 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 	}
 
 	glog.Infof("Reverting to snapshot [%s] of volume [%s]", snap.Metadata.Name, snap.Spec.VolumeName)
-	return nil, nil
+
+	return fmt.Sprintf("Reverting to snapshot [%s] of volume [%s]", snap.Metadata.Name, snap.Spec.VolumeName), nil
 
 }
 
@@ -147,7 +148,7 @@ func (s *HTTPServer) SnapshotList(resp http.ResponseWriter, req *http.Request, v
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", snap.Spec.VolumeName))
 	}
 
-	voldetails, err := s.vsmRead(resp, req, volName)
+	voldetails, err := s.VolumeRead(resp, req, volName)
 	if err != nil {
 		return nil, err
 	}
