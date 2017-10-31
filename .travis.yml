@@ -11,7 +11,6 @@ go:
 install:
   - make bootstrap
 before_script:
-  - make golint-travis
   # Download kubectl, which is a requirement for using minikube.
   - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.7.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
   # Download minikube.
@@ -24,8 +23,7 @@ before_script:
 script:
   - kubectl cluster-info
   - kubectl get deployment
-  - make all
-  - ./buildscripts/test-cov.sh
+  - ./buildscripts/travis-build.sh
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 notifications:

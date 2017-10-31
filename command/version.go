@@ -22,11 +22,11 @@ type VersionCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *VersionCommand) Help() string {
 	helpText := `
-Usage: maya version
-							           
-This command provides versioning and other details relevant to maya.
+	Usage: maya version
 
-`
+	This command provides versioning and other details relevant to maya.
+
+	`
 	return strings.TrimSpace(helpText)
 }
 

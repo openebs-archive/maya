@@ -1,6 +1,7 @@
 package command_test
 
 import (
+	"fmt
 	"strconv"
 
 	. "github.com/onsi/ginkgo"
@@ -11,19 +12,19 @@ import (
 var _ = Describe("VsmStats", func() {
 
 	c := VsmStatsCommand{
-		Address:     "Address",
-		Host:        "false",
-		Length:      0,
-		Replica_ips: "0",
-		Json:        "json",
+		Address:    "Address",
+		Host:       "false",
+		Length:     0,
+		ReplicaIps: "0",
+		Json:       "json",
 	}
 
 	d := VsmStatsCommand{
-		Address:     "Address",
-		Host:        "false",
-		Length:      0,
-		Replica_ips: "0",
-		Json:        "",
+		Address:    "Address",
+		Host:       "false",
+		Length:     0,
+		ReplicaIps: "0",
+		Json:       "",
 	}
 
 	a := Annotations{
@@ -79,7 +80,7 @@ var _ = Describe("VsmStats", func() {
 			Expect(c.Address).To(Equal("Address"))
 			Expect(c.Host).To(Equal("false"))
 			Expect(c.Length).To(Equal(0))
-			Expect(c.Replica_ips).To(Equal("0"))
+			Expect(c.ReplicaIps).To(Equal("0"))
 			Expect(c.Json).To(Equal("json"))
 		})
 	})
@@ -90,7 +91,7 @@ var _ = Describe("VsmStats", func() {
 			Expect(d.Address).To(Equal("Address"))
 			Expect(d.Host).To(Equal("false"))
 			Expect(d.Length).To(Equal(0))
-			Expect(d.Replica_ips).To(Equal("0"))
+			Expect(d.ReplicaIps).To(Equal("0"))
 			Expect(d.Json).To(Equal(""))
 		})
 	})

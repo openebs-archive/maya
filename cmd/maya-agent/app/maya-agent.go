@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-agent/app/exporter"
+	"github.com/openebs/maya/cmd/maya-agent/storage/block"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -16,17 +17,19 @@ var (
 	usage   = fmt.Sprintf("%s", cmdName)
 )
 
-// Define a type for the options of MayaAgent
+// MayaAgentOptions defines a type for the options of MayaAgent
 type MayaAgentOptions struct {
 	KubeConfig string
 	Namespace  string
 }
 
+//AddKubeConfigFlag is used to add a config flag
 func AddKubeConfigFlag(cmd *cobra.Command, value *string) {
 	cmd.Flags().StringVarP(value, "kubeconfig", "", *value,
 		"Path to a kube config. Only required if out-of-cluster.")
 }
 
+//AddNamespaceFlag is used to add a namespace flag
 func AddNamespaceFlag(cmd *cobra.Command, value *string) {
 	cmd.Flags().StringVarP(value, "namespace", "n", *value,
 		"Namespace to deploy in. If no namespace is provided, POD_NAMESPACE env.var is used. Lastly, the 'default' namespace will be used as a last option.")
@@ -44,7 +47,7 @@ func NewCmdOptions() *cobra.Command {
 	return cmd
 }
 
-// Create a new maya-agent. This cmd includes logging,
+// NewMayaAgent creates a new maya-agent. This cmd includes logging,
 // cmd option parsing from flags
 func NewMayaAgent() (*cobra.Command, error) {
 	// Define the options for MayaAgent
@@ -64,6 +67,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	goflag.CommandLine.Parse([]string{})
 	cmd.AddCommand(
+		block.NewCmdBlockDevice(), //Add new command on block device
 		exporter.NewCmdVolumeExporter(),
 	)
 	// Define the flags allowed in this command & store each option provided

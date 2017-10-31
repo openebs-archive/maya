@@ -93,7 +93,7 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 }
 
 // vsmRead is the http handler that fetches the details of a VSM
-func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmName string) (interface{}, error) {
+func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmName string) (*v1.Volume, error) {
 
 	fmt.Println("[DEBUG] Processing Volume read request")
 

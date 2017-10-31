@@ -17,23 +17,23 @@ func (c *VolumeCommand) Run(args []string) int {
 
 func (c *VolumeCommand) Help() string {
 	helpText := `
-Usage: maya volume <subcommand> [options] [args]
+	Usage: maya volume <subcommand> [options] [args]
 
-This command provides operations related to a Volume.
+	This command provides operations related to a Volume.
 
-    Create a Volume:
-    $ maya volume create -volname <vol> -size <size>
+	Create a Volume:
+	$ maya volume create -volname <vol> -size <size>
 
-    List Volumes:
-    $ maya volume list
-  
-    Delete a Volume:
-    $ maya volume delete -volname <vol>
+	List Volumes:
+	$ maya volume list
 
-    Statistics of a Volume:
-    $ maya volume stats <vol>
+	Delete a Volume:
+	$ maya volume delete -volname <vol>
 
-`
+	Statistics of a Volume:
+	$ maya volume stats <vol>
+
+	`
 	return strings.TrimSpace(helpText)
 }
 func (c *VolumeCommand) Synopsis() string {

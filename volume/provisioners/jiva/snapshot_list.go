@@ -11,25 +11,19 @@ import (
 )
 
 // SnapshotList to list the created snapshot for given volume
-func SnapshotList(name string) error {
-	annotations, err := command.GetVolumeSpec(name)
-	if err != nil || annotations == nil {
-
-		return err
-	}
-	controller, err := command.NewControllerClient(annotations.ControllerIP + ":9501")
+func SnapshotList(name string, controllerIP string) (map[string]command.DiskInfo, error) {
+	controller, err := command.NewControllerClient(controllerIP + ":9501")
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	replicas, err := controller.ListReplicas(controller.Address)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	first := true
-	//snapshots := []string{}
 	for _, r := range replicas {
 		if r.Mode != "RW" {
 			continue
@@ -75,26 +69,13 @@ func SnapshotList(name string) error {
 			first = false
 			snapdisk, err := getData(r.Address)
 			if err != err {
-				return err
+				return snapdisk, err
 			}
-			out := make([]string, len(snapdisk)+1)
+			return snapdisk, nil
 
-			out[0] = "Name|Created At|Size"
-			var i int
-
-			for _, disk := range snapdisk {
-				//	if !IsHeadDisk(disk.Name) {
-				out[i+1] = fmt.Sprintf("%s|%s|%s",
-					strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
-					disk.Created,
-					disk.Size)
-				i = i + 1
-				//	}
-			}
-			fmt.Println(command.FormatList(out))
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // ListReplicas to get the details of all the existing replicas
