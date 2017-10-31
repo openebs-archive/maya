@@ -52,7 +52,8 @@ func NewCmdVolumeCreate() *cobra.Command {
 		Short: "Creates a new Volume",
 		Long:  volumeCreateCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(RunVolumeCreate(cmd, &options), util.Fatal)
+			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.RunVolumeCreate(cmd), util.Fatal)
 		},
 	}
 
@@ -67,7 +68,15 @@ func NewCmdVolumeCreate() *cobra.Command {
 }
 
 // Run does tasks related to mayaserver.
-func RunVolumeCreate(cmd *cobra.Command, c *CmdVolumeCreateOptions) error {
+func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
+	if c.volName == "" {
+		return errors.New("--volname is missing. Please specify an unique name")
+	}
+	return nil
+}
+
+// Run does tasks related to mayaserver.
+func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
 
 	resp := mapiserver.CreateVolume(c.volName, c.size)
