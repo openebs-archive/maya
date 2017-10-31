@@ -1,4 +1,4 @@
-package k8s
+package v1
 
 import (
 	"fmt"
@@ -32,8 +32,10 @@ func TestK8sUtil(t *testing.T) {
 	}
 
 	// a noop pvc that in turn signals use of defaults
-	pvc := &v1.Volume{}
-	pvc.Labels = map[string]string{}
+	pvc := &v1.Volume{
+		Namespace: "default",
+	}
+	//pvc.Labels = map[string]string{}
 
 	volP, _ := volProfile.GetDefaultVolProProfile(pvc)
 
@@ -83,8 +85,10 @@ func TestK8sUtilPods(t *testing.T) {
 	}
 
 	// a noop pvc that in turn signals use of defaults
-	pvc := &v1.Volume{}
-	pvc.Labels = map[string]string{}
+	pvc := &v1.Volume{
+		Namespace: "ok",
+	}
+	//pvc.Labels = map[string]string{}
 
 	volP, _ := volProfile.GetDefaultVolProProfile(pvc)
 
@@ -114,8 +118,10 @@ func TestK8sUtilServices(t *testing.T) {
 	}
 
 	// a noop pvc that in turn signals use of defaults
-	pvc := &v1.Volume{}
-	pvc.Labels = map[string]string{}
+	pvc := &v1.Volume{
+		Namespace: "ok",
+	}
+	//pvc.Labels = map[string]string{}
 
 	volP, _ := volProfile.GetDefaultVolProProfile(pvc)
 
