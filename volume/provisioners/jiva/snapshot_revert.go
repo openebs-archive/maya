@@ -1,8 +1,6 @@
 package jiva
 
 import (
-	"fmt"
-
 	"github.com/openebs/maya/command"
 )
 
@@ -10,19 +8,9 @@ import (
 // particular snapshot. If there is more then one snapshot has been
 // created for a volume, then user can revert to any specific created
 // snaphot for that particular volume.
-func SnapshotRevert(volname string, snapshot string) error {
+func SnapshotRevert(snapshot string, controllerIP string) error {
 
-	annotations, err := command.GetVolumeSpec(volname)
-	if err != nil || annotations == nil {
-
-		return err
-	}
-
-	if annotations.ControllerStatus != "Running" {
-		fmt.Println("Volume not reachable")
-		return err
-	}
-	controller, err := command.NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := command.NewControllerClient(controllerIP + ":9501")
 
 	if err != nil {
 		return err

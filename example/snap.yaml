@@ -1,0 +1,6 @@
+apiVersion: volumesnapshot/v1
+kind: VolumeSnapshot
+metadata:
+  Name: snapdemo1
+spec:
+  VolumeName: ebsvol
