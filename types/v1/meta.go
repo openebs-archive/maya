@@ -174,7 +174,8 @@ type ObjectMeta struct {
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
 	// +optional
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	//Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Labels Labels `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
 
 	// Annotations is an unstructured key value map stored with a resource that may be
 	// set by external tools to store and retrieve arbitrary metadata. They are not
@@ -216,6 +217,18 @@ type ObjectMeta struct {
 	// This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request.
 	// +optional
 	ClusterName string `json:"clusterName,omitempty" protobuf:"bytes,15,opt,name=clusterName"`
+}
+
+type Labels struct {
+	// K8sVolumeKey contains all the K8s related volume policy keys
+	K8sVolumeKey
+
+	// VolumeKey contains all the OpenEBS volume policy keys
+	VolumeKey
+
+	// ReplicaPlacementKey contains all the replica placement related policy
+	// keys
+	ReplicaPlacementKey
 }
 
 // Note:

@@ -48,21 +48,21 @@ type OrchProviderProfile interface {
 // TODO
 //  It will decide first based on the provided specifications failing which will
 // ensure a default profile is returned.
-func GetOrchProviderProfile(pvc *v1.Volume) (OrchProviderProfile, error) {
-	var profileMap map[string]string
+func GetOrchProviderProfile(vol *v1.Volume) (OrchProviderProfile, error) {
+	//var profileMap map[string]string
 
-	if pvc != nil && pvc.Labels != nil {
-		profileMap = pvc.Labels
-	} else {
-		profileMap = nil
-	}
+	//if pvc != nil && pvc.Labels != nil {
+	//	profileMap = pvc.Labels
+	//} else {
+	//	profileMap = nil
+	//}
 
 	// TODO
 	// This is hard coded to pvcOrchProviderProfile struct
 	// It should be based on inputs/env vars
 	return &pvcOrchProviderProfile{
-		pvc:        pvc,
-		profileMap: profileMap,
+		vol:        vol,
+		profileMap: nil,
 	}, nil
 }
 
@@ -95,7 +95,7 @@ func GetOrchProviderProfile(pvc *v1.Volume) (OrchProviderProfile, error) {
 // NOTE:
 //    This is a concrete implementation of orchprovider.VolumeProvisionerProfile
 type pvcOrchProviderProfile struct {
-	pvc        *v1.Volume
+	vol        *v1.Volume
 	profileMap map[string]string
 }
 
@@ -133,12 +133,13 @@ func (op *pvcOrchProviderProfile) Name() v1.OrchProviderProfileRegistry {
 //    This method provides a convinient way to access pvc. In other words
 // orchestration provider profile acts as a wrapper over pvc.
 func (op *pvcOrchProviderProfile) PVC() (*v1.Volume, error) {
-	return op.pvc, nil
+	return op.vol, nil
 }
 
 // NetworkAddr gets the network address in CIDR format
 func (op *pvcOrchProviderProfile) NetworkAddr() (string, error) {
-	nAddr := v1.GetOrchestratorNetworkAddr(op.profileMap)
+	//nAddr := v1.GetOrchestratorNetworkAddr(op.profileMap)
+	nAddr := v1.GetOrchestratorNetworkAddr(nil)
 
 	if !nethelper.IsCIDR(nAddr) {
 		return "", fmt.Errorf("Network address not in CIDR format in '%s:%s'", op.Label(), op.Name())
@@ -165,7 +166,10 @@ func (op *pvcOrchProviderProfile) NetworkSubnet() (string, error) {
 // Get the namespace used at the orchestrator, where the request needs to be
 // operated on
 func (op *pvcOrchProviderProfile) NS() (string, error) {
-	ns := v1.GetOrchestratorNS(op.profileMap)
+	ns := op.vol.Namespace
+	if ns == "" {
+		return "", fmt.Errorf("Volume namespace is missing")
+	}
 
 	return ns, nil
 }
@@ -173,7 +177,8 @@ func (op *pvcOrchProviderProfile) NS() (string, error) {
 // InCluster indicates if the request to the orchestrator is scoped to the
 // cluster where this request originated
 func (op *pvcOrchProviderProfile) InCluster() (bool, error) {
-	inCluster := v1.GetOrchestratorInCluster(op.profileMap)
+	//inCluster := v1.GetOrchestratorInCluster(op.profileMap)
+	inCluster := v1.GetOrchestratorInCluster(nil)
 
 	return util.CheckTruthy(inCluster), nil
 }
