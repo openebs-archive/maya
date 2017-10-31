@@ -15,22 +15,22 @@ import (
 //
 // TODO
 //    Should it return specific types than interface{} ?
-func (s *HTTPServer) VolumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	fmt.Println("[DEBUG] Processing", req.Method, "request")
 
 	switch req.Method {
 	case "PUT", "POST":
-		return s.VolumeAdd(resp, req)
+		return s.volumeAdd(resp, req)
 	case "GET":
-		return s.VolumeSpecificGetRequest(resp, req)
+		return s.volumeSpecificGetRequest(resp, req)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
 // VolumeSpecificGetRequest deals with HTTP GET request w.r.t a single Volume
-func (s *HTTPServer) VolumeSpecificGetRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) volumeSpecificGetRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Extract info from path after trimming
 	path := strings.TrimPrefix(req.URL.Path, "/latest/volumes")
 
@@ -43,19 +43,19 @@ func (s *HTTPServer) VolumeSpecificGetRequest(resp http.ResponseWriter, req *htt
 
 	case strings.Contains(path, "/info/"):
 		volName := strings.TrimPrefix(path, "/info/")
-		return s.VolumeRead(resp, req, volName)
+		return s.volumeRead(resp, req, volName)
 	case strings.Contains(path, "/delete/"):
 		volName := strings.TrimPrefix(path, "/delete/")
-		return s.VolumeDelete(resp, req, volName)
+		return s.volumeDelete(resp, req, volName)
 	case path == "/":
-		return s.VolumeList(resp, req)
+		return s.volumeList(resp, req)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
 // VolumeList is the http handler that lists Volumes
-func (s *HTTPServer) VolumeList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	glog.Infof("Processing Volume list request")
 
@@ -94,7 +94,7 @@ func (s *HTTPServer) VolumeList(resp http.ResponseWriter, req *http.Request) (in
 }
 
 // VolumeRead is the http handler that fetches the details of a Volume
-func (s *HTTPServer) VolumeRead(resp http.ResponseWriter, req *http.Request, volName string) (*v1.Volume, error) {
+func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, volName string) (*v1.Volume, error) {
 
 	glog.Infof("Processing Volume read request")
 
@@ -140,7 +140,7 @@ func (s *HTTPServer) VolumeRead(resp http.ResponseWriter, req *http.Request, vol
 }
 
 // VolumeDelete is the http handler that fetches the details of a Volume
-func (s *HTTPServer) VolumeDelete(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
+func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
 
 	glog.Infof("Processing Volume delete request")
 
@@ -189,7 +189,7 @@ func (s *HTTPServer) VolumeDelete(resp http.ResponseWriter, req *http.Request, v
 }
 
 // VolumeAdd is the http handler that fetches the details of a Volume
-func (s *HTTPServer) VolumeAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	glog.Infof("Processing Volume add request")
 

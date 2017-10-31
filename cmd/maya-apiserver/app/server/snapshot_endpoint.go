@@ -11,7 +11,7 @@ import (
 )
 
 // SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
-func (s *HTTPServer) SnapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Extract info from path after trimming
 	path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
 
@@ -22,19 +22,19 @@ func (s *HTTPServer) SnapshotSpecificRequest(resp http.ResponseWriter, req *http
 
 	switch {
 	case strings.Contains(path, "/create/"):
-		return s.SnapshotCreate(resp, req)
+		return s.snapshotCreate(resp, req)
 	case strings.Contains(path, "/revert/"):
-		return s.SnapshotRevert(resp, req)
+		return s.snapshotRevert(resp, req)
 	case strings.Contains(path, "/list"):
 		volName := strings.TrimPrefix(path, "/list/")
-		return s.SnapshotList(resp, req, volName)
+		return s.snapshotList(resp, req, volName)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
 // SnapshotCreate is http handler which handles snaphsot-create request
-func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) snapshotCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	if req.Method != "PUT" && req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
@@ -63,7 +63,7 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-create request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.VolumeRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := s.volumeRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (s *HTTPServer) SnapshotCreate(resp http.ResponseWriter, req *http.Request)
 // SnapshotRevert is http handler for handling snapshot-revert request.
 // Volume and existing snapshot name will be passed as struct fields to
 // revert to that particular snapshot
-func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) snapshotRevert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if req.Method != "PUT" && req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
@@ -112,7 +112,7 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-revert request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.VolumeRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := s.volumeRead(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (s *HTTPServer) SnapshotRevert(resp http.ResponseWriter, req *http.Request)
 }
 
 // SnapshotList is http handler for listing all created snapshot specific to particular volume
-func (s *HTTPServer) SnapshotList(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
+func (s *HTTPServer) snapshotList(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
 
 	if req.Method != "GET" {
 		return nil, CodedError(405, ErrInvalidMethod)
@@ -148,7 +148,7 @@ func (s *HTTPServer) SnapshotList(resp http.ResponseWriter, req *http.Request, v
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", snap.Spec.VolumeName))
 	}
 
-	voldetails, err := s.VolumeRead(resp, req, volName)
+	voldetails, err := s.volumeRead(resp, req, volName)
 	if err != nil {
 		return nil, err
 	}

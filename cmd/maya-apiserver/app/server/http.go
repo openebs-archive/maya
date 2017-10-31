@@ -213,10 +213,10 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 
 	// Request w.r.t to a single VSM entity is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
-		latestOpenEBSVolumeRequestDuration, s.VolumeSpecificRequest))
+		latestOpenEBSVolumeRequestDuration, s.volumeSpecificRequest))
 
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSMetaDataRequestCounter,
-		latestOpenEBSVolumeRequestDuration, s.SnapshotSpecificRequest))
+		latestOpenEBSVolumeRequestDuration, s.snapshotSpecificRequest))
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and the custom metrics created.
 	s.mux.Handle("/metrics", promhttp.Handler())
