@@ -20,6 +20,15 @@ type Volume struct {
 	// Standard object's metadata
 	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
+	// PolicyName will hold the name of the policy applicable to this Volume
+	PolicyName string `json:"policyname,omitempty" protobuf:"bytes,1,opt,name=policyname"`
+
+	// Namespace will hold the namespace where this Volume will exist
+	Namespace string `json:"namespace,omitempty" protobuf:"bytes,1,opt,name=namespace"`
+
+	// Capacity will hold the capacity of this Volume
+	Capacity string `json:"capacity,omitempty" protobuf:"bytes,1,opt,name=capacity"`
+
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
@@ -55,6 +64,9 @@ type VolumeSpec struct {
 	// zero and not specified. Defaults to 1.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
+
+	// Image represents the container image of this volume
+	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList

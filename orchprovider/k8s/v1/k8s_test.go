@@ -1,4 +1,4 @@
-package k8s
+package v1
 
 import (
 	"errors"
@@ -117,7 +117,9 @@ func TestAddStorage(t *testing.T) {
 
 	for _, c := range cases {
 
-		vol := &v1.Volume{}
+		vol := &v1.Volume{
+			Namespace: "something",
+		}
 		vol.Name = c.vsmname
 
 		volP, _ := volProfile.GetDefaultVolProProfile(vol)
@@ -176,17 +178,17 @@ func (m *mockK8sOrch) GetK8sUtil(volProfile volProfile.VolumeProvisionerProfile)
 
 	// mockK8sUtil is instantiated based on a 'Value Based Test' record/row
 	return &mockK8sUtil{
-		name:               vol.Labels[string(testK8sUtlNameLbl)],
-		vsmName:            vol.Name,
-		kcSupport:          vol.Labels[string(testK8sClientSupportLbl)],
-		ns:                 vol.Labels[string(v1.OrchNSLbl)],
-		injectNSErr:        vol.Labels[string(testK8sInjectNSErrLbl)],
-		inCluster:          vol.Labels[string(testK8sInClusterLbl)],
-		injectInClusterErr: vol.Labels[string(testK8sInjectInClusterErrLbl)],
-		injectPodErr:       vol.Labels[string(testK8sInjectPodErrLbl)],
-		injectSvcErr:       vol.Labels[string(testK8sInjectSvcErrLbl)],
-		injectVsm:          vol.Labels[string(testK8sInjectVSMLbl)],
-		resultingErr:       vol.Labels[string(testK8sErrorLbl)],
+		//name:               vol.Labels[string(testK8sUtlNameLbl)],
+		vsmName: vol.Name,
+		//kcSupport:          vol.Labels[string(testK8sClientSupportLbl)],
+		//ns:                 vol.Labels[string(v1.OrchNSLbl)],
+		//injectNSErr:        vol.Labels[string(testK8sInjectNSErrLbl)],
+		//inCluster:          vol.Labels[string(testK8sInClusterLbl)],
+		//injectInClusterErr: vol.Labels[string(testK8sInjectInClusterErrLbl)],
+		//injectPodErr:       vol.Labels[string(testK8sInjectPodErrLbl)],
+		//injectSvcErr:       vol.Labels[string(testK8sInjectSvcErrLbl)],
+		//injectVsm:          vol.Labels[string(testK8sInjectVSMLbl)],
+		//resultingErr:       vol.Labels[string(testK8sErrorLbl)],
 	}
 }
 
@@ -226,6 +228,14 @@ func (m *mockK8sUtil) K8sClient() (K8sClient, bool) {
 		return m, true
 	}
 	return nil, false
+}
+
+func (m *mockK8sUtil) K8sClientV2() (K8sClientV2, bool, error) {
+	if m.kcSupport == "true" {
+		return nil, true, nil
+	} else {
+		return nil, false, nil
+	}
 }
 
 func (m *mockK8sUtil) IsInCluster() (bool, error) {
@@ -575,7 +585,7 @@ type okCreateReplicaPodVolumeProfile struct {
 // Volume does not return any error
 func (e *okCreateReplicaPodVolumeProfile) Volume() (*v1.Volume, error) {
 	vol := &v1.Volume{}
-	vol.Labels = map[string]string{}
+	//vol.Labels = map[string]string{}
 	return vol, nil
 }
 

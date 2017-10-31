@@ -62,7 +62,7 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 	vol := &v1.Volume{}
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 	vol.Name = vsmName
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 	vol.Name = vsmName
 
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 	}
 
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}

@@ -157,7 +157,8 @@ func (pp *defVolProProfile) Volume() (*v1.Volume, error) {
 // e.g. K8s, Nomad, Mesos, Swarm, etc. It can be Docker engine as well.
 func (pp *defVolProProfile) Orchestrator() (v1.OrchProviderRegistry, bool, error) {
 	// Extract the name of orchestration provider
-	oName := v1.GetOrchestratorName(pp.vol.Labels)
+	//oName := v1.GetOrchestratorName(pp.vol.Labels)
+	oName := v1.GetOrchestratorName(nil)
 
 	// Get the orchestrator instance
 	return oName, true, nil
@@ -211,21 +212,47 @@ func (pp *defVolProProfile) VSMName() (string, error) {
 // ControllerCount gets the number of controllers
 func (pp *defVolProProfile) ControllerCount() (int, error) {
 	// Extract the controller count
-	return v1.GetPVPControllerCountInt(pp.vol.Labels)
+	//return v1.GetPVPControllerCountInt(pp.vol.Labels)
+	return v1.GetPVPControllerCountInt(nil)
 }
 
 // ControllerImage gets the controller's image currently its docker image label.
 func (pp *defVolProProfile) ControllerImage() (string, bool, error) {
 	// Extract the controller image
-	cImg := v1.GetControllerImage(pp.vol.Labels)
+	// Extract the replica image
+	specs := pp.vol.Specs
+	rImg := ""
 
-	return cImg, true, nil
+	for _, spec := range specs {
+		if spec.Context == v1.ControllerVolumeContext {
+			rImg = spec.Image
+			break
+		}
+	}
+
+	if rImg == "" {
+		return "", true, fmt.Errorf("Volume controller image is missing")
+	}
+
+	return rImg, true, nil
 }
 
 // ReplicaImage gets the replica's image currently its docker image label.
 func (pp *defVolProProfile) ReplicaImage() (string, error) {
 	// Extract the replica image
-	rImg := v1.GetPVPReplicaImage(pp.vol.Labels)
+	specs := pp.vol.Specs
+	rImg := ""
+
+	for _, spec := range specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			rImg = spec.Image
+			break
+		}
+	}
+
+	if rImg == "" {
+		return "", fmt.Errorf("Volume replica image is missing")
+	}
 
 	return rImg, nil
 }
@@ -235,7 +262,8 @@ func (pp *defVolProProfile) ReplicaImage() (string, error) {
 // can return false.
 func (pp *defVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, error) {
 	// Extract the node taint toleration for controller
-	nTTs, err := v1.GetControllerNodeTaintTolerations(pp.vol.Labels)
+	//nTTs, err := v1.GetControllerNodeTaintTolerations(pp.vol.Labels)
+	nTTs, err := v1.GetControllerNodeTaintTolerations(nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -256,7 +284,8 @@ func (pp *defVolProProfile) IsControllerNodeTaintTolerations() ([]string, bool, 
 // can return false.
 func (pp *defVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
 	// Extract the node taint toleration for replica
-	nTTs, err := v1.GetReplicaNodeTaintTolerations(pp.vol.Labels)
+	//nTTs, err := v1.GetReplicaNodeTaintTolerations(pp.vol.Labels)
+	nTTs, err := v1.GetReplicaNodeTaintTolerations(nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -275,10 +304,10 @@ func (pp *defVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, err
 // StorageSize gets the storage size for each persistent volume replica(s)
 func (pp *defVolProProfile) StorageSize() (string, error) {
 	// Extract the storage size
-	sSize := v1.GetPVPStorageSize(pp.vol.Labels)
+	sSize := pp.vol.Capacity
 
 	if sSize == "" {
-		return "", fmt.Errorf("Missing storage size in '%s:%s'", pp.Label(), pp.Name())
+		return "", fmt.Errorf("Volume storage capacity is missing")
 	}
 
 	return sSize, nil
@@ -286,16 +315,20 @@ func (pp *defVolProProfile) StorageSize() (string, error) {
 
 // ReplicaCount get the number of replicas required
 func (pp *defVolProProfile) ReplicaCount() (*int32, error) {
+	var rCount *int32
 	specs := pp.vol.Specs
 
 	for _, spec := range specs {
 		if spec.Context == v1.ReplicaVolumeContext {
-			return v1.GetReplicaCount(spec), nil
+			rCount = v1.GetReplicaCount(spec)
 		}
 	}
 
-	// If you are here, then get from defaults
-	return v1.GetReplicaCount(v1.VolumeSpec{}), nil
+	if rCount == nil {
+		return nil, fmt.Errorf("Volume replica count is missing")
+	}
+
+	return rCount, nil
 }
 
 // ControllerIPs gets the IP addresses that needs to be assigned against the
@@ -305,7 +338,8 @@ func (pp *defVolProProfile) ReplicaCount() (*int32, error) {
 //    There is no default assignment of IPs
 func (pp *defVolProProfile) ControllerIPs() ([]string, error) {
 	// Extract the controller IPs
-	cIPs := v1.ControllerIPs(pp.vol.Labels)
+	//cIPs := v1.ControllerIPs(pp.vol.Labels)
+	cIPs := v1.ControllerIPs(nil)
 
 	if cIPs == "" {
 		return nil, nil
@@ -327,7 +361,8 @@ func (pp *defVolProProfile) ControllerIPs() ([]string, error) {
 //    There is no default assignment of IPs
 func (pp *defVolProProfile) ReplicaIPs() ([]string, error) {
 	// Extract the controller IPs
-	rIPs := v1.ReplicaIPs(pp.vol.Labels)
+	//rIPs := v1.ReplicaIPs(pp.vol.Labels)
+	rIPs := v1.ReplicaIPs(nil)
 
 	if rIPs == "" {
 		return nil, nil
@@ -354,7 +389,8 @@ func (pp *defVolProProfile) PersistentPath() (string, error) {
 	}
 
 	// Extract the persistent path
-	pPath := v1.GetPVPPersistentPath(pp.vol.Labels, vsm, string(v1.JivaPersistentMountPathDef))
+	//pPath := v1.GetPVPPersistentPath(pp.vol.Labels, vsm, string(v1.JivaPersistentMountPathDef))
+	pPath := v1.GetPVPPersistentPath(nil, vsm, string(v1.JivaPersistentMountPathDef))
 
 	return pPath, nil
 }

@@ -1,4 +1,4 @@
-package k8s
+package v1
 
 import (
 	"fmt"
@@ -30,12 +30,13 @@ type K8sUtilInterface interface {
 	// K8sClient fetches an instance of K8sClients. Will return
 	// false if the util does not support providing K8sClients instance.
 	K8sClient() (K8sClient, bool)
+
+	// K8sClientV2 fetches an instance of K8sClientV2.
+	K8sClientV2() (K8sClientV2, bool, error)
 }
 
+// TODO Deprecate in favour of K8sClientV2
 // K8sClient is an abstraction to operate on various k8s entities.
-//
-// NOTE:
-//    This abstraction makes use of K8s's client-go package.
 type K8sClient interface {
 	// IsInCluster indicates whether the operation is within cluster or in a
 	// different cluster
@@ -58,6 +59,16 @@ type K8sClient interface {
 
 	// DeploymentOps provides all the CRUD operations associated w.r.t a Deployment
 	DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error)
+}
+
+// K8sClientV2 is an abstraction to operate on various k8s entities.
+type K8sClientV2 interface {
+	// IsInClusterV2 indicates whether the operation is within cluster or in a
+	// different cluster
+	IsInClusterV2() (bool, error)
+
+	// NSV2 provides the namespace where operations will be executed
+	NSV2() (string, error)
 
 	// StorageClassOps provides all the CRUD & more operations associated
 	// w.r.t a StorageClass
@@ -69,6 +80,10 @@ type K8sClient interface {
 // 1. k8s.K8sUtilInterface interface
 // 2. k8s.K8sClients interface
 type k8sUtil struct {
+
+	// namespace refers to K8s namespace where this operation
+	// will be performed
+	namespace string
 
 	// inCS refers to the ClientSet capable of communicating
 	// within the current K8s cluster i.e. where this binary is
@@ -86,8 +101,13 @@ type k8sUtil struct {
 	clientKey  string
 	insecure   bool
 
+	// TODO Deprecate in favour of volume
 	// volProfile has context related information w.r.t k8s
 	volProfile volProfile.VolumeProvisionerProfile
+
+	// volume represents an OpenEBS volume which will be
+	// placed/updated in K8s
+	volume *v1.Volume
 }
 
 // This is a plain k8s utility & hence the name
@@ -160,10 +180,6 @@ func (k *k8sUtil) IsInCluster() (bool, error) {
 // Pods is a utility function that provides a instance capable of
 // executing various k8s pod related operations.
 func (k *k8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
-
-	// TODO
-	// use getClientSet instead of below repeated code
-	// refer to StorageClassOps
 	var cs *kubernetes.Clientset
 
 	inC, err := k.IsInCluster()
@@ -192,10 +208,6 @@ func (k *k8sUtil) Pods() (k8sCoreV1.PodInterface, error) {
 // Services is a utility function that provides a instance capable of
 // executing various k8s service related operations.
 func (k *k8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
-
-	// TODO
-	// use getClientSet instead of below repeated code
-	// refer to StorageClassOps
 	var cs *kubernetes.Clientset
 
 	inC, err := k.IsInCluster()
@@ -224,10 +236,6 @@ func (k *k8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 // Services is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
 func (k *k8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
-
-	// TODO
-	// use getClientSet instead of below repeated code
-	// refer to StorageClassOps
 	var cs *kubernetes.Clientset
 
 	inC, err := k.IsInCluster()
@@ -253,18 +261,51 @@ func (k *k8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
 	return cs.ExtensionsV1beta1().Deployments(ns), nil
 }
 
+// k8sUtil implements K8sClientV2 interface. Hence it returns
+// self
+func (k *k8sUtil) K8sClientV2() (K8sClientV2, bool, error) {
+
+	if k.volume == nil {
+		return nil, true, fmt.Errorf("Volume is not set")
+	}
+
+	return k, true, nil
+}
+
+// NSV2 provides the namespace where operations will be executed
+func (k *k8sUtil) NSV2() (string, error) {
+	if k.namespace != "" {
+		return k.namespace, nil
+	}
+
+	k.namespace = k.volume.Namespace
+
+	// error out if still empty
+	if k.namespace == "" {
+		return "", fmt.Errorf("Namespace is empty")
+	}
+
+	return k.namespace, nil
+}
+
+// InCluster indicates whether the operation is within cluster or in a
+// different cluster
+func (k *k8sUtil) IsInClusterV2() (bool, error) {
+	// Which kind of request ? in-cluster or out-of-cluster ?
+	outCluster := k.volume.Labels.OutCluster
+	if outCluster == "" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (k *k8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error) {
 	cs, err := k.getClientSet()
 
 	if err != nil {
 		return nil, err
 	}
-
-	// get the required namespace
-	//ns, err := k.NS()
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	return cs.StorageV1().StorageClasses(), nil
 }
@@ -285,7 +326,7 @@ func (k *k8sUtil) getClientSet() (*kubernetes.Clientset, error) {
 	}
 
 	// Else get it fresh for this instance/http request
-	inC, err := k.IsInCluster()
+	inC, err := k.IsInClusterV2()
 	if err != nil {
 		return nil, err
 	}

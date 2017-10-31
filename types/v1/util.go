@@ -915,12 +915,13 @@ func DefaultReplicaCount() *int32 {
 // NOTE:
 //    This utility function does not validate & just returns if not capable of
 // performing
-func MakeOrDefJivaReplicaArgs(profileMap map[string]string, clusterIP string) []string {
+func MakeOrDefJivaReplicaArgs(vol *Volume, clusterIP string) []string {
 	if strings.TrimSpace(clusterIP) == "" {
 		return nil
 	}
 
-	storSize := GetPVPStorageSize(profileMap)
+	//storSize := GetPVPStorageSize(profileMap)
+	storSize := vol.Capacity
 
 	repArgs := make([]string, len(JivaReplicaArgs))
 
