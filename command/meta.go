@@ -12,10 +12,12 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
+// Names of environment variables used to supply various
+// config options to the Nomad CLI.
 const (
-	// Names of environment variables used to supply various
-	// config options to the Nomad CLI.
+	// EnvNomadAddress supplies Nomad Address config option
 	EnvNomadAddress = "NOMAD_ADDR"
+	// EnvNomadRegion supplies Nomad Region config option
 	EnvNomadRegion  = "NOMAD_REGION"
 
 	// Constants for CLI identifier length
@@ -28,8 +30,11 @@ const (
 type FlagSetFlags uint
 
 const (
+	// FlagSetNone is a constant of type FlagSetFlags
 	FlagSetNone    FlagSetFlags = 0
+	// FlagSetClient is a constant of type FlagSetFlags
 	FlagSetClient  FlagSetFlags = 1 << iota
+	// FlagSetDefault is a constant of type FlagSetFlags
 	FlagSetDefault              = FlagSetClient
 )
 
@@ -123,6 +128,7 @@ func (m *Meta) Client() (*api.Client, error) {
 	return api.NewClient(config)
 }
 
+// Colorize colorizes output
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
