@@ -1,7 +1,7 @@
 package command_test
 
 import (
-	"fmt"
+	"fmt
 	"strconv"
 
 	. "github.com/onsi/ginkgo"
@@ -41,9 +41,9 @@ var _ = Describe("VsmStats", func() {
 	starr := make([]string, 0)
 	for i := range replica {
 
-		starr = append(starr, fmt.Sprintf("%s", replica[i]))
-		starr = append(starr, fmt.Sprintf("%s", status[i]))
-		starr = append(starr, fmt.Sprintf("%s", dataUpdateIndex[i]))
+		starr = append(starr, replica[i])
+		starr = append(starr, status[i])
+		starr = append(starr, dataUpdateIndex[i])
 	}
 
 	const random1 int = 0

@@ -224,9 +224,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 
 // NewReplicaClient create the new replica client
 func NewReplicaClient(address string) (*ReplicaClient, error) {
-	if strings.HasPrefix(address, "tcp://") {
-		address = address[6:]
-	}
+	address = strings.TrimPrefix(address, "tcp://")
 
 	if !strings.HasPrefix(address, "http") {
 		address = "http://" + address
@@ -290,9 +288,7 @@ func GetStatus(address string, obj interface{}) (int, error) {
 
 // NewControllerClient create the new replica client
 func NewControllerClient(address string) (*ControllerClient, error) {
-	if strings.HasPrefix(address, "tcp://") {
-		address = address[6:]
-	}
+	address = strings.TrimPrefix(address, "tcp://")
 
 	if !strings.HasPrefix(address, "http") {
 		address = "http://" + address
@@ -405,7 +401,6 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 	}
 
 	sectorSize, _ := strconv.ParseFloat(stats2.SectorSize, 64) // Sector Size
-	sectorSize = sectorSize
 
 	logicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64) // Logical Size
 	logicalSize = logicalSize * sectorSize

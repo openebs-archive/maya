@@ -49,6 +49,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 	if addr != "" {
 		err := DeleteVsm(c.volname)
 		if err != nil {
+			// do something with this
 			fmt.Sprintf("Error while deleting Volume: %s", err)
 		}
 		return 0

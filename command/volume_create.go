@@ -81,7 +81,7 @@ func (c *VsmCreateCommand) Run(args []string) int {
 		return 1
 	}
 	if c.vsmname != " " {
-		if strings.HasSuffix(c.size, "G") != true {
+		if !strings.HasSuffix(c.size, "G") {
 			fmt.Println("-size should contain the suffix 'G',which represent the size in GB (exp: 10G)")
 			return 0
 		}
