@@ -498,15 +498,11 @@ func createVsmListOutput(jobs []*api.JobListStub) string {
 }
 
 func GetVsm(obj interface{}) error {
-
 	body, err := RestClient()
 	if err != nil {
-		// do something
-		fmt.Sprintf("Error querying Volumes: %s", err)
-		return err
+		return fmt.Errorf("Error querying Volumes: %s", err)
 	}
 	return Parser(body, obj)
-
 }
 
 func VsmListOutput() error {
