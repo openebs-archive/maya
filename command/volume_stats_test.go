@@ -1,7 +1,6 @@
 package command_test
 
 import (
-	"fmt
 	"strconv"
 
 	. "github.com/onsi/ginkgo"
