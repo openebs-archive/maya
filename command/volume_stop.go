@@ -55,9 +55,9 @@ func (c *VsmStopCommand) Run(args []string) int {
 	}
 
 	// Truncate the id unless full length is requested
-	length := shortId
+	length := shortID
 	if verbose {
-		length = fullId
+		length = fullID
 	}
 
 	// Check that we got exactly one vsm
