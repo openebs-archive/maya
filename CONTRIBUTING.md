@@ -1,6 +1,6 @@
 # Contributing to OpenEBS / Maya
 
-Are you ready to enhance Maya. Great!! 
+Are you ready to enhance Maya. Great!!!
 
 Feel free to contribute by:
 - raising issues
