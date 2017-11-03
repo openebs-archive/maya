@@ -18,11 +18,11 @@ const (
 	// EnvNomadAddress supplies Nomad Address config option
 	EnvNomadAddress = "NOMAD_ADDR"
 	// EnvNomadRegion supplies Nomad Region config option
-	EnvNomadRegion  = "NOMAD_REGION"
+	EnvNomadRegion = "NOMAD_REGION"
 
 	// Constants for CLI identifier length
-	shortId = 8
-	fullId  = 36
+	shortID = 8
+	fullID  = 36
 )
 
 // FlagSetFlags is an enum to define what flags are present in the
@@ -31,11 +31,11 @@ type FlagSetFlags uint
 
 const (
 	// FlagSetNone is a constant of type FlagSetFlags
-	FlagSetNone    FlagSetFlags = 0
+	FlagSetNone FlagSetFlags = 0
 	// FlagSetClient is a constant of type FlagSetFlags
-	FlagSetClient  FlagSetFlags = 1 << iota
+	FlagSetClient FlagSetFlags = 1 << iota
 	// FlagSetDefault is a constant of type FlagSetFlags
-	FlagSetDefault              = FlagSetClient
+	FlagSetDefault = FlagSetClient
 )
 
 // Meta contains the meta-options and functionality that nearly every
@@ -140,43 +140,6 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 // generalOptionsUsage returns the help string for the global options.
 func generalOptionsUsage() string {
 	helpText := `
-	-address=<addr>
-	The address of the Nomad server.
-	Overrides the NOMAD_ADDR environment variable if set.
-	Default = http://127.0.0.1:4646
-
-	-region=<region>
-	The region of the Nomad servers to forward commands to.
-	Overrides the NOMAD_REGION environment variable if set.
-	Defaults to the Agent's local region.
-
-	-no-color
-	Disables colored command output.
-
-	-ca-cert=<path>           
-	Path to a PEM encoded CA cert file to use to verify the 
-	Nomad server SSL certificate.  Overrides the NOMAD_CACERT 
-	environment variable if set.
-
-	-ca-path=<path>           
-	Path to a directory of PEM encoded CA cert files to verify 
-	the Nomad server SSL certificate. If both -ca-cert and 
-	-ca-path are specified, -ca-cert is used. Overrides the 
-	NOMAD_CAPATH environment variable if set.
-
-	-client-cert=<path>       
-	Path to a PEM encoded client certificate for TLS authentication 
-	to the Nomad server. Must also specify -client-key. Overrides 
-	the NOMAD_CLIENT_CERT environment variable if set.
-
-	-client-key=<path>        
-	Path to an unencrypted PEM encoded private key matching the 
-	client certificate from -client-cert. Overrides the 
-	NOMAD_CLIENT_KEY environment variable if set.
-
-	-tls-skip-verify        
-	Do not verify TLS certificate. This is highly not recommended. Verification
-	will also be skipped if NOMAD_SKIP_VERIFY is set.
 	`
 	return strings.TrimSpace(helpText)
 }
