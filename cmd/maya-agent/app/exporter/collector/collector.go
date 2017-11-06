@@ -5,24 +5,16 @@ package collector
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
-)
-
-const (
-	bytesToGB = 1073741824
-	bytesToMB = 1048567
-	micSec    = 1000000
-	bytesToKB = 1024
-	minwidth  = 0
-	maxwidth  = 0
-	padding   = 3
 )
 
 // A gauge is a metric that represents a single numerical value that can
@@ -69,8 +61,8 @@ var (
 
 	readBlockCountPS = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: "OpenEBS",
-		Name:      "write_block_count_per_second",
-		Help:      "Write Block count of volume per second",
+		Name:      "read_block_count_per_second",
+		Help:      "Read Block count of volume per second",
 	})
 
 	writeIOPS = prometheus.NewGauge(prometheus.GaugeOpts{
@@ -113,6 +105,12 @@ var (
 		Namespace: "OpenEBS",
 		Name:      "avg_write_block_count_per_second",
 		Help:      "Average Write Block count of volume per second",
+	})
+
+	sizeOfVolume = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "OpenEBS",
+		Name:      "size_of_volume",
+		Help:      "Size of the volume requested",
 	})
 )
 
@@ -161,6 +159,7 @@ func (e *VolumeExporter) Describe(ch chan<- *prometheus.Desc) {
 	writeLatency.Describe(ch)
 	avgReadBlockCountPS.Describe(ch)
 	avgWriteBlockCountPS.Describe(ch)
+	sizeOfVolume.Describe(ch)
 }
 
 // Collect is called by the Prometheus registry when collecting
@@ -179,6 +178,7 @@ func (e *VolumeExporter) Collect(ch chan<- prometheus.Metric) {
 	if err := e.collect(); err != nil {
 		return
 	}
+
 	readIOPS.Collect(ch)
 	readTimePS.Collect(ch)
 	readBlockCountPS.Collect(ch)
@@ -192,97 +192,117 @@ func (e *VolumeExporter) Collect(ch chan<- prometheus.Metric) {
 	writeLatency.Collect(ch)
 	avgReadBlockCountPS.Collect(ch)
 	avgWriteBlockCountPS.Collect(ch)
+	sizeOfVolume.Collect(ch)
+}
+
+// getVolumeStats is used to decode the response from the Jiva controller
+// response received by the client is in json format which then decoded
+// and mapped to VolumeMetrics.
+func (e *VolumeExporter) getVolumeStats(obj interface{}) error {
+	httpClient := http.DefaultClient
+	httpClient.Timeout = 1 * time.Second
+	resp, err := httpClient.Get(e.VolumeControllerURL)
+
+	if err != nil {
+		log.Printf("could not retrieve OpenEBS Volume controller metrics: %v", err)
+		return err
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(obj)
+
+	if err != nil {
+		log.Printf("could not decode OpenEBS Volume controller metrics: %v", err)
+		return err
+	}
+
+	defer resp.Body.Close()
+	return nil
 }
 
 // collect is used to set the values gathered from OpenEBS volume controller
+// to prometheus gauges.
 func (e *VolumeExporter) collect() error {
 	var (
 		metrics1 v1.VolumeMetrics
 		metrics2 v1.VolumeMetrics
 	)
 
-	httpClient := http.DefaultClient
-	httpClient.Timeout = 1 * time.Second
-	resp, err := httpClient.Get(e.VolumeControllerURL)
+	err := e.getVolumeStats(&metrics1)
 	if err != nil {
-		log.Printf("could not retrieve OpenEBS Volume controller metrics: %v", err)
-		return err
+		fmt.Printf("Could not decode: %v", err)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&metrics1)
+	time.Sleep(1 * time.Second)
+	err = e.getVolumeStats(&metrics2)
 	if err != nil {
-		log.Printf("could not decode OpenEBS Volume controller metrics: %v", err)
-		return err
+		fmt.Printf("Could not decode: %v", err)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&metrics2)
-	if err != nil {
-		log.Printf("could not decode OpenEBS Volume controller metrics: %v", err)
-		return err
-	}
+	// i and f is used for initial and final
+	iRIOPS, _ := strconv.ParseInt(metrics1.ReadIOPS, 10, 64)
+	fRIOPS, _ := strconv.ParseInt(metrics2.ReadIOPS, 10, 64)
+	rIOPS := v1.SubstractInt64(fRIOPS, iRIOPS)
+	readIOPS.Set(float64(rIOPS))
 
-	iRIOPS, _ := strconv.ParseFloat(metrics1.ReadIOPS, 64)
-	fRIOPS, _ := strconv.ParseFloat(metrics2.ReadIOPS, 64)
-	rIOPS := fRIOPS - iRIOPS
-	readIOPS.Set(rIOPS)
+	iRTimePS, _ := strconv.ParseInt(metrics1.TotalReadTime, 10, 64)
+	fRTimePS, _ := strconv.ParseInt(metrics2.TotalReadTime, 10, 64)
+	rTimePS := v1.SubstractInt64(fRTimePS, iRTimePS)
+	readTimePS.Set(float64(rTimePS))
 
-	iRTimePS, _ := strconv.ParseFloat(metrics1.TotalReadTime, 64)
-	fRTimePS, _ := strconv.ParseFloat(metrics2.TotalReadTime, 64)
-	rTimePS := fRTimePS - iRTimePS
-	readTimePS.Set(rTimePS)
+	iRBCountPS, _ := strconv.ParseInt(metrics1.TotalReadBlockCount, 10, 64)
+	fRBCountPS, _ := strconv.ParseInt(metrics2.TotalReadBlockCount, 10, 64)
+	rBCountPS := v1.SubstractInt64(fRBCountPS, iRBCountPS)
+	readBlockCountPS.Set(float64(rBCountPS))
 
-	iRBCountPS, _ := strconv.ParseFloat(metrics1.TotalReadBlockCount, 64)
-	fRBCountPS, _ := strconv.ParseFloat(metrics2.TotalReadBlockCount, 64)
-	rBCountPS := fRBCountPS - iRBCountPS
-	readBlockCountPS.Set(rBCountPS)
-
-	if readIOPS == nil {
-		rLatency := float64(rTimePS / rIOPS)
-		rLatency = float64(rLatency / micSec)
-		readLatency.Set(rLatency)
-		avgRBCountPS := float64(rBCountPS / rIOPS)
-		avgRBCountPS = float64(rBCountPS / bytesToKB)
-		avgReadBlockCountPS.Set(avgRBCountPS)
+	if rIOPS != 0 {
+		rLatency := v1.DivideInt64(rTimePS, rIOPS)
+		rLatency = v1.DivideInt64(rLatency, util.MicSec)
+		readLatency.Set(float64(rLatency))
+		avgRBCountPS := v1.DivideInt64(rBCountPS, rIOPS)
+		avgRBCountPS = v1.DivideInt64(rBCountPS, util.BytesToKB)
+		avgReadBlockCountPS.Set(float64(avgRBCountPS))
 	} else {
-		readLatency = nil
-		avgReadBlockCountPS = nil
+		readLatency.Set(0)
+		avgReadBlockCountPS.Set(0)
 	}
 
-	iWIOPS, _ := strconv.ParseFloat(metrics1.WriteIOPS, 64)
-	fWIOPS, _ := strconv.ParseFloat(metrics2.WriteIOPS, 64)
-	wIOPS := fWIOPS - iWIOPS
-	writeIOPS.Set(wIOPS)
+	iWIOPS, _ := strconv.ParseInt(metrics1.WriteIOPS, 10, 64)
+	fWIOPS, _ := strconv.ParseInt(metrics2.WriteIOPS, 10, 64)
+	wIOPS := v1.SubstractInt64(fWIOPS, iWIOPS)
+	writeIOPS.Set(float64(wIOPS))
 
-	iWTimePS, _ := strconv.ParseFloat(metrics1.TotalWriteTime, 64)
-	fWTimePS, _ := strconv.ParseFloat(metrics2.TotalWriteTime, 64)
-	wTimePS := fWTimePS - iWTimePS
-	writeTimePS.Set(wTimePS)
+	iWTimePS, _ := strconv.ParseInt(metrics1.TotalWriteTime, 10, 64)
+	fWTimePS, _ := strconv.ParseInt(metrics2.TotalWriteTime, 10, 64)
+	wTimePS := v1.SubstractInt64(fWTimePS, iWTimePS)
+	writeTimePS.Set(float64(wTimePS))
 
-	iWBCountPS, _ := strconv.ParseFloat(metrics1.TotalWriteBlockCount, 64)
-	fWBCountPS, _ := strconv.ParseFloat(metrics2.TotalWriteBlockCount, 64)
-	wBCountPS := fWBCountPS - iWBCountPS
-	writeBlockCountPS.Set(wBCountPS)
+	iWBCountPS, _ := strconv.ParseInt(metrics1.TotalWriteBlockCount, 10, 64)
+	fWBCountPS, _ := strconv.ParseInt(metrics2.TotalWriteBlockCount, 10, 64)
+	wBCountPS := v1.SubstractInt64(fWBCountPS, iWBCountPS)
+	writeBlockCountPS.Set(float64(wBCountPS))
 
-	if writeIOPS == nil {
-		wLatency := float64(wTimePS / wIOPS)
-		wLatency = float64(wLatency / micSec)
-		writeLatency.Set(wLatency)
-		avgWBCountPS := float64(wBCountPS / wIOPS)
-		avgWBCountPS = float64(avgWBCountPS / bytesToKB)
-		avgWriteBlockCountPS.Set(avgWBCountPS)
+	if wIOPS != 0 {
+		wLatency := v1.DivideInt64(wTimePS, wIOPS)
+		wLatency = v1.DivideInt64(wLatency, util.MicSec)
+		writeLatency.Set(float64(wLatency))
+		avgWBCountPS := v1.DivideInt64(wBCountPS, wIOPS)
+		avgWBCountPS = v1.DivideInt64(avgWBCountPS, util.BytesToKB)
+		avgWriteBlockCountPS.Set(float64(avgWBCountPS))
 	} else {
-		writeLatency = nil
-		avgWriteBlockCountPS = nil
+		writeLatency.Set(0)
+		avgWriteBlockCountPS.Set(0)
 	}
 
 	sSize, _ := strconv.ParseFloat(metrics2.SectorSize, 64)
-	sectorSize.Set(sSize)
+	sectorSize.Set(float64(sSize))
 	uBlocks, _ := strconv.ParseFloat(metrics2.UsedBlocks, 64)
 	uBlocks = uBlocks * sSize
-	logicalSize.Set(uBlocks / bytesToGB)
+	logicalSize.Set(v1.DivideFloat64(uBlocks, util.BytesToGB))
 	aUsed, _ := strconv.ParseFloat(metrics2.UsedLogicalBlocks, 64)
 	aUsed = aUsed * sSize
-	actualUsed.Set(aUsed / bytesToGB)
+	actualUsed.Set(v1.DivideFloat64(aUsed, util.BytesToGB))
+	size, _ := strconv.ParseInt(metrics1.Size, 10, 64)
+	sizeOfVolume.Set(float64(size))
 
 	return nil
 }

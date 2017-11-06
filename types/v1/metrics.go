@@ -19,6 +19,7 @@ type VolumeMetrics struct {
 	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
 	UsedBlocks        string `json:"UsedBlocks"`
 	SectorSize        string `json:"SectorSize"`
+	Size              string `json:Size`
 }
 
 type Resource struct {
