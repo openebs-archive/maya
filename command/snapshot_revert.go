@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// SnapshotRevertCommand struct for reverting snapshot of a Volume
 type SnapshotRevertCommand struct {
 	Meta
 	Name  string
@@ -13,13 +14,14 @@ type SnapshotRevertCommand struct {
 	//client *ControllerClient
 }
 
+// Help shows usage of `maya snapshot revert` command
 func (s *SnapshotRevertCommand) Help() string {
 	helpText := `
-Usage: maya snapshot revert -volname <vol> -snapname <snap>
-							           
-This command will revert to specific snapshot of a Volume.
+    Usage: maya snapshot revert -volname <vol> -snapname <snap>
 
-`
+    This command will revert to specific snapshot of a Volume.
+
+    `
 	return strings.TrimSpace(helpText)
 }
 
@@ -27,6 +29,8 @@ This command will revert to specific snapshot of a Volume.
 func (s *SnapshotRevertCommand) Synopsis() string {
 	return "Reverts to specific snapshot of a Volume"
 }
+
+// Run runs `maya snapshot revert` command
 func (s *SnapshotRevertCommand) Run(args []string) int {
 	flags := s.Meta.FlagSet("vsm-snapshot", FlagSetClient)
 	flags.Usage = func() { s.Ui.Output(s.Help()) }
@@ -46,6 +50,7 @@ func (s *SnapshotRevertCommand) Run(args []string) int {
 	return 0
 }
 
+// RevertSnapshot reverts given volume to given snapshot
 func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error {
 
 	annotations, err := GetVolAnnotations(volname)

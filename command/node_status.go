@@ -59,7 +59,7 @@ func (c *NodeStatusCommand) Help() string {
 	-self
 	Query the status of the local node.
 
-	-stats 
+	-stats
 	Display detailed resource usage statistics.
 
 	-allocs
@@ -111,9 +111,9 @@ func (c *NodeStatusCommand) Run(args []string) int {
 	}
 
 	// Truncate the id unless full length is requested
-	c.length = shortId
+	c.length = shortID
 	if c.verbose {
-		c.length = fullId
+		c.length = fullID
 	}
 
 	// Get the HTTP client

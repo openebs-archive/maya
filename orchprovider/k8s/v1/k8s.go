@@ -1131,9 +1131,7 @@ func (k *k8sOrchestrator) getPods(vsm string, volProProfile volProfile.VolumePro
 	}
 
 	// Merge the Replica & Controller Pods
-	for _, rPod := range rps.Items {
-		cps.Items = append(cps.Items, rPod)
-	}
+	cps.Items = append(cps.Items, rps.Items...)
 
 	return cps, nil
 }

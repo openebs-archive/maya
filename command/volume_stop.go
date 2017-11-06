@@ -17,11 +17,11 @@ type VsmStopCommand struct {
 // Help shows helpText for a particular CLI command
 func (c *VsmStopCommand) Help() string {
 	helpText := `
-Usage: maya volume delete <vol>
+	Usage: maya volume delete <vol>
 
-This command deletes an existing volume.
+	This command deletes an existing volume.
 
-`
+	`
 	return strings.TrimSpace(helpText)
 }
 
@@ -49,15 +49,15 @@ func (c *VsmStopCommand) Run(args []string) int {
 	if addr != "" {
 		err := DeleteVsm(c.volname)
 		if err != nil {
-			fmt.Sprintf("Error while deleting Volume: %s", err)
+			c.Ui.Error(fmt.Sprintf("Error while deleting Volume: %s", err))
 		}
 		return 0
 	}
 
 	// Truncate the id unless full length is requested
-	length := shortId
+	length := shortID
 	if verbose {
-		length = fullId
+		length = fullID
 	}
 
 	// Check that we got exactly one vsm

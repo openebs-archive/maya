@@ -21,7 +21,7 @@ const (
 )
 
 type Volumes struct {
-	client.Resource
+	Resource
 	Name         string `json:"name"`
 	ReplicaCount int    `json:"replicaCount"`
 	Endpoint     string `json:"endpoint"`
@@ -33,13 +33,13 @@ type VolumeCollection struct {
 }
 
 type Replica struct {
-	client.Resource
+	Resource
 	Address string `json:"address"`
 	Mode    string `json:"mode"`
 }
 
 type InfoReplica struct {
-	client.Resource
+	Resource
 	Dirty           bool                `json:"dirty"`
 	Rebuilding      bool                `json:"rebuilding"`
 	Head            string              `json:"head"`
@@ -69,17 +69,17 @@ type ReplicaCollection struct {
 }
 
 type MarkDiskAsRemovedInput struct {
-	client.Resource
+	Resource
 	Name string `json:"name"`
 }
 
 type RevertInput struct {
-	client.Resource
+	Resource
 	Name string `json:"name"`
 }
 
 type SnapshotInput struct {
-	client.Resource
+	Resource
 	Name        string            `json:"name"`
 	UserCreated bool              `json:"usercreated"`
 	Created     string            `json:"created"`
@@ -87,7 +87,14 @@ type SnapshotInput struct {
 }
 
 type SnapshotOutput struct {
-	client.Resource
+	Resource
+}
+
+type Resource struct {
+	Id      string            `json:"id,omitempty"`
+	Type    string            `json:"type,omitempty"`
+	Links   map[string]string `json:"links"`
+	Actions map[string]string `json:"actions"`
 }
 
 func Filter(list []string, check func(string) bool) []string {

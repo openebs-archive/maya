@@ -1,4 +1,4 @@
-// Description provided at doc.go
+// Package v1 - Description provided at doc.go
 //
 // NOTE:
 //    There are references to Kubernetes (K8s) types & links. This reflects the
@@ -13,7 +13,7 @@
 // a volume in OpenEBS can be considered as a StoragePod.
 package v1
 
-//Volume is a user's Request for a OpenEBS volume
+// Volume is a user's Request for a OpenEBS volume
 type Volume struct {
 	TypeMeta `json:",inline"`
 
@@ -69,6 +69,7 @@ type VolumeSpec struct {
 	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
+// VolumeContext defines context of a volume
 type VolumeContext string
 
 const (
@@ -95,14 +96,15 @@ type VolumeSource struct {
 type VolumeAccessMode string
 
 const (
-	// can be mounted read/write mode to exactly 1 host
+	// ReadWriteOnce - can be mounted read/write mode to exactly 1 host
 	ReadWriteOnce VolumeAccessMode = "ReadWriteOnce"
-	// can be mounted in read-only mode to many hosts
+	// ReadOnlyMany - can be mounted in read-only mode to many hosts
 	ReadOnlyMany VolumeAccessMode = "ReadOnlyMany"
-	// can be mounted in read/write mode to many hosts
+	// ReadWriteMany - can be mounted in read/write mode to many hosts
 	ReadWriteMany VolumeAccessMode = "ReadWriteMany"
 )
 
+// VolumeStatus provides status of a volume
 type VolumeStatus struct {
 	// Phase indicates if a volume is available, bound to a claim, or released by a claim
 	// +optional
@@ -115,24 +117,25 @@ type VolumeStatus struct {
 	Reason string
 }
 
+// VolumePhase defines phase of a volume
 type VolumePhase string
 
 const (
-	// used for Volumes that are not available
+	// VolumePending - used for Volumes that are not available
 	VolumePending VolumePhase = "Pending"
-	// used for Volumes that are not yet bound
+	// VolumeAvailable - used for Volumes that are not yet bound
 	VolumeAvailable VolumePhase = "Available"
-	// used for Volumes that are bound
+	// VolumeBound is used for Volumes that are bound
 	VolumeBound VolumePhase = "Bound"
-	// used for Volumes where the bound PersistentVol:syntime onumeClaim was deleted
+	// VolumeReleased - used for Volumes where the bound PersistentVol:syntime onumeClaim was deleted
 	// released volumes must be recycled before becoming available again
 	// this phase is used by the volume claim binder to signal to another process to reclaim the resource
 	VolumeReleased VolumePhase = "Released"
-	// used for Volumes that failed to be correctly recycled or deleted after being released from a claim
+	// VolumeFailed - used for Volumes that failed to be correctly recycled or deleted after being released from a claim
 	VolumeFailed VolumePhase = "Failed"
 )
 
-// Represents a Persistent Disk resource in OpenEBS.
+// OpenEBS - Represents a Persistent Disk resource in OpenEBS.
 //
 // An OpenEBS disk must exist before mounting to a container. An OpenEBS disk
 // can only be mounted as read/write once. OpenEBS volumes support
@@ -248,13 +251,14 @@ type VolumeSnapshot struct {
 	Status VolumeSnapshotStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
+// VolumeSnapshotList - list of volume snapshots
 type VolumeSnapshotList struct {
 	TypeMeta `json:",inline"`
 	Metadata ListMeta         `json:"metadata"`
 	Items    []VolumeSnapshot `json:"items"`
 }
 
-// The desired state of the volume snapshot
+// VolumeSnapshotSpec - The desired state of the volume snapshot
 type VolumeSnapshotSpec struct {
 	// PersistentVolumeClaimName is the name of the PVC being snapshotted
 	// +optional
@@ -265,6 +269,7 @@ type VolumeSnapshotSpec struct {
 	SnapshotDataName string `json:"snapshotDataName" protobuf:"bytes,2,opt,name=snapshotDataName"`
 }
 
+// VolumeSnapshotStatus defines the status of a Volume Snapshot
 type VolumeSnapshotStatus struct {
 	// The time the snapshot was successfully created
 	// +optional
@@ -274,6 +279,7 @@ type VolumeSnapshotStatus struct {
 	Conditions []VolumeSnapshotCondition `json:"conditions" protobuf:"bytes,2,rep,name=conditions"`
 }
 
+// VolumeSnapshotConditionType - data type of volume snapshot condition
 type VolumeSnapshotConditionType string
 
 // These are valid conditions of a volume snapshot.
@@ -282,7 +288,7 @@ const (
 	VolumeSnapshotConditionReady VolumeSnapshotConditionType = "Ready"
 )
 
-// VolumeSnapshot Condition describes the state of a volume snapshot  at a certain point.
+// VolumeSnapshotCondition describes the state of a volume snapshot at a certain point.
 type VolumeSnapshotCondition struct {
 	// Type of replication controller condition.
 	Type VolumeSnapshotConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=VolumeSnapshotConditionType"`

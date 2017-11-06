@@ -120,6 +120,7 @@ type CanonicalValue interface {
 // Format lists the three possible formattings of a quantity.
 type Format string
 
+// The possible quantity formattings.
 const (
 	DecimalExponent = Format("DecimalExponent") // e.g., 12e6
 	BinarySI        = Format("BinarySI")        // e.g., 12Mi (12 * 2^20)
@@ -142,11 +143,11 @@ const (
 	splitREString = "^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$"
 )
 
-var (
-	// splitRE is used to get the various parts of a number.
-	splitRE = regexp.MustCompile(splitREString)
+// splitRE is used to get the various parts of a number.
+var splitRE = regexp.MustCompile(splitREString)
 
-	// Errors that could happen while parsing a string.
+// Errors that could happen while parsing a string.
+var (
 	ErrFormatWrong = errors.New("quantities must match the regular expression '" + splitREString + "'")
 	ErrNumeric     = errors.New("unable to parse numeric part of quantity")
 	ErrSuffix      = errors.New("unable to parse quantity's suffix")
@@ -497,7 +498,7 @@ func (q *Quantity) Sign() int {
 	return q.i.Sign()
 }
 
-// AsScaled returns the current value, rounded up to the provided scale, and returns
+// AsScale returns the current value, rounded up to the provided scale, and returns
 // false if the scale resulted in a loss of precision.
 func (q *Quantity) AsScale(scale Scale) (CanonicalValue, bool) {
 	if q.d.Dec != nil {
@@ -609,7 +610,7 @@ func (q Quantity) MarshalJSON() ([]byte, error) {
 		copy(out[1:], q.s)
 		return out, nil
 	}
-	result := make([]byte, int64QuantityExpectedBytes, int64QuantityExpectedBytes)
+	result := make([]byte, int64QuantityExpectedBytes)
 	result[0] = '"'
 	number, suffix := q.CanonicalizeBytes(result[1:1])
 	// if the same slice was returned to us that we passed in, avoid another allocation by copying number into

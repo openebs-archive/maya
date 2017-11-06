@@ -36,7 +36,7 @@ func TestMeta_FlagSet(t *testing.T) {
 		var m Meta
 		fs := m.FlagSet("foo", tc.Flags)
 
-		actual := make([]string, 0, 0)
+		actual := make([]string, 0)
 		fs.VisitAll(func(f *flag.Flag) {
 			actual = append(actual, f.Name)
 		})

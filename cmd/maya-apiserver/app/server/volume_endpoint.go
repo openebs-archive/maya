@@ -5,31 +5,32 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
 	"github.com/openebs/maya/volume/provisioners"
 )
 
-// VSMSpecificRequest is a http handler implementation. It deals with HTTP
-// requests w.r.t a single VSM.
+// VolumeSpecificRequest is a http handler implementation. It deals with HTTP
+// requests w.r.t a single Volume.
 //
 // TODO
 //    Should it return specific types than interface{} ?
-func (s *HTTPServer) VSMSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	fmt.Println("[DEBUG] Processing", req.Method, "request")
 
 	switch req.Method {
 	case "PUT", "POST":
-		return s.vsmAdd(resp, req)
+		return s.volumeAdd(resp, req)
 	case "GET":
-		return s.vsmSpecificGetRequest(resp, req)
+		return s.volumeSpecificGetRequest(resp, req)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
-// vsmSpecificGetRequest deals with HTTP GET request w.r.t a single VSM
-func (s *HTTPServer) vsmSpecificGetRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// VolumeSpecificGetRequest deals with HTTP GET request w.r.t a single Volume
+func (s *HTTPServer) volumeSpecificGetRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Extract info from path after trimming
 	path := strings.TrimPrefix(req.URL.Path, "/latest/volumes")
 
@@ -41,22 +42,22 @@ func (s *HTTPServer) vsmSpecificGetRequest(resp http.ResponseWriter, req *http.R
 	switch {
 
 	case strings.Contains(path, "/info/"):
-		vsmName := strings.TrimPrefix(path, "/info/")
-		return s.vsmRead(resp, req, vsmName)
+		volName := strings.TrimPrefix(path, "/info/")
+		return s.volumeRead(resp, req, volName)
 	case strings.Contains(path, "/delete/"):
-		vsmName := strings.TrimPrefix(path, "/delete/")
-		return s.vsmDelete(resp, req, vsmName)
+		volName := strings.TrimPrefix(path, "/delete/")
+		return s.volumeDelete(resp, req, volName)
 	case path == "/":
-		return s.vsmList(resp, req)
+		return s.volumeList(resp, req)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
-// vsmList is the http handler that lists VSMs
-func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// VolumeList is the http handler that lists Volumes
+func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing Volume list request")
+	glog.Infof("Processing Volume list request")
 
 	// Create a Volume
 	vol := &v1.Volume{}
@@ -87,23 +88,23 @@ func (s *HTTPServer) vsmList(resp http.ResponseWriter, req *http.Request) (inter
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Processed Volume list request successfully")
+	glog.Infof("Processed Volume list request successfully")
 
 	return l, nil
 }
 
-// vsmRead is the http handler that fetches the details of a VSM
-func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmName string) (interface{}, error) {
+// VolumeRead is the http handler that fetches the details of a Volume
+func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, volName string) (*v1.Volume, error) {
 
-	fmt.Println("[DEBUG] Processing Volume read request")
+	glog.Infof("Processing Volume read request")
 
-	if vsmName == "" {
+	if volName == "" {
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
 	// Create a Volume
 	vol := &v1.Volume{}
-	vol.Name = vsmName
+	vol.Name = volName
 
 	// Get persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
@@ -130,26 +131,26 @@ func (s *HTTPServer) vsmRead(resp http.ResponseWriter, req *http.Request, vsmNam
 	}
 
 	if details == nil {
-		return nil, CodedError(404, fmt.Sprintf("VSM '%s' not found", vsmName))
+		return nil, CodedError(404, fmt.Sprintf("Volume '%s' not found", volName))
 	}
 
-	fmt.Println("[DEBUG] Processed Volume read request successfully for '" + vsmName + "'")
+	glog.Infof("Processed Volume read request successfully for '" + volName + "'")
 
 	return details, nil
 }
 
-// vsmDelete is the http handler that fetches the details of a VSM
-func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmName string) (interface{}, error) {
+// VolumeDelete is the http handler that fetches the details of a Volume
+func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing Volume delete request")
+	glog.Infof("Processing Volume delete request")
 
-	if vsmName == "" {
+	if volName == "" {
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
 	// Create a Volume
 	vol := &v1.Volume{}
-	vol.Name = vsmName
+	vol.Name = volName
 
 	// Get the persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
@@ -179,18 +180,18 @@ func (s *HTTPServer) vsmDelete(resp http.ResponseWriter, req *http.Request, vsmN
 
 	// If there was not any err & still no removal
 	if !removed {
-		return nil, CodedError(404, fmt.Sprintf("Volume '%s' not found", vsmName))
+		return nil, CodedError(404, fmt.Sprintf("Volume '%s' not found", volName))
 	}
 
-	fmt.Println("[DEBUG] Processed Volume delete request successfully for '" + vsmName + "'")
+	glog.Infof("Processed Volume delete request successfully for '" + volName + "'")
 
-	return fmt.Sprintf("Volume '%s' deleted successfully", vsmName), nil
+	return fmt.Sprintf("Volume '%s' deleted successfully", volName), nil
 }
 
-// vsmAdd is the http handler that fetches the details of a VSM
-func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// VolumeAdd is the http handler that fetches the details of a Volume
+func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
-	fmt.Println("[DEBUG] Processing Volume add request")
+	glog.Infof("Processing Volume add request")
 
 	vol := v1.Volume{}
 
@@ -228,7 +229,7 @@ func (s *HTTPServer) vsmAdd(resp http.ResponseWriter, req *http.Request) (interf
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] Processed Volume add request successfully for '" + vol.Name + "'")
+	glog.Infof("Processed Volume add request successfully for '" + vol.Name + "'")
 
 	return details, nil
 }
