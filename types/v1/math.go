@@ -312,3 +312,38 @@ func removeBigIntFactors(d, factor *big.Int) (result *big.Int, times int32) {
 	}
 	return d, times
 }
+
+// SubstractFloat64 returns a - b , where a > b.
+func SubstractFloat64(a float64, b float64) (float64, bool) {
+	if a < b {
+		return 0, false
+	}
+	return (a - b), true
+}
+
+// DivideFloat64 returns the value of value divided by base.
+// divide by zero case handled before calling.
+func DivideFloat64(value float64, base float64) (float64, bool) {
+	if base == 0 {
+		return 0, false
+	}
+	return (value / base), true
+}
+
+// SubstractInt64 returns a - b , where a > b.
+func SubstractInt64(a int64, b int64) (int64, bool) {
+	if a < b {
+		return 0, false
+	}
+	return (a - b), true
+}
+
+// DivideInt64 returns the value of value divided by base.
+// divide by zero case handled before calling.
+func DivideInt64(value int64, base int64) (int64, bool) {
+	if base == 0 {
+		return 0, false
+	}
+
+	return (value / base), true
+}
