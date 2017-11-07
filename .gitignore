@@ -3,3 +3,4 @@ demo/temp/*
 bin/
 nohup.out
 .DS_Store
+.testfiles/

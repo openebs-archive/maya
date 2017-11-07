@@ -7,8 +7,8 @@ import (
 
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/orchprovider"
-	"github.com/openebs/maya/orchprovider/k8s/v1"
-	"github.com/openebs/maya/orchprovider/nomad/v1"
+	k8sv1 "github.com/openebs/maya/orchprovider/k8s/v1"
+	nomadv1 "github.com/openebs/maya/orchprovider/nomad/v1"
 	"github.com/openebs/maya/types/v1"
 	"github.com/openebs/maya/volume/provisioners"
 	"github.com/openebs/maya/volume/provisioners/jiva"
@@ -90,7 +90,7 @@ func (ms *MayaApiServer) BootstrapPlugins() error {
 			// Below is a callback function that creates a new instance of Kubernetes
 			// orchestration provider
 			func(label v1.NameLabel, name v1.OrchProviderRegistry) (orchprovider.OrchestratorInterface, error) {
-				return k8s.NewK8sOrchestrator(label, name)
+				return k8sv1.NewK8sOrchestrator(label, name)
 			})
 	}
 
@@ -102,7 +102,7 @@ func (ms *MayaApiServer) BootstrapPlugins() error {
 			// Below is a callback function that creates a new instance of Nomad
 			// orchestration provider
 			func(label v1.NameLabel, name v1.OrchProviderRegistry) (orchprovider.OrchestratorInterface, error) {
-				return nomad.NewNomadOrchestrator(label, name)
+				return nomadv1.NewNomadOrchestrator(label, name)
 			})
 	}
 

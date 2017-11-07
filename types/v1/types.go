@@ -20,6 +20,21 @@ type Volume struct {
 	// Standard object's metadata
 	ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
+	// VolumeType holds the type of this volume
+	// e.g. Jiva volume type or CStor volume type, etc
+	VolumeType VolumeType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=VolumeType"`
+
+	// OrchProvider holds the container orchestrator that will
+	// orchestrate OpenEBS volume for its provisioning & other
+	// requirements
+	OrchProvider OrchProvider `json:"orchestrator,omitempty" protobuf:"bytes,1,opt,name=orchestrator,casttype=OrchProvider"`
+
+	// Namespace will hold the namespace where this Volume will exist
+	Namespace string `json:"namespace,omitempty" protobuf:"bytes,1,opt,name=namespace"`
+
+	// Capacity will hold the capacity of this Volume
+	Capacity string `json:"capacity,omitempty" protobuf:"bytes,1,opt,name=capacity"`
+
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
@@ -56,6 +71,9 @@ type VolumeSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 
+	// Image represents the container image of this volume
+	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
+
 	// Resources represents the actual resources of the volume
 	Capacity ResourceList
 	// Source represents the location and type of a volume to mount.
@@ -69,17 +87,46 @@ type VolumeSpec struct {
 	StorageClassName string `json:"storageClassName,omitempty"`
 }
 
+// VolumeType defines the OpenEBS volume types that are
+// supported by Maya
+type VolumeType string
+
+const (
+	// JivaVolumeType represents a jiva volume
+	JivaVolumeType VolumeType = "jiva"
+
+	// CStorVolumeType represents a cstor volume
+	//CStorVolumeType VolumeType = "cstor"
+)
+
 // VolumeContext defines context of a volume
 type VolumeContext string
 
 const (
 	// ReplicaVolumeContext represents a volume w.r.t
 	// replica context
-	ReplicaVolumeContext VolumeContext = "Replica"
+	ReplicaVolumeContext VolumeContext = "replica"
 
 	// ControllerVolumeContext represents a volume w.r.t
 	// controller context
-	ControllerVolumeContext VolumeContext = "Controller"
+	ControllerVolumeContext VolumeContext = "controller"
+)
+
+// OrchProvider defines the container orchestrators that
+// will orchestrate the OpenEBS volumes
+type OrchProvider string
+
+const (
+	// K8sOrchProvider represents Kubernetes orchestrator
+	K8sOrchProvider OrchProvider = "kubernetes"
+)
+
+// K8sKind defines the various K8s Kinds that are understood
+// by Maya
+type K8sKind string
+
+const (
+	DeploymentKK K8sKind = "deployment"
 )
 
 // VolumeSource represents the source type of the Openebs volume.
