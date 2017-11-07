@@ -1,4 +1,3 @@
-// Package k8s enables Kubernetes as the orchestration provider
-// that aligns to the interfaces suggested by maya api server's orchprovider
-// package.
-package k8s
+// Package k8s enables Kubernetes as the orchestration provider for openebs
+// volumes
+package v1
