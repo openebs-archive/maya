@@ -1,4 +1,4 @@
-package util
+package v1
 
 const (
 	// BytesToGB used to convert bytes to GB

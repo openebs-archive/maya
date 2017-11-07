@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/openebs/maya/command"
+	"github.com/openebs/maya/types/v1"
 )
 
 var _ = Describe("VsmStats", func() {
@@ -49,7 +50,7 @@ var _ = Describe("VsmStats", func() {
 	const random2 int = 1024
 	const random3 int = 4096
 	const random int = 10
-	stat1 := VolumeStats{
+	stat1 := v1.VolumeMetrics{
 		ReadIOPS:             strconv.Itoa(random1),
 		WriteIOPS:            strconv.Itoa(random1),
 		TotalReadTime:        strconv.Itoa(random1),
@@ -61,7 +62,7 @@ var _ = Describe("VsmStats", func() {
 		UsedLogicalBlocks:    strconv.Itoa(random1),
 	}
 
-	stat2 := VolumeStats{
+	stat2 := v1.VolumeMetrics{
 		ReadIOPS:             strconv.Itoa(random2),
 		WriteIOPS:            strconv.Itoa(random2),
 		TotalReadTime:        strconv.Itoa(random2),

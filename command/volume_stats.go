@@ -13,6 +13,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/openebs/maya/types/v1"
 	"github.com/rancher/go-rancher/client"
 )
 
@@ -20,25 +21,6 @@ type Status struct {
 	Resource        client.Resource
 	ReplicaCounter  int64  `json:"replicacounter"`
 	RevisionCounter string `json:"revisioncounter"`
-}
-
-type VolumeStats struct {
-	Resource        client.Resource
-	RevisionCounter int64         `json:"RevisionCounter"`
-	ReplicaCounter  int64         `json:"ReplicaCounter"`
-	SCSIIOCount     map[int]int64 `json:"SCSIIOCount"`
-
-	ReadIOPS            string `json:"ReadIOPS"`
-	TotalReadTime       string `json:"TotalReadTime"`
-	TotalReadBlockCount string `json:"TotalReadBlockCount"`
-
-	WriteIOPS            string `json:"WriteIOPS"`
-	TotalWriteTime       string `json:"TotalWriteTime"`
-	TotalWriteBlockCount string `json:"TotatWriteBlockCount"`
-
-	SectorSize        string `json:"SectorSize"`
-	UsedBlocks        string `json:"UsedBlocks"`
-	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
 }
 
 // VsmStatsCommand is a command implementation struct
@@ -95,16 +77,6 @@ type Annotation struct {
 	Size   string `json:"Size"`
 }
 
-const (
-	bytesToGB = 1073741824
-	bytesToMB = 1048567
-	micSec    = 1000000
-	bytesToKB = 1024
-	minwidth  = 0
-	maxwidth  = 0
-	padding   = 3
-)
-
 // Help shows helpText for a particular CLI command
 func (c *VsmStatsCommand) Help() string {
 	helpText := `
@@ -133,7 +105,7 @@ func (c *VsmStatsCommand) Run(args []string) int {
 		err, err1, err3 error
 		err2, err4      int
 		status          Status
-		stats1, stats2  VolumeStats
+		stats1, stats2  v1.VolumeMetrics
 		repStatus       string
 	)
 	statusArray := make([]string, 6)
@@ -346,7 +318,7 @@ func GetVolumeStats(address string, obj interface{}) (int, error) {
 }
 
 // StatsOutput will return error code if any otherwise return zero
-func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, statusArray []string, stats1 VolumeStats, stats2 VolumeStats) error {
+func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		err          error
@@ -360,20 +332,20 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 	// 10 and 64 represents decimal and bits respectively
 	iReadIOPS, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64) // Initial
 	fReadIOPS, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64) // Final
-	readIOPS := fReadIOPS - iReadIOPS
+	readIOPS, _ := v1.SubstractInt64(fReadIOPS, iReadIOPS)
 
 	iReadTimePS, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
 	fReadTimePS, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
-	readTimePS := fReadTimePS - iReadTimePS
+	readTimePS, _ := v1.SubstractInt64(fReadTimePS, iReadTimePS)
 
 	iReadBlockCountPS, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
 	fReadBlockCountPS, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
-	readBlockCountPS := fReadBlockCountPS - iReadBlockCountPS
+	readBlockCountPS, _ := v1.SubstractInt64(fReadBlockCountPS, iReadBlockCountPS)
 
 	rThroughput := readBlockCountPS
 	if readIOPS != 0 {
-		ReadLatency = readTimePS / readIOPS
-		AvgReadBlockCountPS = readBlockCountPS / readIOPS
+		ReadLatency, _ = v1.DivideInt64(readTimePS, readIOPS)
+		AvgReadBlockCountPS, _ = v1.DivideInt64(readBlockCountPS, readIOPS)
 	} else {
 		ReadLatency = 0
 		AvgReadBlockCountPS = 0
@@ -381,20 +353,20 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 
 	iWriteIOPS, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
 	fWriteIOPS, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
-	writeIOPS := fWriteIOPS - iWriteIOPS
+	writeIOPS, _ := v1.SubstractInt64(fWriteIOPS, iWriteIOPS)
 
 	iWriteTimePS, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
 	fWriteTimePS, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
-	writeTimePS := fWriteTimePS - iWriteTimePS
+	writeTimePS, _ := v1.SubstractInt64(fWriteTimePS, iWriteTimePS)
 
 	iWriteBlockCountPS, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
 	fWriteBlockCountPS, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
-	writeBlockCountPS := fWriteBlockCountPS - iWriteBlockCountPS
+	writeBlockCountPS, _ := v1.SubstractInt64(fWriteBlockCountPS, iWriteBlockCountPS)
 
 	wThroughput := writeBlockCountPS
 	if writeIOPS != 0 {
-		WriteLatency = writeTimePS / writeIOPS
-		AvgWriteBlockCountPS = writeBlockCountPS / writeIOPS
+		WriteLatency, _ = v1.DivideInt64(writeTimePS, writeIOPS)
+		AvgWriteBlockCountPS, _ = v1.DivideInt64(writeBlockCountPS, writeIOPS)
 	} else {
 		WriteLatency = 0
 		AvgWriteBlockCountPS = 0
@@ -427,18 +399,18 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 			ReadIOPS:  readIOPS,
 			WriteIOPS: writeIOPS,
 
-			ReadThroughput:  float64(rThroughput) / bytesToMB, // bytes to MB
-			WriteThroughput: float64(wThroughput) / bytesToMB,
+			ReadThroughput:  float64(rThroughput) / v1.BytesToMB, // bytes to MB
+			WriteThroughput: float64(wThroughput) / v1.BytesToMB,
 
-			ReadLatency:  float64(ReadLatency) / micSec, // Microsecond
-			WriteLatency: float64(WriteLatency) / micSec,
+			ReadLatency:  float64(ReadLatency) / v1.MicSec, // Microsecond
+			WriteLatency: float64(WriteLatency) / v1.MicSec,
 
-			AvgReadBlockSize:  AvgReadBlockCountPS / bytesToKB, // Bytes to KB
-			AvgWriteBlockSize: AvgWriteBlockCountPS / bytesToKB,
+			AvgReadBlockSize:  AvgReadBlockCountPS / v1.BytesToKB, // Bytes to KB
+			AvgWriteBlockSize: AvgWriteBlockCountPS / v1.BytesToKB,
 
 			SectorSize:  sectorSize,
-			ActualUsed:  actualUsed / bytesToGB,
-			LogicalSize: logicalSize / bytesToGB,
+			ActualUsed:  actualUsed / v1.BytesToGB,
+			LogicalSize: logicalSize / v1.BytesToGB,
 		}
 
 		data, err := json.MarshalIndent(stat1, "", "\t")
@@ -463,7 +435,7 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 		}
 
 		// Printing in tabular form
-		q := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Fprintf(q, "\n\nReplica\tStatus\tDataUpdateIndex\t\n")
 		fmt.Fprintf(q, "\t\t\t\n")
 		for i := 0; i < 4; i += 3 {
@@ -473,16 +445,16 @@ func StatsOutput(c *VsmStatsCommand, annotations *Annotations, args []string, st
 
 		q.Flush()
 
-		w := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Println("\n----------- Performance Stats -----------\n")
 		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
-		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/bytesToMB, float64(wThroughput)/bytesToMB, float64(ReadLatency)/micSec, float64(WriteLatency)/micSec)
+		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/v1.BytesToMB, float64(wThroughput)/v1.BytesToMB, float64(ReadLatency)/v1.MicSec, float64(WriteLatency)/v1.MicSec)
 		w.Flush()
 
-		x := tabwriter.NewWriter(os.Stdout, minwidth, maxwidth, padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
+		x := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Println("\n------------ Capacity Stats -------------\n")
 		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
-		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/bytesToGB, actualUsed/bytesToGB)
+		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/v1.BytesToGB, actualUsed/v1.BytesToGB)
 		x.Flush()
 	}
 	return err
