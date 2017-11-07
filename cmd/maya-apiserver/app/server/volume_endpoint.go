@@ -63,6 +63,17 @@ func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (in
 	// Create a Volume
 	vol := &v1.Volume{}
 
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeGenericPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
@@ -106,6 +117,17 @@ func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, vol
 	// Create a Volume
 	vol := &v1.Volume{}
 	vol.Name = volName
+
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeGenericPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
 
 	// Get persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(nil)
@@ -154,7 +176,7 @@ func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, v
 	vol.Name = volName
 
 	// Pass through the policy enforcement logic
-	policy, err := policies_v1.VolumeDeletePolicy()
+	policy, err := policies_v1.VolumeGenericPolicy()
 	if err != nil {
 		return nil, err
 	}
