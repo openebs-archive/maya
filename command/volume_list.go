@@ -124,9 +124,9 @@ func (c *VsmListCommand) Run(args []string) int {
 	}
 
 	// Truncate the id unless full length is requested
-	c.length = shortId
+	c.length = shortID
 	if c.verbose {
-		c.length = fullId
+		c.length = fullID
 	}
 
 	// Get the HTTP client
