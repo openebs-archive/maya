@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -241,25 +240,25 @@ func (e *VolumeExporter) collect() error {
 	// i and f is used for initial and final
 	iRIOPS, _ := strconv.ParseInt(metrics1.ReadIOPS, 10, 64)
 	fRIOPS, _ := strconv.ParseInt(metrics2.ReadIOPS, 10, 64)
-	rIOPS := v1.SubstractInt64(fRIOPS, iRIOPS)
+	rIOPS, _ := v1.SubstractInt64(fRIOPS, iRIOPS)
 	readIOPS.Set(float64(rIOPS))
 
 	iRTimePS, _ := strconv.ParseInt(metrics1.TotalReadTime, 10, 64)
 	fRTimePS, _ := strconv.ParseInt(metrics2.TotalReadTime, 10, 64)
-	rTimePS := v1.SubstractInt64(fRTimePS, iRTimePS)
+	rTimePS, _ := v1.SubstractInt64(fRTimePS, iRTimePS)
 	readTimePS.Set(float64(rTimePS))
 
 	iRBCountPS, _ := strconv.ParseInt(metrics1.TotalReadBlockCount, 10, 64)
 	fRBCountPS, _ := strconv.ParseInt(metrics2.TotalReadBlockCount, 10, 64)
-	rBCountPS := v1.SubstractInt64(fRBCountPS, iRBCountPS)
+	rBCountPS, _ := v1.SubstractInt64(fRBCountPS, iRBCountPS)
 	readBlockCountPS.Set(float64(rBCountPS))
 
 	if rIOPS != 0 {
-		rLatency := v1.DivideInt64(rTimePS, rIOPS)
-		rLatency = v1.DivideInt64(rLatency, util.MicSec)
+		rLatency, _ := v1.DivideInt64(rTimePS, rIOPS)
+		rLatency, _ = v1.DivideInt64(rLatency, v1.MicSec)
 		readLatency.Set(float64(rLatency))
-		avgRBCountPS := v1.DivideInt64(rBCountPS, rIOPS)
-		avgRBCountPS = v1.DivideInt64(rBCountPS, util.BytesToKB)
+		avgRBCountPS, _ := v1.DivideInt64(rBCountPS, rIOPS)
+		avgRBCountPS, _ = v1.DivideInt64(rBCountPS, v1.BytesToKB)
 		avgReadBlockCountPS.Set(float64(avgRBCountPS))
 	} else {
 		readLatency.Set(0)
@@ -268,25 +267,25 @@ func (e *VolumeExporter) collect() error {
 
 	iWIOPS, _ := strconv.ParseInt(metrics1.WriteIOPS, 10, 64)
 	fWIOPS, _ := strconv.ParseInt(metrics2.WriteIOPS, 10, 64)
-	wIOPS := v1.SubstractInt64(fWIOPS, iWIOPS)
+	wIOPS, _ := v1.SubstractInt64(fWIOPS, iWIOPS)
 	writeIOPS.Set(float64(wIOPS))
 
 	iWTimePS, _ := strconv.ParseInt(metrics1.TotalWriteTime, 10, 64)
 	fWTimePS, _ := strconv.ParseInt(metrics2.TotalWriteTime, 10, 64)
-	wTimePS := v1.SubstractInt64(fWTimePS, iWTimePS)
+	wTimePS, _ := v1.SubstractInt64(fWTimePS, iWTimePS)
 	writeTimePS.Set(float64(wTimePS))
 
 	iWBCountPS, _ := strconv.ParseInt(metrics1.TotalWriteBlockCount, 10, 64)
 	fWBCountPS, _ := strconv.ParseInt(metrics2.TotalWriteBlockCount, 10, 64)
-	wBCountPS := v1.SubstractInt64(fWBCountPS, iWBCountPS)
+	wBCountPS, _ := v1.SubstractInt64(fWBCountPS, iWBCountPS)
 	writeBlockCountPS.Set(float64(wBCountPS))
 
 	if wIOPS != 0 {
-		wLatency := v1.DivideInt64(wTimePS, wIOPS)
-		wLatency = v1.DivideInt64(wLatency, util.MicSec)
+		wLatency, _ := v1.DivideInt64(wTimePS, wIOPS)
+		wLatency, _ = v1.DivideInt64(wLatency, v1.MicSec)
 		writeLatency.Set(float64(wLatency))
-		avgWBCountPS := v1.DivideInt64(wBCountPS, wIOPS)
-		avgWBCountPS = v1.DivideInt64(avgWBCountPS, util.BytesToKB)
+		avgWBCountPS, _ := v1.DivideInt64(wBCountPS, wIOPS)
+		avgWBCountPS, _ = v1.DivideInt64(avgWBCountPS, v1.BytesToKB)
 		avgWriteBlockCountPS.Set(float64(avgWBCountPS))
 	} else {
 		writeLatency.Set(0)
@@ -297,10 +296,13 @@ func (e *VolumeExporter) collect() error {
 	sectorSize.Set(float64(sSize))
 	uBlocks, _ := strconv.ParseFloat(metrics2.UsedBlocks, 64)
 	uBlocks = uBlocks * sSize
-	logicalSize.Set(v1.DivideFloat64(uBlocks, util.BytesToGB))
+	lSize, _ := v1.DivideFloat64(uBlocks, v1.BytesToGB)
+
+	logicalSize.Set(lSize)
 	aUsed, _ := strconv.ParseFloat(metrics2.UsedLogicalBlocks, 64)
 	aUsed = aUsed * sSize
-	actualUsed.Set(v1.DivideFloat64(aUsed, util.BytesToGB))
+	aSize, _ := v1.DivideFloat64(aUsed, v1.BytesToGB)
+	actualUsed.Set(aSize)
 	size, _ := strconv.ParseInt(metrics1.Size, 10, 64)
 	sizeOfVolume.Set(float64(size))
 
