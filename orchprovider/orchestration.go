@@ -9,12 +9,8 @@ import (
 )
 
 // OrchestrationInterface is an interface abstraction of a real orchestrator.
-// It represents an abstraction that maya api server expects from its
+// It represents an abstraction that serves operations feasible from an
 // orchestrator.
-//
-// NOTE:
-//  OrchestratorInterface should be the only interface that exposes orchestration
-// contracts.
 type OrchestratorInterface interface {
 	// Label assigned against the orchestration provider
 	Label() string
@@ -27,11 +23,11 @@ type OrchestratorInterface interface {
 
 	// StorageOps gets the instance that deals with storage related operations.
 	// Will return false if not supported.
-	//
-	// NOTE:
-	//    This is invoked on a per request basis. In other words, every request will
-	// invoke StorageOps to invoke storage specific operations thereafter.
 	StorageOps() (StorageOps, bool)
+
+	// PolicyOps gets the instance that deals with volume policy related operations.
+	// Will return false if not supported.
+	PolicyOps(vol *v1.Volume) (PolicyOps, bool, error)
 }
 
 // StorageOps exposes various storage related operations that deals with
@@ -40,24 +36,23 @@ type OrchestratorInterface interface {
 type StorageOps interface {
 
 	// AddStorage will add persistent volume running as containers
-	//
-	// TODO
-	//    Use VSM as the return type
 	AddStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error)
 
 	// DeleteStorage will remove the persistent volume
-	//
-	// TODO
-	//    Use VSM as the return type
 	DeleteStorage(volProProfile volProfile.VolumeProvisionerProfile) (bool, error)
 
 	// ReadStorage will fetch information about the persistent volume
-	//
-	// TODO
-	//    Use VSM as the return type
 	ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error)
 
 	// ListStorage will list a collection of VSMs in a given context e.g. namespace
 	// if working in a K8s setup, etc.
 	ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error)
+}
+
+// PolicyOps exposes various volume policy related operations. Volume policies
+// influence volume placements, provisioning, backup, etc. decisions.
+type PolicyOps interface {
+
+	// FetchPolicies will fetch volume policies based on the passed arguments
+	FetchPolicies() (map[string]string, error)
 }

@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -43,4 +44,25 @@ func Fatal(msg string) {
 		fmt.Fprint(os.Stderr, msg)
 	}
 	os.Exit(1)
+}
+
+// StringToInt32 converts a string type to corresponding
+// *int32 type
+func StringToInt32(val string) (*int32, error) {
+	n, err := strconv.ParseInt(val, 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	n32 := int32(n)
+	return &n32, nil
+}
+
+// StrToInt32 converts a string type to corresponding
+// *int32 type
+//
+// NOTE:
+//  This swallows the error if any
+func StrToInt32(val string) *int32 {
+	n32, _ := StringToInt32(val)
+	return n32
 }

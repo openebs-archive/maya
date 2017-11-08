@@ -2,7 +2,7 @@
 //
 //    1. Generic orchprovider &
 //    2. Nomad orchprovider
-package nomad
+package v1
 
 import (
 	"fmt"
@@ -91,6 +91,10 @@ func (n *NomadOrchestrator) Region() string {
 	return n.region
 }
 
+func (n *NomadOrchestrator) PolicyOps(vol *v1.Volume) (orchprovider.PolicyOps, bool, error) {
+	return nil, false, nil
+}
+
 // StorageOps deals with storage related operations e.g. scheduling, placements,
 // removal, etc. of persistent volume containers. The low level workings are
 // delegated to the orchestration provider.
@@ -114,7 +118,7 @@ func (n *NomadOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvision
 		return nil, err
 	}
 
-	job, err := n.nStorApis.StorageInfo(jobName, vol.Labels)
+	job, err := n.nStorApis.StorageInfo(jobName, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +144,7 @@ func (n *NomadOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisione
 		return nil, err
 	}
 
-	eval, err := n.nStorApis.CreateStorage(job, vol.Labels)
+	eval, err := n.nStorApis.CreateStorage(job, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +166,7 @@ func (n *NomadOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisi
 		return false, err
 	}
 
-	eval, err := n.nStorApis.DeleteStorage(job, vol.Labels)
+	eval, err := n.nStorApis.DeleteStorage(job, nil)
 
 	if err != nil {
 		return false, err

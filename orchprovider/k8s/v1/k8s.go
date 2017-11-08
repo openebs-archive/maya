@@ -1,7 +1,7 @@
 // This file registers Kubernetes as an orchestration provider plugin in maya
 // api server. This orchestration is for persistent volume provisioners which
 // also are registered in maya api server.
-package k8s
+package v1
 
 import (
 	"fmt"
@@ -25,18 +25,30 @@ import (
 //  2. orchprovider.NetworkPlacements &
 //  3. orchprovider.StoragePlacements
 type k8sOrchestrator struct {
+	// TODO use string datatype
 	// label specified to this orchestrator
 	label v1.NameLabel
 
+	// TODO use string datatype
 	// name of the orchestrator as registered in the registry
 	name v1.OrchProviderRegistry
 
+	// volume represents the instance of OpenEBS volume that will
+	// placed in K8s
+	volume *v1.Volume
+
+	// k8sUtil provides the instance that does the low level
+	// K8s operations
+	k8sUtil *k8sUtil
+
+	// TODO Deprecate in favour of k8sUtil
 	// k8sUtlGtr provides the handle to fetch K8sUtilInterface
 	// NOTE:
 	//    This will be set at runtime.
 	k8sUtlGtr K8sUtilGetter
 }
 
+// Deprecate in favour of NewK8sOrchProvider
 // NewK8sOrchestrator provides a new instance of K8sOrchestrator.
 func NewK8sOrchestrator(label v1.NameLabel, name v1.OrchProviderRegistry) (orchprovider.OrchestratorInterface, error) {
 
@@ -56,22 +68,44 @@ func NewK8sOrchestrator(label v1.NameLabel, name v1.OrchProviderRegistry) (orchp
 	}, nil
 }
 
+// NewK8sOrchProvider provides a new instance of K8sOrchestrator.
+func NewK8sOrchProvider() (orchprovider.OrchestratorInterface, error) {
+	return &k8sOrchestrator{
+		label: v1.NameLabel("openebs.io/orch-provider"),
+		name:  v1.OrchProviderRegistry("openebs.io/kubernetes"),
+	}, nil
+}
+
 // Label provides the label assigned against this orchestrator.
 // This is an implementation of the orchprovider.OrchestratorInterface interface.
 func (k *k8sOrchestrator) Label() string {
-	// TODO
-	// Do not typecast. Make it typed
-	// Ensure this for all orch provider implementors
 	return string(k.label)
 }
 
 // Name provides the name of this orchestrator.
 // This is an implementation of the orchprovider.OrchestratorInterface interface.
 func (k *k8sOrchestrator) Name() string {
-	// TODO
-	// Do not typecast. Make it typed
-	// Ensure this for all orch provider implementors
 	return string(k.name)
+}
+
+// setVolume sets the volume instance
+func (k *k8sOrchestrator) setVolume(vol *v1.Volume) error {
+	if vol == nil {
+		return fmt.Errorf("Nil volume provided")
+	}
+
+	k.volume = vol
+	return nil
+}
+
+// setK8sUtil sets the k8sUtil instance
+func (k *k8sOrchestrator) setK8sUtil(k8sUtil *k8sUtil) error {
+	if k8sUtil == nil {
+		return fmt.Errorf("Nil k8s util provided")
+	}
+
+	k.k8sUtil = k8sUtil
+	return nil
 }
 
 // TODO
@@ -117,21 +151,52 @@ func k8sOrchUtil(k *k8sOrchestrator, volProfile volProfile.VolumeProvisionerProf
 	return k.k8sUtlGtr.GetK8sUtil(volProfile)
 }
 
-// TODO
-//    Will it be good if this accepts VolumeProvisionerProfile and updates the
-// k8sOrchestrator instance's properties ?
-//
-// StorageOps provides storage operations instance that deals with all storage
-// related functionality by aligning with Kubernetes as the orchestration provider.
-//
-// NOTE:
-//    This is an implementation of the orchprovider.OrchestratorInterface interface.
-//
-// NOTE:
-//    This is invoked on a per request basis. In other words, every request will
-// invoke StorageOps to invoke storage specific operations thereafter.
+// StorageOps provides volume operations instance.
 func (k *k8sOrchestrator) StorageOps() (orchprovider.StorageOps, bool) {
 	return k, true
+}
+
+// PolicyOps provides a policy operations instance.
+// In addition, it is used for various initializations & validations
+func (k *k8sOrchestrator) PolicyOps(vol *v1.Volume) (orchprovider.PolicyOps, bool, error) {
+	err := k.setVolume(vol)
+	if err != nil {
+		return nil, true, err
+	}
+
+	err = k.setK8sUtil(&k8sUtil{
+		volume: vol,
+	})
+	if err != nil {
+		return nil, true, err
+	}
+
+	return k, true, nil
+}
+
+// FetchPolicies will fetch volume policies based on the volume
+func (k *k8sOrchestrator) FetchPolicies() (map[string]string, error) {
+	kc, supported, err := k.k8sUtil.K8sClientV2()
+	if err != nil {
+		return nil, err
+	}
+
+	if !supported {
+		return nil, fmt.Errorf("K8s client is not supported")
+	}
+
+	// fetch k8s Deployment operator
+	scOps, err := kc.StorageClassOps()
+	if err != nil {
+		return nil, err
+	}
+
+	sc, err := scOps.Get(k.volume.Labels.K8sStorageClass, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return sc.Parameters, nil
 }
 
 // AddStorage will add persistent volume running as containers. In OpenEBS
@@ -821,7 +886,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// Considering above scenarios, it might make more sense to have
 									// separate K8s Deployment for each replica. However,
 									// there are dis-advantages in diverging from K8s replica set.
-									TopologyKey: v1.GetPVPReplicaTopologyKey(vol.Labels),
+									TopologyKey: v1.GetPVPReplicaTopologyKey(nil),
 								},
 							},
 						},
@@ -833,7 +898,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Name:    vsm + string(v1.ReplicaSuffix) + string(v1.ContainerSuffix),
 							Image:   rImg,
 							Command: v1.JivaReplicaCmd,
-							Args:    v1.MakeOrDefJivaReplicaArgs(vol.Labels, clusterIP),
+							Args:    v1.MakeOrDefJivaReplicaArgs(vol, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
 								k8sApiV1.ContainerPort{
 									ContainerPort: v1.DefaultJivaReplicaPort1(),
@@ -1100,7 +1165,7 @@ func (k *k8sOrchestrator) getReplicaPods(vsm string, podOps k8sCoreV1.PodInterfa
 	return rp, nil
 }
 
-// getPods deletes the Pods w.r.t the VSM
+// getPods gets the Pods w.r.t the VSM
 func (k *k8sOrchestrator) getPods(vsm string, volProProfile volProfile.VolumeProvisionerProfile) (*k8sApiV1.PodList, error) {
 
 	if strings.TrimSpace(vsm) == "" {
