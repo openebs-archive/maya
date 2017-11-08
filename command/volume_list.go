@@ -1,15 +1,14 @@
 package command
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/pkg/client/mapiserver"
+	mtypesv1 "github.com/openebs/maya/types/v1"
 
 	"github.com/hashicorp/nomad/api"
 	"github.com/hashicorp/nomad/nomad/structs"
@@ -28,38 +27,6 @@ type VsmListCommand struct {
 	evals     bool
 	allAllocs bool
 	verbose   bool
-}
-
-type ListStub struct {
-	Items []struct {
-		Metadata struct {
-			Annotations struct {
-				BeJivaVolumeOpenebsIoCount   string `json:"vsm.openebs.io/replica-count"`
-				BeJivaVolumeOpenebsIoVolSize string `json:"vsm.openebs.io/volume-size"`
-				Iqn                          string `json:"vsm.openebs.io/iqn"`
-				Targetportal                 string `json:"vsm.openebs.io/targetportals"`
-			} `json:"annotations"`
-			CreationTimestamp interface{} `json:"creationTimestamp"`
-			Name              string      `json:"name"`
-		} `json:"metadata"`
-		Spec struct {
-			AccessModes interface{} `json:"AccessModes"`
-			Capacity    interface{} `json:"Capacity"`
-			ClaimRef    interface{} `json:"ClaimRef"`
-			OpenEBS     struct {
-				VolumeID string `json:"volumeID"`
-			} `json:"OpenEBS"`
-			PersistentVolumeReclaimPolicy string `json:"PersistentVolumeReclaimPolicy"`
-			StorageClassName              string `json:"StorageClassName"`
-		} `json:"spec"`
-		Status struct {
-			Message string `json:"Message"`
-			Phase   string `json:"Phase"`
-			Reason  string `json:"Reason"`
-		} `json:"status"`
-	} `json:"items"`
-	Metadata struct {
-	} `json:"metadata"`
 }
 
 // Help shows helpText for a particular CLI command
@@ -497,18 +464,11 @@ func createVsmListOutput(jobs []*api.JobListStub) string {
 	return formatList(out)
 }
 
-func GetVsm(obj interface{}) error {
-	body, err := RestClient()
-	if err != nil {
-		return fmt.Errorf("Error querying Volumes: %s", err)
-	}
-	return Parser(body, obj)
-}
-
+//VsmListOutput will fetch the volumes from maya-apiserver
 func VsmListOutput() error {
 
-	var vsms ListStub
-	GetVsm(&vsms)
+	var vsms mtypesv1.VolumeList
+	mapiserver.ListVolumes(&vsms)
 	out := make([]string, len(vsms.Items)+1)
 	out[0] = "Name|Status"
 	for i, items := range vsms.Items {
@@ -516,7 +476,7 @@ func VsmListOutput() error {
 			items.Status.Reason = "Running"
 		}
 		out[i+1] = fmt.Sprintf("%s|%s",
-			items.Metadata.Name,
+			items.ObjectMeta.Name,
 			items.Status.Reason)
 	}
 	if len(out) == 1 {
@@ -526,53 +486,4 @@ func VsmListOutput() error {
 	fmt.Println(formatList(out))
 	return nil
 
-}
-
-func RestClient() ([]byte, error) {
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		fmt.Println(err)
-		return nil, err
-	}
-	url := addr + "/latest/volumes/"
-	client := &http.Client{
-		Timeout: timeout,
-	}
-	resp, err := client.Get(url)
-	if resp != nil {
-		if resp.StatusCode == 500 {
-			fmt.Println("Volume not found at M_API server")
-			return nil, err
-		} else if resp.StatusCode == 503 {
-			fmt.Println("M_API server not reachable")
-			return nil, err
-		}
-	} else {
-		fmt.Println("M_API server not reachable")
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(body), err
-
-	//	return json.NewDecoder(resp.Body).Decode(obj), nil
-	//	return resp.Body, nil
-}
-
-func Parser(body []byte, obj interface{}) error {
-	err := json.Unmarshal(body, &obj)
-	if err != nil {
-		fmt.Println("Error", err)
-	}
-	return err
 }

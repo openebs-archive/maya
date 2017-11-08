@@ -1,11 +1,11 @@
 package command
 
 import (
-	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
+
+	"github.com/openebs/maya/pkg/client/mapiserver"
 )
 
 // VsmStopCommand is a command implementation struct
@@ -47,10 +47,11 @@ func (c *VsmStopCommand) Run(args []string) int {
 
 	addr := os.Getenv("KUBERNETES_SERVICE_HOST")
 	if addr != "" {
-		err := DeleteVsm(c.volname)
+		err := mapiserver.DeleteVolume(c.volname)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error while deleting Volume: %s", err))
 		}
+		fmt.Println("Initiated Volume-Delete request for volume:", string(c.volname))
 		return 0
 	}
 
@@ -149,39 +150,4 @@ func (c *VsmStopCommand) Run(args []string) int {
 	// Start monitoring the stop eval
 	mon := newMonitor(c.Ui, client, length)
 	return mon.monitor(evalID, false)
-}
-
-// DeleteVsm to get delete Volume through a API call to m-apiserver
-func DeleteVsm(vname string) error {
-
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		fmt.Println("Error getting maya-api-server IP Address: %v", err)
-		return err
-	}
-	url := addr + "/latest/volumes/delete/" + vname
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		fmt.Println("http.NewRequest() error: : %v", err)
-		return err
-	}
-	c := &http.Client{
-		Timeout: timeout,
-	}
-	resp, err := c.Do(req)
-	if err != nil {
-		fmt.Println("http.Do() error: : %v", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	code := resp.StatusCode
-	if code != http.StatusOK {
-		fmt.Println("Status error: %v\n", http.StatusText(code))
-		return err
-	}
-	fmt.Println("Initiated Volume-Delete request for volume:", string(vname))
-	return nil
 }
