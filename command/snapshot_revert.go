@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/openebs/maya/pkg/client/jiva"
 )
 
 // SnapshotRevertCommand struct for reverting snapshot of a Volume
@@ -63,21 +65,20 @@ func (c *ControllerClient) RevertSnapshot(volname string, snapshot string) error
 		fmt.Println("Volume not reachable")
 		return err
 	}
-	controller, err := NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := client.NewControllerClient(annotations.ControllerIP + ":9501")
 
 	if err != nil {
 		return err
 	}
 
-	//var c *ControllerClient
-	volume, err := GetVolume(controller.Address)
+	volume, err := client.GetVolume(controller.Address)
 	if err != nil {
 		return err
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=revert"
 
-	return c.post(url, RevertInput{
+	return controller.Post(url, client.RevertInput{
 		Name: snapshot,
 	}, nil)
 }

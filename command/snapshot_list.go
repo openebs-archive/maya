@@ -1,12 +1,11 @@
 package command
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"strings"
+
+	"github.com/openebs/maya/pkg/client/jiva"
 )
 
 type SnapshotListCommand struct {
@@ -53,7 +52,7 @@ func ListSnapshot(name string) error {
 
 		return err
 	}
-	controller, err := NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := client.NewControllerClient(annotations.ControllerIP + ":9501")
 
 	if err != nil {
 		return err
@@ -135,16 +134,8 @@ func ListSnapshot(name string) error {
 	return nil
 }
 
-func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
-	var resp ReplicaCollection
-
-	err := c.get(path+"/replicas", &resp)
-
-	return resp.Data, err
-}
-
 func getChain(address string) ([]string, error) {
-	repClient, err := NewReplicaClient(address)
+	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -156,8 +147,8 @@ func getChain(address string) ([]string, error) {
 
 	return r.Chain, err
 }
-func getData(address string) (map[string]DiskInfo, error) {
-	repClient, err := NewReplicaClient(address)
+func getData(address string) (map[string]client.DiskInfo, error) {
+	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -169,57 +160,4 @@ func getData(address string) (map[string]DiskInfo, error) {
 
 	return r.Disks, err
 
-}
-
-func (c *ReplicaClient) GetReplica() (InfoReplica, error) {
-	var replica InfoReplica
-
-	err := c.get(c.Address+"/replicas/1", &replica)
-
-	return replica, err
-}
-
-func (c *ReplicaClient) get(url string, obj interface{}) error {
-	if !strings.HasPrefix(url, "http") {
-		url = c.Address + url
-	}
-
-	resp, err := c.httpClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(obj)
-}
-
-func (c *ReplicaClient) post(path string, req, resp interface{}) error {
-	b, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	bodyType := "application/json"
-	url := path
-
-	if !strings.HasPrefix(url, "http") {
-		url = c.Address + path
-	}
-
-	httpResp, err := c.httpClient.Post(url, bodyType, bytes.NewBuffer(b))
-	if err != nil {
-		return err
-	}
-	defer httpResp.Body.Close()
-
-	if httpResp.StatusCode >= 300 {
-		content, _ := ioutil.ReadAll(httpResp.Body)
-		return fmt.Errorf("Bad response: %d %s: %s", httpResp.StatusCode, httpResp.Status, content)
-	}
-
-	if resp == nil {
-		return nil
-	}
-
-	return json.NewDecoder(httpResp.Body).Decode(resp)
 }

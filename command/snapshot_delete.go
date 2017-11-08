@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/openebs/maya/pkg/client/jiva"
+	//	"github.com/rancher/go-rancher/client"
 )
 
 type SnapshotDeleteCommand struct {
@@ -22,7 +25,7 @@ type SnapshotDeleteCommand struct {
 
 func (s *SnapshotDeleteCommand) Help() string {
 	helpText := `
-	Usage: maya snapshot delete -volname <vol> 
+	Usage: maya snapshot delete -volname <vol>
 
 	This command will delete all snapshots of a Volume.
 
@@ -61,7 +64,7 @@ func (s *SnapshotDeleteCommand) DeleteSnapshot(volume string, snapshot string) e
 
 		return err
 	}
-	controller, err := NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := client.NewControllerClient(annotations.ControllerIP + ":9501")
 
 	if err != nil {
 		return err
@@ -89,8 +92,8 @@ func (s *SnapshotDeleteCommand) DeleteSnapshot(volume string, snapshot string) e
 	return nil
 }
 
-func (s *SnapshotDeleteCommand) isRebuilding(replicaInController *Replica) (bool, error) {
-	repClient, err := NewReplicaClient(replicaInController.Address)
+func (s *SnapshotDeleteCommand) isRebuilding(replicaInController *client.Replica) (bool, error) {
+	repClient, err := client.NewReplicaClient(replicaInController.Address)
 	if err != nil {
 		return false, err
 	}
@@ -103,12 +106,12 @@ func (s *SnapshotDeleteCommand) isRebuilding(replicaInController *Replica) (bool
 	return replica.Rebuilding, nil
 }
 
-func (s *SnapshotDeleteCommand) markSnapshotAsRemoved(replicaInController *Replica, snapshot string) error {
+func (s *SnapshotDeleteCommand) markSnapshotAsRemoved(replicaInController *client.Replica, snapshot string) error {
 	if replicaInController.Mode != "RW" {
 		return fmt.Errorf("Can only mark snapshot as removed from replica in mode RW, got %s", replicaInController.Mode)
 	}
 
-	repClient, err := NewReplicaClient(replicaInController.Address)
+	repClient, err := client.NewReplicaClient(replicaInController.Address)
 	if err != nil {
 		return err
 	}
@@ -118,18 +121,4 @@ func (s *SnapshotDeleteCommand) markSnapshotAsRemoved(replicaInController *Repli
 	}
 
 	return nil
-}
-
-func (c *ReplicaClient) MarkDiskAsRemoved(disk string) error {
-
-	_, err := c.GetReplica()
-	if err != nil {
-		return err
-	}
-	//url := "/replicas/1?action=markdiskasremoved"
-	url := "/replicas/1?action=removedisk"
-
-	return c.post(url, &MarkDiskAsRemovedInput{
-		Name: disk,
-	}, nil)
 }

@@ -1,16 +1,14 @@
 package command
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"regexp"
 	"strings"
+
+	//"github.com/rancher/go-rancher/client"
+	"github.com/openebs/maya/pkg/client/jiva"
 )
 
 var (
@@ -120,25 +118,25 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 		fmt.Println("Volume not reachable")
 		return "", err
 	}
-	controller, err := NewControllerClient(annotations.ControllerIP + ":9501")
+	controller, err := client.NewControllerClient(annotations.ControllerIP + ":9501")
 
 	if err != nil {
 		return "", err
 	}
 
-	volume, err := GetVolume(controller.Address)
+	volume, err := client.GetVolume(controller.Address)
 	if err != nil {
 		return "", err
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
 
-	input := SnapshotInput{
+	input := client.SnapshotInput{
 		Name:   snapname,
 		Labels: labels,
 	}
-	output := SnapshotOutput{}
-	err = controller.post(url, input, &output)
+	output := client.SnapshotOutput{}
+	err = controller.Post(url, input, &output)
 	if err != nil {
 		return "", err
 	}
@@ -146,85 +144,8 @@ func Snapshot(volname string, snapname string, labels map[string]string) (string
 	return output.Id, err
 }
 
-func (c *ControllerClient) post(path string, req, resp interface{}) error {
-	return c.do("POST", path, req, resp)
-}
-
-func (c *ControllerClient) do(method, path string, req, resp interface{}) error {
-	b, err := json.Marshal(req)
-	if err != nil {
-		return err
-	}
-
-	bodyType := "application/json"
-	url := path
-	if !strings.HasPrefix(url, "http") {
-		url = c.Address + path
-
-	}
-
-	httpReq, err := http.NewRequest(method, url, bytes.NewBuffer(b))
-	if err != nil {
-		return err
-	}
-	httpReq.Header.Set("Content-Type", bodyType)
-
-	httpResp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return err
-	}
-	defer httpResp.Body.Close()
-
-	if httpResp.StatusCode >= 300 {
-		content, _ := ioutil.ReadAll(httpResp.Body)
-		return fmt.Errorf("Bad response: %d %s: %s", httpResp.StatusCode, httpResp.Status, content)
-	}
-
-	if resp == nil {
-		return nil
-	}
-	return json.NewDecoder(httpResp.Body).Decode(resp)
-}
-
-func GetVolume(path string) (*Volumes, error) {
-	var volume VolumeCollection
-	var c ControllerClient
-
-	err := c.get(path+"/volumes", &volume)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(volume.Data) == 0 {
-		return nil, errors.New("No volume found")
-	}
-
-	return &volume.Data[0], nil
-}
-func (c *ControllerClient) get(path string, obj interface{}) error {
-	//	resp, err := http.Get(c.address + path)
-	resp, err := http.Get(path)
-
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(obj)
-}
-
-/*func Snapshot(name string, userCreated bool, created string, labels map[string]string) error {
-	fmt.Println("Snapshot: %s %s UserCreated %v Created at %v, Labels %v",
-	r.name, name, userCreated, created, labels)
-	return r.doAction("snapshot",
-	&map[string]interface{}{
-		"name":        name,
-		"usercreated": userCreated,
-		"created":     created,
-		"labels":      labels,
-	})
-}*/
-
+// ParseLabels helper to parse array string and return a
+// map[string]string key:value pair
 func ParseLabels(labels []string) (map[string]string, error) {
 	result := map[string]string{}
 	for _, label := range labels {

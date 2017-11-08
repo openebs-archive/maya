@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/openebs/maya/command"
+	"github.com/openebs/maya/pkg/client/jiva"
 )
 
 /*var (
@@ -19,8 +20,8 @@ import (
 // Snapshot will create the snapshot of a given volume name 'volname' with name of
 // snapshot 'snapname'. If there is no name provided for snapshot, an auto genrated
 // string will be genrated for this.
-func Snapshot(snapname string, controllerIP string, labels map[string]string) (command.SnapshotOutput, error) {
-	output := command.SnapshotOutput{}
+func Snapshot(snapname string, controllerIP string, labels map[string]string) (client.SnapshotOutput, error) {
+	output := client.SnapshotOutput{}
 	var c ControllerClient
 
 	controller, err := command.NewControllerClient(controllerIP + ":9501")
@@ -29,14 +30,14 @@ func Snapshot(snapname string, controllerIP string, labels map[string]string) (c
 		return output, err
 	}
 
-	volume, err := command.GetVolume(controller.Address)
+	volume, err := client.GetVolume(controller.Address)
 	if err != nil {
 		return output, err
 	}
 
 	url := controller.Address + "/volumes/" + volume.Id + "?action=snapshot"
 
-	input := command.SnapshotInput{
+	input := client.SnapshotInput{
 		Name:   snapname,
 		Labels: labels,
 	}
