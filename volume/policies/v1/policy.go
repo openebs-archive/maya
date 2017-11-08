@@ -61,8 +61,9 @@ func VolumeAddPolicy() (*Policy, error) {
 }
 
 // VolumeDeletePolicy provides a policy instance that enforces
-// policies during volume deletion
-func VolumeDeletePolicy() (*Policy, error) {
+// policies during some of the volume operations other than
+// provisioning
+func VolumeGenericPolicy() (*Policy, error) {
 	// these are the set of policies that will
 	// be enforced
 	policies := []PolicyInterface{
