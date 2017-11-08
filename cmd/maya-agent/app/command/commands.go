@@ -1,4 +1,4 @@
-package app
+package command
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-agent/app/exporter"
-	"github.com/openebs/maya/cmd/maya-agent/storage/block"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -67,7 +66,8 @@ func NewMayaAgent() (*cobra.Command, error) {
 	cmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	goflag.CommandLine.Parse([]string{})
 	cmd.AddCommand(
-		block.NewCmdBlockDevice(), //Add new command on block device
+		NewCmdBlockDevice(), //Add new command on block device
+		NewCmdIscsi(),       //Add new command for iscsi operations
 		exporter.NewCmdVolumeExporter(),
 	)
 	// Define the flags allowed in this command & store each option provided
