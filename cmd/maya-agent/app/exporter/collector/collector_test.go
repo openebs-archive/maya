@@ -164,6 +164,13 @@ func TestCollector(t *testing.T) {
 					t.Errorf("failed matching: %q", re)
 				}
 			}
+
+			for _, re := range tt.unmatch {
+				if !re.Match(buf) {
+					t.Errorf("failed unmatching: %q", re)
+				}
+			}
+
 		}()
 	}
 }
