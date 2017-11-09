@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
+	policies_v1 "github.com/openebs/maya/volume/policies/v1"
 	"github.com/openebs/maya/volume/provisioners"
 )
 
@@ -62,8 +63,19 @@ func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (in
 	// Create a Volume
 	vol := &v1.Volume{}
 
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeGenericPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +118,19 @@ func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, vol
 	vol := &v1.Volume{}
 	vol.Name = volName
 
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeGenericPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +175,19 @@ func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, v
 	vol := &v1.Volume{}
 	vol.Name = volName
 
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeGenericPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get the persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -193,10 +227,10 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 
 	glog.Infof("Processing Volume add request")
 
-	vol := v1.Volume{}
+	vol := &v1.Volume{}
 
 	// The yaml/json spec is decoded to vol struct
-	if err := decodeBody(req, &vol); err != nil {
+	if err := decodeBody(req, vol); err != nil {
 		return nil, CodedError(400, err.Error())
 	}
 
@@ -205,14 +239,25 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", vol))
 	}
 
+	// Pass through the policy enforcement logic
+	policy, err := policies_v1.VolumeAddPolicy()
+	if err != nil {
+		return nil, err
+	}
+
+	vol, err = policy.Enforce(vol)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get persistent volume provisioner instance
-	pvp, err := provisioners.GetVolumeProvisioner(vol.Labels)
+	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set the volume provisioner profile to provisioner
-	_, err = pvp.Profile(&vol)
+	_, err = pvp.Profile(vol)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +269,7 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 
 	// TODO
 	// vol should not be passed again !!
-	details, err := adder.Add(&vol)
+	details, err := adder.Add(vol)
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-package nomad
+package v1
 
 import (
 	"github.com/golang/glog"

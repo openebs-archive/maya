@@ -1,4 +1,4 @@
-package nomad
+package v1
 
 import (
 	"fmt"
@@ -37,15 +37,15 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 		return nil, fmt.Errorf("Volume name is missing")
 	}
 
-	jivaFEVolSize := v1.GetPVPStorageSize(vol.Labels)
+	jivaFEVolSize := vol.Capacity
 	jivaBEVolSize := jivaFEVolSize
 
 	// TODO
 	// ID is same as Name currently
 	// Do we need to think on it ?
 	jobName := helper.StringToPtr(vol.Name)
-	region := helper.StringToPtr(v1.GetOrchestratorRegion(vol.Labels))
-	dc := v1.GetOrchestratorDC(vol.Labels)
+	region := helper.StringToPtr(v1.GetOrchestratorRegion(nil))
+	dc := v1.GetOrchestratorDC(nil)
 
 	jivaGroupName := "jiva-pod"
 	jivaVolName := vol.Name
@@ -58,29 +58,29 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 	feTaskName := "fe"
 	beTaskName := "be"
 
-	jivaFeVersion := v1.GetControllerImage(vol.Labels)
-	jivaNetworkType := v1.GetOrchestratorNetworkType(vol.Labels)
+	jivaFeVersion := v1.GetControllerImage(nil)
+	jivaNetworkType := v1.GetOrchestratorNetworkType(nil)
 
-	jivaBEPersistentStor := v1.GetPVPPersistentPathOnly(vol.Labels)
+	jivaBEPersistentStor := v1.GetPVPPersistentPathOnly(nil)
 
-	iJivaBECount, err := v1.GetPVPReplicaCountInt(vol.Labels)
+	iJivaBECount, err := v1.GetPVPReplicaCountInt(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	jivaFeIPs, jivaBeIPs, err := v1.GetPVPVSMIPs(vol.Labels)
+	jivaFeIPs, jivaBeIPs, err := v1.GetPVPVSMIPs(nil)
 	if err != nil {
 		return nil, err
 	}
 
 	jivaFeIPArr := strings.Split(jivaFeIPs, ",")
 	jivaBeIPArr := strings.Split(jivaBeIPs, ",")
-	jivaFeSubnet, err := v1.GetOrchestratorNetworkSubnet(vol.Labels)
+	jivaFeSubnet, err := v1.GetOrchestratorNetworkSubnet(nil)
 	if err != nil {
 		return nil, err
 	}
 
-	jivaFeInterface := v1.GetOrchestratorNetworkInterface(vol.Labels)
+	jivaFeInterface := v1.GetOrchestratorNetworkInterface(nil)
 
 	// Meta information will be used to:
 	//    1. Persist metadata w.r.t this job

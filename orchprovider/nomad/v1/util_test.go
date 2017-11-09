@@ -1,4 +1,4 @@
-package nomad
+package v1
 
 // Test the creation of NomadConfig struct
 // Test if nomadUtil adheres to NomadClients, NomadNetworks & NomadUtilInterface
