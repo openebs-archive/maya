@@ -102,7 +102,6 @@ func GetVolume(path string) (*Volumes, error) {
 	return &volume.Data[0], nil
 }
 func (c *ControllerClient) Get(path string, obj interface{}) error {
-	//	resp, err := http.Get(c.address + path)
 	resp, err := http.Get(path)
 
 	if err != nil {
