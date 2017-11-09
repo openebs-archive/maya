@@ -7,12 +7,12 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/openebs/maya/command"
+	client "github.com/openebs/maya/pkg/client/jiva"
 )
 
 // SnapshotList to list the created snapshot for given volume
-func SnapshotList(name string, controllerIP string) (map[string]command.DiskInfo, error) {
-	controller, err := command.NewControllerClient(controllerIP + ":9501")
+func SnapshotList(name string, controllerIP string) (map[string]client.DiskInfo, error) {
+	controller, err := client.NewControllerClient(controllerIP + ":9501")
 
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 
 // getChain contains the linked info related to replicas
 func getChain(address string) ([]string, error) {
-	repClient, err := command.NewReplicaClient(address)
+	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,8 @@ func getChain(address string) ([]string, error) {
 }
 
 // getData to get the linked Diskinfo related to replicas
-func getData(address string) (map[string]command.DiskInfo, error) {
-	repClient, err := command.NewReplicaClient(address)
+func getData(address string) (map[string]client.DiskInfo, error) {
+	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
 		return nil, err
 	}

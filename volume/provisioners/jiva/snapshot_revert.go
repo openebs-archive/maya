@@ -1,8 +1,6 @@
 package jiva
 
-import (
-	"github.com/openebs/maya/command"
-)
+import client "github.com/openebs/maya/pkg/client/jiva"
 
 // SnapshotRevert will be responsible for reverting to a
 // particular snapshot. If there is more then one snapshot has been
@@ -10,14 +8,14 @@ import (
 // snaphot for that particular volume.
 func SnapshotRevert(snapshot string, controllerIP string) error {
 
-	controller, err := command.NewControllerClient(controllerIP + ":9501")
+	controller, err := client.NewControllerClient(controllerIP + ":9501")
 
 	if err != nil {
 		return err
 	}
 
 	//var c *ControllerClient
-	volume, err := command.GetVolume(controller.Address)
+	volume, err := client.GetVolume(controller.Address)
 	if err != nil {
 		return err
 	}
