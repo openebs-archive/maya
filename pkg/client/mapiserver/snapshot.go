@@ -167,6 +167,9 @@ func ListSnapshot(volName string) error {
 		return fmt.Errorf("Status error: %v", http.StatusText(code))
 	}
 	snapdisk, err := getInfo([]byte(body))
+	if err != nil {
+		fmt.Println("Failed to get the snapshot data", err)
+	}
 	/*out := make([]string, len(snapdisk)+1)
 
 	out[0] = "Name|Created At|Size"
@@ -193,7 +196,7 @@ func getInfo(body []byte) (*map[string]client.DiskInfo, error) {
 	var s = new(map[string]client.DiskInfo)
 	err := json.Unmarshal(body, &s)
 	if err != nil {
-		fmt.Println("whoops:", err)
+		fmt.Println("Unmarshling Error:", err)
 		return nil, err
 	}
 
