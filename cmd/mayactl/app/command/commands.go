@@ -17,6 +17,7 @@ package command
 import (
 	"flag"
 
+	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/spf13/cobra"
 )
 
@@ -31,6 +32,7 @@ func NewMayaCommand() *cobra.Command {
 	cmd.AddCommand(
 		NewCmdVersion(),
 		NewCmdVolume(),
+		snapshot.NewCmdSnapshot(),
 	)
 
 	// add the glog flags

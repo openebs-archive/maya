@@ -277,7 +277,17 @@ type VolumeAPISpec struct {
 	} `yaml:"metadata"`
 }
 
-// -------------Snapshot Structs ----------
+// SnapshotAPISpec hsolds the config for creating asnapshot of volume
+type SnapshotAPISpec struct {
+	Kind       string `yaml:"kind"`
+	APIVersion string `yaml:"apiVersion"`
+	Metadata   struct {
+		Name string `yaml:"name"`
+	} `yaml:"metadata"`
+	Spec struct {
+		VolumeName string `yaml:"volumeName"`
+	} `yaml:"spec"`
+}
 
 // VolumeSnapshot is volume snapshot object accessible to the user. Upon successful creation of the actual
 // snapshot by the volume provider it is bound to the corresponding VolumeSnapshotData through
