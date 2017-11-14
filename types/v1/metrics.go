@@ -16,10 +16,12 @@ type VolumeMetrics struct {
 	TotalWriteTime       string `json:"TotalWriteTime"`
 	TotalWriteBlockCount string `json:"TotatWriteBlockCount"`
 
-	UsedLogicalBlocks string `json:"UsedLogicalBlocks"`
-	UsedBlocks        string `json:"UsedBlocks"`
-	SectorSize        string `json:"SectorSize"`
-	Size              string `json:Size`
+	UsedLogicalBlocks string  `json:"UsedLogicalBlocks"`
+	UsedBlocks        string  `json:"UsedBlocks"`
+	SectorSize        string  `json:"SectorSize"`
+	Size              string  `json:"Size"`
+	UpTime            float64 `json:"UpTime"`
+	Name              string  `json:"Name"`
 }
 
 type Resource struct {

@@ -108,25 +108,7 @@ func TestCollector(t *testing.T) {
 	} {
 		func() {
 			// response is the response expected from the test server.
-			var response = `{"ReadIOPS":"1",
-			"ReplicaCounter":6,
-			"RevisionCounter":100,
-			"SCSIIOCount":null,
-			"SectorSize":"4096",
-			"Size":"5G",
-		    "TotalReadBlockCount":"10",
-		    "TotalReadTime":"10",
-		    "TotalWriteTime":"15",
-		    "TotatWriteBlockCount":"10",
-		    "UsedBlocks":"1048576",
-		    "UsedLogicalBlocks":"1048576",
-		    "WriteIOPS":"15",
-		    "actions":{},
-		    "links":{
-			  "self":"http://localhost:9501/v1/stats"
-		    },
-		    "type":"stats"
-    }`
+			var response = `{"Name":"vol","ReadIOPS":"1","ReplicaCounter":6,"RevisionCounter":100,"SCSIIOCount":null,"SectorSize":"4096","Size":"5G","TotalReadBlockCount":"10","TotalReadTime":"10","TotalWriteTime":"15","TotatWriteBlockCount":"10","UpTime":10,"UsedBlocks":"1048576","UsedLogicalBlocks":"1048576","WriteIOPS":"15","actions":{},"links":{"self":"http://localhost:9501/v1/stats"},"type":"stats"}`
 			// This is dummy server which gives response in json format and it
 			// is used to map the response with the fields of struct VolumeMetrics.
 			controller := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

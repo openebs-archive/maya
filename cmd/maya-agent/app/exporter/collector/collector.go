@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openebs/maya/types/v1"
@@ -111,6 +112,14 @@ var (
 		Name:      "size_of_volume",
 		Help:      "Size of the volume requested",
 	})
+
+	volumeUpTime = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: "OpenEBS",
+		Name:      "volume_uptime",
+		Help:      "Time since volume has registered",
+	},
+		[]string{"volName", "iqn", "portal"},
+	)
 )
 
 // Collector is the interface implemented by anything that can be used by
@@ -159,6 +168,7 @@ func (e *VolumeExporter) Describe(ch chan<- *prometheus.Desc) {
 	avgReadBlockCountPS.Describe(ch)
 	avgWriteBlockCountPS.Describe(ch)
 	sizeOfVolume.Describe(ch)
+	volumeUpTime.Describe(ch)
 }
 
 // Collect is called by the Prometheus registry when collecting
@@ -192,6 +202,7 @@ func (e *VolumeExporter) Collect(ch chan<- prometheus.Metric) {
 	avgReadBlockCountPS.Collect(ch)
 	avgWriteBlockCountPS.Collect(ch)
 	sizeOfVolume.Collect(ch)
+	volumeUpTime.Collect(ch)
 }
 
 // getVolumeStats is used to decode the response from the Jiva controller
@@ -303,7 +314,11 @@ func (e *VolumeExporter) collect() error {
 	aSize, _ := v1.DivideFloat64(aUsed, v1.BytesToGB)
 	actualUsed.Set(aSize)
 	size, _ := strconv.ParseInt(metrics1.Size, 10, 64)
+	size, _ = v1.DivideInt64(size, v1.BytesToGB)
 	sizeOfVolume.Set(float64(size))
-
+	url := e.VolumeControllerURL
+	url = strings.TrimSuffix(url, ":9501/v1/stats")
+	url = strings.TrimPrefix(url, "http://")
+	volumeUpTime.WithLabelValues(metrics1.Name, "iqn.2016-09.com.openebs.jiva:"+metrics1.Name, url).Set(metrics1.UpTime)
 	return nil
 }
