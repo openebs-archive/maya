@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package OpenEBS;
+
+service Cstor {
+  rpc ExecuteCmd (Request) returns (CmdOutput) {}
+  rpc List (Request) returns (CmdOutput) {}
+  rpc Create (Request) returns (CmdOutput) {}
+  rpc Destroy (Request) returns (CmdOutput) {}
+  rpc Rollback (Request) returns (CmdOutput) {}
+  rpc Get (Request) returns (CmdOutput) {}
+  rpc Set (Request) returns (CmdOutput) {}
+  rpc Dump (Request) returns (CmdOutput) {}
+  rpc Stats (Request) returns (CmdOutput) {}
+  rpc IOStats (Request) returns (stream CmdOutput) {}
+  rpc Send (Request) returns (stream CmdOutput) {}
+}
+
+message CmdOutput {
+  string output = 1;
+}
+
+message Request {  //TODO Decide message name
+	Cmd cmd = 1;
+	string Name = 2;
+	string Pool = 3;
+	string Volume = 4;
+	string RemoteCstor = 5;
+	string RemoteUser = 6;
+	string RemotePass = 7;
+	string RemoteVolume = 8;
+	string RemotePool = 9;
+	string Interval = 10;
+	oneof subcmdType {
+		ZfsSubCmd zfssubcmd = 11;
+		ZpoolSubCmd zpoolsubcmd = 12;
+	}
+	oneof argsType {
+		ZfsArgs zfsargs = 13;
+		ZpoolArgs zpoolargs = 14;
+	}
+}
+
+enum Cmd {
+	POOL = 0;
+	VOLUME = 1;
+	SNAPSHOT = 2;
+}
+
+enum ZfsSubCmd {
+	ZFS_LIST = 0;
+	ZFS_CREATE = 1;
+	ZFS_DESTROY = 2;
+	ZFS_SNAPSHOT = 3;
+	ZFS_ROLLBACK = 4;
+}
+
+enum ZpoolSubCmd {
+	ZPOOL_CREATE = 0; 
+	ZPOOL_DESTROY = 1;
+	ZPOOL_ADD = 2;
+	ZPOOL_REMOVE = 3;
+	ZPOOL_LABELCLEAR = 4;
+	ZPOOL_LIST = 5;
+	ZPOOL_IOSTAT = 6; 
+	ZPOOL_STATUS = 7;
+	ZPOOL_ONLINE = 8;
+	ZPOOL_OFFLINE = 9;
+	ZPOOL_CLEAR = 10;
+}
+
+message ZfsArgs {
+	string compression = 1;
+	string logbias = 2;
+	string copies = 3;
+	string sync = 4;
+	string readonly = 5;
+	string size = 6;
+	string parent = 7;
+	string name = 8;
+	string volblocksize = 9;
+}
+
+message ZpoolArgs {
+	string name = 1;
+	string cachefile = 2;
+	string poolType = 3;
+	string diskpaths = 4;
+}

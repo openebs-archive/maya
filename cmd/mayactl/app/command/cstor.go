@@ -22,19 +22,17 @@ import (
 )
 
 // NewCommand creates the `maya` command and its nested children.
-func NewMayaCommand() *cobra.Command {
+func NewCstorCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "maya",
-		Short: "Maya means 'Magic'a tool for storage orchestration",
-		Long:  `Maya means 'Magic' a tool for storage orchestration`,
+		Use:   "cstor",
+		Short: "cstor cli command",
+		Long:  ``,
 	}
 
 	cmd.AddCommand(
-		cstor.NewCstorCmd(),
-//		cstor.NewVolumeCmd(),
-//		cstor.NewSnapshotCmd(),
-		NewCmdVersion(),
-		NewCmdVolume(),
+		cstor.NewPoolCmd(),
+		cstor.NewVolumeCmd(),
+		cstor.NewSnapshotCmd(),
 	)
 
 	// add the glog flags
