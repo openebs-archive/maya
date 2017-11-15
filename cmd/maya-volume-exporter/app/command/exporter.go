@@ -2,14 +2,14 @@
 // metrics at "/metrics" endpoint. It collect metrics from collector.go
 // You have to instantiates NewExporter by calling collector.NewExporter
 // method and pass the Jiva volume controller IP.
-package exporter
+package command
 
 import (
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/openebs/maya/cmd/maya-agent/app/exporter/collector"
+	"github.com/openebs/maya/cmd/maya-volume-exporter/app/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

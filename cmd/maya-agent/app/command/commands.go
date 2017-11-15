@@ -6,7 +6,6 @@ import (
 	goflag "flag"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/maya-agent/app/exporter"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -68,7 +67,6 @@ func NewMayaAgent() (*cobra.Command, error) {
 	cmd.AddCommand(
 		NewCmdBlockDevice(), //Add new command on block device
 		NewCmdIscsi(),       //Add new command for iscsi operations
-		exporter.NewCmdVolumeExporter(),
 	)
 	// Define the flags allowed in this command & store each option provided
 	// as a flag, into the MayaAgentOptions
