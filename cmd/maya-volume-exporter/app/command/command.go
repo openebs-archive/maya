@@ -49,7 +49,7 @@ func NewCmdVolumeExporter() (*cobra.Command, error) {
 		Long: `  maya-volume-exporter monitors openebs volumes and exporter the metrics.
   It starts collecting metrics from the jiva volume controller at the endpoint
   "/v1/stats" Prometheus Server can collect the metrics from maya-volume-exporter.`,
-		Example: `  maya-agent -a=http://localhost:8001 -c=:9500 -m=/metrics`,
+		Example: `  maya-volume-exporter -a=http://localhost:8001 -c=:9500 -m=/metrics`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(Run(cmd, &options), util.Fatal)
 		},
