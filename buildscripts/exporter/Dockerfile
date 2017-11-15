@@ -9,7 +9,7 @@ RUN apk add --no-cache \
      libc6-compat
 
 ARG BUILD_DATE
-LABEL org.label-schema.name="m-agent"
+LABEL org.label-schema.name="m-exporter"
 LABEL org.label-schema.description="OpenEBS Volume Exporter"
 LABEL org.label-schema.url="http://www.openebs.io/"
 LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
