@@ -21,8 +21,6 @@ Maya - *Storage Orchestration* functionality is delivered through a set of servi
 
 - **Node/Host Components** - are the services and tools that run on each of the nodes or docker hosts. In case of Kubernetes, these components are deployed as DaemonSets. The functionality of these components is local to the node like, Storage Agents (maya-agent) managing the disks attached to the hosts and helping in carving out the required disks to different OpenEBS Volumes. The agent can interact with Cluster components and vice-versa. 
 
-Maya makes the storage infrastructure programmable via the yaml files. 
-
 ## To start using Maya
 
 Please refer to our documentation at [OpenEBS Documentation](http://openebs.readthedocs.io/en/latest/)
