@@ -11,8 +11,10 @@ import (
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
-	k8sApiV1 "k8s.io/client-go/pkg/api/v1"
-	k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	//k8sApiV1 "k8s.io/client-go/pkg/api/v1"
+	//k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	k8sApiV1 "k8s.io/api/core/v1"
+	k8sApisExtnsBeta1 "k8s.io/api/extensions/v1beta1"
 
 	"k8s.io/client-go/rest"
 )

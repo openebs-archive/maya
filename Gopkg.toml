@@ -20,7 +20,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com/emicklei/go-restful/swagger"]
+ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com/emicklei/go-restful/swagger","k8s.io/client-go/pkg/api/v1"]
 
 [[constraint]]
   name = "github.com/dustin/go-humanize"
@@ -52,8 +52,8 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
   name = "github.com/onsi/gomega"
   version = "1.2.0"
 
-[[constraint]]
-  name = "github.com/rancher/go-rancher"
+#[[constraint]]
+#  name = "github.com/rancher/go-rancher"
 
 [[constraint]]
   name = "github.com/ryanuber/columnize"
@@ -72,8 +72,13 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
   name = "gopkg.in/yaml.v2"
 
 [[constraint]]
+  name = "k8s.io/api"
+  branch = "release-1.8"
+
+[[constraint]]
   name = "k8s.io/apimachinery"
+  branch = "release-1.8"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "4.0.0-beta.0"
+  version = "5.0.0"
