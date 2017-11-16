@@ -249,7 +249,7 @@ func DefaultVolumeProvisionerName() VolumeProvisionerRegistry {
 	return DefaultVolumeProvisioner
 }
 
-// GetOrchestratorRegion gets the not nil name of orchestrator
+// GetOrchestratorName gets the not nil name of orchestrator
 func GetOrchestratorName(profileMap map[string]string) OrchProviderRegistry {
 	val := OrchestratorName(profileMap)
 	if val == "" {
@@ -335,6 +335,8 @@ func OrchestratorAddress(profileMap map[string]string) string {
 	return val
 }
 
+// DefaultOrchestratorAddress gets the coded default address of orchestration
+// provider.
 func DefaultOrchestratorAddress() string {
 	return string(OrchAddressDef)
 }
@@ -976,7 +978,8 @@ func Replicas(rcount int) *int32 {
 	return &o
 }
 
-//
+// MakeOrDefJivaControllerArgs will set the placeholders in jiva controller args with
+// their appropriate runtime values.
 func MakeOrDefJivaControllerArgs(vsm string, clusterIP string) []string {
 	if strings.TrimSpace(vsm) == "" || strings.TrimSpace(clusterIP) == "" {
 		return nil
@@ -1026,7 +1029,7 @@ func DefaultJivaReplicaPort3() int32 {
 	return int32(p)
 }
 
-//
+// SanitiseVSMName trim the controller or replica suffix
 func SanitiseVSMName(vsm string) string {
 	// Trim the controller suffix if controller based
 	v := strings.TrimSuffix(vsm, string(ControllerSuffix))
