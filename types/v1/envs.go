@@ -69,6 +69,12 @@ const (
 	// JivaControllerImageENVK is the ENV key to fetch jiva controller
 	// image
 	JivaControllerImageENVK ENVKey = "OPENEBS_IO_JIVA_CONTROLLER_IMAGE"
+
+	// StoragePoolENVK is the ENV key to fetch storage pool
+	StoragePoolENVK ENVKey = "OPENEBS_IO_STORAGE_POOL"
+
+	// HostPathENVK is the ENV key to fetch host path
+	HostPathENVK ENVKey = "OPENEBS_IO_HOST_PATH"
 )
 
 // VolumeTypeENV will fetch the value of volume type
@@ -122,6 +128,16 @@ func JivaControllersENV() *int32 {
 
 func JivaControllerImageENV() string {
 	val := getEnv(JivaControllerImageENVK)
+	return val
+}
+
+func StoragePoolENV() string {
+	val := getEnv(StoragePoolENVK)
+	return val
+}
+
+func HostPathENV() string {
+	val := getEnv(HostPathENVK)
 	return val
 }
 

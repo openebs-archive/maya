@@ -13,6 +13,8 @@ import (
 	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	//k8sApiV1 "k8s.io/client-go/pkg/api/v1"
 	//k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	"github.com/openebs/maya/pkg/client/clientset/versioned"
+	oe_client_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
 	k8sApiV1 "k8s.io/api/core/v1"
 	k8sApisExtnsBeta1 "k8s.io/api/extensions/v1beta1"
 
@@ -61,6 +63,10 @@ type K8sClient interface {
 
 	// DeploymentOps provides all the CRUD operations associated w.r.t a Deployment
 	DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error)
+
+	// PVCOps provides a PVCInterface that exposes various CRUD operations
+	// w.r.t PVC
+	PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error)
 }
 
 // K8sClientV2 is an abstraction to operate on various k8s entities.
@@ -75,6 +81,17 @@ type K8sClientV2 interface {
 	// StorageClassOps provides all the CRUD & more operations associated
 	// w.r.t a StorageClass
 	StorageClassOps() (storagev1.StorageClassInterface, error)
+
+	// PVCOps provides all the CRUD & more operations associated
+	// w.r.t a Persistent Volume Claim
+	PVCOps2() (k8sCoreV1.PersistentVolumeClaimInterface, error)
+
+	// StoragePoolOps provides all the CRUD & more operations associated
+	// w.r.t a StoragePool
+	//
+	// NOTE:
+	//  StoragePool is a K8s CRD resource
+	StoragePoolOps() (oe_client_v1alpha1.StoragePoolInterface, error)
 }
 
 // k8sUtil provides the concrete implementation for below interfaces:
@@ -96,6 +113,10 @@ type k8sUtil struct {
 	// outside of current K8s cluster i.e. where this binary is
 	// running
 	outCS *kubernetes.Clientset
+
+	inOECS *versioned.Clientset
+
+	outOECS *versioned.Clientset
 
 	caCert     string
 	caPath     string
@@ -263,6 +284,34 @@ func (k *k8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
 	return cs.ExtensionsV1beta1().Deployments(ns), nil
 }
 
+// PVCOps gets a PVCInterface that exposes various CRUD operations
+// w.r.t PVC
+func (k *k8sUtil) PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error) {
+	var cs *kubernetes.Clientset
+
+	inC, err := k.IsInCluster()
+	if err != nil {
+		return nil, err
+	}
+
+	ns, err := k.NS()
+	if err != nil {
+		return nil, err
+	}
+
+	if inC {
+		cs, err = k.getInClusterCS()
+	} else {
+		cs, err = k.getOutClusterCS()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return cs.CoreV1().PersistentVolumeClaims(ns), nil
+}
+
 // k8sUtil implements K8sClientV2 interface. Hence it returns
 // self
 func (k *k8sUtil) K8sClientV2() (K8sClientV2, bool, error) {
@@ -312,6 +361,34 @@ func (k *k8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error) {
 	return cs.StorageV1().StorageClasses(), nil
 }
 
+func (k *k8sUtil) PVCOps2() (k8sCoreV1.PersistentVolumeClaimInterface, error) {
+	cs, err := k.getClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	// error out if still empty
+	if len(k.volume.Namespace) == 0 {
+		return nil, fmt.Errorf("Nil namespace")
+	}
+
+	return cs.CoreV1().PersistentVolumeClaims(k.volume.Namespace), nil
+}
+
+func (k *k8sUtil) StoragePoolOps() (oe_client_v1alpha1.StoragePoolInterface, error) {
+	mcs, err := k.getOEClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	// error out if still empty
+	if len(k.volume.Namespace) == 0 {
+		return nil, fmt.Errorf("Nil namespace")
+	}
+
+	return mcs.OpenebsV1alpha1().StoragePools(k.volume.Namespace), nil
+}
+
 // getClientSet is used to get a new http client capable
 // of invoking K8s APIs.
 func (k *k8sUtil) getClientSet() (*kubernetes.Clientset, error) {
@@ -351,6 +428,44 @@ func (k *k8sUtil) getClientSet() (*kubernetes.Clientset, error) {
 	return cs, nil
 }
 
+// getOEClientSet is used to get a new http client capable
+// of invoking OpenEBS CRD APIs.
+func (k *k8sUtil) getOEClientSet() (*versioned.Clientset, error) {
+	var cs *versioned.Clientset
+
+	// Get if already available in current instance
+	if k.inOECS != nil {
+		return k.inOECS, nil
+	}
+
+	if k.outOECS != nil {
+		return k.outOECS, nil
+	}
+
+	// Else get it fresh for this instance/http request
+	inC, err := k.IsInClusterV2()
+	if err != nil {
+		return nil, err
+	}
+
+	// set based on in-cluster or out-of-cluster
+	if inC {
+		cs, err = k.getInClusterOECS()
+		// set it for future retrievals in same http request
+		k.inOECS = cs
+	} else {
+		cs, err = k.getOutClusterOECS()
+		// set it for future retrievals in same http request
+		k.outOECS = cs
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return cs, nil
+}
+
 // getInClusterCS is used to initialize and return a new http client capable
 // of invoking K8s APIs.
 func (k *k8sUtil) getInClusterCS() (*kubernetes.Clientset, error) {
@@ -370,10 +485,35 @@ func (k *k8sUtil) getInClusterCS() (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
+// getInClusterOECS is used to initialize and return a new http client capable
+// of invoking OpenEBS CRD APIs.
+func (k *k8sUtil) getInClusterOECS() (*versioned.Clientset, error) {
+
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// creates the in-cluster OE clientset
+	clientset, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset, nil
+}
+
 // getOutClusterCS is used to initialize and return a new http client capable
 // of invoking outside the cluster K8s APIs.
 func (k *k8sUtil) getOutClusterCS() (*kubernetes.Clientset, error) {
-	return nil, fmt.Errorf("outClusterCS not supported in '%s'", k.Name())
+	return nil, fmt.Errorf("out cluster clientset not supported in '%s'", k.Name())
+}
+
+// getOutClusterOECS is used to initialize and return a new http client capable
+// of invoking outside the cluster K8s APIs.
+func (k *k8sUtil) getOutClusterOECS() (*versioned.Clientset, error) {
+	return nil, fmt.Errorf("out cluster OE clientset not supported in '%s'", k.Name())
 }
 
 //

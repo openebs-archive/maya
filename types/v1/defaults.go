@@ -41,6 +41,12 @@ const (
 
 	// DefaultJivaReplicaImage contains the default jiva replica image
 	DefaultJivaReplicaImage string = "openebs/jiva:0.4.0"
+
+	// DefaultStoragePool contains the name of default storage pool
+	DefaultStoragePool string = "default"
+
+	// DefaultHostPath contains the default host path value
+	DefaultHostPath string = "/var/openebs"
 )
 
 var (

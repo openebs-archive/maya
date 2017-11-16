@@ -35,6 +35,16 @@ type Volume struct {
 	// Capacity will hold the capacity of this Volume
 	Capacity string `json:"capacity,omitempty" protobuf:"bytes,1,opt,name=capacity"`
 
+	// StoragePool is the name of the StoragePool where this volume
+	// data will be stored. StoragePool will have the necessary storage
+	// related properties.
+	// +optional
+	StoragePool string `json:"storagepool,omitempty" protobuf:"bytes,1,opt,name=storagepool"`
+
+	// HostPath is directory where this volume data will be stored.
+	// +optional
+	HostPath string `json:"hostpath,omitempty" protobuf:"bytes,1,opt,name=hostpath"`
+
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
@@ -75,16 +85,16 @@ type VolumeSpec struct {
 	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 
 	// Resources represents the actual resources of the volume
-	Capacity ResourceList
+	//Capacity ResourceList
 	// Source represents the location and type of a volume to mount.
-	VolumeSource
+	//VolumeSource
 	// AccessModes contains all ways the volume can be mounted
 	// +optional
-	AccessModes []VolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=VolumeAccessMode"`
+	//AccessModes []VolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=VolumeAccessMode"`
 	// Name of StorageClass to which this persistent volume belongs. Empty value
 	// means that this volume does not belong to any StorageClass.
 	// +optional
-	StorageClassName string `json:"storageClassName,omitempty"`
+	//StorageClassName string `json:"storageClassName,omitempty"`
 }
 
 // VolumeType defines the OpenEBS volume types that are

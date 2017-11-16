@@ -49,6 +49,10 @@ func Fatal(msg string) {
 // StringToInt32 converts a string type to corresponding
 // *int32 type
 func StringToInt32(val string) (*int32, error) {
+	if len(val) == 0 {
+		return nil, fmt.Errorf("Nil value to convert")
+	}
+
 	n, err := strconv.ParseInt(val, 10, 32)
 	if err != nil {
 		return nil, err
