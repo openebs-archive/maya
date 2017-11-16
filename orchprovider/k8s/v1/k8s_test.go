@@ -285,6 +285,10 @@ func (m *mockK8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error)
 	return nil, nil
 }
 
+func (m *mockK8sUtil) PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error) {
+	return nil, nil
+}
+
 // mockPodOps implements k8sCoreV1.PodInterface and hence provides
 // necessary mock path
 type mockPodOps struct {
