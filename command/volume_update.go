@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// VsmUpdateCommand struct for updating volume
 type VsmUpdateCommand struct {
 	// To control this CLI's display
 	M Meta
@@ -16,6 +17,7 @@ type VsmUpdateCommand struct {
 	plan bool
 }
 
+// Help returns the usage along with general options of VsmUpdateCommand
 func (c *VsmUpdateCommand) Help() string {
 	helpText := `
 	Usage: maya volume update [path-to-update-specs]
@@ -29,10 +31,12 @@ func (c *VsmUpdateCommand) Help() string {
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis returns the synopsis of what VsmUpdateCommand does
 func (c *VsmUpdateCommand) Synopsis() string {
 	return "Updates the volume with the provided specs"
 }
 
+// Run runs `maya vsm update` command
 func (c *VsmUpdateCommand) Run(args []string) int {
 	var runop int
 
