@@ -26,7 +26,7 @@ EXPORTER=maya-volume-exporter
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test mayactl apiserver-image agent-image
+all: test mayactl apiserver-image exporter-image maya-agent
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -127,14 +127,14 @@ agent-image: maya-agent
 	@sh buildscripts/agent/push
 
 # Use this to build only the maya-volume-exporter.
-maya-volume-exporter:
+exporter:
 	@echo "----------------------------"
 	@echo "--> maya-volume-exporter              "
 	@echo "----------------------------"
 	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/exporter/build.sh'"
 
 # m-exporter image. This is going to be decoupled soon.
-exporter-image: maya-volume-exporter
+exporter-image: exporter
 	@echo "----------------------------"
 	@echo "--> m-exporter image         "
 	@echo "----------------------------"
