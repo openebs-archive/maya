@@ -30,6 +30,7 @@ package v1
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	oe_api_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
@@ -206,14 +207,24 @@ func enforceStoragePool(p *JivaK8sPolicies) error {
 
 // enforceHostPath enforces host path property
 func enforceHostPath(p *JivaK8sPolicies) error {
-	// merge from sc policy
-	if len(p.volume.HostPath) == 0 {
-		err := p.getSPPolicies()
-		if err != nil {
+	// nothing needs to be done
+	if len(p.volume.HostPath) != 0 {
+		return nil
+	}
+
+	// merge from sc policy otherwise
+	err := p.getSPPolicies()
+	if err != nil {
+		// error out if this is not default SP CRD object
+		// we relax the rules if default SP CRD object is
+		// not available
+		if p.volume.StoragePool != v1.DefaultStoragePool {
 			return err
 		}
-		p.volume.HostPath = p.spSpec.Path
+		// warn & proceed
+		glog.Warningf(err.Error())
 	}
+	p.volume.HostPath = p.spSpec.Path
 
 	// merge from env variable & then from default
 	hps := []string{
