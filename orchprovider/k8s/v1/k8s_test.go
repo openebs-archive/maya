@@ -15,9 +15,12 @@ import (
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
-	k8sApiv1 "k8s.io/client-go/pkg/api/v1"
-	k8sApisExtnsV1Beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
-	policy "k8s.io/client-go/pkg/apis/policy/v1beta1"
+	//k8sApiv1 "k8s.io/client-go/pkg/api/v1"
+	//k8sApisExtnsV1Beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	//policy "k8s.io/client-go/pkg/apis/policy/v1beta1"
+	k8sApiv1 "k8s.io/api/core/v1"
+	k8sApisExtnsV1Beta1 "k8s.io/api/extensions/v1beta1"
+	policy "k8s.io/api/policy/v1beta1"
 	"k8s.io/client-go/rest"
 )
 
@@ -279,6 +282,10 @@ func (m *mockK8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, erro
 }
 
 func (m *mockK8sUtil) StorageClassOps() (storagev1.StorageClassInterface, error) {
+	return nil, nil
+}
+
+func (m *mockK8sUtil) PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error) {
 	return nil, nil
 }
 

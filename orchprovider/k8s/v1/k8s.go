@@ -14,8 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
-	k8sApiV1 "k8s.io/client-go/pkg/api/v1"
-	k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	//k8sApiV1 "k8s.io/client-go/pkg/api/v1"
+	//k8sApisExtnsBeta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
+	oe_api_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	k8sApiV1 "k8s.io/api/core/v1"
+	k8sApisExtnsBeta1 "k8s.io/api/extensions/v1beta1"
 )
 
 // K8sOrchestrator is a concrete implementation of following
@@ -174,8 +177,8 @@ func (k *k8sOrchestrator) PolicyOps(vol *v1.Volume) (orchprovider.PolicyOps, boo
 	return k, true, nil
 }
 
-// FetchPolicies will fetch volume policies based on the volume
-func (k *k8sOrchestrator) FetchPolicies() (map[string]string, error) {
+// SCPolicies will fetch volume policies based on the StorageClass
+func (k *k8sOrchestrator) SCPolicies() (map[string]string, error) {
 	kc, supported, err := k.k8sUtil.K8sClientV2()
 	if err != nil {
 		return nil, err
@@ -185,7 +188,7 @@ func (k *k8sOrchestrator) FetchPolicies() (map[string]string, error) {
 		return nil, fmt.Errorf("K8s client is not supported")
 	}
 
-	// fetch k8s Deployment operator
+	// fetch k8s StorageClass operator
 	scOps, err := kc.StorageClassOps()
 	if err != nil {
 		return nil, err
@@ -197,6 +200,56 @@ func (k *k8sOrchestrator) FetchPolicies() (map[string]string, error) {
 	}
 
 	return sc.Parameters, nil
+}
+
+// SPPolicies will fetch volume policies based on the StoragePool
+func (k *k8sOrchestrator) SPPolicies() (oe_api_v1alpha1.StoragePoolSpec, error) {
+	kc, supported, err := k.k8sUtil.K8sClientV2()
+	if err != nil {
+		return oe_api_v1alpha1.StoragePoolSpec{}, err
+	}
+
+	if !supported {
+		return oe_api_v1alpha1.StoragePoolSpec{}, fmt.Errorf("K8s client is not supported")
+	}
+
+	// fetch k8s StoragePool operator
+	spOps, err := kc.StoragePoolOps()
+	if err != nil {
+		return oe_api_v1alpha1.StoragePoolSpec{}, err
+	}
+
+	sp, err := spOps.Get(k.volume.StoragePool, metav1.GetOptions{})
+	if err != nil {
+		return oe_api_v1alpha1.StoragePoolSpec{}, err
+	}
+
+	return sp.Spec, nil
+}
+
+// PVCPolicies will fetch volume policies based on the PVC
+func (k *k8sOrchestrator) PVCPolicies() (k8sApiV1.PersistentVolumeClaimSpec, error) {
+	kc, supported, err := k.k8sUtil.K8sClientV2()
+	if err != nil {
+		return k8sApiV1.PersistentVolumeClaimSpec{}, err
+	}
+
+	if !supported {
+		return k8sApiV1.PersistentVolumeClaimSpec{}, fmt.Errorf("K8s client is not supported")
+	}
+
+	// fetch k8s PVC operator
+	pvcOps, err := kc.PVCOps2()
+	if err != nil {
+		return k8sApiV1.PersistentVolumeClaimSpec{}, err
+	}
+
+	pvc, err := pvcOps.Get(k.volume.Labels.K8sPersistentVolumeClaim, metav1.GetOptions{})
+	if err != nil {
+		return k8sApiV1.PersistentVolumeClaimSpec{}, err
+	}
+
+	return pvc.Spec, nil
 }
 
 // AddStorage will add persistent volume running as containers. In OpenEBS
@@ -789,10 +842,10 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	// We might want to get the replica index & send it
 	// However, this does not matter if replicas are placed on different hosts !!
 	//persistPath, err := volProProfile.PersistentPath(1, rCount)
-	persistPath, err := volProProfile.PersistentPath()
-	if err != nil {
-		return nil, err
-	}
+	//persistPath, err := volProProfile.PersistentPath()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	k8sUtl := k8sOrchUtil(k, volProProfile)
 
@@ -923,7 +976,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Name: v1.DefaultJivaMountName(),
 							VolumeSource: k8sApiV1.VolumeSource{
 								HostPath: &k8sApiV1.HostPathVolumeSource{
-									Path: persistPath,
+									Path: vol.HostPath,
 								},
 							},
 						},

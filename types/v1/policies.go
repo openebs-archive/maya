@@ -62,6 +62,9 @@ type K8sVolumeLabels struct {
 	// K8sNamespace contains the K8s namespace where volume operations
 	// will be executed
 	K8sNamespace string `json:"k8s.io/namespace,omitempty" protobuf:"bytes,1,opt,name=k8s.io/namespace"`
+
+	// K8sPersistentVolumeClaim is the pvc used to create this volume
+	K8sPersistentVolumeClaim string `json:"k8s.io/pvc,omitempty" protobuf:"bytes,1,opt,name=k8s.io/pvc"`
 }
 
 // VolumeLabels is a typed structure that consists of
@@ -75,7 +78,7 @@ type VolumeLabels struct {
 // VolumeKey is a typed string used to represent openebs
 // volume related policy keys. These keys along with their
 // values will be fetched from various sources like
-// K8s StorageClass, maya.io, bots etc. during volume provisioning.
+// K8s StorageClass, maya.io, bots etc. during volume **provisioning**.
 // The commonality between these different sources are these keys.
 type VolumeKey string
 
@@ -103,4 +106,7 @@ const (
 
 	// JivaControllersVK is the key to fetch controller count
 	JivaControllersVK VolumeKey = "openebs.io/jiva-controller-count"
+
+	// StoragePoolVK is the key to fetch the name of storage pool
+	StoragePoolVK VolumeKey = "openebs.io/storage-pool"
 )

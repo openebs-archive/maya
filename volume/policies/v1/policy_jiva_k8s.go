@@ -14,13 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Should this be changed to policy_ov_props.go ?
+// Should the name of the struct be renamed accordingly ?
+// ov expands to openebs volume
+//
+// Why ?
+//    Jiva & CStor seems to have same properties even
+// though their behavior will vary !!
+// It will be ideal to reuse these files for both the
+// volume types. Hence, remove jiva from variable name, method
+// name, logging, etc
 package v1
 
 import (
 	"fmt"
 
-	"github.com/openebs/maya/orchprovider"
-	k8s_v1 "github.com/openebs/maya/orchprovider/k8s/v1"
+	"github.com/golang/glog"
+	oe_api_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 )
@@ -34,39 +45,25 @@ type JivaK8sPolicies struct {
 	// volume is the instance on which policies will be enforced
 	volume *v1.Volume
 
-	// orch represents the K8s orchestrator
-	orch orchprovider.OrchestratorInterface
+	// k8sPolOps is the instance that can fetch volume policies from various
+	// K8s Kinds
+	k8sPolOps *K8sPolicyOps
 
-	// capacity will hold the volume capacity
-	capacity string
+	// scPolicies are the set of policies from K8s StorageClass
+	scPolicies map[string]string
 
-	// repIndex is the index which holds replica volume spec
-	repIndex int
-
-	// repCount will hold the replica count
-	repCount *int32
-
-	// repImage will hold jiva replica image
-	repImage string
-
-	// ctrlIndex is the index which holds jiva controller spec
-	ctrlIndex int
-
-	// ctrlCount will hold the jiva controller count
-	ctrlCount *int32
-
-	// ctrlImage will hold jiva controller image
-	ctrlImage string
+	// spSpec are a set of policies from K8s StoragePool
+	spSpec oe_api_v1alpha1.StoragePoolSpec
 }
 
 func NewJivaK8sPolicies() (PolicyInterface, error) {
-	orch, err := k8s_v1.NewK8sOrchProvider()
+	k8sPolOps, err := NewK8sPolicyOps()
 	if err != nil {
 		return nil, err
 	}
 
 	return &JivaK8sPolicies{
-		orch: orch,
+		k8sPolOps: k8sPolOps,
 	}, nil
 }
 
@@ -74,7 +71,11 @@ func NewJivaK8sPolicies() (PolicyInterface, error) {
 // the volume instance
 func (p *JivaK8sPolicies) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 	if volume == nil {
-		return nil, fmt.Errorf("Nil volume provided for policy enforcement")
+		return nil, fmt.Errorf("Nil volume")
+	}
+
+	if p.k8sPolOps == nil {
+		return nil, fmt.Errorf("Nil k8s policy operation instance")
 	}
 
 	// This policy will be executed only if this is Jiva volume using K8s as
@@ -84,20 +85,17 @@ func (p *JivaK8sPolicies) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 		return volume, nil
 	}
 
-	// set it locally to be used in further operations
-	p.volume = volume
-
-	// init the policies
-	err := p.init()
+	// fetch StorageClass policies
+	scp, err := p.k8sPolOps.SCPolicies(volume)
 	if err != nil {
 		return nil, err
 	}
+	p.scPolicies = scp
 
-	// enforce the policies against the volume properties
-	p.enforce()
+	// set it locally to be used in further operations
+	p.volume = volume
 
-	// run through validations after enforcement
-	err = p.validate()
+	err = p.enforce()
 	if err != nil {
 		return nil, err
 	}
@@ -105,148 +103,61 @@ func (p *JivaK8sPolicies) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 	return p.volume, nil
 }
 
-// init initializes this instance properties from volume
-// properties
-//
-// NOTE:
-//    The original volume property values should prevail
-// over others. Hence, this should be the first invocation
-// in the Enforce() method.
-func (p *JivaK8sPolicies) init() error {
-	// direct volume properties prevail over other methods of setting
-	p.capacity = p.volume.Capacity
-
-	for i, spec := range p.volume.Specs {
-		if spec.Context == v1.ReplicaVolumeContext {
-			p.repCount = spec.Replicas
-			p.repImage = spec.Image
-			p.repIndex = i
-		} else if spec.Context == v1.ControllerVolumeContext {
-			p.ctrlCount = spec.Replicas
-			p.ctrlImage = spec.Image
-			p.ctrlIndex = i
-		}
-	}
-
-	// init using SC policies
-	// will merge the un-set properties of this instance
-	err := p.initWithSC()
+func (p *JivaK8sPolicies) getSPPolicies() error {
+	// fetch StoragePool policies
+	spc, err := p.k8sPolOps.SPPolicies(p.volume)
 	if err != nil {
 		return err
 	}
 
-	// init using old volume labels
-	// will merge the un-set properties of this instance
-	p.initWithOldLabels()
+	p.spSpec = spc
+	return nil
+}
 
-	// init using ENV variables or Defaults
-	// will merge the un-set properties of this instance
-	p.initWithENVsAndDefs()
+func (p *JivaK8sPolicies) enforce() error {
+	fns := p.getPropertyEnforcers()
+	// enforce volume policies
+	for _, fn := range fns {
+		err := fn(p)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
-// initWithSC fetches the k8s sc policies
-// & sets them against this instance's properties
-func (p *JivaK8sPolicies) initWithSC() error {
-	// nothing to do if fetching via storageclass
-	// is disabled
-	if !p.volume.Labels.K8sStorageClassEnabled {
-		return nil
-	}
-
-	// check if orchestrator is available for operations
-	// w.r.t K8s StorageClass
-	if p.orch == nil {
-		return fmt.Errorf("Nil k8s orchestrator")
-	}
-
-	// fetch K8s SC based policies
-	pOrch, supported, err := p.orch.PolicyOps(p.volume)
-	if err != nil {
-		return err
-	}
-
-	if !supported {
-		return fmt.Errorf("K8s based policy operations is not supported")
-	}
-
-	// Fetch policies based on storage class name
-	//
-	// NOTE:
-	//  StorageClass name would have set previously by
-	// K8sPolicies against this volume
-	policies, err := pOrch.FetchPolicies()
-	if err != nil {
-		return err
-	}
-
-	// Marshall these policies against this instance's properties
-	p.marshall(policies)
-
-	return nil
-}
-
-// marshall extracts the K8s sc based policies to
-// corresponding properties of this instance
-func (p *JivaK8sPolicies) marshall(policies map[string]string) {
-	for k, v := range policies {
-		// volume capacity
-		if k == string(v1.CapacityVK) && len(p.capacity) == 0 {
-			p.capacity = v
-		}
-		// jiva replica count
-		if k == string(v1.JivaReplicasVK) && p.repCount == nil {
-			p.repCount = util.StrToInt32(v)
-		}
-		// jiva replica image
-		if k == string(v1.JivaReplicaImageVK) && len(p.repImage) == 0 {
-			p.repImage = v
-		}
-		// jiva controller count
-		if k == string(v1.JivaControllersVK) && p.ctrlCount == nil {
-			p.ctrlCount = util.StrToInt32(v)
-		}
-		// jiva controller image
-		if k == string(v1.JivaControllerImageVK) && len(p.ctrlImage) == 0 {
-			p.ctrlImage = v
-		}
+func (p *JivaK8sPolicies) getPropertyEnforcers() []enforcePropertyFn {
+	return []enforcePropertyFn{
+		enforceCapacity,
+		enforceStoragePool,
+		enforceHostPath,
+		enforceReplicaImage,
+		enforceReplicaCount,
+		enforceControllerImage,
+		enforceControllerCount,
 	}
 }
 
-// initWithOldLabels fetch the volume policies from
-// volume's labels property & sets them against this instance's
-// properties.
-//
-// NOTE:
-//  This is to maintain backward compatibility
-func (p *JivaK8sPolicies) initWithOldLabels() {
-	// volume capacity
-	if len(p.capacity) == 0 {
-		p.capacity = p.volume.Labels.CapacityOld
-	}
-	// jiva replica count
-	if p.repCount == nil {
-		p.repCount = p.volume.Labels.ReplicasOld
-	}
-	// jiva replica image
-	if len(p.repImage) == 0 {
-		p.repImage = p.volume.Labels.ReplicaImageOld
-	}
-	// jiva controller count
-	if p.ctrlCount == nil {
-		p.ctrlCount = p.volume.Labels.ControllersOld
-	}
-	// jiva controller image
-	if len(p.ctrlImage) == 0 {
-		p.ctrlImage = p.volume.Labels.ControllerImageOld
-	}
-}
+// enforcePropertyFn is a typed function that defines
+// the signature for volume policy enforcement scoped
+// to a volume property
+type enforcePropertyFn func(*JivaK8sPolicies) error
 
-// initENVsAndDefs will initialize this instance properties
-// using ENV variables or Defaults
-func (p *JivaK8sPolicies) initWithENVsAndDefs() {
-	// possible values for capacity
+// enforceCapacity enforces capacity volume
+// policy
+func enforceCapacity(p *JivaK8sPolicies) error {
+	// merge from sc policy
+	if len(p.volume.Capacity) == 0 {
+		p.volume.Capacity = p.scPolicies[string(v1.CapacityVK)]
+	}
+
+	// merge from old label
+	if len(p.volume.Capacity) == 0 {
+		p.volume.Capacity = p.volume.Labels.CapacityOld
+	}
+
+	// merge from env variable & then from default
 	capVals := []string{
 		v1.CapacityENV(),
 		v1.DefaultCapacity,
@@ -254,89 +165,245 @@ func (p *JivaK8sPolicies) initWithENVsAndDefs() {
 
 	// Ensure non-empty value is set
 	for _, capVal := range capVals {
-		if len(p.capacity) == 0 {
-			p.capacity = capVal
+		if len(p.volume.Capacity) == 0 {
+			p.volume.Capacity = capVal
 		}
 	}
 
-	// possible values for jiva replica count
-	repCVals := []*int32{
-		v1.JivaReplicasENV(),
-		v1.DefaultJivaReplicas,
+	if len(p.volume.Capacity) == 0 {
+		return fmt.Errorf("Nil volume capacity")
+	}
+
+	return nil
+}
+
+// enforceStoragePool enforces storage pool volume
+// policy
+func enforceStoragePool(p *JivaK8sPolicies) error {
+	// merge from sc policy
+	if len(p.volume.StoragePool) == 0 {
+		p.volume.StoragePool = p.scPolicies[string(v1.StoragePoolVK)]
+	}
+
+	// merge from env variable & then from default
+	spVals := []string{
+		v1.StoragePoolENV(),
+		v1.DefaultStoragePool,
 	}
 
 	// Ensure non-empty value is set
-	for _, repCVal := range repCVals {
-		if p.repCount == nil {
-			p.repCount = repCVal
+	for _, spVal := range spVals {
+		if len(p.volume.StoragePool) == 0 {
+			p.volume.StoragePool = spVal
 		}
 	}
 
-	// possible values for jiva replica image
-	repIVals := []string{
+	if len(p.volume.StoragePool) == 0 {
+		return fmt.Errorf("Nil storage pool")
+	}
+
+	return nil
+}
+
+// enforceHostPath enforces host path property
+func enforceHostPath(p *JivaK8sPolicies) error {
+	// nothing needs to be done
+	if len(p.volume.HostPath) != 0 {
+		return nil
+	}
+
+	// merge from sc policy otherwise
+	err := p.getSPPolicies()
+	if err != nil {
+		// error out if this is not default SP CRD object
+		// we relax the rules if default SP CRD object is
+		// not available
+		if p.volume.StoragePool != v1.DefaultStoragePool {
+			return err
+		}
+		// warn & proceed
+		glog.Warningf(err.Error())
+	}
+	p.volume.HostPath = p.spSpec.Path
+
+	// merge from env variable & then from default
+	hps := []string{
+		v1.HostPathENV(),
+		v1.DefaultHostPath,
+	}
+
+	// Ensure non-empty value is set
+	for _, hp := range hps {
+		if len(p.volume.HostPath) == 0 {
+			p.volume.HostPath = hp
+		}
+	}
+
+	if len(p.volume.HostPath) == 0 {
+		return fmt.Errorf("Nil host path")
+	}
+
+	return nil
+}
+
+// enforceReplicaImage enforces replica image volume
+// policy
+func enforceReplicaImage(p *JivaK8sPolicies) error {
+	var rIndex int
+	for i, spec := range p.volume.Specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			rIndex = i
+			break
+		}
+	}
+
+	// merge from sc policy
+	if len(p.volume.Specs[rIndex].Image) == 0 {
+		p.volume.Specs[rIndex].Image = p.scPolicies[string(v1.JivaReplicaImageVK)]
+	}
+
+	// merge from old replica image
+	if len(p.volume.Specs[rIndex].Image) == 0 {
+		p.volume.Specs[rIndex].Image = p.volume.Labels.ReplicaImageOld
+	}
+
+	// merge from env variable & then from default
+	iVals := []string{
 		v1.JivaReplicaImageENV(),
 		v1.DefaultJivaReplicaImage,
 	}
 
 	// Ensure non-empty value is set
-	for _, repIVal := range repIVals {
-		if len(p.repImage) == 0 {
-			p.repImage = repIVal
+	for _, iVal := range iVals {
+		if len(p.volume.Specs[rIndex].Image) == 0 {
+			p.volume.Specs[rIndex].Image = iVal
 		}
 	}
 
-	// possible values for jiva controller count
-	ctrlCVals := []*int32{
+	if len(p.volume.Specs[rIndex].Image) == 0 {
+		return fmt.Errorf("Nil replica image")
+	}
+
+	return nil
+}
+
+// enforceReplicaCount enforces replica count volume
+// policy
+func enforceReplicaCount(p *JivaK8sPolicies) error {
+	var rIndex int
+	for i, spec := range p.volume.Specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			rIndex = i
+			break
+		}
+	}
+
+	// merge from sc policy
+	if p.volume.Specs[rIndex].Replicas == nil {
+		p.volume.Specs[rIndex].Replicas = util.StrToInt32(p.scPolicies[string(v1.JivaReplicasVK)])
+	}
+
+	// merge from old volume label
+	if p.volume.Specs[rIndex].Replicas == nil {
+		p.volume.Specs[rIndex].Replicas = p.volume.Labels.ReplicasOld
+	}
+
+	// merge from env variable & then from default
+	rcVals := []*int32{
+		v1.JivaReplicasENV(),
+		v1.DefaultJivaReplicas,
+	}
+
+	// Ensure non-empty value is set
+	for _, rcVal := range rcVals {
+		if p.volume.Specs[rIndex].Replicas == nil {
+			p.volume.Specs[rIndex].Replicas = rcVal
+		}
+	}
+
+	if p.volume.Specs[rIndex].Replicas == nil {
+		return fmt.Errorf("Nil or invalid replica count")
+	}
+
+	return nil
+}
+
+// enforceControllerImage enforces controller image volume
+// policy
+func enforceControllerImage(p *JivaK8sPolicies) error {
+	var cIndex int
+	for i, spec := range p.volume.Specs {
+		if spec.Context == v1.ControllerVolumeContext {
+			cIndex = i
+			break
+		}
+	}
+
+	// merge from sc policy
+	if len(p.volume.Specs[cIndex].Image) == 0 {
+		p.volume.Specs[cIndex].Image = p.scPolicies[string(v1.JivaControllerImageVK)]
+	}
+
+	// merge from old replica image
+	if len(p.volume.Specs[cIndex].Image) == 0 {
+		p.volume.Specs[cIndex].Image = p.volume.Labels.ControllerImageOld
+	}
+
+	// merge from env variable & then from default
+	iVals := []string{
+		v1.JivaControllerImageENV(),
+		v1.DefaultJivaControllerImage,
+	}
+
+	for _, iVal := range iVals {
+		if len(p.volume.Specs[cIndex].Image) == 0 {
+			p.volume.Specs[cIndex].Image = iVal
+		}
+	}
+
+	if len(p.volume.Specs[cIndex].Image) == 0 {
+		return fmt.Errorf("Nil controller image")
+	}
+
+	return nil
+}
+
+// enforceControllerCount enforces controller count volume
+// policy
+func enforceControllerCount(p *JivaK8sPolicies) error {
+	var cIndex int
+	for i, spec := range p.volume.Specs {
+		if spec.Context == v1.ControllerVolumeContext {
+			cIndex = i
+			break
+		}
+	}
+
+	// merge from sc policy
+	if p.volume.Specs[cIndex].Replicas == nil {
+		p.volume.Specs[cIndex].Replicas = util.StrToInt32(p.scPolicies[string(v1.JivaControllersVK)])
+	}
+
+	// merge from old volume label
+	if p.volume.Specs[cIndex].Replicas == nil {
+		p.volume.Specs[cIndex].Replicas = p.volume.Labels.ControllersOld
+	}
+
+	// merge from env variable & then from default
+	ccVals := []*int32{
 		v1.JivaControllersENV(),
 		v1.DefaultJivaControllers,
 	}
 
 	// Ensure non-empty value is set
-	for _, ctrlCVal := range ctrlCVals {
-		if p.ctrlCount == nil {
-			p.ctrlCount = ctrlCVal
+	for _, ccVal := range ccVals {
+		if p.volume.Specs[cIndex].Replicas == nil {
+			p.volume.Specs[cIndex].Replicas = ccVal
 		}
 	}
 
-	// possible values for jiva controller image
-	ctrlIVals := []string{
-		v1.JivaControllerImageENV(),
-		v1.DefaultJivaControllerImage,
-	}
-
-	// Ensure non-empty value is set
-	for _, ctrlIVal := range ctrlIVals {
-		if len(p.ctrlImage) == 0 {
-			p.ctrlImage = ctrlIVal
-		}
-	}
-}
-
-// enforce essential policies against the volume properties
-// from this instance's properties
-func (p *JivaK8sPolicies) enforce() {
-	p.volume.Capacity = p.capacity
-
-	p.volume.Specs[p.repIndex].Replicas = p.repCount
-	p.volume.Specs[p.repIndex].Image = p.repImage
-
-	p.volume.Specs[p.ctrlIndex].Replicas = p.ctrlCount
-	p.volume.Specs[p.ctrlIndex].Image = p.ctrlImage
-}
-
-// validate verifies the volume properties that were
-// just enforced
-func (p *JivaK8sPolicies) validate() error {
-	if len(p.volume.Capacity) == 0 {
-		return fmt.Errorf("Nil volume capacity was provided")
-	}
-
-	if p.volume.Specs[p.repIndex].Replicas == nil {
-		return fmt.Errorf("Nil or Invalid jiva replica count was provided")
-	}
-
-	if p.volume.Specs[p.ctrlIndex].Replicas == nil {
-		return fmt.Errorf("Nil or Invalid jiva controller count was provided")
+	if p.volume.Specs[cIndex].Replicas == nil {
+		return fmt.Errorf("Nil or invalid controller count")
 	}
 
 	return nil

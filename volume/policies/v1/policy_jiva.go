@@ -14,6 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Should this be changed to policy_ov.go ?
+// Should the name of the struct be renamed accordingly ?
+// ov expands to openebs volume
+//
+// Why ?
+//    Jiva & CStor seems to have same properties even
+// though their behavior will vary !!
+// It will be ideal to reuse these files for both the
+// volume types. Hence, this name openebs volume !!
 package v1
 
 import (

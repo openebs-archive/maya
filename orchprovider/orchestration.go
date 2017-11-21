@@ -4,8 +4,10 @@
 package orchprovider
 
 import (
+	oe_api_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	k8sApiV1 "k8s.io/api/core/v1"
 )
 
 // OrchestrationInterface is an interface abstraction of a real orchestrator.
@@ -53,6 +55,13 @@ type StorageOps interface {
 // influence volume placements, provisioning, backup, etc. decisions.
 type PolicyOps interface {
 
-	// FetchPolicies will fetch volume policies based on the passed arguments
-	FetchPolicies() (map[string]string, error)
+	// SCPolicies will fetch volume policies from a particular StorageClass
+	SCPolicies() (map[string]string, error)
+
+	// PVCPolicies will fetch volume policies from a particular
+	// Persistent Volume Claim
+	PVCPolicies() (k8sApiV1.PersistentVolumeClaimSpec, error)
+
+	// SPPolicies will fetch volume policies from a particular StoragePool
+	SPPolicies() (oe_api_v1alpha1.StoragePoolSpec, error)
 }
