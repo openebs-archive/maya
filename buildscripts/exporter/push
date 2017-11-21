@@ -19,5 +19,5 @@ then
     sudo docker push openebs/m-exporter:latest;
   fi;
 else
-  echo "No docker credentials provided. Skip uploading openebs/m-agent:ci to docker hub";
+  echo "No docker credentials provided. Skip uploading openebs/m-exporter:ci to docker hub";
 fi;
