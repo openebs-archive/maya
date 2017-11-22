@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/nomad/api"
 )
 
+// EvalStatusCommand is a command implementation struct
 type EvalStatusCommand struct {
 	Meta
 }
 
+// Help shows helpText for a particular CLI command
 func (c *EvalStatusCommand) Help() string {
 	helpText := `
 	Display information about evaluations. This command can be used to inspect the
@@ -40,10 +42,12 @@ func (c *EvalStatusCommand) Help() string {
 	return strings.TrimSpace(helpText)
 }
 
+// Synopsis shows short information related to CLI command
 func (c *EvalStatusCommand) Synopsis() string {
 	return "Display evaluation status and placement failure reasons"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *EvalStatusCommand) Run(args []string) int {
 	var monitor, verbose, json bool
 	var tmpl string
@@ -247,6 +251,7 @@ func (c *EvalStatusCommand) Run(args []string) int {
 	return 0
 }
 
+// sortedTaskGroupFromMetrics is used to sort task group from metrics
 func sortedTaskGroupFromMetrics(groups map[string]*api.AllocationMetric) []string {
 	tgs := make([]string, 0, len(groups))
 	for tg, _ := range groups {
@@ -256,6 +261,7 @@ func sortedTaskGroupFromMetrics(groups map[string]*api.AllocationMetric) []strin
 	return tgs
 }
 
+// getTriggerDetails is used to get trigger details
 func getTriggerDetails(eval *api.Evaluation) (noun, subject string) {
 	switch eval.TriggeredBy {
 	case "job-register", "job-deregister", "periodic-job", "rolling-update":
