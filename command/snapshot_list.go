@@ -8,11 +8,13 @@ import (
 	"github.com/openebs/maya/pkg/client/jiva"
 )
 
+// SnapshotListCommand is a command implementation struct
 type SnapshotListCommand struct {
 	Meta
 	Name string
 }
 
+// Help shows helpText for a particular CLI command
 func (c *SnapshotListCommand) Help() string {
 	helpText := `
 	Usage: maya snapshot list -volname <vol>
@@ -28,6 +30,7 @@ func (c *SnapshotListCommand) Synopsis() string {
 	return "Lists all the snapshots of a Volume"
 }
 
+// Run holds the flag values for CLI subcommands
 func (c *SnapshotListCommand) Run(args []string) int {
 
 	flags := c.Meta.FlagSet("volume snapshot", FlagSetClient)
@@ -45,6 +48,8 @@ func (c *SnapshotListCommand) Run(args []string) int {
 	}
 	return 0
 }
+
+// ListSnapshot is used to list snapshot
 func ListSnapshot(name string) error {
 
 	annotations, err := GetVolAnnotations(name)
@@ -134,6 +139,7 @@ func ListSnapshot(name string) error {
 	return nil
 }
 
+// getChain is used to get chain
 func getChain(address string) ([]string, error) {
 	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
@@ -147,6 +153,8 @@ func getChain(address string) ([]string, error) {
 
 	return r.Chain, err
 }
+
+// getData is used to get data
 func getData(address string) (map[string]client.DiskInfo, error) {
 	repClient, err := client.NewReplicaClient(address)
 	if err != nil {
