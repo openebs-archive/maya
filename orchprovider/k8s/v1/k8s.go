@@ -932,7 +932,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// can understand the setup to check if it has access to different
 									// zones, regions, etc. In addition, this intelligence should
 									// take into account storage capable nodes in these zones,
-									// regions. All of these sould result in suggestions to maya
+									// regions. All of these should result in suggestions to maya
 									// api server during provisioning.
 									//
 									// TODO

@@ -191,7 +191,7 @@ func (j *jivaUtil) AddStorage(pvc *v1.Volume) (*v1.Volume, error) {
 	return storageOrchestrator.AddStorage(j.jivaProProfile)
 }
 
-// RemoveStorage removes the peristent storage
+// RemoveStorage removes the persistent storage
 func (j *jivaUtil) RemoveStorage() (bool, error) {
 	// TODO
 	// Move the below set of validations to StorageOps()
