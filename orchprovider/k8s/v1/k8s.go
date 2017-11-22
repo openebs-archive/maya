@@ -9,6 +9,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/orchprovider"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -698,6 +699,11 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		return nil, err
 	}
 
+	vol, err := volProProfile.Volume()
+	if err != nil {
+		return nil, err
+	}
+
 	if clusterIP == "" {
 		return nil, fmt.Errorf("VSM cluster IP is required to create controller for vsm 'name: %s'", vsm)
 	}
@@ -797,6 +803,21 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		if err != nil {
 			return nil, err
 		}
+	}
+	// is volume monitoring enabled ?
+	isMonitoring := !util.CheckFalsy(vol.Monitor)
+	if isMonitoring {
+		// get the sidecar instance
+		sc, err := NewMonitoringSideCar(vol.Monitor, clusterIP)
+		if err != nil {
+			return nil, err
+		}
+		// get the sc container
+		scc, err := sc.generate()
+		if err != nil {
+			return nil, err
+		}
+		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, scc)
 	}
 
 	// add persistent volume controller deployment

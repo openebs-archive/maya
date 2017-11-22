@@ -136,6 +136,7 @@ func (p *JivaK8sPolicies) getPropertyEnforcers() []enforcePropertyFn {
 		enforceReplicaCount,
 		enforceControllerImage,
 		enforceControllerCount,
+		enforceMonitoring,
 	}
 }
 
@@ -200,6 +201,33 @@ func enforceStoragePool(p *JivaK8sPolicies) error {
 
 	if len(p.volume.StoragePool) == 0 {
 		return fmt.Errorf("Nil storage pool")
+	}
+
+	return nil
+}
+
+// enforceMonitoring enforces volume monitoring policy
+func enforceMonitoring(p *JivaK8sPolicies) error {
+	// merge from sc policy
+	if len(p.volume.Monitor) == 0 {
+		p.volume.Monitor = p.scPolicies[string(v1.MonitorVK)]
+	}
+
+	// merge from env variable & then from default
+	mVals := []string{
+		v1.MonitorENV(),
+		v1.DefaultMonitor,
+	}
+
+	// Ensure non-empty value is set
+	for _, mVal := range mVals {
+		if len(p.volume.Monitor) == 0 {
+			p.volume.Monitor = mVal
+		}
+	}
+
+	if len(p.volume.Monitor) == 0 {
+		return fmt.Errorf("Nil volume monitor")
 	}
 
 	return nil

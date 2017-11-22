@@ -22,6 +22,18 @@ func CheckTruthy(truth string) bool {
 	return truthyValues[strings.ToUpper(truth)]
 }
 
+// falsyValues maps a set of values which are considered as false
+var falsyValues = map[string]bool{
+	"0":     true,
+	"NO":    true,
+	"FALSE": true,
+}
+
+// CheckFalsy checks for non-truthiness of the passed argument.
+func CheckFalsy(falsy string) bool {
+	return falsyValues[strings.ToUpper(falsy)]
+}
+
 // CheckErr to handle command errors
 func CheckErr(err error, handleErr func(string)) {
 	if err == nil {

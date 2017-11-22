@@ -109,4 +109,7 @@ const (
 
 	// StoragePoolVK is the key to fetch the name of storage pool
 	StoragePoolVK VolumeKey = "openebs.io/storage-pool"
+
+	// MonitorVK is the key to fetch the monitoring details
+	MonitorVK VolumeKey = "openebs.io/volume-monitor"
 )
