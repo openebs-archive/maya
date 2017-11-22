@@ -16,6 +16,7 @@ var (
 	parsePattern          = regexp.MustCompile(`(.*):(\d+)`)
 )
 
+// SnapshotCreateCommand is a command implementation struct
 type SnapshotCreateCommand struct {
 	Meta
 	Name   string
@@ -106,6 +107,7 @@ func (c *SnapshotCreateCommand) Run(args []string) int {
 
 }
 
+// Snapshot is used to get a snapshot
 func Snapshot(volname string, snapname string, labels map[string]string) (string, error) {
 
 	annotations, err := GetVolAnnotations(volname)
@@ -167,6 +169,7 @@ func ParseLabels(labels []string) (map[string]string, error) {
 	return result, nil
 }
 
+// ValidVolumeName is used to validate volume name
 func ValidVolumeName(name string) bool {
 	if len(name) > MaximumVolumeNameSize {
 		return false
@@ -175,6 +178,7 @@ func ValidVolumeName(name string) bool {
 	return validName.MatchString(name)
 }
 
+// lookupStringSlice is used to look up string slice
 func lookupStringSlice(name string, set *flag.FlagSet) []string {
 	f := set.Lookup(name)
 	if f != nil {
