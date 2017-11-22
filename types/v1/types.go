@@ -45,6 +45,14 @@ type Volume struct {
 	// +optional
 	HostPath string `json:"hostpath,omitempty" protobuf:"bytes,1,opt,name=hostpath"`
 
+	// Monitor flags as well provides values for monitoring the volume
+	// e.g. a value of:
+	//  - `false` or empty value indicates monitoring is not required
+	//  - `image: openebs/m-exporter:ci` indicates monitoring is enabled
+	// and should use the provided image
+	//  - `true` indicates monitoring is required & should use the defaults
+	Monitor string `json:"monitor,omitempty" protobuf:"bytes,1,opt,name=monitor"`
+
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`

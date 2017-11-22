@@ -75,6 +75,9 @@ const (
 
 	// HostPathENVK is the ENV key to fetch host path
 	HostPathENVK ENVKey = "OPENEBS_IO_HOST_PATH"
+
+	// MonitorENVK is the ENV key to fetch the volume monitoring details
+	MonitorENVK ENVKey = "OPENEBS_IO_VOLUME_MONITOR"
 )
 
 // VolumeTypeENV will fetch the value of volume type
@@ -138,6 +141,11 @@ func StoragePoolENV() string {
 
 func HostPathENV() string {
 	val := getEnv(HostPathENVK)
+	return val
+}
+
+func MonitorENV() string {
+	val := getEnv(MonitorENVK)
 	return val
 }
 

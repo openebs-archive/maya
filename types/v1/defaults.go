@@ -47,6 +47,11 @@ const (
 
 	// DefaultHostPath contains the default host path value
 	DefaultHostPath string = "/var/openebs"
+
+	// DefaultMonitor contains the default value for volume
+	// monitoring policy. Value of `false` indicates
+	// volume monitoring is disabled by default.
+	DefaultMonitor string = "false"
 )
 
 var (
