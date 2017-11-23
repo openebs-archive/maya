@@ -1,5 +1,5 @@
 // This package deals with profiles. A profile in maya api service categorises
-// the generic properties asociated with maya api service components (i.e. volume
+// the generic properties associated with maya api service components (i.e. volume
 // provisioners, orchestration providers).
 //
 // e.g. A profile consisting of a set of properties relevant to a persistent

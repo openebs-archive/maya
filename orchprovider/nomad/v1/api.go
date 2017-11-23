@@ -10,7 +10,7 @@ import (
 )
 
 // NomadApiInterface provides a means to issue APIs against a Nomad cluster.
-// These APIs are futher categorized into Networking & Storage specific APIs.
+// These APIs are further categorized into Networking & Storage specific APIs.
 type NomadApiInterface interface {
 
 	// Name of the Nomad API implementor

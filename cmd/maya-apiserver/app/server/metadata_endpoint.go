@@ -23,7 +23,7 @@ func (s *HTTPServer) MetaSpecificRequest(resp http.ResponseWriter, req *http.Req
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 
-	// We do an exact suffix comparision
+	// We do an exact suffix comparison
 	switch {
 
 	case strings.Compare(path, "/instance-id") == 0:

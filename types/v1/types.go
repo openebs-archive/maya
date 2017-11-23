@@ -342,7 +342,7 @@ type VolumeSnapshotStatus struct {
 	// +optional
 	CreationTimestamp Time `json:"creationTimestamp" protobuf:"bytes,1,opt,name=creationTimestamp"`
 
-	// Representes the lates available observations about the volume snapshot
+	// Represents the lates available observations about the volume snapshot
 	Conditions []VolumeSnapshotCondition `json:"conditions" protobuf:"bytes,2,rep,name=conditions"`
 }
 
