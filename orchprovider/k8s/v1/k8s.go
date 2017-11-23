@@ -812,12 +812,17 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		if err != nil {
 			return nil, err
 		}
-		// get the sc container
+		// get the sidecar container
 		scc, err := sc.generate()
 		if err != nil {
 			return nil, err
 		}
 		deploy.Spec.Template.Spec.Containers = append(deploy.Spec.Template.Spec.Containers, scc)
+
+		// Get the label & set it against the Pod
+		l, _ := NewLabelK8sObject(v1.DefaultMonitorLabelKey, v1.DefaultMonitorLabelValue)
+		lk, lv := l.generate()
+		deploy.Spec.Template.Labels[lk] = lv
 	}
 
 	// add persistent volume controller deployment

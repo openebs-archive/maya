@@ -23,6 +23,35 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+type LabelK8sObject struct {
+	// LabelKey is the label key that will be assigned
+	// to the targetted K8s object
+	LabelKey string
+
+	// LabelValue is the label value that will be assigned
+	// to the targetted K8s Object
+	LabelValue string
+}
+
+func NewLabelK8sObject(key string, val string) (*LabelK8sObject, error) {
+	if len(key) == 0 {
+		return nil, fmt.Errorf("Key is missing in label")
+	}
+
+	if len(val) == 0 {
+		return nil, fmt.Errorf("Value is missing in label")
+	}
+
+	return &LabelK8sObject{
+		LabelKey:   key,
+		LabelValue: val,
+	}, nil
+}
+
+func (l *LabelK8sObject) generate() (string, string) {
+	return l.LabelKey, l.LabelValue
+}
+
 type MonitoringSideCar struct {
 	// TargetIP is the IP Address of the
 	// service using which this sidecar will
