@@ -47,6 +47,19 @@ const (
 
 	// DefaultHostPath contains the default host path value
 	DefaultHostPath string = "/var/openebs"
+
+	// DefaultMonitor contains the default value for volume
+	// monitoring policy. Value of `false` indicates
+	// volume monitoring is disabled by default.
+	DefaultMonitor string = "false"
+
+	// DefaultMonitorLabelKey contains the default value for Label key
+	// used for volume monitoring polciy
+	DefaultMonitorLabelKey string = "monitoring"
+
+	// DefaultMonitorLabelValue contains the default value for Label value
+	// used for volume monitoring polciy
+	DefaultMonitorLabelValue string = "volume_exporter_prometheus"
 )
 
 var (

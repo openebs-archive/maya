@@ -421,6 +421,11 @@ func (e *okVsmNameVolumeProfile) VSMName() (string, error) {
 	return "ok-vsm-name", nil
 }
 
+// VSMName does not return any error
+func (e *okVsmNameVolumeProfile) Volume() (*v1.Volume, error) {
+	return &v1.Volume{}, nil
+}
+
 // ControllerImage does not return any error
 func (e *okVsmNameVolumeProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
 	return []string{"k=v:NoSchedule"}, true, nil

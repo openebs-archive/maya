@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	orchProfile "github.com/openebs/maya/types/v1/profile/orchestrator"
 	volProfile "github.com/openebs/maya/volume/profiles"
@@ -20,6 +22,108 @@ import (
 
 	"k8s.io/client-go/rest"
 )
+
+type LabelK8sObject struct {
+	// LabelKey is the label key that will be assigned
+	// to the targetted K8s object
+	LabelKey string
+
+	// LabelValue is the label value that will be assigned
+	// to the targetted K8s Object
+	LabelValue string
+}
+
+func NewLabelK8sObject(key string, val string) (*LabelK8sObject, error) {
+	if len(key) == 0 {
+		return nil, fmt.Errorf("Key is missing in label")
+	}
+
+	if len(val) == 0 {
+		return nil, fmt.Errorf("Value is missing in label")
+	}
+
+	return &LabelK8sObject{
+		LabelKey:   key,
+		LabelValue: val,
+	}, nil
+}
+
+func (l *LabelK8sObject) generate() (string, string) {
+	return l.LabelKey, l.LabelValue
+}
+
+type MonitoringSideCar struct {
+	// TargetIP is the IP Address of the
+	// service using which this sidecar will
+	// pull metrics info
+	TargetIP string
+
+	// Image of this sidecar
+	Image string `json:"image,omitempty"`
+
+	// SideCar is the K8s type that represents a sidecar
+	SideCar k8sApiV1.Container
+}
+
+// monSideCarTpl is the K8s type (used as a template) that gets
+// built as a sidecar
+var monSideCarTpl = k8sApiV1.Container{
+	Name:  "maya-volume-exporter",
+	Image: "openebs/m-exporter:ci",
+	Command: []string{
+		"maya-volume-exporter",
+	},
+	Args: []string{
+		"-c=http://__TARGET_IP__:9501",
+	},
+	Ports: []k8sApiV1.ContainerPort{
+		k8sApiV1.ContainerPort{
+			ContainerPort: 9500,
+		},
+	},
+}
+
+// NewMonitoringSideCar returns a new instance of MonitoringSideCar.
+//
+// NOTE:
+//  val can have following values:
+//  1/ `true` or `1` or `yes` or `ok` or
+//  2/ `image: some_repo/some_image:some_tag`
+func NewMonitoringSideCar(val string, targetIPAdd string) (*MonitoringSideCar, error) {
+	// create a new instance
+	m := &MonitoringSideCar{}
+
+	// truthy value indicates use of defaults in the sidecar
+	// Otherwise specific values has been provided to generate the sidecar
+	if !util.CheckTruthy(val) {
+		// set with provided/specific values
+		err := yaml.Unmarshal([]byte(val), m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	m.TargetIP = targetIPAdd
+	m.SideCar = monSideCarTpl
+
+	if len(m.TargetIP) == 0 {
+		return nil, fmt.Errorf("Monitoring target IP is missing")
+	}
+
+	return m, nil
+}
+
+// generate returns a K8s Container type from the yaml specification
+func (m *MonitoringSideCar) generate() (k8sApiV1.Container, error) {
+
+	m.SideCar.Args[0] = strings.Replace(m.SideCar.Args[0], "__TARGET_IP__", m.TargetIP, 1)
+
+	if len(m.Image) != 0 {
+		m.SideCar.Image = m.Image
+	}
+
+	return m.SideCar, nil
+}
 
 // K8sUtilGetter is an abstraction to fetch instances of K8sUtilInterface
 type K8sUtilGetter interface {
