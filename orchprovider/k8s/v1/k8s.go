@@ -808,7 +808,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	isMonitoring := !util.CheckFalsy(vol.Monitor)
 	if isMonitoring {
 		// get the sidecar instance
-		sc, err := NewMonitoringSideCar(vol.Monitor, clusterIP)
+		sc, err := NewMonitoringSideCar(vol.Monitor)
 		if err != nil {
 			return nil, err
 		}
