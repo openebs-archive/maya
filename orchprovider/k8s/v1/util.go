@@ -9,6 +9,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 	orchProfile "github.com/openebs/maya/types/v1/profile/orchestrator"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
@@ -191,6 +192,21 @@ func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
 
 	// new key representation
 	_ = p.AddMultiples(string(v1.JivaControllerStatusVK), status, true)
+}
+
+func (p *VolumeMarkerBuilder) AddControllerContainerStatuses(cp k8sApiV1.Pod) {
+	for _, current := range cp.Status.ContainerStatuses {
+		if current.State.Waiting != nil {
+			// Nothing to be done
+			return
+		}
+
+		if current.Ready == true && current.State.Running != nil {
+			_ = p.AddMultiples(string(v1.ControllerContainerStatus), "Running", true)
+		} else {
+			_ = p.AddMultiples(string(v1.ControllerContainerStatus), "NotRunning", true)
+		}
+	}
 }
 
 //
@@ -464,6 +480,10 @@ type K8sClient interface {
 	// PVCOps provides a PVCInterface that exposes various CRUD operations
 	// w.r.t PVC
 	PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error)
+
+	// PvStatus provides a PV object to get the status information related to
+	// volume
+	PvStatus(name string) (*k8sApiV1.PersistentVolume, error)
 }
 
 // K8sClientV2 is an abstraction to operate on various k8s entities.
@@ -707,6 +727,32 @@ func (k *k8sUtil) PVCOps() (k8sCoreV1.PersistentVolumeClaimInterface, error) {
 	}
 
 	return cs.CoreV1().PersistentVolumeClaims(ns), nil
+}
+
+// PvStatus will get the status of Persistent Volume from k8s
+func (k *k8sUtil) PvStatus(name string) (*k8sApiV1.PersistentVolume, error) {
+	var cs *kubernetes.Clientset
+
+	inC, err := k.IsInCluster()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = k.NS()
+	if err != nil {
+		return nil, err
+	}
+
+	if inC {
+		cs, err = k.getInClusterCS()
+	} else {
+		cs, err = k.getOutClusterCS()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	return cs.CoreV1().PersistentVolumes().Get(name, metav1.GetOptions{})
 }
 
 // k8sUtil implements K8sClientV2 interface. Hence it returns
@@ -964,6 +1010,25 @@ func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 		annotations[string(v1.ControllerStatusAPILbl)] = current
 	} else {
 		annotations[string(v1.ControllerStatusAPILbl)] = existing + "," + current
+	}
+}
+
+func SetContainerStatus(cp k8sApiV1.Pod, annotations map[string]string) {
+	for _, current := range cp.Status.ContainerStatuses {
+		if current.State.Waiting != nil {
+			// Nothing to be done
+			return
+		}
+
+		//existing := strings.TrimSpace(annotations[string(v1.ControllerContainerStatus)])
+
+		// Set the value or add to the existing values if not added earlier
+		if current.Ready == true {
+			annotations[string(v1.ControllerContainerStatus)] = "Running"
+		} else {
+			annotations[string(v1.ControllerStatusAPILbl)] = "NotRunning"
+		}
+
 	}
 }
 
