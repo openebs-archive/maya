@@ -148,14 +148,15 @@ type enforcePropertyFn func(*JivaK8sPolicies) error
 // enforceCapacity enforces capacity volume
 // policy
 func enforceCapacity(p *JivaK8sPolicies) error {
+	// merge from old label;
+	// this comes from PVC through openebs provisioner
+	if len(p.volume.Capacity) == 0 {
+		p.volume.Capacity = p.volume.Labels.CapacityOld
+	}
+	
 	// merge from sc policy
 	if len(p.volume.Capacity) == 0 {
 		p.volume.Capacity = p.scPolicies[string(v1.CapacityVK)]
-	}
-
-	// merge from old label
-	if len(p.volume.Capacity) == 0 {
-		p.volume.Capacity = p.volume.Labels.CapacityOld
 	}
 
 	// merge from env variable & then from default
