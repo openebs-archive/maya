@@ -1002,7 +1002,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Name: v1.DefaultJivaMountName(),
 							VolumeSource: k8sApiV1.VolumeSource{
 								HostPath: &k8sApiV1.HostPathVolumeSource{
-									Path: vol.HostPath,
+									Path: vol.HostPath + "/" + vol.Name,
 								},
 							},
 						},
