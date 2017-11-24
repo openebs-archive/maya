@@ -89,7 +89,7 @@ var monSideCarTpl = k8sApiV1.Container{
 //  val can have following values:
 //  1/ `true` or `1` or `yes` or `ok` or
 //  2/ `image: some_repo/some_image:some_tag`
-func NewMonitoringSideCar(val string, targetIPAdd string) (*MonitoringSideCar, error) {
+func NewMonitoringSideCar(val string) (*MonitoringSideCar, error) {
 	// create a new instance
 	m := &MonitoringSideCar{}
 
@@ -103,12 +103,9 @@ func NewMonitoringSideCar(val string, targetIPAdd string) (*MonitoringSideCar, e
 		}
 	}
 
-	m.TargetIP = targetIPAdd
+	// When deploying as sidecar, the targetIP should be 127.0.0.1
+	m.TargetIP = "127.0.0.1"
 	m.SideCar = monSideCarTpl
-
-	if len(m.TargetIP) == 0 {
-		return nil, fmt.Errorf("Monitoring target IP is missing")
-	}
 
 	return m, nil
 }
