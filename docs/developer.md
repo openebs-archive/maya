@@ -22,7 +22,7 @@ cd $GOPATH/src/github.com/openebs
 git clone https://github.com/$user/maya.git
 
 # Configure remote upstream
-cd $GOPATH/github.com/openebs/maya
+cd $GOPATH/src/github.com/openebs/maya
 git remote add upstream https://github.com/openebs/maya.git
 
 # Never push to upstream master
@@ -36,7 +36,7 @@ git remote -v
 Open a terminal on your local host. Change directory to the maya-fork root.
 
 ```sh
-$ cd $GOPATH/github.com/openebs/maya
+$ cd $GOPATH/src/github.com/openebs/maya
 ```
 
  Checkout the master branch.
@@ -133,7 +133,7 @@ $ cd $GOPATH/github.com/openebs/maya
  ### 4. Build
 
 ```sh
- cd $GOPATH/github.com/openebs/maya
+ cd $GOPATH/src/github.com/openebs/maya
  make dev
  ```
 
@@ -152,7 +152,7 @@ $ cd $GOPATH/github.com/openebs/maya
  #### Test
 
  ```sh
- cd $GOPATH/github.com/openebs/maya
+ cd $GOPATH/src/github.com/openebs/maya
 
  # Run every unit test
  make test
