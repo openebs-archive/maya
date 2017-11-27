@@ -509,9 +509,29 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		return nil, err
 	}
 
-	glog.Infof("Fetching info on VSM '%s: %s'", ns, vsm)
+	glog.Infof("Fetching info on volume '%s: %s'", ns, vsm)
 
-	annotations := map[string]string{}
+	//annotations := map[string]string{}
+
+	// This will hold all the volume markers that are already available
+	// as annotations in Deployment objects or as values in Pods & Containers
+	mb := NewVolumeMarkerBuilder()
+
+	cDeploys, err := k.getControllerDeploys(vsm, dOps)
+	if err != nil {
+		return nil, err
+	}
+
+	if cDeploys != nil && len(cDeploys.Items) > 0 {
+		doesExist = true
+		for _, cd := range cDeploys.Items {
+			// Extract the existing annotations
+			b := GetVolumeMarkerBuilder(cd.Annotations)
+			mb.AddMarkers(b.Items)
+		}
+	} else {
+		glog.Warningf("Missing controller Deployment(s) for volume '%s: %s'", ns, vsm)
+	}
 
 	// Extract from Replica Deployments
 	rDeploys, err := k.getReplicaDeploys(vsm, dOps)
@@ -522,11 +542,15 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if rDeploys != nil && len(rDeploys.Items) > 0 {
 		doesExist = true
 		for _, rd := range rDeploys.Items {
-			SetReplicaCount(rd, annotations)
-			SetReplicaVolSize(rd, annotations)
+			// Extract the existing annotations
+			b := GetVolumeMarkerBuilder(rd.Annotations)
+			mb.AddMarkers(b.Items)
+
+			mb.AddReplicaCount(rd)
+			mb.AddVolumeCapacity(rd)
 		}
 	} else {
-		glog.Warningf("Missing Replica Deployment(s) for VSM '%s: %s'", ns, vsm)
+		glog.Warningf("Missing Replica Deployment(s) for volume '%s: %s'", ns, vsm)
 	}
 
 	// Extract from Controller Pods
@@ -538,11 +562,11 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if cPods != nil && len(cPods.Items) > 0 {
 		doesExist = true
 		for _, cp := range cPods.Items {
-			SetControllerIPs(cp, annotations)
-			SetControllerStatuses(cp, annotations)
+			mb.AddControllerIPs(cp)
+			mb.AddControllerStatuses(cp)
 		}
 	} else {
-		glog.Warningf("Missing Controller Pod(s) for VSM '%s: %s'", ns, vsm)
+		glog.Warningf("Missing Controller Pod(s) for volume '%s: %s'", ns, vsm)
 	}
 
 	// Extract from Replica Pods
@@ -554,11 +578,11 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if rPods != nil && len(rPods.Items) > 0 {
 		doesExist = true
 		for _, rp := range rPods.Items {
-			SetReplicaIPs(rp, annotations)
-			SetReplicaStatuses(rp, annotations)
+			mb.AddReplicaIPs(rp)
+			mb.AddReplicaStatuses(rp)
 		}
 	} else {
-		glog.Warningf("Missing Replica Pod(s) for VSM '%s: %s'", ns, vsm)
+		glog.Warningf("Missing Replica Pod(s) for volume '%s: %s'", ns, vsm)
 	}
 
 	// Extract from Controller Services
@@ -570,28 +594,27 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if cSvcs != nil && len(cSvcs.Items) > 0 {
 		doesExist = true
 		for _, cSvc := range cSvcs.Items {
-			SetISCSITargetPortals(cSvc, annotations)
-			SetServiceStatuses(cSvc, annotations)
-			SetControllerClusterIPs(cSvc, annotations)
+			mb.AddISCSITargetPortal(cSvc)
+			mb.AddControllerClusterIP(cSvc)
 		}
 	} else {
-		glog.Warningf("Missing Controller Service(s) for VSM '%s: %s'", ns, vsm)
+		glog.Warningf("Missing Controller Service(s) for volume '%s: %s'", ns, vsm)
 	}
 
 	if !doesExist {
 		return nil, nil
 	}
 
-	SetIQN(vsm, annotations)
+	mb.AddIQN(vsm)
 
 	// TODO
 	// This is a temporary type that is used
 	// Will move to VSM type
 	pv := &v1.Volume{}
 	pv.Name = vsm
-	pv.Annotations = annotations
+	pv.Annotations = mb.AsAnnotations()
 
-	glog.Infof("Info fetched successfully for VSM '%s: %s'", ns, vsm)
+	glog.Infof("Info fetched successfully for volume '%s: %s'", ns, vsm)
 
 	return pv, nil
 }
@@ -825,6 +848,15 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		deploy.Spec.Template.Labels[lk] = lv
 	}
 
+	// We would set Annotations for the stated policies
+	// Why annotations ? Perhaps as these are mostly referential
+	// values. Labels may be considered for setting values.
+	mg := NewVolumeMarkerBuilder()
+	mg.AddMonitoringPolicy(vol.Monitor)
+	mg.AddVolumeType(string(vol.VolumeType))
+
+	deploy.Annotations = mg.AsAnnotations()
+
 	// add persistent volume controller deployment
 	dd, err := dOps.Create(deploy)
 	if err != nil {
@@ -1024,6 +1056,14 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 			return nil, err
 		}
 	}
+
+	// We would set Annotations for the stated policies
+	// Why annotations ? Perhaps as these are mostly referential
+	// values. Labels may be considered for setting values.
+	mg := NewVolumeMarkerBuilder()
+	mg.AddStoragePoolPolicy(vol.StoragePool)
+
+	deploy.Annotations = mg.AsAnnotations()
 
 	d, err := dOps.Create(deploy)
 	if err != nil {

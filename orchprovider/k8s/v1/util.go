@@ -23,6 +23,302 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// VolumeMarker represents a volume policy or property
+// as key:value format
+//
+// NOTE:
+//  A VolumeMarker can be transformed into a Label or into
+// a Annotation
+//
+// NOTE:
+//  It will be pointless to argue on whether to transform a
+// marker into a Label or an Annotation. It will be
+// fair to assume a Label to have actual value for a key
+// & Annotation to have a referential value for a key. However,
+// regidity in this assumption will not help us. This assumption
+// will be challenged when Label & Annotation updates comes
+// into picture.
+type VolumeMarker struct {
+	// Key is the annotation key
+	Key string
+
+	// Value is the marker value for a marker key
+	Value string
+
+	// IsMultiple flags if there is possibility to have multiple
+	// values for a marker key
+	IsMultiple bool
+
+	// Values is an array of marker values for a marker key
+	Values []string
+}
+
+//
+func (a VolumeMarker) GetValuesAsCommaSep() string {
+	if len(a.Values) == 0 {
+		return ""
+	}
+
+	return strings.Join(a.Values, ",")
+}
+
+// VolumeMarkerBuilder builds all the volume markers
+type VolumeMarkerBuilder struct {
+	// Items represent all the volume markers
+	Items []VolumeMarker
+}
+
+// NewVolumeMarkerBuilder will return a new instance of
+// VolumeMarkerBuilder
+func NewVolumeMarkerBuilder() *VolumeMarkerBuilder {
+	return &VolumeMarkerBuilder{}
+}
+
+// GetVolumeMarkerBuilder will return a new instance of
+// VolumeMarkerBuilder from the provided map
+func GetVolumeMarkerBuilder(pairs map[string]string) *VolumeMarkerBuilder {
+	var items []VolumeMarker
+	for k, v := range pairs {
+		m := VolumeMarker{
+			Key: k,
+		}
+
+		if strings.Contains(v, ",") {
+			m.IsMultiple = true
+			m.Values = strings.Split(v, ",")
+		} else {
+			m.Value = v
+		}
+
+		items = append(items, m)
+	}
+
+	return &VolumeMarkerBuilder{
+		Items: items,
+	}
+}
+
+//
+func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
+	p.Items = append(p.Items, markers...)
+}
+
+// AddMultiples will add a new volume marker or append to an existing
+// volume marker
+func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
+	if len(key) == 0 {
+		return fmt.Errorf("Marker key is missing")
+	}
+
+	if len(value) == 0 {
+		// nil value(s) are possible
+		value = string(v1.NilVV)
+	}
+
+	for _, a := range p.Items {
+		if a.Key == key && !isMul {
+			return fmt.Errorf("Duplicate marker key '%s'", key)
+		}
+	}
+
+	a := VolumeMarker{
+		Key:        key,
+		IsMultiple: isMul,
+	}
+
+	if isMul {
+		a.Values = append(a.Values, value)
+	} else {
+		a.Value = value
+	}
+
+	items := append(p.Items, a)
+	p.Items = items
+
+	return nil
+}
+
+// Add will add a new volume marker
+func (p *VolumeMarkerBuilder) Add(key, value string) error {
+	return p.AddMultiples(key, value, false)
+}
+
+// IsPresent flags if a volume marker is already available
+func (p *VolumeMarkerBuilder) IsPresent(key string) bool {
+	for _, a := range p.Items {
+		if a.Key == key {
+			return true
+		}
+	}
+
+	return false
+}
+
+// AddControllerIPs will add controller IP address(es) as a volume marker
+func (p *VolumeMarkerBuilder) AddControllerIPs(pod k8sApiV1.Pod) {
+	ip := pod.Status.PodIP
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.AddMultiples(string(v1.ControllerIPsAPILbl), ip, true)
+
+	// new key representation
+	_ = p.AddMultiples(string(v1.JivaControllerIPsVK), ip, true)
+}
+
+// AddReplicaIPs will add replica IP address(es) as a volume marker
+func (p *VolumeMarkerBuilder) AddReplicaIPs(pod k8sApiV1.Pod) {
+	ip := pod.Status.PodIP
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.AddMultiples(string(v1.ReplicaIPsAPILbl), ip, true)
+
+	// new key representation
+	_ = p.AddMultiples(string(v1.JivaReplicaIPsVK), ip, true)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
+	status := string(pod.Status.Phase)
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.AddMultiples(string(v1.ControllerStatusAPILbl), status, true)
+
+	// new key representation
+	_ = p.AddMultiples(string(v1.JivaControllerStatusVK), status, true)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddReplicaStatuses(pod k8sApiV1.Pod) {
+	status := string(pod.Status.Phase)
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.AddMultiples(string(v1.ReplicaStatusAPILbl), status, true)
+
+	// new key representation
+	_ = p.AddMultiples(string(v1.JivaReplicaStatusVK), status, true)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddReplicaCount(deploy k8sApisExtnsBeta1.Deployment) {
+	count := fmt.Sprint(*deploy.Spec.Replicas)
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.Add(string(v1.ReplicaCountAPILbl), count)
+
+	// new key representation
+	_ = p.Add(string(v1.JivaReplicasVK), count)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddVolumeCapacity(deploy k8sApisExtnsBeta1.Deployment) {
+	con := deploy.Spec.Template.Spec.Containers[0]
+
+	var capacity string
+	for i, arg := range con.Args {
+		if arg == "--size" {
+			// since value of capacity is provided after --size
+			capacity = con.Args[i+1]
+			break
+		}
+	}
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.Add(string(v1.VolumeSizeAPILbl), capacity)
+
+	// new key representation
+	_ = p.Add(string(v1.CapacityVK), capacity)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddIQN(volumeName string) {
+	iqn := string(v1.JivaIqnFormatPrefix) + ":" + volumeName
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.Add(string(v1.IQNAPILbl), iqn)
+
+	// new key representation
+	_ = p.Add(string(v1.JivaIQNVK), iqn)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddControllerClusterIP(svc k8sApiV1.Service) {
+	ip := svc.Spec.ClusterIP
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.Add(string(v1.ClusterIPsAPILbl), ip)
+
+	// new key representation
+	_ = p.Add(string(v1.JivaControllerClusterIPVK), ip)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddISCSITargetPortal(svc k8sApiV1.Service) {
+	ip := strings.TrimSpace(svc.Spec.ClusterIP)
+	ip = ip + ":" + string(v1.JivaISCSIPortDef)
+
+	// TODO
+	// Deprecate
+	// backward compatibility
+	_ = p.Add(string(v1.TargetPortalsAPILbl), ip)
+
+	// new key representation
+	_ = p.Add(string(v1.JivaTargetPortalVK), ip)
+}
+
+func (p *VolumeMarkerBuilder) AddVolumeType(value string) {
+	_ = p.Add(string(v1.VolumeTypeVK), value)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddStoragePoolPolicy(value string) {
+	_ = p.Add(string(v1.StoragePoolVK), value)
+}
+
+//
+func (p *VolumeMarkerBuilder) AddMonitoringPolicy(value string) {
+	_ = p.Add(string(v1.MonitorVK), value)
+}
+
+// Build returns the volume markers as a map of strings
+func (p *VolumeMarkerBuilder) Build() map[string]string {
+	markers := map[string]string{}
+	for _, a := range p.Items {
+		if a.IsMultiple {
+			markers[a.Key] = a.GetValuesAsCommaSep()
+		} else {
+			markers[a.Key] = a.Value
+		}
+	}
+
+	return markers
+}
+
+// AsAnnotations returns the volume markers as annotations
+func (p *VolumeMarkerBuilder) AsAnnotations() map[string]string {
+	return p.Build()
+}
+
+// AsLabels returns the volume markers as labels
+func (p *VolumeMarkerBuilder) AsLabels() map[string]string {
+	return p.Build()
+}
+
 type LabelK8sObject struct {
 	// LabelKey is the label key that will be assigned
 	// to the targetted K8s object

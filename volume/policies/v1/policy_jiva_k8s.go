@@ -153,7 +153,7 @@ func enforceCapacity(p *JivaK8sPolicies) error {
 	if len(p.volume.Capacity) == 0 {
 		p.volume.Capacity = p.volume.Labels.CapacityOld
 	}
-	
+
 	// merge from sc policy
 	if len(p.volume.Capacity) == 0 {
 		p.volume.Capacity = p.scPolicies[string(v1.CapacityVK)]
