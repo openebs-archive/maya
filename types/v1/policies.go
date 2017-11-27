@@ -134,6 +134,10 @@ const (
 
 	// VolumeTypeVK is the key to fetch the volume type
 	VolumeTypeVK VolumeKey = "openebs.io/volume-type"
+
+	// ControllerContainerStatus is the key to fetch the status of
+	// containers in a pod
+	ControllerContainerStatus MayaAPIServiceOutputLabel = "openebs.io/controller-container-status"
 )
 
 // VolumeValue is a typed string used to represent openebs

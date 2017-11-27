@@ -335,10 +335,6 @@ type MayaAPIServiceOutputLabel string
 const (
 	ReplicaStatusAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-status"
 
-	//ReplicaContainerStatus MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-cont-status"
-
-	ControllerContainerStatus MayaAPIServiceOutputLabel = "vsm.openebs.io/controller-container-status"
-
 	ControllerStatusAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/controller-status"
 
 	TargetPortalsAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/targetportals"
