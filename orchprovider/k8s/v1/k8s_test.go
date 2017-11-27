@@ -641,7 +641,7 @@ func TestCreateControllerDeploymentReturnsNoSupportCtrlImg(t *testing.T) {
 	}
 
 	n, _ := volProfile.VSMName()
-	expErr := fmt.Sprintf("VSM '%s' requires a controller container image", n)
+	expErr := fmt.Sprintf("Volume '%s' requires a controller container image", n)
 
 	if err != nil && err.Error() != expErr {
 		t.Errorf("TestCase: Error Message Match \n\tExpectedErr: '%s' \n\tActualErr: '%s'", expErr, err.Error())

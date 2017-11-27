@@ -337,7 +337,7 @@ const (
 
 	//ReplicaContainerStatus MayaAPIServiceOutputLabel = "vsm.openebs.io/replica-cont-status"
 
-	ControllerContainerStatus MayaAPIServiceOutputLabel = "vsm.openebs.io/container-status"
+	ControllerContainerStatus MayaAPIServiceOutputLabel = "vsm.openebs.io/controller-container-status"
 
 	ControllerStatusAPILbl MayaAPIServiceOutputLabel = "vsm.openebs.io/controller-status"
 
