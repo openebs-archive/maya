@@ -77,14 +77,15 @@ type VolumeLabels struct {
 
 // VolumeKey is a typed string used to represent openebs
 // volume related policy keys. These keys along with their
-// values will be fetched from various sources like
-// K8s StorageClass, maya.io, bots etc. during volume **provisioning**.
-// The commonality between these different sources are these keys.
+// values will be fetched from various K8s Kinds
 type VolumeKey string
 
 const (
 	// CapacityVK is the key to fetch volume capacity
 	CapacityVK VolumeKey = "openebs.io/capacity"
+
+	// JivaIQNVK is the key to fetch volume iqn
+	JivaIQNVK VolumeKey = "openebs.io/jiva-iqn"
 
 	// IsK8sServiceVK is the key to fetch a boolean indicating
 	// if a K8s service is required during volume provisioning
@@ -101,15 +102,47 @@ const (
 	// JivaControllerImageVK is the key to fetch the jiva controller image
 	JivaControllerImageVK VolumeKey = "openebs.io/jiva-controller-image"
 
-	// JivaReplicasVK is the key to fetch replica count
+	// JivaReplicasVK is the key to fetch jiva replica count
 	JivaReplicasVK VolumeKey = "openebs.io/jiva-replica-count"
 
-	// JivaControllersVK is the key to fetch controller count
+	// JivaControllersVK is the key to fetch jiva controller count
 	JivaControllersVK VolumeKey = "openebs.io/jiva-controller-count"
+
+	// JivaReplicaIPsVK is the key to fetch jiva replica IP Addresses
+	JivaReplicaIPsVK VolumeKey = "openebs.io/jiva-replica-ips"
+
+	// JivaControllerIPsVK is the key to fetch jiva controller IP Addresses
+	JivaControllerIPsVK VolumeKey = "openebs.io/jiva-controller-ips"
+
+	// JivaReplicaStatusVK is the key to fetch jiva replica status(-es)
+	JivaReplicaStatusVK VolumeKey = "openebs.io/jiva-replica-status"
+
+	// JivaControllerStatusVK is the key to fetch jiva controller status(-es)
+	JivaControllerStatusVK VolumeKey = "openebs.io/jiva-controller-status"
+
+	// JivaControllerClusterIPVK is the key to fetch jiva controller cluster ip
+	JivaControllerClusterIPVK VolumeKey = "openebs.io/jiva-controller-cluster-ip"
+
+	// JivaTargetPortalVK is the key to fetch jiva target portal address
+	JivaTargetPortalVK VolumeKey = "openebs.io/jiva-target-portal"
 
 	// StoragePoolVK is the key to fetch the name of storage pool
 	StoragePoolVK VolumeKey = "openebs.io/storage-pool"
 
 	// MonitorVK is the key to fetch the monitoring details
 	MonitorVK VolumeKey = "openebs.io/volume-monitor"
+
+	// VolumeTypeVK is the key to fetch the volume type
+	VolumeTypeVK VolumeKey = "openebs.io/volume-type"
+)
+
+// VolumeValue is a typed string used to represent openebs
+// volume related policy values.
+type VolumeValue string
+
+const (
+	// NilVV is the value that represents is Nil i.e. null value
+	// for any storage policy key. This can be a representation of
+	// blank, empty or in-progress status of a storage policy.
+	NilVV VolumeValue = "nil"
 )
