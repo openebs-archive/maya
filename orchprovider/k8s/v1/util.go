@@ -193,19 +193,72 @@ func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
 	_ = p.AddMultiples(string(v1.JivaControllerStatusVK), status, true)
 }
 
+// AddControllerContainerStatuses is to fetch the current state of controller containers
+// inside the pod
 func (p *VolumeMarkerBuilder) AddControllerContainerStatuses(cp k8sApiV1.Pod) {
 	for _, current := range cp.Status.ContainerStatuses {
+		value := v1.NilVV
 		if current.State.Waiting != nil {
-			// Nothing to be done
-			return
+			value = v1.ContainerWaitingVV
 		}
 
-		if current.Ready == true && current.State.Running != nil {
-			_ = p.AddMultiples(string(v1.ControllerContainerStatus), "Running", true)
-		} else {
-			_ = p.AddMultiples(string(v1.ControllerContainerStatus), "NotRunning", true)
+		if current.State.Terminated != nil {
+			value = v1.ContainerTerminatedVV
+		}
+
+		if current.State.Running != nil {
+			if current.Ready == true {
+				value = v1.ContainerRunningVV
+			} else {
+				value = v1.ContainerNotRunningVV
+			}
+		}
+		_ = p.AddMultiples(string(v1.ControllerContainerStatusVK), string(value), true)
+	}
+}
+
+// AddReplicaContainerStatuses is to fetch the current state of replica containers
+// inside the pod
+func (p *VolumeMarkerBuilder) AddReplicaContainerStatuses(cp k8sApiV1.Pod) {
+	for _, current := range cp.Status.ContainerStatuses {
+		value := v1.NilVV
+		if current.State.Waiting != nil {
+			value = v1.ContainerWaitingVV
+		}
+
+		if current.State.Terminated != nil {
+			value = v1.ContainerTerminatedVV
+		}
+
+		if current.State.Running != nil {
+			if current.Ready == true {
+				value = v1.ContainerRunningVV
+			} else {
+				value = v1.ContainerNotRunningVV
+			}
+		}
+		_ = p.AddMultiples(string(v1.ReplicaContainerStatusVK), string(value), true)
+	}
+}
+
+// IsRunning to compare the state of all containers in a pod
+/*func (p *VolumeMarkerBuilder) IsRunning(keys []string) bool {
+
+	for i := 1; i < len(keys); i++ {
+		if keys[i] != keys[0] {
+			return false
 		}
 	}
+	return true
+}
+*/
+
+// IsRunning to compare the state of all containers in a pod
+func (p *VolumeMarkerBuilder) IsRunning(pv *v1.Volume) bool {
+	if pv.Annotations["openebs.io/controller-container-status"] == v1.ContainerRunningVV && pv.Annotations["openebs.io/replica-container-status"] == v1.ContainerRunningVV {
+		return true
+	}
+	return false
 }
 
 //
@@ -982,7 +1035,7 @@ func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-func SetContainerStatus(cp k8sApiV1.Pod, annotations map[string]string) {
+/*func SetContainerStatus(cp k8sApiV1.Pod, annotations map[string]string) {
 	for _, current := range cp.Status.ContainerStatuses {
 		if current.State.Waiting != nil {
 			// Nothing to be done
@@ -999,6 +1052,7 @@ func SetContainerStatus(cp k8sApiV1.Pod, annotations map[string]string) {
 
 	}
 }
+*/
 
 //
 func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {

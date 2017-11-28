@@ -581,6 +581,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, rp := range rPods.Items {
 			mb.AddReplicaIPs(rp)
 			mb.AddReplicaStatuses(rp)
+			mb.AddReplicaContainerStatuses(rp)
 		}
 	} else {
 		glog.Warningf("Missing Replica Pod(s) for volume '%s: %s'", ns, vsm)
@@ -615,6 +616,11 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	pv.Name = vsm
 	pv.Annotations = mb.AsAnnotations()
 
+	if mb.IsRunning(pv) {
+		pv.Status.Phase = v1.ContainerRunningVV
+	} else {
+		pv.Status.Phase = v1.ContainerNotRunningVV
+	}
 	glog.Infof("Info fetched successfully for volume '%s: %s'", ns, vsm)
 
 	return pv, nil

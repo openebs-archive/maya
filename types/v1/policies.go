@@ -135,9 +135,13 @@ const (
 	// VolumeTypeVK is the key to fetch the volume type
 	VolumeTypeVK VolumeKey = "openebs.io/volume-type"
 
-	// ControllerContainerStatus is the key to fetch the status of
-	// containers in a pod
-	ControllerContainerStatus MayaAPIServiceOutputLabel = "openebs.io/controller-container-status"
+	// ControllerContainerStatusVK is the key to fetch the status of
+	// controller containers in a pod
+	ControllerContainerStatusVK VolumeKey = "openebs.io/controller-container-status"
+
+	// ReplicaContainerStatusVK is the key to fetch the status of
+	// replica containers in a pod
+	ReplicaContainerStatusVK VolumeKey = "openebs.io/replica-container-status"
 )
 
 // VolumeValue is a typed string used to represent openebs
@@ -149,4 +153,16 @@ const (
 	// for any storage policy key. This can be a representation of
 	// blank, empty or in-progress status of a storage policy.
 	NilVV VolumeValue = "nil"
+
+	// ContainerWaitingVV represents container waiting state
+	ContainerWaitingVV VolumeValue = "Waiting"
+
+	// ContainerTerminatedVV represents container terminated state
+	ContainerTerminatedVV VolumeValue = "Terminated"
+
+	// ContainerRunningVV represents container running state
+	ContainerRunningVV VolumeValue = "Running"
+
+	// ContainerNotRunningVV represents container not-running state
+	ContainerNotRunningVV VolumeValue = "NotRunning"
 )
