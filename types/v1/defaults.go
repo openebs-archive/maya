@@ -37,10 +37,10 @@ const (
 
 	// DefaultJivaControllerImage contains the default jiva controller
 	// image
-	DefaultJivaControllerImage string = "openebs/jiva:0.4.0"
+	DefaultJivaControllerImage string = "openebs/jiva:latest"
 
 	// DefaultJivaReplicaImage contains the default jiva replica image
-	DefaultJivaReplicaImage string = "openebs/jiva:0.4.0"
+	DefaultJivaReplicaImage string = "openebs/jiva:latest"
 
 	// DefaultStoragePool contains the name of default storage pool
 	DefaultStoragePool string = "default"
@@ -60,6 +60,10 @@ const (
 	// DefaultMonitorLabelValue contains the default value for Label value
 	// used for volume monitoring polciy
 	DefaultMonitorLabelValue string = "volume_exporter_prometheus"
+
+	// DefaultMonitoringImage contains the default image for
+	// volume monitoring
+	DefaultMonitoringImage string = "openebs/m-exporter:latest"
 )
 
 var (
