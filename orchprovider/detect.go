@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Detect the Container Orchestrator based on ENV variables
+// DetectOrchProviderFromEnv detects the Container Orchestrator from ENV variables
 func DetectOrchProviderFromEnv() string {
 
 	_, ok := os.LookupEnv("KUBERNETES_SERVICE_HOST")
