@@ -23,6 +23,40 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// OpenEBSImage represents an OpenEBS container image
+type OpenEBSImage struct {
+	// Image represents the image value
+	// e.g. openebs/m-apiserver:latest & so on
+	image string
+
+	// envKey represents the ENV variable key
+	// to fetch the image
+	envKey v1.ENVKey
+}
+
+//
+func NewOpenEBSImage(envKey v1.ENVKey) *OpenEBSImage {
+	return &OpenEBSImage{
+		envKey: envKey,
+	}
+}
+
+//
+func (o *OpenEBSImage) GetImage(useDefault bool) string {
+	val := v1.GetEnv(o.envKey)
+
+	if len(val) != 0 {
+		return val
+	}
+
+	def := ""
+	if useDefault {
+		def = v1.ENVKeyToDefaults[o.envKey]
+	}
+
+	return def
+}
+
 // VolumeMarker represents a volume policy or property
 // as key:value format
 //
@@ -357,6 +391,10 @@ type MonitoringSideCar struct {
 	// Image of this sidecar
 	Image string `json:"image,omitempty"`
 
+	// OImage is the wrapper over container image providing
+	// utility methods
+	OImage *OpenEBSImage
+
 	// SideCar is the K8s type that represents a sidecar
 	SideCar k8sApiV1.Container
 }
@@ -365,7 +403,7 @@ type MonitoringSideCar struct {
 // built as a sidecar
 var monSideCarTpl = k8sApiV1.Container{
 	Name:  "maya-volume-exporter",
-	Image: "openebs/m-exporter:ci",
+	Image: v1.DefaultMonitoringImage,
 	Command: []string{
 		"maya-volume-exporter",
 	},
@@ -379,15 +417,24 @@ var monSideCarTpl = k8sApiV1.Container{
 	},
 }
 
-// NewMonitoringSideCar returns a new instance of MonitoringSideCar.
+//
+func NewMonitoringSideCar() *MonitoringSideCar {
+	// create a new instance
+	return &MonitoringSideCar{
+		OImage: NewOpenEBSImage(v1.MonitorImageENVK),
+	}
+}
+
+// Set sets the MonitoringSideCar instance with appropriate value(s)
 //
 // NOTE:
 //  val can have following values:
 //  1/ `true` or `1` or `yes` or `ok` or
 //  2/ `image: some_repo/some_image:some_tag`
-func NewMonitoringSideCar(val string) (*MonitoringSideCar, error) {
-	// create a new instance
-	m := &MonitoringSideCar{}
+func (m *MonitoringSideCar) Set(val string) error {
+	if util.CheckFalsy(val) {
+		return fmt.Errorf("Monitoring is not enabled")
+	}
 
 	// truthy value indicates use of defaults in the sidecar
 	// Otherwise specific values has been provided to generate the sidecar
@@ -395,19 +442,22 @@ func NewMonitoringSideCar(val string) (*MonitoringSideCar, error) {
 		// set with provided/specific values
 		err := yaml.Unmarshal([]byte(val), m)
 		if err != nil {
-			return nil, err
+			return err
 		}
+	} else {
+		// update sidecar's specific property(-ies)
+		m.Image = m.OImage.GetImage(true)
 	}
 
 	// When deploying as sidecar, the targetIP should be 127.0.0.1
 	m.TargetIP = "127.0.0.1"
 	m.SideCar = monSideCarTpl
 
-	return m, nil
+	return nil
 }
 
-// generate returns a K8s Container type from the yaml specification
-func (m *MonitoringSideCar) generate() (k8sApiV1.Container, error) {
+// Get returns a K8s Container type from the yaml specification
+func (m *MonitoringSideCar) Get() (k8sApiV1.Container, error) {
 
 	m.SideCar.Args[0] = strings.Replace(m.SideCar.Args[0], "__TARGET_IP__", m.TargetIP, 1)
 

@@ -27,10 +27,14 @@ var falsyValues = map[string]bool{
 	"0":     true,
 	"NO":    true,
 	"FALSE": true,
+	"BLANK": true,
 }
 
 // CheckFalsy checks for non-truthiness of the passed argument.
 func CheckFalsy(falsy string) bool {
+	if len(falsy) == 0 {
+		falsy = "blank"
+	}
 	return falsyValues[strings.ToUpper(falsy)]
 }
 

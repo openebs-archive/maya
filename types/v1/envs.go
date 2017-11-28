@@ -78,79 +78,89 @@ const (
 
 	// MonitorENVK is the ENV key to fetch the volume monitoring details
 	MonitorENVK ENVKey = "OPENEBS_IO_VOLUME_MONITOR"
+
+	// MonitorImageENVK is the ENV key to fetch the volume monitoring image
+	MonitorImageENVK ENVKey = "OPENEBS_IO_VOLUME_MONITOR_IMAGE"
 )
+
+// ENVKeyToDefaults maps the ENV keys to corresponding default
+// values. This is required when ENV keys are not set & at
+// the same time default values are OK to be considered.
+var ENVKeyToDefaults = map[ENVKey]string{
+	MonitorImageENVK: DefaultMonitoringImage,
+}
 
 // VolumeTypeENV will fetch the value of volume type
 // from ENV variable if present
 func VolumeTypeENV() VolumeType {
-	val := getEnv(VolumeTypeENVK)
+	val := GetEnv(VolumeTypeENVK)
 	return VolumeType(val)
 }
 
 // OrchProviderENV will fetch the value of volume's orchestrator
 // from ENV variable if present
 func OrchProviderENV() OrchProvider {
-	val := getEnv(OrchProviderENVK)
+	val := GetEnv(OrchProviderENVK)
 	return OrchProvider(val)
 }
 
 func K8sStorageClassENV() string {
-	val := getEnv(K8sStorageClassENVK)
+	val := GetEnv(K8sStorageClassENVK)
 	return val
 }
 
 func NamespaceENV() string {
-	val := getEnv(NamespaceENVK)
+	val := GetEnv(NamespaceENVK)
 	return val
 }
 
 func K8sOutClusterENV() string {
-	val := getEnv(K8sOutClusterENVK)
+	val := GetEnv(K8sOutClusterENVK)
 	return val
 }
 
 func CapacityENV() string {
-	val := getEnv(CapacityENVK)
+	val := GetEnv(CapacityENVK)
 	return val
 }
 
 func JivaReplicasENV() *int32 {
-	val := util.StrToInt32(getEnv(JivaReplicasENVK))
+	val := util.StrToInt32(GetEnv(JivaReplicasENVK))
 	return val
 }
 
 func JivaReplicaImageENV() string {
-	val := getEnv(JivaReplicaImageENVK)
+	val := GetEnv(JivaReplicaImageENVK)
 	return val
 }
 
 func JivaControllersENV() *int32 {
-	val := util.StrToInt32(getEnv(JivaControllersENVK))
+	val := util.StrToInt32(GetEnv(JivaControllersENVK))
 	return val
 }
 
 func JivaControllerImageENV() string {
-	val := getEnv(JivaControllerImageENVK)
+	val := GetEnv(JivaControllerImageENVK)
 	return val
 }
 
 func StoragePoolENV() string {
-	val := getEnv(StoragePoolENVK)
+	val := GetEnv(StoragePoolENVK)
 	return val
 }
 
 func HostPathENV() string {
-	val := getEnv(HostPathENVK)
+	val := GetEnv(HostPathENVK)
 	return val
 }
 
 func MonitorENV() string {
-	val := getEnv(MonitorENVK)
+	val := GetEnv(MonitorENVK)
 	return val
 }
 
-// getEnv fetches the environment variable value from the machine's
+// GetEnv fetches the environment variable value from the machine's
 // environment
-func getEnv(envKey ENVKey) string {
+func GetEnv(envKey ENVKey) string {
 	return strings.TrimSpace(os.Getenv(string(envKey)))
 }

@@ -831,12 +831,14 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	isMonitoring := !util.CheckFalsy(vol.Monitor)
 	if isMonitoring {
 		// get the sidecar instance
-		sc, err := NewMonitoringSideCar(vol.Monitor)
+		sc := NewMonitoringSideCar()
+		err := sc.Set(vol.Monitor)
 		if err != nil {
 			return nil, err
 		}
+
 		// get the sidecar container
-		scc, err := sc.generate()
+		scc, err := sc.Get()
 		if err != nil {
 			return nil, err
 		}
