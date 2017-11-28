@@ -218,18 +218,6 @@ func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1
 }
 
 // IsRunning to compare the state of all containers in a pod
-/*func (p *VolumeMarkerBuilder) IsRunning(keys []string) bool {
-
-	for i := 1; i < len(keys); i++ {
-		if keys[i] != keys[0] {
-			return false
-		}
-	}
-	return true
-}
-*/
-
-// IsRunning to compare the state of all containers in a pod
 func (p *VolumeMarkerBuilder) IsRunning(pv *v1.Volume) bool {
 	if pv.Annotations[string(v1.ControllerContainerStatusVK)] == string(v1.ContainerRunningVV) &&
 		pv.Annotations[string(v1.ReplicaContainerStatusVK)] == string(v1.ContainerRunningVV) {
@@ -1011,25 +999,6 @@ func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 		annotations[string(v1.ControllerStatusAPILbl)] = existing + "," + current
 	}
 }
-
-/*func SetContainerStatus(cp k8sApiV1.Pod, annotations map[string]string) {
-	for _, current := range cp.Status.ContainerStatuses {
-		if current.State.Waiting != nil {
-			// Nothing to be done
-			return
-		}
-		existing := strings.TrimSpace(annotations[string(v1.ControllerContainerStatus)])
-
-		// Set the value or add to the existing values if not added earlier
-		if current.Ready == true {
-			annotations[string(v1.ControllerContainerStatus)] = existing + "," + "Running"
-		} else {
-			annotations[string(v1.ControllerContainerStatus)] = existing + "," + "NotRunning"
-		}
-
-	}
-}
-*/
 
 //
 func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {
