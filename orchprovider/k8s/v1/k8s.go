@@ -564,7 +564,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, cp := range cPods.Items {
 			mb.AddControllerIPs(cp)
 			mb.AddControllerStatuses(cp)
-			mb.AddControllerContainerStatuses(cp)
+			mb.AddContainerStatuses(cp, v1.ControllerContainerStatusVK)
 		}
 	} else {
 		glog.Warningf("Missing Controller Pod(s) for volume '%s: %s'", ns, vsm)
@@ -581,7 +581,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, rp := range rPods.Items {
 			mb.AddReplicaIPs(rp)
 			mb.AddReplicaStatuses(rp)
-			mb.AddReplicaContainerStatuses(rp)
+			mb.AddContainerStatuses(rp, v1.ReplicaContainerStatusVK)
 		}
 	} else {
 		glog.Warningf("Missing Replica Pod(s) for volume '%s: %s'", ns, vsm)
@@ -609,18 +609,16 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 
 	mb.AddIQN(vsm)
 
-	// TODO
-	// This is a temporary type that is used
-	// Will move to VSM type
 	pv := &v1.Volume{}
 	pv.Name = vsm
 	pv.Annotations = mb.AsAnnotations()
 
 	if mb.IsRunning(pv) {
-		pv.Status.Phase = v1.ContainerRunningVV
+		pv.Status.Phase = v1.VolumePhase(v1.VolumeRunningVV)
 	} else {
-		pv.Status.Phase = v1.ContainerNotRunningVV
+		pv.Status.Phase = v1.VolumePhase(v1.VolumeNotRunningVV)
 	}
+
 	glog.Infof("Info fetched successfully for volume '%s: %s'", ns, vsm)
 
 	return pv, nil

@@ -193,9 +193,9 @@ func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
 	_ = p.AddMultiples(string(v1.JivaControllerStatusVK), status, true)
 }
 
-// AddControllerContainerStatuses is to fetch the current state of controller containers
+// AddContainerStatuses is to fetch the current state of controller containers
 // inside the pod
-func (p *VolumeMarkerBuilder) AddControllerContainerStatuses(cp k8sApiV1.Pod) {
+func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1.VolumeKey) {
 	for _, current := range cp.Status.ContainerStatuses {
 		value := v1.NilVV
 		if current.State.Waiting != nil {
@@ -207,37 +207,13 @@ func (p *VolumeMarkerBuilder) AddControllerContainerStatuses(cp k8sApiV1.Pod) {
 		}
 
 		if current.State.Running != nil {
-			if current.Ready == true {
+			if current.Ready {
 				value = v1.ContainerRunningVV
 			} else {
 				value = v1.ContainerNotRunningVV
 			}
 		}
-		_ = p.AddMultiples(string(v1.ControllerContainerStatusVK), string(value), true)
-	}
-}
-
-// AddReplicaContainerStatuses is to fetch the current state of replica containers
-// inside the pod
-func (p *VolumeMarkerBuilder) AddReplicaContainerStatuses(cp k8sApiV1.Pod) {
-	for _, current := range cp.Status.ContainerStatuses {
-		value := v1.NilVV
-		if current.State.Waiting != nil {
-			value = v1.ContainerWaitingVV
-		}
-
-		if current.State.Terminated != nil {
-			value = v1.ContainerTerminatedVV
-		}
-
-		if current.State.Running != nil {
-			if current.Ready == true {
-				value = v1.ContainerRunningVV
-			} else {
-				value = v1.ContainerNotRunningVV
-			}
-		}
-		_ = p.AddMultiples(string(v1.ReplicaContainerStatusVK), string(value), true)
+		_ = p.AddMultiples(string(volumekey), string(value), true)
 	}
 }
 
@@ -255,7 +231,8 @@ func (p *VolumeMarkerBuilder) AddReplicaContainerStatuses(cp k8sApiV1.Pod) {
 
 // IsRunning to compare the state of all containers in a pod
 func (p *VolumeMarkerBuilder) IsRunning(pv *v1.Volume) bool {
-	if pv.Annotations["openebs.io/controller-container-status"] == v1.ContainerRunningVV && pv.Annotations["openebs.io/replica-container-status"] == v1.ContainerRunningVV {
+	if pv.Annotations[string(v1.ControllerContainerStatusVK)] == string(v1.ContainerRunningVV) &&
+		pv.Annotations[string(v1.ReplicaContainerStatusVK)] == string(v1.ContainerRunningVV) {
 		return true
 	}
 	return false

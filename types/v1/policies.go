@@ -165,4 +165,10 @@ const (
 
 	// ContainerNotRunningVV represents container not-running state
 	ContainerNotRunningVV VolumeValue = "NotRunning"
+
+	// VolumeRunningVV represents container running state
+	VolumeRunningVV VolumeValue = "Running"
+
+	// VolumeNotRunningVV represents container not-running state
+	VolumeNotRunningVV VolumeValue = "NotRunning"
 )
