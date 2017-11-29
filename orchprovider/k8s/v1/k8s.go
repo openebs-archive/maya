@@ -564,7 +564,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, cp := range cPods.Items {
 			mb.AddControllerIPs(cp)
 			mb.AddControllerStatuses(cp)
-			mb.AddContainerStatuses(cp, v1.ControllerContainerStatusVK)
+			mb.AddControllerContainerStatus(cp)
 		}
 	} else {
 		glog.Warningf("Missing Controller Pod(s) for volume '%s: %s'", ns, vsm)
@@ -581,7 +581,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, rp := range rPods.Items {
 			mb.AddReplicaIPs(rp)
 			mb.AddReplicaStatuses(rp)
-			mb.AddContainerStatuses(rp, v1.ReplicaContainerStatusVK)
+			mb.AddReplicaContainerStatus(rp)
 		}
 	} else {
 		glog.Warningf("Missing Replica Pod(s) for volume '%s: %s'", ns, vsm)

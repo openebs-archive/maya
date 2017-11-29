@@ -105,7 +105,7 @@ func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
 
 // AddMultiples will add a new volume marker or append to an existing
 // volume marker
-func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
+/*func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
 	if len(key) == 0 {
 		return fmt.Errorf("Marker key is missing")
 	}
@@ -134,8 +134,72 @@ func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error 
 
 	items := append(p.Items, a)
 	p.Items = items
+	fmt.Println(p.Items)
 
 	return nil
+}
+*/
+func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
+	if len(key) == 0 {
+		return fmt.Errorf("Marker key is missing")
+	}
+
+	if len(value) == 0 {
+		// nil value(s) are possible
+		value = string(v1.NilVV)
+	}
+
+	var m VolumeMarker
+	var isPresent bool
+	var mIndex int
+	for i, a := range p.Items {
+		if a.Key == key {
+			if !isMul {
+				return fmt.Errorf("Duplicate marker key '%s'", key)
+			}
+			m = a
+			isPresent = true
+			mIndex = i
+			break
+		}
+	}
+
+	if !isPresent {
+		// create a new marker if not available earlier
+		m = VolumeMarker{
+			Key:        key,
+			IsMultiple: isMul,
+		}
+	}
+
+	// Append or Set the value based on isMul flag
+	if isMul {
+		m.Values = append(m.Values, value)
+	} else {
+		m.Value = value
+	}
+
+	if isPresent {
+		// update as this is available already
+		p.Items[mIndex] = m
+	} else {
+		// add
+		items := append(p.Items, m)
+		p.Items = items
+	}
+
+	return nil
+}
+
+// GetMarker returns the volume marker if available
+func (p *VolumeMarkerBuilder) GetMarker(key string) (VolumeMarker, bool) {
+	for _, a := range p.Items {
+		if a.Key == key {
+			return a, true
+		}
+	}
+
+	return VolumeMarker{}, false
 }
 
 // Add will add a new volume marker
@@ -193,7 +257,19 @@ func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
 	_ = p.AddMultiples(string(v1.JivaControllerStatusVK), status, true)
 }
 
-// AddContainerStatuses is to fetch the current state of controller containers
+// AddControllerContainerStatus is to fetch state of controller containers
+func (p *VolumeMarkerBuilder) AddControllerContainerStatus(cp k8sApiV1.Pod) {
+
+	p.AddContainerStatuses(cp, v1.ControllerContainerStatusVK)
+}
+
+// AddReplicaContainerStatus is to fetch state of replica containers
+func (p *VolumeMarkerBuilder) AddReplicaContainerStatus(cp k8sApiV1.Pod) {
+
+	p.AddContainerStatuses(cp, v1.ReplicaContainerStatusVK)
+}
+
+// AddContainerStatuses is to fetch the current state of containers
 // inside the pod
 func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1.VolumeKey) {
 	for _, current := range cp.Status.ContainerStatuses {
@@ -219,9 +295,36 @@ func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1
 
 // IsRunning to compare the state of all containers in a pod
 func (p *VolumeMarkerBuilder) IsRunning(pv *v1.Volume) bool {
-	if pv.Annotations[string(v1.ControllerContainerStatusVK)] == string(v1.ContainerRunningVV) &&
-		pv.Annotations[string(v1.ReplicaContainerStatusVK)] == string(v1.ContainerRunningVV) {
-		return true
+	var cphase, rphase string
+	cstate := pv.Annotations[string(v1.ControllerContainerStatusVK)]
+	cresult := strings.Split(cstate, ",")
+
+	for i := range cresult {
+		if cresult[i] == string(v1.ContainerRunningVV) {
+			cphase = string(v1.ContainerRunningVV)
+
+		} else {
+			cphase = string(v1.ContainerNotRunningVV)
+		}
+
+	}
+	rstate := pv.Annotations[string(v1.ReplicaContainerStatusVK)]
+	rresult := strings.Split(rstate, ",")
+
+	for i := range rresult {
+		if rresult[i] == string(v1.ContainerRunningVV) {
+			rphase = string(v1.ContainerRunningVV)
+
+		} else {
+			rphase = string(v1.ContainerNotRunningVV)
+		}
+
+	}
+	if cphase == string(v1.ContainerRunningVV) {
+		if rphase == string(v1.ContainerRunningVV) {
+			return true
+		}
+		return false
 	}
 	return false
 }
