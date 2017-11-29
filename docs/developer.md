@@ -1,7 +1,8 @@
 # Contributing Guide
 
-To contribute openebs/maya firstly, you have to fork the openebs/maya repository. In any case, before you start working on your issue, sync
-your repository with the upstream openebs/maya master. Syncing ensures your repository has the latest changes.
+To contribute openebs/maya firstly, you have to fork the openebs/maya repository. But before that you need to create an issue or pick an existing issue from [open issues](https://github.com/openebs/openebs/issues)
+
+In any case, before you start working on your issue, sync your repository with the upstream openebs/maya master. Syncing ensures your repository has the latest changes.
 
 ### 1. Fork in the cloud
 
