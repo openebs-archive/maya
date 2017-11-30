@@ -23,11 +23,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// OpenEBSImage represents an OpenEBS container image
+/* OpenEBSImage represents an OpenEBS container image */
 type OpenEBSImage struct {
-	// Image represents the image value
-	// e.g. openebs/m-apiserver:latest & so on
-	image string
+	/* Image represents the image value
+	 e.g. openebs/m-apiserver:latest & so on
+	image string */
 
 	// envKey represents the ENV variable key
 	// to fetch the image
@@ -45,11 +45,12 @@ func NewOpenEBSImage(envKey v1.ENVKey) *OpenEBSImage {
 func (o *OpenEBSImage) GetImage(useDefault bool) string {
 	val := v1.GetEnv(o.envKey)
 
-	if len(val) != 0 {
+	if len(val) != 0
+	{
 		return val
 	}
 
-	def := ""
+	def :=  ""
 	if useDefault {
 		def = v1.ENVKeyToDefaults[o.envKey]
 	}
