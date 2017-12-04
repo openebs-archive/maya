@@ -456,14 +456,14 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 // ReadStorage will fetch information about the persistent volume
 //func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
 func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
-	// volProProfile is expected to have the VSM name
+	// volProProfile is expected to have the volume name
 	return k.readVSM("", volProProfile)
 }
 
-// readVSM will fetch information about a VSM
+// readVSM will fetch information about a volume
 func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 
-	// flag that checks if at-least one child object of VSM exists
+	// flag that checks if at-least one child object of Volume exists
 	doesExist := false
 
 	if volProProfile == nil {
@@ -509,7 +509,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		return nil, err
 	}
 
-	glog.Infof("Fetching info on volume '%s: %s'", ns, vsm)
+	glog.Infof("Fetching info on Volume '%s: %s'", ns, vsm)
 
 	//annotations := map[string]string{}
 
@@ -564,6 +564,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, cp := range cPods.Items {
 			mb.AddControllerIPs(cp)
 			mb.AddControllerStatuses(cp)
+			mb.AddControllerContainerStatus(cp)
 		}
 	} else {
 		glog.Warningf("Missing Controller Pod(s) for volume '%s: %s'", ns, vsm)
@@ -580,6 +581,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 		for _, rp := range rPods.Items {
 			mb.AddReplicaIPs(rp)
 			mb.AddReplicaStatuses(rp)
+			mb.AddReplicaContainerStatus(rp)
 		}
 	} else {
 		glog.Warningf("Missing Replica Pod(s) for volume '%s: %s'", ns, vsm)
@@ -607,12 +609,15 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 
 	mb.AddIQN(vsm)
 
-	// TODO
-	// This is a temporary type that is used
-	// Will move to VSM type
 	pv := &v1.Volume{}
 	pv.Name = vsm
 	pv.Annotations = mb.AsAnnotations()
+
+	if mb.IsVolumeRunning(pv) {
+		pv.Status.Phase = v1.VolumePhase(v1.VolumeRunningVV)
+	} else {
+		pv.Status.Phase = v1.VolumePhase(v1.VolumeNotRunningVV)
+	}
 
 	glog.Infof("Info fetched successfully for volume '%s: %s'", ns, vsm)
 
@@ -625,7 +630,7 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 		return nil, fmt.Errorf("Nil volume provisioner profile provided")
 	}
 
-	glog.Infof("Listing VSMs at orchestrator '%s: %s'", k.Label(), k.Name())
+	glog.Infof("Listing Volumes at orchestrator '%s: %s'", k.Label(), k.Name())
 
 	dl, err := k.getVSMDeployments(volProProfile)
 	if err != nil {
@@ -648,7 +653,7 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 
 		vsm := v1.SanitiseVSMName(d.Name)
 		if vsm == "" {
-			return nil, fmt.Errorf("VSM name could not be determined from K8s Deployment 'name: %s'", d.Name)
+			return nil, fmt.Errorf("Volume name could not be determined from K8s Deployment 'name: %s'", d.Name)
 		}
 
 		pv, err := k.readVSM(vsm, volProProfile)
@@ -660,7 +665,7 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 		pvl.Items = append(pvl.Items, *pv)
 	}
 
-	glog.Infof("Listed VSMs 'count: %d' at orchestrator '%s: %s'", len(pvl.Items), k.Label(), k.Name())
+	glog.Infof("Listed Volume 'count: %d' at orchestrator '%s: %s'", len(pvl.Items), k.Label(), k.Name())
 
 	return pvl, nil
 }
@@ -728,7 +733,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	}
 
 	if clusterIP == "" {
-		return nil, fmt.Errorf("VSM cluster IP is required to create controller for vsm 'name: %s'", vsm)
+		return nil, fmt.Errorf("Volume cluster IP is required to create controller for volume 'name: %s'", vsm)
 	}
 
 	cImg, imgSupport, err := volProProfile.ControllerImage()
@@ -737,7 +742,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	}
 
 	if !imgSupport {
-		return nil, fmt.Errorf("VSM '%s' requires a controller container image", vsm)
+		return nil, fmt.Errorf("Volume '%s' requires a controller container image", vsm)
 	}
 
 	k8sUtl := k8sOrchUtil(k, volProProfile)
@@ -754,7 +759,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		return nil, err
 	}
 
-	glog.Infof("Adding controller for VSM 'name: %s'", vsm)
+	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
@@ -880,7 +885,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	}
 
 	if clusterIP == "" {
-		return nil, fmt.Errorf("VSM cluster IP is required to create replica(s) for vsm 'name: %s'", vsm)
+		return nil, fmt.Errorf("Volume cluster IP is required to create replica(s) for volume 'name: %s'", vsm)
 	}
 
 	rImg, err := volProProfile.ReplicaImage()
@@ -924,7 +929,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	//for rcIndex := 1; rcIndex <= rCount; rcIndex++ {
 	//glog.Infof("Adding replica #%d for VSM '%s'", rcIndex, vsm)
 
-	glog.Infof("Adding replica(s) for VSM '%s'", vsm)
+	glog.Infof("Adding replica(s) for Volume '%s'", vsm)
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1072,7 +1077,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	glog.Infof("Successfully added replica(s) 'count: %d' for VSM '%s'", rCount, d.Name)
+	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", rCount, d.Name)
 
 	//glog.Infof("Successfully added replica #%d for VSM '%s'", rcIndex, d.Name)
 	//} -- end of for loop -- if manual replica addition
@@ -1383,7 +1388,7 @@ func (k *k8sOrchestrator) getDeploymentList(vsm string, volProProfile volProfile
 	}
 
 	if deployList == nil {
-		return nil, fmt.Errorf("VSM(s) '%s:%s' not found at orchestrator '%s:%s'", ns, vsm, k.Label(), k.Name())
+		return nil, fmt.Errorf("Volume(s) '%s:%s' not found at orchestrator '%s:%s'", ns, vsm, k.Label(), k.Name())
 	}
 
 	return deployList, nil
