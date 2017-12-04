@@ -105,40 +105,6 @@ func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
 
 // AddMultiples will add a new volume marker or append to an existing
 // volume marker
-/*func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
-	if len(key) == 0 {
-		return fmt.Errorf("Marker key is missing")
-	}
-
-	if len(value) == 0 {
-		// nil value(s) are possible
-		value = string(v1.NilVV)
-	}
-
-	for _, a := range p.Items {
-		if a.Key == key && !isMul {
-			return fmt.Errorf("Duplicate marker key '%s'", key)
-		}
-	}
-
-	a := VolumeMarker{
-		Key:        key,
-		IsMultiple: isMul,
-	}
-
-	if isMul {
-		a.Values = append(a.Values, value)
-	} else {
-		a.Value = value
-	}
-
-	items := append(p.Items, a)
-	p.Items = items
-	fmt.Println(p.Items)
-
-	return nil
-}
-*/
 func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
 	if len(key) == 0 {
 		return fmt.Errorf("Marker key is missing")
@@ -294,7 +260,7 @@ func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1
 }
 
 // IsRunning to compare the state of all containers in a pod
-func (p *VolumeMarkerBuilder) IsRunning(pv *v1.Volume) bool {
+func (p *VolumeMarkerBuilder) IsVolumeRunning(pv *v1.Volume) bool {
 	var cphase, rphase string
 	cstate := pv.Annotations[string(v1.ControllerContainerStatusVK)]
 	cresult := strings.Split(cstate, ",")

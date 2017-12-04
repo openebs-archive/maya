@@ -613,7 +613,7 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	pv.Name = vsm
 	pv.Annotations = mb.AsAnnotations()
 
-	if mb.IsRunning(pv) {
+	if mb.IsVolumeRunning(pv) {
 		pv.Status.Phase = v1.VolumePhase(v1.VolumeRunningVV)
 	} else {
 		pv.Status.Phase = v1.VolumePhase(v1.VolumeNotRunningVV)
