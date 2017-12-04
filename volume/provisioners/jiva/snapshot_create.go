@@ -43,11 +43,7 @@ func Snapshot(snapname string, controllerIP string, labels map[string]string) (c
 	}
 
 	err = c.post(url, input, &output)
-	if err != nil {
-		return output, err
-	}
-
-	return output, nil
+	return output, err
 }
 
 func (c *ControllerClient) post(path string, req, resp interface{}) error {

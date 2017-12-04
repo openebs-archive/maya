@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/ugorji/go/codec"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +12,10 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/ugorji/go/codec"
 )
 
 var (
@@ -227,7 +228,7 @@ func testPrettyPrint(pretty string, prettyFmt bool, t *testing.T) {
 	}
 
 	if !bytes.Equal(expected.Bytes(), actual) {
-		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", string(expected.Bytes()), string(actual))
+		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", expected.String(), string(actual))
 	}
 }
 

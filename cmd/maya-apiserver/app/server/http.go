@@ -256,7 +256,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		reqURL := req.URL.String()
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
 		}()
 
 		// It captures the no of requests and duration of request coming on "/latest/volumes" endpoint.
