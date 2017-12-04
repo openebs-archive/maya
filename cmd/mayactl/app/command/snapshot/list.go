@@ -59,7 +59,7 @@ func (c *CmdSnaphotCreateOptions) RunSnapshotList(cmd *cobra.Command) error {
 
 	resp := mapiserver.ListSnapshot(c.volName)
 	if resp != nil {
-		return errors.New(fmt.Sprintf("Error: %v", resp))
+		return fmt.Errorf("Error: %v", resp)
 	}
 
 	fmt.Printf("Volume snapshots are:%v\n", resp)

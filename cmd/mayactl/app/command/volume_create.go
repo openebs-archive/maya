@@ -81,7 +81,7 @@ func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 	resp := mapiserver.CreateVolume(c.volName, c.size)
 	if resp != nil {
-		return errors.New(fmt.Sprintf("Error: %v", resp))
+		return fmt.Errorf("Error: %v", resp)
 	}
 
 	fmt.Printf("Volume Successfully Created:%v\n", c.volName)

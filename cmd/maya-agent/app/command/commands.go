@@ -1,8 +1,6 @@
 package command
 
 import (
-	"fmt"
-
 	goflag "flag"
 
 	"github.com/golang/glog"
@@ -12,7 +10,7 @@ import (
 
 var (
 	cmdName = "maya-agent"
-	usage   = fmt.Sprintf("%s", cmdName)
+	usage   = cmdName
 )
 
 // MayaAgentOptions defines a type for the options of MayaAgent
