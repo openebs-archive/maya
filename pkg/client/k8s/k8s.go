@@ -50,6 +50,10 @@ type K8sClient struct {
 	// NOTE: This property enables unit testing
 	Service *api_core_v1.Service
 
+	// ConfigMap refers to a K8s Service object
+	// NOTE: This property enables unit testing
+	ConfigMap *api_core_v1.ConfigMap
+
 	// Deployment refers to a K8s Deployment object
 	// NOTE: This property enables unit testing
 	Deployment *api_extn_v1beta1.Deployment
@@ -73,6 +77,26 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 		ns: ns,
 		cs: cs,
 	}, nil
+}
+
+// cmOps is a utility function that provides a instance capable of
+// executing various K8s ConfigMap related operations.
+func (k *K8sClient) cmOps() (typed_core_v1.ConfigMapInterface, error) {
+	return k.cs.CoreV1().ConfigMaps(k.ns), nil
+}
+
+// GetConfigMap fetches the K8s ConfigMap with the provided name
+func (k *K8sClient) GetConfigMap(name string, opts mach_apis_meta_v1.GetOptions) (*api_core_v1.ConfigMap, error) {
+	if k.ConfigMap != nil {
+		return k.ConfigMap, nil
+	}
+
+	cops, err := k.cmOps()
+	if err != nil {
+		return nil, err
+	}
+
+	return cops.Get(name, opts)
 }
 
 // pvcOps is a utility function that provides a instance capable of

@@ -24,6 +24,29 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func TestGetConfigMap(t *testing.T) {
+	tests := []struct {
+		name  string
+		opts  mach_apis_meta_v1.GetOptions
+		cm    *api_core_v1.ConfigMap
+		isErr bool
+	}{
+		{"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.ConfigMap{}, false},
+	}
+
+	for _, test := range tests {
+		kc := &K8sClient{
+			ConfigMap: test.cm,
+		}
+
+		_, err := kc.GetConfigMap(test.name, test.opts)
+
+		if !test.isErr && err != nil {
+			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+		}
+	}
+}
+
 func TestGetPVC(t *testing.T) {
 	tests := []struct {
 		name  string
