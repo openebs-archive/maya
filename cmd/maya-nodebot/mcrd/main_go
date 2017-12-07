@@ -1,0 +1,168 @@
+package mcrd
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/golang/glog"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+
+	openebsioclientset "github.com/openebs/maya/crd-code-generation/pkg/storagepoolclaim-client/clientset/versioned"
+)
+
+//var (
+//	kuberconfig = flag.String("kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+//master = flag.String("master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+//)
+
+func Checkcrd(kuberconfig string) {
+	//flag.Parse()
+	var master string
+	fmt.Println("at checkcrd")
+	cfg, err := clientcmd.BuildConfigFromFlags(master, kuberconfig)
+	if err != nil {
+		glog.Fatalf("Error building kubeconfig: %v", err)
+	}
+
+	openebsClient, err := openebsioclientset.NewForConfig(cfg)
+	if err != nil {
+		glog.Fatalf("Error building example clientset: %v", err)
+	}
+
+	list, err := openebsClient.ExampleV1().Storagepoolclaims("default").List(metav1.ListOptions{})
+	if err != nil {
+		glog.Fatalf("Error listing all spcs: %v", err)
+	}
+
+	for _, sp := range list.Items {
+		fmt.Printf("spc %s with format %s with mountpoint %s\n", sp.Spec.Name, sp.Spec.Format, sp.Spec.Mountpoint)
+	}
+
+	/*
+		var t time.Duration = 5000
+		//var oi openebsioclientset.Interface
+		out := openebsioinformers.NewSharedInformerFactory(openebsClient, t).Example().V1().Storagepoolclaims().Informer()
+		fmt.Println("out:", out)
+		//cache.New
+		handler := cache.ResourceEventHandlerFuncs{
+			AddFunc:    handleRsaAdd,
+			UpdateFunc: handleRsaUpdate,
+			DeleteFunc: handleRsaDelete,
+		}
+		//out.AddEventHandler(handler)
+
+		out.AddEventHandlerWithResyncPeriod(handler, 4000)
+		fmt.Println("indexer", out.GetIndexer().List())
+		for {
+			fmt.Println("cachestore", out.GetStore().List())
+			time.Sleep(2 * time.Second)
+		}
+
+	*/
+	var timeoutseconds int64 = 30
+	watch, err := openebsClient.ExampleV1().Storagepoolclaims("default").Watch(metav1.ListOptions{TimeoutSeconds: &timeoutseconds})
+	if err != nil {
+		fmt.Println("err : ", err)
+		os.Exit(1)
+	}
+	for {
+		select {
+		case w := <-watch.ResultChan():
+			switch w.Type {
+			case "ADDED":
+				fmt.Println("added")
+				break
+			case "MODIFIED":
+				fmt.Println("modified")
+				break
+			case "DELETED":
+				fmt.Println("deleted")
+				break
+			case "ERROR":
+				fmt.Println("error")
+				break
+			default:
+				fmt.Println("junk :", w.Type)
+				watch1, err := openebsClient.ExampleV1().Storagepoolclaims("default").Watch(metav1.ListOptions{Limit: 100})
+				if err != nil {
+					fmt.Println("err : ", err)
+					os.Exit(1)
+				}
+				watch = watch1
+				break
+				//watch.Stop()
+
+			}
+
+		}
+	}
+
+	//	watch.Stop()
+
+	/*
+		spcs := v1.StoragepoolclaimSpec{Name: "sde", Format: "ext4", Mountpoint: "/mnt/sde"}
+		spc := v1.Storagepoolclaim{Spec: spcs}
+		spc.GenerateName = spcs.Name
+		//v1.Storagepoolclaims={}
+		spcr, err := openebsClient.ExampleV1().Storagepoolclaims("default").Create(&spc)
+		if err != nil {
+			fmt.Println("unable to create spc", err)
+		}
+		fmt.Println("created spc", spcr)
+	*/
+}
+
+// Callback for new objects to an Rsa Informer
+func handleRsaAdd(newObj interface{}) {
+	// Make a copy of the object, to not mutate the original object from the local
+	// cache store
+	fmt.Println(" at handle rsa add")
+}
+
+// Callback for updates to an Rsa Informer
+func handleRsaUpdate(oldObj, newObj interface{}) {
+	// Make a copy of the object, to not mutate the original object from the local
+	// cache store
+	fmt.Println(" at handle rsa update")
+}
+
+// Callback for delete to an Rsa Informer
+func handleRsaDelete(oldObj interface{}) {
+	// Make a copy of the object, to not mutate the original object from the local
+	// cache store
+	fmt.Println(" at handle rsa delete")
+}
+
+/*
+// Create a deep-copy of an Rsa object
+func CopyObjToRawstorageadaptor(obj interface{}) (*Rawstorageadaptor, error) {
+	objCopy, err := api.Scheme.Copy(obj.(*Rawstorageadaptor))
+	if err != nil {
+		return nil, err
+	}
+
+	am := objCopy.(*Rawstorageadaptor)
+	if am.Metadata.Annotations == nil {
+		am.Metadata.Annotations = make(map[string]string)
+	}
+	return am, nil
+}
+
+// Attempt to deep copy an empty interface into an RsaList.
+func CopyObjToRawstorageadaptors(obj []interface{}) ([]Rawstorageadaptor, error) {
+	subs := []Rawstorageadaptor{}
+
+	for _, o := range obj {
+		sub, err := CopyObjToRawstorageadaptor(o)
+		if err != nil {
+			glog.Errorf("Failed to copy Rsa object for subsList: %v", err)
+			return nil, err
+		}
+		subs = append(subs, *sub)
+	}
+
+	return subs, nil
+}
+*/
