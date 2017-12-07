@@ -81,8 +81,8 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 
 // cmOps is a utility function that provides a instance capable of
 // executing various K8s ConfigMap related operations.
-func (k *K8sClient) cmOps() (typed_core_v1.ConfigMapInterface, error) {
-	return k.cs.CoreV1().ConfigMaps(k.ns), nil
+func (k *K8sClient) cmOps() typed_core_v1.ConfigMapInterface {
+	return k.cs.CoreV1().ConfigMaps(k.ns)
 }
 
 // GetConfigMap fetches the K8s ConfigMap with the provided name
@@ -91,18 +91,14 @@ func (k *K8sClient) GetConfigMap(name string, opts mach_apis_meta_v1.GetOptions)
 		return k.ConfigMap, nil
 	}
 
-	cops, err := k.cmOps()
-	if err != nil {
-		return nil, err
-	}
-
+	cops := k.cmOps()
 	return cops.Get(name, opts)
 }
 
 // pvcOps is a utility function that provides a instance capable of
 // executing various K8s PVC related operations.
-func (k *K8sClient) pvcOps() (typed_core_v1.PersistentVolumeClaimInterface, error) {
-	return k.cs.CoreV1().PersistentVolumeClaims(k.ns), nil
+func (k *K8sClient) pvcOps() typed_core_v1.PersistentVolumeClaimInterface {
+	return k.cs.CoreV1().PersistentVolumeClaims(k.ns)
 }
 
 // GetPVC fetches the K8s PVC with the provided name
@@ -111,18 +107,14 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 		return k.PVC, nil
 	}
 
-	pops, err := k.pvcOps()
-	if err != nil {
-		return nil, err
-	}
-
+	pops := k.pvcOps()
 	return pops.Get(name, opts)
 }
 
 // podOps is a utility function that provides a instance capable of
 // executing various K8s pod related operations.
-func (k *K8sClient) podOps() (typed_core_v1.PodInterface, error) {
-	return k.cs.CoreV1().Pods(k.ns), nil
+func (k *K8sClient) podOps() typed_core_v1.PodInterface {
+	return k.cs.CoreV1().Pods(k.ns)
 }
 
 // GetPod fetches the K8s Pod with the provided name
@@ -131,18 +123,14 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 		return k.Pod, nil
 	}
 
-	pops, err := k.podOps()
-	if err != nil {
-		return nil, err
-	}
-
+	pops := k.podOps()
 	return pops.Get(name, opts)
 }
 
 // serviceOps is a utility function that provides a instance capable of
 // executing various k8s service related operations.
-func (k *K8sClient) serviceOps() (typed_core_v1.ServiceInterface, error) {
-	return k.cs.CoreV1().Services(k.ns), nil
+func (k *K8sClient) serviceOps() typed_core_v1.ServiceInterface {
+	return k.cs.CoreV1().Services(k.ns)
 }
 
 // GetService fetches the K8s Service with the provided name
@@ -151,18 +139,14 @@ func (k *K8sClient) GetService(name string, opts mach_apis_meta_v1.GetOptions) (
 		return k.Service, nil
 	}
 
-	sops, err := k.serviceOps()
-	if err != nil {
-		return nil, err
-	}
-
+	sops := k.serviceOps()
 	return sops.Get(name, opts)
 }
 
 // deploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
-func (k *K8sClient) deploymentOps() (typed_ext_v1beta.DeploymentInterface, error) {
-	return k.cs.ExtensionsV1beta1().Deployments(k.ns), nil
+func (k *K8sClient) deploymentOps() typed_ext_v1beta.DeploymentInterface {
+	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
 }
 
 // GetDeployment fetches the K8s Deployment with the provided name
@@ -171,11 +155,7 @@ func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions
 		return k.Deployment, nil
 	}
 
-	dops, err := k.deploymentOps()
-	if err != nil {
-		return nil, err
-	}
-
+	dops := k.deploymentOps()
 	return dops.Get(name, opts)
 }
 

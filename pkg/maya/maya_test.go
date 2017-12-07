@@ -42,6 +42,87 @@ func TestMayaBytes(t *testing.T) {
 	}
 }
 
+func TestMayaConfigMapLoad(t *testing.T) {
+	tests := map[string]struct {
+		yaml    string
+		isError bool
+	}{
+		"blank yaml": {yaml: "", isError: true},
+		"hello yaml": {yaml: "Hello!!", isError: true},
+		"valid struct yaml": {yaml: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-hello
+data:
+  hey: hello
+`, isError: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mc := NewMayaConfigMap(test.yaml)
+			err := mc.Load()
+
+			if !test.isError && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+
+			if test.isError && mc.ConfigMap != nil {
+				t.Fatalf("Expected: 'nil maya config map' Actual: '%v'", mc.ConfigMap)
+			}
+		})
+	}
+}
+
+func TestMayaConfigMapLoadAll(t *testing.T) {
+	tests := map[string]struct {
+		yaml          string
+		isK8sEmbedded bool
+	}{
+		"no embedded k8s yaml": {yaml: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-hello
+`, isK8sEmbedded: false},
+		"embedded k8s yaml": {yaml: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-hello
+data:
+  namespace: default
+  apiVersion: v1
+  kind: ConfigMap
+  yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: embedded-cm
+`, isK8sEmbedded: true},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mc := NewMayaConfigMap(test.yaml)
+			err := mc.LoadAll()
+
+			if err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+
+			if test.isK8sEmbedded && mc.EK8sObject == nil {
+				t.Fatalf("Expected: 'embedded k8s object' Actual: '%v'", mc.EK8sObject)
+			}
+
+			if test.isK8sEmbedded && len(mc.EK8sObject.Kind) == 0 {
+				t.Fatalf("Expected: 'embedded k8s kind' Actual: '%s'", mc.EK8sObject.Kind)
+			}
+		})
+	}
+}
+
 func TestMayaContainerLoad(t *testing.T) {
 	tests := []struct {
 		yaml  string
@@ -61,37 +142,6 @@ ports:
 		mc := NewMayaContainer(test.yaml)
 
 		err := mc.Load()
-
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
-
-		if test.isErr && len(mc.Container.Name) != 0 {
-			t.Fatalf("Expected: 'nil maya container' Actual: '%v'", mc.Container)
-		}
-	}
-}
-
-func TestMayaContainerReload(t *testing.T) {
-	tests := []struct {
-		yaml  string
-		isErr bool
-	}{
-		{"", true},
-		{"Hello!!", true},
-		{`
-name: maya-apiserver
-imagePullPolicy: Always
-image: openebs/m-apiserver:test
-ports:
-- containerPort: 5656
-`, false},
-	}
-
-	for _, test := range tests {
-		mc := NewMayaContainer("")
-
-		err := mc.Reload(test.yaml)
 
 		if !test.isErr && err != nil {
 			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
@@ -172,32 +222,35 @@ spec:
         - containerPort: 5656
 `
 
+	md := NewMayaDeployment(deploy)
+	err := md.Load()
+	if err != nil {
+		t.Fatalf("Error in test logic: '%v'", err)
+	}
+
 	tests := []struct {
 		containerYaml string
-		isErr         bool
+		isError       bool
 	}{
-		{"", true},
-		{"Hello!!", true},
-		{`
+		{containerYaml: "", isError: true},
+		{containerYaml: "Hello!!", isError: true},
+		{containerYaml: `
 name: maya-apiserver-2
+imagePullPolicy: Always
 image: openebs/m-apiserver:test
-`, false},
+ports:
+- containerPort: 5657
+`, isError: false},
 	}
 
 	for _, test := range tests {
-		md := NewMayaDeployment(deploy).SetMayaContainer()
-		md.Load()
 		err := md.AddContainer(test.containerYaml)
 
-		if !test.isErr && err != nil {
+		if !test.isError && err != nil {
 			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
 		}
 
-		if test.isErr && len(md.MayaContainer.Container.Name) != 0 {
-			t.Fatalf("Expected: 'nil maya deployment container' Actual: '%v'", md.MayaContainer.Container)
-		}
-
-		if !test.isErr && len(md.Deployment.Spec.Template.Spec.Containers) != 2 {
+		if !test.isError && len(md.Deployment.Spec.Template.Spec.Containers) != 2 {
 			t.Fatalf("Expected: '2 containers in maya deployment' Actual: '%d'", len(md.Deployment.Spec.Template.Spec.Containers))
 		}
 	}

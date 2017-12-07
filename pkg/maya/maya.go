@@ -18,10 +18,13 @@ package maya
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/pkg/client/k8s"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
+	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // MayaYaml represents the yaml definition
@@ -40,11 +43,142 @@ func (m *MayaYaml) Bytes() ([]byte, error) {
 	return []byte(m.Yaml), nil
 }
 
+// MayaAnyK8s is a wrapper over any kind of K8s object
+type MayaAnyK8s struct {
+	// Namespace represents the K8s namespace of this
+	// K8s object
+	Namespace string `json:"namespace,omitempty"`
+
+	// Kind represents the kind of this K8s object
+	Kind string `json:"kind"`
+
+	// ApiVersion represents the api version of this
+	// K8s object
+	ApiVersion string `json:"apiVersion"`
+
+	// MayaYaml represents this K8s object itself in yaml format
+	MayaYaml `json:"yaml"`
+}
+
+func (m MayaAnyK8s) IsDeployment() bool {
+	return strings.ToLower(m.Kind) == "deployment"
+}
+
+func (m MayaAnyK8s) IsService() bool {
+	return strings.ToLower(m.Kind) == "service"
+}
+
+func (m MayaAnyK8s) GetDeployment() (*api_extn_v1beta1.Deployment, error) {
+	if !m.IsDeployment() {
+		return nil, fmt.Errorf("Invalid operation")
+	}
+
+	d := NewMayaDeployment(m.Yaml)
+	err := d.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	return d.Deployment, nil
+}
+
+type MayaConfigMap struct {
+	// ConfigMap represents a K8s ConfigMap object
+	// Maya expects ConfigMap to embed any K8s
+	// object or K8s CR.
+	ConfigMap *api_core_v1.ConfigMap
+
+	// MayaYaml represents the above K8s ConfigMap in yaml format
+	MayaYaml
+
+	// EK8sObject represents the embedded K8s object or K8s CR
+	EK8sObject *MayaAnyK8s
+
+	// K8sClient represents the client to invoke K8s API
+	// Note: This manner of composing is helpful during unit
+	// testing
+	K8sClient *k8s.K8sClient
+}
+
+// NewMayaConfigMap returns an instance of MayaConfigMap
+// based on the provided yaml
+func NewMayaConfigMap(yaml string) *MayaConfigMap {
+	return &MayaConfigMap{
+		MayaYaml: MayaYaml{
+			Yaml: yaml,
+		},
+	}
+}
+
+// FetchMayaConfigMap returns an instance of MayaConfigMap
+// based on the provided name of the ConfigMap and K8s namespace
+func FetchMayaConfigMap(name string, ns string) (*MayaConfigMap, error) {
+	kc, err := k8s.NewK8sClient(ns)
+	if err != nil {
+		return nil, err
+	}
+
+	cm, err := kc.GetConfigMap(name, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &MayaConfigMap{
+		K8sClient: kc,
+		ConfigMap: cm,
+	}, nil
+}
+
+// Load initializes ConfigMap property of this instance
+//
+// NOTE:
+//  This is alternative to using FetchMayaConfigMap call
+func (m *MayaConfigMap) Load() error {
+	// unmarshall the yaml
+	b, err := m.Bytes()
+	if err != nil {
+		return err
+	}
+
+	cm := &api_core_v1.ConfigMap{}
+	err = yaml.Unmarshal(b, cm)
+	if err != nil {
+		return err
+	}
+
+	// load the object
+	m.ConfigMap = cm
+
+	return nil
+}
+
+// LoadAll initializes various properties of this instance
+func (m *MayaConfigMap) LoadAll() error {
+	if m.ConfigMap == nil {
+		err := m.Load()
+		if err != nil {
+			return err
+		}
+	}
+
+	// set the embedded K8s object details
+	m.EK8sObject = &MayaAnyK8s{
+		Namespace:  m.ConfigMap.Data["namespace"],
+		Kind:       m.ConfigMap.Data["kind"],
+		ApiVersion: m.ConfigMap.Data["apiVerson"],
+		MayaYaml: MayaYaml{
+			Yaml: m.ConfigMap.Data["yaml"],
+		},
+	}
+
+	return nil
+}
+
 type MayaContainer struct {
-	// Container represents the K8s Container object
+	// Container represents a K8s Container object
 	Container api_core_v1.Container
 
-	// This represents the Container in yaml format
+	// MayaYaml represents the above K8s Container in yaml format
 	MayaYaml
 }
 
@@ -76,24 +210,12 @@ func (m *MayaContainer) Load() error {
 	return nil
 }
 
-// Reload updates the Container property of this instance
-func (m *MayaContainer) Reload(yaml string) error {
-	// update the existing yaml
-	m.Yaml = yaml
-	return m.Load()
-}
-
 type MayaDeployment struct {
-	// Deployment represents the K8s Deployment object
+	// Deployment represents a K8s Deployment object
 	Deployment *api_extn_v1beta1.Deployment
 
-	// This represents the Deployment in yaml format
+	// MayaYaml represents the above K8s Deployment in yaml format
 	MayaYaml
-
-	// MayaContainer provides container related methods
-	// Note: This manner of composing is helpful during unit
-	// testing
-	MayaContainer *MayaContainer
 }
 
 func NewMayaDeployment(yaml string) *MayaDeployment {
@@ -102,13 +224,6 @@ func NewMayaDeployment(yaml string) *MayaDeployment {
 			Yaml: yaml,
 		},
 	}
-}
-
-// SetMayaContainer sets the MayaContainer property
-// of this instance.
-func (m *MayaDeployment) SetMayaContainer() *MayaDeployment {
-	m.MayaContainer = &MayaContainer{}
-	return m
 }
 
 // Load initializes Deployment property of this instance
@@ -139,16 +254,13 @@ func (m *MayaDeployment) AddContainer(yaml string) error {
 		return fmt.Errorf("Deployment is not loaded")
 	}
 
-	if m.MayaContainer == nil {
-		return fmt.Errorf("Nil maya container")
-	}
-
-	err := m.MayaContainer.Reload(yaml)
+	mc := NewMayaContainer(yaml)
+	err := mc.Load()
 	if err != nil {
 		return err
 	}
 
-	cons := append(m.Deployment.Spec.Template.Spec.Containers, m.MayaContainer.Container)
+	cons := append(m.Deployment.Spec.Template.Spec.Containers, mc.Container)
 	m.Deployment.Spec.Template.Spec.Containers = cons
 
 	return nil
