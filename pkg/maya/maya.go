@@ -47,6 +47,11 @@ func (m *MayaYaml) Bytes() ([]byte, error) {
 type MayaAnyK8s struct {
 	// Namespace represents the K8s namespace of this
 	// K8s object
+	//
+	// NOTE:
+	//  This will be the determining factor to execute
+	// K8s APIs on its Kind(s) belonging to a
+	// particular namespace
 	Namespace string `json:"namespace,omitempty"`
 
 	// Kind represents the kind of this K8s object
@@ -54,22 +59,27 @@ type MayaAnyK8s struct {
 
 	// ApiVersion represents the api version of this
 	// K8s object
+	//
+	// NOTE:
+	//  This will be the determining factor to execute
+	// K8s APIs on its Kind(s) belonging to a
+	// particular version
 	ApiVersion string `json:"apiVersion"`
 
 	// MayaYaml represents this K8s object itself in yaml format
 	MayaYaml `json:"yaml"`
 }
 
-func (m MayaAnyK8s) IsDeployment() bool {
+func (m MayaAnyK8s) isDeployment() bool {
 	return strings.ToLower(m.Kind) == "deployment"
 }
 
-func (m MayaAnyK8s) IsService() bool {
+func (m MayaAnyK8s) isService() bool {
 	return strings.ToLower(m.Kind) == "service"
 }
 
-func (m MayaAnyK8s) GetDeployment() (*api_extn_v1beta1.Deployment, error) {
-	if !m.IsDeployment() {
+func (m MayaAnyK8s) GenerateDeployment() (*api_extn_v1beta1.Deployment, error) {
+	if !m.isDeployment() {
 		return nil, fmt.Errorf("Invalid operation")
 	}
 
@@ -80,6 +90,20 @@ func (m MayaAnyK8s) GetDeployment() (*api_extn_v1beta1.Deployment, error) {
 	}
 
 	return d.Deployment, nil
+}
+
+func (m MayaAnyK8s) GenerateService() (*api_core_v1.Service, error) {
+	if !m.isService() {
+		return nil, fmt.Errorf("Invalid operation")
+	}
+
+	s := NewMayaService(m.Yaml)
+	err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	return s.Service, nil
 }
 
 type MayaConfigMap struct {
@@ -152,8 +176,9 @@ func (m *MayaConfigMap) Load() error {
 	return nil
 }
 
-// LoadAll initializes various properties of this instance
-func (m *MayaConfigMap) LoadAll() error {
+// LoadEmbeddedK8s initializes the embedded K8s object
+// of this instance
+func (m *MayaConfigMap) LoadEmbeddedK8s() error {
 	if m.ConfigMap == nil {
 		err := m.Load()
 		if err != nil {
@@ -170,6 +195,42 @@ func (m *MayaConfigMap) LoadAll() error {
 			Yaml: m.ConfigMap.Data["yaml"],
 		},
 	}
+
+	return nil
+}
+
+type MayaService struct {
+	// Service represents a K8s Service object
+	Service *api_core_v1.Service
+
+	// MayaYaml represents the above K8s Service in yaml format
+	MayaYaml
+}
+
+func NewMayaService(yaml string) *MayaService {
+	return &MayaService{
+		MayaYaml: MayaYaml{
+			Yaml: yaml,
+		},
+	}
+}
+
+// Load initializes Service property of this instance
+func (m *MayaService) Load() error {
+	// unmarshall the yaml
+	b, err := m.Bytes()
+	if err != nil {
+		return err
+	}
+
+	s := &api_core_v1.Service{}
+	err = yaml.Unmarshal(b, s)
+	if err != nil {
+		return err
+	}
+
+	// load the object
+	m.Service = s
 
 	return nil
 }
