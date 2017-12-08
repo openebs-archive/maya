@@ -31,7 +31,7 @@ func TestGetConfigMap(t *testing.T) {
 		cm    *api_core_v1.ConfigMap
 		isErr bool
 	}{
-		"": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.ConfigMap{}, false},
+		"valid configmap": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.ConfigMap{}, false},
 	}
 
 	for name, test := range tests {
@@ -57,7 +57,7 @@ func TestGetPVC(t *testing.T) {
 		pvc   *api_core_v1.PersistentVolumeClaim
 		isErr bool
 	}{
-		"": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.PersistentVolumeClaim{}, false},
+		"valid volume claim": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.PersistentVolumeClaim{}, false},
 	}
 
 	for name, test := range tests {
@@ -83,7 +83,7 @@ func TestGetService(t *testing.T) {
 		service *api_core_v1.Service
 		isErr   bool
 	}{
-		"": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Service{}, false},
+		"valid service": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Service{}, false},
 	}
 
 	for name, test := range tests {
@@ -108,7 +108,7 @@ func TestGetPod(t *testing.T) {
 		pod   *api_core_v1.Pod
 		isErr bool
 	}{
-		"": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Pod{}, false},
+		"valid pod": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Pod{}, false},
 	}
 
 	for name, test := range tests {
@@ -133,7 +133,7 @@ func TestGetDeployment(t *testing.T) {
 		deploy *api_extn_v1beta1.Deployment
 		isErr  bool
 	}{
-		"": {"", mach_apis_meta_v1.GetOptions{}, &api_extn_v1beta1.Deployment{}, false},
+		"valid deployment": {"", mach_apis_meta_v1.GetOptions{}, &api_extn_v1beta1.Deployment{}, false},
 	}
 
 	for name, test := range tests {

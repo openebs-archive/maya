@@ -21,24 +21,26 @@ import (
 )
 
 func TestMayaBytes(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		yaml  string
 		isErr bool
 	}{
-		{"", true},
-		{"Hello!!", false},
+		"blank yaml": {"", true},
+		"hello yaml": {"Hello!!", false},
 	}
 
-	for _, test := range tests {
-		my := &MayaYaml{
-			Yaml: test.yaml,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			my := &MayaYaml{
+				Yaml: test.yaml,
+			}
 
-		_, err := my.Bytes()
+			_, err := my.Bytes()
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
 
@@ -154,13 +156,13 @@ ports:
 }
 
 func TestMayaDeploymentLoad(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		yaml  string
 		isErr bool
 	}{
-		{"", true},
-		{"Hello!!", true},
-		{`
+		"blank yaml": {"", true},
+		"hello yaml": {"Hello!!", true},
+		"valid yaml": {`
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
@@ -183,18 +185,20 @@ spec:
 `, false},
 	}
 
-	for _, test := range tests {
-		md := NewMayaDeployment(test.yaml)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			md := NewMayaDeployment(test.yaml)
 
-		err := md.Load()
+			err := md.Load()
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
 
-		if test.isErr && md.Deployment != nil {
-			t.Fatalf("Expected: 'nil maya deployment' Actual: '%v'", md)
-		}
+			if test.isErr && md.Deployment != nil {
+				t.Fatalf("Expected: 'nil maya deployment' Actual: '%v'", md)
+			}
+		})
 	}
 }
 
@@ -228,13 +232,13 @@ spec:
 		t.Fatalf("Error in test logic: '%v'", err)
 	}
 
-	tests := []struct {
+	tests := map[string]struct {
 		containerYaml string
 		isError       bool
 	}{
-		{containerYaml: "", isError: true},
-		{containerYaml: "Hello!!", isError: true},
-		{containerYaml: `
+		"blank yaml": {containerYaml: "", isError: true},
+		"hello yaml": {containerYaml: "Hello!!", isError: true},
+		"valid struct yaml": {containerYaml: `
 name: maya-apiserver-2
 imagePullPolicy: Always
 image: openebs/m-apiserver:test
@@ -243,15 +247,17 @@ ports:
 `, isError: false},
 	}
 
-	for _, test := range tests {
-		err := md.AddContainer(test.containerYaml)
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := md.AddContainer(test.containerYaml)
 
-		if !test.isError && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isError && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
 
-		if !test.isError && len(md.Deployment.Spec.Template.Spec.Containers) != 2 {
-			t.Fatalf("Expected: '2 containers in maya deployment' Actual: '%d'", len(md.Deployment.Spec.Template.Spec.Containers))
-		}
+			if !test.isError && len(md.Deployment.Spec.Template.Spec.Containers) != 2 {
+				t.Fatalf("Expected: '2 containers in maya deployment' Actual: '%d'", len(md.Deployment.Spec.Template.Spec.Containers))
+			}
+		})
 	}
 }
