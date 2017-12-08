@@ -18,7 +18,6 @@ package mapiserver
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,7 +37,7 @@ func CreateSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
+		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 		return err
 	}
 
@@ -79,7 +78,7 @@ func CreateSnapshot(volName string, snapName string) error {
 	code := resp.StatusCode
 
 	if code != http.StatusOK {
-		err := errors.New(fmt.Sprintf("Status error: %v", http.StatusText(code)))
+		err := fmt.Errorf("Status error: %v", http.StatusText(code))
 		return err
 	}
 	return nil
@@ -90,7 +89,7 @@ func RevertSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
+		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 		return err
 	}
 
@@ -128,8 +127,7 @@ func RevertSnapshot(volName string, snapName string) error {
 	code := resp.StatusCode
 
 	if code != http.StatusOK {
-		err := errors.New(fmt.Sprintf("Status error: %v", http.StatusText(code)))
-		return err
+		return fmt.Errorf("Status error: %v", http.StatusText(code))
 	}
 	return nil
 }
@@ -139,8 +137,7 @@ func ListSnapshot(volName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
-		return err
+		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 	}
 
 	url := GetURL() + "/latest/snapshots/list/" + volName

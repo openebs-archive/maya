@@ -1,8 +1,6 @@
 package command
 
 import (
-	"fmt"
-
 	goflag "flag"
 
 	"github.com/golang/glog"	
@@ -11,8 +9,13 @@ import (
 )
 
 var (
+<<<<<<< HEAD:cmd/maya-nodebot/app/command/commands.go
 	cmdName = "maya-nodebot"
 	usage   = fmt.Sprintf("%s", cmdName)
+=======
+	cmdName = "maya-agent"
+	usage   = cmdName
+>>>>>>> d6d852d18e9120235c3936b44ffee542296593ef:cmd/maya-agent/app/command/commands.go
 )
 
 // MayaAgentOptions defines a type for the options of MayaAgent
