@@ -42,14 +42,114 @@ func TestMayaBytes(t *testing.T) {
 	}
 }
 
+func TestMayaAnyK8sGenerateService(t *testing.T) {
+	tests := map[string]struct {
+		kind    string
+		yaml    string
+		isError bool
+	}{
+		"blank service":   {kind: "service", yaml: "", isError: true},
+		"hello service":   {kind: "service", yaml: "Hello!!", isError: true},
+		"invalid service": {kind: "blah", yaml: "Junk!!", isError: true},
+		"valid service": {kind: "service", yaml: `
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+  - name: api
+    port: 5656
+    protocol: TCP
+    targetPort: 5656
+  selector:
+    name: maya-apiserver
+  sessionAffinity: None
+`, isError: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := &MayaAnyK8s{
+				Kind: test.kind,
+				MayaYaml: MayaYaml{
+					Yaml: test.yaml,
+				},
+			}
+			s, err := ma.GenerateService()
+
+			if !test.isError && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+
+			if test.isError && s != nil {
+				t.Fatalf("Expected: 'nil service' Actual: '%v'", s)
+			}
+		})
+	}
+}
+
+func TestMayaAnyK8sGenerateDeployment(t *testing.T) {
+	tests := map[string]struct {
+		kind    string
+		yaml    string
+		isError bool
+	}{
+		"blank deployment":   {kind: "deployment", yaml: "", isError: true},
+		"hello deployment":   {kind: "deployment", yaml: "Hello!!", isError: true},
+		"invalid deployment": {kind: "blah", yaml: "Junk!!", isError: true},
+		"valid deployment": {kind: "deployment", yaml: `
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: maya-apiserver
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: maya-apiserver
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+      - name: maya-apiserver
+        imagePullPolicy: Always
+        image: openebs/m-apiserver:test
+        ports:
+        - containerPort: 5656
+`, isError: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := &MayaAnyK8s{
+				Kind: test.kind,
+				MayaYaml: MayaYaml{
+					Yaml: test.yaml,
+				},
+			}
+			d, err := ma.GenerateDeployment()
+
+			if !test.isError && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+
+			if test.isError && d != nil {
+				t.Fatalf("Expected: 'nil deployment' Actual: '%v'", d)
+			}
+		})
+	}
+}
+
 func TestMayaConfigMapLoad(t *testing.T) {
 	tests := map[string]struct {
 		yaml    string
 		isError bool
 	}{
-		"blank yaml": {yaml: "", isError: true},
-		"hello yaml": {yaml: "Hello!!", isError: true},
-		"valid struct yaml": {yaml: `
+		"blank config map": {yaml: "", isError: true},
+		"hello config map": {yaml: "Hello!!", isError: true},
+		"valid config map": {yaml: `
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -75,18 +175,18 @@ data:
 	}
 }
 
-func TestMayaConfigMapLoadAll(t *testing.T) {
+func TestMayaConfigMapLoadEmbeddedK8s(t *testing.T) {
 	tests := map[string]struct {
 		yaml          string
 		isK8sEmbedded bool
 	}{
-		"no embedded k8s yaml": {yaml: `
+		"config map without embedded k8s": {yaml: `
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: my-hello
 `, isK8sEmbedded: false},
-		"embedded k8s yaml": {yaml: `
+		"config map with embedded k8s": {yaml: `
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -106,7 +206,7 @@ data:
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mc := NewMayaConfigMap(test.yaml)
-			err := mc.LoadAll()
+			err := mc.LoadEmbeddedK8s()
 
 			if err != nil {
 				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
@@ -118,6 +218,46 @@ data:
 
 			if test.isK8sEmbedded && len(mc.EK8sObject.Kind) == 0 {
 				t.Fatalf("Expected: 'embedded k8s kind' Actual: '%s'", mc.EK8sObject.Kind)
+			}
+		})
+	}
+}
+
+func TestMayaServiceLoad(t *testing.T) {
+	tests := map[string]struct {
+		yaml    string
+		isError bool
+	}{
+		"blank service": {yaml: "", isError: true},
+		"hello service": {yaml: "Hello!!", isError: true},
+		"valid service": {yaml: `
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+  - name: api
+    port: 5656
+    protocol: TCP
+    targetPort: 5656
+  selector:
+    name: maya-apiserver
+  sessionAffinity: None
+`, isError: false},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := NewMayaService(test.yaml)
+			err := s.Load()
+
+			if !test.isError && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+
+			if test.isError && s.Service != nil {
+				t.Fatalf("Expected: 'nil service' Actual: '%v'", s.Service)
 			}
 		})
 	}
