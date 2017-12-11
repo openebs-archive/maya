@@ -25,116 +25,128 @@ import (
 )
 
 func TestGetConfigMap(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name  string
 		opts  mach_apis_meta_v1.GetOptions
 		cm    *api_core_v1.ConfigMap
 		isErr bool
 	}{
-		{"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.ConfigMap{}, false},
+		"valid configmap": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.ConfigMap{}, false},
 	}
 
-	for _, test := range tests {
-		kc := &K8sClient{
-			ConfigMap: test.cm,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 
-		_, err := kc.GetConfigMap(test.name, test.opts)
+			kc := &K8sClient{
+				ConfigMap: test.cm,
+			}
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			_, err := kc.GetConfigMap(test.name, test.opts)
+
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
 
 func TestGetPVC(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name  string
 		opts  mach_apis_meta_v1.GetOptions
 		pvc   *api_core_v1.PersistentVolumeClaim
 		isErr bool
 	}{
-		{"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.PersistentVolumeClaim{}, false},
+		"valid volume claim": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.PersistentVolumeClaim{}, false},
 	}
 
-	for _, test := range tests {
-		kc := &K8sClient{
-			PVC: test.pvc,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
 
-		_, err := kc.GetPVC(test.name, test.opts)
+			kc := &K8sClient{
+				PVC: test.pvc,
+			}
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			_, err := kc.GetPVC(test.name, test.opts)
+
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
 
 func TestGetService(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name    string
 		opts    mach_apis_meta_v1.GetOptions
 		service *api_core_v1.Service
 		isErr   bool
 	}{
-		{"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Service{}, false},
+		"valid service": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Service{}, false},
 	}
 
-	for _, test := range tests {
-		kc := &K8sClient{
-			Service: test.service,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			kc := &K8sClient{
+				Service: test.service,
+			}
 
-		_, err := kc.GetService(test.name, test.opts)
+			_, err := kc.GetService(test.name, test.opts)
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
 
 func TestGetPod(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name  string
 		opts  mach_apis_meta_v1.GetOptions
 		pod   *api_core_v1.Pod
 		isErr bool
 	}{
-		{"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Pod{}, false},
+		"valid pod": {"", mach_apis_meta_v1.GetOptions{}, &api_core_v1.Pod{}, false},
 	}
 
-	for _, test := range tests {
-		kc := &K8sClient{
-			Pod: test.pod,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			kc := &K8sClient{
+				Pod: test.pod,
+			}
 
-		_, err := kc.GetPod(test.name, test.opts)
+			_, err := kc.GetPod(test.name, test.opts)
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
 
 func TestGetDeployment(t *testing.T) {
-	tests := []struct {
+	tests := map[string]struct {
 		name   string
 		opts   mach_apis_meta_v1.GetOptions
 		deploy *api_extn_v1beta1.Deployment
 		isErr  bool
 	}{
-		{"", mach_apis_meta_v1.GetOptions{}, &api_extn_v1beta1.Deployment{}, false},
+		"valid deployment": {"", mach_apis_meta_v1.GetOptions{}, &api_extn_v1beta1.Deployment{}, false},
 	}
 
-	for _, test := range tests {
-		kc := &K8sClient{
-			Deployment: test.deploy,
-		}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			kc := &K8sClient{
+				Deployment: test.deploy,
+			}
 
-		_, err := kc.GetDeployment(test.name, test.opts)
+			_, err := kc.GetDeployment(test.name, test.opts)
 
-		if !test.isErr && err != nil {
-			t.Fatalf("Expected: 'no error' Actual: '%s'", err)
-		}
+			if !test.isErr && err != nil {
+				t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+			}
+		})
 	}
 }
