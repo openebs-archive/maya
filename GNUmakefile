@@ -20,13 +20,12 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Specify the name for the binaries
 MAYACTL=maya
 APISERVER=maya-apiserver
-AGENT=maya-agent
-EXPORTER=maya-volume-exporter
+NODEBOT=maya-nodebot
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: test mayactl apiserver-image exporter-image maya-agent
+all: test mayactl apiserver-image nodebot-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -109,39 +108,22 @@ maya-image:
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-# Use this to build only the maya-agent.
-maya-agent:
+# Use this to build only the maya-nodebot.
+maya-nodebot:
 	@echo "----------------------------"
-	@echo "--> maya-agent              "
+	@echo "--> maya-nodebot            "            
 	@echo "----------------------------"
-	@CTLNAME=${AGENT} sh -c "'$(PWD)/buildscripts/agent/build.sh'"
+	@CTLNAME=${NODEBOT} sh -c "'$(PWD)/buildscripts/nodebot/build.sh'"
 
 # m-agent image. This is going to be decoupled soon.
-agent-image: maya-agent
+nodebot-image: maya-nodebot
 	@echo "----------------------------"
-	@echo "--> m-agent image         "
+	@echo "--> m-agent(nodebot) image         "
 	@echo "----------------------------"
-	@cp bin/agent/${AGENT} buildscripts/agent/
-	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/agent/${AGENT}
-	@sh buildscripts/agent/push
-
-# Use this to build only the maya-volume-exporter.
-exporter:
-	@echo "----------------------------"
-	@echo "--> maya-volume-exporter              "
-	@echo "----------------------------"
-	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/exporter/build.sh'"
-
-# m-exporter image. This is going to be decoupled soon.
-exporter-image: exporter
-	@echo "----------------------------"
-	@echo "--> m-exporter image         "
-	@echo "----------------------------"
-	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/exporter/${EXPORTER}
-	@sh buildscripts/exporter/push
+	@cp bin/nodebot/${NODEBOT} buildscripts/nodebot/
+	@cd buildscripts/nodebot && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/nodebot/${NODEBOT}
+	@sh buildscripts/nodebot/push
 
 # Use this to build only the maya apiserver.
 apiserver:
@@ -163,4 +145,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image golint
+.PHONY: all bin cov integ test vet maya-nodebot test-nodep apiserver apiserver-image maya-image golint

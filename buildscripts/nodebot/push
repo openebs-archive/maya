@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+IMAGEID=$( sudo docker images -q openebs/m-agent:ci )
+
+if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
+then 
+  sudo docker login -u "${DNAME}" -p "${DPASS}";
+  # Push image to docker hub
+  sudo docker push openebs/m-agent:ci ;
+  if [ ! -z "${TRAVIS_TAG}" ] ; 
+  then
+    # Push with different tags if tagged as a release
+    # When github is tagged with a release, then Travis will 
+    # set the release tag in env TRAVIS_TAG
+    sudo docker tag ${IMAGEID} openebs/m-agent:${TRAVIS_TAG}
+    sudo docker push openebs/m-agent:${TRAVIS_TAG}; 
+    sudo docker tag ${IMAGEID} openebs/m-agent:latest
+    sudo docker push openebs/m-agent:latest; 
+  fi;
+else
+  echo "No docker credentials provided. Skip uploading openebs/m-agent:ci to docker hub"; 
+fi;
