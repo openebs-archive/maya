@@ -31,13 +31,13 @@ XC_ARCHS=(${XC_ARCH// / })
 XC_OSS=(${XC_OS// / })
 
 # Delete the old contents
-echo "==> Removing old bin/agent contents..."
-rm -rf bin/agent/*
-mkdir -p bin/agent/
+echo "==> Removing old bin/nodebot contents..."
+rm -rf bin/nodebot/*
+mkdir -p bin/nodebot/
 
 if [ -z "${CTLNAME}" ];
 then
-    CTLNAME="agent"
+    CTLNAME="nodebot"
 fi
 
 # If its dev mode, only build for ourself
@@ -53,7 +53,7 @@ for GOOS in "${XC_OSS[@]}"
 do
     for GOARCH in "${XC_ARCHS[@]}"
     do
-        output_name="bin/agent/"$GOOS"_"$GOARCH"/"$CTLNAME
+        output_name="bin/nodebot/"$GOOS"_"$GOARCH"/"$CTLNAME
 
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
@@ -64,7 +64,7 @@ do
             -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
             -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
             -o $output_name\
-           ./cmd/maya-agent
+           ./cmd/maya-nodebot
     done
 done
 
@@ -85,16 +85,16 @@ IFS=$OLDIFS
 mkdir -p ${MAIN_GOPATH}/bin/
 
 # Copy our OS/Arch to ${MAIN_GOPATH}/bin/ directory
-DEV_PLATFORM="./bin/agent/$(go env GOOS)_$(go env GOARCH)"
+DEV_PLATFORM="./bin/nodebot/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/agent/
+    cp ${F} bin/nodebot/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
 
 if [[ "x${M_AGENT_DEV}" == "x" ]]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
-    for PLATFORM in $(find ./bin/agent -mindepth 1 -maxdepth 1 -type d); do
+    for PLATFORM in $(find ./bin/nodebot -mindepth 1 -maxdepth 1 -type d); do
         OSARCH=$(basename ${PLATFORM})
         echo "--> ${OSARCH}"
 
@@ -107,4 +107,4 @@ fi
 # Done!
 echo
 echo "==> Results:"
-ls -hl bin/agent/
+ls -hl bin/nodebot/

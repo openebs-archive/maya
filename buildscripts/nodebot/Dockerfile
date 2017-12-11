@@ -6,7 +6,7 @@
 FROM ubuntu:16.04
 
 # TODO: The following env variables should be auto detected.
-ENV MAYA_AGENT_NETWORK="eth0"
+ENV MAYA_NODEBOT_NETWORK="eth0"
 
 RUN apt-get update && apt-get install -y \
     iproute2 \
@@ -28,5 +28,5 @@ LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
 LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.build-date=$BUILD_DATE
 
-ENTRYPOINT entrypoint.sh "${MAYA_AGENT_NETWORK}"
+ENTRYPOINT entrypoint.sh "${MAYA_NODEBOT_NETWORK}"
 EXPOSE 7676
