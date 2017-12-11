@@ -1,27 +1,26 @@
 package block
 
 import (
-	"fmt"
 	"os/exec"
 )
 
 //Mount is to mount the specified disk to /mnt/<disk>
-func Mount(disk string) {
+func Mount(disk string) (string, error) {
 	mountpoint := "/mnt/" + disk
 	diskDev := "/dev/" + disk
 	//p flag is to return no error if the directory is available already
 	res, err := exec.Command("mkdir", "-p", mountpoint).Output()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	res, err = exec.Command("mount", diskDev, mountpoint).Output()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	if len(res) == 0 {
-		fmt.Println("Successfully mounted on: ", mountpoint)
+		return mountpoint, nil
 	} else {
-		fmt.Println("Mounting failure")
+		return "", err
 	}
 }

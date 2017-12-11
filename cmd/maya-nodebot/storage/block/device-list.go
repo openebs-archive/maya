@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/openebs/maya/cmd/maya-agent/types/v1"
+	"github.com/openebs/maya/cmd/maya-nodebot/types/v1"
 )
 
 //ListBlockExec is for running os cmds for block disk and json parsing
@@ -15,7 +15,7 @@ func ListBlockExec(resJsonDecoded *v1.BlockDeviceInfo) error {
 	ListBlockCommand := v1.OsCommand{"lsblk", "-J"}
 	res, err := exec.Command(ListBlockCommand.Command, ListBlockCommand.Flag).Output()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	//decode the json output

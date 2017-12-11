@@ -3,18 +3,19 @@ package command
 import (
 	goflag "flag"
 
-	"github.com/golang/glog"
+	"github.com/golang/glog"	
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"fmt"
 )
 
 var (
-	cmdName = "maya-agent"
-	usage   = cmdName
+	cmdName = "maya-nodebot"
+	usage   = fmt.Sprintf("%s", cmdName)
 )
 
-// MayaAgentOptions defines a type for the options of MayaAgent
-type MayaAgentOptions struct {
+// MayaNodebotOptions defines a type for the options of MayaAgent
+type MayaNodebotOptions struct {
 	KubeConfig string
 	Namespace  string
 }
@@ -43,11 +44,11 @@ func NewCmdOptions() *cobra.Command {
 	return cmd
 }
 
-// NewMayaAgent creates a new maya-agent. This cmd includes logging,
+// NewMayaNodebot creates a new maya-agent. This cmd includes logging,
 // cmd option parsing from flags
-func NewMayaAgent() (*cobra.Command, error) {
+func NewMayaNodebot() (*cobra.Command, error) {
 	// Define the options for MayaAgent
-	options := MayaAgentOptions{}
+	options := MayaNodebotOptions{}
 
 	// Create a new command
 	cmd := &cobra.Command{
@@ -65,6 +66,7 @@ func NewMayaAgent() (*cobra.Command, error) {
 	cmd.AddCommand(
 		NewCmdBlockDevice(), //Add new command on block device
 		NewCmdIscsi(),       //Add new command for iscsi operations
+		NewCmdStart(),		
 	)
 	// Define the flags allowed in this command & store each option provided
 	// as a flag, into the MayaAgentOptions
@@ -75,8 +77,8 @@ func NewMayaAgent() (*cobra.Command, error) {
 }
 
 // Run maya-agent
-func Run(cmd *cobra.Command, options *MayaAgentOptions) error {
-	glog.Infof("Starting maya-agent...")
+func Run(cmd *cobra.Command, options *MayaNodebotOptions) error {
+	glog.Infof("Starting maya-nodebot...")
 
 	return nil
 }

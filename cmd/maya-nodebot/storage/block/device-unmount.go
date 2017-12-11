@@ -1,18 +1,18 @@
 package block
 
 import (
-	"fmt"
 	"os/exec"
 )
 
 //UnMount is to unmount the specified disk - /mnt/<disk>
-func UnMount(disk string) {
+func UnMount(disk string) error {
 	disk = "/mnt/" + disk
 	res, err := exec.Command("umount", disk).Output()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if len(res) == 0 {
-		fmt.Println("Successfully unmounted : ", disk)
+		return nil
 	}
+	return err
 }

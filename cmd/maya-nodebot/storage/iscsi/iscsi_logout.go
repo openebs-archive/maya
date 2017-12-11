@@ -1,12 +1,11 @@
 package iscsi
 
 import (
-	"fmt"
 	"os/exec"
 )
 
 //IscsiLogout logs out of logged in block devices
-func IscsiLogout(target string) {
+func IscsiLogout(target string) (string, error) {
 	var res []byte
 	var err error
 	if target == "all" {
@@ -15,7 +14,8 @@ func IscsiLogout(target string) {
 		res, err = exec.Command("iscsiadm", "-m", "node", "-p", target, "-u").Output()
 	}
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	fmt.Println("Device(s) :", string(res))
+	return string(res), nil
+	//fmt.Println("Device(s) :", string(res))
 }

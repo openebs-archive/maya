@@ -1,12 +1,11 @@
 package iscsi
 
 import (
-	"fmt"
 	"os/exec"
 )
 
 //IscsiLogin is to login to block devices in Storage area network
-func IscsiLogin(target string) {
+func IscsiLogin(target string) (string, error) {
 	var res []byte
 	var err error
 	if target == "all" {
@@ -15,7 +14,8 @@ func IscsiLogin(target string) {
 		res, err = exec.Command("iscsiadm", "-m", "node", "-p", target, "-l").Output()
 	}
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	fmt.Println("Device(s) :", string(res))
+	return string(res), nil
+	//fmt.Println("Device(s) :", string(res))
 }

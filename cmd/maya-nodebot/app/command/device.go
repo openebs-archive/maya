@@ -10,7 +10,7 @@ func NewCmdBlockDevice() *cobra.Command {
 		Use:   "device",
 		Short: "Operations on block devices",
 		Long: `The block devices on the local machine/minion can be 
-		operated using maya-agent`,
+		operated using maya-nodebot`,
 	}
 	//New sub command to list block device is added
 	cmd.AddCommand(

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/openebs/maya/cmd/maya-agent/app/command"
+	"github.com/openebs/maya/cmd/maya-nodebot/app/command"
 	mayalogger "github.com/openebs/maya/pkg/logs"
 )
 
@@ -21,7 +21,7 @@ func run() error {
 	defer mayalogger.FlushLogs()
 
 	// Create & execute new command
-	cmd, err := command.NewMayaAgent()
+	cmd, err := command.NewMayaNodebot()
 	if err != nil {
 		return err
 	}

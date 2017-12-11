@@ -1,8 +1,9 @@
 package command
 
 import (
-	"github.com/openebs/maya/cmd/maya-agent/storage/block"
-	"github.com/openebs/maya/cmd/maya-agent/types/v1"
+	"github.com/openebs/maya/cmd/maya-nodebot/storage/block"
+	"github.com/openebs/maya/cmd/maya-nodebot/types/v1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -17,9 +18,7 @@ func NewSubCmdListBlockDevice() *cobra.Command {
 			//resJsonDecoded is the decoded value of block disk
 			var resJsonDecoded v1.BlockDeviceInfo
 			err := block.ListBlockExec(&resJsonDecoded)
-			if err != nil {
-				panic(err)
-			}
+			util.CheckErr(err, util.Fatal)
 			//to print after formatting to end user
 			block.FormatOutputForUser(&resJsonDecoded)
 

@@ -1,6 +1,6 @@
 #
-# This Dockerfile builds a recent maya agent using the latest binary from
-# maya-agent  releases.
+# This Dockerfile builds a recent maya nodebot using the latest binary from
+# maya-nodebot  releases.
 #
 
 FROM ubuntu:16.04
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     procps \
     open-iscsi
 
-COPY maya-agent /usr/local/bin/
+COPY maya-nodebot /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
