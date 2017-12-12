@@ -33,10 +33,10 @@ fi
 #make golint-travis
 #rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-make all
+./buildscripts/test-cov.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-./buildscripts/test-cov.sh
+make all
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
 if [ $SRC_REPO != $DST_REPO ];
