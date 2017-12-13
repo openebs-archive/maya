@@ -3,10 +3,11 @@ package command
 import (
 	goflag "flag"
 
-	"github.com/golang/glog"	
+	"fmt"
+
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
-	"fmt"
 )
 
 var (
@@ -66,17 +67,17 @@ func NewMayaNodebot() (*cobra.Command, error) {
 	cmd.AddCommand(
 		NewCmdBlockDevice(), //Add new command on block device
 		NewCmdIscsi(),       //Add new command for iscsi operations
-		NewCmdStart(),		
+		NewCmdStart(),
 	)
 	// Define the flags allowed in this command & store each option provided
-	// as a flag, into the MayaAgentOptions
+	// as a flag, into the MayaNodebotOptions
 	AddKubeConfigFlag(cmd, &options.KubeConfig)
 	AddNamespaceFlag(cmd, &options.Namespace)
 
 	return cmd, nil
 }
 
-// Run maya-agent
+// Run maya-nodebot
 func Run(cmd *cobra.Command, options *MayaNodebotOptions) error {
 	glog.Infof("Starting maya-nodebot...")
 

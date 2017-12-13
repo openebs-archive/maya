@@ -23,15 +23,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	spapis "github.com/openebs/maya/pkg/storagepool-apis/openebs.io/v1"
-	spclientset "github.com/openebs/maya/pkg/storagepool-client/clientset/versioned"
-	//storagepoolinformers "github.com/openebs/maya/crd-code-generation/pkg/storagepool-client/informers/externalversions"
-
-	spcapisv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim-apis/openebs.io/v1"
-	spcclientset "github.com/openebs/maya/pkg/storagepoolclaim-client/clientset/versioned"
-	spcscheme "github.com/openebs/maya/pkg/storagepoolclaim-client/clientset/versioned/scheme"
-	spcinformers "github.com/openebs/maya/pkg/storagepoolclaim-client/informers/externalversions"
-	spclisters "github.com/openebs/maya/pkg/storagepoolclaim-client/listers/example/v1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	crdscheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	listers "github.com/openebs/maya/pkg/client/listers/openebs/v1alpha1"
 	//samplev1alpha1 "github.com/testsamplecontroller/sample-controller/temp"
 )
 
@@ -57,11 +53,9 @@ type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
 	// sampleclientset is a clientset for our own API group
-	spcclientset spcclientset.Interface
+	clientset clientset.Interface
 
-	storagepoolclient spclientset.Interface
-
-	spcLister spclisters.StoragepoolclaimLister
+	spcLister listers.StoragePoolClaimLister
 
 	spcSynced cache.InformerSynced
 
@@ -79,19 +73,18 @@ type Controller struct {
 // NewController returns a new sample controller
 func NewController(
 	kubeclientset kubernetes.Interface,
-	spcclientset spcclientset.Interface,
-	storagepoolclient spclientset.Interface,
+	clientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	spcInformerFactory spcinformers.SharedInformerFactory) *Controller {
+	spcInformerFactory informers.SharedInformerFactory) *Controller {
 
 	// obtain references to shared index informers for the Deployment and spc
 	// types.
-	spcInformer := spcInformerFactory.Example().V1().Storagepoolclaims()
+	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
 
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
 	// logged for sample-controller types.
-	spcscheme.AddToScheme(scheme.Scheme)
+	crdscheme.AddToScheme(scheme.Scheme)
 
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
@@ -100,13 +93,12 @@ func NewController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
 
 	controller := &Controller{
-		kubeclientset:     kubeclientset,
-		spcclientset:      spcclientset,
-		spcLister:         spcInformer.Lister(),
-		spcSynced:         spcInformer.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "spcs"),
-		recorder:          recorder,
-		storagepoolclient: storagepoolclient,
+		kubeclientset: kubeclientset,
+		clientset:     clientset,
+		spcLister:     spcInformer.Lister(),
+		spcSynced:     spcInformer.Informer().HasSynced,
+		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "spcs"),
+		recorder:      recorder,
 	}
 
 	glog.Info("Setting up event handlers")
@@ -225,7 +217,7 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the spcUpdated resource with this namespace/name
-	spcUpdated, err := c.spcLister.Storagepoolclaims(namespace).Get(name)
+	spcUpdated, err := c.spcLister.StoragePoolClaims(namespace).Get(name)
 	if err != nil {
 		// The spc resource may no longer exist, in which case we stop
 		// processing.
@@ -241,7 +233,7 @@ func (c *Controller) syncHandler(key string) error {
 	return nil
 }
 
-func (c *Controller) updateSpcStatus(spc *spcapisv1alpha1.Storagepoolclaim, deployment *appsv1beta2.Deployment) error {
+func (c *Controller) updateSpcStatus(spc *apis.StoragePoolClaim, deployment *appsv1beta2.Deployment) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
@@ -251,7 +243,7 @@ func (c *Controller) updateSpcStatus(spc *spcapisv1alpha1.Storagepoolclaim, depl
 	// update the Status block of the spc resource. UpdateStatus will not
 	// allow changes to the Spec of the resource, which is ideal for ensuring
 	// nothing other than resource status has been updated.
-	_, err := c.spcclientset.ExampleV1().Storagepoolclaims(spc.Namespace).Update(spcCopy)
+	_, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims(spc.Namespace).Update(spcCopy)
 	return err
 }
 
@@ -320,8 +312,8 @@ func (c *Controller) handleObjectAdd(obj interface{}) {
 	}
 	glog.V(4).Infof("Processing object: %s", object.GetName())
 
-	spc, err := c.spcclientset.ExampleV1().
-		Storagepoolclaims(object.GetNamespace()).
+	spc, err := c.clientset.OpenebsV1alpha1().
+		StoragePoolClaims(object.GetNamespace()).
 		Get(object.GetName(), metav1.GetOptions{})
 	if err != nil {
 		fmt.Println("error", err)
@@ -351,15 +343,15 @@ func (c *Controller) handleObjectAdd(obj interface{}) {
 	} else {
 		Message = " Mountpoint=" + mountpoint
 	}
-	sps := spapis.StoragepoolSpec{Name: spc.Spec.Name, Format: spc.Spec.Format,
+	sps := apis.StoragePoolSpec{Name: spc.Spec.Name, Format: spc.Spec.Format,
 		Mountpoint: spc.Spec.Mountpoint,
 		Nodename:   Nodename,
 		Message:    Message,
 	}
 
-	sp := spapis.Storagepool{Spec: sps}
+	sp := apis.StoragePool{Spec: sps}
 	sp.GenerateName = sps.Name
-	spr, err := c.storagepoolclient.ExampleV1().Storagepools(object.GetNamespace()).Create(&sp)
+	spr, err := c.clientset.OpenebsV1alpha1().StoragePools(object.GetNamespace()).Create(&sp)
 
 	if err != nil {
 		fmt.Println("Unable to create sp", err)

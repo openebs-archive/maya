@@ -1,7 +1,7 @@
 package command
 
 import (
-"errors"
+	"errors"
 	"github.com/openebs/maya/cmd/maya-nodebot/mcrd"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"

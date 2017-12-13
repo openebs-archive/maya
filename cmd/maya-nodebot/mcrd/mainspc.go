@@ -26,10 +26,9 @@ import (
 	// Uncomment the following line to load the gcp plugin (only required to authenticate against GKE clusters).
 	// _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
+	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
-	spclientset "github.com/openebs/maya/pkg/storagepool-client/clientset/versioned"
-	spcclientset "github.com/openebs/maya/pkg/storagepoolclaim-client/clientset/versioned"
-	spcinformers "github.com/openebs/maya/pkg/storagepoolclaim-client/informers/externalversions"
 )
 
 func Checkcrd(kuberconfig string) {
@@ -47,20 +46,15 @@ func Checkcrd(kuberconfig string) {
 		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
-	spcClient, err := spcclientset.NewForConfig(cfg)
+	crdClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building storage pool claim clientset: %s", err.Error())
-	}
-
-	spClient, err := spclientset.NewForConfig(cfg)
-	if err != nil {
-		glog.Fatalf("Error building  storage pool Client: %s", err.Error())
+		glog.Fatalf("Error building sp-spc clientset: %s", err.Error())
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	exampleInformerFactory := spcinformers.NewSharedInformerFactory(spcClient, time.Second*30)
+	exampleInformerFactory := informers.NewSharedInformerFactory(crdClient, time.Second*30)
 
-	controller := NewController(kubeClient, spcClient, spClient, kubeInformerFactory,
+	controller := NewController(kubeClient, crdClient, kubeInformerFactory,
 		exampleInformerFactory)
 
 	go kubeInformerFactory.Start(stopCh)
