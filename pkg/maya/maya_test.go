@@ -17,9 +17,15 @@ limitations under the License.
 package maya
 
 import (
+	"strings"
 	"testing"
+
+	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TestMayaBytes tests if a yaml marshalls to bytes.
+// The tests are written in a table format to provide various
+// scenarios of test data.
 func TestMayaBytes(t *testing.T) {
 	tests := map[string]struct {
 		yaml  string
@@ -44,16 +50,75 @@ func TestMayaBytes(t *testing.T) {
 	}
 }
 
+// MockMayaAnyK8s will be helpful in mocking the methods
+// of MayaAnyK8s
+type MockMayaAnyK8s struct {
+	kind       string
+	apiVersion string
+	owner      string
+	suffixName string
+	yaml       string
+	isError    bool
+}
+
+func (m MockMayaAnyK8s) NewMayaAnyK8s() *MayaAnyK8s {
+	return &MayaAnyK8s{
+		Kind:       m.kind,
+		APIVersion: m.apiVersion,
+		MayaYaml: MayaYaml{
+			Yaml: m.yaml,
+			MayaPlaceholders: MayaPlaceholders{
+				Owner: m.owner,
+			},
+		},
+	}
+}
+
+func (m MockMayaAnyK8s) TestObjectMeta(obj mach_apis_meta_v1.ObjectMeta, err error, t *testing.T) {
+	if !m.isError && err != nil {
+		t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+	}
+
+	if !m.isError && !strings.HasPrefix(obj.Name, m.owner) {
+		t.Fatalf("Expected Name: '%s%s' Actual: '%s'", m.owner, m.suffixName, obj.Name)
+	}
+
+	if !m.isError && !strings.HasSuffix(obj.Name, m.suffixName) {
+		t.Fatalf("Expected Name: '%s%s' Actual: '%s'", m.owner, m.suffixName, obj.Name)
+	}
+}
+
+func (m MockMayaAnyK8s) TestTypeMeta(meta mach_apis_meta_v1.TypeMeta, err error, t *testing.T) {
+	if !m.isError && err != nil {
+		t.Fatalf("Expected: 'no error' Actual: '%s'", err)
+	}
+
+	if !m.isError && meta.APIVersion != m.apiVersion {
+		t.Fatalf("Expected APIVersion: '%s' Actual: '%s'", m.apiVersion, meta.APIVersion)
+	}
+
+	if !m.isError && meta.Kind != m.kind {
+		t.Fatalf("Expected Kind: '%s' Actual: '%s'", m.kind, meta.Kind)
+	}
+}
+
+// TestMayaAnyK8sGenerateService tests if a yaml
+// marshalls to a K8s Service object. The tests are
+// written in a table format to provide various
+// scenarios of test data.
 func TestMayaAnyK8sGenerateService(t *testing.T) {
 	tests := map[string]struct {
 		kind    string
 		yaml    string
 		isError bool
 	}{
-		"blank service":   {kind: "service", yaml: "", isError: true},
-		"hello service":   {kind: "service", yaml: "Hello!!", isError: true},
+		"blank service":   {kind: "Service", yaml: "", isError: true},
+		"hello service":   {kind: "Service", yaml: "Hello!!", isError: true},
 		"invalid service": {kind: "blah", yaml: "Junk!!", isError: true},
-		"valid service": {kind: "service", yaml: `
+		"valid service": {
+			kind:    "Service",
+			isError: false,
+			yaml: `
 apiVersion: v1
 kind: Service
 metadata:
@@ -67,7 +132,7 @@ spec:
   selector:
     name: maya-apiserver
   sessionAffinity: None
-`, isError: false},
+`},
 	}
 
 	for name, test := range tests {
@@ -91,16 +156,61 @@ spec:
 	}
 }
 
+// TestMayaAnyK8sGenerateServiceTemplated tests if a templated yaml
+// marshalls to a K8s Service object
+func TestMayaAnyK8sGenerateServiceTemplated(t *testing.T) {
+	tests := map[string]MockMayaAnyK8s{
+		"templated service": {
+			kind:       "Service",
+			apiVersion: "v1",
+			owner:      "pv-123-abc",
+			suffixName: "-svc",
+			isError:    false,
+			yaml: `
+apiVersion: {{.APIVersion}}
+kind: {{.Kind}}
+metadata:
+  name: {{.Owner}}-svc
+spec:
+  ports:
+  - name: api
+    port: 5656
+    protocol: TCP
+    targetPort: 5656
+  selector:
+    name: maya-apiserver
+  sessionAffinity: None
+`},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := mock.NewMayaAnyK8s()
+			s, err := ma.GenerateService()
+
+			if mock.isError && s != nil {
+				t.Fatalf("Expected: 'nil service' Actual: '%v'", s)
+			}
+			mock.TestObjectMeta(s.ObjectMeta, err, t)
+			mock.TestTypeMeta(s.TypeMeta, err, t)
+		})
+	}
+}
+
+// TestMayaAnyK8sGenerateDeployment tests if a yaml
+// marshalls to a K8s Deployment object. The tests are
+// written in a table format to provide various
+// scenarios of test data.
 func TestMayaAnyK8sGenerateDeployment(t *testing.T) {
 	tests := map[string]struct {
 		kind    string
 		yaml    string
 		isError bool
 	}{
-		"blank deployment":   {kind: "deployment", yaml: "", isError: true},
-		"hello deployment":   {kind: "deployment", yaml: "Hello!!", isError: true},
+		"blank deployment":   {kind: "Deployment", yaml: "", isError: true},
+		"hello deployment":   {kind: "Deployment", yaml: "Hello!!", isError: true},
 		"invalid deployment": {kind: "blah", yaml: "Junk!!", isError: true},
-		"valid deployment": {kind: "deployment", yaml: `
+		"valid deployment": {kind: "Deployment", yaml: `
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
@@ -140,6 +250,139 @@ spec:
 			if test.isError && d != nil {
 				t.Fatalf("Expected: 'nil deployment' Actual: '%v'", d)
 			}
+		})
+	}
+}
+
+// TestMayaAnyK8sGenerateDeploymentTemplated tests if a
+// templated yaml marshalls to a K8s Deployment object
+func TestMayaAnyK8sGenerateDeploymentTemplated(t *testing.T) {
+	tests := map[string]MockMayaAnyK8s{
+		"templated deployment": {
+			kind:       "Deployment",
+			apiVersion: "apps/v1beta1",
+			owner:      "pv-123",
+			suffixName: "-dep",
+			isError:    false,
+			yaml: `
+apiVersion: {{.APIVersion}}
+kind: {{.Kind}}
+metadata:
+  name: {{.Owner}}-dep
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: maya-apiserver
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+      - name: maya-apiserver
+        imagePullPolicy: Always
+        image: openebs/m-apiserver:test
+        ports:
+        - containerPort: 5656
+`},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := mock.NewMayaAnyK8s()
+			d, err := ma.GenerateDeployment()
+
+			if mock.isError && d != nil {
+				t.Fatalf("Expected: 'nil deployment' Actual: '%v'", d)
+			}
+			mock.TestObjectMeta(d.ObjectMeta, err, t)
+			mock.TestTypeMeta(d.TypeMeta, err, t)
+		})
+	}
+}
+
+// TestMayaAnyK8sGenerateCofigMap tests if a yaml marshalls
+// to ConfigMap. The tests are written in a table format to
+// provide various scenarios of test data.
+func TestMayaAnyK8sGenerateCofigMap(t *testing.T) {
+	tests := map[string]MockMayaAnyK8s{
+		"blank yaml is invalid configmap": {
+			kind:    "ConfigMap",
+			isError: true,
+			yaml:    "",
+		},
+		"hello yaml is invalid configmap": {
+			kind:    "ConfigMap",
+			isError: true,
+			yaml:    "Hello",
+		},
+		"valid configmap": {
+			apiVersion: "v1",
+			kind:       "ConfigMap",
+			owner:      "my",
+			suffixName: "-cm",
+			isError:    false,
+			yaml: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-cm
+data:
+  x: y
+  a: b
+  c: d
+`},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := mock.NewMayaAnyK8s()
+			cm, err := ma.GenerateConfigMap()
+
+			if mock.isError && cm != nil {
+				t.Fatalf("Expected: 'nil configmap' Actual: '%v'", cm)
+			}
+
+			if !mock.isError {
+				mock.TestObjectMeta(cm.ObjectMeta, err, t)
+				mock.TestTypeMeta(cm.TypeMeta, err, t)
+			}
+		})
+	}
+}
+
+// TestMayaAnyK8sGenerateCofigMapTemplated tests if a
+// templated yaml marshalls to a K8s ConfigMap object
+func TestMayaAnyK8sGenerateCofigMapTemplated(t *testing.T) {
+	tests := map[string]MockMayaAnyK8s{
+		"a templated as well as valid configmap": {
+			kind:       "ConfigMap",
+			apiVersion: "v1",
+			owner:      "pv-123",
+			suffixName: "-cm",
+			isError:    false,
+			yaml: `
+apiVersion: {{.APIVersion}}
+kind: {{.Kind}}
+metadata:
+  name: {{.Owner}}-cm
+data:
+  x: y
+  a: b
+  c: d
+`},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ma := mock.NewMayaAnyK8s()
+			cm, err := ma.GenerateConfigMap()
+
+			if mock.isError && cm != nil {
+				t.Fatalf("Expected: 'nil deployment' Actual: '%v'", cm)
+			}
+			mock.TestObjectMeta(cm.ObjectMeta, err, t)
+			mock.TestTypeMeta(cm.TypeMeta, err, t)
 		})
 	}
 }
