@@ -22,6 +22,7 @@ type StoragePoolClaimSpec struct {
 	Name       string `json:"name"`
 	Format     string `json:"format"`
 	Mountpoint string `json:"mountpoint"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -55,6 +56,7 @@ type StoragePoolSpec struct {
 	Mountpoint string `json:"mountpoint"`
 	Nodename   string `json:"nodename"`
 	Message    string `json:"message"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
