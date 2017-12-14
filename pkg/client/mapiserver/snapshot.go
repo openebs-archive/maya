@@ -21,9 +21,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -56,6 +58,7 @@ func CreateSnapshot(volName string, snapName string) error {
 	url := GetURL() + "/latest/snapshots/create/"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 	if err != nil {
+		fmt.Println("NewRequest error:", err)
 		return err
 	}
 
@@ -66,20 +69,24 @@ func CreateSnapshot(volName string, snapName string) error {
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("Do error:%v", err)
+		//return err
 	}
 	defer resp.Body.Close()
 
-	_, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("ReadALL error:%v", err)
+		//return err
 	}
-	fmt.Println(resp)
+
+	fmt.Println("Body is :", string(body))
 	code := resp.StatusCode
 
-	if code != http.StatusOK {
-		err := fmt.Errorf("Status error: %v", http.StatusText(code))
-		return err
+	fmt.Println("Status Code:", code)
+
+	if err != nil && code != http.StatusOK {
+		return fmt.Errorf("inside error is %v:%v", err, http.StatusText(code))
 	}
 	return nil
 }
@@ -165,35 +172,32 @@ func ListSnapshot(volName string) error {
 	}
 	snapdisk, err := getInfo([]byte(body))
 	if err != nil {
-		fmt.Println("Failed to get the snapshot data", err)
+		fmt.Println("Failed to get the snapshot info", err)
 	}
-	/*out := make([]string, len(snapdisk)+1)
+	out := make([]string, len(snapdisk)+1)
 
 	out[0] = "Name|Created At|Size"
 	var i int
 
 	for _, disk := range snapdisk {
-		//	if !IsHeadDisk(disk.Name) {
+		//if !util.IsHeadDisk(disk.Name) {
 		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
 			disk.Created,
 			disk.Size)
 		i = i + 1
-		//	}
-	}*/
+	}
 
-	//	fmt.Println(util.FormatList(out))
-	fmt.Println(snapdisk)
-
+	fmt.Println(util.FormatList(out))
 	return nil
 }
 
-func getInfo(body []byte) (*map[string]client.DiskInfo, error) {
+// getInfo unmarshal http response body to DiskInfo struct
+func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 
-	var s = new(map[string]client.DiskInfo)
+	var s = make(map[string]client.DiskInfo)
 	err := json.Unmarshal(body, &s)
 	if err != nil {
-		fmt.Println("Unmarshling Error:", err)
 		return nil, err
 	}
 
