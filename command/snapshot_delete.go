@@ -9,6 +9,7 @@ import (
 	//	"github.com/rancher/go-rancher/client"
 )
 
+// SnapshotDeleteCommand : Delete command structure for a snapshot
 type SnapshotDeleteCommand struct {
 	Meta
 	Name  string
@@ -23,6 +24,7 @@ type SnapshotDeleteCommand struct {
 }
 */
 
+//Help provides a help text for maya command usage
 func (s *SnapshotDeleteCommand) Help() string {
 	helpText := `
 	Usage: maya snapshot delete -volname <vol>
@@ -37,6 +39,8 @@ func (s *SnapshotDeleteCommand) Help() string {
 func (s *SnapshotDeleteCommand) Synopsis() string {
 	return "Deletes the snapshots of a Volume"
 }
+
+// Run sets fields of SnapshotDeleteCommand and calls the DeleteSnapshot
 func (s *SnapshotDeleteCommand) Run(args []string) int {
 	flags := s.Meta.FlagSet("snapshot", FlagSetClient)
 	flags.Usage = func() { s.Ui.Output(s.Help()) }
@@ -56,6 +60,7 @@ func (s *SnapshotDeleteCommand) Run(args []string) int {
 	return 0
 }
 
+//DeleteSnapshot marks the passed snapshot name as removed
 func (s *SnapshotDeleteCommand) DeleteSnapshot(volume string, snapshot string) error {
 	var err error
 
@@ -116,9 +121,5 @@ func (s *SnapshotDeleteCommand) markSnapshotAsRemoved(replicaInController *clien
 		return err
 	}
 
-	if err := repClient.MarkDiskAsRemoved(snapshot); err != nil {
-		return err
-	}
-
-	return nil
+	return repClient.MarkDiskAsRemoved(snapshot)
 }
