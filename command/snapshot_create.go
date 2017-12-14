@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	// MaximumVolumeNameSize is the maximum size a volume name can have
 	MaximumVolumeNameSize = 64
 	parsePattern          = regexp.MustCompile(`(.*):(\d+)`)
 )
