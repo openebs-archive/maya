@@ -19,6 +19,7 @@ const (
 	maximumChainLength = 250
 )
 
+// Volumes contains parameters to describe a volume
 type Volumes struct {
 	Resource
 	Name         string `json:"name"`
@@ -26,17 +27,20 @@ type Volumes struct {
 	Endpoint     string `json:"endpoint"`
 }
 
+// VolumeCollection is a collection of volume
 type VolumeCollection struct {
 	Collection
 	Data []Volumes `json:"data"`
 }
 
+// Replica contains information about a replica
 type Replica struct {
 	Resource
 	Address string `json:"address"`
 	Mode    string `json:"mode"`
 }
 
+// InfoReplica describes stats of a Replica
 type InfoReplica struct {
 	Resource
 	Dirty           bool                `json:"dirty"`
@@ -52,6 +56,7 @@ type InfoReplica struct {
 	RevisionCounter int64               `json:"revisioncounter"`
 }
 
+// DiskInfo contains information about a disk
 type DiskInfo struct {
 	Name        string   `json:"name"`
 	Parent      string   `json:"parent"`
@@ -62,11 +67,13 @@ type DiskInfo struct {
 	Size        string   `json:"size"`
 }
 
+// ReplicaCollection is a collection of a replica
 type ReplicaCollection struct {
 	Collection
 	Data []Replica `json:"data"`
 }
 
+// MarkDiskAsRemovedInput contains disk name to be removed
 type MarkDiskAsRemovedInput struct {
 	Resource
 	Name string `json:"name"`
@@ -80,12 +87,14 @@ type ReplicaClient struct {
 	httpClient *http.Client
 }
 
+// ControllerClient describes jiva controller
 type ControllerClient struct {
 	Address    string
 	Host       string
 	httpClient *http.Client
 }
 
+// RevertInput defines snapshot name to be reverted
 type RevertInput struct {
 	Resource
 	Name string `json:"name"`
@@ -101,10 +110,12 @@ type SnapshotInput struct {
 	Labels      map[string]string `json:"labels"`
 }
 
+// SnapshotOutput defines resource of volume
 type SnapshotOutput struct {
 	Resource
 }
 
+// Resource defines disk info
 type Resource struct {
 	Id      string            `json:"id,omitempty"`
 	Type    string            `json:"type,omitempty"`
@@ -112,6 +123,7 @@ type Resource struct {
 	Actions map[string]string `json:"actions"`
 }
 
+// Collection defines attributes for VolumeCollection
 type Collection struct {
 	Type         string                 `json:"type,omitempty"`
 	ResourceType string                 `json:"resourceType,omitempty"`
@@ -124,17 +136,20 @@ type Collection struct {
 	Filters      map[string][]Condition `json:"filters,omitempty"`
 }
 
+// Sort contains sort data
 type Sort struct {
 	Name    string `json:"name,omitempty"`
 	Order   string `json:"order,omitempty"`
 	Reverse string `json:"reverse,omitempty"`
 }
 
+// Condition defines set of cond. with modifier and value
 type Condition struct {
 	Modifier string      `json:"modifier,omitempty"`
 	Value    interface{} `json:"value,omitempty"`
 }
 
+// Pagination defines attributes for pagination
 type Pagination struct {
 	Marker   string `json:"marker,omitempty"`
 	First    string `json:"first,omitempty"`
@@ -145,6 +160,7 @@ type Pagination struct {
 	Partial  bool   `json:"partial,omitempty"`
 }
 
+// Filter returns filtered results
 func Filter(list []string, check func(string) bool) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
@@ -155,6 +171,7 @@ func Filter(list []string, check func(string) bool) []string {
 	return result
 }
 
+// Contains checks if string presents in string array
 func Contains(arr []string, val string) bool {
 	for _, a := range arr {
 		if a == val {
@@ -164,6 +181,7 @@ func Contains(arr []string, val string) bool {
 	return false
 }
 
+// IsHeadDisk checks if Disk is a Head
 func IsHeadDisk(diskName string) bool {
 	if strings.HasPrefix(diskName, headPrefix) && strings.HasSuffix(diskName, headSuffix) {
 		return true
