@@ -53,12 +53,9 @@ func CreateSnapshot(volName string, snapName string) error {
 	//Marshal serializes the value provided into a YAML document
 	yamlValue, _ := yaml.Marshal(snap)
 
-	fmt.Printf("Volume snapshot spec created:\n%v\n", string(yamlValue))
-
 	url := GetURL() + "/latest/snapshots/create/"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
 	if err != nil {
-		fmt.Println("NewRequest error:", err)
 		return err
 	}
 
@@ -69,24 +66,22 @@ func CreateSnapshot(volName string, snapName string) error {
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		return fmt.Errorf("Do error:%v", err)
-		//return err
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("ReadALL error:%v", err)
-		//return err
+		return err
 	}
 
-	fmt.Println("Body is :", string(body))
 	code := resp.StatusCode
+	if err == nil && code != http.StatusOK {
+		return fmt.Errorf(string(body))
+	}
 
-	fmt.Println("Status Code:", code)
-
-	if err != nil && code != http.StatusOK {
-		return fmt.Errorf("inside error is %v:%v", err, http.StatusText(code))
+	if code != http.StatusOK {
+		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 	return nil
 }
@@ -134,7 +129,7 @@ func RevertSnapshot(volName string, snapName string) error {
 	code := resp.StatusCode
 
 	if code != http.StatusOK {
-		return fmt.Errorf("Status error: %v", http.StatusText(code))
+		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 	return nil
 }
@@ -168,7 +163,7 @@ func ListSnapshot(volName string) error {
 	}
 	code := resp.StatusCode
 	if code != http.StatusOK {
-		return fmt.Errorf("Status error: %v", http.StatusText(code))
+		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 	snapdisk, err := getInfo([]byte(body))
 	if err != nil {
