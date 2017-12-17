@@ -34,15 +34,10 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 		return nil, fmt.Errorf("Invalid address %s, must have a port in it", address)
 	}
 
-	timeout := time.Duration(2 * time.Second)
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
 	return &ControllerClient{
 		Host:       parts[0],
 		Address:    address,
-		httpClient: client,
+		httpClient: &http.Client{Timeout: 2 * time.Second},
 	}, nil
 }
 
