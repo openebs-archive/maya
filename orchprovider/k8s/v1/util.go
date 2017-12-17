@@ -293,18 +293,17 @@ func (p *VolumeMarkerBuilder) AddContainerStatuses(cp k8sApiV1.Pod, volumekey v1
 	}
 }
 
-// IsRunning to compare the state of all containers in a pod
+// IsVolumeRunning to compare the state of all containers in a pod
 func (p *VolumeMarkerBuilder) IsVolumeRunning(pv *v1.Volume) bool {
-	var cphase, rphase string
+	var cphase, rphase v1.VolumeValue
 	cstate := pv.Annotations[string(v1.ControllerContainerStatusVK)]
 	cresult := strings.Split(cstate, ",")
 
 	for i := range cresult {
 		if cresult[i] == string(v1.ContainerRunningVV) {
-			cphase = string(v1.ContainerRunningVV)
-
+			cphase = v1.ContainerRunningVV
 		} else {
-			cphase = string(v1.ContainerNotRunningVV)
+			cphase = v1.ContainerNotRunningVV
 		}
 
 	}
@@ -313,20 +312,13 @@ func (p *VolumeMarkerBuilder) IsVolumeRunning(pv *v1.Volume) bool {
 
 	for i := range rresult {
 		if rresult[i] == string(v1.ContainerRunningVV) {
-			rphase = string(v1.ContainerRunningVV)
-
+			rphase = v1.ContainerRunningVV
 		} else {
-			rphase = string(v1.ContainerNotRunningVV)
+			rphase = v1.ContainerNotRunningVV
 		}
+	}
 
-	}
-	if cphase == string(v1.ContainerRunningVV) {
-		if rphase == string(v1.ContainerRunningVV) {
-			return true
-		}
-		return false
-	}
-	return false
+	return cphase == v1.ContainerRunningVV && rphase == v1.ContainerRunningVV
 }
 
 //
