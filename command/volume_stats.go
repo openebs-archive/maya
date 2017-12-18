@@ -221,16 +221,11 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}
 	syncAgent := strings.Replace(address, fmt.Sprintf(":%d", port), fmt.Sprintf(":%d", port+2), -1)
 
-	timeout := time.Duration(2 * time.Second)
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
 	return &ReplicaClient{
 		Host:       parts[0],
 		Address:    address,
 		SyncAgent:  syncAgent,
-		httpClient: client,
+		httpClient: &http.Client{Timeout: 2 * time.Second},
 	}, nil
 }
 
@@ -280,15 +275,10 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 		return nil, fmt.Errorf("Invalid address %s, must have a port in it", address)
 	}
 
-	timeout := time.Duration(2 * time.Second)
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
 	return &ControllerClient{
 		Host:       parts[0],
 		Address:    address,
-		httpClient: client,
+		httpClient: &http.Client{Timeout: 2 * time.Second},
 	}, nil
 }
 

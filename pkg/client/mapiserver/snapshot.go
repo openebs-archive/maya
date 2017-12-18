@@ -163,7 +163,7 @@ func ListSnapshot(volName string) error {
 	if code != http.StatusOK {
 		return fmt.Errorf("Status error: %v", http.StatusText(code))
 	}
-	snapdisk, err := getInfo([]byte(body))
+	snapdisk, err := getInfo(body)
 	if err != nil {
 		fmt.Println("Failed to get the snapshot data", err)
 	}

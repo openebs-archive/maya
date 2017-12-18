@@ -304,7 +304,7 @@ func (e *VolumeExporter) collect() error {
 	}
 
 	sSize, _ := strconv.ParseFloat(metrics2.SectorSize, 64)
-	sectorSize.Set(float64(sSize))
+	sectorSize.Set(sSize)
 	uBlocks, _ := strconv.ParseFloat(metrics2.UsedBlocks, 64)
 	uBlocks = uBlocks * sSize
 	lSize, _ := v1.DivideFloat64(uBlocks, v1.BytesToGB)

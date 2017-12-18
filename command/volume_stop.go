@@ -51,7 +51,7 @@ func (c *VsmStopCommand) Run(args []string) int {
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error while deleting Volume: %s", err))
 		}
-		fmt.Println("Initiated Volume-Delete request for volume:", string(c.volname))
+		fmt.Println("Initiated Volume-Delete request for volume:", c.volname)
 		return 0
 	}
 
