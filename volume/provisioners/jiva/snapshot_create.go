@@ -42,7 +42,7 @@ func Snapshot(snapname string, controllerIP string, labels map[string]string) (c
 		Labels: labels,
 	}
 
-	err = IsExist(snapname, controllerIP)
+	err = CheckSnapshotExist(snapname, controllerIP)
 	if err != nil {
 		return output, err
 

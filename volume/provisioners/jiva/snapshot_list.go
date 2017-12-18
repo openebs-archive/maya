@@ -165,8 +165,8 @@ func (c *ReplicaClient) post(path string, req, resp interface{}) error {
 	return json.NewDecoder(httpResp.Body).Decode(resp)
 }
 
-// IsExist check the existence of snapshot in chain of created snapshots
-func IsExist(snapshot string, controllerIP string) error {
+// CheckSnapshotExist check the existence of snapshot in chain of created snapshots
+func CheckSnapshotExist(snapshot string, controllerIP string) error {
 	controller, err := client.NewControllerClient(controllerIP + ":9501")
 
 	glog.Infof("Validates existence of snapshot [%s] before create %s", snapshot)
