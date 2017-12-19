@@ -45,7 +45,7 @@ func NewCmdSnapshotList() *cobra.Command {
 	return cmd
 }
 
-// Validate validates the flag values
+// ValidateList validates the flag values
 func (c *CmdSnaphotCreateOptions) ValidateList(cmd *cobra.Command) error {
 	if c.volName == "" {
 		return errors.New("--volname is missing. Please specify an unique name")
@@ -53,16 +53,12 @@ func (c *CmdSnaphotCreateOptions) ValidateList(cmd *cobra.Command) error {
 	return nil
 }
 
-// RunSnapshotCreate does tasks related to mayaserver.
+// RunSnapshotList does tasks related to mayaserver.
 func (c *CmdSnaphotCreateOptions) RunSnapshotList(cmd *cobra.Command) error {
-	fmt.Println("Executing volume snapshot list...")
 
 	resp := mapiserver.ListSnapshot(c.volName)
 	if resp != nil {
-		return fmt.Errorf("Error: %v", resp)
+		return fmt.Errorf("Error list available snapshot: %v", resp)
 	}
-
-	fmt.Printf("Volume snapshots are:%v\n", resp)
-
 	return nil
 }

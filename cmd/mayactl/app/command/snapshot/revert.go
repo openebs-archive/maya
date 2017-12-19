@@ -43,12 +43,12 @@ func NewCmdSnapshotRevert() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 	cmd.MarkPersistentFlagRequired("snapname")
 
-	cmd.Flags().StringVarP(&options.snapName, "snapname", "", options.snapName,
+	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
 
 	return cmd
