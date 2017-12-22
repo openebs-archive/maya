@@ -114,9 +114,16 @@ func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, vol
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
+	// Get the namespace if provided
+	ns := ""
+	if req != nil {
+		ns = req.Header.Get("namespace")
+	}
+
 	// Create a Volume
 	vol := &v1.Volume{}
 	vol.Name = volName
+	vol.Namespace = ns
 
 	// Pass through the policy enforcement logic
 	policy, err := policies_v1.VolumeGenericPolicy()
@@ -171,9 +178,16 @@ func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, v
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
 	}
 
+	// Get the namespace if provided
+	ns := ""
+	if req != nil {
+		ns = req.Header.Get("namespace")
+	}
+
 	// Create a Volume
 	vol := &v1.Volume{}
 	vol.Name = volName
+	vol.Namespace = ns
 
 	// Pass through the policy enforcement logic
 	policy, err := policies_v1.VolumeGenericPolicy()
