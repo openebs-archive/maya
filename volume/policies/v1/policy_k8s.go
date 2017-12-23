@@ -119,6 +119,7 @@ func (p *K8sPolicies) initNS() {
 
 	// possible values for namespace
 	nsVals := []string{
+		p.volume.ObjectMeta.Namespace,
 		p.volume.Labels.K8sNamespace,
 		v1.NamespaceENV(),
 		v1.DefaultNamespace,
