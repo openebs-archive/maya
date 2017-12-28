@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/maya-nodebot/storage/block"
+	"github.com/openebs/maya/cmd/maya-nodebot/types/v1"
 
 	"github.com/golang/glog"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,11 +37,11 @@ const (
 	// SuccessSynced is used as part of the Event 'reason' when a spc is synced
 	SuccessSynced = "Synced"
 	// ErrResourceExists is used as part of the Event 'reason' when a spc fails
-	// to sync due to a Deployment of the same name already existing.
+	// to sync due to a spc of the same name already existing.
 	ErrResourceExists = "ErrResourceExists"
 
 	// MessageResourceExists is the message used for Events when a resource
-	// fails to sync due to a Deployment already existing
+	// fails to sync due to a spc already existing
 	MessageResourceExists = "Resource %q already exists and is not managed by spc"
 	// MessageResourceSynced is the message used for an Event fired when a spc
 	// is synced successfully
@@ -70,6 +70,11 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
+type QueueLoad struct {
+	key       string
+	operation string
+}
+
 // NewController returns a new sample controller
 func NewController(
 	kubeclientset kubernetes.Interface,
@@ -77,7 +82,7 @@ func NewController(
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	spcInformerFactory informers.SharedInformerFactory) *Controller {
 
-	// obtain references to shared index informers for the Deployment and spc
+	// obtain references to shared index informers for the sp and spc
 	// types.
 	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
 
@@ -103,12 +108,27 @@ func NewController(
 
 	glog.Info("Setting up event handlers")
 	// Set up an event handler for when spc resources change
+	q := QueueLoad{}
 	spcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.enqueueSpcAdd,
-		UpdateFunc: func(old, new interface{}) {
-			controller.enqueueSpcUpdate(new)
+		AddFunc: func(obj interface{}) {
+			q.operation = "add"
+			controller.enqueueSpc(obj, q)
 		},
-		DeleteFunc: controller.enqueueSpcDelete,
+		UpdateFunc: func(old, new interface{}) {
+			newspc := new.(*apis.StoragePoolClaim)
+			oldspc := old.(*apis.StoragePoolClaim)
+			if newspc.ResourceVersion == oldspc.ResourceVersion {
+				// Periodic resync will send update events for all known spc.
+				// Two different versions of the same spc will always have different RVs.
+				return
+			}
+			q.operation = "update"
+			controller.enqueueSpc(new, q)
+		},
+		DeleteFunc: func(obj interface{}) {
+			q.operation = "delete"
+			controller.enqueueSpc(obj, q)
+		},
 	})
 
 	return controller
@@ -170,14 +190,14 @@ func (c *Controller) processNextWorkItem() bool {
 		// put back on the workqueue and attempted again after a back-off
 		// period.
 		defer c.workqueue.Done(obj)
-		var key string
+		var q QueueLoad
 		var ok bool
 		// We expect strings to come off the workqueue. These are of the
 		// form namespace/name. We do this as the delayed nature of the
 		// workqueue means the items in the informer cache may actually be
 		// more up to date that when the item was initially put onto the
 		// workqueue.
-		if key, ok = obj.(string); !ok {
+		if q, ok = obj.(QueueLoad); !ok {
 			// As the item in the workqueue is actually invalid, we call
 			// Forget here else we'd go into a loop of attempting to
 			// process a work item that is invalid.
@@ -187,13 +207,13 @@ func (c *Controller) processNextWorkItem() bool {
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		// spc resource to be synced.
-		if err := c.syncHandler(key); err != nil {
-			return fmt.Errorf("error syncing '%s': %s", key, err.Error())
+		if err := c.syncHandler(q.key, q.operation); err != nil {
+			return fmt.Errorf("error syncing '%s': %s", q.key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		glog.Infof("Successfully synced '%s'", key)
+		glog.Infof("Successfully synced '%s'", q.key)
 		return nil
 	}(obj)
 
@@ -208,7 +228,7 @@ func (c *Controller) processNextWorkItem() bool {
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcUpdated resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key string) error {
+func (c *Controller) syncHandler(key, operation string) error {
 	// Convert the namespace/name string into a distinct namespace and name
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -217,7 +237,12 @@ func (c *Controller) syncHandler(key string) error {
 	}
 
 	// Get the spcUpdated resource with this namespace/name
-	spcUpdated, err := c.spcLister.StoragePoolClaims(namespace).Get(name)
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	//spcUpdated, err := c.spcLister.StoragePoolClaims(namespace).Get(name)
+	spcUpdated, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The spc resource may no longer exist, in which case we stop
 		// processing.
@@ -228,137 +253,52 @@ func (c *Controller) syncHandler(key string) error {
 
 		return err
 	}
-	//fmt.Println("spcUpdated : ", spcUpdated)
-	_ = spcUpdated
-	return nil
-}
 
-func (c *Controller) updateSpcStatus(spc *apis.StoragePoolClaim, deployment *appsv1beta2.Deployment) error {
-	// NEVER modify objects from the store. It's a read-only, local cache.
-	// You can use DeepCopy() to make a deep copy of original object and modify this copy
-	// Or create a copy manually for better performance
-	spcCopy := spc.DeepCopy()
-	//spcCopy.Status.AvailableReplicas = 1
-	// Until #38113 is merged, we must use Update instead of UpdateStatus to
-	// update the Status block of the spc resource. UpdateStatus will not
-	// allow changes to the Spec of the resource, which is ideal for ensuring
-	// nothing other than resource status has been updated.
-	_, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims(spc.Namespace).Update(spcCopy)
-	return err
+	var sp apis.StoragePool
+	flag := IsDiskAvailable(spcUpdated.Spec.Name)
+	if flag == false {
+		runtime.HandleError(fmt.Errorf("Disk not available: %s", spcUpdated.Spec.Name))
+		return nil
+	}
+
+	switch operation {
+	case "add":
+		sp = DiskOperations(spcUpdated, namespace)
+		Createsp(sp, c, namespace)
+		break
+	case "update":
+		//IsDiskBeingUsed needs to be implemeneted
+		//IsDiskUnusedMounted needs to be implemeneted
+		sp = DiskOperations(spcUpdated, namespace)
+		Updatesp(sp, c, namespace)
+		break
+	case "delete":
+		//IsDiskBeingUsed needs to be implemeneted
+		//IsDiskUnusedMounted needs to be implemeneted
+		err := block.UnMount(spcUpdated.Spec.Name)
+		if err != nil {
+			runtime.HandleError(fmt.Errorf("Unable to unmount ", err))
+			break
+		}
+		Deletesp(spcUpdated.Spec.Name, c, namespace)
+		break
+	}
+
+	return nil
 }
 
 // enqueueSpc takes a spc resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than spc.
-func (c *Controller) enqueueSpcAdd(obj interface{}) {
+func (c *Controller) enqueueSpc(obj interface{}, q QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
 		runtime.HandleError(err)
 		return
 	}
-	c.workqueue.AddRateLimited(key)
-
-	c.handleObjectAdd(obj)
-}
-
-func (c *Controller) enqueueSpcUpdate(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		runtime.HandleError(err)
-		return
-	}
-	c.workqueue.AddRateLimited(key)
-	//printing since the update corner case is yet to be decided
-	fmt.Println("key updated: ", key)
-	//fmt.Println("obj updated: ", obj)
-}
-
-func (c *Controller) enqueueSpcDelete(obj interface{}) {
-	var key string
-	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		runtime.HandleError(err)
-		return
-	}
-	c.workqueue.AddRateLimited(key)
-
-	//simply printing the deleted key
-	fmt.Println("key deleted: ", key)
-	//fmt.Println("obj deleted: ", obj)
-}
-
-// handleObject will take any resource implementing metav1.Object and attempt
-// to find the spc resource that 'owns' it. It does this by looking at the
-// objects metadata.ownerReferences field for an appropriate OwnerReference.
-// It then enqueues that spc resource to be processed. If the object does not
-// have an appropriate OwnerReference, it will simply be skipped.
-func (c *Controller) handleObjectAdd(obj interface{}) {
-	var object metav1.Object
-	var ok bool
-	if object, ok = obj.(metav1.Object); !ok {
-		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
-		if !ok {
-			runtime.HandleError(fmt.Errorf("error decoding object, invalid type"))
-			return
-		}
-		object, ok = tombstone.Obj.(metav1.Object)
-		if !ok {
-			runtime.HandleError(fmt.Errorf("error decoding object tombstone, invalid type"))
-			return
-		}
-		glog.V(4).Infof("Recovered deleted object '%s' from tombstone", object.GetName())
-	}
-	glog.V(4).Infof("Processing object: %s", object.GetName())
-
-	spc, err := c.clientset.OpenebsV1alpha1().
-		StoragePoolClaims(object.GetNamespace()).
-		Get(object.GetName(), metav1.GetOptions{})
-	if err != nil {
-		fmt.Println("error", err)
-	}
-	//fmt.Println("spc", spc)
-
-	fmt.Println("ADDED : ", spc.Spec.Name, spc.Spec.Format, spc.Spec.Mountpoint)
-
-	Message := ""
-
-	Nodename, err := GetNodeName()
-	if err != nil {
-		Message = Message + "unable to get nodename "
-	}
-
-	res, err := block.Format(spc.Spec.Name, spc.Spec.Format)
-	if err != nil {
-		Message = Message + " unable to format"
-		//util.CheckErr(err, util.Fatal)
-	} else {
-		Message = res
-	}
-	mountpoint, err := block.Mount(spc.Spec.Name)
-	if err != nil {
-		Message = Message + " unable to mount"
-		//util.CheckErr(err, util.Fatal)
-	} else {
-		Message = " Mountpoint=" + mountpoint
-	}
-	sps := apis.StoragePoolSpec{Name: spc.Spec.Name, Format: spc.Spec.Format,
-		Mountpoint: spc.Spec.Mountpoint,
-		Nodename:   Nodename,
-		Message:    Message,
-	}
-
-	sp := apis.StoragePool{Spec: sps}
-	sp.GenerateName = sps.Name
-	spr, err := c.clientset.OpenebsV1alpha1().StoragePools(object.GetNamespace()).Create(&sp)
-
-	if err != nil {
-		fmt.Println("Unable to create sp", err)
-	} else {
-		fmt.Println("Created sp", spr.Spec)
-	}
-	Message = ""
+	q.key = key
+	c.workqueue.AddRateLimited(q)
 }
 
 func GetNodeName() (string, error) {
@@ -366,4 +306,89 @@ func GetNodeName() (string, error) {
 	NodenameByte, err := exec.Command("uname", "-n").Output()
 	Nodename = string(NodenameByte)
 	return Nodename, err
+}
+
+func DiskOperations(spc *apis.StoragePoolClaim, namespace string) apis.StoragePool {
+	Message := ""
+
+	Nodename, err := GetNodeName()
+	if err != nil {
+		Message = Message + "unable to get nodename " + err.Error()
+		//util.CheckErr(err, util.Fatal)
+	}
+
+	res, err := block.Format(spc.Spec.Name, spc.Spec.Format)
+	if err != nil {
+		Message = Message + " unable to format" + err.Error()
+		//util.CheckErr(err, util.Fatal)
+	} else {
+		Message = Message + res
+	}
+
+	mountpoint, err := block.Mount(spc.Spec.Name)
+	if err != nil {
+		Message = Message + " unable to mount" + err.Error()
+		//util.CheckErr(err, util.Fatal)
+	} else {
+		Message = " Mountpoint=" + mountpoint
+		//util.CheckErr(err, util.Fatal)
+	}
+
+	sps := apis.StoragePoolSpec{Name: spc.Spec.Name, Format: spc.Spec.Format,
+		Mountpoint: spc.Spec.Mountpoint,
+		Nodename:   Nodename,
+		Message:    Message,
+	}
+	sp := apis.StoragePool{Spec: sps}
+	sp.Name = sps.Name
+
+	return sp
+}
+
+func Createsp(sp apis.StoragePool, c *Controller, namespace string) {
+	spCopy := sp.DeepCopy()
+	spr, err := c.clientset.OpenebsV1alpha1().StoragePools(namespace).Create(spCopy)
+
+	if err != nil {
+		glog.Info("Unable to create sp", err)
+	} else {
+		glog.Info("Created sp :", spr.Spec.Name)
+	}
+}
+
+func Updatesp(sp apis.StoragePool, c *Controller, namespace string) {
+	spCopy := sp.DeepCopy()
+	spGot, err := c.clientset.OpenebsV1alpha1().StoragePools(namespace).Get(spCopy.Spec.Name, metav1.GetOptions{})
+	spGot.Spec = spCopy.Spec
+	spr, err := c.clientset.OpenebsV1alpha1().StoragePools(namespace).Update(spGot)
+
+	if err != nil {
+		glog.Info("Unable to update sp", err)
+	} else {
+		glog.Info("Updated sp :", spr.Spec.Name)
+	}
+}
+
+func Deletesp(name string, c *Controller, namespace string) {
+	err := c.clientset.OpenebsV1alpha1().StoragePools(namespace).Delete(name, &metav1.DeleteOptions{})
+
+	if err != nil {
+		glog.Info("Unable to delete sp ", name, err)
+	} else {
+		glog.Info("Deleted sp :", name)
+	}
+}
+
+func IsDiskAvailable(name string) bool {
+	var resJsonDecoded v1.BlockDeviceInfo
+	err := block.ListBlockExec(&resJsonDecoded)
+	if err != nil {
+		return false
+	}
+	for _, blk := range resJsonDecoded.Blockdevices {
+		if blk.Name == name {
+			return true
+		}
+	}
+	return false
 }
