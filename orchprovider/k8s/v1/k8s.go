@@ -624,20 +624,65 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	return pv, nil
 }
 
-// ListStorage will list a collections of VSMs
-func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error) {
-	if volProProfile == nil {
-		return nil, fmt.Errorf("Nil volume provisioner profile provided")
+// getAllNamespaces will get all the available namespaces
+// in K8s cluster
+func (k *k8sOrchestrator) getAllNamespaces(vol *v1.Volume) ([]string, error) {
+
+	ku := &k8sUtil{
+		volume: vol,
 	}
 
-	glog.Infof("Listing Volumes at orchestrator '%s: %s'", k.Label(), k.Name())
-
-	dl, err := k.getVSMDeployments(volProProfile)
+	kc, supported, err := ku.K8sClientV2()
 	if err != nil {
 		return nil, err
 	}
 
-	if dl == nil || dl.Items == nil || len(dl.Items) == 0 {
+	if !supported {
+		return nil, fmt.Errorf("K8s client is not supported")
+	}
+
+	nsOps, err := kc.NamespaceOps()
+	if err != nil {
+		return nil, err
+	}
+
+	nsl, err := nsOps.List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var nss []string
+	for _, ns := range nsl.Items {
+		nss = append(nss, ns.Name)
+	}
+
+	return nss, nil
+}
+
+// listStorageByNS will list a collections of volumes for a
+// particular namespace
+func (k *k8sOrchestrator) listStorageByNS(vol *v1.Volume) (*v1.VolumeList, error) {
+	glog.Infof("Listing volumes for namespace '%s'", vol.Namespace)
+
+	vpp, err := volProfile.GetVolProProfile(vol)
+	if err != nil {
+		return nil, err
+	}
+
+	// Need to use a new version of k8sUtil as the volume
+	// it composes determines the namespace to be used
+	// for K8s list operation
+	//
+	// Note: Here volume acts as a placeholder for namespace &
+	// doesnot necessarily represent a volume
+	dl, err := k.getVSMDeployments(&k8sUtil{
+		volume: vol,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if dl == nil || len(dl.Items) == 0 {
 		return nil, nil
 	}
 
@@ -653,20 +698,69 @@ func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisioner
 
 		vsm := v1.SanitiseVSMName(d.Name)
 		if vsm == "" {
-			return nil, fmt.Errorf("Volume name could not be determined from K8s Deployment 'name: %s'", d.Name)
+			return nil, fmt.Errorf("Volume name could not be determined from K8s Deployment '%s'", d.Name)
 		}
 
-		pv, err := k.readVSM(vsm, volProProfile)
-		if err != nil {
-			// Ignore the error of this particular VSM
-			// Cases where this particular VSM might be in a creating or deleting state
+		pv, _ := k.readVSM(vsm, vpp)
+		if pv == nil {
+			// Ignore the cases where this particular VSM might be in
+			// a creating or deleting state
 			continue
 		}
+
 		pvl.Items = append(pvl.Items, *pv)
 	}
 
-	glog.Infof("Listed Volume 'count: %d' at orchestrator '%s: %s'", len(pvl.Items), k.Label(), k.Name())
+	glog.Infof("Listed volumes with count '%d' for namespace '%s'", len(pvl.Items), vol.Namespace)
 
+	return pvl, nil
+}
+
+// ListStorage will list a collections of VSMs
+func (k *k8sOrchestrator) ListStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.VolumeList, error) {
+	if volProProfile == nil {
+		return nil, fmt.Errorf("Nil volume provisioner profile provided")
+	}
+
+	vol, err := volProProfile.Volume()
+	if err != nil {
+		return nil, err
+	}
+
+	var nss []string
+	if vol.Namespace == v1.DefaultNamespaceForListOps {
+		nss, err = k.getAllNamespaces(vol)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// This will be nil if the list operation is desired
+	// for a specific namespace
+	if nss == nil {
+		return k.listStorageByNS(vol)
+	}
+
+	pvl := &v1.VolumeList{}
+	// We take a copy to avoid mutating the original
+	// volume
+	volCpy := &v1.Volume{}
+	volCpy = vol
+	for _, ns := range nss {
+		// This is most important step
+		// Listing will be done based on namespace
+		volCpy.Namespace = ns
+		l, err := k.listStorageByNS(volCpy)
+		if err != nil {
+			return nil, err
+		}
+
+		if l == nil || len(l.Items) == 0 {
+			continue
+		}
+
+		pvl.Items = append(pvl.Items, l.Items...)
+	}
 	return pvl, nil
 }
 
@@ -1395,16 +1489,18 @@ func (k *k8sOrchestrator) getDeploymentList(vsm string, volProProfile volProfile
 }
 
 // getVSMDeployments fetches all the VSM deployments
-func (k *k8sOrchestrator) getVSMDeployments(volProProfile volProfile.VolumeProvisionerProfile) (*k8sApisExtnsBeta1.DeploymentList, error) {
+func (k *k8sOrchestrator) getVSMDeployments(ku *k8sUtil) (*k8sApisExtnsBeta1.DeploymentList, error) {
 
-	k8sUtl := k8sOrchUtil(k, volProProfile)
-
-	kc, supported := k8sUtl.K8sClient()
-	if !supported {
-		return nil, fmt.Errorf("K8s client not supported by '%s'", k8sUtl.Name())
+	kc, supported, err := ku.K8sClientV2()
+	if err != nil {
+		return nil, err
 	}
 
-	dOps, err := kc.DeploymentOps()
+	if !supported {
+		return nil, fmt.Errorf("K8s client is not supported")
+	}
+
+	dOps, err := kc.DeploymentOps2()
 	if err != nil {
 		return nil, err
 	}
@@ -1429,13 +1525,10 @@ func (k *k8sOrchestrator) getVSMDeployments(volProProfile volProfile.VolumeProvi
 }
 
 // getVSMServices fetches all the VSM services
-func (k *k8sOrchestrator) getVSMServices(volProProfile volProfile.VolumeProvisionerProfile) (*k8sApiV1.ServiceList, error) {
-
-	k8sUtl := k8sOrchUtil(k, volProProfile)
-
-	kc, supported := k8sUtl.K8sClient()
+func (k *k8sOrchestrator) getVSMServices(k8sUtil *k8sUtil) (*k8sApiV1.ServiceList, error) {
+	kc, supported := k8sUtil.K8sClient()
 	if !supported {
-		return nil, fmt.Errorf("K8s client not supported by '%s'", k8sUtl.Name())
+		return nil, fmt.Errorf("K8s client not supported by '%s'", k8sUtil.Name())
 	}
 
 	sOps, err := kc.Services()
