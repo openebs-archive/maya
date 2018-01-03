@@ -101,6 +101,7 @@ func GetVolume(path string) (*Volumes, error) {
 
 	return &volume.Data[0], nil
 }
+
 func (c *ControllerClient) Get(path string, obj interface{}) error {
 	resp, err := http.Get(path)
 
@@ -112,6 +113,9 @@ func (c *ControllerClient) Get(path string, obj interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
+// ListReplicas to get the details of all the existing replicas
+// which contains address and mode of those replicas (RW/R/W) as well as
+// resource information.
 func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 	var resp ReplicaCollection
 
