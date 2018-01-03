@@ -94,7 +94,7 @@ func (c *CmdSnaphotCreateOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 
 	resp := mapiserver.CreateSnapshot(c.volName, c.snapName)
 	if resp != nil {
-		return errors.New(fmt.Sprintf("Error: %v", resp))
+		return fmt.Errorf("Snapshot create failed: %v", resp)
 	}
 
 	fmt.Printf("Volume snapshot Successfully Created:%v\n", c.volName)

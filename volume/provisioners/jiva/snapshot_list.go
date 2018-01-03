@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/golang/glog"
 	client "github.com/openebs/maya/pkg/client/jiva"
 )
 
@@ -76,17 +77,6 @@ func SnapshotList(name string, controllerIP string) (map[string]client.DiskInfo,
 		}
 	}
 	return nil, nil
-}
-
-// ListReplicas to get the details of all the existing replicas
-// which contains address and mode of those replicas (RW/R/W) as well as
-// resource information.
-func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
-	var resp ReplicaCollection
-
-	err := c.get(path+"/replicas", &resp)
-
-	return resp.Data, err
 }
 
 // getChain contains the linked info related to replicas
@@ -173,4 +163,65 @@ func (c *ReplicaClient) post(path string, req, resp interface{}) error {
 	}
 
 	return json.NewDecoder(httpResp.Body).Decode(resp)
+}
+
+// CheckSnapshotExist check the existence of snapshot in chain of created snapshots
+func CheckSnapshotExist(snapshot string, controllerIP string) error {
+	controller, err := client.NewControllerClient(controllerIP + ":9501")
+
+	glog.Infof("Validates existence of snapshot [%s] before create %s", snapshot)
+
+	if err != nil {
+		return err
+	}
+
+	replicas, err := controller.ListReplicas(controller.Address)
+	if err != nil {
+		return err
+	}
+
+	first := true
+	for _, r := range replicas {
+		if r.Mode != "RW" {
+			continue
+		}
+
+		if first {
+			first = false
+			chain, _ := getChain(r.Address)
+			_, index := getNameAndIndex(chain, snapshot)
+			if index > 0 {
+				return fmt.Errorf("snapshot [%s] already exists", snapshot)
+			}
+		}
+		return err
+	}
+	return err
+}
+
+// getNameAndIndex get the name and index value based on the existence of
+// snapshot. If snapshot is already exists the index value will be -1
+// if not then any possitive number
+func getNameAndIndex(chain []string, snapshot string) (string, int) {
+	index := find(chain, snapshot)
+
+	if index < 0 {
+		snapshot = fmt.Sprintf("volume-snap-%s.img", snapshot)
+		glog.Infof("Requested snapshot is: %v", snapshot)
+		index = find(chain, snapshot)
+	}
+
+	if index < 0 {
+		return "", index
+	}
+	return snapshot, index
+}
+
+func find(list []string, item string) int {
+	for i, val := range list {
+		if val == item {
+			return i
+		}
+	}
+	return -1
 }

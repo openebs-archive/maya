@@ -41,6 +41,10 @@ func Snapshot(snapname string, controllerIP string, labels map[string]string) (c
 		Name:   snapname,
 		Labels: labels,
 	}
+	err = CheckSnapshotExist(snapname, controllerIP)
+	if err != nil {
+		return output, err
+	}
 
 	err = c.post(url, input, &output)
 	if err != nil {
