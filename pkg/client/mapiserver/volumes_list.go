@@ -40,10 +40,5 @@ func ListVolumes(obj interface{}) error {
 		return err
 	}
 
-	err = json.Unmarshal(body, &obj)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return json.Unmarshal(body, &obj)
 }

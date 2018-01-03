@@ -17,7 +17,6 @@ limitations under the License.
 package snapshot
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
@@ -44,12 +43,12 @@ func NewCmdSnapshotRevert() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 	cmd.MarkPersistentFlagRequired("snapname")
 
-	cmd.Flags().StringVarP(&options.snapName, "snapname", "", options.snapName,
+	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
 
 	return cmd
@@ -61,9 +60,9 @@ func (c *CmdSnaphotCreateOptions) RunSnapshotRevert(cmd *cobra.Command) error {
 
 	resp := mapiserver.RevertSnapshot(c.volName, c.snapName)
 	if resp != nil {
-		return errors.New(fmt.Sprintf("Error: %v", resp))
+		return fmt.Errorf("Error: %v", resp)
 	}
 
-	fmt.Println("Reverting to snapshot [%s] of volume [%s]", c.snapName, c.volName)
+	fmt.Printf("Reverting to snapshot [%s] of volume [%s]\n", c.snapName, c.volName)
 	return nil
 }
