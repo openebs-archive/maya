@@ -27,6 +27,27 @@ import (
 	typed_ext_v1beta "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 )
 
+// K8sKind represents the Kinds understood by Kubernetes
+type K8sKind string
+
+const (
+	// DeploymentKK is a K8s Deployment Kind
+	DeploymentKK K8sKind = "Deployment"
+	// ConfigMapKK is a K8s ConfigMap Kind
+	ConfigMapKK K8sKind = "ConfigMap"
+	// ServiceKK is a K8s Service Kind
+	ServiceKK K8sKind = "Service"
+)
+
+//
+type K8sAPIVersion string
+
+const (
+	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
+
+	CoreV1KA K8sAPIVersion = "v1"
+)
+
 // K8sClient provides the necessary utility to operate over
 // various K8s Kind objects
 type K8sClient struct {
@@ -143,9 +164,27 @@ func (k *K8sClient) GetService(name string, opts mach_apis_meta_v1.GetOptions) (
 	return sops.Get(name, opts)
 }
 
+// coreV1ServiceOps is a utility function that provides a instance capable of
+// executing various k8s service related operations.
+func (k *K8sClient) coreV1ServiceOps() typed_core_v1.ServiceInterface {
+	return k.cs.CoreV1().Services(k.ns)
+}
+
+// CreateCoreV1Service creates a K8s Service
+func (k *K8sClient) CreateCoreV1Service(svc *api_core_v1.Service) (*api_core_v1.Service, error) {
+	sops := k.coreV1ServiceOps()
+	return sops.Create(svc)
+}
+
 // deploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
 func (k *K8sClient) deploymentOps() typed_ext_v1beta.DeploymentInterface {
+	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
+}
+
+// extnV1B1DeploymentOps is a utility function that provides a instance capable of
+// executing various k8s Deployment related operations.
+func (k *K8sClient) extnV1B1DeploymentOps() typed_ext_v1beta.DeploymentInterface {
 	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
 }
 
@@ -157,6 +196,12 @@ func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions
 
 	dops := k.deploymentOps()
 	return dops.Get(name, opts)
+}
+
+// GetDeployment fetches the K8s Deployment with the provided name
+func (k *K8sClient) CreateExtnV1B1Deployment(d *api_extn_v1beta1.Deployment) (*api_extn_v1beta1.Deployment, error) {
+	dops := k.extnV1B1DeploymentOps()
+	return dops.Create(d)
 }
 
 // getInClusterCS is used to initialize and return a new http client capable
