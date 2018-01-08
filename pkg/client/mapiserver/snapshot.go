@@ -18,6 +18,7 @@ package mapiserver
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -39,7 +40,7 @@ func CreateSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
 		return err
 	}
 
@@ -91,7 +92,7 @@ func RevertSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
 		return err
 	}
 
@@ -139,7 +140,8 @@ func ListSnapshot(volName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		err := errors.New(fmt.Sprintf("Unable to contact maya-apiserver: %s", GetURL()))
+		return err
 	}
 
 	url := GetURL() + "/latest/snapshots/list/" + volName
@@ -165,7 +167,7 @@ func ListSnapshot(volName string) error {
 	if code != http.StatusOK {
 		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
-	snapdisk, err := getInfo(body)
+	snapdisk, err := getInfo([]byte(body))
 	if err != nil {
 		fmt.Println("Failed to get the snapshot info", err)
 	}
@@ -175,14 +177,13 @@ func ListSnapshot(volName string) error {
 	var i int
 
 	for _, disk := range snapdisk {
-		//if !util.IsHeadDisk(disk.Name) {
+		//	if !util.IsHeadDisk(disk.Name) {
 		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
 			disk.Created,
 			disk.Size)
 		i = i + 1
 	}
-
 	fmt.Println(util.FormatList(out))
 	return nil
 }
@@ -195,7 +196,5 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return s, err
-
 }
