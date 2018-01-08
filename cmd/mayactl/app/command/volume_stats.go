@@ -162,7 +162,8 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		} else {
 			err := displayStats(annotations, c, statusArray, stats1, stats2)
 			if err != nil {
-
+				fmt.Println("Can't display stats\n", err)
+				return nil
 			}
 		}
 	}
