@@ -829,7 +829,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	}
 
 	if clusterIP == "" {
-		return nil, fmt.Errorf("VSM cluster IP is required to create controller for vsm 'name: %s'", vsm)
+		return nil, fmt.Errorf("Volume cluster IP is required to create controller for volume 'name: %s'", vsm)
 	}
 
 	cImg, imgSupport, err := volProProfile.ControllerImage()
@@ -838,7 +838,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	}
 
 	if !imgSupport {
-		return nil, fmt.Errorf("VSM '%s' requires a controller container image", vsm)
+		return nil, fmt.Errorf("Volume '%s' requires a controller container image", vsm)
 	}
 
 	k8sUtl := k8sOrchUtil(k, volProProfile)
@@ -855,7 +855,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		return nil, err
 	}
 
-	glog.Infof("Adding controller for VSM 'name: %s'", vsm)
+	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
