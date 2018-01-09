@@ -456,14 +456,14 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 // ReadStorage will fetch information about the persistent volume
 //func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.PersistentVolumeList, error) {
 func (k *k8sOrchestrator) ReadStorage(volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
-	// volProProfile is expected to have the VSM name
+	// volProProfile is expected to have the Volume name
 	return k.readVSM("", volProProfile)
 }
 
-// readVSM will fetch information about a VSM
+// readVSM will fetch information about a Volume
 func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumeProvisionerProfile) (*v1.Volume, error) {
 
-	// flag that checks if at-least one child object of VSM exists
+	// flag that checks if at-least one child object of Volume exists
 	doesExist := false
 
 	if volProProfile == nil {
@@ -981,7 +981,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	}
 
 	if clusterIP == "" {
-		return nil, fmt.Errorf("VSM cluster IP is required to create replica(s) for vsm 'name: %s'", vsm)
+		return nil, fmt.Errorf("Volume cluster IP is required to create replica(s) for Volume 'name: %s'", vsm)
 	}
 
 	rImg, err := volProProfile.ReplicaImage()
@@ -1025,7 +1025,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	//for rcIndex := 1; rcIndex <= rCount; rcIndex++ {
 	//glog.Infof("Adding replica #%d for VSM '%s'", rcIndex, vsm)
 
-	glog.Infof("Adding replica(s) for VSM '%s'", vsm)
+	glog.Infof("Adding replica(s) for Volume '%s'", vsm)
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1173,7 +1173,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	glog.Infof("Successfully added replica(s) 'count: %d' for VSM '%s'", rCount, d.Name)
+	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", rCount, d.Name)
 
 	//glog.Infof("Successfully added replica #%d for VSM '%s'", rcIndex, d.Name)
 	//} -- end of for loop -- if manual replica addition
@@ -1484,7 +1484,7 @@ func (k *k8sOrchestrator) getDeploymentList(vsm string, volProProfile volProfile
 	}
 
 	if deployList == nil {
-		return nil, fmt.Errorf("VSM(s) '%s:%s' not found at orchestrator '%s:%s'", ns, vsm, k.Label(), k.Name())
+		return nil, fmt.Errorf("Volume(s) '%s:%s' not found at orchestrator '%s:%s'", ns, vsm, k.Label(), k.Name())
 	}
 
 	return deployList, nil
