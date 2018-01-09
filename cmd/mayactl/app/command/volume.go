@@ -53,6 +53,7 @@ func NewCmdVolume() *cobra.Command {
 		NewCmdVolumeCreate(),
 		NewCmdVolumesList(),
 		NewCmdVolumeDelete(),
+		NewCmdVolumeStats(),
 	)
 	return cmd
 }
