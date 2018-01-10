@@ -140,6 +140,7 @@ func ListSnapshot(volName string) error {
 	_, err := GetStatus()
 	if err != nil {
 		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		return err
 	}
 
 	url := GetURL() + "/latest/snapshots/list/" + volName
@@ -175,14 +176,13 @@ func ListSnapshot(volName string) error {
 	var i int
 
 	for _, disk := range snapdisk {
-		//if !util.IsHeadDisk(disk.Name) {
+		//	if !util.IsHeadDisk(disk.Name) {
 		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
 			disk.Created,
 			disk.Size)
 		i = i + 1
 	}
-
 	fmt.Println(util.FormatList(out))
 	return nil
 }
@@ -195,7 +195,5 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return s, err
-
 }

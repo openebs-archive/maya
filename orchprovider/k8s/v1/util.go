@@ -633,6 +633,14 @@ type K8sClientV2 interface {
 	// NOTE:
 	//  StoragePool is a K8s CRD resource
 	StoragePoolOps() (oe_client_v1alpha1.StoragePoolInterface, error)
+
+	// NamespaceOps provides a NamespaceInterface that exposes
+	// various CRUD operations w.r.t Namespace
+	NamespaceOps() (k8sCoreV1.NamespaceInterface, error)
+
+	// DeploymentOps2 provides all the CRUD operations associated
+	// w.r.t a Deployment
+	DeploymentOps2() (k8sExtnsV1Beta1.DeploymentInterface, error)
 }
 
 // k8sUtil provides the concrete implementation for below interfaces:
@@ -797,7 +805,7 @@ func (k *k8sUtil) Services() (k8sCoreV1.ServiceInterface, error) {
 	return cs.CoreV1().Services(ns), nil
 }
 
-// Services is a utility function that provides a instance capable of
+// DeploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
 func (k *k8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
 	var cs *kubernetes.Clientset
@@ -823,6 +831,33 @@ func (k *k8sUtil) DeploymentOps() (k8sExtnsV1Beta1.DeploymentInterface, error) {
 	}
 
 	return cs.ExtensionsV1beta1().Deployments(ns), nil
+}
+
+// DeploymentOps2 is a utility function that provides a instance capable of
+// executing various k8s Deployment related operations.
+func (k *k8sUtil) DeploymentOps2() (k8sExtnsV1Beta1.DeploymentInterface, error) {
+	cs, err := k.getClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	// error out if still empty
+	if len(k.volume.Namespace) == 0 {
+		return nil, fmt.Errorf("Nil namespace")
+	}
+
+	return cs.ExtensionsV1beta1().Deployments(k.volume.Namespace), nil
+}
+
+//  NamespaceOps provides the NamespaceInterface object that exposes
+// various CRUD operations
+func (k *k8sUtil) NamespaceOps() (k8sCoreV1.NamespaceInterface, error) {
+	cs, err := k.getClientSet()
+	if err != nil {
+		return nil, err
+	}
+
+	return cs.CoreV1().Namespaces(), nil
 }
 
 // PVCOps gets a PVCInterface that exposes various CRUD operations
