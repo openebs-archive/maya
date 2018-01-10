@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -112,4 +113,30 @@ func (c *ReplicaClient) MarkDiskAsRemoved(disk string) error {
 	return c.Post(url, &MarkDiskAsRemovedInput{
 		Name: disk,
 	}, nil)
+}
+
+// GetStatus is the helper function for mayactl.It is used to get the response of
+// the replica created in json format and then the response is then decoded to
+// the desired structure.
+func (c *ReplicaClient) GetVolumeStats(address string, obj interface{}) (int, error) {
+	replica, err := NewReplicaClient(address)
+	if err != nil {
+		return -1, err
+	}
+	url := replica.Address + "/stats"
+	resp, err := replica.httpClient.Get(url)
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			return 500, errors.New("Internal Server Error")
+		} else if resp.StatusCode == 503 {
+			return 503, errors.New("Service Unavailable")
+		}
+	} else {
+		return -1, errors.New("Server Not Reachable")
+	}
+	if err != nil {
+		return -1, err
+	}
+	defer resp.Body.Close()
+	return 0, json.NewDecoder(resp.Body).Decode(obj)
 }

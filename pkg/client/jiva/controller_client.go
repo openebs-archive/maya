@@ -117,3 +117,30 @@ func (c *ControllerClient) ListReplicas(path string) ([]Replica, error) {
 
 	return resp.Data, err
 }
+
+// GetVolumeStats is used to get the status of volume controller.It is used to
+// get the response in json format and then the response is then decoded to the
+// desired structure.
+func (c *ControllerClient) GetVolumeStats(address string, obj interface{}) (int, error) {
+	controller, err := NewControllerClient(address)
+	if err != nil {
+		return -1, err
+	}
+	url := controller.Address + "/stats"
+	resp, err := controller.httpClient.Get(url)
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			return 500, errors.New("Internal Server Error")
+		} else if resp.StatusCode == 503 {
+			return 503, errors.New("Service Unavailable")
+		}
+	} else {
+		return -1, errors.New("Server Not Reachable")
+	}
+	if err != nil {
+		return -1, err
+	}
+	defer resp.Body.Close()
+	rc := json.NewDecoder(resp.Body).Decode(obj)
+	return 0, rc
+}

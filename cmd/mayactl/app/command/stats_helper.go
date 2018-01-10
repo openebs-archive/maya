@@ -44,8 +44,7 @@ type Annotations struct {
 	ReplicaStatus    string `json:"vsm.openebs.io/replica-status"`
 	VolSize          string `json:"vsm.openebs.io/volume-size"`
 	ControllerIP     string `json:"vsm.openebs.io/controller-ips"`
-	//	VolAddr          string `json:"vsm.openebs.io/replica-ips"`
-	Replicas string `json:"vsm.openebs.io/replica-ips"`
+	Replicas         string `json:"vsm.openebs.io/replica-ips"`
 }
 
 const (
@@ -122,35 +121,6 @@ func GetVolAnnotations(volName string) (*Annotations, error) {
 			annotations.ControllerStatus = value.(string)
 		case "vsm.openebs.io/replica-status":
 			annotations.ReplicaStatus = value.(string)
-		case "vsm.openebs.io/controller-ips":
-			annotations.ControllerIP = value.(string)
-		}
-	}
-	return &annotations, nil
-}
-
-func GetVolumeSpec(volName string) (*Annotations, error) {
-	var volume Volume
-	var annotations Annotations
-
-	for key, value := range volume.Metadata.Annotations.(map[string]interface{}) {
-		switch key {
-		case "vsm.openebs.io/volume-size":
-			annotations.VolSize = value.(string)
-			//  case "fe.jiva.volume.openebs.io/ip":
-			//      annotations.VolAddr = value.(string)
-		case "vsm.openebs.io/iqn":
-			annotations.Iqn = value.(string)
-		case "vsm.openebs.io/replica-count":
-			annotations.ReplicaCount = value.(string)
-		case "vsm.openebs.io/cluster-ips":
-			annotations.ClusterIP = value.(string)
-		case "vsm.openebs.io/replica-ips":
-			annotations.Replicas = value.(string)
-		case "vsm.openebs.io/targetportals":
-			annotations.TargetPortal = value.(string)
-		case "vsm.openebs.io/controller-status":
-			annotations.ControllerStatus = value.(string)
 		case "vsm.openebs.io/controller-ips":
 			annotations.ControllerIP = value.(string)
 		}
