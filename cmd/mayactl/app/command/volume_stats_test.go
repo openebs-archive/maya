@@ -7,7 +7,19 @@ import (
 )
 
 func TestDisplayStats(t *testing.T) {
-	var validStats = []struct {
+	annotation := &Annotations{
+		TargetPortal:     "10.99.73.74:3260",
+		ClusterIP:        "10.99.73.74",
+		Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+		ReplicaCount:     "2",
+		ControllerStatus: "Running",
+		ReplicaStatus:    "Running,Running",
+		VolSize:          "1G",
+		ControllerIP:     "",
+		Replicas:         "10.10.10.10,10.10.10.11",
+	}
+
+	validStats := map[string]struct {
 		cmdOptions   *CmdVolumeStatsOptions
 		status       []string
 		initialStats v1.VolumeMetrics
@@ -15,7 +27,7 @@ func TestDisplayStats(t *testing.T) {
 		output       error
 		replicaCount int
 	}{
-		{
+		"StatsJSON": {
 			cmdOptions: &CmdVolumeStatsOptions{
 				json:    "json",
 				volName: "vol1",
@@ -63,7 +75,7 @@ func TestDisplayStats(t *testing.T) {
 			replicaCount: 2,
 			output:       nil,
 		},
-		{
+		"StatsStd": {
 			cmdOptions: &CmdVolumeStatsOptions{
 				json:    "",
 				volName: "vol1",
@@ -112,23 +124,12 @@ func TestDisplayStats(t *testing.T) {
 			output:       nil,
 		},
 	}
-	for _, c := range validStats {
-		annotation := &Annotations{
-			TargetPortal:     "10.99.73.74:3260",
-			ClusterIP:        "10.99.73.74",
-			Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-			ReplicaCount:     "2",
-			ControllerStatus: "Running",
-			ReplicaStatus:    "",
-			VolSize:          "1G",
-			ControllerIP:     "",
-			Replicas:         "10.10.10.10,10.10.10.11",
-		}
-		out := annotation.DisplayStats(c.cmdOptions, c.status, c.initialStats, c.finalStats, c.replicaCount)
-
-		t.Logf("Command Options passed is %v \n, status passed is %v\n, initial and final stats passed is %v \n,replica Count passed is %v\n, expected output %v\n, got %v\n", c.cmdOptions, c.status, c.finalStats, c.initialStats, c.replicaCount, c.output, out)
-		if out != c.output {
-			t.Errorf("DisplayStats(%v, %v, %v, %v, %v) => %v, expected output %v", c.cmdOptions, c.status, c.initialStats, c.finalStats, c.replicaCount, out, c.output)
-		}
+	for name, tt := range validStats {
+		t.Run(name, func(t *testing.T) {
+			if got := annotation.DisplayStats(tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, tt.replicaCount); got != tt.output {
+				t.Fatalf("DisplayStats(%v, %v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, tt.replicaCount, got, tt.output)
+			}
+		})
 	}
+
 }

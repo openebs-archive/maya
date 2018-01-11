@@ -94,8 +94,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		status          v1.VolStatus
 		stats1, stats2  v1.VolumeMetrics
 		repStatus       string
-		//	statusArray     []v1.ReplicaStatus
-		statusArray []string
+		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
 
 	annotations, err := GetVolAnnotations(c.volName)
@@ -117,7 +116,6 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 			statusArray = append(statusArray, "Unknown")
 			statusArray = append(statusArray, "Unknown")
 			statusArray = append(statusArray, "Unknown")
-
 		}
 	}
 
@@ -134,13 +132,11 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 				statusArray = append(statusArray, replica)
 				statusArray = append(statusArray, "Offline")
 				statusArray = append(statusArray, "Unknown")
-
 			}
 		} else {
 			statusArray = append(statusArray, replica)
 			statusArray = append(statusArray, "Online")
 			statusArray = append(statusArray, status.RevisionCounter)
-
 		}
 		replicaCount++
 	}
@@ -171,16 +167,15 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	return nil
 }
 
-// displayStats displays the volume stats as standard output and in json format.
+// DisplayStats displays the volume stats as standard output and in json format.
 // By defaault it displays in standard output but if  flag json is passed it
 // displays stats in json format.
 func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics, replicaCount int) error {
 
 	var (
-		err          error
-		ReadLatency  int64
-		WriteLatency int64
-
+		err                  error
+		ReadLatency          int64
+		WriteLatency         int64
 		AvgReadBlockCountPS  int64
 		AvgWriteBlockCountPS int64
 	)
