@@ -3,35 +3,17 @@ package command
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
 )
 
-// Volume is a command implementation struct
-type Volume struct {
-	Spec struct {
-		AccessModes interface{} `json:"AccessModes"`
-		Capacity    interface{} `json:"Capacity"`
-		ClaimRef    interface{} `json:"ClaimRef"`
-		OpenEBS     struct {
-			VolumeID string `json:"volumeID"`
-		} `json:"OpenEBS"`
-		PersistentVolumeReclaimPolicy string `json:"PersistentVolumeReclaimPolicy"`
-		StorageClassName              string `json:"StorageClassName"`
-	} `json:"Spec"`
-
-	Status struct {
-		Message string `json:"Message"`
-		Phase   string `json:"Phase"`
-		Reason  string `json:"Reason"`
-	} `json:"Status"`
-	Metadata struct {
-		Annotations       interface{} `json:"annotations"`
-		CreationTimestamp interface{} `json:"creationTimestamp"`
-		Name              string      `json:"name"`
-	} `json:"metadata"`
+type Client interface {
+	GetVolAnnotations(string) (*Annotations, error)
 }
 
 // Annotations describes volume struct
@@ -55,8 +37,8 @@ const (
 func GetVolDetails(volName string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		fmt.Println(err)
+		err := util.MAPIADDRNotSet
+		log.Printf("error getting env variable: %v", err)
 		return err
 	}
 
@@ -65,65 +47,64 @@ func GetVolDetails(volName string, obj interface{}) error {
 		Timeout: timeout,
 	}
 	resp, err := client.Get(url)
+
+	if err != nil {
+		log.Printf("Could not get response, found error: %v", err)
+		return err
+	}
+
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			fmt.Printf("Volume: %s not found at M_API server\n", volName)
+			log.Printf("Volume: %s not found at M_API server\n", volName)
 			return errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
-			fmt.Println("M_API server not reachable")
+			log.Println("M_API server not reachable")
 			return errors.New("Service Unavailable")
 		} else if resp.StatusCode == 404 {
-			fmt.Printf("Volume: %s not found at M_API server\n", volName)
+			log.Printf("Volume: %s not found at M_API server\n", volName)
 			return errors.New("Page Not Found")
 		}
 
 	} else {
-		fmt.Println("M_API server not reachable")
+		log.Println("M_API server not reachable")
 		return err
 	}
 
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
 	defer resp.Body.Close()
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
-// GetVolAnnotations gets annotations of volume
-func GetVolAnnotations(volName string) (*Annotations, error) {
-	var volume Volume
-	var annotations Annotations
+// GetVolAnnotations maps annotations of volume to Annotations structure.
+func (annotations *Annotations) GetVolAnnotations(volName string) error {
+	var volume v1.Volume
 	err := GetVolDetails(volName, &volume)
-	if err != nil || volume.Metadata.Annotations == nil {
+	if err != nil || volume.ObjectMeta.Annotations == nil {
 		if volume.Status.Reason == "pending" {
-			fmt.Println("VOLUME status Unknown to M_API server")
+			log.Println("VOLUME status Unknown to M_API server")
 		}
-		return nil, err
+		return err
 	}
-	for key, value := range volume.Metadata.Annotations.(map[string]interface{}) {
+	for key, value := range volume.ObjectMeta.Annotations {
 		switch key {
 		case "vsm.openebs.io/volume-size":
-			annotations.VolSize = value.(string)
-			//	case "fe.jiva.volume.openebs.io/ip":
-			//		annotations.VolAddr = value.(string)
+			annotations.VolSize = value
 		case "vsm.openebs.io/iqn":
-			annotations.Iqn = value.(string)
+			annotations.Iqn = value
 		case "vsm.openebs.io/replica-count":
-			annotations.ReplicaCount = value.(string)
+			annotations.ReplicaCount = value
 		case "vsm.openebs.io/cluster-ips":
-			annotations.ClusterIP = value.(string)
+			annotations.ClusterIP = value
 		case "vsm.openebs.io/replica-ips":
-			annotations.Replicas = value.(string)
+			annotations.Replicas = value
 		case "vsm.openebs.io/targetportals":
-			annotations.TargetPortal = value.(string)
+			annotations.TargetPortal = value
 		case "vsm.openebs.io/controller-status":
-			annotations.ControllerStatus = value.(string)
+			annotations.ControllerStatus = value
 		case "vsm.openebs.io/replica-status":
-			annotations.ReplicaStatus = value.(string)
+			annotations.ReplicaStatus = value
 		case "vsm.openebs.io/controller-ips":
-			annotations.ControllerIP = value.(string)
+			annotations.ControllerIP = value
 		}
 	}
-	return &annotations, nil
+	return nil
 }

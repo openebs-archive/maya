@@ -72,8 +72,7 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
-			replicaCount: 2,
-			output:       nil,
+			output: nil,
 		},
 		"StatsStd": {
 			cmdOptions: &CmdVolumeStatsOptions{
@@ -120,14 +119,107 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
-			replicaCount: 2,
-			output:       nil,
+			output: nil,
+		},
+		"ReadIOPSIsNotZero": {
+			cmdOptions: &CmdVolumeStatsOptions{
+				json:    "",
+				volName: "vol1",
+			},
+			status: []string{
+				"10.10.10.10",
+				"Online",
+				"1",
+				"10.10.10.11",
+				"Online",
+				"1",
+			},
+			initialStats: v1.VolumeMetrics{
+				Name:                 "vol1",
+				ReadIOPS:             "0",
+				ReplicaCounter:       6,
+				RevisionCounter:      100,
+				SectorSize:           "4096",
+				Size:                 "1073741824",
+				TotalReadBlockCount:  "3",
+				TotalReadTime:        "10",
+				TotalWriteTime:       "15",
+				TotalWriteBlockCount: "10",
+				UpTime:               13162.971420756,
+				UsedBlocks:           "1048576",
+				UsedLogicalBlocks:    "1048576",
+				WriteIOPS:            "15",
+			},
+			finalStats: v1.VolumeMetrics{
+				Name:                 "vol1",
+				ReadIOPS:             "10",
+				ReplicaCounter:       6,
+				RevisionCounter:      100,
+				SectorSize:           "4096",
+				Size:                 "1073741824",
+				TotalReadBlockCount:  "4",
+				TotalReadTime:        "12",
+				TotalWriteTime:       "16",
+				TotalWriteBlockCount: "15",
+				UpTime:               13170.971420756,
+				UsedBlocks:           "1048576",
+				UsedLogicalBlocks:    "1048576",
+				WriteIOPS:            "20",
+			},
+			output: nil,
+		},
+		"WriteIOPSIsZero": {
+			cmdOptions: &CmdVolumeStatsOptions{
+				json:    "",
+				volName: "vol1",
+			},
+			status: []string{
+				"10.10.10.10",
+				"Online",
+				"1",
+				"10.10.10.11",
+				"Online",
+				"1",
+			},
+			initialStats: v1.VolumeMetrics{
+				Name:                 "vol1",
+				ReadIOPS:             "0",
+				ReplicaCounter:       6,
+				RevisionCounter:      100,
+				SectorSize:           "4096",
+				Size:                 "1073741824",
+				TotalReadBlockCount:  "3",
+				TotalReadTime:        "10",
+				TotalWriteTime:       "15",
+				TotalWriteBlockCount: "10",
+				UpTime:               13162.971420756,
+				UsedBlocks:           "1048576",
+				UsedLogicalBlocks:    "1048576",
+				WriteIOPS:            "15",
+			},
+			finalStats: v1.VolumeMetrics{
+				Name:                 "vol1",
+				ReadIOPS:             "10",
+				ReplicaCounter:       6,
+				RevisionCounter:      100,
+				SectorSize:           "4096",
+				Size:                 "1073741824",
+				TotalReadBlockCount:  "4",
+				TotalReadTime:        "12",
+				TotalWriteTime:       "16",
+				TotalWriteBlockCount: "15",
+				UpTime:               13170.971420756,
+				UsedBlocks:           "1048576",
+				UsedLogicalBlocks:    "1048576",
+				WriteIOPS:            "15",
+			},
+			output: nil,
 		},
 	}
 	for name, tt := range validStats {
 		t.Run(name, func(t *testing.T) {
-			if got := annotation.DisplayStats(tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, tt.replicaCount); got != tt.output {
-				t.Fatalf("DisplayStats(%v, %v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, tt.replicaCount, got, tt.output)
+			if got := annotation.DisplayStats(tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats); got != tt.output {
+				t.Fatalf("DisplayStats(%v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, got, tt.output)
 			}
 		})
 	}

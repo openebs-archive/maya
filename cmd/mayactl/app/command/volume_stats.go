@@ -97,20 +97,24 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
 
-	annotations, err := GetVolAnnotations(c.volName)
+	annotation := &Annotations{}
+	err = annotation.GetVolAnnotations(c.volName)
+	if err != nil {
+		fmt.Println("Can't get annotation, found error ", err)
+	}
 
-	if err != nil || annotations == nil {
+	if err != nil || annotation == nil {
 		fmt.Println(err)
 		return nil
 	}
 
-	if annotations.ControllerStatus != "Running" {
+	if annotation.ControllerStatus != "Running" {
 		fmt.Println("Volume not reachable")
 		return nil
 	}
 
-	replicaCount := 0
-	replicaStatus := strings.Split(annotations.ReplicaStatus, ",")
+	//replicaCount := 0
+	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
 	for _, repStatus = range replicaStatus {
 		if repStatus == "Pending" {
 			statusArray = append(statusArray, "Unknown")
@@ -119,7 +123,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	}
 
-	replicas := strings.Split(annotations.Replicas, ",")
+	replicas := strings.Split(annotation.Replicas, ",")
 	for _, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
 		errCode1, err := replicaClient.GetVolumeStats(replica+":9502", &status)
@@ -138,11 +142,10 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 			statusArray = append(statusArray, "Online")
 			statusArray = append(statusArray, status.RevisionCounter)
 		}
-		replicaCount++
 	}
 
 	controllerClient := client.ControllerClient{}
-	err2, err1 = controllerClient.GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
+	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats1)
 	if err1 != nil {
 		if (err2 == 500) || (err2 == 503) || err1 != nil {
 			fmt.Println("Volume not Reachable\n", err1)
@@ -150,14 +153,14 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err4, err3 = controllerClient.GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
+		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats2)
 		if err3 != nil {
 			if err4 == 500 || err4 == 503 || err3 != nil {
 				fmt.Println("Volume not Reachable\n", err3)
 				return nil
 			}
 		} else {
-			err := annotations.DisplayStats(c, statusArray, stats1, stats2, replicaCount)
+			err := annotation.DisplayStats(c, statusArray, stats1, stats2)
 			if err != nil {
 				fmt.Println("Can't display stats\n", err)
 				return nil
@@ -170,7 +173,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 // DisplayStats displays the volume stats as standard output and in json format.
 // By defaault it displays in standard output but if  flag json is passed it
 // displays stats in json format.
-func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics, replicaCount int) error {
+func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		err                  error
@@ -285,11 +288,15 @@ func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []strin
 			fmt.Println("Can't execute the template ", err)
 		}
 
+		replicaCount, err := strconv.Atoi(a.ReplicaCount)
+		if err != nil {
+			fmt.Println("Can't convert to int, found error", err)
+		}
 		// Printing in tabular form
 		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Fprintf(q, "\n\nReplica\tStatus\tDataUpdateIndex\t\n")
 		fmt.Fprintf(q, "\t\t\t\n")
-		for i := 0; i < (3 * int(replicaCount)); i += 3 {
+		for i := 0; i < (3 * replicaCount); i += 3 {
 			fmt.Fprintf(q, "%s\t%s\t%s\t\n", statusArray[i], statusArray[i+1], statusArray[i+2])
 		}
 		q.Flush()
