@@ -3,7 +3,7 @@ package command
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -38,7 +38,7 @@ func GetVolDetails(volName string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
 		err := util.MAPIADDRNotSet
-		log.Printf("error getting env variable: %v", err)
+		fmt.Printf("error getting env variable: %v", err)
 		return err
 	}
 
@@ -49,24 +49,24 @@ func GetVolDetails(volName string, obj interface{}) error {
 	resp, err := client.Get(url)
 
 	if err != nil {
-		log.Printf("Could not get response, found error: %v", err)
+		fmt.Printf("Could not get response, found error: %v", err)
 		return err
 	}
 
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			log.Printf("Volume: %s not found at M_API server\n", volName)
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
 			return errors.New("Internal Server Error")
 		} else if resp.StatusCode == 503 {
-			log.Println("M_API server not reachable")
+			fmt.Println("M_API server not reachable")
 			return errors.New("Service Unavailable")
 		} else if resp.StatusCode == 404 {
-			log.Printf("Volume: %s not found at M_API server\n", volName)
+			fmt.Printf("Volume: %s not found at M_API server\n", volName)
 			return errors.New("Page Not Found")
 		}
 
 	} else {
-		log.Println("M_API server not reachable")
+		fmt.Println("M_API server not reachable")
 		return err
 	}
 
@@ -80,7 +80,7 @@ func (annotations *Annotations) GetVolAnnotations(volName string) error {
 	err := GetVolDetails(volName, &volume)
 	if err != nil || volume.ObjectMeta.Annotations == nil {
 		if volume.Status.Reason == "pending" {
-			log.Println("VOLUME status Unknown to M_API server")
+			fmt.Println("VOLUME status Unknown to M_API server")
 		}
 		return err
 	}
