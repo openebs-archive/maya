@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -8,6 +9,10 @@ import (
 
 	"github.com/golang/glog"
 )
+
+// MAPIADDRNotSet is the new error to display this error if MAPI_ADDR
+// is not set.
+var MAPIADDRNotSet = errors.New("MAPI_ADDR environment variable not set")
 
 // truthyValues maps a set of values which are considered as true
 var truthyValues = map[string]bool{

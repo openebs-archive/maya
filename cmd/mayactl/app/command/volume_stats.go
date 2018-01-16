@@ -94,58 +94,58 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		status          v1.VolStatus
 		stats1, stats2  v1.VolumeMetrics
 		repStatus       string
-		repCount        int
+		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
-	statusArray := make([]string, 6)
 
-	annotations, err := GetVolAnnotations(c.volName)
+	annotation := &Annotations{}
+	err = annotation.GetVolAnnotations(c.volName)
+	if err != nil {
+		fmt.Println("Can't get annotation, found error ", err)
+	}
 
-	if err != nil || annotations == nil {
+	if err != nil || annotation == nil {
 		fmt.Println(err)
 		return nil
 	}
 
-	if annotations.ControllerStatus != "Running" {
+	if annotation.ControllerStatus != "Running" {
 		fmt.Println("Volume not reachable")
 		return nil
 	}
 
-	replicaCount := 0
-	replicaStatus := strings.Split(annotations.ReplicaStatus, ",")
+	//replicaCount := 0
+	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
 	for _, repStatus = range replicaStatus {
 		if repStatus == "Pending" {
-			statusArray[replicaCount] = "Unknown"
-			statusArray[replicaCount+1] = "Unknown"
-			statusArray[replicaCount+2] = "Unknown"
-			replicaCount += 3
+			statusArray = append(statusArray, "Unknown")
+			statusArray = append(statusArray, "Unknown")
+			statusArray = append(statusArray, "Unknown")
 		}
 	}
 
-	replicas := strings.Split(annotations.Replicas, ",")
+	replicas := strings.Split(annotation.Replicas, ",")
 	for _, replica := range replicas {
-		errCode1, err := client.GetStatus(replica+":9502", &status)
+		replicaClient := client.ReplicaClient{}
+		errCode1, err := replicaClient.GetVolumeStats(replica+":9502", &status)
 		if err != nil {
 			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
-				statusArray[repCount] = replica
-				statusArray[repCount+1] = "Waiting"
-				statusArray[repCount+2] = "Unknown"
-
+				statusArray = append(statusArray, replica)
+				statusArray = append(statusArray, "waiting")
+				statusArray = append(statusArray, "Unknown")
 			} else {
-				statusArray[repCount] = replica
-				statusArray[repCount+1] = "Offline"
-				statusArray[repCount+2] = "Unknown"
+				statusArray = append(statusArray, replica)
+				statusArray = append(statusArray, "Offline")
+				statusArray = append(statusArray, "Unknown")
 			}
-			repCount += 3
 		} else {
-			statusArray[repCount] = replica
-			statusArray[repCount+1] = "Online"
-			statusArray[repCount+2] = status.RevisionCounter
-			repCount += 3
+			statusArray = append(statusArray, replica)
+			statusArray = append(statusArray, "Online")
+			statusArray = append(statusArray, status.RevisionCounter)
 		}
-
 	}
-	//GetVolumeStats gets volume stats
-	err2, err1 = client.GetVolumeStats(annotations.ClusterIP+":9501", &stats1)
+
+	controllerClient := client.ControllerClient{}
+	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats1)
 	if err1 != nil {
 		if (err2 == 500) || (err2 == 503) || err1 != nil {
 			fmt.Println("Volume not Reachable\n", err1)
@@ -153,14 +153,14 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err4, err3 = client.GetVolumeStats(annotations.ClusterIP+":9501", &stats2)
+		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats2)
 		if err3 != nil {
 			if err4 == 500 || err4 == 503 || err3 != nil {
 				fmt.Println("Volume not Reachable\n", err3)
 				return nil
 			}
 		} else {
-			err := displayStats(annotations, c, statusArray, stats1, stats2)
+			err := annotation.DisplayStats(c, statusArray, stats1, stats2)
 			if err != nil {
 				fmt.Println("Can't display stats\n", err)
 				return nil
@@ -170,16 +170,15 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	return nil
 }
 
-// displayStats displays the volume stats as standard output and in json format.
+// DisplayStats displays the volume stats as standard output and in json format.
 // By defaault it displays in standard output but if  flag json is passed it
 // displays stats in json format.
-func displayStats(annotations *Annotations, c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
-		err          error
-		ReadLatency  int64
-		WriteLatency int64
-
+		err                  error
+		ReadLatency          int64
+		WriteLatency         int64
 		AvgReadBlockCountPS  int64
 		AvgWriteBlockCountPS int64
 	)
@@ -236,20 +235,20 @@ func displayStats(annotations *Annotations, c *CmdVolumeStatsOptions, statusArra
 	actualUsed = actualUsed * sectorSize
 
 	annotation := v1.Annotation{
-		IQN:    annotations.Iqn,
+		IQN:    a.Iqn,
 		Volume: c.volName,
-		Portal: annotations.TargetPortal,
-		Size:   annotations.VolSize,
+		Portal: a.TargetPortal,
+		Size:   a.VolSize,
 	}
 
 	if c.json == "json" {
 
 		stat1 := v1.StatsJSON{
 
-			IQN:    annotations.Iqn,
+			IQN:    a.Iqn,
 			Volume: c.volName,
-			Portal: annotations.TargetPortal,
-			Size:   annotations.VolSize,
+			Portal: a.TargetPortal,
+			Size:   a.VolSize,
 
 			ReadIOPS:  readIOPS,
 			WriteIOPS: writeIOPS,
@@ -269,12 +268,12 @@ func displayStats(annotations *Annotations, c *CmdVolumeStatsOptions, statusArra
 		}
 
 		data, err := json.MarshalIndent(stat1, "", "\t")
-
 		if err != nil {
 			fmt.Println("Can't Marshal the data ", err)
 		}
 
 		os.Stdout.Write(data)
+		fmt.Println()
 
 	} else {
 
@@ -289,15 +288,17 @@ func displayStats(annotations *Annotations, c *CmdVolumeStatsOptions, statusArra
 			fmt.Println("Can't execute the template ", err)
 		}
 
+		replicaCount, err := strconv.Atoi(a.ReplicaCount)
+		if err != nil {
+			fmt.Println("Can't convert to int, found error", err)
+		}
 		// Printing in tabular form
 		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
 		fmt.Fprintf(q, "\n\nReplica\tStatus\tDataUpdateIndex\t\n")
 		fmt.Fprintf(q, "\t\t\t\n")
-		for i := 0; i < 4; i += 3 {
-
+		for i := 0; i < (3 * replicaCount); i += 3 {
 			fmt.Fprintf(q, "%s\t%s\t%s\t\n", statusArray[i], statusArray[i+1], statusArray[i+2])
 		}
-
 		q.Flush()
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
