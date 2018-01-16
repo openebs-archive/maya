@@ -12,14 +12,17 @@ import (
 // StoragePoolClaim describes a StoragePoolClaim.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolClaimSpec `json:"spec"`
 }
 
-// StoragePoolClaimSpec is the spec for a StoragePoolClaim resource
+// StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -41,14 +44,19 @@ type StoragePoolClaimList struct {
 // StoragePool describes a StoragePool.
 type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolSpec `json:"spec"`
 }
 
 // StoragePoolSpec is the spec for a StoragePool resource
 type StoragePoolSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Nodename   string `json:"nodename"`
+	Message    string `json:"message"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
