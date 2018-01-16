@@ -29,6 +29,74 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// MayaDeploymentV2 provides utility methods over K8s
+// Deployment object
+type MayaDeploymentV2 struct {
+	// MayaYamlV2 represents a K8s Deployment in
+	// yaml format
+	MayaYamlV2
+}
+
+func NewMayaDeploymentV2ByByte(b []byte) *MayaDeploymentV2 {
+	return &MayaDeploymentV2{
+		MayaYamlV2: MayaYamlV2{
+			YmlInBytes: b,
+		},
+	}
+}
+
+// AsExtnV1B1Deployment returns a extensions/v1beta1 Deployment instance
+func (m *MayaDeploymentV2) AsExtnV1B1Deployment() (*api_extn_v1beta1.Deployment, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into k8s Deployment object
+	deploy := &api_extn_v1beta1.Deployment{}
+	err := yaml.Unmarshal(m.YmlInBytes, deploy)
+	if err != nil {
+		return nil, err
+	}
+
+	return deploy, nil
+}
+
+// MayaServiceV2 provides utility methods over K8s Service
+type MayaServiceV2 struct {
+	// MayaYamlV2 represents a K8s Service in
+	// yaml format
+	MayaYamlV2
+}
+
+func NewMayaServiceV2ByByte(b []byte) *MayaServiceV2 {
+	return &MayaServiceV2{
+		MayaYamlV2: MayaYamlV2{
+			YmlInBytes: b,
+		},
+	}
+}
+
+// AsCoreV1Service returns a v1 Service instance
+func (m *MayaServiceV2) AsCoreV1Service() (*api_core_v1.Service, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into k8s Service object
+	svc := &api_core_v1.Service{}
+	err := yaml.Unmarshal(m.YmlInBytes, svc)
+	if err != nil {
+		return nil, err
+	}
+
+	return svc, nil
+}
+
+// TODO
+// The structures & code written below will undergo changes.
+// Some of these may be deprecated & removed in favour of the
+// structures implemented above.
+
 // MayaPlaceholders is a structure that is composed
 // of various properties. These properties are set as
 // placeholders in a template file.
@@ -444,12 +512,12 @@ func (m *MayaContainer) Load() error {
 }
 
 type MayaDeployment struct {
-	// Deployment represents a K8s Deployment object
-	Deployment *api_extn_v1beta1.Deployment
-
-	// MayaYaml represents the above K8s Deployment in
+	// MayaYaml represents the K8s Deployment in
 	// yaml format
 	MayaYaml
+
+	// Deployment represents a K8s Deployment object
+	Deployment *api_extn_v1beta1.Deployment
 }
 
 func NewMayaDeployment(yaml string) *MayaDeployment {
@@ -468,7 +536,7 @@ func NewMayaDeploymentByByte(b []byte) *MayaDeployment {
 	}
 }
 
-// Load initializes Deployment property of this instance
+// Load returns a extensions/v1beta1 Deployment instance
 func (m *MayaDeployment) Load() error {
 	if m.YmlBytes == nil {
 		// unmarshall the yaml
@@ -479,7 +547,7 @@ func (m *MayaDeployment) Load() error {
 		m.YmlBytes = b
 	}
 
-	// unmarshall the buffer into k8s Deployment object
+	// unmarshall the byte into k8s Deployment object
 	deploy := &api_extn_v1beta1.Deployment{}
 	err := yaml.Unmarshal(m.YmlBytes, deploy)
 	if err != nil {
