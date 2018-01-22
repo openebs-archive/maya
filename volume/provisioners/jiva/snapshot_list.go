@@ -169,7 +169,7 @@ func (c *ReplicaClient) post(path string, req, resp interface{}) error {
 func CheckSnapshotExist(snapshot string, controllerIP string) error {
 	controller, err := client.NewControllerClient(controllerIP + ":9501")
 
-	glog.Infof("Validates existence of snapshot [%s] before create %s", snapshot)
+	glog.Infof("Validates existence of snapshot [%s] before create", snapshot)
 
 	if err != nil {
 		return err
