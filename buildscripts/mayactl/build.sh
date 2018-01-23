@@ -6,7 +6,7 @@ set -e
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
-DIR="$( cd -P "$( dirname "$SOURCE" )/../../cmd/mayactl" && pwd )"
+DIR="$( cd -P "$( dirname "$SOURCE" )/../../" && pwd )"
 
 # Change into that directory
 cd "$DIR"
@@ -62,8 +62,8 @@ do
             -X main.CtlName='${CTLNAME}' \
             -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
             -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
-            -o $output_name
-
+            -o $output_name\
+            ./cmd/mayactl
     done
 
 done
