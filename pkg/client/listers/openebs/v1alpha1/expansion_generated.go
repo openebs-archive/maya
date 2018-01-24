@@ -22,14 +22,10 @@ package v1alpha1
 // StoragePoolLister.
 type StoragePoolListerExpansion interface{}
 
-// StoragePoolNamespaceListerExpansion allows custom methods to be added to
-// StoragePoolNamespaceLister.
-type StoragePoolNamespaceListerExpansion interface{}
-
 // StoragePoolClaimListerExpansion allows custom methods to be added to
 // StoragePoolClaimLister.
 type StoragePoolClaimListerExpansion interface{}
 
-// StoragePoolClaimNamespaceListerExpansion allows custom methods to be added to
-// StoragePoolClaimNamespaceLister.
-type StoragePoolClaimNamespaceListerExpansion interface{}
+// VolumePolicyListerExpansion allows custom methods to be added to
+// VolumePolicyLister.
+type VolumePolicyListerExpansion interface{}

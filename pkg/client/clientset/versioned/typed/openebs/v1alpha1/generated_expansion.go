@@ -18,3 +18,5 @@ package v1alpha1
 type StoragePoolExpansion interface{}
 
 type StoragePoolClaimExpansion interface{}
+
+type VolumePolicyExpansion interface{}

@@ -17,14 +17,20 @@ limitations under the License.
 package k8s
 
 import (
+	openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
+	api_storage_v1 "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	typed_ext_v1beta "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 )
 
 // K8sKind represents the Kinds understood by Kubernetes
@@ -37,6 +43,10 @@ const (
 	ConfigMapKK K8sKind = "ConfigMap"
 	// ServiceKK is a K8s Service Kind
 	ServiceKK K8sKind = "Service"
+	// CRDKK is a K8s CustomResourceDefinition Kind
+	CRDKK K8sKind = "CustomResourceDefinition"
+	// StroagePoolCRKK is a K8s CR of kind StoragePool
+	StroagePoolCRKK K8sKind = "StoragePool"
 )
 
 //
@@ -46,6 +56,8 @@ const (
 	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
 
 	CoreV1KA K8sAPIVersion = "v1"
+
+	OEV1alpha1KA K8sAPIVersion = "openebs.io/v1alpha1"
 )
 
 // K8sClient provides the necessary utility to operate over
@@ -55,9 +67,13 @@ type K8sClient struct {
 	// will be performed
 	ns string
 
-	// cs refers to the ClientSet capable of communicating
-	// within/outside the current K8s cluster
+	// cs refers to the Clientset capable of communicating
+	// within the current K8s cluster
 	cs *kubernetes.Clientset
+
+	// oecs refers to the Clientset capable of communicating
+	// within the current K8s cluster for OpenEBS objects
+	oecs *openebs.Clientset
 
 	// PVC refers to a K8s PersistentVolumeClaim object
 	// NOTE: This property enables unit testing
@@ -79,6 +95,21 @@ type K8sClient struct {
 	// NOTE: This property enables unit testing
 	Deployment *api_extn_v1beta1.Deployment
 
+	// StorageClass refers to a K8s StorageClass object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	StorageClass *api_storage_v1.StorageClass
+
+	// StoragePool refers to a K8s StoragePool CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	StoragePool *api_oe_v1alpha1.StoragePool
+
+	// VolumePolicy refers to a K8s VolumePolicy CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	VolumePolicy *api_oe_v1alpha1.VolumePolicy
+
 	// various cert related to connecting to K8s API
 	caCert     string
 	caPath     string
@@ -94,10 +125,68 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 		return nil, err
 	}
 
+	// get the appropriate openebs clientset
+	oecs, err := getInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+
 	return &K8sClient{
-		ns: ns,
-		cs: cs,
+		ns:   ns,
+		cs:   cs,
+		oecs: oecs,
 	}, nil
+}
+
+// scOps is a utility function that provides a instance capable of
+// executing various K8s StorageClass related operations
+func (k *K8sClient) storageV1SCOps() typed_storage_v1.StorageClassInterface {
+	return k.cs.StorageV1().StorageClasses()
+}
+
+// GetStorageV1SC fetches the K8s StorageClass specs based on
+// the provided name
+func (k *K8sClient) GetStorageV1SC(name string, opts mach_apis_meta_v1.GetOptions) (*api_storage_v1.StorageClass, error) {
+	if k.StorageClass != nil {
+		return k.StorageClass, nil
+	}
+
+	scops := k.storageV1SCOps()
+	return scops.Get(name, opts)
+}
+
+// oeV1alpha1SPOps is a utility function that provides a instance capable of
+// executing various OpenEBS StoragePool related operations
+func (k *K8sClient) oeV1alpha1SPOps() typed_oe_v1alpha1.StoragePoolInterface {
+	return k.oecs.OpenebsV1alpha1().StoragePools()
+}
+
+// GetOEV1alpha1SP fetches the OpenEBS StoragePool specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, error) {
+	if k.StoragePool != nil {
+		return k.StoragePool, nil
+	}
+
+	spOps := k.oeV1alpha1SPOps()
+	return spOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// oeV1alpha1VPOps is a utility function that provides a instance capable of
+// executing various OpenEBS VolumePolicy related operations
+func (k *K8sClient) oeV1alpha1VPOps() typed_oe_v1alpha1.VolumePolicyInterface {
+	return k.oecs.OpenebsV1alpha1().VolumePolicies()
+}
+
+// GetOEV1alpha1VP fetches the OpenEBS VolumePolicy specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1VP(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.VolumePolicy, error) {
+	if k.VolumePolicy != nil {
+		return k.VolumePolicy, nil
+	}
+
+	vpOps := k.oeV1alpha1VPOps()
+	return vpOps.Get(name, opts)
 }
 
 // cmOps is a utility function that provides a instance capable of
@@ -176,6 +265,14 @@ func (k *K8sClient) CreateCoreV1Service(svc *api_core_v1.Service) (*api_core_v1.
 	return sops.Create(svc)
 }
 
+// CreateCoreV1Service deletes a K8s Service
+func (k *K8sClient) DeleteCoreV1Service(name string) error {
+	sops := k.coreV1ServiceOps()
+	return sops.Delete(name, &mach_apis_meta_v1.DeleteOptions{})
+}
+
+// TODO deprecate
+//
 // deploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
 func (k *K8sClient) deploymentOps() typed_ext_v1beta.DeploymentInterface {
@@ -204,6 +301,12 @@ func (k *K8sClient) CreateExtnV1B1Deployment(d *api_extn_v1beta1.Deployment) (*a
 	return dops.Create(d)
 }
 
+// GetDeployment fetches the K8s Deployment with the provided name
+func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
+	dops := k.extnV1B1DeploymentOps()
+	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{})
+}
+
 // getInClusterCS is used to initialize and return a new http client capable
 // of invoking K8s APIs within the cluster
 func getInClusterCS() (*kubernetes.Clientset, error) {
@@ -213,8 +316,26 @@ func getInClusterCS() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 
-	// creates the in-cluster clientset
+	// creates the in-cluster kubernetes clientset
 	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset, nil
+}
+
+// getInClusterOECS is used to initialize and return a new http client capable
+// of invoking OpenEBS CRD APIs within the cluster
+func getInClusterOECS() (*openebs.Clientset, error) {
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// creates the in-cluster openebs clientset
+	clientset, err := openebs.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

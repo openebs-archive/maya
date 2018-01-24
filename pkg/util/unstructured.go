@@ -105,6 +105,8 @@ func GetNestedSlice(obj map[string]interface{}, fields ...string) []string {
 	return nil
 }
 
+// TODO
+// Unit Test
 func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]string {
 	if m, ok := GetNestedField(obj, fields...).(map[string]interface{}); ok {
 		strMap := make(map[string]string, len(m))
@@ -118,6 +120,8 @@ func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]strin
 	return nil
 }
 
+// TODO
+// Unit Test
 func SetNestedField(obj map[string]interface{}, value interface{}, fields ...string) {
 	m := obj
 	if len(fields) > 1 {
@@ -158,4 +162,41 @@ func SetNestedMap(obj map[string]interface{}, value map[string]string, fields ..
 		m[k] = v
 	}
 	SetNestedField(obj, m, fields...)
+}
+
+// MergeMapOfStrings will merge the annotations from src to dest
+func MergeMapOfStrings(dest map[string]string, src map[string]string) bool {
+  // nil check as storing into a nil map panics
+  if dest == nil {
+    return false
+  }
+
+	for k, v := range src {
+		dest[k] = v
+	}
+	
+	return true
+}
+
+// MergeMapOfObjects will merge the map from src to dest
+func MergeMapOfObjects(dest map[string]interface{}, src map[string]interface{}) bool {
+  // nil check as storing into a nil map panics
+  if dest == nil {
+    return false
+  }
+
+	for k, v := range src {
+		dest[k] = v
+	}
+	
+	return true
+}
+
+// GetMapOfStrings gets the direct value from the passed obj & the field path
+// The value returned should be expected of the form map[string]string
+func GetMapOfStrings(obj map[string]interface{}, field string) map[string]string {
+	if m, ok := obj[field].(map[string]string); ok {
+		return m
+	}
+	return nil
 }
