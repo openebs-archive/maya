@@ -18,7 +18,7 @@ EXTERNAL_TOOLS=\
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 # Specify the name for the binaries
-MAYACTL=maya
+MAYACTL=mayactl
 APISERVER=maya-apiserver
 AGENT=maya-agent
 EXPORTER=maya-volume-exporter
@@ -33,7 +33,7 @@ dev: format
 
 mayactl:
 	@echo "----------------------------"
-	@echo "--> maya                    "
+	@echo "--> mayactl                    "
 	@echo "----------------------------"
 	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
 
@@ -163,4 +163,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver apiserver-image maya-image golint
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver image apiserver-image maya-image golint
