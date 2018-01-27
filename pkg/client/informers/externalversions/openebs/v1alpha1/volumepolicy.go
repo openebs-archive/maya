@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// StoragePoolInformer provides access to a shared informer and lister for
-// StoragePools.
-type StoragePoolInformer interface {
+// VolumePolicyInformer provides access to a shared informer and lister for
+// VolumePolicies.
+type VolumePolicyInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.StoragePoolLister
+	Lister() v1alpha1.VolumePolicyLister
 }
 
-type storagePoolInformer struct {
+type volumePolicyInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewStoragePoolInformer constructs a new informer for StoragePool type.
+// NewVolumePolicyInformer constructs a new informer for VolumePolicy type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewStoragePoolInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewVolumePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().StoragePools().List(options)
+				return client.OpenebsV1alpha1().VolumePolicies().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().StoragePools().Watch(options)
+				return client.OpenebsV1alpha1().VolumePolicies().Watch(options)
 			},
 		},
-		&openebs_io_v1alpha1.StoragePool{},
+		&openebs_io_v1alpha1.VolumePolicy{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultStoragePoolInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewStoragePoolInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultVolumePolicyInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewVolumePolicyInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *storagePoolInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebs_io_v1alpha1.StoragePool{}, defaultStoragePoolInformer)
+func (f *volumePolicyInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebs_io_v1alpha1.VolumePolicy{}, defaultVolumePolicyInformer)
 }
 
-func (f *storagePoolInformer) Lister() v1alpha1.StoragePoolLister {
-	return v1alpha1.NewStoragePoolLister(f.Informer().GetIndexer())
+func (f *volumePolicyInformer) Lister() v1alpha1.VolumePolicyLister {
+	return v1alpha1.NewVolumePolicyLister(f.Informer().GetIndexer())
 }

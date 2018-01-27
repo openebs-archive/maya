@@ -957,12 +957,7 @@ func (k *k8sUtil) StoragePoolOps() (oe_client_v1alpha1.StoragePoolInterface, err
 		return nil, err
 	}
 
-	// error out if still empty
-	if len(k.volume.Namespace) == 0 {
-		return nil, fmt.Errorf("Nil namespace")
-	}
-
-	return mcs.OpenebsV1alpha1().StoragePools(k.volume.Namespace), nil
+	return mcs.OpenebsV1alpha1().StoragePools(), nil
 }
 
 // getClientSet is used to get a new http client capable

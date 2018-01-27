@@ -56,6 +56,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().StoragePools().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("storagepoolclaims"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().StoragePoolClaims().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("volumepolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().VolumePolicies().Informer()}, nil
 
 	}
 

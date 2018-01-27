@@ -44,14 +44,14 @@ type storagePoolClaimInformer struct {
 // NewStoragePoolClaimInformer constructs a new informer for StoragePoolClaim type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewStoragePoolClaimInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewStoragePoolClaimInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().StoragePoolClaims(namespace).List(options)
+				return client.OpenebsV1alpha1().StoragePoolClaims().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().StoragePoolClaims(namespace).Watch(options)
+				return client.OpenebsV1alpha1().StoragePoolClaims().Watch(options)
 			},
 		},
 		&openebs_io_v1alpha1.StoragePoolClaim{},
@@ -61,7 +61,7 @@ func NewStoragePoolClaimInformer(client versioned.Interface, namespace string, r
 }
 
 func defaultStoragePoolClaimInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewStoragePoolClaimInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	return NewStoragePoolClaimInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *storagePoolClaimInformer) Informer() cache.SharedIndexInformer {
