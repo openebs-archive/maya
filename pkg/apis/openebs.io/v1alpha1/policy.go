@@ -114,7 +114,7 @@ const (
 )
 
 const (
-  TaskIdentityPrefix string = "id"
+	TaskIdentityPrefix string = "key"
 )
 
 // TaskTLPProperty is the name of the property that is found

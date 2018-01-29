@@ -19,7 +19,8 @@ type volumeAPIOpsV1alpha1 struct {
 // requests to a OpenEBS volume.
 func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
-	fmt.Println("[DEBUG] processing v1alpha1", req.Method, "request")
+	//fmt.Println("[DEBUG] processing v1alpha1", req.Method, "request")
+	glog.Infof("Received volume request: Method: '%s' Version: 'v1alpha1'", req.Method)
 
 	if req == nil {
 		return nil, CodedError(400, "Nil http request")
@@ -69,7 +70,7 @@ func (v *volumeAPIOpsV1alpha1) get() (interface{}, error) {
 
 func (v *volumeAPIOpsV1alpha1) create() (interface{}, error) {
 
-	glog.Infof("Received volume v0.6.0 add request")
+	glog.Infof("Received volume add request: Version: 'v1alpha1'")
 
 	vol := &v1.Volume{}
 
@@ -93,7 +94,7 @@ func (v *volumeAPIOpsV1alpha1) create() (interface{}, error) {
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Volume v0.6.0 added successfully '" + vol.Name + "'")
+	glog.Infof("Volume added successfully: Name: '%s' Version: 'v1alpha1'", vol.Name)
 
 	return vol, nil
 }

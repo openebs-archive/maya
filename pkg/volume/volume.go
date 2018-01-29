@@ -121,8 +121,8 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-  v.volume.Annotations = anns
+
+	v.volume.Annotations = anns
 	return v.volume, nil
 }
 

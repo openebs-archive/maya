@@ -254,7 +254,7 @@ func (m *Task) asRollback(objectName string) (*Task, error) {
 	// Only the meta info is required for a rollback. In
 	// other words no need of yaml template & values
 	return &Task{
-		MetaTask: *mt,
+		MetaTask:  *mt,
 		k8sClient: kc,
 	}, nil
 }
@@ -293,14 +293,14 @@ func (m *Task) putExtnV1B1Deploy() (map[string]interface{}, error) {
 
 	d, err = m.k8sClient.CreateExtnV1B1Deployment(d)
 	if err != nil {
-	  return nil, err
+		return nil, err
 	}
 
-	// Set the results object	
+	// Set the results object
 	r := map[string]interface{}{
-	  // set specific results with identity as the key
+		// set specific results with identity as the key
 		m.Identity: map[string]string{
-			string(v1alpha1.ObjectNameTRTP):  d.Name,
+			string(v1alpha1.ObjectNameTRTP): d.Name,
 		},
 		// set annotations with identity prefix as the key
 		m.Identity + "-" + string(v1alpha1.AnnotationsTRTP): d.Annotations,

@@ -17,7 +17,7 @@ limitations under the License.
 package task
 
 import (
-  "fmt"
+	"fmt"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -65,11 +65,11 @@ func (m *TaskRunner) planForRollback(t *Task, objectName string) {
 	// in the task itself; so just invoke this method
 	rt, err := t.asRollback(objectName)
 	if err != nil {
-	  glog.Warningf("Error during rollback plan: Task: '%#v' Error: '%s'", t, err.Error())
+		glog.Warningf("Error during rollback plan: Task: '%#v' Error: '%s'", t, err.Error())
 	}
 
 	if rt == nil {
-		// this task does not need a rollback or 
+		// this task does not need a rollback or
 		// can not be rollback-ed in-case of above error
 		return
 	}
@@ -81,7 +81,7 @@ func (m *TaskRunner) planForRollback(t *Task, objectName string) {
 func (m *TaskRunner) rollback() {
 	count := len(m.rollbacks)
 	if count == 0 {
-   glog.Infof("Nothing to rollback")
+		glog.Infof("Nothing to rollback")
 		return
 	}
 
@@ -89,7 +89,7 @@ func (m *TaskRunner) rollback() {
 	for i := count - 1; i >= 0; i-- {
 		_, err := m.rollbacks[i].execute()
 		if err != nil {
-      glog.Warningf("Error during rollback: Task: '%#v' Error: '%s'", m.rollbacks[i], err.Error())
+			glog.Warningf("Error during rollback: Task: '%#v' Error: '%s'", m.rollbacks[i], err.Error())
 		}
 	}
 }
@@ -97,7 +97,7 @@ func (m *TaskRunner) rollback() {
 // Run will run all tasks in the sequence of provided array
 func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
 	for idx, tSpec := range m.taskSpecs {
-	
+
 		// suggest task index as task's identity
 		// NOTE: this may not be set if task's yaml has set its identity already
 		id := v1alpha1.TaskIdentityPrefix + strconv.Itoa(idx)
@@ -120,15 +120,15 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 		// get the object that was created by this task
 		taskResults := util.GetMapOfStrings(result, t.Identity)
 		if taskResults == nil {
-		  glog.Errorf("Nil task results: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
-		  return fmt.Errorf("Nil task results: Invalid task execution: Task: '%s'", t.Identity)
+			glog.Errorf("Nil task results: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
+			return fmt.Errorf("Nil task results: Invalid task execution: Task: '%s'", t.Identity)
 		}
-		
+
 		// extract the name of this object
 		objName := taskResults[string(v1alpha1.ObjectNameTRTP)]
 		if len(objName) == 0 {
-		  glog.Errorf("Missing object name: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
-		  return fmt.Errorf("Missing object name: Invalid task execution: Task: '%s'", t.Identity)
+			glog.Errorf("Missing object name: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
+			return fmt.Errorf("Missing object name: Invalid task execution: Task: '%s'", t.Identity)
 		}
 
 		m.planForRollback(t, objName)
@@ -147,7 +147,7 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 func (m *TaskRunner) Run(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
 	err := m.runTasks(values, postTaskRunFn)
 	if err != nil {
-    glog.Errorf("Failed to run: Will rollback: Error: '%s' Values: '%#v'", err.Error(), values)
+		glog.Errorf("Failed to run: Will rollback: Error: '%s' Values: '%#v'", err.Error(), values)
 		m.rollback()
 	}
 
