@@ -19,7 +19,7 @@ package task
 import (
 	"fmt"
 
-  "github.com/golang/glog"
+	"github.com/golang/glog"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -86,8 +86,8 @@ func (f *K8sTaskSpecFetcher) Fetch(taskName string) (metaTaskYml string, taskYml
 
 	taskYml = cm.Data["task"]
 	if len(taskYml) == 0 {
-	  // This can be empty for get API calls
-	  glog.Warningf("Nil task specs: Will use meta task specs: Task: '%s' MetaTask: '%s'", taskName, metaTaskYml)
+		// This can be empty for get API calls
+		glog.Warningf("Nil task specs: Will use meta task specs: Task: '%s' MetaTask: '%s'", taskName, metaTaskYml)
 	}
 
 	return metaTaskYml, taskYml, nil

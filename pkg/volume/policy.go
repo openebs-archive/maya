@@ -111,7 +111,7 @@ func (p *policyEngine) addPolicyValuesToPolicyTLP() error {
 
 		isMerged := util.MergeMapOfObjects(allPoliciesValues, pValues)
 		if !isMerged {
-		  return fmt.Errorf("Failed to add policy values: '%s'", p.Name)
+			return fmt.Errorf("Failed to add policy values: '%s'", p.Name)
 		}
 	}
 
@@ -174,20 +174,20 @@ func (p *policyEngine) getAnnotations() (map[string]string, error) {
 	// extract results of all tasks
 	allTasksResults := p.values[string(v1alpha1.TaskResultTLP)]
 	if allTasksResults == nil {
-	  return nil, nil
+		return nil, nil
 	}
 
-  annotations := map[string]string{}
+	annotations := map[string]string{}
 
 	if allTasksResultsMap, ok := allTasksResults.(map[string]interface{}); ok {
 		// iterate through each task & capture its annotation based results
 		for tID, _ := range allTasksResultsMap {
-		  if strings.Contains(tID, string(v1alpha1.AnnotationsTRTP)) {
-  		  isMerged := util.MergeMapOfStrings(annotations, util.GetMapOfStrings(allTasksResultsMap, tID))
-  		  if !isMerged {
-		      return nil, fmt.Errorf("Failed to add annotations: '%s'", tID)
-		    }
-		  }
+			if strings.Contains(tID, string(v1alpha1.AnnotationsTRTP)) {
+				isMerged := util.MergeMapOfStrings(annotations, util.GetMapOfStrings(allTasksResultsMap, tID))
+				if !isMerged {
+					return nil, fmt.Errorf("Failed to add annotations: '%s'", tID)
+				}
+			}
 		}
 	}
 

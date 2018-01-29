@@ -166,29 +166,29 @@ func SetNestedMap(obj map[string]interface{}, value map[string]string, fields ..
 
 // MergeMapOfStrings will merge the annotations from src to dest
 func MergeMapOfStrings(dest map[string]string, src map[string]string) bool {
-  // nil check as storing into a nil map panics
-  if dest == nil {
-    return false
-  }
+	// nil check as storing into a nil map panics
+	if dest == nil {
+		return false
+	}
 
 	for k, v := range src {
 		dest[k] = v
 	}
-	
+
 	return true
 }
 
 // MergeMapOfObjects will merge the map from src to dest
 func MergeMapOfObjects(dest map[string]interface{}, src map[string]interface{}) bool {
-  // nil check as storing into a nil map panics
-  if dest == nil {
-    return false
-  }
+	// nil check as storing into a nil map panics
+	if dest == nil {
+		return false
+	}
 
 	for k, v := range src {
 		dest[k] = v
 	}
-	
+
 	return true
 }
 
