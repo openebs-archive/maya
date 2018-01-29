@@ -1,15 +1,13 @@
 package command
 
 import (
-	"fmt"
 	"io"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
+	utiltesting "k8s.io/client-go/util/testing"
 )
 
 var (
@@ -18,26 +16,77 @@ var (
 
 func TestGetVolDetails(t *testing.T) {
 	var (
-		volume v1.Volume
-		server *httptest.Server
+		server     *httptest.Server
+		annotation = Annotations{}
 	)
 	tests := map[string]struct {
 		volumeName string
-		resp       interface{}
-		err        error
-		addr       string
+
+		fakeHandler utiltesting.FakeHandler
+		err         error
+		addr        string
 	}{
-		"MAPIADDRSet":    {"vol", response, nil, "MAPI_ADDR"},
-		"MAPIADDRNotSet": {"vol", response, util.MAPIADDRNotSet, ""},
-		"EmptyResponse":  {"vol", "", io.EOF, "MAPI_ADDR"},
+		"500InternalServerError": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   500,
+				ResponseBody: string(response),
+				T:            t,
+			},
+			err:  util.InternalServerError,
+			addr: "MAPI_ADDR",
+		},
+		"503ServerUnavailable": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   503,
+				ResponseBody: string(response),
+				T:            t,
+			},
+			err:  util.ServerUnavailable,
+			addr: "MAPI_ADDR",
+		},
+		"BadRequest": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode: 400,
+				T:          t,
+			},
+			err:  io.EOF,
+			addr: "MAPI_ADDR",
+		},
+		"MAPIADDRSet": {
+			volumeName: "vol",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(response),
+				T:            t,
+			},
+			err:  nil,
+			addr: "MAPI_ADDR",
+		},
+		"MAPIADDRNotSet": {
+			volumeName: "vol",
+			fakeHandler: utiltesting.FakeHandler{
+				ResponseBody: string(response),
+				StatusCode:   200,
+				T:            t,
+			},
+			err:  util.MAPIADDRNotSet,
+			addr: "",
+		},
+		"404NotFound": {
+			volumeName: "vol",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode: 404,
+				T:          t,
+			},
+			err:  util.PageNotFound,
+			addr: "MAPI_ADDR",
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, tt.resp)
-			}))
+			server = httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
-			if got := GetVolDetails(tt.volumeName, &volume); got != tt.err {
+			if got := annotation.GetVolAnnotations(tt.volumeName); got != tt.err {
 				t.Fatalf("GetVolDetails(%v) => got %v, want %v ", tt.volumeName, got, tt.err)
 			}
 			defer os.Unsetenv(tt.addr)

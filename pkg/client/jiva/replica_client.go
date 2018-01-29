@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/pkg/util"
 )
 
 // NewReplicaClient create the new replica client
@@ -127,12 +128,12 @@ func (c *ReplicaClient) GetVolumeStats(address string, obj interface{}) (int, er
 	resp, err := replica.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return 500, errors.New("Internal Server Error")
+			return 500, util.InternalServerError
 		} else if resp.StatusCode == 503 {
-			return 503, errors.New("Service Unavailable")
+			return 503, util.ServerUnavailable
 		}
 	} else {
-		return -1, errors.New("Server Not Reachable")
+		return -1, util.ServerNotReachable
 	}
 	if err != nil {
 		return -1, err
