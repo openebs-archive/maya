@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/pkg/util"
 )
 
 // NewControllerClient create the new controller client
@@ -130,12 +132,12 @@ func (c *ControllerClient) GetVolumeStats(address string, obj interface{}) (int,
 	resp, err := controller.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return 500, errors.New("Internal Server Error")
+			return 500, util.InternalServerError
 		} else if resp.StatusCode == 503 {
-			return 503, errors.New("Service Unavailable")
+			return 503, util.ServerUnavailable
 		}
 	} else {
-		return -1, errors.New("Server Not Reachable")
+		return -1, util.ServerNotReachable
 	}
 	if err != nil {
 		return -1, err

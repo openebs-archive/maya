@@ -2,7 +2,6 @@ package command
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -56,13 +55,13 @@ func GetVolDetails(volName string, obj interface{}) error {
 	if resp != nil {
 		if resp.StatusCode == 500 {
 			fmt.Printf("Volume: %s not found at M_API server\n", volName)
-			return errors.New("Internal Server Error")
+			return util.InternalServerError
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")
-			return errors.New("Service Unavailable")
+			return util.ServerUnavailable
 		} else if resp.StatusCode == 404 {
 			fmt.Printf("Volume: %s not found at M_API server\n", volName)
-			return errors.New("Page Not Found")
+			return util.PageNotFound
 		}
 
 	} else {

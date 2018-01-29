@@ -26,9 +26,15 @@ import (
 	"github.com/golang/glog"
 )
 
-// MAPIADDRNotSet is the new error to display this error if MAPI_ADDR
-// is not set.
-var MAPIADDRNotSet = errors.New("MAPI_ADDR environment variable not set")
+var (
+	// MAPIADDRNotSet is the new error to display this error if MAPI_ADDR
+	// is not set.
+	MAPIADDRNotSet      = errors.New("MAPI_ADDR environment variable not set")
+	InternalServerError = errors.New("Internal Server Error")
+	ServerUnavailable   = errors.New("Server Unavailable")
+	ServerNotReachable  = errors.New("Server Not Reachable")
+	PageNotFound        = errors.New("Page Not Found")
+)
 
 // truthyValues maps a set of values which are considered as true
 var truthyValues = map[string]bool{
