@@ -24,37 +24,14 @@ required = ["k8s.io/code-generator/cmd/client-gen"]
 ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com/emicklei/go-restful/swagger","k8s.io/client-go/pkg/api/v1"]
 
 [[constraint]]
-  name = "github.com/dustin/go-humanize"
-
-[[constraint]]
   name = "github.com/golang/glog"
 
 [[constraint]]
   name = "github.com/google/gofuzz"
 
 [[constraint]]
-  name = "github.com/hashicorp/go-getter"
-
-[[constraint]]
   name = "github.com/hashicorp/nomad"
   version = "0.5.5"
-
-[[constraint]]
-  name = "github.com/mitchellh/cli"
-
-[[constraint]]
-  name = "github.com/mitchellh/colorstring"
-
-[[constraint]]
-  name = "github.com/onsi/ginkgo"
-  version = "1.4.0"
-
-[[constraint]]
-  name = "github.com/onsi/gomega"
-  version = "1.2.0"
-
-#[[constraint]]
-#  name = "github.com/rancher/go-rancher"
 
 [[constraint]]
   name = "github.com/ryanuber/columnize"
@@ -94,6 +71,3 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
 [[override]]
   name = "k8s.io/gengo"
   revision = "9e661e9308f078838e266cca1c673922088c0ea4"
-
-[[constraint]]
-  name = "github.com/evanphx/json-patch"
