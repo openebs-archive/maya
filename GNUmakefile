@@ -96,7 +96,7 @@ vet:
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
 		echo "Installing $$tool" ; \
-		go get $$tool; \
+		go get -u $$tool; \
 	done
 
 maya-image:
