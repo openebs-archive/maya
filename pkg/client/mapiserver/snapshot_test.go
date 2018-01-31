@@ -1,6 +1,7 @@
 package mapiserver
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,10 @@ import (
 )
 
 var (
-	snapshotResponse = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
+	snapshotResponse    = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
+	volumeNameIsMissing = errors.New("Volume name is missing")
+	badReqErr           = errors.New(snapshotResponse)
+	volNotFound         = errors.New("Volume not found")
 )
 
 func TestCreateSnapshot(t *testing.T) {
@@ -43,7 +47,7 @@ func TestCreateSnapshot(t *testing.T) {
 				ResponseBody: string(snapshotResponse),
 				T:            t,
 			},
-			err:  fmt.Errorf("Server status error: %v ", http.StatusText(400)),
+			err:  badReqErr,
 			addr: "MAPI_ADDR",
 		},
 		"MAPI_ADDRNotSet": {
@@ -64,7 +68,7 @@ func TestCreateSnapshot(t *testing.T) {
 				ResponseBody: "Volume name is missing",
 				T:            t,
 			},
-			err:  fmt.Errorf("Server status error: %v ", http.StatusText(400)),
+			err:  volumeNameIsMissing,
 			addr: "MAPI_ADDR",
 		},
 		"VolumeNotFound": {
@@ -72,10 +76,10 @@ func TestCreateSnapshot(t *testing.T) {
 			snapName:   "xfgcuio87654er",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   400,
-				ResponseBody: "Volume 'fdghjk' not found",
+				ResponseBody: "Volume not found",
 				T:            t,
 			},
-			err:  fmt.Errorf("Server status error: %v ", http.StatusText(400)),
+			err:  volNotFound,
 			addr: "MAPI_ADDR",
 		},
 	}

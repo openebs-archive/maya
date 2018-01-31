@@ -68,8 +68,16 @@ func CreateSnapshot(volName string, snapName string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return err
+	}
 
 	code := resp.StatusCode
+	if err == nil && code != http.StatusOK {
+		return fmt.Errorf(string(body))
+	}
 	if code != http.StatusOK {
 		return fmt.Errorf("Server status error: %v ", http.StatusText(code))
 	}
