@@ -33,7 +33,8 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-//
+// txtTplMock is the mock structure to test standard templating
+// & extra templating functions provided via sprig
 type txtTplMock struct {
 	// values hold the data that will be fed into the ymlTpl
 	// property of this instance
@@ -48,56 +49,130 @@ type txtTplMock struct {
 	ymlExpected string
 }
 
-var SimpleConditionValues = map[string]interface{}{
+// AllValues contains a hierarchical set of data
+//
+// LEARNING:
+//  Maya converts the Volume Policy into a similar struct
+// that is taken as a input for transforming the yaml
+// template's placeholders with these values
+var AllValues = map[string]interface{}{
 	"My": map[string]string{
 		"Name": "OpenEBS",
 	},
-	"Restaurant": map[string]interface{}{
+	"Storage": map[string]interface{}{
 		"favorite": map[string]string{
-			"drink": "coffee",
-			"food":  "bread",
+			"block": "cstor",
+			//"noblock": "",
+			"nfs": "cstor again",
 		},
 	},
 }
 
-var SimpleConditionYmlTpl = `
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .My.Name }}-configmap
-data:
-  msg: "Hello World"
-  drink: {{ .Restaurant.favorite.drink }}
-  food: {{ .Restaurant.favorite.food }}
-  {{ if eq .Restaurant.favorite.drink "coffee" }}mug: true{{ end }}
-`
-
-var SimpleConditionYmlExpected = `
+// YmlExpected is the expected template
+// after the values are placed in the template's placeholders
+var YmlExpected = `
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: OpenEBS-configmap
 data:
-  msg: "Hello World"
-  drink: coffee
-  food: bread
-  mug: true
+  msg: Hello-OpenEBS
+  block: cstor
+  nfs: "cstor again"
+  cool: true
+`
+
+// IfEqYmlTpl is a yaml template with
+// placeholders
+var IfEqYmlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  msg: Hello-{{ .My.Name }}
+  block: {{ .Storage.favorite.block }}
+  nfs: {{ .Storage.favorite.nfs }}
+  {{ if eq .Storage.favorite.block "cstor" }}cool: true{{ end }}
+`
+
+// TrimLeftWhitespaceYmlTpl is a yaml template with
+// placeholders
+var TrimLeftWhitespaceYmlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  msg: Hello-{{ .My.Name }}
+  block: {{ .Storage.favorite.block }}
+  nfs: {{ .Storage.favorite.nfs }}
+  {{- if eq .Storage.favorite.block "cstor" }}
+  cool: true
+  {{- end }}
+`
+
+// WithBlockYmlTpl is a yaml template with
+// scoped placeholders
+var WithBlockYmlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  msg: Hello-{{ .My.Name }}
+  {{- with .Storage.favorite }}
+  block: {{ .block }}
+  nfs: {{ .nfs }}
+  {{- end }}
+  cool: true
+`
+
+// SetDefaultsYmlTpl is a yaml template using
+// default template function
+var SetDefaultsYmlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  msg: Hello-{{ .My.Name }}
+  block: {{ .Storage.favorite.noblock | default "cstor" }}
+  nfs: {{ .Storage.favorite.nfs }}
+  {{- if eq .Storage.favorite.block "cstor" }}
+  cool: true
+  {{- end }}
 `
 
 func TestAll(t *testing.T) {
 
 	tests := map[string]txtTplMock{
-		// test case values
-		"SimpleCondition": {
-			values:      SimpleConditionValues,
-			ymlTpl:      SimpleConditionYmlTpl,
-			ymlExpected: SimpleConditionYmlExpected,
+		"Test 'if eq' condition": {
+			values:      AllValues,
+			ymlTpl:      IfEqYmlTpl,
+			ymlExpected: YmlExpected,
+		},
+		"Test '{{- ' whitespace control": {
+			values:      AllValues,
+			ymlTpl:      TrimLeftWhitespaceYmlTpl,
+			ymlExpected: YmlExpected,
+		},
+		"Test '{{- with ' scope": {
+			values:      AllValues,
+			ymlTpl:      WithBlockYmlTpl,
+			ymlExpected: YmlExpected,
+		},
+		"Test '| default '": {
+			values:      AllValues,
+			ymlTpl:      SetDefaultsYmlTpl,
+			ymlExpected: YmlExpected,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			tpl := template.New("example")
+			// power the standard templating with sprig
+			tpl := template.New("example").Funcs(funcMap())
 			tpl, err := tpl.Parse(mock.ymlTpl)
 			if err != nil {
 				t.Fatalf("Expected: 'no error' Actual: '%#v'", err)
@@ -132,7 +207,7 @@ func TestAll(t *testing.T) {
 			// Now Compare
 			ok := reflect.DeepEqual(objExpected, objActual)
 			if !ok {
-				t.Fatalf("Expected: \n'%#v' Actual: \n'%#v'", objExpected, objActual)
+				t.Fatalf("\nExpected: '%#v' \nActual: '%#v'", objExpected, objActual)
 			}
 		}) // end of run
 	}
