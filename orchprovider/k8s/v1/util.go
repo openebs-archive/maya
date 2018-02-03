@@ -21,6 +21,7 @@ import (
 	k8sApisExtnsBeta1 "k8s.io/api/extensions/v1beta1"
 
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // OpenEBSImage represents an OpenEBS container image
@@ -948,18 +949,29 @@ func (k *k8sUtil) getOEClientSet() (*versioned.Clientset, error) {
 	return cs, nil
 }
 
+func getK8sConfig() (config *rest.Config, err error) {
+	k8sMaster := v1.K8sMasterENV()
+	kubeConfig := v1.KubeConfigENV()
+
+	if len(k8sMaster) != 0 || len(kubeConfig) != 0 {
+		// creates the config from k8sMaster or kubeConfig
+		return clientcmd.BuildConfigFromFlags(k8sMaster, kubeConfig)
+	}
+
+	// creates the in-cluster config making use of the Pod's ENV & secrets
+	return rest.InClusterConfig()
+}
+
 // getInClusterCS is used to initialize and return a new http client capable
 // of invoking K8s APIs.
-func (k *k8sUtil) getInClusterCS() (*kubernetes.Clientset, error) {
-
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
+func (k *k8sUtil) getInClusterCS() (clientset *kubernetes.Clientset, err error) {
+	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// creates the in-cluster clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -969,16 +981,14 @@ func (k *k8sUtil) getInClusterCS() (*kubernetes.Clientset, error) {
 
 // getInClusterOECS is used to initialize and return a new http client capable
 // of invoking OpenEBS CRD APIs.
-func (k *k8sUtil) getInClusterOECS() (*versioned.Clientset, error) {
-
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
+func (k *k8sUtil) getInClusterOECS() (clientset *versioned.Clientset, err error) {
+	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// creates the in-cluster OE clientset
-	clientset, err := versioned.NewForConfig(config)
+	clientset, err = versioned.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
