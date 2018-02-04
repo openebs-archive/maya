@@ -27,7 +27,7 @@ import (
 
 var (
 	volumeDeleteCommandHelpText = `
-	Usage: maya volume delete -volname <vol> 
+	Usage: maya volume delete -volname <vol>
 
 	This command initiate a delete for OpenEBS Volume.
 

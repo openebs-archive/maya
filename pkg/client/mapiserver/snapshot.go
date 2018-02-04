@@ -39,7 +39,6 @@ func CreateSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 		return err
 	}
 
@@ -69,8 +68,8 @@ func CreateSnapshot(volName string, snapName string) error {
 		return err
 	}
 	defer resp.Body.Close()
-
 	body, err := ioutil.ReadAll(resp.Body)
+
 	if err != nil {
 		return err
 	}
@@ -79,9 +78,8 @@ func CreateSnapshot(volName string, snapName string) error {
 	if err == nil && code != http.StatusOK {
 		return fmt.Errorf(string(body))
 	}
-
 	if code != http.StatusOK {
-		return fmt.Errorf("Server status error: %v", http.StatusText(code))
+		return fmt.Errorf("Server status error: %v ", http.StatusText(code))
 	}
 	return nil
 }
@@ -91,7 +89,6 @@ func RevertSnapshot(volName string, snapName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		err := fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 		return err
 	}
 
@@ -139,7 +136,6 @@ func ListSnapshot(volName string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
 		return err
 	}
 

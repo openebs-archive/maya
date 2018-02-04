@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -20,7 +21,7 @@ func CreateVolume(vname string, size string) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		return util.MAPIADDRNotSet
 	}
 
 	var vs v1.VolumeAPISpec

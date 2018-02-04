@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
 	"time"
 )
 
@@ -17,7 +18,7 @@ func ListVolumes(obj interface{}) error {
 
 	_, err := GetStatus()
 	if err != nil {
-		return fmt.Errorf("Unable to contact maya-apiserver: %s", GetURL())
+		return err
 	}
 
 	url := GetURL() + "/latest/volumes/"
@@ -31,7 +32,7 @@ func ListVolumes(obj interface{}) error {
 
 	code := resp.StatusCode
 	if code != http.StatusOK {
-		return fmt.Errorf("Status error: %v", http.StatusText(code))
+		return fmt.Errorf("Status Error: %v", http.StatusText(code))
 	}
 
 	defer resp.Body.Close()
