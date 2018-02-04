@@ -21,11 +21,12 @@ import (
 	"bytes"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 )
 
-// ToYAML takes a string of arguments and converts to a YAML document.
-func ToYAML(s string) (string, error) {
+// toYAML takes a string in a YAML format and converts to a YAML document.
+func toYAML(s string) (string, error) {
 	y, err := yaml.Marshal(s)
 	if err != nil {
 		return "", err
@@ -34,15 +35,29 @@ func ToYAML(s string) (string, error) {
 	return string(y), nil
 }
 
+// funcMap returns the set of template functions supported in this library
+func funcMap() template.FuncMap {
+	f := sprig.TxtFuncMap()
+
+	// Add some extra templating functions
+	extra := template.FuncMap{
+		"toYaml": toYAML,
+	}
+
+	for k, v := range extra {
+		f[k] = v
+	}
+
+	return f
+}
+
 // AsTemplatedBytes returns a byte slice
 // based on the provided yaml & values
 func AsTemplatedBytes(context string, yml string, values map[string]interface{}) ([]byte, error) {
 	tpl := template.New(context + "YamlTpl")
-	// Any maya yaml exposes below custom functions. These are
-	// used to set placeholders at runtime.
-	tpl.Funcs(template.FuncMap{
-		"toYaml": ToYAML,
-	})
+
+	// Any maya yaml exposes below templating functions
+	tpl.Funcs(funcMap())
 
 	tpl, err := tpl.Parse(yml)
 	if err != nil {

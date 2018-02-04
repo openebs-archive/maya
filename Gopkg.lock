@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/Masterminds/semver"
+  packages = ["."]
+  revision = "15d8430ab86497c5c0da827b748823945e1cf1e1"
+  version = "v1.4.0"
+
+[[projects]]
+  name = "github.com/Masterminds/sprig"
+  packages = ["."]
+  revision = "b217b9c388de2cacde4354c536e520c52c055563"
+  version = "v2.14.1"
+
+[[projects]]
   name = "github.com/PuerkitoBio/purell"
   packages = ["."]
   revision = "8a290539e2e8629dbc4e6bad948158f790ec31f4"
@@ -11,6 +23,12 @@
   name = "github.com/PuerkitoBio/urlesc"
   packages = ["."]
   revision = "5bd2802263f21d8788851d5305584c82a5c75d7e"
+
+[[projects]]
+  name = "github.com/aokoli/goutils"
+  packages = ["."]
+  revision = "3391d3790d23d03408670993e957e8f408993c34"
+  version = "v1.0.1"
 
 [[projects]]
   name = "github.com/armon/go-metrics"
@@ -220,6 +238,18 @@
   revision = "b84a66cc5575994cb672940d244a2404141688c0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/huandu/xstrings"
+  packages = ["."]
+  revision = "37469d0c81a7910b49d64a0d308ded4823e90937"
+
+[[projects]]
+  name = "github.com/imdario/mergo"
+  packages = ["."]
+  revision = "163f41321a19dd09362d4c63cc2489db2015f1f4"
+  version = "0.3.2"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -334,6 +364,12 @@
   version = "v2.1.0"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "4a7b7e65864c064d48dce82efbbfed2bdc0bf2aa"
@@ -348,6 +384,15 @@
   name = "github.com/ugorji/go"
   packages = ["codec"]
   revision = "ded73eae5db7e7a0ef6f55aace87a2873c5d2b74"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = [
+    "pbkdf2",
+    "scrypt"
+  ]
+  revision = "1875d0a70c90e57f11972aefd42276df65e895b9"
 
 [[projects]]
   name = "golang.org/x/net"
@@ -554,6 +599,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "66d215a7855f62167e927a0f0233d5e391c7f2831f6aac75554f1fe0829dec7c"
+  inputs-digest = "513882d52161b27cd90013d721d8ebb1057ed5f901adddd728f159207134b8dc"
   solver-name = "gps-cdcl"
   solver-version = 1
