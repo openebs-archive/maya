@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	api_oe_old "github.com/openebs/maya/types/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	api_storage_v1 "k8s.io/api/storage/v1"
@@ -31,6 +32,8 @@ import (
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	typed_ext_v1beta "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
+
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // K8sKind represents the Kinds understood by Kubernetes
@@ -307,17 +310,29 @@ func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{})
 }
 
+func getK8sConfig() (config *rest.Config, err error) {
+	k8sMaster := api_oe_old.K8sMasterENV()
+	kubeConfig := api_oe_old.KubeConfigENV()
+
+	if len(k8sMaster) != 0 || len(kubeConfig) != 0 {
+		// creates the config from k8sMaster or kubeConfig
+		return clientcmd.BuildConfigFromFlags(k8sMaster, kubeConfig)
+	}
+
+	// creates the in-cluster config making use of the Pod's ENV & secrets
+	return rest.InClusterConfig()
+}
+
 // getInClusterCS is used to initialize and return a new http client capable
 // of invoking K8s APIs within the cluster
-func getInClusterCS() (*kubernetes.Clientset, error) {
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
+func getInClusterCS() (clientset *kubernetes.Clientset, err error) {
+	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// creates the in-cluster kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
@@ -327,15 +342,14 @@ func getInClusterCS() (*kubernetes.Clientset, error) {
 
 // getInClusterOECS is used to initialize and return a new http client capable
 // of invoking OpenEBS CRD APIs within the cluster
-func getInClusterOECS() (*openebs.Clientset, error) {
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
+func getInClusterOECS() (clientset *openebs.Clientset, err error) {
+	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// creates the in-cluster openebs clientset
-	clientset, err := openebs.NewForConfig(config)
+	clientset, err = openebs.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}
