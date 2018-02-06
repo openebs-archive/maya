@@ -5,9 +5,11 @@ import (
 )
 
 //UnMount is to unmount the specified disk - /mnt/<disk>
-func UnMount(disk string) error {
-	disk = "/mnt/" + disk
-	res, err := exec.Command("umount", disk).Output()
+func UnMount(mnpt string, flag bool) error {
+	if flag==true {
+		mnpt = "/host" + mnpt
+	}
+	res, err := exec.Command("umount", mnpt).Output()
 	if err != nil {
 		return err
 	}

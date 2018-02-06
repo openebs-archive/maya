@@ -24,7 +24,7 @@ func NewSubCmdUnMount() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			util.CheckErr(options.Validate(), util.Fatal)
-			err := block.UnMount(options.disk)
+			err := block.UnMount(options.disk, false)
 			if err != nil {
 				fmt.Println("Unmounting failure for", options.disk)
 				util.CheckErr(err, util.Fatal)
@@ -40,7 +40,7 @@ func NewSubCmdUnMount() *cobra.Command {
 
 func (c *CmdUnmountOptions) Validate() error {
 	if c.disk == "" {
-		return errors.New("--disk is missing. Please specify a disk")
+		return errors.New("--disk is missing. Please specify a disk(/dev/xxx)")
 	}
 	return nil
 }

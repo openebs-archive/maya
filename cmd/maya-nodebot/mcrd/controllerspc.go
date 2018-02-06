@@ -29,6 +29,7 @@ import (
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/listers/openebs/v1alpha1"
 	//samplev1alpha1 "github.com/testsamplecontroller/sample-controller/temp"
+	//"k8s.io/kubernetes/pkg/util/mount"
 )
 
 const controllerAgentName = "maya-nodebot"
@@ -275,7 +276,7 @@ func (c *Controller) syncHandler(key, operation string) error {
 	case "delete":
 		//IsDiskBeingUsed needs to be implemeneted
 		//IsDiskUnusedMounted needs to be implemeneted
-		err := block.UnMount(spcUpdated.Spec.Name)
+		err := block.UnMount(spcUpdated.Spec.Name, true)
 		if err != nil {
 			runtime.HandleError(fmt.Errorf("Unable to unmount ", err))
 			break
@@ -320,19 +321,47 @@ func DiskOperations(spc *apis.StoragePoolClaim, namespace string) apis.StoragePo
 	res, err := block.Format(spc.Spec.Name, spc.Spec.Format)
 	if err != nil {
 		Message = Message + " unable to format" + err.Error()
+		glog.Info("Unable to format : ", err)
 		//util.CheckErr(err, util.Fatal)
 	} else {
 		Message = Message + res
+		glog.Info("Formatting complete", err)
 	}
+	
+//"k8s.io/kubernetes/pkg/util/mount"
 
-	mountpoint, err := block.Mount(spc.Spec.Name)
+
+/*
+var mountpoint string
+source := "/host/dev/" + spc.Spec.Name
+mountpoint = "/host/mnt/" + spc.Spec.Name
+obj:=mount.New("")
+var options []string
+err =obj.Mount(source, mountpoint, "", options)
+if err != nil {
+	Message = Message + " unable to mount" + err.Error()
+	fmt.Println("error in mounting : ", err)
+	//util.CheckErr(err, util.Fatal)
+}else {
+	Message = " Mountpoint=" + mountpoint
+	fmt.Println("mounting successful : ", mountpoint)
+	//util.CheckErr(err, util.Fatal)
+}
+
+*/
+
+	flag:=true
+	diskDev := "/dev/"+spc.Spec.Name
+ 	_, err = block.Mount(diskDev, spc.Spec.Mountpoint, flag)
 	if err != nil {
 		Message = Message + " unable to mount" + err.Error()
+		glog.Info("Mounting failure", err)
 		//util.CheckErr(err, util.Fatal)
 	} else {
-		Message = " Mountpoint=" + mountpoint
+		Message = " Mountpoint=" + spc.Spec.Mountpoint
+		glog.Info("Mounting successful : ", spc.Spec.Mountpoint)
 		//util.CheckErr(err, util.Fatal)
-	}
+	} 
 
 	sps := apis.StoragePoolSpec{Name: spc.Spec.Name, Format: spc.Spec.Format,
 		Mountpoint: spc.Spec.Mountpoint,
@@ -388,6 +417,13 @@ func IsDiskAvailable(name string) bool {
 	for _, blk := range resJsonDecoded.Blockdevices {
 		if blk.Name == name {
 			return true
+		}
+		if blk.Children != nil {
+			for _, child := range blk.Children {
+				if child.Name == name {
+					return true
+				}
+			}
 		}
 	}
 	return false
