@@ -165,7 +165,10 @@ func (p *policyEngine) prepareTasksForExec() error {
 		}
 
 		// prepare the task runner by adding this task's details
-		p.taskRunner.AddTaskSpec(t.Identity, metaTaskYml, taskYml)
+		err = p.taskRunner.AddTaskSpec(t.Identity, metaTaskYml, taskYml)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

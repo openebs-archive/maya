@@ -18,7 +18,6 @@ package task
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -51,14 +50,19 @@ func NewTaskRunner() *TaskRunner {
 	return &TaskRunner{}
 }
 
-func (m *TaskRunner) AddTaskSpec(identity, metaTaskYml, taskYml string) {
+func (m *TaskRunner) AddTaskSpec(identity, metaTaskYml, taskYml string) error {
+	if len(strings.TrimSpace(identity)) == 0 {
+		fmt.Errorf("Missing task identity: Failed to add task spec")
+	}
+
 	tSpec := taskSpecHolder{
-		identity:    identity,
+		identity:    strings.TrimSpace(identity),
 		metaTaskYml: metaTaskYml,
 		taskYml:     taskYml,
 	}
-
 	m.taskSpecs = append(m.taskSpecs, tSpec)
+
+	return nil
 }
 
 // planForRollback in case of errors in executing next tasks.
@@ -99,15 +103,9 @@ func (m *TaskRunner) rollback() {
 
 // Run will run all tasks in the sequence of provided array
 func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
-	for idx, tSpec := range m.taskSpecs {
-		id := tSpec.identity
-		if len(strings.TrimSpace(id)) == 0 {
-			// generate the task id otherwise
-			id = v1alpha1.TaskIdentityPrefix + strconv.Itoa(idx)
-		}
-
+	for _, tSpec := range m.taskSpecs {
 		// convert the yml to task
-		t, err := NewTask(id, tSpec.metaTaskYml, tSpec.taskYml, values)
+		t, err := NewTask(tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml, values)
 		if err != nil {
 			return err
 		}
