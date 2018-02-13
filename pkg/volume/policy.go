@@ -157,13 +157,18 @@ func (p *policyEngine) addTaskResultsToTaskResultTLP(taskResultsMap map[string]i
 func (p *policyEngine) prepareTasksForExec() error {
 	// prepare the tasks mentioned in this policy
 	for _, t := range p.policy.Spec.RunTasks.Tasks {
+		// fetch the task & metatask's specifications from the task's
+		// template name
 		metaTaskYml, taskYml, err := p.taskSpecFetcher.Fetch(t.TemplateName)
 		if err != nil {
 			return err
 		}
 
-		// feed to task runner
-		p.taskRunner.AddTaskSpec(metaTaskYml, taskYml)
+		// prepare the task runner by adding this task's details
+		err = p.taskRunner.AddTaskSpec(t.Identity, metaTaskYml, taskYml)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -207,7 +212,6 @@ func (p *policyEngine) execute() (annotations map[string]string, err error) {
 		return nil, err
 	}
 
-	// values will be modified to included the results
 	err = p.taskRunner.Run(p.values, p.addTaskResultsToTaskResultTLP)
 	if err != nil {
 		return nil, err

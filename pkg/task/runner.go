@@ -18,7 +18,7 @@ package task
 
 import (
 	"fmt"
-	"strconv"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -32,6 +32,7 @@ type PostTaskRunFn func(taskResult map[string]interface{})
 // taskSpecHolder is a utility structure that composes specifications
 // of task as well as metatask
 type taskSpecHolder struct {
+	identity    string
 	metaTaskYml string
 	taskYml     string
 }
@@ -49,13 +50,19 @@ func NewTaskRunner() *TaskRunner {
 	return &TaskRunner{}
 }
 
-func (m *TaskRunner) AddTaskSpec(metaTaskYml, taskYml string) {
+func (m *TaskRunner) AddTaskSpec(identity, metaTaskYml, taskYml string) error {
+	if len(strings.TrimSpace(identity)) == 0 {
+		fmt.Errorf("Missing task identity: Failed to add task spec")
+	}
+
 	tSpec := taskSpecHolder{
+		identity:    strings.TrimSpace(identity),
 		metaTaskYml: metaTaskYml,
 		taskYml:     taskYml,
 	}
-
 	m.taskSpecs = append(m.taskSpecs, tSpec)
+
+	return nil
 }
 
 // planForRollback in case of errors in executing next tasks.
@@ -96,13 +103,9 @@ func (m *TaskRunner) rollback() {
 
 // Run will run all tasks in the sequence of provided array
 func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
-	for idx, tSpec := range m.taskSpecs {
-
-		// suggest task index as task's identity
-		// NOTE: this may not be set if task's yaml has set its identity already
-		id := v1alpha1.TaskIdentityPrefix + strconv.Itoa(idx)
+	for _, tSpec := range m.taskSpecs {
 		// convert the yml to task
-		t, err := NewTask(id, tSpec.metaTaskYml, tSpec.taskYml, values)
+		t, err := NewTask(tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml, values)
 		if err != nil {
 			return err
 		}
@@ -120,22 +123,27 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 		// get the object that was created by this task
 		taskResults := util.GetMapOfStrings(result, t.Identity)
 		if taskResults == nil {
+			// log with verbose details
 			glog.Errorf("Nil task results: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
+			// return error minus verbosity
 			return fmt.Errorf("Nil task results: Invalid task execution: Task: '%s'", t.Identity)
 		}
 
 		// extract the name of this object
 		objName := taskResults[string(v1alpha1.ObjectNameTRTP)]
 		if len(objName) == 0 {
+			// log with verbose details
 			glog.Errorf("Missing object name: Invalid task execution: Task: '%#v' Result: '%#v'", t, result)
+			// return error minus verbosity
 			return fmt.Errorf("Missing object name: Invalid task execution: Task: '%s'", t.Identity)
 		}
 
+		// this is planning & not the actual rollback
 		m.planForRollback(t, objName)
 
-		// this provides a way to captures the result of this task
-		// Use this function & result to provide data to the next task
-		// before executing the next task
+		// executing this closure provides a way to capture the result of this task;
+		// this is used to provide data to the next task before the latter's
+		// execution
 		postTaskRunFn(result)
 	}
 
@@ -144,6 +152,9 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 
 // Run will run all the defined tasks & will rollback in case of
 // any error
+//
+// NOTE: values will be modified to include the results from execution of
+// each task
 func (m *TaskRunner) Run(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
 	err := m.runTasks(values, postTaskRunFn)
 	if err != nil {
