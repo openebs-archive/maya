@@ -31,6 +31,12 @@
   version = "v1.0.1"
 
 [[projects]]
+  name = "github.com/apache/thrift"
+  packages = ["lib/go/thrift"]
+  revision = "b2a4d4ae21c789b689dd162deb819665567f481c"
+  version = "0.10.0"
+
+[[projects]]
   name = "github.com/armon/go-metrics"
   packages = ["."]
   revision = "023a4bbe4bb9bfb23ee7e1afc8d0abad217641f3"
@@ -40,6 +46,12 @@
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/codahale/hdrhistogram"
+  packages = ["."]
+  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -318,6 +330,16 @@
   revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
 
 [[projects]]
+  name = "github.com/opentracing/opentracing-go"
+  packages = [
+    ".",
+    "ext",
+    "log"
+  ]
+  revision = "1949ddbfd147afd4d964a9f00b24eb291e0e7c38"
+  version = "v1.0.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/petar/GoLLRB"
   packages = ["llrb"]
@@ -385,6 +407,32 @@
   packages = ["."]
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/uber/jaeger-client-go"
+  packages = [
+    ".",
+    "config",
+    "internal/baggage",
+    "internal/baggage/remote",
+    "internal/spanlog",
+    "log",
+    "rpcmetrics",
+    "thrift-gen/agent",
+    "thrift-gen/baggage",
+    "thrift-gen/jaeger",
+    "thrift-gen/sampling",
+    "thrift-gen/zipkincore",
+    "utils"
+  ]
+  revision = "3ac96c6e679cb60a74589b0d0aa7c70a906183f7"
+  version = "v2.11.2"
+
+[[projects]]
+  name = "github.com/uber/jaeger-lib"
+  packages = ["metrics"]
+  revision = "7f95f4f7e80028096410abddaae2556e4c61b59f"
+  version = "v1.3.1"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -620,6 +668,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "43b6b2569b22a29d33c04d1574938bfd3d6db9eab2c00af8a5c566a25f2f07f3"
+  inputs-digest = "aa1597a16b48862a9d07162c52ce5b68113b957882f8255a79db3c83fa62d372"
   solver-name = "gps-cdcl"
   solver-version = 1
