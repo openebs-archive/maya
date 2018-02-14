@@ -340,8 +340,12 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 		return false, err
 	}
 
-	// fetch k8s Pod operations
-	pOps, err := kc.Pods()
+	rDeploys, err := k.getReplicaDeploys(vsm, dOps)
+	if err != nil {
+		return false, err
+	}
+
+	cDeploys, err := k.getControllerDeploys(vsm, dOps)
 	if err != nil {
 		return false, err
 	}
@@ -352,20 +356,20 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 		return false, err
 	}
 
-	// This ensures the dependents of Deployment e.g. ReplicaSets to be deleted
-	orphanDependents := false
-
-	// Delete the Replica Deployments first
-	rDeploys, err := k.getReplicaDeploys(vsm, dOps)
+	cSvcs, err := k.getControllerServices(vsm, sOps)
 	if err != nil {
 		return false, err
 	}
 
+	// This ensures the dependents of Deployment e.g. ReplicaSets to be deleted
+	deletePropagationBackground := metav1.DeletePropagationBackground
+
+	// Delete the Replica Deployments first
 	if rDeploys != nil && len(rDeploys.Items) > 0 {
 		hasAtleastOneVSMObj = true
 		for _, rd := range rDeploys.Items {
 			err = dOps.Delete(rd.Name, &metav1.DeleteOptions{
-				OrphanDependents: &orphanDependents,
+				PropagationPolicy: &deletePropagationBackground,
 			})
 			if err != nil {
 				return false, err
@@ -374,52 +378,11 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 	}
 
 	// Delete the Controller Deployments next
-	cDeploys, err := k.getControllerDeploys(vsm, dOps)
-	if err != nil {
-		return false, err
-	}
-
 	if cDeploys != nil && len(cDeploys.Items) > 0 {
 		hasAtleastOneVSMObj = true
 		for _, cd := range cDeploys.Items {
 			err = dOps.Delete(cd.Name, &metav1.DeleteOptions{
-				OrphanDependents: &orphanDependents,
-			})
-			if err != nil {
-				return false, err
-			}
-		}
-	}
-
-	// Delete the Replica Pods before Controller Pod(s)
-	rPods, err := k.getReplicaPods(vsm, pOps)
-	if err != nil {
-		return false, err
-	}
-
-	if rPods != nil && len(rPods.Items) > 0 {
-		hasAtleastOneVSMObj = true
-		for _, rPod := range rPods.Items {
-			err = pOps.Delete(rPod.Name, &metav1.DeleteOptions{
-				OrphanDependents: &orphanDependents,
-			})
-			if err != nil {
-				return false, err
-			}
-		}
-	}
-
-	// Delete the Controller Pods next
-	cPods, err := k.getControllerPods(vsm, pOps)
-	if err != nil {
-		return false, err
-	}
-
-	if cPods != nil && len(cPods.Items) > 0 {
-		hasAtleastOneVSMObj = true
-		for _, cPod := range cPods.Items {
-			err = pOps.Delete(cPod.Name, &metav1.DeleteOptions{
-				OrphanDependents: &orphanDependents,
+				PropagationPolicy: &deletePropagationBackground,
 			})
 			if err != nil {
 				return false, err
@@ -428,16 +391,11 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 	}
 
 	// Delete the Controller Services at last
-	cSvcs, err := k.getControllerServices(vsm, sOps)
-	if err != nil {
-		return false, err
-	}
-
 	if cSvcs != nil && len(cSvcs.Items) > 0 {
 		hasAtleastOneVSMObj = true
 		for _, cSvc := range cSvcs.Items {
 			err = sOps.Delete(cSvc.Name, &metav1.DeleteOptions{
-				OrphanDependents: &orphanDependents,
+				PropagationPolicy: &deletePropagationBackground,
 			})
 			if err != nil {
 				return false, err
