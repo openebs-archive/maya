@@ -28,7 +28,6 @@ import (
 // FakeStoragePools implements StoragePoolInterface
 type FakeStoragePools struct {
 	Fake *FakeOpenebsV1alpha1
-	ns   string
 }
 
 var storagepoolsResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha1", Resource: "storagepools"}
@@ -38,8 +37,7 @@ var storagepoolsKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1
 // Get takes name of the storagePool, and returns the corresponding storagePool object, and an error if there is any.
 func (c *FakeStoragePools) Get(name string, options v1.GetOptions) (result *v1alpha1.StoragePool, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(storagepoolsResource, c.ns, name), &v1alpha1.StoragePool{})
-
+		Invokes(testing.NewRootGetAction(storagepoolsResource, name), &v1alpha1.StoragePool{})
 	if obj == nil {
 		return nil, err
 	}
@@ -49,8 +47,7 @@ func (c *FakeStoragePools) Get(name string, options v1.GetOptions) (result *v1al
 // List takes label and field selectors, and returns the list of StoragePools that match those selectors.
 func (c *FakeStoragePools) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(storagepoolsResource, storagepoolsKind, c.ns, opts), &v1alpha1.StoragePoolList{})
-
+		Invokes(testing.NewRootListAction(storagepoolsResource, storagepoolsKind, opts), &v1alpha1.StoragePoolList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -71,15 +68,13 @@ func (c *FakeStoragePools) List(opts v1.ListOptions) (result *v1alpha1.StoragePo
 // Watch returns a watch.Interface that watches the requested storagePools.
 func (c *FakeStoragePools) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(storagepoolsResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(storagepoolsResource, opts))
 }
 
 // Create takes the representation of a storagePool and creates it.  Returns the server's representation of the storagePool, and an error, if there is any.
 func (c *FakeStoragePools) Create(storagePool *v1alpha1.StoragePool) (result *v1alpha1.StoragePool, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(storagepoolsResource, c.ns, storagePool), &v1alpha1.StoragePool{})
-
+		Invokes(testing.NewRootCreateAction(storagepoolsResource, storagePool), &v1alpha1.StoragePool{})
 	if obj == nil {
 		return nil, err
 	}
@@ -89,8 +84,7 @@ func (c *FakeStoragePools) Create(storagePool *v1alpha1.StoragePool) (result *v1
 // Update takes the representation of a storagePool and updates it. Returns the server's representation of the storagePool, and an error, if there is any.
 func (c *FakeStoragePools) Update(storagePool *v1alpha1.StoragePool) (result *v1alpha1.StoragePool, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(storagepoolsResource, c.ns, storagePool), &v1alpha1.StoragePool{})
-
+		Invokes(testing.NewRootUpdateAction(storagepoolsResource, storagePool), &v1alpha1.StoragePool{})
 	if obj == nil {
 		return nil, err
 	}
@@ -100,14 +94,13 @@ func (c *FakeStoragePools) Update(storagePool *v1alpha1.StoragePool) (result *v1
 // Delete takes name of the storagePool and deletes it. Returns an error if one occurs.
 func (c *FakeStoragePools) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(storagepoolsResource, c.ns, name), &v1alpha1.StoragePool{})
-
+		Invokes(testing.NewRootDeleteAction(storagepoolsResource, name), &v1alpha1.StoragePool{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeStoragePools) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(storagepoolsResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(storagepoolsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.StoragePoolList{})
 	return err
@@ -116,8 +109,7 @@ func (c *FakeStoragePools) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched storagePool.
 func (c *FakeStoragePools) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePool, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(storagepoolsResource, c.ns, name, data, subresources...), &v1alpha1.StoragePool{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(storagepoolsResource, name, data, subresources...), &v1alpha1.StoragePool{})
 	if obj == nil {
 		return nil, err
 	}

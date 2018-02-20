@@ -25,12 +25,12 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeOpenebsV1alpha1) StoragePools(namespace string) v1alpha1.StoragePoolInterface {
-	return &FakeStoragePools{c, namespace}
+func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
+	return &FakeStoragePools{c}
 }
 
-func (c *FakeOpenebsV1alpha1) StoragePoolClaims(namespace string) v1alpha1.StoragePoolClaimInterface {
-	return &FakeStoragePoolClaims{c, namespace}
+func (c *FakeOpenebsV1alpha1) StoragePoolClaims() v1alpha1.StoragePoolClaimInterface {
+	return &FakeStoragePoolClaims{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
