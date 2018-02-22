@@ -241,15 +241,22 @@ func enforceHostPath(p *JivaK8sPolicies) error {
 		return nil
 	}
 
-	// merge from sc policy otherwise
+	// get storagepool
 	err := p.getSPPolicies()
 	if err != nil {
 		return err
 	}
 
+	// path might still be blank if the storagepool
+	// is not found in cluster
 	p.volume.HostPath = p.spSpec.Path
 
-	// merge from env variable & then from default
+	// err for specific storagepools, do not err for default storagepool
+	if len(p.volume.HostPath) == 0 && p.volume.StoragePool != v1.DefaultStoragePool {
+		return fmt.Errorf("StoragePool '%s' is not found", p.volume.StoragePool)
+	}
+
+	// merge if empty from env variable & then from default
 	hps := []string{
 		v1.HostPathENV(),
 		v1.DefaultHostPath,
@@ -262,6 +269,8 @@ func enforceHostPath(p *JivaK8sPolicies) error {
 		}
 	}
 
+	// Need to err at this place as all kinds of
+	// merge has failed
 	if len(p.volume.HostPath) == 0 {
 		return fmt.Errorf("Nil host path")
 	}

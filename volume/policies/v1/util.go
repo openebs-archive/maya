@@ -110,7 +110,7 @@ func (p *K8sPolicyOps) SPPolicies(volume *v1.Volume) (oe_api_v1alpha1.StoragePoo
 	}
 
 	if len(volume.StoragePool) == 0 {
-		return oe_api_v1alpha1.StoragePoolSpec{}, fmt.Errorf("Nil storage pool")
+		return oe_api_v1alpha1.StoragePoolSpec{}, fmt.Errorf("Nil storage pool name")
 	}
 
 	// check if orchestrator is available for operations
@@ -133,10 +133,5 @@ func (p *K8sPolicyOps) SPPolicies(volume *v1.Volume) (oe_api_v1alpha1.StoragePoo
 	//
 	// NOTE:
 	//  StoragePool name would have set previously against this volume
-	pol, err := pOrch.SPPolicies()
-	if err != nil {
-		return oe_api_v1alpha1.StoragePoolSpec{}, err
-	}
-
-	return pol, nil
+	return pOrch.SPPolicies()
 }

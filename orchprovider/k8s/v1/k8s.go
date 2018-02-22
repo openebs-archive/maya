@@ -220,12 +220,21 @@ func (k *k8sOrchestrator) SPPolicies() (oe_api_v1alpha1.StoragePoolSpec, error) 
 		return oe_api_v1alpha1.StoragePoolSpec{}, err
 	}
 
-	sp, err := spOps.Get(k.volume.StoragePool, metav1.GetOptions{})
+	// get from a list
+	// this is done to separate `not found` from an `actual error`
+	splist, err := spOps.List(metav1.ListOptions{})
 	if err != nil {
 		return oe_api_v1alpha1.StoragePoolSpec{}, err
 	}
 
-	return sp.Spec, nil
+	for _, sp := range splist.Items {
+		if sp.Name == k.volume.StoragePool {
+			return sp.Spec, nil
+		}
+	}
+
+	// the storage pool was not found, return blank specs
+	return oe_api_v1alpha1.StoragePoolSpec{}, nil
 }
 
 // PVCPolicies will fetch volume policies based on the PVC
