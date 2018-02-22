@@ -27,7 +27,7 @@ import (
 // StoragePoolsGetter has a method to return a StoragePoolInterface.
 // A group's client should implement this interface.
 type StoragePoolsGetter interface {
-	StoragePools(namespace string) StoragePoolInterface
+	StoragePools() StoragePoolInterface
 }
 
 // StoragePoolInterface has methods to work with StoragePool resources.
@@ -46,14 +46,12 @@ type StoragePoolInterface interface {
 // storagePools implements StoragePoolInterface
 type storagePools struct {
 	client rest.Interface
-	ns     string
 }
 
 // newStoragePools returns a StoragePools
-func newStoragePools(c *OpenebsV1alpha1Client, namespace string) *storagePools {
+func newStoragePools(c *OpenebsV1alpha1Client) *storagePools {
 	return &storagePools{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -61,7 +59,6 @@ func newStoragePools(c *OpenebsV1alpha1Client, namespace string) *storagePools {
 func (c *storagePools) Get(name string, options v1.GetOptions) (result *v1alpha1.StoragePool, err error) {
 	result = &v1alpha1.StoragePool{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("storagepools").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -74,7 +71,6 @@ func (c *storagePools) Get(name string, options v1.GetOptions) (result *v1alpha1
 func (c *storagePools) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolList, err error) {
 	result = &v1alpha1.StoragePoolList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("storagepools").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -86,7 +82,6 @@ func (c *storagePools) List(opts v1.ListOptions) (result *v1alpha1.StoragePoolLi
 func (c *storagePools) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("storagepools").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -96,7 +91,6 @@ func (c *storagePools) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *storagePools) Create(storagePool *v1alpha1.StoragePool) (result *v1alpha1.StoragePool, err error) {
 	result = &v1alpha1.StoragePool{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("storagepools").
 		Body(storagePool).
 		Do().
@@ -108,7 +102,6 @@ func (c *storagePools) Create(storagePool *v1alpha1.StoragePool) (result *v1alph
 func (c *storagePools) Update(storagePool *v1alpha1.StoragePool) (result *v1alpha1.StoragePool, err error) {
 	result = &v1alpha1.StoragePool{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("storagepools").
 		Name(storagePool.Name).
 		Body(storagePool).
@@ -120,7 +113,6 @@ func (c *storagePools) Update(storagePool *v1alpha1.StoragePool) (result *v1alph
 // Delete takes name of the storagePool and deletes it. Returns an error if one occurs.
 func (c *storagePools) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("storagepools").
 		Name(name).
 		Body(options).
@@ -131,7 +123,6 @@ func (c *storagePools) Delete(name string, options *v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *storagePools) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("storagepools").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -143,7 +134,6 @@ func (c *storagePools) DeleteCollection(options *v1.DeleteOptions, listOptions v
 func (c *storagePools) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.StoragePool, err error) {
 	result = &v1alpha1.StoragePool{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("storagepools").
 		SubResource(subresources...).
 		Name(name).
