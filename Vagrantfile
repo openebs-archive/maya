@@ -96,7 +96,7 @@ sudo chown -R $USER $HOME/.minikube
 sudo chgrp -R $USER $HOME/.minikube
 
 # Start minikube on this host itself
-sudo -E minikube start --vm-driver=none
+sudo -E minikube start --vm-driver=none --extra-config=apiserver.Authorization.Mode=RBAC
 
 # This loop waits until kubectl can access the api server 
 # that Minikube has created
@@ -117,7 +117,7 @@ done
 now=$(date +%Y%m%d-%H%M%S)
 kubectl get po > /tmp/mk-$now 2>&1
 
-grep "The connection to the server 127.0.0.1:8443 was refused - did you specify the right host or port?" /tmp/mk-$now && sudo -E minikube start --vm-driver=none
+grep "The connection to the server 127.0.0.1:8443 was refused - did you specify the right host or port?" /tmp/mk-$now && sudo -E minikube start --vm-driver=none --extra-config=apiserver.Authorization.Mode=RBAC
 
 # loop for the final time
 for i in {1..10}; do # timeout for 10x5=50 seconds/ < 1 minute
@@ -140,7 +140,7 @@ if [ $? -ne 0 ]; then
     echo "================================================="
     echo "Check Status  :: minikube status"
     echo "Start minikube if it's in stopped state"
-    echo "Start Command :: sudo -E minikube start --vm-driver=none"
+    echo "Start Command :: sudo -E minikube start --vm-driver=none --extra-config=apiserver.Authorization.Mode=RBAC"
     echo "================================================="
     echo ""
 fi
