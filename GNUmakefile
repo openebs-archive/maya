@@ -27,7 +27,7 @@ EXPORTER=maya-volume-exporter
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image nodebot-image sidecar-image
+all: mayactl apiserver-image exporter-image sidecar-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
