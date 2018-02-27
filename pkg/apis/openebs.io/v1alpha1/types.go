@@ -13,14 +13,17 @@ import (
 // StoragePoolClaim describes a StoragePoolClaim.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolClaimSpec `json:"spec"`
 }
 
-// StoragePoolClaimSpec is the spec for a StoragePoolClaim resource
+// StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -43,14 +46,19 @@ type StoragePoolClaimList struct {
 // StoragePool describes a StoragePool.
 type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolSpec `json:"spec"`
 }
 
 // StoragePoolSpec is the spec for a StoragePool resource
 type StoragePoolSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Nodename   string `json:"nodename"`
+	Message    string `json:"message"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -141,4 +149,51 @@ type Task struct {
 	APIVersion string `json:"apiVersion"`
 	// Kind is the kind corresponding to the task's actual content
 	Kind string `json:"kind"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorcrd
+
+// CstorCRD describes a CstorCRD.
+type CstorCrd struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
+
+	Spec CstorCrdSpec `json:"spec"`
+}
+
+// CstorCRDSpec is the spec for a StoragePoolClaimSpec resource
+type CstorCrdSpec struct {
+	Zpool Zpool `json:"zpool"`
+}
+type Zpool struct {
+	Poolname      string `json:"poolname"`
+	Provisiontype string `json:"provisiontype"` //thick,thin
+	Cachefile     string `json:"cachefile"`
+	Pooltype      string `json:"pooltype"` //mirror, striped, raid
+	DiskPath      string `json:"diskPath"`
+	Zfs           Zfs    `json:"zfs"`
+}
+type Zfs struct {
+	Volname     string `json:"volname"`
+	Blocksize   string `json:"blocksize"`
+	Compression bool   `json:"compression"`
+	Logbias     string `json:"logbias"`
+	Copies      int    `json:"copies"`
+	Sync        string `json:"sync"`
+	Readonly    bool   `json:"readonly"`
+	Size        string `json:"size"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorcrds
+
+// CstorCRDList is a list of StoragePoolClaim resources
+type CstorCrdList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CstorCrd `json:"items"`
 }

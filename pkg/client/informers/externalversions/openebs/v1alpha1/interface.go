@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// CstorCrds returns a CstorCrdInformer.
+	CstorCrds() CstorCrdInformer
 	// StoragePools returns a StoragePoolInformer.
 	StoragePools() StoragePoolInformer
 	// StoragePoolClaims returns a StoragePoolClaimInformer.
@@ -39,6 +41,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
+}
+
+// CstorCrds returns a CstorCrdInformer.
+func (v *version) CstorCrds() CstorCrdInformer {
+	return &cstorCrdInformer{factory: v.SharedInformerFactory}
 }
 
 // StoragePools returns a StoragePoolInformer.

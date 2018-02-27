@@ -24,6 +24,7 @@ import (
 
 type OpenebsV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	CstorCrdsGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
 	VolumePoliciesGetter
@@ -32,6 +33,10 @@ type OpenebsV1alpha1Interface interface {
 // OpenebsV1alpha1Client is used to interact with features provided by the openebs.io group.
 type OpenebsV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *OpenebsV1alpha1Client) CstorCrds(namespace string) CstorCrdInterface {
+	return newCstorCrds(c, namespace)
 }
 
 func (c *OpenebsV1alpha1Client) StoragePools() StoragePoolInterface {

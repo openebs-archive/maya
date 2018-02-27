@@ -25,6 +25,10 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOpenebsV1alpha1) CstorCrds(namespace string) v1alpha1.CstorCrdInterface {
+	return &FakeCstorCrds{c, namespace}
+}
+
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
 	return &FakeStoragePools{c}
 }
