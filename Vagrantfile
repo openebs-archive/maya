@@ -47,15 +47,15 @@ SCRIPT
 $minikubescript = <<SCRIPT
 #!/bin/bash
 
-#Install minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-chmod +x minikube 
-sudo mv minikube /usr/local/bin/
+#Install latest minikube
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 \
+&& chmod +x minikube \
+&& sudo mv minikube /usr/local/bin/
 
-#Install kubectl
-curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-chmod +x kubectl 
-sudo mv kubectl /usr/local/bin/
+#Install latest kubectl
+curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl \
+&& chmod +x kubectl \
+&& sudo mv kubectl /usr/local/bin/
 
 #Setup minikube
 mkdir -p $HOME/.minikube
@@ -96,54 +96,33 @@ sudo chown -R $USER $HOME/.minikube
 sudo chgrp -R $USER $HOME/.minikube
 
 # Start minikube on this host itself
-sudo -E minikube start --vm-driver=none
+sudo -E minikube start --vm-driver=none --extra-config=apiserver.Authorization.Mode=RBAC
 
-# This loop waits until kubectl can access the api server 
-# that Minikube has created
-for i in {1..20}; do # timeout for 20x3=60 seconds/1 minutes
-  kubectl get po &> /dev/null
-  if [ $? -ne 1 ]; then
-      echo ""
-      echo "============================================"
-      echo "Congrats!! minikube's apiserver is running"
-      echo "============================================"
-      echo ""
-      exit 0
-  fi
-  sleep 3
-done
+# Wait for Kubernetes to be up and ready.
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
 
-# Re-try minikube start
-now=$(date +%Y%m%d-%H%M%S)
-kubectl get po > /tmp/mk-$now 2>&1
+echo ""
+echo "================================================"
+echo "Congrats!! minikube apiserver is running"
+echo "================================================"
+echo ""
 
-grep "The connection to the server 127.0.0.1:8443 was refused - did you specify the right host or port?" /tmp/mk-$now && sudo -E minikube start --vm-driver=none
+# Download and initialize helm.
+bash ci/ubuntu-compile-nsenter.sh && sudo cp .tmp/util-linux-2.30.2/nsenter /usr/bin
+curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > get_helm.sh
+chmod 700 get_helm.sh
 
-# loop for the final time
-for i in {1..10}; do # timeout for 10x5=50 seconds/ < 1 minute
-  kubectl get po &> /dev/null
-  if [ $? -ne 1 ]; then
-      echo ""
-      echo "============================================"
-      echo "Congrats!! minikube's apiserver is running"
-      echo "============================================"
-      echo ""
-      exit 0
-  fi
-  sleep 5
-done
+bash ./get_helm.sh
+helm init
 
-# If still not running
-kubectl get po &> /dev/null
-if [ $? -ne 0 ]; then
-    echo ""
-    echo "================================================="
-    echo "Check Status  :: minikube status"
-    echo "Start minikube if it's in stopped state"
-    echo "Start Command :: sudo -E minikube start --vm-driver=none"
-    echo "================================================="
-    echo ""
-fi
+echo ""
+echo "================================================"
+echo "Congrats!! helm is installed"
+echo "================================================"
+echo ""
+
+# run the ci
+bash ci/travis-ci.sh
 
 SCRIPT
 
