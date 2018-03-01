@@ -5,13 +5,13 @@ kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceac
 kubectl -n kube-system patch deploy/tiller-deploy -p '{"spec": {"template": {"spec": {"serviceAccountName": "tiller"}}}}' 
 
 #Replace this with logic to wait till the pods are running
-sleep 30
+sleep 60
 kubectl get pods --all-namespaces 
-kubectl get sa
+kubectl get sa --all-namespaces
 
 helm repo add openebs-charts https://openebs.github.io/charts/
 helm repo update
-helm install openebs-charts/openebs --set apiserver.tag="ci",jiva.replicas="1",rbacEnable="false"
+helm install openebs-charts/openebs --name ci --set apiserver.tag="ci",jiva.replicas="1"
 
 #Replace this with logic to wait till the pods are running
 sleep 30
