@@ -5,6 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/openebs/maya/pkg/tracing"
+	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otlog "github.com/opentracing/opentracing-go/log"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
 	policies_v1 "github.com/openebs/maya/volume/policies/v1"
@@ -64,7 +69,18 @@ func (s *HTTPServer) volumeSpecificGetRequest(resp http.ResponseWriter, req *htt
 // VolumeList is the http handler that lists Volumes
 func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
+	tracer, closer := tracing.Init("list volumes handler (m-apiserver)")
+	defer closer.Close()
 	glog.Infof("Processing Volume list request")
+	spanCtx, _ := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+	span := tracer.StartSpan("list volume", ext.RPCServerOption(spanCtx))
+	defer span.Finish()
+
+	listVolume := span.BaggageItem("operation")
+
+	if listVolume == "" {
+		listVolume = "list-volume"
+	}
 
 	// Get the namespace if provided
 	ns := ""
@@ -83,43 +99,79 @@ func (s *HTTPServer) volumeList(resp http.ResponseWriter, req *http.Request) (in
 	// Create a Volume
 	vol := &v1.Volume{}
 	vol.Namespace = ns
-
 	// Pass through the policy enforcement logic
 	policy, err := policies_v1.VolumeGenericPolicy()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "pass policy enforcement"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	vol, err = policy.Enforce(vol)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "enforce policies to volume"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	// Get the persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "get provisioner instance"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
+	span.LogFields(
+		otlog.String("event", "get provisioner instance"),
+		otlog.Object("provisioner", pvp),
+	)
 
 	// Set the volume provisioner profile to provisioner
 	_, err = pvp.Profile(vol)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "set provisioner profile"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	lister, ok, err := pvp.Lister()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "list provisioner"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	if !ok {
+		span.LogFields(
+			otlog.String("event", "list provisioner"),
+			otlog.Error(fmt.Errorf("Volume list is not supported by '%s:%s'", pvp.Label(), pvp.Name())),
+		)
 		return nil, fmt.Errorf("Volume list is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	l, err := lister.List()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "list provisioner"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
+	span.LogFields(
+		otlog.String("event", "list volume"),
+		otlog.Bool("success", true),
+		otlog.Object("value", l),
+	)
 
 	glog.Infof("Processed Volume list request successfully")
 
@@ -192,8 +244,19 @@ func (s *HTTPServer) volumeRead(resp http.ResponseWriter, req *http.Request, vol
 
 // VolumeDelete is the http handler that fetches the details of a Volume
 func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
+	tracer, closer := tracing.Init("delete volume handler (mapiserver)")
+	defer closer.Close()
 
 	glog.Infof("Processing Volume delete request")
+	spanCtx, _ := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+	span := tracer.StartSpan("delete volume", ext.RPCServerOption(spanCtx))
+	defer span.Finish()
+
+	deleteVolume := span.BaggageItem("operation")
+
+	if deleteVolume == "" {
+		deleteVolume = "delete-volume"
+	}
 
 	if volName == "" {
 		return nil, CodedError(400, fmt.Sprintf("Volume name is missing"))
@@ -213,44 +276,87 @@ func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, v
 	// Pass through the policy enforcement logic
 	policy, err := policies_v1.VolumeGenericPolicy()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "pass policy enforcement"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	vol, err = policy.Enforce(vol)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "enforce policies to volume"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	// Get the persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "get provisioner instance"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
+
+	span.LogFields(
+		otlog.String("event", "get provisioner instance"),
+		otlog.Object("provisioner", pvp),
+	)
 
 	// Set the volume provisioner profile
 	_, err = pvp.Profile(vol)
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "set provisioner profile"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	remover, ok, err := pvp.Remover()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "instantiate volume remover"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	if !ok {
+		span.LogFields(
+			otlog.String("event", "instantiate volume remover"),
+			otlog.Error(err),
+		)
 		return nil, fmt.Errorf("Volume delete is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
 	removed, err := remover.Remove()
 	if err != nil {
+		span.LogFields(
+			otlog.String("event", "remove volume"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	// If there was not any err & still no removal
 	if !removed {
+		span.LogFields(
+			otlog.String("event", "get volume details"),
+			otlog.Object("vol-details", removed),
+			otlog.Error(fmt.Errorf("Volume '%s' not found", volName)),
+		)
 		return nil, CodedError(404, fmt.Sprintf("Volume '%s' not found", volName))
 	}
+	span.LogFields(
+		otlog.String("event", "delete volume"),
+		otlog.Bool("success", true),
+		otlog.Object("volume-name", volName),
+	)
 
 	glog.Infof("Processed Volume delete request successfully for '" + volName + "'")
 
@@ -260,45 +366,95 @@ func (s *HTTPServer) volumeDelete(resp http.ResponseWriter, req *http.Request, v
 // VolumeAdd is the http handler that fetches the details of a Volume
 func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
+	tracer, closer := tracing.Init("create volume handler (m-apiserver)")
+	defer closer.Close()
 	glog.Infof("Processing Volume add request")
+
+	spanCtx, _ := tracer.Extract(opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(req.Header))
+	span := tracer.StartSpan("create", ext.RPCServerOption(spanCtx))
+	defer span.Finish()
+
+	createVolume := span.BaggageItem("operation")
+
+	if createVolume == "" {
+		createVolume = "create-volume"
+	}
 
 	vol := &v1.Volume{}
 
 	// The yaml/json spec is decoded to vol struct
 	if err := decodeBody(req, vol); err != nil {
+
+		span.LogFields(
+			otlog.String("event", "decode-request"),
+			otlog.Error(err),
+		)
 		return nil, CodedError(400, err.Error())
 	}
 
 	// Name is expected to be available even in the minimalist specs
 	if vol.Name == "" {
+		span.LogFields(
+			otlog.String("event", "get volume name"),
+			otlog.Error(CodedError(400, fmt.Sprintf("Volume name missing in '%v'", vol))),
+		)
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", vol))
 	}
 
 	// Pass through the policy enforcement logic
 	policy, err := policies_v1.VolumeAddPolicy()
 	if err != nil {
+
+		span.LogFields(
+			otlog.String("event", "pass policy enforcement"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	vol, err = policy.Enforce(vol)
 	if err != nil {
+
+		span.LogFields(
+			otlog.String("event", "enforce policies to volume"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	// Get persistent volume provisioner instance
 	pvp, err := provisioners.GetVolumeProvisioner(nil)
 	if err != nil {
+
+		span.LogFields(
+			otlog.String("event", "get provisioner instance"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
+	span.LogFields(
+		otlog.String("event", "get provisioner instance"),
+		otlog.Object("provisioner", pvp),
+	)
 
 	// Set the volume provisioner profile to provisioner
 	_, err = pvp.Profile(vol)
 	if err != nil {
+
+		span.LogFields(
+			otlog.String("event", "set provisioner profile"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
 
 	adder, ok := pvp.Adder()
 	if !ok {
+
+		span.LogFields(
+			otlog.String("event", "add volume to provisioner"),
+			otlog.Error(fmt.Errorf("Volume add operation is not supported by '%s:%s'", pvp.Label(), pvp.Name())),
+		)
 		return nil, fmt.Errorf("Volume add operation is not supported by '%s:%s'", pvp.Label(), pvp.Name())
 	}
 
@@ -306,8 +462,18 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 	// vol should not be passed again !!
 	details, err := adder.Add(vol)
 	if err != nil {
+
+		span.LogFields(
+			otlog.String("event", "get volume details"),
+			otlog.Error(err),
+		)
 		return nil, err
 	}
+	span.LogFields(
+		otlog.String("event", "get volume details"),
+		otlog.Bool("success", true),
+		otlog.Object("vol-details", details),
+	)
 
 	glog.Infof("Processed Volume add request successfully for '" + vol.Name + "'")
 
