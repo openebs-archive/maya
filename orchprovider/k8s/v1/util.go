@@ -138,9 +138,8 @@ func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
 	p.Items = append(p.Items, markers...)
 }
 
-// AddMultiples will add a new volume marker
-//  Will error out if a duplicate value is added for a given key, unless the key is multi-valued.
-//  For multi-valued, a new item is appended with all the values added so far.
+// AddMultiples will add a new volume marker or append to an existing
+// volume marker
 func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
 	if len(key) == 0 {
 		return fmt.Errorf("Marker key is missing")
@@ -151,31 +150,44 @@ func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error 
 		value = string(v1.NilVV)
 	}
 
-	a := VolumeMarker{
-		Key:        key,
-		IsMultiple: isMul,
-	}
-
-	if isMul {
-		a.Values = append(a.Values, value)
-	} else {
-		a.Value = value
-	}
-
-	for _, b := range p.Items {
-		if b.Key == key {
+	var m VolumeMarker
+	var isPresent bool
+	var mIndex int
+	for i, a := range p.Items {
+		if a.Key == key {
 			if !isMul {
 				return fmt.Errorf("Duplicate marker key '%s'", key)
-			} else {
-				a.Values = append(b.Values, value)
 			}
+			m = a
+			isPresent = true
+			mIndex = i
+			break
 		}
 	}
 
-	items := append(p.Items, a)
-	//TODO : After adding the new mutli-valued item, the older item with the same key
-	// should be removed.
-	p.Items = items
+	if !isPresent {
+		// create a new marker if not available earlier
+		m = VolumeMarker{
+			Key:        key,
+			IsMultiple: isMul,
+		}
+	}
+
+	// Append or Set the value based on isMul flag
+	if isMul {
+		m.Values = append(m.Values, value)
+	} else {
+		m.Value = value
+	}
+
+	if isPresent {
+		// update as this is available already
+		p.Items[mIndex] = m
+	} else {
+		// add
+		items := append(p.Items, m)
+		p.Items = items
+	}
 
 	return nil
 }
