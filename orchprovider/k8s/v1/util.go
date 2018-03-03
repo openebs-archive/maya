@@ -138,8 +138,9 @@ func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
 	p.Items = append(p.Items, markers...)
 }
 
-// AddMultiples will add a new volume marker or append to an existing
-// volume marker
+// AddMultiples will add a new volume marker
+//  Will error out if a duplicate value is added for a given key, unless the key is multi-valued.
+//  For multi-valued, a new item is appended with all the values added so far.
 func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error {
 	if len(key) == 0 {
 		return fmt.Errorf("Marker key is missing")
@@ -148,12 +149,6 @@ func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error 
 	if len(value) == 0 {
 		// nil value(s) are possible
 		value = string(v1.NilVV)
-	}
-
-	for _, a := range p.Items {
-		if a.Key == key && !isMul {
-			return fmt.Errorf("Duplicate marker key '%s'", key)
-		}
 	}
 
 	a := VolumeMarker{
@@ -167,7 +162,19 @@ func (p *VolumeMarkerBuilder) AddMultiples(key, value string, isMul bool) error 
 		a.Value = value
 	}
 
+	for _, b := range p.Items {
+		if b.Key == key {
+			if !isMul {
+				return fmt.Errorf("Duplicate marker key '%s'", key)
+			} else {
+				a.Values = append(b.Values, value)
+			}
+		}
+	}
+
 	items := append(p.Items, a)
+	//TODO : After adding the new mutli-valued item, the older item with the same key
+	// should be removed.
 	p.Items = items
 
 	return nil
@@ -187,6 +194,21 @@ func (p *VolumeMarkerBuilder) IsPresent(key string) bool {
 	}
 
 	return false
+}
+
+// GetVolumeMarkerValues returns the comma-seperated values if the entry is found
+//  or a blank value if the entry is not found
+func (p *VolumeMarkerBuilder) GetVolumeMarkerValues(key string) string {
+	for _, a := range p.Items {
+		if a.Key == key {
+			if a.IsMultiple {
+				return a.GetValuesAsCommaSep()
+			} else {
+				return a.Value
+			}
+		}
+	}
+	return ""
 }
 
 // AddControllerIPs will add controller IP address(es) as a volume marker

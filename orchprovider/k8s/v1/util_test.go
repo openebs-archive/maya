@@ -137,3 +137,15 @@ func TestK8sUtilServices(t *testing.T) {
 		}
 	}
 }
+
+// TestAddMultiples tests the working of AddMultiples() method.
+//
+func TestAddMultiples(t *testing.T) {
+	p := NewVolumeMarkerBuilder()
+	p.AddMultiples("test", "val1", true)
+	p.AddMultiples("test", "val2", true)
+
+	if p.GetVolumeMarkerValues("test") == "val1,val2" {
+		t.Errorf("Error storing multi-valued keys")
+	}
+}
