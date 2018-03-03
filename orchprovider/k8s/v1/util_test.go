@@ -143,9 +143,18 @@ func TestK8sUtilServices(t *testing.T) {
 func TestAddMultiples(t *testing.T) {
 	p := NewVolumeMarkerBuilder()
 	p.AddMultiples("test", "val1", true)
-	p.AddMultiples("test", "val2", true)
+	error := p.AddMultiples("test", "val2", true)
 
-	if p.GetVolumeMarkerValues("test") == "val1,val2" {
+	if error != nil || p.GetVolumeMarkerValues("test") != "val1,val2" {
 		t.Errorf("Error storing multi-valued keys")
 	}
+
+	
+	p.AddMultiples("singlekey", "val", false)
+	error = p.AddMultiples("singlekey", "val", false)
+
+	if error == nil || p.GetVolumeMarkerValues("singlekey") != "val" {
+		t.Errorf("Error storing signle-valued keys")
+	}
+
 }
