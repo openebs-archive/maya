@@ -1,5 +1,6 @@
 /*
 Copyright 2017 The OpenEBS Authors
+Copyright 2016 The Kubernetes Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +15,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// instead of pkg/maya/yaml.go
 package template
 
 import (
@@ -25,14 +25,37 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// toYAML takes a string in a YAML format and converts to a YAML document.
-func toYAML(s string) (string, error) {
-	y, err := yaml.Marshal(s)
+// ToYaml takes a map, marshals it to yaml, and returns a string. It will
+// always return a string, even on marshal error (empty string).
+//
+// This is designed to be called from a template.
+// NOTE: Borrowed from a similar function in helm
+// https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
+func toYaml(v map[string]interface{}) string {
+	data, err := yaml.Marshal(v)
 	if err != nil {
-		return "", err
+		// Swallow errors inside of a template.
+		return ""
 	}
+	return string(data)
+}
 
-	return string(y), nil
+// fromYaml converts a YAML document into a map[string]interface{}.
+//
+// This is not a general-purpose YAML parser, and will not parse all valid
+// YAML documents. Additionally, because its intended use is within templates
+// it tolerates errors. It will insert the returned error message string into
+// m["Error"] in the returned map.
+//
+// NOTE: Borrowed from helm
+// https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
+func fromYaml(str string) map[string]interface{} {
+	m := map[string]interface{}{}
+
+	if err := yaml.Unmarshal([]byte(str), &m); err != nil {
+		m["Error"] = err.Error()
+	}
+	return m
 }
 
 // funcMap returns the set of template functions supported in this library
@@ -41,7 +64,8 @@ func funcMap() template.FuncMap {
 
 	// Add some extra templating functions
 	extra := template.FuncMap{
-		"toYaml": toYAML,
+		"toYaml": toYaml,
+		"fromYaml": fromYaml,
 	}
 
 	for k, v := range extra {
