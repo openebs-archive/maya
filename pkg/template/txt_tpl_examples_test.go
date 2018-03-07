@@ -66,6 +66,63 @@ var AllValues = map[string]interface{}{
 			"nfs": "cstor again",
 		},
 	},
+	"Yml": map[string]interface{}{
+		"msg":   "Hello-OpenEBS",
+		"block": "cstor",
+		"nfs":   "cstor again",
+		"cool":  true,
+	},
+  // The entire value is expressed as a multi-line string
+	"YmlStr": `
+msg: Hello-OpenEBS
+block: cstor
+nfs: "cstor again"
+cool: true
+`,
+  // The entire value is expressed as a multi-line string
+  "YmlStr2": "msg: Hello-OpenEBS\n  block: cstor\n  nfs: \"cstor again\"\n  cool: true",
+	"Ymls": map[string]interface{}{
+		"Yml1": map[string]interface{}{
+			"msg":   "Hello-OpenEBS",
+			"block": "cstor",
+			"nfs":   "cstor again",
+			"cool":  true,
+		},
+		"Yml2": map[string]interface{}{
+			"msg":   "Hello-OpenEBS2",
+			"block": "jiva",
+			"nfs":   "no way",
+			"cool":  true,
+		},
+	},
+  "YmlsArrStr": map[string]interface{}{
+    // The entire array of values is expressed as a multi-line string
+	  "YmlStr": `
+- msg: Hello-OpenEBS
+  block: cstor
+  nfs: "cstor again"
+  cool: true
+- msg: Hello-OpenEBS2
+  block: jiva
+  nfs: "no way"
+  cool: true
+`,
+  },
+  "FromYaml": map[string]interface{}{
+    // The entire array of values is expressed as a multi-line string
+	  "YmlStr": `
+      k1: 
+        msg: Hello-OpenEBS
+        block: cstor
+        nfs: "cstor again"
+        cool: true
+      k2:
+        msg: Hello-OpenEBS2
+        block: jiva
+        nfs: "no way"
+        cool: true
+`,
+  },
 }
 
 // YmlExpected is the expected template
@@ -82,8 +139,114 @@ data:
   cool: true
 `
 
-// IfEqYmlTpl is a yaml template with
-// placeholders
+// YmlExpected2 is the expected template
+// after the values are placed in the template's placeholders
+var YmlExpected2 = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: OpenEBS-configmap
+data:
+  - msg: Hello-OpenEBS
+    block: cstor
+    nfs: "cstor again"
+    cool: true
+  - msg: Hello-OpenEBS2
+    block: jiva
+    nfs: "no way"
+    cool: true
+`
+
+// RangeTpl shows the usage of `range` template func w.r.t to a map
+var RangeTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{- range $k, $v := .Yml }}
+  {{ $k }}: {{ $v }}
+  {{- end }}
+`
+
+// RangeTpl2 shows the usage of `range` template func w.r.t to a map of maps
+var RangeTpl2 = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{- range $k, $v := .Ymls }}
+  -
+  {{- range $kk, $vv := $v }}
+    {{ $kk }}: {{ $vv }}
+  {{- end }}
+  {{- end }}
+`
+
+// ToYamlTpl shows the usage of `toYaml` template func
+var ToYamlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+{{ toYaml .Yml | indent 2 }}
+`
+
+// FromYamlTpl shows the usage of `fromYaml` template func
+var FromYamlTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{- $isYaml := .FromYaml.YmlStr | default "false" -}}
+  {{- $yamlVal := fromYaml .FromYaml.YmlStr -}}
+  {{- if ne $isYaml "false" }}
+  {{- range $k, $v := $yamlVal }}
+  - 
+  {{- range $kk, $vv := $v }}
+    {{ $kk }}: {{ $vv }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+`
+
+// YmlStrTpl shows the usage of Yaml in String
+var YmlStrTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{- .YmlStr | indent 2 -}}
+`
+
+// YmlStrTpl shows the usage of Yaml in String
+var YmlStrTpl2 = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{ .YmlStr2 }}
+`
+
+// YmlArrStrTpl shows the usage of Yaml array in String
+var YmlArrStrTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+  {{- $isArrPresent := .YmlsArrStr.YmlStr | default "false" | quote -}}
+  {{- if ne $isArrPresent "false" -}}
+  {{ .YmlsArrStr.YmlStr | indent 2 }}
+  {{- end -}}
+`
+
+// IfEqYmlTpl shows the usage of `if` template func
 var IfEqYmlTpl = `
 apiVersion: v1
 kind: ConfigMap
@@ -96,8 +259,7 @@ data:
   {{ if eq .Storage.favorite.block "cstor" }}cool: true{{ end }}
 `
 
-// TrimLeftWhitespaceYmlTpl is a yaml template with
-// placeholders
+// TrimLeftWhitespaceYmlTpl shows the usage of `if` template func along with trim
 var TrimLeftWhitespaceYmlTpl = `
 apiVersion: v1
 kind: ConfigMap
@@ -112,8 +274,7 @@ data:
   {{- end }}
 `
 
-// WithBlockYmlTpl is a yaml template with
-// scoped placeholders
+// WithBlockYmlTpl shows the usage of `with` template func
 var WithBlockYmlTpl = `
 apiVersion: v1
 kind: ConfigMap
@@ -128,8 +289,7 @@ data:
   cool: true
 `
 
-// SetDefaultsYmlTpl is a yaml template using
-// default template function
+// SetDefaultsYmlTpl shows the usage of `default` template function
 var SetDefaultsYmlTpl = `
 apiVersion: v1
 kind: ConfigMap
@@ -147,6 +307,41 @@ data:
 func TestAll(t *testing.T) {
 
 	tests := map[string]txtTplMock{
+		"Test 'yaml arr in str' condition": {
+			values:      AllValues,
+			ymlTpl:      YmlArrStrTpl,
+			ymlExpected: YmlExpected2,
+		},
+		"Test 'yaml in str' condition": {
+			values:      AllValues,
+			ymlTpl:      YmlStrTpl,
+			ymlExpected: YmlExpected,
+		},
+		"Test 'yaml in str2' condition": {
+			values:      AllValues,
+			ymlTpl:      YmlStrTpl2,
+			ymlExpected: YmlExpected,
+		},
+		"Test 'range2' condition": {
+			values:      AllValues,
+			ymlTpl:      RangeTpl2,
+			ymlExpected: YmlExpected2,
+		},
+		"Test 'range' condition": {
+			values:      AllValues,
+			ymlTpl:      RangeTpl,
+			ymlExpected: YmlExpected,
+		},
+		"Test 'fromYaml' condition": {
+			values:      AllValues,
+			ymlTpl:      FromYamlTpl,
+			ymlExpected: YmlExpected2,
+		},
+		"Test 'toYaml' condition": {
+			values:      AllValues,
+			ymlTpl:      ToYamlTpl,
+			ymlExpected: YmlExpected,
+		},
 		"Test 'if eq' condition": {
 			values:      AllValues,
 			ymlTpl:      IfEqYmlTpl,
@@ -207,7 +402,8 @@ func TestAll(t *testing.T) {
 			// Now Compare
 			ok := reflect.DeepEqual(objExpected, objActual)
 			if !ok {
-				t.Fatalf("\nExpected: '%#v' \nActual: '%#v'", objExpected, objActual)
+				//t.Fatalf("\nExpected: '%#v' \nActual: '%#v'", objExpected, objActual)
+				t.Fatalf("\n\nExpected: '%s' \n\nActual: '%s'", mock.ymlExpected, buf.Bytes())
 			}
 		}) // end of run
 	}
