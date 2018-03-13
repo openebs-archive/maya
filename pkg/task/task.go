@@ -63,6 +63,16 @@ type MetaTask struct {
 	// ObjectName is the name of the target that is
 	// created or operated by the task
 	ObjectName string `json:"objectName"`
+	// TaskResultQueries will consist of the queries to be run against the
+	// task's result
+	TaskResultQueries []TaskResultQuery `json:"queries"`
+	// QueryType flags the kind of query to be used to extract data from the
+	// task's result
+	//
+	// NOTE:
+	//  This may be taken up when such a need arises. e.g. flag to use either
+	// Json Path, or Go Template, etc
+	//QueryType QueryType `json:"queryType"`
 }
 
 // NewMetaTask provides a new instance of MetaTask from a
@@ -98,6 +108,10 @@ func (m *MetaTask) isStoragePool() bool {
 
 func (m *MetaTask) isConfigMap() bool {
 	return m.Kind == string(m_k8s_client.ConfigMapKK)
+}
+
+func (m *MetaTask) isPVC() bool {
+	return m.Kind == string(m_k8s_client.PersistentVolumeClaimKK)
 }
 
 func (m *MetaTask) isGet() bool {
@@ -153,6 +167,10 @@ func (m *MetaTask) isCoreV1Service() bool {
 	return m.isCoreV1() && m.isService()
 }
 
+func (m *MetaTask) isCoreV1PVC() bool {
+	return m.isCoreV1() && m.isPVC()
+}
+
 func (m *MetaTask) isOEV1alpha1SP() bool {
 	return m.isOEV1alpha1() && m.isStoragePool()
 }
@@ -177,7 +195,15 @@ func (m *MetaTask) isGetOEV1alpha1SP() bool {
 	return m.isOEV1alpha1SP() && m.isGet()
 }
 
-// Task represents a task
+// isGetCoreV1PVC flags if task is a GET action of
+// PVC Kind
+func (m *MetaTask) isGetCoreV1PVC() bool {
+	return m.isCoreV1PVC() && m.isGet()
+}
+
+// Task represents a task that is capable of being
+// executed in a workflow. A task execution typically
+// means invoking an API call e.g. a K8s API call.
 type Task struct {
 	// MetaTask provides the information about this
 	// task
@@ -232,6 +258,8 @@ func (m *Task) execute() (result map[string]interface{}, err error) {
 		result, err = m.deleteCoreV1Service()
 	} else if m.isGetOEV1alpha1SP() {
 		result, err = m.getOEV1alpha1SP()
+	} else if m.isGetCoreV1PVC() {
+		result, err = m.getCoreV1PVC()
 	} else {
 		return nil, fmt.Errorf("Not supported operation: '%#v'", m.MetaTask)
 	}
@@ -364,4 +392,16 @@ func (m *Task) getOEV1alpha1SP() (map[string]interface{}, error) {
 	}
 
 	return r, nil
+}
+
+// getCoreV1PVC will execute GET PVC API call. It will use the info
+// available in the Task to execute this operation.
+func (m *Task) getCoreV1PVC() (map[string]interface{}, error) {
+	pvc, err := m.k8sClient.GetCoreV1PVCAsRaw(m.ObjectName)
+	if err != nil {
+		return nil, err
+	}
+
+	s := NewTaskResultStorage(m.MetaTask.Identity, m.TaskResultQueries, pvc)
+	return s.store()
 }

@@ -64,7 +64,7 @@ func funcMap() template.FuncMap {
 
 	// Add some extra templating functions
 	extra := template.FuncMap{
-		"toYaml": toYaml,
+		"toYaml":   toYaml,
 		"fromYaml": fromYaml,
 	}
 
@@ -102,8 +102,7 @@ func AsTemplatedBytes(context string, yml string, values map[string]interface{})
 	return buf.Bytes(), nil
 }
 
-// AsMapOfObjects returns a map of any objects
-// based on the provided yaml & values
+// AsMapOfObjects returns a map of objects based on the provided yaml & values
 func AsMapOfObjects(yml string, values map[string]interface{}) (map[string]interface{}, error) {
 	// templated & then unmarshall-ed version of this yaml
 	b, err := AsTemplatedBytes("MapOfObjects", yml, values)
@@ -113,6 +112,24 @@ func AsMapOfObjects(yml string, values map[string]interface{}) (map[string]inter
 
 	// Any given YAML can be unmarshalled into a map of arbitrary objects
 	var obj map[string]interface{}
+	err = yaml.Unmarshal(b, &obj)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj, nil
+}
+
+// AsMapOfStrings returns a map of strings based on the provided yaml & values
+func AsMapOfStrings(context string, yml string, values map[string]interface{}) (map[string]string, error) {
+	// templated & then unmarshall-ed version of this yaml
+	b, err := AsTemplatedBytes(context+"MapOfStrings", yml, values)
+	if err != nil {
+		return nil, err
+	}
+
+	// Any given YAML can be unmarshalled into a map of strings
+	var obj map[string]string
 	err = yaml.Unmarshal(b, &obj)
 	if err != nil {
 		return nil, err

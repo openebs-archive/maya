@@ -89,6 +89,11 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Volume.capacity }}
 	CapacityVTP VolumeTLPProperty = "capacity"
+	// PersistentVolumeClaimVTP is the PVC of the volume
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .Volume.pvc }}
+	PersistentVolumeClaimVTP VolumeTLPProperty = "pvc"
 )
 
 // PolicyTLPProperty is the name of the property that is found

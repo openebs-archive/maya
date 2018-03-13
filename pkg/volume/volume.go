@@ -51,6 +51,9 @@ func NewVolumeOperation(volume *v1.Volume) (*VolumeOperation, error) {
 		return nil, fmt.Errorf("Missing run namespace: Can not instantiate 'Volume Operation'")
 	}
 
+	// TODO
+	// Check if k8sclient needs a namespace as its being used to
+	// query StorageClass
 	kc, err := m_k8s_client.NewK8sClient(runNS)
 	if err != nil {
 		return nil, err
@@ -64,6 +67,9 @@ func NewVolumeOperation(volume *v1.Volume) (*VolumeOperation, error) {
 
 // Create provisions an OpenEBS volume
 func (v *VolumeOperation) Create() (*v1.Volume, error) {
+	if v.k8sClient == nil {
+		return nil, fmt.Errorf("Nil k8s client: Can not create volume")
+	}
 
 	capacity := v.volume.Capacity
 	if len(capacity) == 0 {
@@ -74,8 +80,10 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 		return nil, fmt.Errorf("Missing volume capacity: Can not create volume")
 	}
 
-	if v.k8sClient == nil {
-		return nil, fmt.Errorf("Nil k8s client: Can not create volume")
+  // get the run namespace
+	ns := v.volume.Namespace
+	if len(ns) == 0 {
+		ns = v.volume.Labels.K8sNamespace
 	}
 
 	// get the storage class name corresponding to this volume
@@ -84,7 +92,7 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 		return nil, fmt.Errorf("Missing k8s storage class: Can not create volume")
 	}
 
-	// fetch the storage class specs from K8s cluster
+	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -100,7 +108,7 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 		return nil, fmt.Errorf("Missing volume policy: Can not create volume")
 	}
 
-	// fetch the volume policy specs from K8s cluster
+	// fetch the volume policy specifications
 	vp, err := v.k8sClient.GetOEV1alpha1VP(vpName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -108,15 +116,16 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 
 	// provision the volume by using the volume policy engine
 	engine, err := PolicyEngine(vp, map[string]string{
-		string(v1alpha1.OwnerVTP):        v.volume.Name,
-		string(v1alpha1.CapacityVTP):     capacity,
-		string(v1alpha1.RunNamespaceVTP): v.volume.Labels.K8sNamespace,
+		string(v1alpha1.OwnerVTP):                 v.volume.Name,
+		string(v1alpha1.CapacityVTP):              capacity,
+		string(v1alpha1.RunNamespaceVTP):          ns,
+		string(v1alpha1.PersistentVolumeClaimVTP): v.volume.Labels.K8sPersistentVolumeClaim,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	// create the volume via policy engine
+	// create the volume
 	anns, err := engine.execute()
 	if err != nil {
 		return nil, err
