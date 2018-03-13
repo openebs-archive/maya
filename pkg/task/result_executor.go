@@ -18,7 +18,6 @@ package task
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -41,24 +40,22 @@ type TaskResultQuery struct {
 	//
 	// NOTE:
 	//  Path can be optional i.e. commonly used Paths can be set as constants &
-	// be retrieved from the query's Alias property. Refer KeyToGoPathMap.
+	// be retrieved from the query's Alias property. Refer keyToJsonPathMap.
 	Path string `json:"path"`
 }
 
 // KeyToJsonPathMap holds often used jsonpath(s) against some predefined keys
-//
-// NOTE: The keys needs to be in smallcase
 var keyToJsonPathMap = map[string]string{
 	// All the K8s objects have name at this path
 	string(v1alpha1.ObjectNameTRTP): "{.metadata.name}",
-	// StoragePool CR's path
-	"poolpath": "{.spec.path}",
-	// K8s Service's cluster ip path
-	"clusterip": "{.spec.clusterIP}",
+	// StoragePool (i.e. a Custom Resource) path
+	"poolPath": "{.spec.path}",
+	// K8s Service's cluster IP path
+	"clusterIP": "{.spec.clusterIP}",
 }
 
 func jsonPathFromKey(key string) (jsonpath string) {
-	return keyToJsonPathMap[strings.ToLower(key)]
+	return keyToJsonPathMap[key]
 }
 
 // taskResultStorage is a post task run executor. In other words, this executor
