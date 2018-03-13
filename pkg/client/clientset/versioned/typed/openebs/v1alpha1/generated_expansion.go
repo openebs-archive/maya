@@ -15,7 +15,9 @@ limitations under the License.
 */
 package v1alpha1
 
-type CstorCrdExpansion interface{}
+type CstorPoolExpansion interface{}
+
+type CstorReplicaExpansion interface{}
 
 type StoragePoolExpansion interface{}
 

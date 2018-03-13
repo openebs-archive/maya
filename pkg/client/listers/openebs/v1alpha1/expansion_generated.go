@@ -18,13 +18,13 @@ limitations under the License.
 
 package v1alpha1
 
-// CstorCrdListerExpansion allows custom methods to be added to
-// CstorCrdLister.
-type CstorCrdListerExpansion interface{}
+// CstorPoolListerExpansion allows custom methods to be added to
+// CstorPoolLister.
+type CstorPoolListerExpansion interface{}
 
-// CstorCrdNamespaceListerExpansion allows custom methods to be added to
-// CstorCrdNamespaceLister.
-type CstorCrdNamespaceListerExpansion interface{}
+// CstorReplicaListerExpansion allows custom methods to be added to
+// CstorReplicaLister.
+type CstorReplicaListerExpansion interface{}
 
 // StoragePoolListerExpansion allows custom methods to be added to
 // StoragePoolLister.

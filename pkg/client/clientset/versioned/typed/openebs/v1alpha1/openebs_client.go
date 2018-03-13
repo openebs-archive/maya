@@ -24,7 +24,8 @@ import (
 
 type OpenebsV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	CstorCrdsGetter
+	CstorPoolsGetter
+	CstorReplicasGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
 	VolumePoliciesGetter
@@ -35,8 +36,12 @@ type OpenebsV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *OpenebsV1alpha1Client) CstorCrds(namespace string) CstorCrdInterface {
-	return newCstorCrds(c, namespace)
+func (c *OpenebsV1alpha1Client) CstorPools() CstorPoolInterface {
+	return newCstorPools(c)
+}
+
+func (c *OpenebsV1alpha1Client) CstorReplicas() CstorReplicaInterface {
+	return newCstorReplicas(c)
 }
 
 func (c *OpenebsV1alpha1Client) StoragePools() StoragePoolInterface {

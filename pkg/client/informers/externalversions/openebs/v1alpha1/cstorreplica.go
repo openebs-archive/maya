@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// CstorCrdInformer provides access to a shared informer and lister for
-// CstorCrds.
-type CstorCrdInformer interface {
+// CstorReplicaInformer provides access to a shared informer and lister for
+// CstorReplicas.
+type CstorReplicaInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.CstorCrdLister
+	Lister() v1alpha1.CstorReplicaLister
 }
 
-type cstorCrdInformer struct {
+type cstorReplicaInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewCstorCrdInformer constructs a new informer for CstorCrd type.
+// NewCstorReplicaInformer constructs a new informer for CstorReplica type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCstorCrdInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCstorReplicaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().CstorCrds(namespace).List(options)
+				return client.OpenebsV1alpha1().CstorReplicas().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().CstorCrds(namespace).Watch(options)
+				return client.OpenebsV1alpha1().CstorReplicas().Watch(options)
 			},
 		},
-		&openebs_io_v1alpha1.CstorCrd{},
+		&openebs_io_v1alpha1.CstorReplica{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultCstorCrdInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewCstorCrdInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultCstorReplicaInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewCstorReplicaInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *cstorCrdInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebs_io_v1alpha1.CstorCrd{}, defaultCstorCrdInformer)
+func (f *cstorReplicaInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebs_io_v1alpha1.CstorReplica{}, defaultCstorReplicaInformer)
 }
 
-func (f *cstorCrdInformer) Lister() v1alpha1.CstorCrdLister {
-	return v1alpha1.NewCstorCrdLister(f.Informer().GetIndexer())
+func (f *cstorReplicaInformer) Lister() v1alpha1.CstorReplicaLister {
+	return v1alpha1.NewCstorReplicaLister(f.Informer().GetIndexer())
 }

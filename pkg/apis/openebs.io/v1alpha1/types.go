@@ -154,46 +154,66 @@ type Task struct {
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorcrd
+// +genclient:nonNamespaced
+// +resource:path=cstorpool
 
-// CstorCRD describes a CstorCRD.
-type CstorCrd struct {
+// CstorPool describes a CstorPool.
+type CstorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata",omitempty`
 
-	Spec CstorCrdSpec `json:"spec"`
+	Spec CstorPoolSpec `json:"spec"`
 }
 
-// CstorCRDSpec is the spec for a StoragePoolClaimSpec resource
-type CstorCrdSpec struct {
-	Zpool Zpool `json:"zpool"`
+// CstorPoolSpec is the spec for a CstorPoolSpec resource
+type CstorPoolSpec struct {
+	Disks    []string      `json:"disks"`
+	Poolspec CstorPoolAttr `json:"poolspec"`
 }
-type Zpool struct {
-	Poolname      string `json:"poolname"`
-	Provisiontype string `json:"provisiontype"` //thick,thin
-	Cachefile     string `json:"cachefile"`
-	Pooltype      string `json:"pooltype"` //mirror, striped, raid
-	DiskPath      string `json:"diskPath"`
-	Zfs           Zfs    `json:"zfs"`
-}
-type Zfs struct {
-	Volname     string `json:"volname"`
-	Blocksize   string `json:"blocksize"`
-	Compression bool   `json:"compression"`
-	Logbias     string `json:"logbias"`
-	Copies      int    `json:"copies"`
-	Sync        string `json:"sync"`
-	Readonly    bool   `json:"readonly"`
-	Size        string `json:"size"`
+type CstorPoolAttr struct {
+	Poolname  string `json:"poolname"`
+	Cachefile string `json:"cachefile"`
+	Pooltype  string `json:"pooltype"` //mirror, striped
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorcrds
+// +resource:path=cstorpools
 
-// CstorCRDList is a list of StoragePoolClaim resources
-type CstorCrdList struct {
+// CstorPoolList is a list of CstorPoolList resources
+type CstorPoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []CstorCrd `json:"items"`
+	Items []CstorPool `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorreplica
+// +genclient:nonNamespaced
+
+// CstorReplica describes a CstorReplica.
+type CstorReplica struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
+
+	Spec CstorReplicaSpec `json:"spec"`
+}
+
+// CstorReplicaSpec is the spec for a CstorReplicaSpec resource
+type CstorReplicaSpec struct {
+	Volname  string `json:"volname"`
+	Capacity string `json:"capacity"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorreplicas
+
+// CstorReplicaList is a list of CstorReplica resources
+type CstorReplicaList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CstorReplica `json:"items"`
 }
