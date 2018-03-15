@@ -25,6 +25,14 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOpenebsV1alpha1) CstorPools() v1alpha1.CstorPoolInterface {
+	return &FakeCstorPools{c}
+}
+
+func (c *FakeOpenebsV1alpha1) CstorReplicas() v1alpha1.CstorReplicaInterface {
+	return &FakeCstorReplicas{c}
+}
+
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
 	return &FakeStoragePools{c}
 }
