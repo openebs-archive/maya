@@ -33,6 +33,7 @@ import (
 	typed_ext_v1beta "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -50,6 +51,8 @@ const (
 	CRDKK K8sKind = "CustomResourceDefinition"
 	// StroagePoolCRKK is a K8s CR of kind StoragePool
 	StroagePoolCRKK K8sKind = "StoragePool"
+	// PersistentVolumeClaimKK is a K8s PersistentVolumeClaim Kind
+	PersistentVolumeClaimKK K8sKind = "PersistentVolumeClaim"
 )
 
 //
@@ -208,9 +211,9 @@ func (k *K8sClient) GetConfigMap(name string, opts mach_apis_meta_v1.GetOptions)
 	return cops.Get(name, opts)
 }
 
-// pvcOps is a utility function that provides a instance capable of
+// coreV1PVCOps is a utility function that provides a instance capable of
 // executing various K8s PVC related operations.
-func (k *K8sClient) pvcOps() typed_core_v1.PersistentVolumeClaimInterface {
+func (k *K8sClient) coreV1PVCOps() typed_core_v1.PersistentVolumeClaimInterface {
 	return k.cs.CoreV1().PersistentVolumeClaims(k.ns)
 }
 
@@ -220,8 +223,20 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 		return k.PVC, nil
 	}
 
-	pops := k.pvcOps()
+	pops := k.coreV1PVCOps()
 	return pops.Get(name, opts)
+}
+
+// GetCoreV1PVCAsRaw fetches the K8s PVC with the provided name
+func (k *K8sClient) GetCoreV1PVCAsRaw(name string) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("persistentvolumeclaims").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+
+	return
 }
 
 // podOps is a utility function that provides a instance capable of

@@ -113,6 +113,8 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 		// actual task execution
 		result, err := t.execute()
 		if err != nil {
+			// log with verbose details
+			glog.Errorf("Failed to execute task: Task: '%#v'", t)
 			return err
 		}
 

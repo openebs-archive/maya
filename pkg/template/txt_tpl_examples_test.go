@@ -72,15 +72,15 @@ var AllValues = map[string]interface{}{
 		"nfs":   "cstor again",
 		"cool":  true,
 	},
-  // The entire value is expressed as a multi-line string
+	// The entire value is expressed as a multi-line string
 	"YmlStr": `
 msg: Hello-OpenEBS
 block: cstor
 nfs: "cstor again"
 cool: true
 `,
-  // The entire value is expressed as a multi-line string
-  "YmlStr2": "msg: Hello-OpenEBS\n  block: cstor\n  nfs: \"cstor again\"\n  cool: true",
+	// The entire value is expressed as a multi-line string
+	"YmlStr2": "msg: Hello-OpenEBS\n  block: cstor\n  nfs: \"cstor again\"\n  cool: true",
 	"Ymls": map[string]interface{}{
 		"Yml1": map[string]interface{}{
 			"msg":   "Hello-OpenEBS",
@@ -95,9 +95,9 @@ cool: true
 			"cool":  true,
 		},
 	},
-  "YmlsArrStr": map[string]interface{}{
-    // The entire array of values is expressed as a multi-line string
-	  "YmlStr": `
+	"YmlsArrStr": map[string]interface{}{
+		// The entire array of values is expressed as a multi-line string
+		"YmlStr": `
 - msg: Hello-OpenEBS
   block: cstor
   nfs: "cstor again"
@@ -107,10 +107,10 @@ cool: true
   nfs: "no way"
   cool: true
 `,
-  },
-  "FromYaml": map[string]interface{}{
-    // The entire array of values is expressed as a multi-line string
-	  "YmlStr": `
+	},
+	"FromYaml": map[string]interface{}{
+		// The entire array of values is expressed as a multi-line string
+		"YmlStr": `
       k1: 
         msg: Hello-OpenEBS
         block: cstor
@@ -122,7 +122,7 @@ cool: true
         nfs: "no way"
         cool: true
 `,
-  },
+	},
 }
 
 // YmlExpected is the expected template
