@@ -31,13 +31,13 @@ XC_ARCHS=(${XC_ARCH// / })
 XC_OSS=(${XC_OS// / })
 
 # Delete the old contents
-echo "==> Removing old bin/cstor-repl-ctrl contents..."
-rm -rf bin/cstor-repl-ctrl/*
-mkdir -p bin/cstor-repl-ctrl/
+echo "==> Removing old bin/cstor-pool-mgmt contents..."
+rm -rf bin/cstor-pool-mgmt/*
+mkdir -p bin/cstor-pool-mgmt/
 
 if [ -z "${CTLNAME}" ];
 then
-    CTLNAME="cstor-repl-ctrl"
+    CTLNAME="cstor-pool-mgmt"
 fi
 
 # If its dev mode, only build for ourself
@@ -53,7 +53,7 @@ for GOOS in "${XC_OSS[@]}"
 do
     for GOARCH in "${XC_ARCHS[@]}"
     do
-        output_name="bin/cstor-repl-ctrl/"$GOOS"_"$GOARCH"/"$CTLNAME
+        output_name="bin/cstor-pool-mgmt/"$GOOS"_"$GOARCH"/"$CTLNAME
 
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
@@ -64,7 +64,7 @@ do
             -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
             -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
             -o $output_name\
-           ./cmd/cstor-repl-ctrl
+           ./cmd/cstor-pool-mgmt
     done
 done
 
@@ -85,16 +85,16 @@ IFS=$OLDIFS
 mkdir -p ${MAIN_GOPATH}/bin/
 
 # Copy our OS/Arch to ${MAIN_GOPATH}/bin/ directory
-DEV_PLATFORM="./bin/cstor-repl-ctrl/$(go env GOOS)_$(go env GOARCH)"
+DEV_PLATFORM="./bin/cstor-pool-mgmt/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/cstor-repl-ctrl/
+    cp ${F} bin/cstor-pool-mgmt/
     cp ${F} ${MAIN_GOPATH}/bin/
 done
 
 if [[ "x${M_AGENT_DEV}" == "x" ]]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
-    for PLATFORM in $(find ./bin/cstor-repl-ctrl -mindepth 1 -maxdepth 1 -type d); do
+    for PLATFORM in $(find ./bin/cstor-pool-mgmt -mindepth 1 -maxdepth 1 -type d); do
         OSARCH=$(basename ${PLATFORM})
         echo "--> ${OSARCH}"
 
@@ -107,4 +107,4 @@ fi
 # Done!
 echo
 echo "==> Results:"
-ls -hl bin/cstor-repl-ctrl/
+ls -hl bin/cstor-pool-mgmt/

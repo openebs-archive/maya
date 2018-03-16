@@ -1,17 +1,17 @@
 #
-# This Dockerfile builds a recent maya nodebot using the latest binary from
-# cstor-repl-ctrl  releases.
+# This Dockerfile builds a recent cstor-pool-mgmt using the latest binary from
+# cstor-pool-mgmt  releases.
 #
 
 FROM openebs/cstor-base:ci
 
-COPY cstor-repl-ctrl /usr/local/bin/
+COPY cstor-pool-mgmt /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ARG BUILD_DATE
-LABEL org.label-schema.name="cstor-repl-ctrl"
+LABEL org.label-schema.name="cstor-pool-mgmt"
 LABEL org.label-schema.description="OpenEBS"
 LABEL org.label-schema.url="http://www.openebs.io/"
 LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
