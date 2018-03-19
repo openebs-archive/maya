@@ -3,6 +3,8 @@
 # cstor-pool-mgmt  releases.
 #
 
+#openebs/cstor-base is the image that contains cstor related binaries and
+#libraries - zpool, zfs, zrepl
 FROM openebs/cstor-base:ci
 
 COPY cstor-pool-mgmt /usr/local/bin/
