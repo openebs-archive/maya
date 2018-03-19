@@ -41,7 +41,7 @@ then
 fi
 
 # If its dev mode, only build for ourself
-if [[ "${M_AGENT_DEV}" ]]; then
+if [[ "${POOL_MGMT_DEV}" ]]; then
     XC_OS=$(go env GOOS)
     XC_ARCH=$(go env GOARCH)
 fi
@@ -91,7 +91,7 @@ for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
     cp ${F} ${MAIN_GOPATH}/bin/
 done
 
-if [[ "x${M_AGENT_DEV}" == "x" ]]; then
+if [[ "x${POOL_MGMT_DEV}" == "x" ]]; then
     # Zip and copy to the dist dir
     echo "==> Packaging..."
     for PLATFORM in $(find ./bin/cstor-pool-mgmt -mindepth 1 -maxdepth 1 -type d); do
