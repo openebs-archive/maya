@@ -15,6 +15,10 @@ limitations under the License.
 */
 package v1alpha1
 
+type CStorPoolExpansion interface{}
+
+type CStorVolumeReplicaExpansion interface{}
+
 type StoragePoolExpansion interface{}
 
 type StoragePoolClaimExpansion interface{}

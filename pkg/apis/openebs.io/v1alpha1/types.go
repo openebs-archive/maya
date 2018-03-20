@@ -13,14 +13,17 @@ import (
 // StoragePoolClaim describes a StoragePoolClaim.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolClaimSpec `json:"spec"`
 }
 
-// StoragePoolClaimSpec is the spec for a StoragePoolClaim resource
+// StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -43,14 +46,19 @@ type StoragePoolClaimList struct {
 // StoragePool describes a StoragePool.
 type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
 
 	Spec StoragePoolSpec `json:"spec"`
 }
 
 // StoragePoolSpec is the spec for a StoragePool resource
 type StoragePoolSpec struct {
-	Path string `json:"path"`
+	Name       string `json:"name"`
+	Format     string `json:"format"`
+	Mountpoint string `json:"mountpoint"`
+	Nodename   string `json:"nodename"`
+	Message    string `json:"message"`
+	Path       string `json:"path"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -141,4 +149,78 @@ type Task struct {
 	APIVersion string `json:"apiVersion"`
 	// Kind is the kind corresponding to the task's actual content
 	Kind string `json:"kind"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+// +resource:path=cstorpool
+
+// CStorPool describes a cstor pool resource created as custom resource.
+type CStorPool struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
+
+	Spec CStorPoolSpec `json:"spec"`
+}
+
+// CStorPoolSpec is the spec listing fields for a CStorPool resource.
+type CStorPoolSpec struct {
+	Disks    DiskAttr      `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+// DiskAttr stores the disk related attributes.
+type DiskAttr struct {
+	DiskList []string `json:"diskList"`
+}
+
+// CStorPoolAttr is to describe zpool related attributes.
+type CStorPoolAttr struct {
+	PoolName  string `json:"poolName"`
+	Cachefile string `json:"cachefile"`
+	PoolType  string `json:"poolType"` //mirror, striped
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorpools
+
+// CStorPoolList is a list of CStorPoolList resources
+type CStorPoolList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorPool `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolumereplica
+// +genclient:nonNamespaced
+
+// CStorVolumeReplica describes a cstor pool resource created as custom resource
+type CStorVolumeReplica struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata",omitempty`
+	Spec              CStorVolumeReplicaSpec `json:"spec"`
+}
+
+// CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
+type CStorVolumeReplicaSpec struct {
+	CstorControllerIP string `json:"cstorControllerIP"`
+	VolName           string `json:"volName"`
+	Capacity          string `json:"capacity"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolumereplicas
+
+// CStorVolumeReplicaList is a list of CStorVolumeReplica resources
+type CStorVolumeReplicaList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorVolumeReplica `json:"items"`
 }
