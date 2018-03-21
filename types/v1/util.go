@@ -924,15 +924,25 @@ func MakeOrDefJivaReplicaArgs(vol *Volume, clusterIP string) []string {
 
 	//storSize := GetPVPStorageSize(profileMap)
 	storSize := vol.Capacity
+	cloneIP := vol.CloneIP
 
 	repArgs := make([]string, len(JivaReplicaArgs))
+	if cloneIP == "" {
+		for i, rArg := range JivaReplicaArgs {
+			rArg = strings.Replace(rArg, string(JivaClusterIPHolder), clusterIP, 1)
+			rArg = strings.Replace(rArg, string(JivaStorageSizeHolder), storSize, 1)
+			repArgs[i] = rArg
+		}
+	} else {
+		repArgs := make([]string, len(JivaCloneReplicaArgs))
+		for i, rArg := range JivaCloneReplicaArgs {
+			rArg = strings.Replace(rArg, string(JivaClusterIPHolder), clusterIP, 1)
+			rArg = strings.Replace(rArg, string(JivaStorageSizeHolder), storSize, 1)
+			rArg = strings.Replace(rArg, string(JivaCloneIPHolder), cloneIP, 1)
+			repArgs[i] = rArg
 
-	for i, rArg := range JivaReplicaArgs {
-		rArg = strings.Replace(rArg, string(JivaClusterIPHolder), clusterIP, 1)
-		rArg = strings.Replace(rArg, string(JivaStorageSizeHolder), storSize, 1)
-		repArgs[i] = rArg
+		}
 	}
-
 	return repArgs
 }
 

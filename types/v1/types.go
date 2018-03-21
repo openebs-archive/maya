@@ -53,6 +53,9 @@ type Volume struct {
 	//  - `true` indicates monitoring is required & should use the defaults
 	Monitor string `json:"monitor,omitempty" protobuf:"bytes,1,opt,name=monitor"`
 
+	// CloneIP is the sync controller IP which will be used to sync and rebuild
+	// the clone replica
+	CloneIP string `json:"cloneIP,omitempty" protobuf:"bytes,1,opt,name=cloneIP"`
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
