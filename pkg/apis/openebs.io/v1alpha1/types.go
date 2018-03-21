@@ -179,7 +179,7 @@ type DiskAttr struct {
 // CStorPoolAttr is to describe zpool related attributes.
 type CStorPoolAttr struct {
 	PoolName  string `json:"poolName"`
-	Cachefile string `json:"cachefile"`
+	CacheFile string `json:"cacheFile"`
 	PoolType  string `json:"poolType"` //mirror, striped
 }
 
