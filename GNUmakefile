@@ -20,13 +20,13 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
-AGENT=maya-agent
+POOL_MGMT=cstor-pool-mgmt
 EXPORTER=maya-volume-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image maya-agent
+all: mayactl apiserver-image exporter-image pool-mgmt-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -109,22 +109,21 @@ maya-image:
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
 
-# Use this to build only the maya-agent.
-maya-agent:
+#Use this to build cstor-pool-mgmt
+cstor-pool-mgmt:
 	@echo "----------------------------"
-	@echo "--> maya-agent              "
+	@echo "--> cstor-pool-mgmt           "            
 	@echo "----------------------------"
-	@CTLNAME=${AGENT} sh -c "'$(PWD)/buildscripts/agent/build.sh'"
+	@CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/cstor-pool-mgmt/build.sh'"
 
-# m-agent image. This is going to be decoupled soon.
-agent-image: maya-agent
+pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
-	@echo "--> m-agent image         "
+	@echo "--> cstor-pool-mgmt image         "
 	@echo "----------------------------"
-	@cp bin/agent/${AGENT} buildscripts/agent/
-	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/agent/${AGENT}
-	@sh buildscripts/agent/push
+	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
+	@sh buildscripts/cstor-pool-mgmt/push
 
 # Use this to build only the maya-volume-exporter.
 exporter:
@@ -163,4 +162,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver image apiserver-image maya-image golint
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image maya-image golint
