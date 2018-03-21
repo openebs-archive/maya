@@ -18,6 +18,14 @@ limitations under the License.
 
 package v1alpha1
 
+// CStorPoolListerExpansion allows custom methods to be added to
+// CStorPoolLister.
+type CStorPoolListerExpansion interface{}
+
+// CStorVolumeReplicaListerExpansion allows custom methods to be added to
+// CStorVolumeReplicaLister.
+type CStorVolumeReplicaListerExpansion interface{}
+
 // StoragePoolListerExpansion allows custom methods to be added to
 // StoragePoolLister.
 type StoragePoolListerExpansion interface{}
