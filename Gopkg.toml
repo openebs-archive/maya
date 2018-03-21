@@ -19,7 +19,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-required = ["k8s.io/code-generator/cmd/client-gen"]
+required = ["k8s.io/code-generator/cmd/client-gen","github.com/golang/groupcache"]
 
 ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com/emicklei/go-restful/swagger","k8s.io/client-go/pkg/api/v1"]
 
