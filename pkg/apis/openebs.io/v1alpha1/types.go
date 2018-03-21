@@ -13,7 +13,7 @@ import (
 // StoragePoolClaim describes a StoragePoolClaim.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata",omitempty`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec StoragePoolClaimSpec `json:"spec"`
 }
@@ -46,7 +46,7 @@ type StoragePoolClaimList struct {
 // StoragePool describes a StoragePool.
 type StoragePool struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata",omitempty`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec StoragePoolSpec `json:"spec"`
 }
@@ -160,7 +160,7 @@ type Task struct {
 // CStorPool describes a cstor pool resource created as custom resource.
 type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata",omitempty`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec CStorPoolSpec `json:"spec"`
 }
@@ -203,13 +203,13 @@ type CStorPoolList struct {
 // CStorVolumeReplica describes a cstor pool resource created as custom resource
 type CStorVolumeReplica struct {
 	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata",omitempty`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 	Spec              CStorVolumeReplicaSpec `json:"spec"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	CstorControllerIP string `json:"cstorControllerIP"`
+	CStorControllerIP string `json:"cStorControllerIP"`
 	VolName           string `json:"volName"`
 	Capacity          string `json:"capacity"`
 }
