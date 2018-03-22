@@ -19,6 +19,7 @@ package command
 import (
 	goflag "flag"
 
+	controller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller"
 	"github.com/spf13/cobra"
 )
 

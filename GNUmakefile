@@ -47,6 +47,7 @@ clean:
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}
+	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
