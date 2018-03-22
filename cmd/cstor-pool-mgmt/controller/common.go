@@ -23,9 +23,9 @@ const (
 	// to sync due to a resource of the same name already existing.
 	ErrResourceExists = "ErrResourceExists"
 
-	// MessageResourceExists is the message used for Events when a resource
+	// MessageResourceExists is the message used for Events which
 	// fails to sync due to a resource already existing
-	MessageResourceExists = "Resource %q already exists and is not managed by resource"
+	MessageResourceExists = "Resource %q already exists and cannot be handled"
 	// MessageResourceSynced is the message used for an Event fired when a resource
 	// is synced successfully
 	MessageResourceSynced = "Resource synced successfully"

@@ -32,8 +32,8 @@ import (
 	"github.com/openebs/maya/pkg/signals"
 )
 
-// CrdOperations instantiates CRD controllers and watches them.
-func CrdOperations(kuberconfig string) {
+// StartControllers instantiates CRD controllers and watches them.
+func StartControllers(kuberconfig string) {
 	masterURL := ""
 	// Set up signals to handle the first shutdown signal gracefully.
 	stopCh := signals.SetupSignalHandler()

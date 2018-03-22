@@ -19,7 +19,6 @@ package command
 import (
 	goflag "flag"
 
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/crdops"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +36,7 @@ func NewCmdStart() *cobra.Command {
 		Long: ` CStorPool and CStorVolumeReplica crds will be watched for added, updated, deleted
 		events `,
 		Run: func(cmd *cobra.Command, args []string) {
-			crdops.CrdOperations(options.kubeconfig)
+			controller.StartControllers(options.kubeconfig)
 		},
 	}
 

@@ -21,12 +21,13 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
+AGENT=maya-agent
 EXPORTER=maya-volume-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image
+all: mayactl apiserver-image exporter-image maya-agent pool-mgmt-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -125,6 +126,23 @@ pool-mgmt-image: cstor-pool-mgmt
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 	@sh buildscripts/cstor-pool-mgmt/push
 
+# Use this to build only the maya-agent.
+maya-agent:
+	@echo "----------------------------"
+	@echo "--> maya-agent              "
+	@echo "----------------------------"
+	@CTLNAME=${AGENT} sh -c "'$(PWD)/buildscripts/agent/build.sh'"
+
+# m-agent image. This is going to be decoupled soon.
+agent-image: maya-agent
+	@echo "----------------------------"
+	@echo "--> m-agent image         "
+	@echo "----------------------------"
+	@cp bin/agent/${AGENT} buildscripts/agent/
+	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/agent/${AGENT}
+	@sh buildscripts/agent/push
+
 # Use this to build only the maya-volume-exporter.
 exporter:
 	@echo "----------------------------"
@@ -162,4 +180,4 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image maya-image golint
+.PHONY: all bin cov integ test vet maya-agent test-nodep apiserver image apiserver-image maya-image golint
