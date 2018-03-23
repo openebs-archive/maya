@@ -38,7 +38,7 @@ const (
 // Query represents a templating interface which provides Execute
 // method that is implemented by specific templating implementations
 type Query interface {
-	Execute() (string, error)
+	Query() (string, error)
 }
 
 type JsonQuery struct {

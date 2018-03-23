@@ -34,6 +34,6 @@ type StoragePoolListerExpansion interface{}
 // StoragePoolClaimLister.
 type StoragePoolClaimListerExpansion interface{}
 
-// VolumePolicyListerExpansion allows custom methods to be added to
-// VolumePolicyLister.
-type VolumePolicyListerExpansion interface{}
+// VolumeParameterGroupListerExpansion allows custom methods to be added to
+// VolumeParameterGroupLister.
+type VolumeParameterGroupListerExpansion interface{}

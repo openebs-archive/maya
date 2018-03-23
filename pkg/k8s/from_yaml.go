@@ -21,26 +21,32 @@ import (
 	"fmt"
 	"github.com/ghodss/yaml"
 
+	"github.com/openebs/maya/pkg/template"
+	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
-// Deployment provides utility methods over K8s
-// Deployment object
-type Deployment struct {
+// DeploymentYml provides utility methods to generate K8s Deployment objects
+type DeploymentYml struct {
 	// YmlInBytes represents a K8s Deployment in
 	// yaml format
 	YmlInBytes []byte
 }
 
-func NewDeployment(b []byte) *Deployment {
-	return &Deployment{
-		YmlInBytes: b,
+func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
 	}
+
+	return &DeploymentYml{
+		YmlInBytes: b,
+	}, nil
 }
 
 // AsExtnV1B1Deployment returns a extensions/v1beta1 Deployment instance
-func (m *Deployment) AsExtnV1B1Deployment() (*api_extn_v1beta1.Deployment, error) {
+func (m *DeploymentYml) AsExtnV1B1Deployment() (*api_extn_v1beta1.Deployment, error) {
 	if m.YmlInBytes == nil {
 		return nil, fmt.Errorf("Missing yaml")
 	}
@@ -55,21 +61,42 @@ func (m *Deployment) AsExtnV1B1Deployment() (*api_extn_v1beta1.Deployment, error
 	return deploy, nil
 }
 
-// Service provides utility methods over K8s Service
-type Service struct {
+// AsAppsV1B1Deployment returns a apps/v1 Deployment instance
+func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into k8s Deployment object
+	deploy := &api_apps_v1beta1.Deployment{}
+	err := yaml.Unmarshal(m.YmlInBytes, deploy)
+	if err != nil {
+		return nil, err
+	}
+
+	return deploy, nil
+}
+
+// Service provides utility methods to generate K8s Service objects
+type ServiceYml struct {
 	// YmlInBytes represents a K8s Service in
 	// yaml format
 	YmlInBytes []byte
 }
 
-func NewService(b []byte) *Service {
-	return &Service{
-		YmlInBytes: b,
+func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
 	}
+
+	return &ServiceYml{
+		YmlInBytes: b,
+	}, nil
 }
 
 // AsCoreV1Service returns a v1 Service instance
-func (m *Service) AsCoreV1Service() (*api_core_v1.Service, error) {
+func (m *ServiceYml) AsCoreV1Service() (*api_core_v1.Service, error) {
 	if m.YmlInBytes == nil {
 		return nil, fmt.Errorf("Missing yaml")
 	}
