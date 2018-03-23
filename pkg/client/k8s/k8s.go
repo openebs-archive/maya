@@ -23,14 +23,18 @@ import (
 
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	api_oe_old "github.com/openebs/maya/types/v1"
+	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	api_storage_v1 "k8s.io/api/storage/v1"
+
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
+	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	typed_ext_v1beta "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	typed_ext_v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 
 	"k8s.io/client-go/kubernetes/scheme"
@@ -41,6 +45,8 @@ import (
 type K8sKind string
 
 const (
+	// PodKK is a K8s Pod Kind
+	PodKK K8sKind = "Pod"
 	// DeploymentKK is a K8s Deployment Kind
 	DeploymentKK K8sKind = "Deployment"
 	// ConfigMapKK is a K8s ConfigMap Kind
@@ -60,6 +66,8 @@ type K8sAPIVersion string
 
 const (
 	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
+
+	AppsV1B1KA K8sAPIVersion = "apps/v1beta1"
 
 	CoreV1KA K8sAPIVersion = "v1"
 
@@ -111,10 +119,10 @@ type K8sClient struct {
 	// during unit testing
 	StoragePool *api_oe_v1alpha1.StoragePool
 
-	// VolumePolicy refers to a K8s VolumePolicy CRD object
+	// VolumeParameterGroup refers to a K8s VolumeParameterGroup CRD object
 	// NOTE: This property is useful to mock
 	// during unit testing
-	VolumePolicy *api_oe_v1alpha1.VolumePolicy
+	VolumeParameterGroup *api_oe_v1alpha1.VolumeParameterGroup
 
 	// various cert related to connecting to K8s API
 	caCert     string
@@ -179,16 +187,16 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 }
 
 // oeV1alpha1VPOps is a utility function that provides a instance capable of
-// executing various OpenEBS VolumePolicy related operations
-func (k *K8sClient) oeV1alpha1VPOps() typed_oe_v1alpha1.VolumePolicyInterface {
-	return k.oecs.OpenebsV1alpha1().VolumePolicies()
+// executing various OpenEBS VolumeParameterGroup related operations
+func (k *K8sClient) oeV1alpha1VPOps() typed_oe_v1alpha1.VolumeParameterGroupInterface {
+	return k.oecs.OpenebsV1alpha1().VolumeParameterGroups()
 }
 
-// GetOEV1alpha1VP fetches the OpenEBS VolumePolicy specs based on
+// GetOEV1alpha1VPG fetches the OpenEBS VolumeParameterGroup specs based on
 // the provided name
-func (k *K8sClient) GetOEV1alpha1VP(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.VolumePolicy, error) {
-	if k.VolumePolicy != nil {
-		return k.VolumePolicy, nil
+func (k *K8sClient) GetOEV1alpha1VPG(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.VolumeParameterGroup, error) {
+	if k.VolumeParameterGroup != nil {
+		return k.VolumeParameterGroup, nil
 	}
 
 	vpOps := k.oeV1alpha1VPOps()
@@ -255,6 +263,17 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
+// ListCoreV1PodAsRaw fetches a list of K8s Pods with the provided options
+func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("pods").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
 // serviceOps is a utility function that provides a instance capable of
 // executing various k8s service related operations.
 func (k *K8sClient) serviceOps() typed_core_v1.ServiceInterface {
@@ -286,20 +305,23 @@ func (k *K8sClient) CreateCoreV1Service(svc *api_core_v1.Service) (*api_core_v1.
 // CreateCoreV1Service deletes a K8s Service
 func (k *K8sClient) DeleteCoreV1Service(name string) error {
 	sops := k.coreV1ServiceOps()
-	return sops.Delete(name, &mach_apis_meta_v1.DeleteOptions{})
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return sops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
 }
 
 // TODO deprecate
 //
 // deploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
-func (k *K8sClient) deploymentOps() typed_ext_v1beta.DeploymentInterface {
+func (k *K8sClient) deploymentOps() typed_ext_v1beta1.DeploymentInterface {
 	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
 }
 
 // extnV1B1DeploymentOps is a utility function that provides a instance capable of
 // executing various k8s Deployment related operations.
-func (k *K8sClient) extnV1B1DeploymentOps() typed_ext_v1beta.DeploymentInterface {
+func (k *K8sClient) extnV1B1DeploymentOps() typed_ext_v1beta1.DeploymentInterface {
 	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
 }
 
@@ -313,16 +335,66 @@ func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions
 	return dops.Get(name, opts)
 }
 
-// GetDeployment fetches the K8s Deployment with the provided name
+// CreateExtnV1B1Deployment creates the K8s Deployment with the provided name
 func (k *K8sClient) CreateExtnV1B1Deployment(d *api_extn_v1beta1.Deployment) (*api_extn_v1beta1.Deployment, error) {
 	dops := k.extnV1B1DeploymentOps()
 	return dops.Create(d)
 }
 
-// GetDeployment fetches the K8s Deployment with the provided name
+// PatchExtnV1B1Deployment patches the K8s Deployment with the provided patches
+func (k *K8sClient) PatchExtnV1B1Deployment(name string, patchType types.PatchType, patches []byte) (*api_extn_v1beta1.Deployment, error) {
+	dops := k.extnV1B1DeploymentOps()
+	return dops.Patch(name, patchType, patches)
+}
+
+// PatchExtnV1B1Deployment patches the K8s Deployment with the provided patches
+func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
+	result, err = k.cs.ExtensionsV1beta1().RESTClient().Patch(patchType).
+		Namespace(k.ns).
+		Resource("deployments").
+		Name(name).
+		Body(patches).
+		DoRaw()
+
+	return
+}
+
+// DeleteExtnV1B1Deployment deletes the K8s Deployment with the provided name
 func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	dops := k.extnV1B1DeploymentOps()
-	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{})
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// appsV1B1DeploymentOps is a utility function that provides a instance capable of
+// executing various k8s Deployment related operations.
+func (k *K8sClient) appsV1B1DeploymentOps() typed_apps_v1beta1.DeploymentInterface {
+	return k.cs.AppsV1beta1().Deployments(k.ns)
+}
+
+// GetAppsV1B1Deployment fetches the K8s Deployment with the provided name
+func (k *K8sClient) GetAppsV1B1Deployment(name string, opts mach_apis_meta_v1.GetOptions) (*api_apps_v1beta1.Deployment, error) {
+	dops := k.appsV1B1DeploymentOps()
+	return dops.Get(name, opts)
+}
+
+// CreateAppsV1B1Deployment creates the K8s Deployment with the provided name
+func (k *K8sClient) CreateAppsV1B1Deployment(d *api_apps_v1beta1.Deployment) (*api_apps_v1beta1.Deployment, error) {
+	dops := k.appsV1B1DeploymentOps()
+	return dops.Create(d)
+}
+
+// DeleteAppsV1B1Deployment deletes the K8s Deployment with the provided name
+func (k *K8sClient) DeleteAppsV1B1Deployment(name string) error {
+	dops := k.appsV1B1DeploymentOps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
 }
 
 func getK8sConfig() (config *rest.Config, err error) {

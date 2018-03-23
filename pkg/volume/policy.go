@@ -26,8 +26,8 @@ import (
 )
 
 type policyEngine struct {
-	// policy is the openebs volume policy specs
-	policy *v1alpha1.VolumePolicy
+	// volumeParamGrp is the openebs VolumeParameterGroup specifications
+	volumeParamGrp *v1alpha1.VolumeParameterGroup
 	// values is the data in hierarchical format
 	// that is fed to each policy task
 	//
@@ -42,14 +42,14 @@ type policyEngine struct {
 }
 
 // PolicyEngine returns a new instance of policyEngine based on
-// the provided volume policy & volume property values
+// the provided VolumeParameterGroup & volume values
 //
 // NOTE:
 //  volumeVals are the properties set against Volume as top level property.
-// These volume values are set at runtime by the clients and provided to this
+// These volume values are set at **runtime** by the clients and provided to this
 // engine
-func PolicyEngine(policy *v1alpha1.VolumePolicy, volumeVals map[string]string) (*policyEngine, error) {
-	if policy == nil {
+func PolicyEngine(volumeParamGrp *v1alpha1.VolumeParameterGroup, volumeVals map[string]string) (*policyEngine, error) {
+	if volumeParamGrp == nil {
 		return nil, fmt.Errorf("Nil policy")
 	}
 
@@ -57,7 +57,7 @@ func PolicyEngine(policy *v1alpha1.VolumePolicy, volumeVals map[string]string) (
 		return nil, fmt.Errorf("Nil volume values")
 	}
 
-	f, err := task.NewK8sTaskSpecFetcher(policy.Spec.RunTasks.SearchNamespace)
+	f, err := task.NewK8sTaskSpecFetcher(volumeParamGrp.Spec.RunTasks.TemplateNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func PolicyEngine(policy *v1alpha1.VolumePolicy, volumeVals map[string]string) (
 	}
 
 	return &policyEngine{
-		policy: policy,
+		volumeParamGrp: volumeParamGrp,
 		values: map[string]interface{}{
 			string(v1alpha1.VolumeTLP): volumeVals,
 		},
@@ -95,7 +95,7 @@ func PolicyEngine(policy *v1alpha1.VolumePolicy, volumeVals map[string]string) (
 func (p *policyEngine) addPolicyValuesToPolicyTLP() error {
 	allPoliciesValues := map[string]interface{}{}
 
-	for _, p := range p.policy.Spec.Policies {
+	for _, p := range p.volumeParamGrp.Spec.Policies {
 		p.Name = strings.TrimSpace(p.Name)
 		if len(p.Name) == 0 {
 			return fmt.Errorf("Missing name in policy '%#v'", p)
@@ -105,6 +105,7 @@ func (p *policyEngine) addPolicyValuesToPolicyTLP() error {
 			p.Name: map[string]string{
 				string(v1alpha1.EnabledPTP): p.Enabled,
 				string(v1alpha1.ValuePTP):   p.Value,
+				// might be used in future for hierarchical/nested policy
 				//string(v1alpha1.DataPTP):    p.Data,
 			},
 		}
@@ -156,7 +157,7 @@ func (p *policyEngine) addTaskResultsToTaskResultTLP(taskResultsMap map[string]i
 // info needed to run the tasks
 func (p *policyEngine) prepareTasksForExec() error {
 	// prepare the tasks mentioned in this policy
-	for _, t := range p.policy.Spec.RunTasks.Tasks {
+	for _, t := range p.volumeParamGrp.Spec.RunTasks.Tasks {
 		// fetch the task & metatask's specifications from the task's
 		// template name
 		metaTaskYml, taskYml, err := p.taskSpecFetcher.Fetch(t.TemplateName)

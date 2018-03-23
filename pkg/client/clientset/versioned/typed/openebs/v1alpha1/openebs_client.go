@@ -28,7 +28,7 @@ type OpenebsV1alpha1Interface interface {
 	CStorVolumeReplicasGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
-	VolumePoliciesGetter
+	VolumeParameterGroupsGetter
 }
 
 // OpenebsV1alpha1Client is used to interact with features provided by the openebs.io group.
@@ -52,8 +52,8 @@ func (c *OpenebsV1alpha1Client) StoragePoolClaims() StoragePoolClaimInterface {
 	return newStoragePoolClaims(c)
 }
 
-func (c *OpenebsV1alpha1Client) VolumePolicies() VolumePolicyInterface {
-	return newVolumePolicies(c)
+func (c *OpenebsV1alpha1Client) VolumeParameterGroups() VolumeParameterGroupInterface {
+	return newVolumeParameterGroups(c)
 }
 
 // NewForConfig creates a new OpenebsV1alpha1Client for the given config.

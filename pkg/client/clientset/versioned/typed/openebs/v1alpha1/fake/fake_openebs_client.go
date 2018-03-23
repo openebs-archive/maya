@@ -41,8 +41,8 @@ func (c *FakeOpenebsV1alpha1) StoragePoolClaims() v1alpha1.StoragePoolClaimInter
 	return &FakeStoragePoolClaims{c}
 }
 
-func (c *FakeOpenebsV1alpha1) VolumePolicies() v1alpha1.VolumePolicyInterface {
-	return &FakeVolumePolicies{c}
+func (c *FakeOpenebsV1alpha1) VolumeParameterGroups() v1alpha1.VolumeParameterGroupInterface {
+	return &FakeVolumeParameterGroups{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

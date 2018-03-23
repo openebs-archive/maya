@@ -80,7 +80,7 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 		return nil, fmt.Errorf("Missing volume capacity: Can not create volume")
 	}
 
-  // get the run namespace
+	// get the run namespace
 	ns := v.volume.Namespace
 	if len(ns) == 0 {
 		ns = v.volume.Labels.K8sNamespace
@@ -102,20 +102,20 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 	// verify the provisioner & its
 	// version that are set in the storage class
 
-	// extract the volume policy name from storage class
-	vpName := sc.Parameters[string(v1.VolumePolicyVK)]
-	if len(vpName) == 0 {
-		return nil, fmt.Errorf("Missing volume policy: Can not create volume")
+	// extract the VolumeParameterGroup name from storage class
+	vpgName := sc.Parameters[string(v1.VolumeParameterGroupVK)]
+	if len(vpgName) == 0 {
+		return nil, fmt.Errorf("Missing volume parameter group name: Can not create volume")
 	}
 
-	// fetch the volume policy specifications
-	vp, err := v.k8sClient.GetOEV1alpha1VP(vpName, mach_apis_meta_v1.GetOptions{})
+	// fetch the VolumeParameterGroup specifications
+	vpg, err := v.k8sClient.GetOEV1alpha1VPG(vpgName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// provision the volume by using the volume policy engine
-	engine, err := PolicyEngine(vp, map[string]string{
+	engine, err := PolicyEngine(vpg, map[string]string{
 		string(v1alpha1.OwnerVTP):                 v.volume.Name,
 		string(v1alpha1.CapacityVTP):              capacity,
 		string(v1alpha1.RunNamespaceVTP):          ns,
@@ -136,13 +136,13 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 }
 
 func (v *VolumeOperation) Delete() {
-	// ??
+	// TODO
 }
 
 func (v *VolumeOperation) Read() {
-	// ??
+	// TODO
 }
 
 func (v *VolumeOperation) List() {
-	// ??
+	// TODO
 }

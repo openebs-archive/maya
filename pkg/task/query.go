@@ -19,8 +19,8 @@ package task
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/template"
 )
 
 // TaskResultQuery helps in extracting specific data from the task's result
@@ -42,6 +42,8 @@ type TaskResultQuery struct {
 	//  Path can be optional i.e. commonly used Paths can be set as constants &
 	// be retrieved from the query's Alias property. Refer keyToJsonPathMap.
 	Path string `json:"path"`
+	// TaskResultVerify will verify the data collected after querying
+	TaskResultVerify `json:"verify"`
 }
 
 // KeyToJsonPathMap holds often used jsonpath(s) against some predefined keys
@@ -58,33 +60,32 @@ func jsonPathFromKey(key string) (jsonpath string) {
 	return keyToJsonPathMap[key]
 }
 
-// taskResultStorage is a post task run executor. In other words, this executor
-// may be used after a task is executed resulting with some output
-// (i.e. taskresult). This stores the extracted data from a task
-// result. The storage is done into the task workflow.
-type taskResultStorage struct {
+// taskResultQueryExecutor queries data from the task result.
+type taskResultQueryExecutor struct {
 	// taskID is the identity of the task
 	taskID string
 	// result is the task's result after executing this task
 	result []byte
 	// queries holds the info about the data that needs to be
-	// extracted from the task's result. This extracted data is stored in the
-	// task's workflow.
+	// extracted from the task's result.
 	queries []TaskResultQuery
 }
 
-func NewTaskResultStorage(taskID string, queries []TaskResultQuery, result []byte) *taskResultStorage {
-	return &taskResultStorage{
+func newTaskResultQueryExecutor(taskID string, queries []TaskResultQuery, result []byte) *taskResultQueryExecutor {
+	return &taskResultQueryExecutor{
 		taskID:  taskID,
 		queries: queries,
 		result:  result,
 	}
 }
 
-// query will run jsonpath query against the task result. Each of the query
-// will be run in an iteractive manner. All the query outputs will be aggregated
-// & returned.
-func (t *taskResultStorage) query() (map[string]string, error) {
+// queryAndVerify will run jsonpath query against the task result & verify this
+// result. Each of the query will be run in an iteractive manner. All the query
+// outputs will be aggregated & returned.
+//
+// NOTE:
+//  This is currently coupled to JsonPath Query!!!
+func (t *taskResultQueryExecutor) queryAndVerify() (map[string]string, error) {
 	var outputs = map[string]string{}
 
 	for _, q := range t.queries {
@@ -108,24 +109,28 @@ func (t *taskResultStorage) query() (map[string]string, error) {
 			return nil, err
 		}
 
+		v := newTaskResultVerifyExecutor(t.taskID, q.Alias, op, q.TaskResultVerify)
+		_, err = v.verify()
+		if err != nil {
+			return nil, err
+		}
+
 		outputs[q.Alias] = op
 	}
 
 	return outputs, nil
 }
 
-// store will save the data extracted from specific properties of the task
-// result
-//
-// NOTE:
-//  This is currently coupled to JsonPath Query!!!
-func (t *taskResultStorage) store() (storage map[string]interface{}, err error) {
-	outputs, err := t.query()
+// execute will query & validate the data extracted from specific
+// properties of the task result. This query data will be returned as a map with
+// taskID as the key
+func (t *taskResultQueryExecutor) execute() (storage map[string]interface{}, err error) {
+	outputs, err := t.queryAndVerify()
 	if err != nil {
 		return
 	}
 
-	// attach task ID with the extracted data
+	// attach extracted data with the task ID
 	storage = map[string]interface{}{
 		t.taskID: outputs,
 	}

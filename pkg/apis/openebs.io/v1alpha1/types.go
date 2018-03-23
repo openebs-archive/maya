@@ -76,18 +76,18 @@ type StoragePoolList struct {
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=volumepolicy
+// +resource:path=volumeparametergroup
 
-// VolumePolicy describes a VolumePolicy
-type VolumePolicy struct {
+// VolumeParameterGroup describes a VolumeParameterGroup
+type VolumeParameterGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VolumePolicySpec `json:"spec"`
+	Spec VolumeParameterGroupSpec `json:"spec"`
 }
 
-// VolumePolicySpec is the specifications for a VolumePolicy resource
-type VolumePolicySpec struct {
+// VolumeParameterGroupSpec is the specifications for a VolumeParameterGroup resource
+type VolumeParameterGroupSpec struct {
 	// Policies are a list of policies to be applied on
 	// the tasks during policy execution
 	Policies []Policy `json:"policies"`
@@ -96,17 +96,17 @@ type VolumePolicySpec struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=volumepolicies
+// +resource:path=volumeparametergroups
 
-// VolumePolicyList is a list of VolumePolicy resources
-type VolumePolicyList struct {
+// VolumeParameterGroupList is a list of VolumeParameterGroup resources
+type VolumeParameterGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []VolumePolicy `json:"items"`
+	Items []VolumeParameterGroup `json:"items"`
 }
 
-// Policy defines various policy based properties
+// Policy is the structure that defines a volume policy
 type Policy struct {
 	// Name of the policy
 	Name string `json:"name"`
@@ -123,14 +123,14 @@ type Policy struct {
 // RunTasks contains fields to run a set of
 // tasks
 type RunTasks struct {
-	// SearchNamespace is the namespace where the tasks
+	// TemplateNamespace is the namespace where the tasks
 	// are expected to be found
 	//
 	// NOTE:
-	//  There are two types of namespaces possible in volume policy
-	// i.e. SearchNamespace & RunNamespace. A RunNamespace is the
+	//  There are two types of namespaces possible in volume parameter group
+	// i.e. TemplateNamespace & RunNamespace. A RunNamespace is the
 	// namespace where tasks are expected to be run.
-	SearchNamespace string `json:"searchNamespace"`
+	TemplateNamespace string `json:"templateNamespace"`
 	// Items is a set of order-ed tasks
 	Tasks []Task `json:"tasks"`
 }
@@ -143,7 +143,7 @@ type Task struct {
 	TemplateName string `json:"template"`
 	// Identity is the unique identity that can differentiate
 	// two tasks even when using the same template
-	Identity string `json:"identity"`
+	Identity string `json:"id"`
 	// APIVersion is the version related to the task's actual
 	// content
 	APIVersion string `json:"apiVersion"`

@@ -19,12 +19,11 @@ package task
 import (
 	"reflect"
 	"testing"
-	
+
 	"github.com/openebs/maya/pkg/template"
 )
 
-// resultExecuteMock is the mock structure to test task result
-// templating
+// resultExecuteMock is the mock structure to test task result query
 type resultExecuteMock struct {
 	// taskID is the task ID
 	taskID string
@@ -33,16 +32,32 @@ type resultExecuteMock struct {
 	// alias is the key against which the value is set,
 	// value is the one that is derived after running jsonpath
 	alias string
-	// path represents the go template function
-	path string
+	// query represents the jsonpath query
+	query string
 	// expected is the resulting value i.e. after
 	// executing path against the bytes
 	expected string
+	// resultVerifyMock will test the verification of query results
+	resultVerifyMock
+}
+
+// resultVerifyMock is the mock structure to verify the data due to the query
+// against the task result
+//
+// NOTE
+//  This is not a wrapper over unit testing assertion. However, this tests the
+// taskResultVerifyExecutor feature.
+type resultVerifyMock struct {
+	// count related verification
+	count string
+	// split is the separator to be used to split a string
+	// in an array of strings
+	split string
 }
 
 func TestResultExecute(t *testing.T) {
-  // this yml should not interfere with the json query to be done later
-  var jsonPathFeederYml = `
+	// this yml should not interfere with the json query to be done later
+	var jsonPathFeederYml = `
 data:
   meta: |
     runNamespace: {{ .Volume.runNamespace }}
@@ -121,75 +136,101 @@ data:
 			taskID:   "mypod",
 			alias:    "name",
 			bytes:    myPodJson,
-			path:     "{.metadata.name}",
+			query:    "{.metadata.name}",
 			expected: "kubectl-tester",
 		},
 		"Test 'objectName without jsonpath' in yaml": {
 			taskID:   "mypod",
 			alias:    "objectName",
 			bytes:    myPodJson,
-			path:     "",
+			query:    "",
 			expected: "kubectl-tester",
 		},
 		"Test 'image with condition' in yaml": {
 			taskID:   "mypod",
 			alias:    "containerImage",
 			bytes:    myPodJson,
-			path:     "{.spec.containers[?(@.name=='bb')].image}",
+			query:    "{.spec.containers[?(@.name=='bb')].image}",
 			expected: "k8s.gcr.io/busybox",
 		},
 		"Test 'mountpath with condition' in yaml": {
 			taskID:   "mypod",
 			alias:    "mountPath",
 			bytes:    myPodJson,
-			path:     "{.spec.containers[?(@.name=='bb')].volumeMounts[?(@.name=='test-volume')].mountPath}",
+			query:    "{.spec.containers[?(@.name=='bb')].volumeMounts[?(@.name=='test-volume')].mountPath}",
 			expected: "/mount/test-volume",
 		},
 		"Test 'annotation' in yaml": {
 			taskID:   "mypod",
 			alias:    "simple",
 			bytes:    myPodJson,
-			path:     "{.metadata.annotations.simple}",
+			query:    "{.metadata.annotations.simple}",
 			expected: "value",
 		},
 		"Test 'complex annotation' in yaml": {
 			taskID:   "mypod",
 			alias:    "affinity",
 			bytes:    myPodJson,
-			path:     `{.metadata.annotations.controller\.openebs\.io/affinity}`,
+			query:    `{.metadata.annotations.controller\.openebs\.io/affinity}`,
 			expected: "mypin",
 		},
 		"Test 'complex annotation 2' in yaml": {
 			taskID:   "mypod",
 			alias:    "affinityTopology",
 			bytes:    myPodJson,
-			path:     `{.metadata.annotations.controller\.openebs\.io/affinity-topology}`,
+			query:    `{.metadata.annotations.controller\.openebs\.io/affinity-topology}`,
 			expected: "kubernetes.io/hostname",
+		},
+		"Test 'query & verify containers' in yaml": {
+			taskID:   "mypod",
+			alias:    "containerCount",
+			bytes:    myPodJson,
+			query:    `{range .spec.containers[*]}{.name},{end}`,
+			expected: "bb,kubectl,",
+			resultVerifyMock: resultVerifyMock{
+				count: "2",
+				split: ",",
+			},
+		},
+		"Test 'query & verify containers - part 2' in yaml": {
+			taskID:   "mypod",
+			alias:    "containerCount",
+			bytes:    myPodJson,
+			query:    `{.spec.containers[*].name}`,
+			expected: "bb kubectl",
+			resultVerifyMock: resultVerifyMock{
+				count: "2",
+				split: " ",
+			},
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-		
-		  // go template is run to check if it interferes with jsonpath querying 
-		  // later. go template should not try to execute the jsonquery strings and 
-		  // pass them as-is
-		  _, err := template.AsMapOfObjects(jsonPathFeederYml, map[string]interface{}{
-		    "test": "check",
-		  })
+
+			// go template is run to check if it interferes with jsonpath querying
+			// later. go template should not try to execute the jsonquery strings and
+			// pass them as-is
+			_, err := template.AsMapOfObjects(jsonPathFeederYml, map[string]interface{}{
+				"test": "check",
+			})
 			if err != nil {
 				t.Fatalf("Expected: 'no interference error' Actual: '%s'", err)
 			}
-      
-      // Now test the jsonpath querying which is done internally in 
-      // TaskResultStorage.store() method
+
+			// Now test the jsonpath querying which is done internally in
+			// taskResultQueryExecutor.execute() method
 			q := TaskResultQuery{
 				Alias: mock.alias,
-				Path:  mock.path,
+				Path:  mock.query,
+				TaskResultVerify: TaskResultVerify{
+					Count: mock.resultVerifyMock.count,
+					Split: mock.resultVerifyMock.split,
+				},
 			}
 
-			s := NewTaskResultStorage(mock.taskID, []TaskResultQuery{q}, mock.bytes)
-			mActual, err := s.store()
+			s := newTaskResultQueryExecutor(mock.taskID, []TaskResultQuery{q}, mock.bytes)
+			mActual, err := s.execute()
 			if err != nil {
 				t.Fatalf("Expected: 'no error' Actual: '%#v'", err)
 			}
