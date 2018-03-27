@@ -3,34 +3,51 @@
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya) 
 [![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya) [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya) [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
 
-*This repository hosts the source code for OpenEBS Storage Orchestration Engine.* 
+*Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*
 
-OpenEBS Storage Orchestration (aka *Maya*, meaning *Magic*) aims at managing storage for millions of containers with deceptive simplicity. Maya is the control plane for OpenEBS Storage. Maya is developed with a focused *goal* of easing(and at times completely eliminating) the Storage Ops for containers like 
-- managing Storage Volumes (Persistent Volumes) and 
-- managing Storage Infrastructure (Physical Storage - Local/Cloud Disks/SSDs/Cache, Controllers, Networks). 
+OpenEBS Maya extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
+- Maintaining the inventory of the underlying disks on the Kubernetes Nodes 
+- Managing the allocation of Disks to CAS Storage Engines
+- Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner
+- Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods)
+- Provide adapters to CAS Volumes to interact with Kubernetes and related infrastructure components like Prometheus, Grafana etc.
 
-OpenEBS Maya allows you to manage storage across multiple zones (aka clusters/environments), that are co-located or geographically separated and can also run from within a single host. Maya can move the storage across different tiers based on the application needs (volume migration). Maya can learn and adapt to the changing environment through machine learning and data analytics. 
+*Maya* orchestration and management capabilities are delivered through a set of services and tools. Currently, these services support deploying the CAS Storage Solutions in Kubernetes Clusters. In future, these can be extended to support other Container Orchestrators.
 
-## Design
-
-Maya - *Storage Orchestration* functionality is delivered through a set of services and tools that seamlessly integrate *Maya* into your Container Orchestrators like Kubernetes, Docker Swarm, etc.,  Maya comprises of several components, which are themself delivered as container images. 
+## Maya Architecture 
+![](./docs/openebs-maya-architecture.png)
 
 **Maya** components can be broadly classified based on their deployment type as follows:
 
-- **Cluster Components** - like API Server (maya-apiserver) that helps in processing the requests for creating new OpenEBS Volumes. The API server, will use the container orchestrators to provision the OpenEBS Volume Containers. Another example is the Smart Analytics (maya-mulebot) engine that gathers the data via the machine learning probes and runs heuristics analysis to optimize storage deployment. 
+- **Control Plane Components** - These are containers that are initialized as part of enabling OpenEBS in a Kubernetes cluster.
+  * *maya-apiserver* helps with creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-apiserver* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
+  * *provisioner* is an implementation of Kubernetes Dynamic Provisioner that processes the PVC requests by interacting with maya-apiserver. 
 
-- **Node/Host Components** - are the services and tools that run on each of the nodes or docker hosts. In case of Kubernetes, these components are deployed as DaemonSets. The functionality of these components is local to the node like, Storage Agents (maya-agent) managing the disks attached to the hosts and helping in carving out the required disks to different OpenEBS Volumes. The agent can interact with Cluster components and vice-versa. 
+- **CAS Side-car Components** - These are adapter components that help with managing the CAS containers that do not inherently come up with the required endpoints. For example: 
+  - *maya-exporter* helps in providing a metrics endpoint to the CAS container.
+  - *cas-mgmt* components can be attached as side-cars for helping to store/retrieve configuration information from Kubernetes Config Store (etcd). For cStor CAS solution, cstor-pool-mgmt is one such *cas-mgmt* component. 
 
-## To start using Maya
+- **CLI** - While most of the operations can be performed via the kubectl, *Maya* also comes with *mayactl* that helps retrieve storage related information for debugging/troubleshooting storage related issues. 
 
-Please refer to our documentation at [OpenEBS Documentation](http://openebs.readthedocs.io/en/latest/)
+## Install
 
-## Start developing Maya
+Please refer to our documentation at [OpenEBS Documentation](http://docs.openebs.io/).
 
-Head over to the [developer's documentation](https://github.com/openebs/maya/blob/master/docs/developer.md) for more details.
+## Contributing
 
-### Dependency management
-Maya uses [golang dep] to manage dependencies. Usage can be found on [dep README].
+Head over to the [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Community
+
+See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/community) for reaching out to the OpenEBS Developers.
+
+## More Info
+- Design proposals for *Maya* components are located at [OpenEBS Designs directory](https://github.com/openebs/openebs/tree/master/contribute/design)
+- The issues related to *Maya* are logged under [openebs/openebs](https://github.com/openebs/openebs/issues).
+- To build Maya from the source code, see [developer's documentation].
+- Maya uses [golang dep] to manage dependencies. Usage can be found on [dep README].
+- The source code for OpenEBS Provisioner is available at [openebs/external-storage](https://github.com/openebs/external-storage).
+- *mayactl* is shipped along with the maya-apiserver container. 
 
 [Go environment]: https://golang.org/doc/install
 [developer's documentation]: https://github.com/openebs/maya/blob/master/docs/developer.md
