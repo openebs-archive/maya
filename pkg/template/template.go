@@ -25,19 +25,31 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-// ToYaml takes a map, marshals it to yaml, and returns a string. It will
-// always return a string, even on marshal error (empty string).
+// toYaml takes an yaml doc in form of a string, un-marshals it to a generic
+// go struct, and marshalls back to a yaml doc. All this redundant logic
+// to get yaml in proper indentation.
 //
-// This is designed to be called from a template.
+// NOTE:
+//  It will always return a string, even on error.
+//  This is designed to be called from a template.
+//
 // NOTE: Borrowed from a similar function in helm
-// https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
-func toYaml(v map[string]interface{}) string {
-	data, err := yaml.Marshal(v)
+//  https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
+func toYaml(yml string) string {
+	var m interface{}
+	err := yaml.Unmarshal([]byte(yml), &m)
 	if err != nil {
 		// Swallow errors inside of a template.
 		return ""
 	}
-	return string(data)
+
+	// marshall back to yaml
+	ymldoc, err := yaml.Marshal(m)
+	if err != nil {
+		// Swallow errors inside of a template.
+		return ""
+	}
+	return string(ymldoc)
 }
 
 // fromYaml converts a YAML document into a map[string]interface{}.

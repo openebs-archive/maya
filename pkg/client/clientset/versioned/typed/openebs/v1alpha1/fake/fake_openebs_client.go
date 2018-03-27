@@ -25,6 +25,14 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {
+	return &FakeCStorPools{c}
+}
+
+func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas() v1alpha1.CStorVolumeReplicaInterface {
+	return &FakeCStorVolumeReplicas{c}
+}
+
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
 	return &FakeStoragePools{c}
 }
@@ -33,8 +41,8 @@ func (c *FakeOpenebsV1alpha1) StoragePoolClaims() v1alpha1.StoragePoolClaimInter
 	return &FakeStoragePoolClaims{c}
 }
 
-func (c *FakeOpenebsV1alpha1) VolumePolicies() v1alpha1.VolumePolicyInterface {
-	return &FakeVolumePolicies{c}
+func (c *FakeOpenebsV1alpha1) VolumeParameterGroups() v1alpha1.VolumeParameterGroupInterface {
+	return &FakeVolumeParameterGroups{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

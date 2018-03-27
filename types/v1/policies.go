@@ -81,8 +81,11 @@ type VolumeLabels struct {
 type VolumeKey string
 
 const (
+	// VolumeParameterGroupVK is the key to fetch VolumeParameterGroup
+	VolumeParameterGroupVK VolumeKey = "openebs.io/volume-parameter-group"
+
 	// VolumePolicyVK is the key to fetch volume policy
-	VolumePolicyVK VolumeKey = "openebs.io/volume-policy"
+	//VolumePolicyVK VolumeKey = "openebs.io/volume-policy"
 
 	// CapacityVK is the key to fetch volume capacity
 	CapacityVK VolumeKey = "openebs.io/capacity"

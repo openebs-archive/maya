@@ -24,14 +24,24 @@ import (
 
 type OpenebsV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	CStorPoolsGetter
+	CStorVolumeReplicasGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
-	VolumePoliciesGetter
+	VolumeParameterGroupsGetter
 }
 
 // OpenebsV1alpha1Client is used to interact with features provided by the openebs.io group.
 type OpenebsV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *OpenebsV1alpha1Client) CStorPools() CStorPoolInterface {
+	return newCStorPools(c)
+}
+
+func (c *OpenebsV1alpha1Client) CStorVolumeReplicas() CStorVolumeReplicaInterface {
+	return newCStorVolumeReplicas(c)
 }
 
 func (c *OpenebsV1alpha1Client) StoragePools() StoragePoolInterface {
@@ -42,8 +52,8 @@ func (c *OpenebsV1alpha1Client) StoragePoolClaims() StoragePoolClaimInterface {
 	return newStoragePoolClaims(c)
 }
 
-func (c *OpenebsV1alpha1Client) VolumePolicies() VolumePolicyInterface {
-	return newVolumePolicies(c)
+func (c *OpenebsV1alpha1Client) VolumeParameterGroups() VolumeParameterGroupInterface {
+	return newVolumeParameterGroups(c)
 }
 
 // NewForConfig creates a new OpenebsV1alpha1Client for the given config.

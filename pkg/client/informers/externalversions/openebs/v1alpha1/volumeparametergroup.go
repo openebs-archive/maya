@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// VolumePolicyInformer provides access to a shared informer and lister for
-// VolumePolicies.
-type VolumePolicyInformer interface {
+// VolumeParameterGroupInformer provides access to a shared informer and lister for
+// VolumeParameterGroups.
+type VolumeParameterGroupInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.VolumePolicyLister
+	Lister() v1alpha1.VolumeParameterGroupLister
 }
 
-type volumePolicyInformer struct {
+type volumeParameterGroupInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewVolumePolicyInformer constructs a new informer for VolumePolicy type.
+// NewVolumeParameterGroupInformer constructs a new informer for VolumeParameterGroup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewVolumePolicyInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewVolumeParameterGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().VolumePolicies().List(options)
+				return client.OpenebsV1alpha1().VolumeParameterGroups().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().VolumePolicies().Watch(options)
+				return client.OpenebsV1alpha1().VolumeParameterGroups().Watch(options)
 			},
 		},
-		&openebs_io_v1alpha1.VolumePolicy{},
+		&openebs_io_v1alpha1.VolumeParameterGroup{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultVolumePolicyInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewVolumePolicyInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultVolumeParameterGroupInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewVolumeParameterGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *volumePolicyInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebs_io_v1alpha1.VolumePolicy{}, defaultVolumePolicyInformer)
+func (f *volumeParameterGroupInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebs_io_v1alpha1.VolumeParameterGroup{}, defaultVolumeParameterGroupInformer)
 }
 
-func (f *volumePolicyInformer) Lister() v1alpha1.VolumePolicyLister {
-	return v1alpha1.NewVolumePolicyLister(f.Informer().GetIndexer())
+func (f *volumeParameterGroupInformer) Lister() v1alpha1.VolumeParameterGroupLister {
+	return v1alpha1.NewVolumeParameterGroupLister(f.Informer().GetIndexer())
 }
