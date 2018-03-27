@@ -25,8 +25,6 @@ func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http
 		return s.snapshotCreate(resp, req)
 	case strings.Contains(path, "/revert/"):
 		return s.snapshotRevert(resp, req)
-	case strings.Contains(path, "/clone/"):
-		return s.snapshotClone(resp, req)
 	case strings.Contains(path, "/list"):
 		volName := strings.TrimPrefix(path, "/list/")
 		return s.snapshotList(resp, req, volName)
@@ -167,17 +165,6 @@ func (s *HTTPServer) snapshotList(resp http.ResponseWriter, req *http.Request, v
 	glog.Infof("Successfully list snapshot of volume: %s", snap.Spec.VolumeName)
 	return snapChain, nil
 
-}
-
-// SnapshotClone is http handler for restore a snapshot to a persistent volume
-func (s *HTTPServer) snapshotClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-
-	clone, err := s.volumeAdd(resp, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return clone, nil
 }
 
 /*func (s *HTTPServer) getControllerIP(resp http.ResponseWriter, req *http.Request, snap.Spec.Volname string) (string, err) {

@@ -547,7 +547,9 @@ const (
 	//    This is replaced at runtime
 	JivaCloneIPHolder JivaAnnotations = "__CLONE_IP__"
 
-	JivaReplicaTypeHolder JivaAnnotations = "clone"
+	//JivaReplicaTypeHolder JivaAnnotations = "clone"
+	JivaSnapNameHolder JivaAnnotations = "__SNAPNAME__"
+
 	// JivaStorageSizeHolder is used as a placeholder for persistent volume's
 	// storage capacity
 	//
@@ -621,7 +623,7 @@ var (
 	JivaReplicaArgs = []string{"replica", "--frontendIP", string(JivaClusterIPHolder), "--size", string(JivaStorageSizeHolder), string(JivaPersistentMountPathDef)}
 
 	// JivaCloneReplicaArgs is the set of arguments provided to JivaReplicaCmd
-	JivaCloneReplicaArgs = []string{"replica", "--frontendIP", string(JivaClusterIPHolder), "--cloneIP", string(JivaCloneIPHolder), "--type", string(JivaReplicaTypeHolder), "--size", string(JivaStorageSizeHolder), string(JivaPersistentMountPathDef)}
+	JivaCloneReplicaArgs = []string{"replica", "--frontendIP", string(JivaClusterIPHolder), "--cloneIP", string(JivaCloneIPHolder), "--type", string("clone"), "--snapName", string(JivaSnapNameHolder), "--size", string(JivaStorageSizeHolder), string(JivaPersistentMountPathDef)}
 )
 
 // TODO

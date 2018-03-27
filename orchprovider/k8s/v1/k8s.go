@@ -1145,7 +1145,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", rCount, d.Name)
+	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", *rCount, d.Name)
 
 	//glog.Infof("Successfully added replica #%d for VSM '%s'", rcIndex, d.Name)
 	//} -- end of for loop -- if manual replica addition
