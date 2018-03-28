@@ -1,0 +1,35 @@
+#
+# This Dockerfile runs cstor-pool-mgmt tests using the latest binary from
+# cstor-pool-mgmt  releases.
+#
+
+#openebs/cstor-base is the image that contains cstor related binaries and
+#libraries - zpool, zfs, zrepl
+FROM openebs/cstor-base:ci
+
+ARG DAPPER_HOST_ARCH=amd64
+ENV HOST_ARCH=${DAPPER_HOST_ARCH} ARCH=${DAPPER_HOST_ARCH}
+ENV PATH /go/bin:$PATH
+
+# Install Go & tools
+ENV GOLANG_ARCH_amd64=amd64 GOLANG_ARCH_arm=armv6l GOLANG_ARCH=GOLANG_ARCH_${ARCH} \
+    GOPATH=/go PATH=/go/bin:/usr/local/go/bin:${PATH} SHELL=/bin/bash
+RUN wget -O - https://dl.google.com/go/go1.9.4.linux-amd64.tar.gz | tar -xzf - -C /usr/local && \
+	go version
+
+ENV PROJECT=$GOPATH/src/github.com/openebs/maya
+COPY $DST_REPO $PROJECT
+#COPY $DST_REPO/buildscripts/cstor-pool-mgmt/entrypoint-test.sh 
+
+RUN chmod +x $PROJECT/entrypoint-test.sh
+
+ARG BUILD_DATE
+LABEL org.label-schema.name="cstor-pool-mgmt-test"
+LABEL org.label-schema.description="OpenEBS"
+LABEL org.label-schema.url="http://www.openebs.io/"
+LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
+LABEL org.label-schema.schema-version="1.0"
+LABEL org.label-schema.build-date=$BUILD_DATE
+
+ENTRYPOINT $PROJECT/entrypoint-test.sh
+EXPOSE 7677
