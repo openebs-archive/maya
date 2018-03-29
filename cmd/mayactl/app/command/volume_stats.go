@@ -93,7 +93,6 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		err2, err4      int
 		status          v1.VolStatus
 		stats1, stats2  v1.VolumeMetrics
-		repStatus       string
 		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
 
@@ -111,16 +110,6 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	if annotation.ControllerStatus != "Running" {
 		fmt.Println("Volume not reachable")
 		return nil
-	}
-
-	//replicaCount := 0
-	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
-	for _, repStatus = range replicaStatus {
-		if repStatus == "Pending" {
-			statusArray = append(statusArray, "Unknown")
-			statusArray = append(statusArray, "Unknown")
-			statusArray = append(statusArray, "Unknown")
-		}
 	}
 
 	replicas := strings.Split(annotation.Replicas, ",")
@@ -302,13 +291,13 @@ func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []strin
 		q.Flush()
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n----------- Performance Stats -----------\n")
+		fmt.Println("\n----------- Performance Stats -----------")
 		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
 		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/v1.BytesToMB, float64(wThroughput)/v1.BytesToMB, float64(ReadLatency)/v1.MicSec, float64(WriteLatency)/v1.MicSec)
 		w.Flush()
 
 		x := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n------------ Capacity Stats -------------\n")
+		fmt.Println("\n------------ Capacity Stats -------------")
 		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
 		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/v1.BytesToGB, actualUsed/v1.BytesToGB)
 		x.Flush()

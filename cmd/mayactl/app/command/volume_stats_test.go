@@ -11,12 +11,12 @@ func TestDisplayStats(t *testing.T) {
 		TargetPortal:     "10.99.73.74:3260",
 		ClusterIP:        "10.99.73.74",
 		Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-		ReplicaCount:     "2",
+		ReplicaCount:     "3",
 		ControllerStatus: "Running",
-		ReplicaStatus:    "Running,Running",
+		ReplicaStatus:    "Running,Running,Offline",
 		VolSize:          "1G",
 		ControllerIP:     "",
-		Replicas:         "10.10.10.10,10.10.10.11",
+		Replicas:         "10.10.10.10,10.10.10.11,nil",
 	}
 
 	validStats := map[string]struct {
@@ -39,6 +39,9 @@ func TestDisplayStats(t *testing.T) {
 				"10.10.10.11",
 				"Online",
 				"1",
+				"nil",
+				"Offline",
+				"Unknown",
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -86,6 +89,9 @@ func TestDisplayStats(t *testing.T) {
 				"10.10.10.11",
 				"Online",
 				"1",
+				"nil",
+				"Offline",
+				"Unknown",
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -133,6 +139,9 @@ func TestDisplayStats(t *testing.T) {
 				"10.10.10.11",
 				"Online",
 				"1",
+				"nil",
+				"Offline",
+				"Unknown",
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -180,6 +189,9 @@ func TestDisplayStats(t *testing.T) {
 				"10.10.10.11",
 				"Online",
 				"1",
+				"nil",
+				"Offline",
+				"Unknown",
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
