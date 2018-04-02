@@ -21,3 +21,12 @@ then
 else
   echo "No docker credentials provided. Skip uploading openebs/m-apiserver:ci to docker hub"; 
 fi;
+
+# Push ci image to quay.io for security scanning
+if [ ! -z "${QNAME}" ] && [ ! -z "${QPASS}" ]; 
+then 
+  sudo docker login -u "${QNAME}" -p "${QPASS}" quay.io;
+  sudo docker tag ${IMAGEID} quay.io/openebs/m-apiserver:ci;
+else
+  echo "Missing quay.io credentials. Skip uploading openebs/m-apiserver:ci to quay.io"; 
+fi;
