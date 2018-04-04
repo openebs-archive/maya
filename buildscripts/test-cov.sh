@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
 set -e
+
+sh ./buildscripts/cstor-prerequisites.sh
+
 echo "" > coverage.txt
 
-for d in $(go list ./... | grep -v vendor); do
+for d in $(go list ./... | grep -v vendor | 
+    grep -v pkg/apis | grep -v pkg/client | grep -v pkg/signals); do
     #TODO - Include -race while creating the coverage profile. 
     go test -coverprofile=profile.out -covermode=atomic $d
     if [ -f profile.out ]; then

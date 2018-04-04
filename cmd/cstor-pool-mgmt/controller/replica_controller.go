@@ -14,12 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crdops
+package controller
 
 import (
 	"fmt"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -38,8 +36,10 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	crdscheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/volumereplica"
 )
 
 const replicaControllerName = "CStorVolumeReplica"
@@ -49,7 +49,7 @@ type CStorVolumeReplicaController struct {
 	// kubeclientset is a standard kubernetes clientset.
 	kubeclientset kubernetes.Interface
 
-	// clientset is a CRD package generated for custom API group.
+	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
 	// cStorReplicaSynced is used for caches sync to get populated
@@ -76,7 +76,7 @@ func NewCStorVolumeReplicaController(
 	// obtain references to shared index informers for the cStorReplica resources.
 	cStorReplicaInformer := cStorInformerFactory.Openebs().V1alpha1().CStorVolumeReplicas()
 
-	crdscheme.AddToScheme(scheme.Scheme)
+	openebsScheme.AddToScheme(scheme.Scheme)
 
 	// Create event broadcaster
 	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be
@@ -95,7 +95,7 @@ func NewCStorVolumeReplicaController(
 		kubeclientset:      kubeclientset,
 		clientset:          clientset,
 		cStorReplicaSynced: cStorReplicaInformer.Informer().HasSynced,
-		workqueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cStorcrds"),
+		workqueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolumeReplica"),
 		recorder:           recorder,
 	}
 
@@ -249,21 +249,20 @@ func (c *CStorVolumeReplicaController) syncHandler(key, operation string) error 
 	case "add":
 		glog.Infof("added event")
 
-		err := checkValidVolumeReplica(cStorVolumeReplicaUpdated)
+		err := volumereplica.CheckValidVolumeReplica(cStorVolumeReplicaUpdated)
 		if err != nil {
 			return err
 		}
 
 		glog.Info("cstor-pool-guid:", cStorVolumeReplicaUpdated.ObjectMeta.Annotations["openebs.io/cstor-pool-guid"])
-		poolname, err := getPoolName()
-		if err != nil {
-			return err
-		}
+
+		var isBlockedForever = false
+		poolname, err := PoolNameHandler(isBlockedForever)
 
 		fullvolname := string(poolname) + "/" + cStorVolumeReplicaUpdated.Spec.VolName
 		glog.Infof("fullvolname: %s", fullvolname)
 
-		err = createVolume(cStorVolumeReplicaUpdated, fullvolname)
+		err = volumereplica.CreateVolume(cStorVolumeReplicaUpdated, fullvolname)
 		if err != nil {
 			return err
 		}
@@ -291,52 +290,4 @@ func (c *CStorVolumeReplicaController) enqueueCStorReplica(obj interface{}, q Qu
 	}
 	q.key = key
 	c.workqueue.AddRateLimited(q)
-}
-
-// getPoolName return the pool already created
-func getPoolName() (string, error) {
-	poolnameStr := "zpool status | grep pool:"
-	poolnamecmd := exec.Command("bash", "-c", poolnameStr)
-	stderr, err := poolnamecmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("Unable to get poolname :%v ", err)
-	}
-	noisyPoolname := string(stderr)
-	poolname := strings.TrimPrefix(noisyPoolname, "  pool: ")
-	poolname = strings.TrimSpace(poolname)
-	if glog.V(4) {
-		glog.Infof("poolname : ", poolname)
-	}
-	return poolname, nil
-}
-
-// checkValidVolumeReplica checks for validity of cStor replica resource.
-func checkValidVolumeReplica(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica) error {
-	if cStorVolumeReplicaUpdated.Spec.VolName == "" {
-		return fmt.Errorf("Volume name cannot be empty")
-	}
-	if cStorVolumeReplicaUpdated.Spec.Capacity == "" {
-		return fmt.Errorf("Capacity cannot be empty")
-	}
-	return nil
-}
-
-// createVolume creates cStor replica(zfs volumes).
-func createVolume(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica, fullvolname string) error {
-	var createVolAttr []string
-	createVolAttr = append(createVolAttr, "create", "-s",
-		"-V", cStorVolumeReplicaUpdated.Spec.Capacity, fullvolname)
-	volCmd := exec.Command("zfs", createVolAttr...)
-	if glog.V(4) {
-		glog.Infof("volCmd : ", volCmd)
-	}
-	stdoutStderr, err := volCmd.CombinedOutput()
-	if err != nil {
-		glog.Errorf("err: %v", err)
-		glog.Errorf("stdoutStderr: %v", string(stdoutStderr))
-		return err
-	}
-	glog.Infof("Volume creation successful : %v", fullvolname)
-	return nil
-
 }

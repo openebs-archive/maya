@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crdops
+package controller
 
 import (
-	"os/exec"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,25 +31,19 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
+
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/uzfs"
 )
 
-// StartControllers instantiates CRD controllers and watches them.
-func StartControllers(kuberconfig string) {
-	masterURL := ""
+// StartControllers instantiates CStorPool and CStorVolumeReplica controllers
+// and watches them.
+func StartControllers(kubeconfig string) {
 	// Set up signals to handle the first shutdown signal gracefully.
 	stopCh := signals.SetupSignalHandler()
 
-	cfg, err := rest.InClusterConfig()
+	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		glog.Errorf("failed to get k8s Incluster config. %+v", err)
-		if kuberconfig == "" {
-			glog.Fatalf("kubeconfig is empty")
-		} else {
-			cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kuberconfig)
-			if err != nil {
-				glog.Fatalf("Error building kubeconfig: %s", err.Error())
-			}
-		}
+		glog.Fatalf(err.Error())
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(cfg)
@@ -56,26 +51,32 @@ func StartControllers(kuberconfig string) {
 		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 
-	crdClient, err := clientset.NewForConfig(cfg)
+	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Fatalf("Error building sp-spc clientset: %s", err.Error())
+		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
+	// Blocking call for checking status of zrepl running in cstor-pool container.
+	uzfs.CheckForZrepl()
+
+	// Blocking call for checking status of CStorPool CRD.
+	checkForCStorPoolCRD(openebsClient)
+
+	// Blocking call for checking status of CStorVolumeReplica CRD.
+	checkForCStorVolumeReplicaCRD(openebsClient)
+
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	exampleInformerFactory := informers.NewSharedInformerFactory(crdClient, time.Second*30)
+	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
-	poolController := NewCStorPoolController(kubeClient, crdClient, kubeInformerFactory,
-		exampleInformerFactory)
+	poolController := NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
 
-	volumeReplicaController := NewCStorVolumeReplicaController(kubeClient, crdClient, kubeInformerFactory,
-		exampleInformerFactory)
+	volumeReplicaController := NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
 
 	go kubeInformerFactory.Start(stopCh)
-	go exampleInformerFactory.Start(stopCh)
-
-	// Blocking call for checking status of zrepl running in cstor-pool container.
-	CheckForZrepl()
+	go openebsInformerFactory.Start(stopCh)
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
@@ -84,17 +85,18 @@ func StartControllers(kuberconfig string) {
 	// Run controller for cStorPool.
 	go func() {
 		if err = poolController.Run(2, stopCh); err != nil {
-			glog.Fatalf("Error running cstor controller: %s", err.Error())
+			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
 
-	time.Sleep(2 * time.Second)
+	var isBlockForever = false
+	PoolNameHandler(isBlockForever)
 
-	// Run controller for cStorReplica.
+	// Run controller for cStorVolumeReplica.
 	go func() {
 		if err = volumeReplicaController.Run(2, stopCh); err != nil {
-			glog.Fatalf("Error running cstor controller: %s", err.Error())
+			glog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -102,14 +104,44 @@ func StartControllers(kuberconfig string) {
 
 }
 
-// CheckForZrepl is blocking call for checking status of zrepl in cstor-main container.
-func CheckForZrepl() {
-	for {
-		statuscmd := exec.Command("zpool", "status")
-		_, err := statuscmd.CombinedOutput()
+// GetClusterConfig return the config for k8s.
+func getClusterConfig(kubeconfig string) (*rest.Config, error) {
+	var masterURL string
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		glog.Errorf("failed to get k8s Incluster config. %+v", err)
+		if kubeconfig == "" {
+			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
+		}
+		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {
-			time.Sleep(3 * time.Second)
-			glog.Infof("Waiting for zrepl...")
+			return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+		}
+	}
+	return cfg, err
+}
+
+// checkForCStorPoolCRD is Blocking call for checking status of CStorPool CRD.
+func checkForCStorPoolCRD(clientset clientset.Interface) {
+	for {
+		_, err := clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{})
+		if err != nil {
+			glog.Errorf("CStorPools CRD not found...")
+			time.Sleep(10 * time.Second)
+			continue
+		}
+		glog.Info("CStorPool CRD found")
+		break
+	}
+}
+
+// checkForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
+func checkForCStorVolumeReplicaCRD(clientset clientset.Interface) {
+	for {
+		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas().List(metav1.ListOptions{})
+		if err != nil {
+			glog.Errorf("CStorVolumeReplicas CRD not found...")
+			time.Sleep(10 * time.Second)
 			continue
 		}
 		break

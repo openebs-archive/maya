@@ -37,7 +37,7 @@ func run() error {
 	defer cstorlogger.FlushLogs()
 
 	// Create & execute new command
-	cmd, err := command.NewCstorPoolMgmt()
+	cmd, err := command.NewCStorPoolMgmt()
 	if err != nil {
 		return err
 	}

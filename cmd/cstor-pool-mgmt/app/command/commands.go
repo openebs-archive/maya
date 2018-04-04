@@ -55,16 +55,18 @@ func NewCmdOptions() *cobra.Command {
 	return cmd
 }
 
-// NewCstorPoolMgmt creates a new CstorPoolMgmt. This cmd includes logging,
+// NewCStorPoolMgmt creates a new CStorPoolMgmt. This cmd includes logging,
 // cmd option parsing from flags.
-func NewCstorPoolMgmt() (*cobra.Command, error) {
-	// Define the options for CstorPoolMgmt.
+func NewCStorPoolMgmt() (*cobra.Command, error) {
+	// Define the options for CStorPoolMgmt.
 	options := CStorPoolMgmtOptions{}
 
 	// Create a new command.
 	cmd := &cobra.Command{
 		Use:   usage,
-		Short: "",
+		Short: "CStor Pool Management",
+		Long: `interfaces between observing the CStorPool, CStorVolumeReplica
+		 objects and issues-pool-volume creation and deletion`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(Run(cmd, &options), util.Fatal)
 		},

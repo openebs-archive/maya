@@ -19,23 +19,23 @@ package command
 import (
 	goflag "flag"
 
-	controller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller"
 	"github.com/spf13/cobra"
 )
 
-// CmdStartOptions has flags for starting the cstor crd watcher.
+// CmdStartOptions has flags for starting CStorPool and CStorVolumeReplica watcher.
 type CmdStartOptions struct {
 	kubeconfig string
 }
 
-// NewCmdStart starts watching for Cstor-CRD events.
+// NewCmdStart starts watching for CStorPool and CStorVolumeReplica resource events.
 func NewCmdStart() *cobra.Command {
 	options := CmdStartOptions{}
 	getCmd := &cobra.Command{
 		Use:   "start",
 		Short: "starts CStorPool and CStorVolumeReplica watcher",
-		Long: ` CStorPool and CStorVolumeReplica crds will be watched for added, updated, deleted
-		events `,
+		Long: `CStorPool and CStorVolumeReplica resources will be watched for 
+		added, updated, deleted	events`,
 		Run: func(cmd *cobra.Command, args []string) {
 			controller.StartControllers(options.kubeconfig)
 		},

@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crdops
+package controller
 
 import (
 	"fmt"
-	"os/exec"
 	"time"
 
 	"github.com/golang/glog"
@@ -37,18 +36,20 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	crdscheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/pool"
 )
 
 const poolControllerName = "CStorPool"
 
-// CStorPoolController is the controller implementation for cStorPool resources.
+// CStorPoolController is the controller implementation for CStorPool resources.
 type CStorPoolController struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
 
-	// clientset is a CRD package generated for custom API group.
+	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
 	// cStorPoolSynced is used for caches sync to get populated
@@ -65,7 +66,7 @@ type CStorPoolController struct {
 	recorder record.EventRecorder
 }
 
-// NewCStorPoolController returns a new instance of controller
+// NewCStorPoolController returns a new instance of CStorPool controller
 func NewCStorPoolController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
@@ -75,7 +76,7 @@ func NewCStorPoolController(
 	// obtain references to shared index informers for the cStorPool resources
 	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPools()
 
-	crdscheme.AddToScheme(scheme.Scheme)
+	openebsScheme.AddToScheme(scheme.Scheme)
 
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
 	// Add NewCstorPoolController types to the default Kubernetes Scheme so Events can be
@@ -94,7 +95,7 @@ func NewCStorPoolController(
 		kubeclientset:   kubeclientset,
 		clientset:       clientset,
 		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "cstorcrds"),
+		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
 		recorder:        recorder,
 	}
 
@@ -110,11 +111,11 @@ func NewCStorPoolController(
 			controller.enqueueCStorPool(obj, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
-			newCstorPool := new.(*apis.CStorPool)
-			oldCstorPool := old.(*apis.CStorPool)
-			// Periodic resync will send update events for all known CstorPool.
-			// Two different versions of the same CstorPool will always have different RVs.
-			if newCstorPool.ResourceVersion == oldCstorPool.ResourceVersion {
+			newCStorPool := new.(*apis.CStorPool)
+			oldCStorPool := old.(*apis.CStorPool)
+			// Periodic resync will send update events for all known CStorPool.
+			// Two different versions of the same CStorPool will always have different RVs.
+			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
 				return
 			}
 			q.operation = "update"
@@ -145,7 +146,6 @@ func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error
 	if ok := cache.WaitForCacheSync(stopCh, c.cStorPoolSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
-
 	glog.Info("Starting CStorPool workers")
 	// Launch worker to process CStorPool resources
 	for i := 0; i < threadiness; i++ {
@@ -171,7 +171,6 @@ func (c *CStorPoolController) runWorker() {
 // attempt to process it, by calling the syncHandler.
 func (c *CStorPoolController) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
-
 	if shutdown {
 		return false
 	}
@@ -233,7 +232,7 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 
 	cStorPoolUpdated, err := c.clientset.OpenebsV1alpha1().CStorPools().Get(name, metav1.GetOptions{})
 	if err != nil {
-		// The cstorPool resource may no longer exist, in which case we stop
+		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("cStorPoolUpdated '%s' in work queue no longer exists", key))
@@ -247,17 +246,17 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 	case "add":
 		glog.Info("added event")
 
-		err := checkValidPool(cStorPoolUpdated)
+		err := pool.CheckValidPool(cStorPoolUpdated)
 		if err != nil {
 			return err
 		}
 
-		err = importPool(cStorPoolUpdated)
+		err = pool.ImportPool(cStorPoolUpdated)
 		if err == nil {
 			return nil
 		}
 
-		err = createPool(cStorPoolUpdated)
+		err = pool.CreatePool(cStorPoolUpdated)
 		if err != nil {
 			return err
 		}
@@ -287,71 +286,4 @@ func (c *CStorPoolController) enqueueCStorPool(obj interface{}, q QueueLoad) {
 	}
 	q.key = key
 	c.workqueue.AddRateLimited(q)
-}
-
-// importPool imports cStor pool if already present.
-func importPool(cStorPoolUpdated *apis.CStorPool) error {
-	// populate pool import attributes.
-	var importAttr []string
-	importAttr = append(importAttr, "import")
-	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
-		cachefile := "cachefile=" + cStorPoolUpdated.Spec.PoolSpec.CacheFile
-		importAttr = append(importAttr, "-c", cachefile)
-	}
-
-	importAttr = append(importAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
-
-	// execute import pool command.
-	cmdimport := exec.Command("zpool", importAttr...)
-	stdoutStderrImport, err := cmdimport.CombinedOutput()
-	if err != nil {
-		glog.Error("Pool import err: ", err)
-		glog.Error("stdoutStderr: ", string(stdoutStderrImport))
-		return err
-	}
-
-	glog.Info("Importing Pool Successful")
-	return nil
-}
-
-// createPool creates a new cStor pool.
-func createPool(cStorPoolUpdated *apis.CStorPool) error {
-	// populate pool creation attributes.
-	var createAttr []string
-	createAttr = append(createAttr, "create", "-f", "-o")
-	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
-		cachefile := "cachefile=" + cStorPoolUpdated.Spec.PoolSpec.CacheFile
-		createAttr = append(createAttr, cachefile)
-	}
-
-	createAttr = append(createAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
-	if len(cStorPoolUpdated.Spec.Disks.DiskList) < 1 {
-		return fmt.Errorf("Disk name(s) cannot be empty")
-	}
-	for _, disk := range cStorPoolUpdated.Spec.Disks.DiskList {
-		createAttr = append(createAttr, disk)
-	}
-
-	//execute pool creation command.
-	poolCreateCmd := exec.Command("zpool", createAttr...)
-
-	if glog.V(4) {
-		glog.Info("poolCreateCmd : ", poolCreateCmd)
-	}
-	stdoutStderr, err := poolCreateCmd.CombinedOutput()
-	if err != nil {
-		glog.Error("err: ", err)
-		glog.Error("stdoutStderr: ", string(stdoutStderr))
-		return err
-	}
-	glog.Info("Creating Pool Successful")
-	return nil
-}
-
-// checkValidPool checks for validity of cstor pool resource.
-func checkValidPool(cStorPoolUpdated *apis.CStorPool) error {
-	if cStorPoolUpdated.Spec.PoolSpec.PoolName == "" {
-		return fmt.Errorf("Poolname cannot be empty")
-	}
-	return nil
 }

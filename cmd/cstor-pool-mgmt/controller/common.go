@@ -14,7 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package crdops
+package controller
+
+import (
+	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
+	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/pool"
+)
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
@@ -35,4 +47,40 @@ const (
 type QueueLoad struct {
 	key       string
 	operation string
+}
+
+// PoolNameHandler tries to get pool name, if error, then block forever or
+// tries for particular number of attempts.
+func PoolNameHandler(isBlockForever bool) (string, error) {
+	for cnt := 0; ; cnt++ {
+		poolname, err := pool.GetPoolName()
+		if err != nil {
+			glog.Infof("Attempt %v: Waiting for Pool..", cnt)
+			time.Sleep(5 * time.Second)
+			if isBlockForever {
+				continue
+			} else if cnt > 3 {
+				return "", err
+			}
+		} else {
+			return poolname, nil
+		}
+	}
+}
+
+func execShResult(s string) (string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "", errors.New("Missing command")
+	}
+
+	out := &bytes.Buffer{}
+	cmd := exec.Command("/bin/sh", "-c", s)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = out
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	r := string(out.Bytes())
+	return r, nil
 }
