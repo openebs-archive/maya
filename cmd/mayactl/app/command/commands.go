@@ -24,7 +24,7 @@ import (
 // NewCommand creates the `maya` command and its nested children.
 func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "maya",
+		Use:   "mayactl",
 		Short: "Maya means 'Magic'a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 	}
