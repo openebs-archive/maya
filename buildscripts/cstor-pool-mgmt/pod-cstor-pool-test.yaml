@@ -1,0 +1,53 @@
+# The pod runs unit tests for cstor-pool-mgmt.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cstor-pool-test
+  # Note that the Pod does not need to be in the same namespace as the loader.
+  labels:
+    app: cstor-pool-test
+spec:
+#  serviceAccountName: openebs-maya-operator
+  containers:
+  - name: cstor-pool
+    image: openebs/cstor-main:ci
+    ports:
+    - containerPort: 80
+    securityContext: 
+      privileged: true
+
+    volumeMounts:
+    - name: device
+      mountPath: /host/dev     
+      mountPropagation: Bidirectional
+    - name: tmp
+      mountPath: /tmp
+      mountPropagation: Bidirectional
+
+ 
+  - name:    cstor-pool-mgmt-test
+    image: openebs/cstor-test:ci
+    ports:
+    - containerPort: 80
+    securityContext: 
+      privileged: true
+    volumeMounts:
+    - name: device
+      mountPath: /host/dev
+      mountPropagation: Bidirectional
+    - name: tmp
+      mountPath: /tmp
+      mountPropagation: Bidirectional
+
+  volumes:
+  - name: device
+    hostPath:
+      # directory location on host
+      path: /dev
+      # this field is optional
+      type: Directory
+  - name: tmp
+    hostPath:
+      path: /tmp
+      type: Directory
