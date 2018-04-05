@@ -46,10 +46,9 @@ func NewCmdVolumeExporter() (*cobra.Command, error) {
 	options.MetricsPath = "/metrics"
 	cmd := &cobra.Command{
 		Short: "Collect metrics from OpenEBS volumes",
-		Long: `  maya-volume-exporter monitors openebs volumes and exporter the metrics.
-  It starts collecting metrics from the jiva volume controller at the endpoint
-  "/v1/stats" Prometheus Server can collect the metrics from maya-volume-exporter.`,
-		Example: `  maya-volume-exporter -a=http://localhost:8001 -c=:9500 -m=/metrics`,
+		Long: `maya-exporter can be used to monitor openebs volumes and pools.
+It can be deployed alongside the openebs volume or pool containers as sidecars.`,
+		Example: `maya-exporter -a=http://localhost:8001 -c=:9500 -m=/metrics`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(Run(cmd, &options), util.Fatal)
 		},
@@ -67,7 +66,7 @@ func NewCmdVolumeExporter() (*cobra.Command, error) {
 // Run used to process commands,args and call openebs exporter and it returns
 // nil on successful execution.
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
-	glog.Infof("Starting maya-volume-exporter ...")
+	glog.Infof("Starting maya-exporter ...")
 	Entrypoint(options)
 	return nil
 }
