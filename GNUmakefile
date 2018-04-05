@@ -21,7 +21,7 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 MAYACTL=mayactl
 APISERVER=maya-apiserver
 AGENT=maya-agent
-EXPORTER=maya-volume-exporter
+EXPORTER=maya-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -126,10 +126,10 @@ agent-image: maya-agent
 	@rm buildscripts/agent/${AGENT}
 	@sh buildscripts/agent/push
 
-# Use this to build only the maya-volume-exporter.
+# Use this to build only the maya-exporter.
 exporter:
 	@echo "----------------------------"
-	@echo "--> maya-volume-exporter              "
+	@echo "--> maya-exporter              "
 	@echo "----------------------------"
 	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/exporter/build.sh'"
 

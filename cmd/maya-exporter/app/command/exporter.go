@@ -9,18 +9,19 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/openebs/maya/cmd/maya-volume-exporter/app/collector"
+	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Entrypoint is used to monitor OpenEBS volumes. It's used by maya-agent to
-// start an instance of openebs volume exporter.
+// Entrypoint is used to monitor OpenEBS volumes or pools. It starts an instance
+// of openebs volume exporter.
 
 // We need to run several instances of Exporter for each volume just like node
 // exporter on every node. At a time one instance can gather only the metrics
 // from the requested volume. You need to pass the controller IP using flag -c
-// at runtime as a command line argument. Type maya-agent monitor -h for more info.
+// at runtime as a command line argument. Type maya-exporter -h for more
+// info.
 func Entrypoint(options *VolumeExporterOptions) {
 	controllerURL, err := url.Parse(options.ControllerAddress)
 	if err != nil {
