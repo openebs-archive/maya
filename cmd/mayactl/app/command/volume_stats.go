@@ -78,7 +78,7 @@ func NewCmdVolumeStats() *cobra.Command {
 // no error and returns the error if it is missing.
 func (c *CmdVolumeStatsOptions) Validate(cmd *cobra.Command) error {
 	if c.volName == "" {
-		return errors.New("--volname is missing. Please specify a volume name created")
+		return errors.New("--volname is missing. Please try running [mayactl volume list] to see list of volumes")
 	}
 	return nil
 }
@@ -99,23 +99,17 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	annotation := &Annotations{}
 	err = annotation.GetVolAnnotations(c.volName)
 	if err != nil {
-		fmt.Println("Can't get annotation, found error ", err)
-	}
-
-	if err != nil || annotation == nil {
-		fmt.Println(err)
 		return nil
 	}
-
 	if annotation.ControllerStatus != "Running" {
-		fmt.Println("Volume not reachable")
+		fmt.Println("Volume not reachable, found controller's status", annotation.ControllerStatus)
 		return nil
 	}
 
 	replicas := strings.Split(annotation.Replicas, ",")
 	for _, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
-		errCode1, err := replicaClient.GetVolumeStats(replica+":9502", &status)
+		errCode1, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
 		if err != nil {
 			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
 				statusArray = append(statusArray, replica)
@@ -134,7 +128,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	}
 
 	controllerClient := client.ControllerClient{}
-	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats1)
+	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err1 != nil {
 		if (err2 == 500) || (err2 == 503) || err1 != nil {
 			fmt.Println("Volume not Reachable\n", err1)
@@ -142,7 +136,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats2)
+		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err3 != nil {
 			if err4 == 500 || err4 == 503 || err3 != nil {
 				fmt.Println("Volume not Reachable\n", err3)
@@ -271,15 +265,18 @@ func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []strin
 		err = err1
 		if err != nil {
 			fmt.Println("Can't Parse the template ", err)
+			return nil
 		}
 		err = tmpl.Execute(os.Stdout, annotation)
 		if err != nil {
 			fmt.Println("Can't execute the template ", err)
+			return nil
 		}
 
 		replicaCount, err := strconv.Atoi(a.ReplicaCount)
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
+			return nil
 		}
 		// Printing in tabular form
 		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
