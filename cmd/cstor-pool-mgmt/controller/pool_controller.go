@@ -40,6 +40,7 @@ import (
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/pool"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/volumereplica"
 )
 
 const poolControllerName = "CStorPool"
@@ -54,6 +55,9 @@ type CStorPoolController struct {
 
 	// cStorPoolSynced is used for caches sync to get populated
 	cStorPoolSynced cache.InformerSynced
+
+	// deletedIndexer holds deleted resource to be retrived after workqueue
+	deletedIndexer cache.Indexer
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -92,8 +96,10 @@ func NewCStorPoolController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: poolControllerName})
 
 	controller := &CStorPoolController{
-		kubeclientset:   kubeclientset,
-		clientset:       clientset,
+		kubeclientset: kubeclientset,
+		clientset:     clientset,
+		deletedIndexer: cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,
+			cache.Indexers{}),
 		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
 		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
 		recorder:        recorder,
@@ -186,6 +192,7 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 		defer c.workqueue.Done(obj)
 		var q QueueLoad
 		var ok bool
+
 		// We expect strings to come off the workqueue. These are of the
 		// form namespace/name. We do this as the delayed nature of the
 		// workqueue means the items in the informer cache may actually be
@@ -223,25 +230,10 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the cStorPoolUpdated resource
 // with the current status of the resource.
 func (c *CStorPoolController) syncHandler(key, operation string) error {
-	// Convert the key(namespace/name) string into a distinct name
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	cStorPoolUpdated, err := c.getPoolResource(key, operation)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
-		return nil
-	}
-
-	cStorPoolUpdated, err := c.clientset.OpenebsV1alpha1().CStorPools().Get(name, metav1.GetOptions{})
-	if err != nil {
-		// The cStorPool resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("cStorPoolUpdated '%s' in work queue no longer exists", key))
-			return nil
-		}
-
 		return err
 	}
-
 	switch operation {
 	case "add":
 		glog.Info("added event")
@@ -253,6 +245,7 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 
 		err = pool.ImportPool(cStorPoolUpdated)
 		if err == nil {
+			InitialImportedPoolVol = volumereplica.GetVolumes()
 			return nil
 		}
 
@@ -268,6 +261,10 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 
 	case "delete":
 		glog.Info("deleted event")
+		err := pool.DeletePool(cStorPoolUpdated.Spec.PoolSpec.PoolName)
+		if err != nil {
+			return err
+		}
 		break
 	}
 
@@ -280,10 +277,49 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 func (c *CStorPoolController) enqueueCStorPool(obj interface{}, q QueueLoad) {
 	var key string
 	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		runtime.HandleError(err)
-		return
+
+	if q.operation == "delete" {
+		c.deletedIndexer.Add(obj)
+		key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+		if err != nil {
+			runtime.HandleError(err)
+			return
+		}
+	} else {
+		if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+			runtime.HandleError(err)
+			return
+		}
 	}
 	q.key = key
 	c.workqueue.AddRateLimited(q)
+}
+
+// getPoolResource returns object corresponding to the resource key
+func (c *CStorPoolController) getPoolResource(key, operation string) (*apis.CStorPool, error) {
+	// Convert the key(namespace/name) string into a distinct name
+	_, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		return nil, nil
+	}
+
+	if operation == "delete" {
+		if obj, exists, err := c.deletedIndexer.GetByKey(key); err == nil && exists {
+			c.deletedIndexer.Delete(key)
+			return obj.(*apis.CStorPool), nil
+		}
+	}
+	cStorPoolUpdated, err := c.clientset.OpenebsV1alpha1().CStorPools().Get(name, metav1.GetOptions{})
+	if err != nil {
+		// The cStorPool resource may no longer exist, in which case we stop
+		// processing.
+		if errors.IsNotFound(err) {
+			runtime.HandleError(fmt.Errorf("cStorPoolUpdated '%s' in work queue no longer exists", key))
+			return nil, nil
+		}
+
+		return nil, err
+	}
+	return cStorPoolUpdated, nil
 }

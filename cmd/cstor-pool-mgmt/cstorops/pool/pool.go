@@ -20,25 +20,20 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+// PoolOperator is the name of the tool that makes pool-related operations.
+const (
+	PoolOperator = "zpool"
+)
+
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPoolUpdated *apis.CStorPool) error {
-	// populate pool import attributes.
-	var importAttr []string
-	importAttr = append(importAttr, "import")
-	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
-		cachefile := "cachefile=" + cStorPoolUpdated.Spec.PoolSpec.CacheFile
-		importAttr = append(importAttr, "-c", cachefile)
-	}
-
-	importAttr = append(importAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
-
-	// execute import pool command.
-	cmdimport := exec.Command("zpool", importAttr...)
+	cmdimport := importPoolBuilder(cStorPoolUpdated)
 	stdoutStderrImport, err := cmdimport.CombinedOutput()
 	if err != nil {
 		glog.Error("Pool import err: ", err)
@@ -50,26 +45,27 @@ func ImportPool(cStorPoolUpdated *apis.CStorPool) error {
 	return nil
 }
 
+// importPoolBuilder is to build pool import command.
+func importPoolBuilder(cStorPoolUpdated *apis.CStorPool) *exec.Cmd {
+	// populate pool import attributes.
+	var importAttr []string
+	importAttr = append(importAttr, "import")
+	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
+		importAttr = append(importAttr, "-c", cStorPoolUpdated.Spec.PoolSpec.CacheFile)
+	}
+
+	importAttr = append(importAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
+
+	// execute import pool command.
+	cmdimport := exec.Command(PoolOperator, importAttr...)
+	return cmdimport
+}
+
 // CreatePool creates a new cStor pool.
 func CreatePool(cStorPoolUpdated *apis.CStorPool) error {
-	// populate pool creation attributes.
-	var createAttr []string
-	createAttr = append(createAttr, "create", "-f", "-o")
-	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
-		cachefile := "cachefile=" + cStorPoolUpdated.Spec.PoolSpec.CacheFile
-		createAttr = append(createAttr, cachefile)
-	}
 
-	createAttr = append(createAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
-	if len(cStorPoolUpdated.Spec.Disks.DiskList) < 1 {
-		return fmt.Errorf("Disk name(s) cannot be empty")
-	}
-	for _, disk := range cStorPoolUpdated.Spec.Disks.DiskList {
-		createAttr = append(createAttr, disk)
-	}
+	poolCreateCmd := createPoolBuilder(cStorPoolUpdated)
 
-	//execute pool creation command.
-	poolCreateCmd := exec.Command("zpool", createAttr...)
 	glog.V(4).Info("poolCreateCmd : ", poolCreateCmd)
 	stdoutStderr, err := poolCreateCmd.CombinedOutput()
 	if err != nil {
@@ -81,17 +77,41 @@ func CreatePool(cStorPoolUpdated *apis.CStorPool) error {
 	return nil
 }
 
+// createPoolBuilder is to build create pool command.
+func createPoolBuilder(cStorPoolUpdated *apis.CStorPool) *exec.Cmd {
+	// populate pool creation attributes.
+	var createAttr []string
+	createAttr = append(createAttr, "create", "-f", "-o")
+	if cStorPoolUpdated.Spec.PoolSpec.CacheFile != "" {
+		cachefile := "cachefile=" + cStorPoolUpdated.Spec.PoolSpec.CacheFile
+		createAttr = append(createAttr, cachefile)
+	}
+
+	createAttr = append(createAttr, cStorPoolUpdated.Spec.PoolSpec.PoolName)
+
+	for _, disk := range cStorPoolUpdated.Spec.Disks.DiskList {
+		createAttr = append(createAttr, disk)
+	}
+
+	//execute pool creation command.
+	poolCreateCmd := exec.Command(PoolOperator, createAttr...)
+	return poolCreateCmd
+}
+
 // CheckValidPool checks for validity of CStorPool resource.
 func CheckValidPool(cStorPoolUpdated *apis.CStorPool) error {
 	if cStorPoolUpdated.Spec.PoolSpec.PoolName == "" {
 		return fmt.Errorf("Poolname cannot be empty")
+	}
+	if len(cStorPoolUpdated.Spec.Disks.DiskList) < 1 {
+		return fmt.Errorf("Disk name(s) cannot be empty")
 	}
 	return nil
 }
 
 // GetPoolName return the pool already created.
 func GetPoolName() (string, error) {
-	poolnameStr := "zpool status | grep pool:"
+	poolnameStr := PoolOperator + " status | grep pool:"
 	poolnamecmd := exec.Command("bash", "-c", poolnameStr)
 	stderr, err := poolnamecmd.CombinedOutput()
 	if err != nil {
@@ -104,12 +124,27 @@ func GetPoolName() (string, error) {
 	return poolname, nil
 }
 
+// DeletePool destroys the pool created.
 func DeletePool(poolName string) error {
-	deletePoolStr := "zpool destroy -f " + poolName
+	deletePoolStr := PoolOperator + " destroy -f " + poolName
 	deletePoolCmd := exec.Command("bash", "-c", deletePoolStr)
 	stdoutStderr, err := deletePoolCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Unable to delete pool :%v ", err.Error(), string(stdoutStderr))
 	}
 	return nil
+}
+
+// CheckForZrepl is blocking call for checking status of zrepl in cstor-pool container.
+func CheckForZrepl() {
+	for {
+		statuscmd := exec.Command(PoolOperator, "status")
+		_, err := statuscmd.CombinedOutput()
+		if err != nil {
+			time.Sleep(3 * time.Second)
+			glog.Infof("Waiting for zrepl...")
+			continue
+		}
+		break
+	}
 }

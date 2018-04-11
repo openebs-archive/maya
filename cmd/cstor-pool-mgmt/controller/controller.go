@@ -28,11 +28,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/pool"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
-
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/cstorops/uzfs"
 )
 
 // StartControllers instantiates CStorPool and CStorVolumeReplica controllers
@@ -57,7 +56,7 @@ func StartControllers(kubeconfig string) {
 	}
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
-	uzfs.CheckForZrepl()
+	pool.CheckForZrepl()
 
 	// Blocking call for checking status of CStorPool CRD.
 	checkForCStorPoolCRD(openebsClient)
@@ -90,8 +89,10 @@ func StartControllers(kubeconfig string) {
 		wg.Done()
 	}()
 
-	var isBlockForever = false
-	PoolNameHandler(isBlockForever)
+	// PoolNameHandler tries to get pool name and blocks for
+	// particular number of attempts.
+	var noOfAttempts int = 3
+	PoolNameHandler(noOfAttempts)
 
 	// Run controller for cStorVolumeReplica.
 	go func() {

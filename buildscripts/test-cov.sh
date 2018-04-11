@@ -2,8 +2,6 @@
 
 set -e
 
-sh ./buildscripts/cstor-prerequisites.sh
-
 echo "" > coverage.txt
 
 for d in $(go list ./... | grep -v vendor | 

@@ -17,11 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"bytes"
-	"errors"
-	"os"
-	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -43,44 +38,27 @@ const (
 	MessageResourceSynced = "Resource synced successfully"
 )
 
+var InitialImportedPoolVol []string
+
 // QueueLoad is for storing the key and type of operation before entering workqueue
 type QueueLoad struct {
 	key       string
 	operation string
 }
 
-// PoolNameHandler tries to get pool name, if error, then block forever or
-// tries for particular number of attempts.
-func PoolNameHandler(isBlockForever bool) (string, error) {
-	for cnt := 0; ; cnt++ {
+// PoolNameHandler tries to get pool name and blocks for
+// particular number of attempts.
+func PoolNameHandler(cnt int) (string, error) {
+	for i := 0; ; i++ {
 		poolname, err := pool.GetPoolName()
 		if err != nil {
-			glog.Infof("Attempt %v: Waiting for Pool..", cnt)
+			glog.Infof("Attempt %v: Waiting for Pool..", i)
 			time.Sleep(5 * time.Second)
-			if isBlockForever {
-				continue
-			} else if cnt > 3 {
+			if i > cnt {
 				return "", err
 			}
 		} else {
 			return poolname, nil
 		}
 	}
-}
-
-func execShResult(s string) (string, error) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return "", errors.New("Missing command")
-	}
-
-	out := &bytes.Buffer{}
-	cmd := exec.Command("/bin/sh", "-c", s)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = out
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-	r := string(out.Bytes())
-	return r, nil
 }

@@ -26,6 +26,12 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+// VolumeReplicaOperator is the name of the tool that makes
+// volume-related operations.
+const (
+	VolumeReplicaOperator = "zfs"
+)
+
 // CheckValidVolumeReplica checks for validity of cStor replica resource.
 func CheckValidVolumeReplica(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica) error {
 	if cStorVolumeReplicaUpdated.Spec.VolName == "" {
@@ -39,11 +45,8 @@ func CheckValidVolumeReplica(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica)
 
 // CreateVolume creates cStor replica(zfs volumes).
 func CreateVolume(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica, fullvolname string) error {
-	var createVolAttr []string
-	createVolAttr = append(createVolAttr, "create", "-s",
-		"-V", cStorVolumeReplicaUpdated.Spec.Capacity, fullvolname)
-	volCmd := exec.Command("zfs", createVolAttr...)
-	glog.V(4).Infof("volCmd : ", volCmd)
+
+	volCmd := createVolumeBuilder(cStorVolumeReplicaUpdated, fullvolname)
 	stdoutStderr, err := volCmd.CombinedOutput()
 	if err != nil {
 		glog.Errorf("stdoutStderr: %v-%v", string(stdoutStderr), err)
@@ -54,13 +57,24 @@ func CreateVolume(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica, fullvolnam
 
 }
 
+// createVolumeBuilder builds volume creations command to run.
+func createVolumeBuilder(cStorVolumeReplicaUpdated *apis.CStorVolumeReplica, fullvolname string) *exec.Cmd {
+	var createVolAttr []string
+	createVolAttr = append(createVolAttr, "create", "-s",
+		"-V", cStorVolumeReplicaUpdated.Spec.Capacity, fullvolname)
+	volCmd := exec.Command(VolumeReplicaOperator, createVolAttr...)
+	glog.V(4).Infof("volCmd : ", volCmd)
+	return volCmd
+}
+
+// GetVolumes returns the slice of volumes
 func GetVolumes() []string {
 	poolname, err := pool.GetPoolName()
-	volStrCmd := "zfs get volsize | grep " + poolname
+	volStrCmd := VolumeReplicaOperator + " get volsize | grep " + poolname
 	volcmd := exec.Command("bash", "-c", volStrCmd)
 	stderr, err := volcmd.CombinedOutput()
 	if err != nil {
-		fmt.Errorf("Unable to get zfs vol info :%v ", err)
+		fmt.Errorf("Unable to get vol info :%v ", err)
 	}
 
 	noisyVolname := string(stderr)
@@ -76,8 +90,9 @@ func GetVolumes() []string {
 	return output
 }
 
-func DeleteVolume(volName string) error {
-	deleteVolStr := "zpool delete -f " + volName
+// DeleteVolume deletes the specified volume
+func DeleteVolume(fullVolName string) error {
+	deleteVolStr := VolumeReplicaOperator + " destroy -f " + fullVolName
 	deleteVolCmd := exec.Command("bash", "-c", deleteVolStr)
 	_, err := deleteVolCmd.CombinedOutput()
 	if err != nil {

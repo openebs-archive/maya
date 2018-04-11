@@ -55,6 +55,9 @@ type CStorVolumeReplicaController struct {
 	// cStorReplicaSynced is used for caches sync to get populated
 	cStorReplicaSynced cache.InformerSynced
 
+	// deletedIndexer holds deleted resource to be retrived after workqueue
+	deletedIndexer cache.Indexer
+
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -92,8 +95,10 @@ func NewCStorVolumeReplicaController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: replicaControllerName})
 
 	controller := &CStorVolumeReplicaController{
-		kubeclientset:      kubeclientset,
-		clientset:          clientset,
+		kubeclientset: kubeclientset,
+		clientset:     clientset,
+		deletedIndexer: cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,
+			cache.Indexers{}),
 		cStorReplicaSynced: cStorReplicaInformer.Informer().HasSynced,
 		workqueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolumeReplica"),
 		recorder:           recorder,
@@ -226,24 +231,22 @@ func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 // converge the two. It then updates the Status block of the CStorReplicaUpdated resource
 // with the current status of the resource.
 func (c *CStorVolumeReplicaController) syncHandler(key, operation string) error {
-	// Convert the key(namespace/name) string into a distinct name
-	_, name, err := cache.SplitMetaNamespaceKey(key)
-	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
-		return nil
-	}
 
-	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Get(name, metav1.GetOptions{})
+	cStorVolumeReplicaUpdated, err := c.getVolumeReplicaResource(key, operation)
 	if err != nil {
-		// The CStorReplica resource may no longer exist, in which case we stop
-		// processing.
-		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("cStorReplicaUpdated '%s' in work queue no longer exists", key))
-			return nil
-		}
-
 		return err
 	}
+
+	// PoolNameHandler tries to get pool name and blocks for
+	// particular number of attempts.
+	var noOfAttempts int = 3
+	poolname, err := PoolNameHandler(noOfAttempts)
+	if err != nil {
+		glog.Infof(err.Error())
+		return err
+	}
+	fullVolName := string(poolname) + "/" + cStorVolumeReplicaUpdated.Spec.VolName
+	glog.Infof("fullVolName: %s", fullVolName)
 
 	switch operation {
 	case "add":
@@ -256,22 +259,30 @@ func (c *CStorVolumeReplicaController) syncHandler(key, operation string) error 
 
 		glog.Info("cstor-pool-guid:", cStorVolumeReplicaUpdated.ObjectMeta.Annotations["openebs.io/cstor-pool-guid"])
 
-		var isBlockedForever = false
-		poolname, err := PoolNameHandler(isBlockedForever)
+		// To check if volume is already imported with pool.
+		importedFlag := CheckForInitialImportedPoolVol(InitialImportedPoolVol, fullVolName)
+		if importedFlag {
+			glog.Infof("CStorVolumeReplica %v is already imported", cStorVolumeReplicaUpdated.Spec.VolName)
+			return nil
+		}
 
-		fullvolname := string(poolname) + "/" + cStorVolumeReplicaUpdated.Spec.VolName
-		glog.Infof("fullvolname: %s", fullvolname)
-
-		err = volumereplica.CreateVolume(cStorVolumeReplicaUpdated, fullvolname)
+		err = volumereplica.CreateVolume(cStorVolumeReplicaUpdated, fullVolName)
 		if err != nil {
 			return err
 		}
 		break
+
 	case "update":
 		glog.Infof("updated event")
 		break
+
 	case "delete":
 		glog.Infof("deleted event")
+
+		err := volumereplica.DeleteVolume(fullVolName)
+		if err != nil {
+			return err
+		}
 		break
 	}
 
@@ -284,10 +295,60 @@ func (c *CStorVolumeReplicaController) syncHandler(key, operation string) error 
 func (c *CStorVolumeReplicaController) enqueueCStorReplica(obj interface{}, q QueueLoad) {
 	var key string
 	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
-		runtime.HandleError(err)
-		return
+
+	if q.operation == "delete" {
+		c.deletedIndexer.Add(obj)
+		key, err = cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+		if err != nil {
+			runtime.HandleError(err)
+			return
+		}
+	} else {
+		if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+			runtime.HandleError(err)
+			return
+		}
 	}
 	q.key = key
 	c.workqueue.AddRateLimited(q)
+}
+
+// getVolumeReplicaResource returns object corresponding to the resource key
+func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key, operation string) (*apis.CStorVolumeReplica, error) {
+	// Convert the key(namespace/name) string into a distinct name
+	_, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		return nil, nil
+	}
+
+	if operation == "delete" {
+		if obj, exists, err := c.deletedIndexer.GetByKey(key); err == nil && exists {
+			c.deletedIndexer.Delete(key)
+			return obj.(*apis.CStorVolumeReplica), nil
+		}
+	}
+	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Get(name, metav1.GetOptions{})
+	if err != nil {
+		// The cStorPool resource may no longer exist, in which case we stop
+		// processing.
+		if errors.IsNotFound(err) {
+			runtime.HandleError(fmt.Errorf("cStorVolumeReplicaUpdated '%s' in work queue no longer exists", key))
+			return nil, nil
+		}
+
+		return nil, err
+	}
+	return cStorVolumeReplicaUpdated, nil
+}
+
+// CheckForInitialImportedPoolVol is to check if volume is already
+// imported with pool.
+func CheckForInitialImportedPoolVol(InitialImportedPoolVol []string, fullvolname string) bool {
+	for _, initialVol := range InitialImportedPoolVol {
+		if initialVol == fullvolname {
+			return true
+		}
+	}
+	return false
 }
