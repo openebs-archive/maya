@@ -164,7 +164,7 @@ func SetNestedMap(obj map[string]interface{}, value map[string]string, fields ..
 	SetNestedField(obj, m, fields...)
 }
 
-// MergeMapOfStrings will merge the annotations from src to dest
+// MergeMapOfStrings will merge the map from src to dest
 func MergeMapOfStrings(dest map[string]string, src map[string]string) bool {
 	// nil check as storing into a nil map panics
 	if dest == nil {

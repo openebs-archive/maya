@@ -72,6 +72,35 @@ var AllValues = map[string]interface{}{
 		"nfs":   "cstor again",
 		"cool":  true,
 	},
+	//
+	"ComplexYmlStrPreIndent": `
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/e2e-az-name
+                operator: In
+                values:
+                - e2e-az1
+                - e2e-az2
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            preference:
+              matchExpressions:
+              - key: another-node-label-key
+                operator: In
+                values:
+                - another-node-label-value
+`,
+	// The entire value is expressed as a multi-line string
+	"YmlStrPreIndent": `
+    msg: Hello-OpenEBS
+    block: cstor
+    nfs: "cstor again"
+    cool: true
+`,
 	// The entire value is expressed as a multi-line string
 	"YmlStr": `
 msg: Hello-OpenEBS
@@ -124,6 +153,44 @@ cool: true
 `,
 	},
 }
+
+// ComplexYmlStrPreIndentExpected is the expected template
+// after the values are placed in the template's placeholders
+var ComplexYmlStrPreIndentExpected = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: OpenEBS-configmap
+data:
+  spec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/e2e-az-name
+              operator: In
+              values:
+              - e2e-az1
+              - e2e-az2
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+            - key: another-node-label-key
+              operator: In
+              values:
+              - another-node-label-value
+`
+
+var ComplexYmlStrPreIndentTpl = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .My.Name }}-configmap
+data:
+{{ toYaml .ComplexYmlStrPreIndent | indent 2 }}
+`
 
 // YmlExpected is the expected template
 // after the values are placed in the template's placeholders
@@ -191,7 +258,7 @@ kind: ConfigMap
 metadata:
   name: {{ .My.Name }}-configmap
 data:
-{{ toYaml .Yml | indent 2 }}
+{{ toYaml .YmlStrPreIndent | indent 2 }}
 `
 
 // FromYamlTpl shows the usage of `fromYaml` template func
@@ -307,6 +374,11 @@ data:
 func TestAll(t *testing.T) {
 
 	tests := map[string]txtTplMock{
+		"Test 'ComplexYmlStrPreIndent' condition": {
+			values:      AllValues,
+			ymlTpl:      ComplexYmlStrPreIndentTpl,
+			ymlExpected: ComplexYmlStrPreIndentExpected,
+		},
 		"Test 'yaml arr in str' condition": {
 			values:      AllValues,
 			ymlTpl:      YmlArrStrTpl,

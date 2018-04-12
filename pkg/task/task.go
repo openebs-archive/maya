@@ -19,301 +19,203 @@ package task
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
+	"time"
+
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
-	"github.com/openebs/maya/pkg/template"
+	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 )
-
-// TaskAction signifies the action to be taken
-// against a Task
-type TaskAction string
-
-const (
-	// GetTA flags a action as get. Typically used to fetch
-	// an object from its name.
-	GetTA TaskAction = "get"
-	// PutTA flags a action as put. Typically used to put
-	// an object.
-	PutTA TaskAction = "put"
-	// DeleteTA flags a action as delete. Typically used to
-	// delete an object.
-	DeleteTA TaskAction = "delete"
-)
-
-// MetaTask contains information about a Task
-type MetaTask struct {
-	// Identifier provides a unique identification of this
-	// task. There should not be two tasks with same identity.
-	Identity string `json:"identity"`
-	// Kind of the task
-	Kind string `json:"kind"`
-	// APIVersion of the task
-	APIVersion string `json:"apiVersion"`
-	// RunNamespace is the namespace where task will get
-	// executed
-	RunNamespace string `json:"runNamespace"`
-	// Action to be invoked on the task
-	Action TaskAction `json:"action"`
-	// Owner represents the owner of this task
-	Owner string `json:"owner"`
-	// ObjectName is the name of the target that is
-	// created or operated by the task
-	ObjectName string `json:"objectName"`
-	// TaskResultQueries will consist of the queries to be run against the
-	// task's result
-	TaskResultQueries []TaskResultQuery `json:"queries"`
-	// QueryType flags the kind of query to be used to extract data from the
-	// task's result
-	//
-	// NOTE:
-	//  This may be taken up when such a need arises. e.g. flag to use either
-	// Json Path, or Go Template, etc
-	//QueryType QueryType `json:"queryType"`
-}
-
-// NewMetaTask provides a new instance of MetaTask from a
-// yaml corresponding to MetaTask structure
-func NewMetaTask(yml string, values map[string]interface{}) (*MetaTask, error) {
-	// transform the yaml with provided values
-	b, err := template.AsTemplatedBytes("MetaTask", yml, values)
-	if err != nil {
-		return nil, err
-	}
-
-	// unmarshall the yaml bytes into this instance
-	var m MetaTask
-	err = yaml.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-
-	return &m, nil
-}
-
-func (m *MetaTask) isDeployment() bool {
-	return m.Kind == string(m_k8s_client.DeploymentKK)
-}
-
-func (m *MetaTask) isService() bool {
-	return m.Kind == string(m_k8s_client.ServiceKK)
-}
-
-func (m *MetaTask) isStoragePool() bool {
-	return m.Kind == string(m_k8s_client.StroagePoolCRKK)
-}
-
-func (m *MetaTask) isConfigMap() bool {
-	return m.Kind == string(m_k8s_client.ConfigMapKK)
-}
-
-func (m *MetaTask) isPVC() bool {
-	return m.Kind == string(m_k8s_client.PersistentVolumeClaimKK)
-}
-
-func (m *MetaTask) isGet() bool {
-	return m.Action == GetTA
-}
-
-func (m *MetaTask) isPut() bool {
-	return m.Action == PutTA
-}
-
-func (m *MetaTask) isDelete() bool {
-	return m.Action == DeleteTA
-}
-
-func (m *MetaTask) asRollbackInAction(objectName string) (*MetaTask, bool) {
-	// there is no rollback when original action is not put
-	if !m.isPut() {
-		return nil, false
-	}
-
-	// A put action will translate to a delete action
-	// keeping the objectName of the task same as the original
-	mt := &MetaTask{
-		Action:       DeleteTA,
-		ObjectName:   objectName,
-		Identity:     m.Identity,
-		Kind:         m.Kind,
-		APIVersion:   m.APIVersion,
-		RunNamespace: m.RunNamespace,
-		Owner:        m.Owner,
-	}
-
-	return mt, true
-}
-
-func (m *MetaTask) isExtnV1B1() bool {
-	return m.APIVersion == string(m_k8s_client.ExtensionsV1Beta1KA)
-}
-
-func (m *MetaTask) isCoreV1() bool {
-	return m.APIVersion == string(m_k8s_client.CoreV1KA)
-}
-
-func (m *MetaTask) isOEV1alpha1() bool {
-	return m.APIVersion == string(m_k8s_client.OEV1alpha1KA)
-}
-
-func (m *MetaTask) isExtnV1B1Deploy() bool {
-	return m.isExtnV1B1() && m.isDeployment()
-}
-
-func (m *MetaTask) isCoreV1Service() bool {
-	return m.isCoreV1() && m.isService()
-}
-
-func (m *MetaTask) isCoreV1PVC() bool {
-	return m.isCoreV1() && m.isPVC()
-}
-
-func (m *MetaTask) isOEV1alpha1SP() bool {
-	return m.isOEV1alpha1() && m.isStoragePool()
-}
-
-func (m *MetaTask) isPutExtnV1B1Deploy() bool {
-	return m.isExtnV1B1Deploy() && m.isPut()
-}
-
-func (m *MetaTask) isPutCoreV1Service() bool {
-	return m.isCoreV1Service() && m.isPut()
-}
-
-func (m *MetaTask) isDeleteExtnV1B1Deploy() bool {
-	return m.isExtnV1B1Deploy() && m.isDelete()
-}
-
-func (m *MetaTask) isDeleteCoreV1Service() bool {
-	return m.isCoreV1Service() && m.isDelete()
-}
-
-func (m *MetaTask) isGetOEV1alpha1SP() bool {
-	return m.isOEV1alpha1SP() && m.isGet()
-}
-
-// isGetCoreV1PVC flags if task is a GET action of
-// PVC Kind
-func (m *MetaTask) isGetCoreV1PVC() bool {
-	return m.isCoreV1PVC() && m.isGet()
-}
 
 // Task represents a task that is capable of being
 // executed in a workflow. A task execution typically
 // means invoking an API call e.g. a K8s API call.
 type Task struct {
-	// MetaTask provides the information about this
-	// task
-	MetaTask
 	// Values are the inputs that needs to be provided
 	// to this task's template i.e. yaml
 	values map[string]interface{}
 	// yml represents the YAML representation of this task
 	yml string
-	// k8sClient will make K8s API calls
-	// This is useful for mocking purposes
+}
+
+type taskExecutor struct {
+	// identity is the id of the task
+	identity string
+	// objectName is the name of the object
+	//
+	// NOTE:
+	//  object refers to the result of task execution
+	objectName string
+	// taskResultQueries is a set of queries that are run
+	// against the object after successful execution of the task
+	taskResultQueries []TaskResultQuery
+	// taskPatch is a set of patches that get applied against
+	// the task object
+	taskPatch TaskPatch
+	// metaTaskExec is the instance to be used to execute meta
+	// operations on this task
+	metaTaskExec *metaTaskExecutor
+	// task has info related to the task
+	task Task
+	// k8sClient will be used to make K8s API calls
 	k8sClient *m_k8s_client.K8sClient
 }
 
 // NewTask returns a new instance of Task
-func NewTask(identity string, metaTaskYml, taskYml string, values map[string]interface{}) (*Task, error) {
-
-	mt, err := NewMetaTask(metaTaskYml, values)
+func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]interface{}) (*taskExecutor, error) {
+	mte, err := newMetaTaskExecutor(identity, metaTaskYml, values)
 	if err != nil {
 		return nil, err
 	}
 
-	// Give a unique identification for the task if not provided
-	if len(mt.Identity) == 0 {
-		mt.Identity = identity
-	}
-
-	kc, err := m_k8s_client.NewK8sClient(mt.RunNamespace)
+	// client to make K8s API calls using the namespace on
+	// which this task is supposed to be executed
+	kc, err := m_k8s_client.NewK8sClient(mte.getRunNamespace())
 	if err != nil {
 		return nil, err
 	}
 
-	return &Task{
-		MetaTask:  *mt,
-		yml:       taskYml,
-		values:    values,
+	return &taskExecutor{
+		identity:          identity,
+		objectName:        mte.getObjectName(),
+		taskResultQueries: mte.getTaskResultQueries(),
+		taskPatch:         mte.getTaskPatch(),
+		metaTaskExec:      mte,
+		task: Task{
+			yml:    taskYml,
+			values: values,
+		},
 		k8sClient: kc,
 	}, nil
 }
 
+// getMetaTaskExecutor gets the meta task executor value
+func (m *taskExecutor) getMetaTaskExecutor() metaTaskExecutor {
+	return *m.metaTaskExec
+}
+
 // Execute will execute the Task depending on informations
 // available in Meta
-func (m *Task) execute() (result map[string]interface{}, err error) {
-
-	if m.isPutExtnV1B1Deploy() {
+func (m *taskExecutor) execute() (result map[string]interface{}, err error) {
+	if m.metaTaskExec.isPutExtnV1B1Deploy() {
 		result, err = m.putExtnV1B1Deploy()
-	} else if m.isPutCoreV1Service() {
+	} else if m.metaTaskExec.isPutAppsV1B1Deploy() {
+		result, err = m.putAppsV1B1Deploy()
+	} else if m.metaTaskExec.isPatchExtnV1B1Deploy() {
+		result, err = m.patchExtnV1B1Deploy()
+	} else if m.metaTaskExec.isPatchAppsV1B1Deploy() {
+		result, err = m.patchAppsV1B1Deploy()
+	} else if m.metaTaskExec.isPutCoreV1Service() {
 		result, err = m.putCoreV1Service()
-	} else if m.isDeleteExtnV1B1Deploy() {
+	} else if m.metaTaskExec.isDeleteExtnV1B1Deploy() {
 		result, err = m.deleteExtnV1B1Deployment()
-	} else if m.isDeleteCoreV1Service() {
+	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
+		result, err = m.deleteAppsV1B1Deployment()
+	} else if m.metaTaskExec.isDeleteCoreV1Service() {
 		result, err = m.deleteCoreV1Service()
-	} else if m.isGetOEV1alpha1SP() {
+	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		result, err = m.getOEV1alpha1SP()
-	} else if m.isGetCoreV1PVC() {
+	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		result, err = m.getCoreV1PVC()
+	} else if m.metaTaskExec.isListCoreV1Pod() {
+		result, err = m.listCoreV1Pod()
 	} else {
-		return nil, fmt.Errorf("Not supported operation: '%#v'", m.MetaTask)
+		return nil, fmt.Errorf("Not a supported operation: '%#v'", m.metaTaskExec.getMetaInfo())
 	}
 
 	return result, err
 }
 
 // asRollback will provide the rollback instance w.r.t this task's instance
-func (m *Task) asRollback(objectName string) (*Task, error) {
-	mt, willRollback := m.MetaTask.asRollbackInAction(objectName)
+func (m *taskExecutor) asRollbackInstance(objectName string) (*taskExecutor, error) {
+	mte, willRollback, err := m.metaTaskExec.asRollbackInstance(objectName)
+	if err != nil {
+		return nil, err
+	}
+
 	if !willRollback {
+		// no need of rollback
 		return nil, nil
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(mt.RunNamespace)
+	kc, err := m_k8s_client.NewK8sClient(mte.getRunNamespace())
 	if err != nil {
 		return nil, err
 	}
 
 	// Only the meta info is required for a rollback. In
-	// other words no need of yaml template & values
-	return &Task{
-		MetaTask:  *mt,
-		k8sClient: kc,
+	// other words no need of task yaml template & values
+	return &taskExecutor{
+		objectName:   mte.getObjectName(),
+		metaTaskExec: mte,
+		k8sClient:    kc,
 	}, nil
 }
 
-// asExtnV1B1Deploy generates a K8s Deployment object
+// asAppsV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
-func (m *Task) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
-	b, err := template.AsTemplatedBytes("ExtnV1beta1Deploy", m.yml, m.values)
+func (m *taskExecutor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) {
+	d, err := m_k8s.NewDeploymentYml("AppsV1B1Deploy", m.task.yml, m.task.values)
 	if err != nil {
 		return nil, err
 	}
 
-	d := m_k8s.NewDeployment(b)
+	return d.AsAppsV1B1Deployment()
+}
+
+// asExtnV1B1Deploy generates a K8s Deployment object
+// out of the embedded yaml
+func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
+	d, err := m_k8s.NewDeploymentYml("ExtnV1B11Deploy", m.task.yml, m.task.values)
+	if err != nil {
+		return nil, err
+	}
+
 	return d.AsExtnV1B1Deployment()
 }
 
 // asCoreV1Svc generates a K8s Service object
 // out of the embedded yaml
-func (m *Task) asCoreV1Svc() (*api_core_v1.Service, error) {
-	b, err := template.AsTemplatedBytes("CoreV1Svc", m.yml, m.values)
+func (m *taskExecutor) asCoreV1Svc() (*api_core_v1.Service, error) {
+	s, err := m_k8s.NewServiceYml("CoreV1Svc", m.task.yml, m.task.values)
 	if err != nil {
 		return nil, err
 	}
 
-	s := m_k8s.NewService(b)
 	return s.AsCoreV1Service()
+}
+
+// putAppsV1B1Deploy will put a Deployment as defined in
+// the Task
+func (m *taskExecutor) putAppsV1B1Deploy() (map[string]interface{}, error) {
+	d, err := m.asAppsV1B1Deploy()
+	if err != nil {
+		return nil, err
+	}
+
+	d, err = m.k8sClient.CreateAppsV1B1Deployment(d)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the results object
+	r := map[string]interface{}{
+		// set specific results with identity as the key
+		m.identity: map[string]string{
+			string(v1alpha1.ObjectNameTRTP): d.Name,
+		},
+		// set annotations with identity prefix as the key
+		m.identity + "-" + string(v1alpha1.AnnotationsTRTP): d.Annotations,
+	}
+
+	return r, nil
 }
 
 // putExtnV1B1Deploy will put a Deployment as defined in
 // the Task
-func (m *Task) putExtnV1B1Deploy() (map[string]interface{}, error) {
+func (m *taskExecutor) putExtnV1B1Deploy() (map[string]interface{}, error) {
 	d, err := m.asExtnV1B1Deploy()
 	if err != nil {
 		return nil, err
@@ -327,25 +229,59 @@ func (m *Task) putExtnV1B1Deploy() (map[string]interface{}, error) {
 	// Set the results object
 	r := map[string]interface{}{
 		// set specific results with identity as the key
-		m.Identity: map[string]string{
+		m.identity: map[string]string{
 			string(v1alpha1.ObjectNameTRTP): d.Name,
 		},
 		// set annotations with identity prefix as the key
-		m.Identity + "-" + string(v1alpha1.AnnotationsTRTP): d.Annotations,
+		m.identity + "-" + string(v1alpha1.AnnotationsTRTP): d.Annotations,
 	}
 
 	return r, nil
 }
 
+// patchAppsV1B1Deploy will patch a Deployment as defined in
+// the Task
+func (m *taskExecutor) patchAppsV1B1Deploy() (map[string]interface{}, error) {
+	return nil, fmt.Errorf("Not Implemented")
+}
+
+// patchExtnV1B1Deploy will put a Deployment as defined in
+// the Task
+func (m *taskExecutor) patchExtnV1B1Deploy() (map[string]interface{}, error) {
+	pe, err := newTaskPatchExecutor(m.taskPatch)
+	if err != nil {
+		return nil, err
+	}
+
+	pb, err := pe.build()
+	if err != nil {
+		return nil, err
+	}
+
+	deploy, err := m.k8sClient.PatchExtnV1B1DeploymentAsRaw(m.objectName, pe.patchType(), pb)
+	if err != nil {
+		return nil, err
+	}
+
+	e := newTaskResultQueryExecutor(m.identity, m.taskResultQueries, deploy)
+	return e.execute()
+}
+
+// deleteAppsV1B1Deployment will delete a Deployment as defined in
+// the Task
+func (m *taskExecutor) deleteAppsV1B1Deployment() (map[string]interface{}, error) {
+	return nil, m.k8sClient.DeleteAppsV1B1Deployment(m.objectName)
+}
+
 // deleteExtnV1B1Deployment will delete a Deployment as defined in
 // the Task
-func (m *Task) deleteExtnV1B1Deployment() (map[string]interface{}, error) {
-	return nil, m.k8sClient.DeleteExtnV1B1Deployment(m.ObjectName)
+func (m *taskExecutor) deleteExtnV1B1Deployment() (map[string]interface{}, error) {
+	return nil, m.k8sClient.DeleteExtnV1B1Deployment(m.objectName)
 }
 
 // putCoreV1Service will put a Service as defined in
 // the Task
-func (m *Task) putCoreV1Service() (map[string]interface{}, error) {
+func (m *taskExecutor) putCoreV1Service() (map[string]interface{}, error) {
 	s, err := m.asCoreV1Svc()
 	if err != nil {
 		return nil, err
@@ -360,7 +296,7 @@ func (m *Task) putCoreV1Service() (map[string]interface{}, error) {
 	// TODO Use hint e.g. jsonpath, etc in MetaTask to get:
 	// Key i.e. serviceIP & Value i.e. s.Spec.ClusterIP
 	r := map[string]interface{}{
-		m.MetaTask.Identity: map[string]string{
+		m.identity: map[string]string{
 			string(v1alpha1.ObjectNameTRTP): s.Name,
 			"serviceIP":                     s.Spec.ClusterIP,
 		},
@@ -371,13 +307,13 @@ func (m *Task) putCoreV1Service() (map[string]interface{}, error) {
 
 // deleteCoreV1Service will delete a Service as defined in
 // the Task
-func (m *Task) deleteCoreV1Service() (map[string]interface{}, error) {
-	return nil, m.k8sClient.DeleteCoreV1Service(m.ObjectName)
+func (m *taskExecutor) deleteCoreV1Service() (map[string]interface{}, error) {
+	return nil, m.k8sClient.DeleteCoreV1Service(m.objectName)
 }
 
 // getOEV1alpha1SP will get the StoragePool as defined in the Task
-func (m *Task) getOEV1alpha1SP() (map[string]interface{}, error) {
-	sp, err := m.k8sClient.GetOEV1alpha1SP(m.ObjectName)
+func (m *taskExecutor) getOEV1alpha1SP() (map[string]interface{}, error) {
+	sp, err := m.k8sClient.GetOEV1alpha1SP(m.objectName)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +321,7 @@ func (m *Task) getOEV1alpha1SP() (map[string]interface{}, error) {
 	// TODO Use hint e.g. jsonpath, etc in MetaTask to get
 	// Key(s) & corresponding Value(s)
 	r := map[string]interface{}{
-		m.MetaTask.Identity: map[string]string{
+		m.identity: map[string]string{
 			string(v1alpha1.ObjectNameTRTP): sp.Name,
 			"storagePoolPath":               sp.Spec.Path,
 		},
@@ -396,12 +332,54 @@ func (m *Task) getOEV1alpha1SP() (map[string]interface{}, error) {
 
 // getCoreV1PVC will execute GET PVC API call. It will use the info
 // available in the Task to execute this operation.
-func (m *Task) getCoreV1PVC() (map[string]interface{}, error) {
-	pvc, err := m.k8sClient.GetCoreV1PVCAsRaw(m.ObjectName)
+func (m *taskExecutor) getCoreV1PVC() (map[string]interface{}, error) {
+	pvc, err := m.k8sClient.GetCoreV1PVCAsRaw(m.objectName)
 	if err != nil {
 		return nil, err
 	}
 
-	s := NewTaskResultStorage(m.MetaTask.Identity, m.TaskResultQueries, pvc)
-	return s.store()
+	e := newTaskResultQueryExecutor(m.identity, m.taskResultQueries, pvc)
+	return e.execute()
+}
+
+// listCoreV1Pod will execute List Pod API call. It will use the info
+// available in the Task to execute this operation.
+func (m *taskExecutor) listCoreV1Pod() (map[string]interface{}, error) {
+	opts, err := m.metaTaskExec.getListOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	listFn := func() (map[string]interface{}, error) {
+		pods, err := m.k8sClient.ListCoreV1PodAsRaw(opts)
+		if err != nil {
+			return nil, err
+		}
+
+		e := newTaskResultQueryExecutor(m.identity, m.taskResultQueries, pods)
+		return e.execute()
+	}
+
+	return m.retryOnVerificationError(listFn)
+}
+
+func (m *taskExecutor) retryOnVerificationError(fn func() (map[string]interface{}, error)) (op map[string]interface{}, err error) {
+	attempts, interval := m.metaTaskExec.getRetry()
+
+	for i := 0; i < attempts; i++ {
+		op, err = fn()
+		if err == nil {
+			// return if successful func execution
+			return
+		}
+
+		if _, ok := err.(*taskResultVerifyError); !ok {
+			// return if not a verification error
+			return
+		}
+
+		time.Sleep(interval)
+	}
+	// return after exhausting all attempts
+	return
 }

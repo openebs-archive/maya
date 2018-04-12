@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/openebs/maya/cmd/maya-volume-exporter/app/command"
+	"github.com/openebs/maya/cmd/maya-exporter/app/command"
 	mayalogger "github.com/openebs/maya/pkg/logs"
 )
 

@@ -78,7 +78,7 @@ func NewCmdVolumeStats() *cobra.Command {
 // no error and returns the error if it is missing.
 func (c *CmdVolumeStatsOptions) Validate(cmd *cobra.Command) error {
 	if c.volName == "" {
-		return errors.New("--volname is missing. Please specify a volume name created")
+		return errors.New("--volname is missing. Please try running [mayactl volume list] to see list of volumes")
 	}
 	return nil
 }
@@ -93,40 +93,23 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		err2, err4      int
 		status          v1.VolStatus
 		stats1, stats2  v1.VolumeMetrics
-		repStatus       string
 		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
 
 	annotation := &Annotations{}
 	err = annotation.GetVolAnnotations(c.volName)
 	if err != nil {
-		fmt.Println("Can't get annotation, found error ", err)
-	}
-
-	if err != nil || annotation == nil {
-		fmt.Println(err)
 		return nil
 	}
-
 	if annotation.ControllerStatus != "Running" {
-		fmt.Println("Volume not reachable")
+		fmt.Println("Volume not reachable, found controller's status", annotation.ControllerStatus)
 		return nil
-	}
-
-	//replicaCount := 0
-	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
-	for _, repStatus = range replicaStatus {
-		if repStatus == "Pending" {
-			statusArray = append(statusArray, "Unknown")
-			statusArray = append(statusArray, "Unknown")
-			statusArray = append(statusArray, "Unknown")
-		}
 	}
 
 	replicas := strings.Split(annotation.Replicas, ",")
 	for _, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
-		errCode1, err := replicaClient.GetVolumeStats(replica+":9502", &status)
+		errCode1, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
 		if err != nil {
 			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
 				statusArray = append(statusArray, replica)
@@ -145,7 +128,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 	}
 
 	controllerClient := client.ControllerClient{}
-	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats1)
+	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err1 != nil {
 		if (err2 == 500) || (err2 == 503) || err1 != nil {
 			fmt.Println("Volume not Reachable\n", err1)
@@ -153,7 +136,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+":9501", &stats2)
+		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err3 != nil {
 			if err4 == 500 || err4 == 503 || err3 != nil {
 				fmt.Println("Volume not Reachable\n", err3)
@@ -282,15 +265,18 @@ func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []strin
 		err = err1
 		if err != nil {
 			fmt.Println("Can't Parse the template ", err)
+			return nil
 		}
 		err = tmpl.Execute(os.Stdout, annotation)
 		if err != nil {
 			fmt.Println("Can't execute the template ", err)
+			return nil
 		}
 
 		replicaCount, err := strconv.Atoi(a.ReplicaCount)
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
+			return nil
 		}
 		// Printing in tabular form
 		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
@@ -302,13 +288,13 @@ func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []strin
 		q.Flush()
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n----------- Performance Stats -----------\n")
+		fmt.Println("\n----------- Performance Stats -----------")
 		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
 		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/v1.BytesToMB, float64(wThroughput)/v1.BytesToMB, float64(ReadLatency)/v1.MicSec, float64(WriteLatency)/v1.MicSec)
 		w.Flush()
 
 		x := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n------------ Capacity Stats -------------\n")
+		fmt.Println("\n------------ Capacity Stats -------------")
 		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
 		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/v1.BytesToGB, actualUsed/v1.BytesToGB)
 		x.Flush()

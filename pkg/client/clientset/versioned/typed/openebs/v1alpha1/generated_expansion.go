@@ -23,4 +23,4 @@ type StoragePoolExpansion interface{}
 
 type StoragePoolClaimExpansion interface{}
 
-type VolumePolicyExpansion interface{}
+type VolumeParameterGroupExpansion interface{}

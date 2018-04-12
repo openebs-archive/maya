@@ -32,8 +32,8 @@ type Interface interface {
 	StoragePools() StoragePoolInformer
 	// StoragePoolClaims returns a StoragePoolClaimInformer.
 	StoragePoolClaims() StoragePoolClaimInformer
-	// VolumePolicies returns a VolumePolicyInformer.
-	VolumePolicies() VolumePolicyInformer
+	// VolumeParameterGroups returns a VolumeParameterGroupInformer.
+	VolumeParameterGroups() VolumeParameterGroupInformer
 }
 
 type version struct {
@@ -65,7 +65,7 @@ func (v *version) StoragePoolClaims() StoragePoolClaimInformer {
 	return &storagePoolClaimInformer{factory: v.SharedInformerFactory}
 }
 
-// VolumePolicies returns a VolumePolicyInformer.
-func (v *version) VolumePolicies() VolumePolicyInformer {
-	return &volumePolicyInformer{factory: v.SharedInformerFactory}
+// VolumeParameterGroups returns a VolumeParameterGroupInformer.
+func (v *version) VolumeParameterGroups() VolumeParameterGroupInformer {
+	return &volumeParameterGroupInformer{factory: v.SharedInformerFactory}
 }

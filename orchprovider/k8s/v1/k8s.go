@@ -374,14 +374,14 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 	}
 
 	// This ensures the dependents of Deployment e.g. ReplicaSets to be deleted
-	deletePropagationBackground := metav1.DeletePropagationBackground
+	deletePropagation := metav1.DeletePropagationForeground
 
 	// Delete the Replica Deployments first
 	if rDeploys != nil && len(rDeploys.Items) > 0 {
 		hasAtleastOneVSMObj = true
 		for _, rd := range rDeploys.Items {
 			err = dOps.Delete(rd.Name, &metav1.DeleteOptions{
-				PropagationPolicy: &deletePropagationBackground,
+				PropagationPolicy: &deletePropagation,
 			})
 			if err != nil {
 				return false, err
@@ -394,7 +394,7 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 		hasAtleastOneVSMObj = true
 		for _, cd := range cDeploys.Items {
 			err = dOps.Delete(cd.Name, &metav1.DeleteOptions{
-				PropagationPolicy: &deletePropagationBackground,
+				PropagationPolicy: &deletePropagation,
 			})
 			if err != nil {
 				return false, err
@@ -407,7 +407,7 @@ func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvision
 		hasAtleastOneVSMObj = true
 		for _, cSvc := range cSvcs.Items {
 			err = sOps.Delete(cSvc.Name, &metav1.DeleteOptions{
-				PropagationPolicy: &deletePropagationBackground,
+				PropagationPolicy: &deletePropagation,
 			})
 			if err != nil {
 				return false, err
@@ -1145,7 +1145,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
-	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", rCount, d.Name)
+	glog.Infof("Successfully added replica(s) 'count: %d' for Volume '%s'", *rCount, d.Name)
 
 	//glog.Infof("Successfully added replica #%d for VSM '%s'", rcIndex, d.Name)
 	//} -- end of for loop -- if manual replica addition
