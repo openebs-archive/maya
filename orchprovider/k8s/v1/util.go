@@ -35,14 +35,14 @@ type OpenEBSImage struct {
 	envKey v1.ENVKey
 }
 
-//
+//NewOpenEBSImage returns new image
 func NewOpenEBSImage(envKey v1.ENVKey) *OpenEBSImage {
 	return &OpenEBSImage{
 		envKey: envKey,
 	}
 }
 
-//
+//GetImage returns the image
 func (o *OpenEBSImage) GetImage(useDefault bool) string {
 	val := v1.GetEnv(o.envKey)
 
@@ -88,7 +88,7 @@ type VolumeMarker struct {
 	Values []string
 }
 
-//
+//GetValuesAsCommaSep returns  the in comma separated format
 func (a VolumeMarker) GetValuesAsCommaSep() string {
 	if len(a.Values) == 0 {
 		return ""
@@ -133,7 +133,7 @@ func GetVolumeMarkerBuilder(pairs map[string]string) *VolumeMarkerBuilder {
 	}
 }
 
-//
+//AddMarkers adds the marker
 func (p *VolumeMarkerBuilder) AddMarkers(markers []VolumeMarker) {
 	p.Items = append(p.Items, markers...)
 }
@@ -245,7 +245,7 @@ func (p *VolumeMarkerBuilder) AddReplicaIPs(pod k8sApiV1.Pod) {
 	_ = p.AddMultiples(string(v1.JivaReplicaIPsVK), ip, true)
 }
 
-//
+//AddControllerStatuses adds control status
 func (p *VolumeMarkerBuilder) AddControllerStatuses(pod k8sApiV1.Pod) {
 	status := string(pod.Status.Phase)
 
@@ -322,7 +322,7 @@ func (p *VolumeMarkerBuilder) IsVolumeRunning(pv *v1.Volume) bool {
 	return cphase == v1.ContainerRunningVV && rphase == v1.ContainerRunningVV
 }
 
-//
+//AddReplicaStatuses adds replica status
 func (p *VolumeMarkerBuilder) AddReplicaStatuses(pod k8sApiV1.Pod) {
 	status := string(pod.Status.Phase)
 
@@ -335,7 +335,7 @@ func (p *VolumeMarkerBuilder) AddReplicaStatuses(pod k8sApiV1.Pod) {
 	_ = p.AddMultiples(string(v1.JivaReplicaStatusVK), status, true)
 }
 
-//
+//AddReplicaCount adds replica count
 func (p *VolumeMarkerBuilder) AddReplicaCount(deploy k8sApisExtnsBeta1.Deployment) {
 	count := fmt.Sprint(*deploy.Spec.Replicas)
 
@@ -348,7 +348,7 @@ func (p *VolumeMarkerBuilder) AddReplicaCount(deploy k8sApisExtnsBeta1.Deploymen
 	_ = p.Add(string(v1.JivaReplicasVK), count)
 }
 
-//
+//AddVolumeCapacity adds volume capacity
 func (p *VolumeMarkerBuilder) AddVolumeCapacity(deploy k8sApisExtnsBeta1.Deployment) {
 	con := deploy.Spec.Template.Spec.Containers[0]
 
@@ -370,7 +370,7 @@ func (p *VolumeMarkerBuilder) AddVolumeCapacity(deploy k8sApisExtnsBeta1.Deploym
 	_ = p.Add(string(v1.CapacityVK), capacity)
 }
 
-//
+//AddIQN adds IQN
 func (p *VolumeMarkerBuilder) AddIQN(volumeName string) {
 	iqn := string(v1.JivaIqnFormatPrefix) + ":" + volumeName
 
@@ -383,7 +383,7 @@ func (p *VolumeMarkerBuilder) AddIQN(volumeName string) {
 	_ = p.Add(string(v1.JivaIQNVK), iqn)
 }
 
-//
+//AddControllerClusterIP adds controller cluster IP
 func (p *VolumeMarkerBuilder) AddControllerClusterIP(svc k8sApiV1.Service) {
 	ip := svc.Spec.ClusterIP
 
@@ -396,7 +396,7 @@ func (p *VolumeMarkerBuilder) AddControllerClusterIP(svc k8sApiV1.Service) {
 	_ = p.Add(string(v1.JivaControllerClusterIPVK), ip)
 }
 
-//
+//AddISCSITargetPortal adds ISCSI Target Portal
 func (p *VolumeMarkerBuilder) AddISCSITargetPortal(svc k8sApiV1.Service) {
 	ip := strings.TrimSpace(svc.Spec.ClusterIP)
 	ip = ip + ":" + string(v1.JivaISCSIPortDef)
@@ -410,16 +410,17 @@ func (p *VolumeMarkerBuilder) AddISCSITargetPortal(svc k8sApiV1.Service) {
 	_ = p.Add(string(v1.JivaTargetPortalVK), ip)
 }
 
+//AddVolumeType adds Volume Type
 func (p *VolumeMarkerBuilder) AddVolumeType(value string) {
 	_ = p.Add(string(v1.VolumeTypeVK), value)
 }
 
-//
+//AddStoragePoolPolicy adds Storage Pool Policy
 func (p *VolumeMarkerBuilder) AddStoragePoolPolicy(value string) {
 	_ = p.Add(string(v1.StoragePoolVK), value)
 }
 
-//
+//AddMonitoringPolicy adds Monitoring Policy
 func (p *VolumeMarkerBuilder) AddMonitoringPolicy(value string) {
 	_ = p.Add(string(v1.MonitorVK), value)
 }
@@ -448,6 +449,7 @@ func (p *VolumeMarkerBuilder) AsLabels() map[string]string {
 	return p.Build()
 }
 
+//LabelK8sObject structure to store label value and key
 type LabelK8sObject struct {
 	// LabelKey is the label key that will be assigned
 	// to the targetted K8s object
@@ -458,6 +460,7 @@ type LabelK8sObject struct {
 	LabelValue string
 }
 
+//NewLabelK8sObject gives a new label k8 object
 func NewLabelK8sObject(key string, val string) (*LabelK8sObject, error) {
 	if len(key) == 0 {
 		return nil, fmt.Errorf("Key is missing in label")
@@ -477,6 +480,7 @@ func (l *LabelK8sObject) generate() (string, string) {
 	return l.LabelKey, l.LabelValue
 }
 
+//MonitoringSideCar structure to store SideCarInformation
 type MonitoringSideCar struct {
 	// TargetIP is the IP Address of the
 	// service using which this sidecar will
@@ -512,7 +516,7 @@ var monSideCarTpl = k8sApiV1.Container{
 	},
 }
 
-//
+//NewMonitoringSideCar gives a new monitoring side car
 func NewMonitoringSideCar() *MonitoringSideCar {
 	// create a new instance
 	return &MonitoringSideCar{
@@ -582,6 +586,7 @@ type K8sUtilInterface interface {
 }
 
 // TODO Deprecate in favour of K8sClientV2
+
 // K8sClient is an abstraction to operate on various k8s entities.
 type K8sClient interface {
 	// IsInCluster indicates whether the operation is within cluster or in a
@@ -1097,7 +1102,7 @@ func (k *k8sUtil) getOutClusterOECS() (*versioned.Clientset, error) {
 	return nil, fmt.Errorf("out cluster OE clientset not supported in '%s'", k.Name())
 }
 
-//
+//SetControllerIPs set controller IP
 func SetControllerIPs(cp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(cp.Status.PodIP)
 	if current == "" {
@@ -1115,7 +1120,7 @@ func SetControllerIPs(cp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetReplicaIPs set replicas ip
 func SetReplicaIPs(rp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(rp.Status.PodIP)
 	if current == "" {
@@ -1133,7 +1138,7 @@ func SetReplicaIPs(rp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetControllerStatuses set controller status
 func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(string(cp.Status.Phase))
 	if current == "" {
@@ -1151,7 +1156,7 @@ func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetReplicaStatuses sets replica status
 func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(string(rp.Status.Phase))
 	if current == "" {
@@ -1171,13 +1176,18 @@ func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {
 
 // TODO
 // Not sure !!
+
+//SetServiceStatuses sets service status
 func SetServiceStatuses(svc k8sApiV1.Service, annotations map[string]string) {}
 
+//SetReplicaCount sets replica count
 func SetReplicaCount(rd k8sApisExtnsBeta1.Deployment, annotations map[string]string) {
 	annotations[string(v1.ReplicaCountAPILbl)] = fmt.Sprint(*rd.Spec.Replicas)
 }
 
 // TODO Get it from Pod
+
+//SetReplicaVolSize sets replica vol size
 func SetReplicaVolSize(rd k8sApisExtnsBeta1.Deployment, annotations map[string]string) {
 	// TODO
 	// Set the size as labels in replica deployment & extract from the label
@@ -1188,10 +1198,12 @@ func SetReplicaVolSize(rd k8sApisExtnsBeta1.Deployment, annotations map[string]s
 	annotations[string(v1.VolumeSizeAPILbl)] = size
 }
 
+//SetIQN sets IQN
 func SetIQN(vsm string, annotations map[string]string) {
 	annotations[string(v1.IQNAPILbl)] = string(v1.JivaIqnFormatPrefix) + ":" + vsm
 }
 
+//SetControllerClusterIPs sets controller cluster IPs
 func SetControllerClusterIPs(svc k8sApiV1.Service, annotations map[string]string) {
 	current := strings.TrimSpace(svc.Spec.ClusterIP)
 	if current == "" {
@@ -1209,6 +1221,7 @@ func SetControllerClusterIPs(svc k8sApiV1.Service, annotations map[string]string
 	}
 }
 
+//SetISCSITargetPortals sets ISCSI Target Portals
 func SetISCSITargetPortals(svc k8sApiV1.Service, annotations map[string]string) {
 	current := strings.TrimSpace(svc.Spec.ClusterIP)
 	if current == "" {
