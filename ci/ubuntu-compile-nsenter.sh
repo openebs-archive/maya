@@ -16,7 +16,7 @@
 set -e
 
 sudo apt-get update
-sudo apt-get install libncurses5-dev libslang2-dev gettext zlib1g-dev libselinux1-dev debhelper lsb-release pkg-config po-debconf autoconf automake autopoint libtool
+sudo apt-get install libncurses5-dev libslang2-dev gettext zlib1g-dev libselinux1-dev debhelper lsb-release pkg-config po-debconf autoconf automake autopoint libtool bison
 mkdir .tmp || true
 wget https://www.kernel.org/pub/linux/utils/util-linux/v2.30/util-linux-2.30.2.tar.gz -qO - | tar -xz -C .tmp/
 cd .tmp/util-linux-2.30.2 && ./autogen.sh && ./configure && make nsenter
