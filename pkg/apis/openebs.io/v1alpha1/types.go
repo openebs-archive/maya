@@ -162,7 +162,8 @@ type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CStorPoolSpec `json:"spec"`
+	Spec   CStorPoolSpec   `json:"spec"`
+	Status CStorPoolStatus `json:”status”`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
@@ -178,9 +179,14 @@ type DiskAttr struct {
 
 // CStorPoolAttr is to describe zpool related attributes.
 type CStorPoolAttr struct {
-	PoolName  string `json:"poolName"`
-	CacheFile string `json:"cacheFile"`
-	PoolType  string `json:"poolType"` //mirror, striped
+	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
+	PoolType         string `json:"poolType"`         //mirror, striped
+	OverProvisioning bool   `json:"overProvisioning"` //true or false
+}
+
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase string `json:"phase"` //init/online/offline/deletion-failed
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
