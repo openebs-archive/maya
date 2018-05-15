@@ -171,3 +171,22 @@ func TestNS(t *testing.T) {
 		}
 	}
 }
+
+func TestIsInCluster(t *testing.T) {
+	pvc := &v1.Volume{
+		Namespace: "default",
+	}
+
+	volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+	k8sUtl := &k8sUtil{
+		volProfile: volP,
+	}
+	re, err := k8sUtl.IsInCluster()
+	if re != true {
+		t.Errorf("Expected output was : true but got :false")
+	}
+	if err != nil {
+		t.Errorf("Expected output was : nil but got %s", err)
+	}
+}
