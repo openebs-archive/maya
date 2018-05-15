@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-IMAGEID=$( sudo docker images -q openebs/m-apiserver:ci )
+IMAGEID=$( sudo docker images -q openebs/m-apiserver:${VERSION}-ci )
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
 then 
   sudo docker login -u "${DNAME}" -p "${DPASS}";
   # Push image to docker hub
-  sudo docker push openebs/m-apiserver:ci ;
+  sudo docker push openebs/m-apiserver:${VERSION}-ci ;
   if [ ! -z "${TRAVIS_TAG}" ] ; 
   then
     # Push with different tags if tagged as a release
@@ -19,14 +19,14 @@ then
     sudo docker push openebs/m-apiserver:latest; 
   fi;
 else
-  echo "No docker credentials provided. Skip uploading openebs/m-apiserver:ci to docker hub"; 
+  echo "No docker credentials provided. Skip uploading openebs/m-apiserver:${VERSION}-ci to docker hub"; 
 fi;
 
 # Push ci image to quay.io for security scanning
 if [ ! -z "${QNAME}" ] && [ ! -z "${QPASS}" ]; 
 then 
   sudo docker login -u "${QNAME}" -p "${QPASS}" quay.io;
-  sudo docker tag ${IMAGEID} quay.io/openebs/m-apiserver:ci;
+  sudo docker tag ${IMAGEID} quay.io/openebs/m-apiserver:${VERSION}-ci;
 else
-  echo "Missing quay.io credentials. Skip uploading openebs/m-apiserver:ci to quay.io"; 
+  echo "Missing quay.io credentials. Skip uploading openebs/m-apiserver:${VERSION}-ci to quay.io"; 
 fi;

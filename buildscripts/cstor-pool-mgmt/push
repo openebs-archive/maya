@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-IMAGEID=$( sudo docker images -q openebs/cstor-pool-mgmt:ci )
+IMAGEID=$( sudo docker images -q openebs/cstor-pool-mgmt:${VERSION}-ci )
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
 then 
   sudo docker login -u "${DNAME}" -p "${DPASS}";
   # Push image to docker hub
-  sudo docker push openebs/cstor-pool-mgmt:ci ;
+  sudo docker push openebs/cstor-pool-mgmt:${VERSION}-ci ;
   if [ ! -z "${TRAVIS_TAG}" ] ; 
   then
     # Push with different tags if tagged as a release
@@ -19,5 +19,5 @@ then
     sudo docker push openebs/cstor-pool-mgmt:latest; 
   fi;
 else
-  echo "No docker credentials provided. Skip uploading openebs/cstor-pool-mgmt:ci to docker hub"; 
+  echo "No docker credentials provided. Skip uploading openebs/cstor-pool-mgmt:${VERSION}-ci to docker hub"; 
 fi;

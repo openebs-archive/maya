@@ -17,6 +17,9 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
+VERSION=$(shell cat VERSION)
+export VERSION
+
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
@@ -101,7 +104,7 @@ bootstrap:
 
 maya-image:
 	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
-	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:${VERSION}-ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/mayactl/${MAYACTL}
 	@sh buildscripts/mayactl/push
 
@@ -122,7 +125,7 @@ agent-image: maya-agent
 	@echo "--> m-agent image         "
 	@echo "----------------------------"
 	@cp bin/agent/${AGENT} buildscripts/agent/
-	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:${VERSION}-ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/agent/${AGENT}
 	@sh buildscripts/agent/push
 
@@ -139,7 +142,7 @@ exporter-image: exporter
 	@echo "--> m-exporter image         "
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${VERSION}-ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/exporter/${EXPORTER}
 	@sh buildscripts/exporter/push
 
@@ -158,7 +161,7 @@ apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${VERSION}-ci --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
