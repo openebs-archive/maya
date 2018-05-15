@@ -34,5 +34,5 @@ func TestCheckError(t *testing.T) {
     if e, ok := err.(*exec.ExitError); ok && !e.Success() {
         return
     }
-    t.Fatalf("process ran with err %v, want exit status 1", err)
+    t.Fatalf("process ran with error %v, want exit status 1", err)
 }
