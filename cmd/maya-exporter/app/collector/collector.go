@@ -313,9 +313,9 @@ func (e *VolumeExporter) collect() error {
 	aUsed = aUsed * sSize
 	aSize, _ := v1.DivideFloat64(aUsed, v1.BytesToGB)
 	actualUsed.Set(aSize)
-	size, _ := strconv.ParseInt(metrics1.Size, 10, 64)
-	size, _ = v1.DivideInt64(size, v1.BytesToGB)
-	sizeOfVolume.Set(float64(size))
+	size, _ := strconv.ParseFloat(metrics1.Size, 64)
+	size, _ = v1.DivideFloat64(size, v1.BytesToGB)
+	sizeOfVolume.Set(size)
 	url := e.VolumeControllerURL
 	url = strings.TrimSuffix(url, ":9501/v1/stats")
 	url = strings.TrimPrefix(url, "http://")
