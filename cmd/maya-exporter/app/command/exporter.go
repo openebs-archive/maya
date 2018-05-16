@@ -7,10 +7,7 @@ package command
 import (
 	"log"
 	"net/http"
-	"net/url"
 
-	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -22,15 +19,20 @@ import (
 // from the requested volume. You need to pass the controller IP using flag -c
 // at runtime as a command line argument. Type maya-exporter -h for more
 // info.
-func Entrypoint(options *VolumeExporterOptions) {
-	controllerURL, err := url.Parse(options.ControllerAddress)
-	if err != nil {
-		log.Fatal(err)
+func Initialize(options *VolumeExporterOptions) string {
+	switch option := options.StorageEngine; option {
+	case "jiva":
+		return "jiva"
+	case "cstor":
+		return "cstor"
+	default:
+		return ""
 	}
+}
 
-	exporter := collector.NewExporter(controllerURL)
-	prometheus.MustRegister(exporter)
-
+// StartMayaExporter starts an HTTP server that exposes the metrics on
+// "/metrics" endpoint.
+func (options *VolumeExporterOptions) StartMayaExporter() error {
 	log.Printf("Starting Server: %s", options.ListenAddress)
 	if options.MetricsPath == "" || options.MetricsPath == "/" {
 
@@ -53,8 +55,10 @@ func Entrypoint(options *VolumeExporterOptions) {
 
 	}
 
-	err = http.ListenAndServe(options.ListenAddress, nil)
+	err := http.ListenAndServe(options.ListenAddress, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return err
 	}
+	return err
 }
