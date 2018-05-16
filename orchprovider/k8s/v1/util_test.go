@@ -138,7 +138,6 @@ func TestK8sUtilServices(t *testing.T) {
 		}
 	}
 }
-
 func TestK8sUtilgetClientSet(t *testing.T) {
 	type fields struct {
 		namespace string
