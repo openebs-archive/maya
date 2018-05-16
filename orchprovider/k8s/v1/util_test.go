@@ -6,6 +6,7 @@ import (
 
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	"k8s.io/client-go/kubernetes"
 )
 
 // TestK8sUtilInterfaceCompliance verifies if k8sUtil implements
@@ -135,5 +136,28 @@ func TestK8sUtilServices(t *testing.T) {
 		if err != nil && err.Error() != c.err {
 			t.Errorf("TestCase: '%d' ExpectedServicesErr: '%s' ActualServicesErr: '%s'", i, c.err, err.Error())
 		}
+	}
+}
+
+func TestK8sUtilgetInClusterCS(t *testing.T) {
+	tests := []struct {
+		expectedCS  *kubernetes.Clientset
+		expectedErr bool
+	}{
+	// Add test cases.
+	}
+	for _, c := range tests {
+		k := &k8sUtil{
+			inCS: c.expectedCS,
+		}
+		gotClientset, err := k.getInClusterCS()
+		if (err != nil) != c.expectedErr {
+			t.Errorf("k8sUtil.getInClusterCS() error = %v, Expected Error %v", err, c.expectedErr)
+			return
+		}
+		if gotClientset != c.expectedCS {
+			t.Errorf("k8sUtil.getInClusterCS() = %v, want %v", gotClientset, c.expectedCS)
+		}
+
 	}
 }
