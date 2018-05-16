@@ -140,41 +140,29 @@ func TestK8sUtilServices(t *testing.T) {
 }
 
 func TestK8sUtilgetInClusterCS(t *testing.T) {
-	tests := []struct {
-		expectedCS  *kubernetes.Clientset
-		expectedErr bool
-	}{}
-	for _, c := range tests {
-		k := &k8sUtil{
-			inCS: c.expectedCS,
-		}
-		gotClientset, err := k.getInClusterCS()
-		if (err != nil) != c.expectedErr {
-			t.Errorf("k8sUtil.getInClusterCS() error = %v, Expected Error %v", err, c.expectedErr)
-			return
-		}
-		if gotClientset != c.expectedCS {
-			t.Errorf("k8sUtil.getInClusterCS() = %v, want %v", gotClientset, c.expectedCS)
-		}
-
+	type fields struct {
+		namespace string
+		inCS      *kubernetes.Clientset
 	}
-}
-
-func TestK8sUtilgetClientSet(t *testing.T) {
 	tests := []struct {
-		expectedCS    *kubernetes.Clientset
-		expectedError string
+		name              string
+		fields            fields
+		expectedClientset *kubernetes.Clientset
+		expectedErr       string
 	}{}
-	for _, c := range tests {
-		k := &k8sUtil{
-			inCS: c.expectedCS,
-		}
-		got, err := k.getClientSet()
-		if (err != nil) && err.Error() != c.expectedError {
-			t.Errorf("k8sUtil.getClientSet() error is %v, Expected error value is %v", err, c.expectedError)
-		}
-		if got != c.expectedCS {
-			t.Errorf("k8sUtil.getClientSet() = %v but expected client set value is  %v", got, c.expectedCS)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k := &k8sUtil{
+				namespace: tt.fields.namespace,
+				inCS:      tt.fields.inCS,
+			}
+			gotClientset, err := k.getInClusterCS()
+			if err != nil && err.Error() != tt.expectedErr {
+				t.Errorf("k8sUtil.getInClusterCS() error = %v, expected Error  %v", err, tt.expectedErr)
+			}
+			if gotClientset != tt.expectedClientset {
+				t.Errorf("k8sUtil.getInClusterCS() = %v, want %v", gotClientset, tt.expectedClientset)
+			}
+		})
 	}
 }
