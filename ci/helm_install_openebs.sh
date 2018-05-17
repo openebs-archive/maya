@@ -9,9 +9,9 @@ sleep 30
 kubectl get pods --all-namespaces 
 kubectl get sa
 
-helm repo add openebs-charts https://openebs.github.io/charts/
 helm repo update
-helm install openebs-charts/openebs --name ci --set apiserver.tag="ci",jiva.replicas="1"
+helm version
+helm install stable/openebs --name ci --namespace openebs --set apiserver.imageTag="ci",jiva.replicas="1"
 
 #Replace this with logic to wait till the pods are running
 sleep 30
