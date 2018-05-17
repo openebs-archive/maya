@@ -3,13 +3,13 @@
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
 [![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya) [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya) [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
 
-*Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*
+*Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya.*
 
 OpenEBS Maya extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
-- Maintaining the inventory of the underlying disks on the Kubernetes Nodes
-- Managing the allocation of Disks to CAS Storage Engines
-- Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner
-- Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods)
+- Maintaining the inventory of the underlying disks on the Kubernetes Nodes.
+- Managing the allocation of Disks to CAS Storage Engines.
+- Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner.
+- Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods).
 - Provide adapters to CAS Volumes to interact with Kubernetes and related infrastructure components like Prometheus, Grafana etc.
 
 *Maya* orchestration and management capabilities are delivered through a set of services and tools. Currently, these services support deploying the CAS Storage Solutions in Kubernetes Clusters. In future, these can be extended to support other Container Orchestrators.
@@ -20,8 +20,8 @@ OpenEBS Maya extends the capabilities of Kubernetes to orchestrate CAS (aka Cont
 **Maya** components can be broadly classified based on their deployment type as follows:
 
 - **Control Plane Components** - These are containers that are initialized as part of enabling OpenEBS in a Kubernetes cluster.
-  * *maya-apiserver* helps with creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-apiserver* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
-  * *provisioner* is an implementation of Kubernetes Dynamic Provisioner that processes the PVC requests by interacting with maya-apiserver.
+  * *maya-api-server* helps with creation of CAS Volumes and provides API endpoints to manage those volumes. *maya-api-server* can also be considered as a template engine that can be easily extended to support any kind of CAS storage solutions. It takes as input a set of CAS templates that are converted into CAS K8s YAMLs based on user requests.
+  * *provisioner* is an implementation of Kubernetes Dynamic Provisioner that processes the PVC requests by interacting with maya-api-server.
 
 - **CAS Side-car Components** - These are adapter components that help with managing the CAS containers that do not inherently come up with the required endpoints. For example:
   - *maya-exporter* helps in providing a metrics endpoint to the CAS container.
@@ -47,7 +47,7 @@ See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/
 - To build Maya from the source code, see [developer's documentation].
 - Maya uses [golang dep] to manage dependencies. Usage can be found on [dep README].
 - The source code for OpenEBS Provisioner is available at [openebs/external-storage](https://github.com/openebs/external-storage).
-- *mayactl* is shipped along with the maya-apiserver container.
+- *mayactl* is shipped along with the maya-api-server container.
 
 [Go environment]: https://golang.org/doc/install
 [developer's documentation]: https://github.com/openebs/maya/blob/master/docs/developer.md
