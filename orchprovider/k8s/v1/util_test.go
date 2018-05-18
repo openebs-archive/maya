@@ -141,25 +141,33 @@ func TestK8sUtilServices(t *testing.T) {
 // TestNS tests the namespace property of k8sUtil instance.
 func TestNS(t *testing.T) {
 
-	ns := "default"
-
-	// a noop pvc that in turn signals use of defaults
-	pvc := &v1.Volume{
-		Namespace: "default",
+	cases := []struct {
+		ns string
+	}{
+		{"default"},
+		{"test"},
 	}
 
-	volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+	for i, c := range cases {
 
-	k8sUtl := &k8sUtil{
-		volProfile: volP,
-	}
+		// a noop pvc that in turn signals use of defaults
+		pvc := &v1.Volume{
+			Namespace: c.ns,
+		}
 
-	nsActual, err := k8sUtl.NS()
-	if err != nil {
-		t.Errorf("ExpectedNSErr: 'nil' ActualNSErr: '%s'", err.Error())
-	}
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
 
-	if nsActual != ns {
-		t.Errorf("ExpectedNS: '%s' ActualNS: '%s'", ns, nsActual)
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		nsActual, err := k8sUtl.NS()
+		if err != nil {
+			t.Errorf("TestCase: '%d' ExpectedNSErr: 'nil' ActualNSErr: '%s'", i, err.Error())
+		}
+
+		if nsActual != c.ns {
+			t.Errorf("TestCase: '%d' ExpectedNS: '%s' ActualNS: '%s'", i, c.ns, nsActual)
+		}
 	}
 }
