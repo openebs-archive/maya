@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-IMAGEID=$( sudo docker images -q openebs/maya:${VERSION}-ci )
+IMAGEID=$( sudo docker images -q openebs/maya:${IMAGE_PREFIX} )
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ]; 
 then 
   sudo docker login -u "${DNAME}" -p "${DPASS}"; 
-  sudo docker push openebs/maya:${VERSION}-ci ; 
+  sudo docker push openebs/maya:${IMAGE_PREFIX} ; 
   if [ ! -z "${TRAVIS_TAG}" ] ; 
   then
     #Push the release tag image to docker hub repository
@@ -18,5 +18,5 @@ then
     sudo docker push openebs/maya:latest; 
   fi;
 else
-  echo "No docker credentials provided. Skip uploading openebs/maya:${VERSION}-ci to docker hub"; 
+  echo "No docker credentials provided. Skip uploading openebs/maya:${IMAGE_PREFIX} to docker hub"; 
 fi;
