@@ -124,7 +124,7 @@ to manage what Vault policies are accessible by jobs submitted to Nomad. The
 policies can be managed as a whitelist by using `allowed_policies` in the token
 role definition or as a blacklist by using `disallowed_policies`.
 
-If using `allowed_policies`, task's may only request Vault policies that are in
+If using `allowed_policies`, tasks may only request Vault policies that are in
 the list. If `disallowed_policies` is used, task may request any policy that is
 not in the `disallowed_policies` list. There are tradeoffs to both approaches
 but generally it is easier to use the blacklist approach and add policies that
@@ -241,6 +241,21 @@ as a command-line flag, or via an environment variable.
 
 ```
 $ VAULT_TOKEN=f02f01c2-c0d1-7cb7-6b88-8a14fada58c0 nomad agent -config /path/to/config
+```
+
+An example of what may be contained in the configuration is shown below. For
+complete documentation please see the [Nomad agent Vault integration][config]
+configuration.
+
+```hcl
+vault {
+  enabled          = true
+  ca_path          = "/etc/certs/ca"
+  cert_file        = "/var/certs/vault.crt"
+  key_file         = "/var/certs/vault.key"
+  address          = "https://vault.service.consul:8200"
+  create_from_role = "nomad-cluster"
+}
 ```
 
 ## Agent Configuration

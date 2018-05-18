@@ -50,7 +50,7 @@ that is configured with the same rolling update strategy from above.
 +        image = "nginx:1.11"
 ```
 
-The [`nomad plan` command](http://localhost:4567/docs/commands/plan.html) allows
+The [`nomad plan` command](/docs/commands/plan.html) allows
 us to visualize the series of steps the scheduler would perform. We can analyze
 this output to confirm it is correct:
 
@@ -83,7 +83,7 @@ changed, another user has modified the job and the plan's results are
 potentially invalid.
 ```
 
-Here we can see that Nomad will destroy the 3 existing tasks and create 3
+Here we can see that Nomad will destroy the 3 existing task groups and create 3
 replacements but it will occur with a rolling update with a stagger of `30s`.
 
 For more details on the `update` block, see the
