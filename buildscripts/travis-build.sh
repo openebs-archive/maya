@@ -34,12 +34,6 @@ export IMAGE_PREFIX
 SRC_REPO="$TRAVIS_BUILD_DIR"
 DST_REPO="$GOPATH/src/github.com/openebs/maya"
 
-echo "src-repo" $SRC_REPO
-echo "dst-repo" $DST_REPO
-
-echo "src-repo1" "$SRC_REPO"
-echo "dst-repo1" "$DST_REPO"
-
 if [ "$SRC_REPO" != "$DST_REPO" ];
 then
 	echo "Copying from $SRC_REPO to $DST_REPO"

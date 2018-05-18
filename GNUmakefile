@@ -17,17 +17,6 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-ifneq (${TRAVIS_BRANCH}, )
- ifeq  (${TRAVIS_BRANCH}, "master")
-  IMAGE_PREFIX = ci
- else
-  IMAGE_PREFIX = ${TRAVIS_BRANCH}-ci
- endif
-else
- IMAGE_PREFIX = local
-endif
-export IMAGE_PREFIX
-
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
