@@ -1,11 +1,31 @@
 package command
 
 import (
+	"errors"
 	goflag "flag"
+	"log"
+	"net/url"
 
 	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+)
+
+// Constants defined here are the dafault value of the flags. Which can be
+// changed while running the binary.
+const (
+	// listenAddress is the address where exporter listens for the rest api
+	// calls.
+	listenAddress = ":9500"
+	// metricsPath is the endpoint of exporter.
+	metricsPath = "/metrics"
+	// controllerAddress is the address where jiva controller listens.
+	controllerAddress = "http://localhost:9501"
+	// casType is the type of container attached storage (CAS) from which
+	// the metrics need to be exported. Default is Jiva"
+	casType = "jiva"
 )
 
 // VolumeExporterOptions is used to create flags for the monitoring command
@@ -13,6 +33,7 @@ type VolumeExporterOptions struct {
 	ListenAddress     string
 	MetricsPath       string
 	ControllerAddress string
+	CASType           string
 }
 
 // AddListenAddressFlag is used to create flag to pass the listen address of exporter.
@@ -35,15 +56,22 @@ func AddControllerAddressFlag(cmd *cobra.Command, value *string) {
 		"Address of the Jiva volume controller.")
 }
 
+// AddCASTypeFlag is used to create flag to pass the storage engine name
+func AddCASTypeFlag(cmd *cobra.Command, value *string) {
+	cmd.Flags().StringVarP(value, "cas.type", "e", *value,
+		"Type of container attached storage engine")
+}
+
 // NewCmdVolumeExporter is used to create command monitoring and it initialize
 // monitoring flags also.
 func NewCmdVolumeExporter() (*cobra.Command, error) {
 	// create an instance of VolumeExporterOptions to initialize with default
 	// values for the flags.
 	options := VolumeExporterOptions{}
-	options.ControllerAddress = "http://localhost:9501"
-	options.ListenAddress = ":9500"
-	options.MetricsPath = "/metrics"
+	options.ControllerAddress = controllerAddress
+	options.ListenAddress = listenAddress
+	options.MetricsPath = metricsPath
+	options.CASType = casType
 	cmd := &cobra.Command{
 		Short: "Collect metrics from OpenEBS volumes",
 		Long: `maya-exporter can be used to monitor openebs volumes and pools.
@@ -59,6 +87,7 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 	AddControllerAddressFlag(cmd, &options.ControllerAddress)
 	AddListenAddressFlag(cmd, &options.ListenAddress)
 	AddMetricsPathFlag(cmd, &options.MetricsPath)
+	AddCASTypeFlag(cmd, &options.CASType)
 
 	return cmd, nil
 }
@@ -67,6 +96,32 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 // nil on successful execution.
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	glog.Infof("Starting maya-exporter ...")
-	Entrypoint(options)
+	option := Initialize(options)
+	if option == "" {
+		log.Println("maya-exporter only supports jiva and cstor as storage engine")
+		return nil
+	}
+	if option == "cstor" {
+		log.Println("maya-exporter does not support cstor yet")
+		return nil
+	}
+	if option == "jiva" {
+		log.Println("Initialising maya-exporter for the jiva")
+		options.RegisterJivaStatsExporter()
+	}
+	options.StartMayaExporter()
+	return nil
+}
+
+// RegisterJivaStatsExporter parses the jiva controller URL and initialises an instance of
+// VolumeExporter.
+func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
+	controllerURL, err := url.ParseRequestURI(o.ControllerAddress)
+	if err != nil {
+		log.Println(err)
+		return errors.New("Error in parsing the URI")
+	}
+	exporter := collector.NewExporter(controllerURL)
+	prometheus.MustRegister(exporter)
 	return nil
 }
