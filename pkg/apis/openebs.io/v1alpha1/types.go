@@ -163,7 +163,7 @@ type CStorPool struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:”status”`
+	Status CStorPoolStatus `json:"status"`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
