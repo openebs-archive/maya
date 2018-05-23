@@ -163,7 +163,7 @@ type CStorPool struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:”status”`
+	Status CStorPoolStatus `json:"status"`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
@@ -206,18 +206,23 @@ type CStorPoolList struct {
 // +resource:path=cstorvolumereplica
 // +genclient:nonNamespaced
 
-// CStorVolumeReplica describes a cstor pool resource created as custom resource
+// CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec `json:"spec"`
+	Spec              CStorVolumeReplicaSpec   `json:"spec"`
+	Status            CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
 	CStorControllerIP string `json:"cStorControllerIP"`
-	VolName           string `json:"volName"`
 	Capacity          string `json:"capacity"`
+}
+
+// CStorVolumeReplicaStatus is for handling status of cvr.
+type CStorVolumeReplicaStatus struct {
+	Phase string `json:"phase"` //init/online/offline/deletion-failed
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
