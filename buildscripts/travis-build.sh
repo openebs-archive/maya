@@ -15,6 +15,9 @@
 # limitations under the License.
 
 MASTER="master"
+
+# On travis the docker image tag will be of <upstreambranch>-ci format.
+# `local` tag is at contributor's local machine for verifying with make command.
 if [ "$TRAVIS_BRANCH" != "" ]; 
 then
  if [ "$TRAVIS_BRANCH" == "$MASTER" ];
