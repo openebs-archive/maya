@@ -53,7 +53,7 @@ func AddMetricsPathFlag(cmd *cobra.Command, value *string) {
 // controllers IP.
 func AddControllerAddressFlag(cmd *cobra.Command, value *string) {
 	cmd.Flags().StringVarP(value, "controller.addr", "c", *value,
-		"Address of the Jiva volume controller.")
+		"IP address from where metrics to be exported")
 }
 
 // AddCASTypeFlag is used to create flag to pass the storage engine name
