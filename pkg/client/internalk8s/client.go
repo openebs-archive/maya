@@ -17,8 +17,6 @@ limitations under the License.
 package internalk8s
 
 import (
-	"os/user"
-
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +28,8 @@ type k8sClient struct {
 	clientSet *kubernetes.Clientset
 }
 
+// NewK8sClient returns k8sClient, it is used to do all the internal agerated
+// kubernetes operations
 func NewK8sClient() (*k8sClient, error) {
 	configPath, err := getExternalConfigPath()
 	if err != nil {
@@ -48,15 +48,7 @@ func NewK8sClient() (*k8sClient, error) {
 	}, nil
 }
 
-func getExternalConfigPath() (configPath string, err error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	configPath = currentUser.HomeDir + "/.kube/config"
-	return
-}
-
+// getEBSPersistantVolumeClaims returns claimNames, which are running on OpenEBS
 func (k *k8sClient) getEBSPersistantVolumeClaims(namespace string) (claimNames []string, err error) {
 	volumeClaimList, err := k.clientSet.Core().PersistentVolumeClaims(namespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -70,6 +62,7 @@ func (k *k8sClient) getEBSPersistantVolumeClaims(namespace string) (claimNames [
 	return
 }
 
+// GetPodWithEBSVolume returns pod running on openebs volumes
 func (k *k8sClient) GetPodWithEBSVolume(namespace string) (pods []v1.Pod, err error) {
 	// get claim Name from all namespaces
 	claimNames, err := k.getEBSPersistantVolumeClaims("")

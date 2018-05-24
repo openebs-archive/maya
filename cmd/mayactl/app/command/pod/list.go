@@ -23,18 +23,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// CmdPodListOptions holds the options for pod list
 type CmdPodListOptions struct {
 	namespace    string
 	allNameSpace bool
 }
 
+// NewCmdPodList lists all the pod, which running on openebs volumes
 func NewCmdPodList() *cobra.Command {
 	options := CmdPodListOptions{}
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all the pods running on openebs volumes",
 		Run: func(_ *cobra.Command, _ []string) {
-			err := options.ListPod()
+			err := options.listPod()
 			if err != nil {
 				fmt.Print(err)
 			}
@@ -45,7 +47,7 @@ func NewCmdPodList() *cobra.Command {
 	return cmd
 }
 
-func (c *CmdPodListOptions) ListPod() (err error) {
+func (c *CmdPodListOptions) listPod() (err error) {
 	client, err := internalk8sclient.NewK8sClient()
 	if err != nil {
 		return

@@ -17,8 +17,19 @@ limitations under the License.
 package internalk8s
 
 import (
+	"os/user"
+
 	"k8s.io/api/core/v1"
 )
+
+func getExternalConfigPath() (configPath string, err error) {
+	currentUser, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	configPath = currentUser.HomeDir + "/.kube/config"
+	return
+}
 
 func isEBSPod(claimNames []string, pod v1.Pod) bool {
 	for _, claimName := range claimNames {
