@@ -66,7 +66,7 @@ func TestIsEbsPod(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		if output := isEBSPod(test.claimNames, test.pod); output != test.expected {
+		if output := isOpenEBSPod(test.claimNames, test.pod); output != test.expected {
 			t.Fatalf("%s test expected %v but got %v", testName, test.expected, output)
 		}
 	}

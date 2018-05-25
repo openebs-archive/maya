@@ -17,11 +17,22 @@ package pod
 
 import (
 	"fmt"
+	"html/template"
+	"os"
 
-	internalk8sclient "github.com/openebs/maya/pkg/client/internalk8s"
-	"github.com/openebs/maya/pkg/util"
+	internalk8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/spf13/cobra"
+	"k8s.io/api/core/v1"
 )
+
+const podTemplate = `
+================= Pod Details =====================
+Name            		     Status
+{{range $_, $value := .}}
+{{$value.Name}}     {{$value.Status.Phase}}
+{{end}}
+===================================================
+`
 
 // CmdPodListOptions holds the options for pod list
 type CmdPodListOptions struct {
@@ -34,7 +45,7 @@ func NewCmdPodList() *cobra.Command {
 	options := CmdPodListOptions{}
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all the pods running on openebs volumes",
+		Short: "List all the pods using openebs volumes",
 		Run: func(_ *cobra.Command, _ []string) {
 			err := options.listPod()
 			if err != nil {
@@ -43,31 +54,38 @@ func NewCmdPodList() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&options.namespace, "namespace", "n", "default", "pod namespace.")
-	cmd.Flags().BoolVarP(&options.allNameSpace, "all-namespace", "a", false, "all the pod namespace.")
+	cmd.Flags().BoolVarP(&options.allNameSpace, "all-namespaces", "a", false, "If present, list all the pods using openebs volumes across all namespaces.")
 	return cmd
 }
 
 func (c *CmdPodListOptions) listPod() (err error) {
-	client, err := internalk8sclient.NewK8sClient()
-	if err != nil {
-		return
-	}
 	namespace := c.namespace
 	if c.allNameSpace {
 		namespace = ""
 	}
-	pods, err := client.GetPodWithEBSVolume(namespace)
-	if len(pods) == 0 {
-		fmt.Println("No Resources Found.")
+	clientSet, err := internalk8sclient.GetOutClusterCS()
+	if err != nil {
 		return
 	}
-	out := make([]string, len(pods)+1)
-	var i int
-	out[0] = "NAME|STATUS"
-	for _, pod := range pods {
-		i = i + 1
-		out[i] = fmt.Sprintf("%s|%s", pod.GetName(), pod.Status.Phase)
-	}
-	fmt.Println(util.FormatList(out))
+	client := internalk8sclient.NewK8sClient(clientSet, nil, namespace)
+
+	pods, err := client.GetPodWithEBSVolume()
+	c.displayPods(pods)
 	return
+}
+
+func (c *CmdPodListOptions) displayPods(pods []v1.Pod) {
+	if len(pods) == 0 {
+		fmt.Println("No Resources Found")
+		return
+	}
+	tmpl, err := template.New("PodInfo").Parse(podTemplate)
+	if err != nil {
+		fmt.Println("Error displaying output, found error :", err)
+		return
+	}
+	err = tmpl.Execute(os.Stdout, pods)
+	if err != nil {
+		fmt.Println("Error displaying pod details, found error :", err)
+	}
 }

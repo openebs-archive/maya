@@ -23,8 +23,8 @@ import (
 func NewCmdPod() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pod",
-		Short: "Provides pods running on openebs volumes",
-		Long:  "Provides pods running on openebs volumes",
+		Short: "Provides pods using openebs volumes",
+		Long:  "Provides pods using openebs volumes",
 	}
 
 	cmd.AddCommand(
