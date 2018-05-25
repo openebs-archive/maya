@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/url"
 	"time"
-
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/openebs/maya/pkg/util"
