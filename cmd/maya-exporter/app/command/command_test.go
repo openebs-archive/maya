@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
+	"net"
 	"github.com/spf13/cobra"
 )
 
@@ -34,13 +34,12 @@ func TestRegisterJivaStatsExporter(t *testing.T) {
 			},
 			output: errors.New("Error in parsing the URI"),
 		},
-        	"EmptyURL": {
+		"EmptyURL": {
 			option: &VolumeExporterOptions{
 				ControllerAddress: "",
 			},
 			output: errors.New("Error in parsing the URI"),
 		},
-
 	}
 
 	for name, tt := range cases {
@@ -49,6 +48,60 @@ func TestRegisterJivaStatsExporter(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.output) {
 				t.Fatalf("RegisterJivaStatsExporter() => [%v], want [%v]", got, tt.output)
 			}
+		})
+	}
+
+}
+
+func TestRegisterCstorStatsExporter(t *testing.T) {
+	start := make(chan struct{})
+	cases := map[string]struct {
+		option   *VolumeExporterOptions
+		sockPath string
+		output   error
+	}{
+		"ValidSocketPath": {
+			option: &VolumeExporterOptions{
+			},
+			sockPath: "anysocketpath",
+			output:   nil,
+		},
+		"InvalidSocketPath": {
+			option: &VolumeExporterOptions{
+			},
+			sockPath: "/var/sock",
+			output:   errors.New("Error in initiating the connection"),
+		},
+		"EmptyPath": {
+			option: &VolumeExporterOptions{
+			},
+
+			output: errors.New("Error in initiating the connection"),
+		},
+	}
+
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			go func() {
+				<-start
+	            ln, err := net.Listen("unix", "anysocketpath")
+	            if err != nil {
+		           t.Fatal(err)
+	            }
+	            for {
+		           _, err := ln.Accept()
+		           if err != nil {
+				       t.Fatal("Accept error: ", err)
+		           }
+                }
+			}()
+			go func() {
+				got := tt.option.RegisterCstorStatsExporter(tt.sockPath)
+			    if !reflect.DeepEqual(got, tt.output) {
+				    t.Fatalf("RegisterCstorStatsExporter() => [%v], want [%v]", got, tt.output)
+				}
+				close(start)
+			}()
 		})
 	}
 

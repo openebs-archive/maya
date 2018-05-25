@@ -4,7 +4,9 @@ import (
 	"errors"
 	goflag "flag"
 	"log"
+	"net"
 	"net/url"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
@@ -26,6 +28,9 @@ const (
 	// casType is the type of container attached storage (CAS) from which
 	// the metrics need to be exported. Default is Jiva"
 	casType = "jiva"
+	// socketPath is the path where the unix domain sockets has been created
+	// for the communication.
+	SocketPath = "/var/run/istgt_ctl_sock"
 )
 
 // VolumeExporterOptions is used to create flags for the monitoring command
@@ -53,7 +58,7 @@ func AddMetricsPathFlag(cmd *cobra.Command, value *string) {
 // controllers IP.
 func AddControllerAddressFlag(cmd *cobra.Command, value *string) {
 	cmd.Flags().StringVarP(value, "controller.addr", "c", *value,
-		"Address of the Jiva volume controller.")
+		"IP address from where metrics to be exported")
 }
 
 // AddCASTypeFlag is used to create flag to pass the storage engine name
@@ -88,7 +93,6 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 	AddListenAddressFlag(cmd, &options.ListenAddress)
 	AddMetricsPathFlag(cmd, &options.MetricsPath)
 	AddCASTypeFlag(cmd, &options.CASType)
-
 	return cmd, nil
 }
 
@@ -97,17 +101,23 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	glog.Infof("Starting maya-exporter ...")
 	option := Initialize(options)
-	if option == "" {
-		log.Println("maya-exporter only supports jiva and cstor as storage engine")
+	if len(option) == 0 {
+		glog.Fatal("maya-exporter only supports jiva and cstor as storage engine")
 		return nil
 	}
 	if option == "cstor" {
-		log.Println("maya-exporter does not support cstor yet")
-		return nil
+		glog.Infof("initialising maya-exporter for the cstor")
+		if err := options.RegisterCstorStatsExporter(SocketPath); err != nil {
+			glog.Fatal(err)
+			return nil
+		}
 	}
 	if option == "jiva" {
 		log.Println("Initialising maya-exporter for the jiva")
-		options.RegisterJivaStatsExporter()
+		if err := options.RegisterJivaStatsExporter(); err != nil {
+			glog.Fatal(err)
+			return nil
+		}
 	}
 	options.StartMayaExporter()
 	return nil
@@ -118,10 +128,33 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 	controllerURL, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
-		log.Println(err)
+		glog.Info(err)
 		return errors.New("Error in parsing the URI")
 	}
 	exporter := collector.NewExporter(controllerURL)
+	prometheus.MustRegister(exporter)
+	return nil
+}
+
+// RegisterCstorStatsExporter creates a connection with the unix domain socket
+// on the socketPath and the register the exporter for the collection of metrics.
+// Fetching the large size images from the dockerhub takes time, so this retries
+// upto 50 seconds if the istgt target has not started yet, else exits.
+func (o *VolumeExporterOptions) RegisterCstorStatsExporter(sockPath string) error {
+	var i int
+retry:
+	conn, err := net.Dial("unix", sockPath)
+	if err != nil {
+		glog.Errorln("Dial error :", err)
+		glog.Info("Sleep for 5 second and then retry initiating connection")
+		time.Sleep(5 * time.Second)
+		for {
+			i++
+			glog.Info("Retrying to connect to the server, retry count:", i)
+			goto retry
+		}
+	}
+	exporter := collector.NewStatsExporter(conn)
 	prometheus.MustRegister(exporter)
 	return nil
 }
