@@ -203,12 +203,12 @@ func (t *TaskEnvironment) Build() *TaskEnvironment {
 				continue
 			}
 			for _, nw := range resources.Networks {
-				ports := make([]*structs.Port, 0, len(nw.ReservedPorts)+len(nw.DynamicPorts))
+				ports := make([]structs.Port, 0, len(nw.ReservedPorts)+len(nw.DynamicPorts))
 				for _, port := range nw.ReservedPorts {
-					ports = append(ports, &port)
+					ports = append(ports, port)
 				}
 				for _, port := range nw.DynamicPorts {
-					ports = append(ports, &port)
+					ports = append(ports, port)
 				}
 				for _, p := range ports {
 					key := fmt.Sprintf("%s%s_%s", AddrPrefix, taskName, p.Label)
@@ -281,6 +281,20 @@ func (t *TaskEnvironment) EnvList() []string {
 func (t *TaskEnvironment) EnvMap() map[string]string {
 	m := make(map[string]string, len(t.TaskEnv))
 	for k, v := range t.TaskEnv {
+		m[k] = v
+	}
+
+	return m
+}
+
+// EnvMapAll returns the environment variables that will be set as well as node
+// meta/attrs in the map. This is appropriate for interpolation.
+func (t *TaskEnvironment) EnvMapAll() map[string]string {
+	m := make(map[string]string, len(t.TaskEnv))
+	for k, v := range t.TaskEnv {
+		m[k] = v
+	}
+	for k, v := range t.NodeValues {
 		m[k] = v
 	}
 

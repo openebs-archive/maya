@@ -1,6 +1,30 @@
+## 0.5.6 (March 31, 2017)
+
+IMPROVEMENTS:
+  * api: Improve log API error when task doesn't exist or hasn't started
+    [GH-2512]
+  * client: Improve error message when artifact downloading fails [GH-2289]
+  * client: Track task start/finish time [GH-2512]
+  * client/template: Access Node meta and attributes in template [GH-2488]
+
+BUG FIXES:
+  * core: Fix periodic job state switching to dead incorrectly [GH-2486]
+  * core: Fix dispatch of periodic job launching allocations immediately
+    [GH-2489]
+  * api: Fix TLS in logs and fs commands/APIs [GH-2290]
+  * cli/plan: Fix diff alignment and remove no change DC output [GH-2465]
+  * client: Fix panic when restarting non-running tasks [GH-2480]
+  * client: Fix env vars when multiple tasks and ports present [GH-2491]
+  * client: Fix `user` attribute disregarding membership of non-main group
+    [GH-2461]
+  * client/vault: Stop Vault token renewal on task exit [GH-2495]
+  * driver/docker: Proper reference counting through task restarts [GH-2484]
+
 ## 0.5.5 (March 14, 2017)
 
 __BACKWARDS INCOMPATIBILITIES:__
+  * api: The api package definition of a Job has changed from exposing
+    primitives to pointers to primitives to allow defaulting of unset fields.
   * driver/docker: The `load` configuration took an array of paths to images
     prior to this release. A single image is expected by the driver so this
     behavior has been changed to take a single path as a string. Jobs using the

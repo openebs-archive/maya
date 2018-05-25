@@ -25,7 +25,7 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
 
 [[constraint]]
   name = "github.com/hashicorp/nomad"
-  version = "0.5.5"
+  version = "0.5.6"
 
 [[constraint]]
   name = "github.com/ryanuber/columnize"
@@ -33,7 +33,7 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
 
 [[constraint]]
   name = "k8s.io/api"
-  branch = "release-1.8"
+  branch = "release-1.9"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
@@ -41,7 +41,7 @@ ignored = ["github.com/aws/aws-sdk-go/aws/credentials/endpointcreds","github.com
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "5.0.0"
+  version = "6.0.0"
 
 [[constraint]]
   name = "k8s.io/code-generator"

@@ -53,11 +53,11 @@ func testTaskEnvironment() *TaskEnvironment {
 	n.Name = nodeName
 	n.NodeClass = nodeClass
 
-	envVars := map[string]string{
+	envvars := map[string]string{
 		envOneKey: envOneVal,
 		envTwoKey: envTwoVal,
 	}
-	return NewTaskEnvironment(n).SetEnvvars(envVars).Build()
+	return NewTaskEnvironment(n).SetEnvvars(envvars).Build()
 }
 
 func TestEnvironment_ParseAndReplace_Env(t *testing.T) {
@@ -138,7 +138,24 @@ func TestEnvironment_ReplaceEnv_Mixed(t *testing.T) {
 func TestEnvironment_AsList(t *testing.T) {
 	n := mock.Node()
 	a := mock.Alloc()
+	a.Resources.Networks[0].ReservedPorts = append(a.Resources.Networks[0].ReservedPorts,
+		structs.Port{Label: "ssh", Value: 22},
+		structs.Port{Label: "other", Value: 1234},
+	)
 	a.TaskResources["web"].Networks[0].DynamicPorts[0].Value = 2000
+	a.TaskResources["ssh"] = &structs.Resources{
+		Networks: []*structs.NetworkResource{
+			{
+				Device: "eth0",
+				IP:     "192.168.0.100",
+				MBits:  50,
+				ReservedPorts: []structs.Port{
+					{Label: "ssh", Value: 22},
+					{Label: "other", Value: 1234},
+				},
+			},
+		},
+	}
 	env := NewTaskEnvironment(n).
 		SetNetworks(networks).
 		SetPortMap(portMap).
@@ -165,13 +182,23 @@ func TestEnvironment_AsList(t *testing.T) {
 		"NOMAD_IP_web_main=192.168.0.100",
 		"NOMAD_IP_web_http=192.168.0.100",
 		"NOMAD_TASK_NAME=taskA",
+		"NOMAD_ADDR_ssh_other=192.168.0.100:1234",
+		"NOMAD_ADDR_ssh_ssh=192.168.0.100:22",
+		"NOMAD_IP_ssh_other=192.168.0.100",
+		"NOMAD_IP_ssh_ssh=192.168.0.100",
+		"NOMAD_PORT_ssh_other=1234",
+		"NOMAD_PORT_ssh_ssh=22",
+		fmt.Sprintf("NOMAD_ALLOC_ID=%s", a.ID),
 	}
-	allocID := fmt.Sprintf("NOMAD_ALLOC_ID=%s", a.ID)
-	exp = append(exp, allocID)
 	sort.Strings(act)
 	sort.Strings(exp)
-	if !reflect.DeepEqual(act, exp) {
-		t.Fatalf("env.List() returned %v;\n want:\n%v", strings.Join(act, "\n"), strings.Join(exp, "\n"))
+	if len(act) != len(exp) {
+		t.Fatalf("wat: %d != %d", len(act), len(exp))
+	}
+	for i := range act {
+		if act[i] != exp[i] {
+			t.Errorf("%d %q != %q", i, act[i], exp[i])
+		}
 	}
 }
 
@@ -239,7 +266,7 @@ func TestEnvironment_ClearEnvvars(t *testing.T) {
 	}
 }
 
-func TestEnvironment_Interprolate(t *testing.T) {
+func TestEnvironment_Interpolate(t *testing.T) {
 	env := testTaskEnvironment().
 		SetEnvvars(map[string]string{"test": "${node.class}", "test2": "${attr.arch}"}).
 		Build()
@@ -253,7 +280,7 @@ func TestEnvironment_Interprolate(t *testing.T) {
 	}
 }
 
-func TestEnvironment_AppendHostEnvVars(t *testing.T) {
+func TestEnvironment_AppendHostEnvvars(t *testing.T) {
 	host := os.Environ()
 	if len(host) < 2 {
 		t.Skip("No host environment variables. Can't test")
