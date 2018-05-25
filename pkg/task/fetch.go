@@ -50,10 +50,20 @@ type K8sTaskSpecFetcher struct {
 //  SearchNamespace refers to the K8s namespace where a task
 // is expected to be found
 func NewK8sTaskSpecFetcher(searchNamespace string) (*K8sTaskSpecFetcher, error) {
-	kc, err := m_k8s_client.NewK8sClient(searchNamespace)
+
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, searchNamespace)
 
 	return &K8sTaskSpecFetcher{
 		k8sClient: kc,

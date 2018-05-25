@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package internalk8s
+package k8s
 
 import (
 	"os/user"
@@ -31,7 +31,7 @@ func getExternalConfigPath() (configPath string, err error) {
 	return
 }
 
-func isEBSPod(claimNames []string, pod v1.Pod) bool {
+func isOpenEBSPod(claimNames []string, pod v1.Pod) bool {
 	for _, claimName := range claimNames {
 		for _, volume := range pod.Spec.Volumes {
 			volumeClaim := volume.VolumeSource.PersistentVolumeClaim
