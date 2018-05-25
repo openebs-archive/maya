@@ -62,6 +62,12 @@ func AddCASTypeFlag(cmd *cobra.Command, value *string) {
 		"Type of container attached storage engine")
 }
 
+// AddCASTypeFlag is used to create flag to pass the storage engine name
+func AddCASTypeFlag(cmd *cobra.Command, value *string) {
+	cmd.Flags().StringVarP(value, "cas.type", "e", *value,
+		"Type of container attached storage engine")
+}
+
 // NewCmdVolumeExporter is used to create command monitoring and it initialize
 // monitoring flags also.
 func NewCmdVolumeExporter() (*cobra.Command, error) {
