@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/openebs/maya/cmd/maya-exporter/app/command"
@@ -14,7 +15,7 @@ func main() {
 	os.Exit(0)
 }
 
-// Run maya-agent
+// Run maya-exporter
 func run() error {
 	// Init logging
 	mayalogger.InitLogs()
@@ -23,6 +24,7 @@ func run() error {
 	// Create & execute new command
 	cmd, err := command.NewCmdVolumeExporter()
 	if err != nil {
+		log.Println("Can't execute the command, found err :", err)
 		return err
 	}
 
