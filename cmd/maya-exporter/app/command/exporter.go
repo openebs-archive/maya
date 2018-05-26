@@ -5,42 +5,39 @@
 package command
 
 import (
+	"errors"
 	"log"
 	"net/http"
-	"net/url"
 
-	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Entrypoint is used to monitor OpenEBS volumes or pools. It starts an instance
-// of openebs volume exporter.
+// Initialize returns the valid flags such as jiva and cstor and returns
+// null string otherwise.
+func Initialize(options *VolumeExporterOptions) string {
+	switch option := options.CASType; option {
+	case "jiva":
+		return "jiva"
+	case "cstor":
+		return "cstor"
+	default:
+		return ""
+	}
+}
 
 // We need to run several instances of Exporter for each volume just like node
 // exporter on every node. At a time one instance can gather only the metrics
 // from the requested volume. You need to pass the controller IP using flag -c
 // at runtime as a command line argument. Type maya-exporter -h for more
 // info.
-func Entrypoint(options *VolumeExporterOptions) {
-	controllerURL, err := url.Parse(options.ControllerAddress)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	exporter := collector.NewExporter(controllerURL)
-	prometheus.MustRegister(exporter)
-
-	log.Printf("Starting Server: %s", options.ListenAddress)
-	if options.MetricsPath == "" || options.MetricsPath == "/" {
-
-		http.Handle(options.MetricsPath, promhttp.Handler())
-
-	} else {
-
-		http.Handle(options.MetricsPath, promhttp.Handler())
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			homepage := `<html>
+// StartMayaExporter starts an HTTP server that exposes the metrics on
+// "/metrics" endpoint.
+func (options *VolumeExporterOptions) StartMayaExporter() error {
+	log.Println("Starting http server....")
+	http.Handle(options.MetricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		homepage := `<html>
 <head><title>OpenEBS Exporter</title></head>
 <body>
 <h1>OpenEBS Exporter</h1>
@@ -48,13 +45,12 @@ func Entrypoint(options *VolumeExporterOptions) {
 </body>
 </html>
 `
-			w.Write([]byte(homepage))
-		})
-
-	}
-
-	err = http.ListenAndServe(options.ListenAddress, nil)
+		w.Write([]byte(homepage))
+	})
+	err := http.ListenAndServe(options.ListenAddress, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return errors.New("bind address already in use, please use another address")
 	}
+	return err
 }
