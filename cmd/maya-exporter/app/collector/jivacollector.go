@@ -5,17 +5,20 @@ package collector
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+// SocketPath is path from where connection has to be created.
+const SocketPath = "/var/run/istgt_ctl_sock"
 
 // A gauge is a metric that represents a single numerical value that can
 // arbitrarily go up and down.
@@ -130,6 +133,7 @@ var (
 // the metrics of a OpenEBS (Jiva) volume.
 type VolumeExporter struct {
 	VolumeControllerURL string
+	Conn                net.Conn
 }
 
 // NewExporter returns Jiva volume controller URL along with Path.
@@ -183,11 +187,26 @@ func (e *VolumeExporter) Describe(ch chan<- *prometheus.Desc) {
 // concurrent readers.
 
 // Collect collects all the registered stats metrics from the OpenEBS volumes.
+// It tries to reconnect with the volume if there is any error via a goroutine.
 func (e *VolumeExporter) Collect(ch chan<- prometheus.Metric) {
-	if err := e.collect(); err != nil {
-		return
+	// verify if controller url is not empty
+	if len(e.VolumeControllerURL) != 0 {
+		// collect the metrics from jiva controller and send it via channels
+		if err := e.collect(); err != nil {
+			glog.Error("Error in collecting metrics, found error:", err)
+			return
+		}
+	}
+	// verify if net.Conn is not nil and proceed to collect metrics from
+	// socket.
+	if e.Conn != nil {
+		if err := collect(e); err != nil {
+			glog.Info("Error in connection, retrying")
+			go e.Retry()
+		}
 	}
 
+	// collect the metrics extracted by collect methods called above
 	readIOPS.Collect(ch)
 	readTimePS.Collect(ch)
 	readBlockCountPS.Collect(ch)
@@ -214,14 +233,14 @@ func (e *VolumeExporter) getVolumeStats(obj interface{}) error {
 	resp, err := httpClient.Get(e.VolumeControllerURL)
 
 	if err != nil {
-		log.Printf("could not retrieve OpenEBS Volume controller metrics: %v", err)
+		glog.Infof("could not retrieve OpenEBS Volume controller metrics: %v", err)
 		return err
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(obj)
 
 	if err != nil {
-		log.Printf("could not decode OpenEBS Volume controller metrics: %v", err)
+		glog.Infof("could not decode OpenEBS Volume controller metrics: %v", err)
 		return err
 	}
 
@@ -239,29 +258,23 @@ func (e *VolumeExporter) collect() error {
 
 	err := e.getVolumeStats(&metrics1)
 	if err != nil {
-		fmt.Printf("Could not decode: %v", err)
+		glog.Infof("Could not decode: %v", err)
 	}
 
 	time.Sleep(1 * time.Second)
 	err = e.getVolumeStats(&metrics2)
 	if err != nil {
-		fmt.Printf("Could not decode: %v", err)
+		glog.Infof("Could not decode: %v", err)
 	}
 
 	// i and f is used for initial and final
-	iRIOPS, _ := strconv.ParseInt(metrics1.ReadIOPS, 10, 64)
-	fRIOPS, _ := strconv.ParseInt(metrics2.ReadIOPS, 10, 64)
-	rIOPS, _ := v1.SubstractInt64(fRIOPS, iRIOPS)
+	rIOPS, _ := v1.ParseAndSubstract(metrics1.ReadIOPS, metrics2.ReadIOPS)
 	readIOPS.Set(float64(rIOPS))
 
-	iRTimePS, _ := strconv.ParseInt(metrics1.TotalReadTime, 10, 64)
-	fRTimePS, _ := strconv.ParseInt(metrics2.TotalReadTime, 10, 64)
-	rTimePS, _ := v1.SubstractInt64(fRTimePS, iRTimePS)
+	rTimePS, _ := v1.ParseAndSubstract(metrics1.TotalReadTime, metrics2.TotalReadTime)
 	readTimePS.Set(float64(rTimePS))
 
-	iRBCountPS, _ := strconv.ParseInt(metrics1.TotalReadBlockCount, 10, 64)
-	fRBCountPS, _ := strconv.ParseInt(metrics2.TotalReadBlockCount, 10, 64)
-	rBCountPS, _ := v1.SubstractInt64(fRBCountPS, iRBCountPS)
+	rBCountPS, _ := v1.ParseAndSubstract(metrics1.TotalReadBlockCount, metrics2.TotalReadBlockCount)
 	readBlockCountPS.Set(float64(rBCountPS))
 
 	if rIOPS != 0 {
@@ -276,19 +289,13 @@ func (e *VolumeExporter) collect() error {
 		avgReadBlockCountPS.Set(0)
 	}
 
-	iWIOPS, _ := strconv.ParseInt(metrics1.WriteIOPS, 10, 64)
-	fWIOPS, _ := strconv.ParseInt(metrics2.WriteIOPS, 10, 64)
-	wIOPS, _ := v1.SubstractInt64(fWIOPS, iWIOPS)
+	wIOPS, _ := v1.ParseAndSubstract(metrics1.WriteIOPS, metrics2.WriteIOPS)
 	writeIOPS.Set(float64(wIOPS))
 
-	iWTimePS, _ := strconv.ParseInt(metrics1.TotalWriteTime, 10, 64)
-	fWTimePS, _ := strconv.ParseInt(metrics2.TotalWriteTime, 10, 64)
-	wTimePS, _ := v1.SubstractInt64(fWTimePS, iWTimePS)
+	wTimePS, _ := v1.ParseAndSubstract(metrics1.TotalWriteTime, metrics2.TotalWriteTime)
 	writeTimePS.Set(float64(wTimePS))
 
-	iWBCountPS, _ := strconv.ParseInt(metrics1.TotalWriteBlockCount, 10, 64)
-	fWBCountPS, _ := strconv.ParseInt(metrics2.TotalWriteBlockCount, 10, 64)
-	wBCountPS, _ := v1.SubstractInt64(fWBCountPS, iWBCountPS)
+	wBCountPS, _ := v1.ParseAndSubstract(metrics1.TotalWriteBlockCount, metrics2.TotalWriteBlockCount)
 	writeBlockCountPS.Set(float64(wBCountPS))
 
 	if wIOPS != 0 {
@@ -321,4 +328,27 @@ func (e *VolumeExporter) collect() error {
 	url = strings.TrimPrefix(url, "http://")
 	volumeUpTime.WithLabelValues(metrics1.Name, "iqn.2016-09.com.openebs.jiva:"+metrics1.Name, url).Set(metrics1.UpTime)
 	return nil
+}
+
+// Retry tries to initiates the connection with the socket. It retries
+// untill the connection is established.
+func (e *VolumeExporter) Retry() {
+	var (
+		i   int
+		err error
+	)
+
+retry:
+	e.Conn, err = net.Dial("unix", SocketPath)
+	if err != nil {
+		glog.Errorln("Dial error :", err)
+		glog.Info("Sleep for 5 second and then retry initiating connection.")
+		time.Sleep(5 * time.Second)
+		for {
+			i++
+			glog.Info("Retrying to connect to the server, retry count :", i)
+			goto retry
+		}
+	}
+	glog.Info("Connection established")
 }
