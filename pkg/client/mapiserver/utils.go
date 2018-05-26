@@ -5,6 +5,9 @@ import (
 	"os"
 )
 
+var apiserverFlagPresent bool = false
+var apiserverFlagValue string = ""
+
 func Initialize() {
 	mapiaddr := os.Getenv("MAPI_ADDR")
 	if mapiaddr == "" {
@@ -13,7 +16,18 @@ func Initialize() {
 	}
 }
 
+// Function to set value for variable apiserverFlagValue if apiserver flag is present
+func SetFlag(value string) {
+	apiserverFlagPresent = true
+	apiserverFlagValue = value
+}
+
 func GetURL() string {
+	//If apiserver flag is present get maya server ip from apiserver flag
+	if apiserverFlagPresent {
+		return apiserverFlagValue
+	}
+	// If flag is not presetn get maya server ip from environment variable
 	return os.Getenv("MAPI_ADDR")
 }
 
