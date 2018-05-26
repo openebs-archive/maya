@@ -42,7 +42,6 @@ type CmdVolumesListOptions struct {
 // NewCmdVolumesList display status of OpenEBS Volume(s)
 func NewCmdVolumesList() *cobra.Command {
 	options := CmdVolumesListOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Display status information about Volume(s)",
