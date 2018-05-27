@@ -20,13 +20,14 @@ GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
+ISCSI_MGMT=cstor-iscsi-mgmt
 AGENT=maya-agent
 EXPORTER=maya-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image maya-agent
+all: mayactl apiserver-image exporter-image maya-agent iscsi-mgmt-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -46,6 +47,7 @@ clean:
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}
+	rm -rf ${GOPATH}/bin/${ISCSI_MGMT}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -108,6 +110,22 @@ maya-image:
 # You might need to use sudo
 install: bin/maya/${MAYACTL}
 	install -o root -g root -m 0755 ./bin/maya/${MAYACTL} /usr/local/bin/${MAYACTL}
+
+#Use this to build cstor-iscsi-mgmt
+cstor-iscsi-mgmt:
+	@echo "----------------------------"
+	@echo "--> cstor-iscsi-mgmt           "            
+	@echo "----------------------------"
+	@CTLNAME=${ISCSI_MGMT} sh -c "'$(PWD)/buildscripts/cstor-iscsi-mgmt/build.sh'"
+
+iscsi-mgmt-image: cstor-iscsi-mgmt
+	@echo "----------------------------"
+	@echo "--> cstor-iscsi-mgmt image         "
+	@echo "----------------------------"
+	@cp bin/cstor-iscsi-mgmt/${ISCSI_MGMT} buildscripts/cstor-iscsi-mgmt/
+	@cd buildscripts/cstor-iscsi-mgmt && sudo docker build -t openebs/cstor-iscsi-mgmt:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/cstor-iscsi-mgmt/${ISCSI_MGMT}
+	@sh buildscripts/cstor-iscsi-mgmt/push
 
 # Use this to build only the maya-agent.
 maya-agent:
