@@ -16,10 +16,13 @@ package command
 
 import (
 	"flag"
+	"os"
 
 	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/spf13/cobra"
 )
+
+var mapiaddr string
 
 // NewCommand creates the `maya` command and its nested children.
 func NewMayaCommand() *cobra.Command {
@@ -27,6 +30,17 @@ func NewMayaCommand() *cobra.Command {
 		Use:   "mayactl",
 		Short: "Maya means 'Magic'a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if mapiaddr != "" {
+				mapiaddr = "http://" + mapiaddr + ":5656"
+				os.Setenv("MAPI_ADDR", mapiaddr)
+			}
+		},
+		PersistentPostRun: func(cmd *cobra.Command, args []string) {
+			if mapiaddr != "" {
+				os.Unsetenv("MAPI_ADDR")
+			}
+		},
 	}
 
 	cmd.AddCommand(
@@ -37,7 +51,7 @@ func NewMayaCommand() *cobra.Command {
 
 	// add the glog flags
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-
+	cmd.PersistentFlags().StringVar(&mapiaddr, "mapiaddr", "", "Address of m-api-server")
 	// TODO: switch to a different logging library.
 	flag.CommandLine.Parse([]string{})
 
