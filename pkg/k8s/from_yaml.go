@@ -19,9 +19,11 @@ package k8s
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
 
 	"github.com/openebs/maya/pkg/template"
+	"github.com/openebs/maya/types/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
@@ -32,16 +34,37 @@ type DeploymentYml struct {
 	// YmlInBytes represents a K8s Deployment in
 	// yaml format
 	YmlInBytes []byte
+	// custom Lables
+	customLables map[string]string
 }
 
-func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
+func appendCustomLabels(oldLables, customLables map[string]string) map[string]string {
+
+	// check is replica deployment
+	_, ok := oldLables[string(v1.ReplicaSelectorKey)]
+	if ok {
+		// check custom lables for replica deployment
+		customLable, ok := customLables[v1.CustomReplicaLables]
+		if ok {
+			parsedLable := parseLables(customLable)
+			// add lables to deployment
+			for key, val := range parsedLable {
+				oldLables[key] = val
+			}
+		}
+	}
+	return oldLables
+}
+
+func NewDeploymentYml(context, yml string, values map[string]interface{}, customLables map[string]string) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DeploymentYml{
-		YmlInBytes: b,
+		YmlInBytes:   b,
+		customLables: customLables,
 	}, nil
 }
 
@@ -58,6 +81,8 @@ func (m *DeploymentYml) AsExtnV1B1Deployment() (*api_extn_v1beta1.Deployment, er
 		return nil, err
 	}
 
+	deploy.Labels = appendCustomLabels(deploy.Labels, m.customLables)
+
 	return deploy, nil
 }
 
@@ -73,6 +98,8 @@ func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, er
 	if err != nil {
 		return nil, err
 	}
+
+	deploy.Labels = appendCustomLabels(deploy.Labels, m.customLables)
 
 	return deploy, nil
 }

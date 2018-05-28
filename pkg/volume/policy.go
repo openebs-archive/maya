@@ -39,6 +39,8 @@ type policyEngine struct {
 	taskSpecFetcher task.TaskSpecFetcher
 	// taskRunner will run the tasks
 	taskRunner *task.TaskRunner
+	// custom lables will be used to add user defined lables
+	customLables map[string]string
 }
 
 // PolicyEngine returns a new instance of policyEngine based on
@@ -48,7 +50,7 @@ type policyEngine struct {
 //  volumeVals are the properties set against Volume as top level property.
 // These volume values are set at **runtime** by the clients and provided to this
 // engine
-func PolicyEngine(volumeParamGrp *v1alpha1.VolumeParameterGroup, volumeVals map[string]string) (*policyEngine, error) {
+func PolicyEngine(volumeParamGrp *v1alpha1.VolumeParameterGroup, volumeVals map[string]string, customLables map[string]string) (*policyEngine, error) {
 	if volumeParamGrp == nil {
 		return nil, fmt.Errorf("Nil policy")
 	}
@@ -74,6 +76,7 @@ func PolicyEngine(volumeParamGrp *v1alpha1.VolumeParameterGroup, volumeVals map[
 		},
 		taskSpecFetcher: f,
 		taskRunner:      r,
+		customLables:    customLables,
 	}, nil
 }
 
@@ -213,7 +216,7 @@ func (p *policyEngine) execute() (annotations map[string]string, err error) {
 		return nil, err
 	}
 
-	err = p.taskRunner.Run(p.values, p.addTaskResultsToTaskResultTLP)
+	err = p.taskRunner.Run(p.values, p.addTaskResultsToTaskResultTLP, p.customLables)
 	if err != nil {
 		return nil, err
 	}

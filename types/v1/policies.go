@@ -178,3 +178,10 @@ const (
 	// VolumeNotRunningVV represents container not-running state
 	VolumeNotRunningVV VolumeValue = "NotRunning"
 )
+
+// CustomLable is a typed string used to represent openebs
+// custom lable related values
+
+const (
+	CustomReplicaLables = "openebs.io/jiva-vol-rep-labels"
+)

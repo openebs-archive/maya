@@ -109,11 +109,11 @@ func (m *TaskRunner) rollback() {
 //
 // NOTE:
 //  The error is logged with verbose details before being returned
-func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
+func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn, customLables map[string]string) error {
 	for _, tSpec := range m.taskSpecs {
 		// build a task executor
 		// this is all about utilizing the meta task information
-		te, err := newTaskExecutor(tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml, values)
+		te, err := newTaskExecutor(tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml, values, customLables)
 		if err != nil {
 			// log with verbose details
 			glog.Errorf("Failed to execute task: Identity: '%s' Meta YAML: '%s' Values: '%#v'", tSpec.identity, tSpec.metaTaskYml, values)
@@ -167,8 +167,8 @@ func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostT
 //
 // NOTE: values will be modified to include the results from execution of
 // each task
-func (m *TaskRunner) Run(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
-	err := m.runTasks(values, postTaskRunFn)
+func (m *TaskRunner) Run(values map[string]interface{}, postTaskRunFn PostTaskRunFn, customLables map[string]string) error {
+	err := m.runTasks(values, postTaskRunFn, customLables)
 	if err != nil {
 		glog.Errorf("Failed to execute task: will rollback previous task(s): Error: '%s'", err.Error())
 		m.rollback()
