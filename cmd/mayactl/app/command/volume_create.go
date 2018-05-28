@@ -79,7 +79,7 @@ func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
 // Run does tasks related to mayaserver.
 func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
-	err := CheckVolume(c.volName)
+	err := IsVolumeExist(c.volName)
 	if err != nil {
 		return err
 	}
@@ -93,8 +93,8 @@ func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	return nil
 }
 
-// CheckVolume checks whether the volume already exists or not
-func CheckVolume(volname string) error {
+// IsVolumeExist checks whether the volume already exists or not
+func IsVolumeExist(volname string) error {
 	var vsms mtypesv1.VolumeList
 	err := mapiserver.ListVolumes(&vsms)
 	if err != nil {
