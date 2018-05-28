@@ -3,13 +3,13 @@
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
 [![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya) [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya) [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
 
-*Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*
+*Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*.
 
-OpenEBS Maya extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
-- Maintaining the inventory of the underlying disks on the Kubernetes Nodes
-- Managing the allocation of Disks to CAS Storage Engines
-- Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner
-- Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods)
+*OpenEBS Maya* extends the capabilities of Kubernetes to orchestrate CAS (aka Container Native) Storage Solutions like OpenEBS Jiva, OpenEBS cStor, etc. *Maya* (meaning *Magic*), seamlessly integrates into the Kubernetes Storage Workflow and helps provision and manage the CAS based Storage Volumes. The core-features of *Maya* include:
+- Maintaining the inventory of the underlying disks on the Kubernetes Nodes.
+- Managing the allocation of Disks to CAS Storage Engines.
+- Provisioning of CAS Volumes by interfacing with K8s Dynamic Volume Provisioner.
+- Managing the high availability of the CAS volumes by tuning the scheduling parameters of CAS Deployments (Pods).
 - Provide adapters to CAS Volumes to interact with Kubernetes and related infrastructure components like Prometheus, Grafana etc.
 
 *Maya* orchestration and management capabilities are delivered through a set of services and tools. Currently, these services support deploying the CAS Storage Solutions in Kubernetes Clusters. In future, these can be extended to support other Container Orchestrators.
