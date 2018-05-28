@@ -22,6 +22,7 @@ import (
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
+	mtypesv1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -78,7 +79,10 @@ func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
 // Run does tasks related to mayaserver.
 func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
-
+	err := CheckVolume(c.volName)
+	if err != nil {
+		return err
+	}
 	resp := mapiserver.CreateVolume(c.volName, c.size)
 	if resp != nil {
 		return fmt.Errorf("Error: %v", resp)
@@ -86,5 +90,20 @@ func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 	fmt.Printf("Volume Successfully Created:%v\n", c.volName)
 
+	return nil
+}
+
+// CheckVolume checks whether the volume already exists or not
+func CheckVolume(volname string) error {
+	var vsms mtypesv1.VolumeList
+	err := mapiserver.ListVolumes(&vsms)
+	if err != nil {
+		return err
+	}
+	for _, items := range vsms.Items {
+		if volname == items.ObjectMeta.Name {
+			return fmt.Errorf("Error: Volume %v already exist ", volname)
+		}
+	}
 	return nil
 }
