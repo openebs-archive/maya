@@ -38,6 +38,8 @@ type Task struct {
 	values map[string]interface{}
 	// yml represents the YAML representation of this task
 	yml string
+	// custom lables
+	customLables map[string]string
 }
 
 type taskExecutor struct {
@@ -64,7 +66,7 @@ type taskExecutor struct {
 }
 
 // NewTask returns a new instance of Task
-func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]interface{}) (*taskExecutor, error) {
+func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]interface{}, customLables map[string]string) (*taskExecutor, error) {
 	mte, err := newMetaTaskExecutor(identity, metaTaskYml, values)
 	if err != nil {
 		return nil, err
@@ -84,8 +86,9 @@ func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]in
 		taskPatch:         mte.getTaskPatch(),
 		metaTaskExec:      mte,
 		task: Task{
-			yml:    taskYml,
-			values: values,
+			yml:          taskYml,
+			values:       values,
+			customLables: customLables,
 		},
 		k8sClient: kc,
 	}, nil
@@ -157,7 +160,7 @@ func (m *taskExecutor) asRollbackInstance(objectName string) (*taskExecutor, err
 // asAppsV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *taskExecutor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) {
-	d, err := m_k8s.NewDeploymentYml("AppsV1B1Deploy", m.task.yml, m.task.values)
+	d, err := m_k8s.NewDeploymentYml("AppsV1B1Deploy", m.task.yml, m.task.values, m.task.customLables)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +171,7 @@ func (m *taskExecutor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) 
 // asExtnV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
-	d, err := m_k8s.NewDeploymentYml("ExtnV1B11Deploy", m.task.yml, m.task.values)
+	d, err := m_k8s.NewDeploymentYml("ExtnV1B11Deploy", m.task.yml, m.task.values, m.task.customLables)
 	if err != nil {
 		return nil, err
 	}

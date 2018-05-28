@@ -97,7 +97,12 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 	if err != nil {
 		return nil, err
 	}
+	customLables := make(map[string]string, 0)
 
+	// custom replica lables
+	if val, ok := sc.Parameters[v1.CustomReplicaLables]; ok {
+		customLables[v1.CustomReplicaLables] = val
+	}
 	// TODO
 	// verify the provisioner & its
 	// version that are set in the storage class
@@ -120,7 +125,7 @@ func (v *VolumeOperation) Create() (*v1.Volume, error) {
 		string(v1alpha1.CapacityVTP):              capacity,
 		string(v1alpha1.RunNamespaceVTP):          ns,
 		string(v1alpha1.PersistentVolumeClaimVTP): v.volume.Labels.K8sPersistentVolumeClaim,
-	})
+	}, customLables)
 	if err != nil {
 		return nil, err
 	}
