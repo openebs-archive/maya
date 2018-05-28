@@ -19,9 +19,12 @@ package command
 import (
 	"fmt"
 	"runtime"
+	"strconv"
+	"strings"
 
 	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/pkg/client/mapiserver"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -50,8 +53,67 @@ maya version
 			fmt.Println("m-apiserver status: ", mapiserver.GetConnectionStatus())
 
 			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
+			util.CheckErr(checkLatestVersion(version.GetVersion()), util.Fatal)
 		},
 	}
 
 	return cmd
+}
+
+func checkLatestVersion(installedVersion string) error {
+	if installedVersion == "" {
+		return fmt.Errorf("GetVersion() returning empty string")
+	}
+
+	// removes first character i.e 'v' from the version
+	installedVersion = installedVersion[1:]
+
+	latestVersion, err := version.GetLatestRelease()
+	if err != nil {
+		return fmt.Errorf("found error - %s", err)
+	}
+
+	latest := parseVersion(latestVersion)
+	installed := parseVersion(installedVersion)
+
+	if latest == nil || installed == nil {
+		return fmt.Errorf("parseVersion() returning empty string")
+	}
+
+	flag := false
+
+	if installed[0] < latest[0] {
+		flag = true
+	} else if installed[1] < latest[1] && installed[0] == latest[0] {
+		flag = true
+	} else if installed[2] < latest[2] && installed[1] == latest[1] && installed[0] == latest[0] {
+		flag = true
+	}
+
+	if flag == true {
+		fmt.Println()
+		fmt.Println("A newer version of mayactl is available!")
+		fmt.Printf("Installed Version: v%s\n", installedVersion)
+		fmt.Printf("Latest version: v%s\n", latestVersion)
+	} else {
+		fmt.Println()
+		fmt.Println("You're running an up-to-date version of mayactl!")
+	}
+
+	return nil
+}
+
+func parseVersion(version string) []int64 {
+	versionList := strings.Split(version, ".")
+	versionNumber := []int64{}
+
+	for _, v := range versionList {
+		j, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			fmt.Printf("Unable to parse string to integer. \n Error - %s\n", err)
+			return nil
+		}
+		versionNumber = append(versionNumber, j)
+	}
+	return versionNumber
 }

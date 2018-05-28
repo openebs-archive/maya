@@ -17,11 +17,15 @@ limitations under the License.
 package version
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var (
@@ -31,6 +35,9 @@ var (
 	// Version show the version number,fill in by the compiler
 	Version string
 
+	// LatestVersion shows the latest version available
+	LatestVersion string
+
 	// VersionPrerelease is a pre-release marker for the version. If this is "" (empty string)
 	// then it means that it is a final release. Otherwise, this is a pre-release
 	// such as "dev" (in development), "beta", "rc1", etc.
@@ -38,7 +45,18 @@ var (
 
 	versionFile   = "/src/github.com/openebs/maya/VERSION"
 	buildMetaFile = "/src/github.com/openebs/maya/BUILDMETA"
+
+	// GitAPI stores the prefix of api
+	GitAPI = "https://api.github.com"
 )
+
+const (
+	httpTimeout = 5 * time.Second
+)
+
+type release struct {
+	TagName string `json:"tag_name"`
+}
 
 func GetVersion() string {
 	if Version != "" {
@@ -77,4 +95,50 @@ func GetGitCommit() string {
 		return ""
 	}
 	return strings.TrimSpace(string(output))
+}
+
+// GetLatestRelease returns the latest version available
+func GetLatestRelease() (string, error) {
+
+	url := GitAPI + "/repos/openebs/maya/releases"
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Unable to make a GET request. \n Error - %s\n", err)
+		return "", err
+	}
+
+	client := &http.Client{
+		Timeout: httpTimeout,
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Request timeout occured. \n Error - %s\n", err)
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Unable to read body. \n Error - %s\n", err)
+		return "", err
+	}
+
+	Release := []release{}
+
+	err = json.Unmarshal(body, &Release)
+	if err != nil {
+		fmt.Printf("Unable to unmarshal json body of latest release. \n Error%s\n", err)
+		return "", err
+	}
+
+	// To get the latest stabled version
+	for _, r := range Release {
+		if !strings.Contains(r.TagName, "RC") {
+			LatestVersion = r.TagName
+			break
+		}
+	}
+
+	return LatestVersion, nil
 }
