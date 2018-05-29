@@ -41,6 +41,7 @@ maya version
 	`,
 
 		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(checkLatestVersion(version.GetVersion()), util.Fatal)
 			fmt.Printf("Version: %s\n",
 				version.GetVersion()+version.GetBuildMeta())
 			fmt.Printf("Git commit: %s\n", version.GetGitCommit())
@@ -53,7 +54,7 @@ maya version
 			fmt.Println("m-apiserver status: ", mapiserver.GetConnectionStatus())
 
 			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
-			util.CheckErr(checkLatestVersion(version.GetVersion()), util.Fatal)
+
 		},
 	}
 
@@ -77,7 +78,7 @@ func checkLatestVersion(installedVersion string) error {
 	installed := parseVersion(installedVersion)
 
 	if latest == nil || installed == nil {
-		return fmt.Errorf("parseVersion() returning empty string")
+		return fmt.Errorf("error in parsing string")
 	}
 
 	flag := false
@@ -91,13 +92,10 @@ func checkLatestVersion(installedVersion string) error {
 	}
 
 	if flag == true {
-		fmt.Println()
 		fmt.Println("A newer version of mayactl is available!")
 		fmt.Printf("Installed Version: v%s\n", installedVersion)
 		fmt.Printf("Latest version: v%s\n", latestVersion)
-	} else {
 		fmt.Println()
-		fmt.Println("You're running an up-to-date version of mayactl!")
 	}
 
 	return nil
@@ -110,7 +108,7 @@ func parseVersion(version string) []int64 {
 	for _, v := range versionList {
 		j, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
-			fmt.Printf("Unable to parse string to integer. \n Error - %s\n", err)
+			fmt.Printf("Error - %s\n", err)
 			return nil
 		}
 		versionNumber = append(versionNumber, j)

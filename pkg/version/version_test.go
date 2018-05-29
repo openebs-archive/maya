@@ -36,7 +36,7 @@ func TestGetLatestRelease(t *testing.T) {
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
-			GitAPI = server.URL
+			GitAPIAddr = server.URL
 			got, _ := GetLatestRelease()
 			if got != tt.output {
 				t.Errorf("Actual - %s Expected - %s", got, tt.output)

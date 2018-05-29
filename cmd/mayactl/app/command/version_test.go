@@ -14,15 +14,15 @@ var (
 )
 
 func TestCheckLatestVersion(t *testing.T) {
-	cases := []struct {
+	cases := map[string]struct {
 		installed string
 		behaviour string
 	}{
-		{"v0.5.4", "pos"},
-		{"v0.5.6", "pos"},
-		{"v0.4.1", "pos"},
-		{"", "neg"},
-		{"0.5.7", "neg"},
+		"OnLatestVersion":         {"v0.5.4", "pos"},
+		"NewerVersionAvailable":   {"v0.5.6", "pos"},
+		"NewerVersionAvailable-1": {"v0.4.1", "pos"},
+		"EmptyString":             {"", "neg"},
+		"InvalidString":           {"0.5.7", "neg"},
 	}
 
 	fakeHandler :=
@@ -30,17 +30,19 @@ func TestCheckLatestVersion(t *testing.T) {
 			ResponseBody: string(response2),
 		}
 
-	for i, c := range cases {
-		server := httptest.NewServer(&fakeHandler)
-		version.GitAPI = server.URL
-		err := checkLatestVersion(c.installed)
-		if c.behaviour == "pos" && err != nil {
-			t.Errorf("TestCase: '%d' ExpectedErr: 'nil' ActualErr: '%s'", i, err.Error())
-		}
-		if c.behaviour == "neg" && err == nil {
-			t.Errorf("TestCase: '%d' ExpectedErr: '%s' ActualErr: 'nil'", i, err.Error())
-		}
-		defer server.Close()
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(&fakeHandler)
+			version.GitAPIAddr = server.URL
+			err := checkLatestVersion(c.installed)
+			if c.behaviour == "pos" && err != nil {
+				t.Errorf("TestName: '%s' ExpectedErr: 'nil' ActualErr: '%s'", name, err.Error())
+			}
+			if c.behaviour == "neg" && err == nil {
+				t.Errorf("TestName: '%s' ExpectedErr: '%s' ActualErr: 'nil'", name, err.Error())
+			}
+			defer server.Close()
+		})
 	}
 
 }

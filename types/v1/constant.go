@@ -27,4 +27,7 @@ const (
 	// StatsAPI is api to query about the volume stats from both replica and
 	// controller.
 	StatsAPI string = "/stats"
+
+	// GitAPI is used to get latest release from github release page
+	GitAPI string = "/repos/openebs/maya/releases"
 )

@@ -26,6 +26,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/openebs/maya/types/v1"
 )
 
 var (
@@ -46,8 +48,8 @@ var (
 	versionFile   = "/src/github.com/openebs/maya/VERSION"
 	buildMetaFile = "/src/github.com/openebs/maya/BUILDMETA"
 
-	// GitAPI stores the prefix of api
-	GitAPI = "https://api.github.com"
+	// GitAPIAddr stores the address of the github api
+	GitAPIAddr = "https://api.github.com"
 )
 
 const (
@@ -100,7 +102,7 @@ func GetGitCommit() string {
 // GetLatestRelease returns the latest version available
 func GetLatestRelease() (string, error) {
 
-	url := GitAPI + "/repos/openebs/maya/releases"
+	url := GitAPIAddr + v1.GitAPI
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
