@@ -76,7 +76,7 @@ func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
 	return nil
 }
 
-// Run does tasks related to mayaserver.
+// RunVolumeCreate makes create volume request to maya-apiserver after verifying whether the volume already exists or not. In case if the volume already exists it returns the error and come out of execution.
 func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
 	err := IsVolumeExist(c.volName)
