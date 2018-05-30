@@ -124,7 +124,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	return cvol, nil
 }
 
-func (v *volumeAPIOpsV1alpha1) read(volumeName string) (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, error) {
 	glog.Infof("cas template based volume read request was received")
 
 	vol := &v1alpha1.CASVolume{}
@@ -168,7 +168,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (interface{}, error) {
 	return cvol, nil
 }
 
-func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, error) {
 	glog.Infof("cas template based volume delete request was received")
 
 	vol := &v1alpha1.CASVolume{}
@@ -212,7 +212,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (interface{}, error) {
 	return cvol, nil
 }
 
-func (v *volumeAPIOpsV1alpha1) list() (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 	glog.Infof("cas template based volume list request was received")
 
 	vols := &v1alpha1.CASVolumeList{}
