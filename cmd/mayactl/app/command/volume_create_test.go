@@ -17,7 +17,7 @@ func TestIsVolumeExist(t *testing.T) {
 		addr           string
 		expectedOutput error
 	}{
-		"New Volume :test1": {
+		"Creating new volume with volume name test1": {
 			volname: "test1",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
@@ -27,7 +27,7 @@ func TestIsVolumeExist(t *testing.T) {
 			addr:           "MAPI_ADDR",
 			expectedOutput: nil,
 		},
-		"New Volume :test2": {
+		"Getting status error 400": {
 			volname: "test2",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   400,
@@ -37,17 +37,17 @@ func TestIsVolumeExist(t *testing.T) {
 			addr:           "MAPI_ADDR",
 			expectedOutput: fmt.Errorf("Status Error: Bad Request"),
 		},
-		"New Volume :test3": {
+		"Getting status error 404": {
 			volname: "test3",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   404,
-				ResponseBody: string("HTTP Error 400 - Bad Request"),
+				ResponseBody: string("HTTP Error 404 - Not Found"),
 				T:            t,
 			},
 			addr:           "MAPI_ADDR",
 			expectedOutput: fmt.Errorf("Status Error: Not Found"),
 		},
-		"New Volume :test4": {
+		"MAPI_ADDR not set": {
 			volname: "test4",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
@@ -57,7 +57,7 @@ func TestIsVolumeExist(t *testing.T) {
 			addr:           "MAPI",
 			expectedOutput: fmt.Errorf("MAPI_ADDR environment variable not set"),
 		},
-		"New Volume :test5": {
+		"Creating volume which already exist": {
 			volname: "test5",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
