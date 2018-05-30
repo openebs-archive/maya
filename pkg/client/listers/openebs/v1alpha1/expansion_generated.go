@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// CASTemplateListerExpansion allows custom methods to be added to
+// CASTemplateLister.
+type CASTemplateListerExpansion interface{}
+
 // CStorPoolListerExpansion allows custom methods to be added to
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
@@ -33,7 +37,3 @@ type StoragePoolListerExpansion interface{}
 // StoragePoolClaimListerExpansion allows custom methods to be added to
 // StoragePoolClaimLister.
 type StoragePoolClaimListerExpansion interface{}
-
-// VolumeParameterGroupListerExpansion allows custom methods to be added to
-// VolumeParameterGroupLister.
-type VolumeParameterGroupListerExpansion interface{}

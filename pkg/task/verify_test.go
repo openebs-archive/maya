@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,14 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package v1alpha1
 
-type CASTemplateExpansion interface{}
+package task
 
-type CStorPoolExpansion interface{}
+import (
+	"testing"
+)
 
-type CStorVolumeReplicaExpansion interface{}
+// TODO
+func TestTaskResultVerifyError(t *testing.T) {}
 
-type StoragePoolExpansion interface{}
+// TODO
+func TestNewTaskResultVerifyExecutor(t *testing.T) {}
 
-type StoragePoolClaimExpansion interface{}
+// TODO
+func TestCalculateCount(t *testing.T) {}
+
+// TODO
+func TestIsCount(t *testing.T) {}
+
+// TODO
+func TestVerify(t *testing.T) {}

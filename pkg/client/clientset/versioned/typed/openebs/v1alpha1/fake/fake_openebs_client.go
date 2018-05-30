@@ -25,6 +25,10 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOpenebsV1alpha1) CASTemplates() v1alpha1.CASTemplateInterface {
+	return &FakeCASTemplates{c}
+}
+
 func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {
 	return &FakeCStorPools{c}
 }
@@ -39,10 +43,6 @@ func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
 
 func (c *FakeOpenebsV1alpha1) StoragePoolClaims() v1alpha1.StoragePoolClaimInterface {
 	return &FakeStoragePoolClaims{c}
-}
-
-func (c *FakeOpenebsV1alpha1) VolumeParameterGroups() v1alpha1.VolumeParameterGroupInterface {
-	return &FakeVolumeParameterGroups{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

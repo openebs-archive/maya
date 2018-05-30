@@ -55,6 +55,9 @@ type resultVerifyMock struct {
 	split string
 }
 
+// TODO
+// Simplify by putting more comments etc to make the unit test code more
+// understood. Comments can be at code or at yaml or both.
 func TestResultExecute(t *testing.T) {
 	// this yml should not interfere with the json query to be done later
 	var jsonPathFeederYml = `
@@ -229,8 +232,8 @@ data:
 				},
 			}
 
-			s := newTaskResultQueryExecutor(mock.taskID, []TaskResultQuery{q}, mock.bytes)
-			mActual, err := s.execute()
+			s := newQueryExecFormatter(mock.taskID, []TaskResultQuery{q}, mock.bytes)
+			mActual, err := s.formattedResult()
 			if err != nil {
 				t.Fatalf("Expected: 'no error' Actual: '%#v'", err)
 			}

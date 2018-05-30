@@ -38,10 +38,12 @@ var (
 
 // truthyValues maps a set of values which are considered as true
 var truthyValues = map[string]bool{
-	"1":    true,
-	"YES":  true,
-	"TRUE": true,
-	"OK":   true,
+	"1":       true,
+	"YES":     true,
+	"TRUE":    true,
+	"OK":      true,
+	"ENABLED": true,
+	"ON":      true,
 }
 
 // CheckTruthy checks for truthiness of the passed argument.
@@ -51,10 +53,12 @@ func CheckTruthy(truth string) bool {
 
 // falsyValues maps a set of values which are considered as false
 var falsyValues = map[string]bool{
-	"0":     true,
-	"NO":    true,
-	"FALSE": true,
-	"BLANK": true,
+	"0":        true,
+	"NO":       true,
+	"FALSE":    true,
+	"BLANK":    true,
+	"DISABLED": true,
+	"OFF":      true,
 }
 
 // CheckFalsy checks for non-truthiness of the passed argument.
@@ -112,4 +116,46 @@ func StringToInt32(val string) (*int32, error) {
 func StrToInt32(val string) *int32 {
 	n32, _ := StringToInt32(val)
 	return n32
+}
+
+// ContainsString returns true if the provided element is present in the
+// provided array
+func ContainsString(stringarr []string, element string) bool {
+	for _, elem := range stringarr {
+		if elem == element {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsKey returns true if the provided key is present in the provided map
+func ContainsKey(mapOfObjs map[string]interface{}, key string) bool {
+	for k, _ := range mapOfObjs {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainKey returns true if all the provided keys are present in the
+// provided map
+func ContainKeys(mapOfObjs map[string]interface{}, keys []string) bool {
+	if len(keys) == 0 || len(mapOfObjs) == 0 {
+		return false
+	}
+
+	allKeys := []string{}
+	for k, _ := range mapOfObjs {
+		allKeys = append(allKeys, k)
+	}
+
+	for _, expectedKey := range keys {
+		if !ContainsString(allKeys, expectedKey) {
+			return false
+		}
+	}
+
+	return true
 }

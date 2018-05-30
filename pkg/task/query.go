@@ -28,21 +28,24 @@ import (
 // NOTE:
 //  A TaskResult is the result obtained after this task's execution.
 type TaskResultQuery struct {
-	// Alias is the name/key used to hold the extracted data from the task's
-	// result
+	// Alias is the name/key used to **hold** the extracted value after jsonpath
+	// parsing. This jsonpath is run against the task's result.
 	Alias string `json:"alias"`
-	// Path contains the path to the property of the taskresult, whose value(s)
+	// Path contains the path to the property of the task result, whose value(s)
 	// need to be extracted.
 	//
 	// NOTE:
-	//  Path will be a string type. It will vary depending on the query language
-	// used. e.g. It can represent a jsonpath or a go template function.
+	//  Path represents a jsonpath
 	//
 	// NOTE:
-	//  Path can be optional i.e. commonly used Paths can be set as constants &
-	// be retrieved from the query's Alias property. Refer keyToJsonPathMap.
+	//  Path can be optional if they are commonly used paths. Some of the common
+	// paths can be retrieved from the query's Alias property. This implies one
+	// can just set the alias without bothering to set the corresponding path.
+	//
+	// Refer keyToJsonPathMap
 	Path string `json:"path"`
-	// TaskResultVerify will verify the data collected after querying
+	// TaskResultVerify will verify the resulting value after the task result is
+	// run through the jsonpath parser
 	TaskResultVerify `json:"verify"`
 }
 
@@ -60,34 +63,34 @@ func jsonPathFromKey(key string) (jsonpath string) {
 	return keyToJsonPathMap[key]
 }
 
-// taskResultQueryExecutor queries data from the task result.
-type taskResultQueryExecutor struct {
-	// taskID is the identity of the task
-	taskID string
-	// result is the task's result after executing this task
-	result []byte
+// queryExecutor queries specific properties (via jsonpaths) from the task result
+type queryExecutor struct {
+	// taskResult is the task's result after execution of a task
+	taskResult []byte
 	// queries holds the info about the data that needs to be
 	// extracted from the task's result.
 	queries []TaskResultQuery
 }
 
-func newTaskResultQueryExecutor(taskID string, queries []TaskResultQuery, result []byte) *taskResultQueryExecutor {
-	return &taskResultQueryExecutor{
-		taskID:  taskID,
-		queries: queries,
-		result:  result,
+func newQueryExecutor(queries []TaskResultQuery, taskResult []byte) *queryExecutor {
+	return &queryExecutor{
+		queries:    queries,
+		taskResult: taskResult,
 	}
 }
 
 // queryAndVerify will run jsonpath query against the task result & verify this
-// result. Each of the query will be run in an iteractive manner. All the query
-// outputs will be aggregated & returned.
+// result. The queries will be run iteratively against the same task result. Each
+// of the query's output will get set against the query's alias, then aggregated
+// & returned.
 //
 // NOTE:
-//  This is currently coupled to JsonPath Query!!!
-func (t *taskResultQueryExecutor) queryAndVerify() (map[string]string, error) {
-	var outputs = map[string]string{}
+//  A query path refers to a JsonPath
+func (t *queryExecutor) queryAndVerify() (map[string]string, error) {
+	pathResults := map[string]string{}
 
+	// loop through all the queries & set the resulting query output against
+	// the corresponding alias
 	for _, q := range t.queries {
 		// get the jsonpath
 		path := q.Path
@@ -97,43 +100,68 @@ func (t *taskResultQueryExecutor) queryAndVerify() (map[string]string, error) {
 
 		// check again
 		if len(path) == 0 {
-			err := fmt.Errorf("jsonpath not found for key '%s': can not query against task result", q.Alias)
-			return nil, err
+			return nil, fmt.Errorf("jsonpath not found for key '%s': can not query against task result", q.Alias)
 		}
 
-		// t.taskID is provided as a context that can act as an identifier
-		// result is the json doc against which the jsonpath is run
-		jq := template.NewJsonQuery(t.taskID, t.result, path)
-		op, err := jq.Query()
+		// t.Alias is provided as a context that can act as an identifier;
+		// result is a json doc against which jsonpath is run
+		jq := template.NewJsonQuery(q.Alias, t.taskResult, path)
+		jqOp, err := jq.Query()
 		if err != nil {
 			return nil, err
 		}
 
-		v := newTaskResultVerifyExecutor(t.taskID, q.Alias, op, q.TaskResultVerify)
+		v := newTaskResultVerifyExecutor(q.Alias, jqOp, q.TaskResultVerify)
 		_, err = v.verify()
 		if err != nil {
 			return nil, err
 		}
 
-		outputs[q.Alias] = op
+		// stick the json query output with the alias
+		pathResults[q.Alias] = jqOp
 	}
 
-	return outputs, nil
+	return pathResults, nil
 }
 
 // execute will query & validate the data extracted from specific
-// properties of the task result. This query data will be returned as a map with
-// taskID as the key
-func (t *taskResultQueryExecutor) execute() (storage map[string]interface{}, err error) {
-	outputs, err := t.queryAndVerify()
+// properties of the task result. This query result will be returned.
+func (t *queryExecutor) result() (pathResults map[string]string, err error) {
+	return t.queryAndVerify()
+}
+
+// queryExecFormatter queries specific properties (via jsonpaths) from the task
+// result & prepares a formatted output based on these query results
+type queryExecFormatter struct {
+	// index is the index that forms the query result
+	index string
+	// queryExecutor forms the rest of the properties required to execute one
+	// or more queries
+	queryExecutor
+}
+
+func newQueryExecFormatter(index string, queries []TaskResultQuery, taskResult []byte) *queryExecFormatter {
+	return &queryExecFormatter{
+		index: index,
+		queryExecutor: queryExecutor{
+			queries:    queries,
+			taskResult: taskResult,
+		},
+	}
+}
+
+// formattedResult will query & validate the data extracted from specific
+// properties of the task result. This query result will be returned as a map
+// with index as the key
+func (t *queryExecFormatter) formattedResult() (pathResults map[string]interface{}, err error) {
+	r, err := t.queryAndVerify()
 	if err != nil {
 		return
 	}
 
-	// attach extracted data with the task ID
-	storage = map[string]interface{}{
-		t.taskID: outputs,
+	// query path results are set against the index
+	pathResults = map[string]interface{}{
+		t.index: r,
 	}
-
 	return
 }
