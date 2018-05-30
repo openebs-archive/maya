@@ -22,7 +22,7 @@ import (
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	mtypesv1 "github.com/openebs/maya/types/v1"
+	mayav1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -95,12 +95,12 @@ func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 // IsVolumeExist checks whether the volume already exists or not
 func IsVolumeExist(volname string) error {
-	var vsms mtypesv1.VolumeList
-	err := mapiserver.ListVolumes(&vsms)
+	var vols mayav1.VolumeList
+	err := mapiserver.ListVolumes(&vols)
 	if err != nil {
 		return err
 	}
-	for _, items := range vsms.Items {
+	for _, items := range vols.Items {
 		if volname == items.ObjectMeta.Name {
 			return fmt.Errorf("Error: Volume %v already exist ", volname)
 		}
