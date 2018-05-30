@@ -23,27 +23,49 @@ import (
 // CASVolumeKey is a typed string to represent cas volume related annotations'
 // or labels' keys
 //
-// Example - Below is a sample CASVolume that makes use of some of these
-// constants that are of type CASVolumeKey
+// Example 1 - Below is a sample CASVolume that makes use of some CASVolumeKey
+// constants.
 //
-//  kind: CASVolume
-//  apiVersion: v1alpha1
-//  metadata:
-//    name: jiva-cas-vol
-//    labels:
-//      # deprecated way to set capacity
-//      volumeprovisioner.mapi.openebs.io/storage-size: 2G
-//      k8s.io/storage-class: openebs-repaffinity-0.6.0
-//      k8s.io/namespace: default
-//      k8s.io/pvc: openebs-repaffinity-0.6.0
-//  # latest way to set capacity
-//  capacity: 2G
+// NOTE:
+//  This specification is sent by openebs provisioner as http create request in
+// its payload.
+//
+// ```yaml
+// kind: CASVolume
+// apiVersion: v1alpha1
+// metadata:
+//   name: jiva-cas-vol
+//   # this way of setting namespace gets the first priority
+//   namespace: default
+//   labels:
+//     # deprecated way to set capacity
+//     volumeprovisioner.mapi.openebs.io/storage-size: 2G
+//     k8s.io/storage-class: openebs-repaffinity-0.6.0
+//     # this manner of setting namespace gets the second priority
+//     k8s.io/namespace: default
+//     k8s.io/pvc: openebs-repaffinity-0.6.0
+// # latest way to set capacity
+// capacity: 2G
+// ```
+//
+// Example 2 - Below is a sample StorageClass that makes use of a CASVolumeKey
+// constant i.e. the cas template used to create a cas volume
+//
+// ```yaml
+// apiVersion: storage.k8s.io/v1
+// kind: StorageClass
+// metadata:
+//  name: openebs-standard
+//  annotations:
+//    cas.openebs.io/create-template: cast-standard-0.6.0
+// provisioner: openebs.io/provisioner-iscsi
+// ```
 type CASVolumeKey string
 
 const (
 	// CASTemplateCVK is the key to fetch name of CASTemplate custom resource
 	// to create a cas volume
-	CASTemplateCVK CASVolumeKey = "cas.openebs.io/template"
+	CASTemplateCVK CASVolumeKey = "cas.openebs.io/create-template"
 
 	// CASTemplateForReadCVK is the key to fetch name of CASTemplate custom
 	// resource to read a cas volume
@@ -86,6 +108,13 @@ const (
 type CASVolumeDefault string
 
 const (
+	// NOTE:
+	//  As per the current design there is no default cas template to create a
+	// cas volume. It is expected that the StorageClass will explicitly set the
+	// cas template name required to create a cas volume. However reading,
+	// deleting & listing of cas volume(s) have corresponding cas templates that
+	// are used implicitly i.e. each of them have their own default cas template.
+
 	// CASTemplateForReadCVD is the default cas template to read a cas volume
 	CASTemplateForReadCVD CASVolumeDefault = "read-cas-tpl"
 	// CASTemplateForListCVD is the default cas template to list cas volumes

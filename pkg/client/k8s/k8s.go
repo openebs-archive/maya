@@ -285,6 +285,11 @@ func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error)
 
 	return json.Marshal(sp)
 
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
 	//result, err = k.oecs.OpenebsV1alpha1().RESTClient().
 	//	Get().
 	//	Namespace(k.ns).
@@ -434,6 +439,11 @@ func (k *K8sClient) CreateExtnV1B1DeploymentAsRaw(d *api_extn_v1beta1.Deployment
 
 	return json.Marshal(deploy)
 
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
 	//result, err = k.cs.ExtensionsV1beta1().RESTClient().
 	//	Put().
 	//	Namespace(k.ns).
@@ -453,6 +463,11 @@ func (k *K8sClient) CreateAppsV1B1DeploymentAsRaw(d *api_apps_v1beta1.Deployment
 
 	return json.Marshal(deploy)
 
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
 	//result, err = k.cs.AppsV1beta1().RESTClient().
 	//	Put().
 	//	Namespace(k.ns).
@@ -472,6 +487,11 @@ func (k *K8sClient) CreateCoreV1ServiceAsRaw(s *api_core_v1.Service) (result []b
 
 	return json.Marshal(svc)
 
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
 	//result, err = k.cs.CoreV1().RESTClient().
 	//	Put().
 	//	Namespace(k.ns).
