@@ -18,6 +18,7 @@ package iscsi
 
 import (
 	"io/ioutil"
+	"os/exec"
 	"time"
 
 	"github.com/golang/glog"
@@ -34,16 +35,37 @@ const (
 // CreateIscsi creates a new cStor iscsi.
 func CreateIscsi(cStorIscsiUpdated *apis.CStorVolume) error {
 
+	generateSparseFile(cStorIscsiUpdated)
+
 	// create conf file
 	CreateIstgtConf(cStorIscsiUpdated)
 
 	// send refresh command to istgt
-	err := unixsock.SendRefresh()
+	err := unixsock.SendCommand("REFRESH\n")
 	if err != nil {
 		glog.Info("refresh failed")
 	}
 	glog.Info("Creating Iscsi Successful")
 	return nil
+}
+
+func generateSparseFile(cStorIscsiUpdated *apis.CStorVolume) {
+
+	touchcmd := exec.Command("/usr/bin/touch", "/tmp/cstor/"+cStorIscsiUpdated.Spec.VolumeName)
+	_, toucherr := touchcmd.CombinedOutput()
+	if toucherr != nil {
+		glog.Infof("failed to touch file /tmp/cstor/" + cStorIscsiUpdated.Spec.VolumeName)
+		return
+	}
+
+	trunccmd := exec.Command("/usr/bin/truncate", "-s", cStorIscsiUpdated.Spec.Capacity,
+		"/tmp/cstor/"+cStorIscsiUpdated.Spec.VolumeName)
+	_, truncerr := trunccmd.CombinedOutput()
+	if truncerr != nil {
+		glog.Infof("failed to truncate file /tmp/cstor/" + cStorIscsiUpdated.Spec.VolumeName +
+			" with capacity " + cStorIscsiUpdated.Spec.Capacity)
+	}
+
 }
 
 // CreateIstgtConf creates istgt.conf file
@@ -75,12 +97,24 @@ func CreateIstgtConf(cStorIscsiUpdated *apis.CStorVolume) {
 [UnitControl]
   AuthMethod None
   AuthGroup None
-  Portal UC1 localhost:3261
-  Netmask localhost/8
+`)
+
+	portaluc1 := []byte("  Portal UC1 " + cStorIscsiUpdated.Spec.CStorControllerIP + ":3261\n")
+	text = append(text, portaluc1...)
+
+	netmask := []byte("  Netmask " + cStorIscsiUpdated.Spec.CStorControllerIP + "/8\n")
+	text = append(text, netmask...)
+
+	text1 := []byte(`
 # PortalGroup section
 [PortalGroup1]
-  Portal DA1 localhost:3260
+`)
+	text = append(text, text1...)
 
+	portalda1 := []byte("  Portal DA1 " + cStorIscsiUpdated.Spec.CStorControllerIP + ":3260\n")
+	text = append(text, portalda1...)
+
+	text2 := []byte(`
 # InitiatorGroup section
 [InitiatorGroup1]
   InitiatorName "ALL"
@@ -93,12 +127,15 @@ func CreateIstgtConf(cStorIscsiUpdated *apis.CStorVolume) {
 # LogicalUnit section
 [LogicalUnit2]
 `)
+
+	text = append(text, text2...)
+
 	targetName := []byte("  TargetName " + cStorIscsiUpdated.Spec.VolumeName + "\n")
 	text = append(text, targetName...)
 	targetAlias := []byte("  TargetAlias nicknamefor-" + cStorIscsiUpdated.Spec.VolumeName)
 	text = append(text, targetAlias...)
 
-	text2 := []byte(`
+	text3 := []byte(`
   Mapping PortalGroup1 InitiatorGroup1
   AuthMethod None
   AuthGroup None
@@ -111,16 +148,23 @@ func CreateIstgtConf(cStorIscsiUpdated *apis.CStorVolume) {
   BlockLength 512
   QueueDepth 32
   Luworkers 1
-  UnitInquiry "CloudByte" "iscsi" "0" "4059aab98f093c5d95207f7af09d1413"
+  UnitInquiry "OpenEBS" "iscsi" "0" "4059aab98f093c5d95207f7af09d1413"
   PhysRecordLength 4096
-  LUN0 Storage /home/payes/vol1 1G 32k
+`)
+	text = append(text, text3...)
+
+	lun0storage := []byte("  LUN0 Storage /tmp/cstor/" +
+		cStorIscsiUpdated.Spec.VolumeName + " " + cStorIscsiUpdated.Spec.Capacity + " 32k")
+	text = append(text, lun0storage...)
+
+	text4 := []byte(`
   LUN0 Option Unmap Disable
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable
   LUN0 Option XCOPY Disable
-  `)
+`)
 
-	text = append(text, text2...)
+	text = append(text, text4...)
 
 	err := ioutil.WriteFile(IstgtConfPath, text, 0644)
 	if err != nil {
@@ -138,7 +182,7 @@ func CheckValidIscsi(cStorIscsiUpdated *apis.CStorVolume) error {
 // CheckForIscsi is blocking call for checking status of istgt in cstor-iscsi container.
 func CheckForIscsi() {
 	for {
-		err := unixsock.Status()
+		err := unixsock.SendCommand("STATUS\n")
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			glog.Infof("Waiting for iscsi...")

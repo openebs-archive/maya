@@ -20,7 +20,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
 )
 
 // IstgtUctlUnxpath is the storage path for the UNIX domain socket from istgt
@@ -28,50 +27,8 @@ const (
 	IstgtUctlUnxpath = "/var/run/istgt_ctl_sock"
 )
 
-func reader(r io.Reader) {
-	buf := make([]byte, 1024)
-	for {
-		n, err := r.Read(buf[:])
-		if err != nil {
-			return
-		}
-		println("Client got:", string(buf[0:n]))
-	}
-}
-
-func statusreader(r io.Reader) {
-	buf := make([]byte, 1024)
-	for {
-		n, err := r.Read(buf[:])
-		if err != nil {
-			return
-		}
-		println("Client got:", string(buf[0:n]))
-	}
-}
-
-func statuswriter(w io.Writer) {
-	msg := "STATUS\n"
-	_, err := w.Write([]byte(msg))
-	if err != nil {
-		log.Fatal("Write error:", err)
-	}
-	println("Client sent:", msg)
-}
-
-// Status gives the status
-func Status() error {
-	c, err := net.Dial("unix", IstgtUctlUnxpath)
-	if err != nil {
-		log.Fatal("Dial error", err)
-	}
-	defer c.Close()
-	statuswriter(c)
-	statusreader(c)
-	return err
-}
-
-func refreshreader(r io.Reader) {
+//Reader reads the response from unix domain socket
+func Reader(r io.Reader) {
 	buf := make([]byte, 1024)
 	for {
 		n, err := r.Read(buf[:])
@@ -83,8 +40,9 @@ func refreshreader(r io.Reader) {
 	}
 }
 
-func refreshwriter(w io.Writer) {
-	msg := "REFRESH\n"
+//Writer writes a command to unix domain socket
+func Writer(w io.Writer, msg string) {
+	// msg := "REFRESH\n"
 	_, err := w.Write([]byte(msg))
 	if err != nil {
 		log.Fatal("Write error:", err)
@@ -92,55 +50,14 @@ func refreshwriter(w io.Writer) {
 	println("Client sent:", msg)
 }
 
-// SendRefresh sends refresh command to istgt
-func SendRefresh() error {
+//SendCommand sends the command to istgt
+func SendCommand(cmd string) error {
 	c, err := net.Dial("unix", IstgtUctlUnxpath)
 	if err != nil {
 		log.Fatal("Dial error", err)
 	}
 	defer c.Close()
-	refreshwriter(c)
-	refreshreader(c)
+	Writer(c, cmd)
+	Reader(c)
 	return err
-}
-
-func communicate() {
-	c, err := net.DialTimeout("unix", IstgtUctlUnxpath, 10*1000000000)
-	if err != nil {
-		log.Fatal("Dial error", err)
-	}
-	defer c.Close()
-
-	go reader(c)
-	for {
-		msg := "hi"
-		_, err := c.Write([]byte(msg))
-		if err != nil {
-			log.Fatal("Write error:", err)
-			break
-		}
-		println("Client sent:", msg)
-		time.Sleep(1e9)
-	}
-}
-
-func mmrmain() {
-	c, err := net.Dial("unix", "/var/run/istgt_ctl_sock")
-	if err != nil {
-		log.Fatal("Dial error", err)
-	}
-	defer c.Close()
-	writer(c)
-	reader(c)
-	//time.Sleep(1 * time.Second)
-	//writer(c)
-}
-
-func writer(w io.Writer) {
-	msg := "IOSTATS\n"
-	_, err := w.Write([]byte(msg))
-	if err != nil {
-		log.Fatal("Write error:", err)
-	}
-	println("Client sent:", msg)
 }
