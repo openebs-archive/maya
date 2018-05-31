@@ -44,7 +44,7 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 // httpGet deals with http GET request
 func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	// Extract name of volume from path after trimming
-	path := strings.TrimPrefix(v.req.URL.Path, "/latest/volumes")
+	path := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes"))
 
 	// list cas volumes
 	if path == "/" {
@@ -59,7 +59,7 @@ func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
 // httpDelete deals with http DELETE request
 func (v *volumeAPIOpsV1alpha1) httpDelete() (interface{}, error) {
 	// Extract name of volume from path after trimming
-	volName := strings.TrimPrefix(v.req.URL.Path, "/latest/volumes/")
+	volName := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes/"))
 
 	// check if req url has volume name
 	if len(volName) == 0 {
