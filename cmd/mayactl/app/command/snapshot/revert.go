@@ -24,6 +24,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotrevertHelpText = `
+	Usage: mayactl snapshot revert [options]
+
+	$ mayactl snapshot revert --volname <vol> --snapname <snap>
+
+	This command displays status of available snapshotrevert.
+	`
+)
+
 /*type CmdSnaphotCreateOptions struct {
 	volName  string
 	snapName string
@@ -36,7 +46,7 @@ func NewCmdSnapshotRevert() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "revert",
 		Short: "Reverts to specific snapshot of a Volume",
-		Long:  "Reverts to specific snapshot of a Volume",
+		Long:  snapshotrevertHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotRevert(cmd), util.Fatal)
