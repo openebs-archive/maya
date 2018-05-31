@@ -7,8 +7,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
+	k8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
@@ -44,6 +46,8 @@ type ReplicaInfo struct {
 	IP         string
 	AccessMode string
 	Status     string
+	Name       string
+	NodeName   string
 }
 
 // CmdVolumeInfoOptions is used to store the value of flags used in the cli
@@ -66,6 +70,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
 		"unique volume name.")
+
 	return cmd
 }
 
@@ -91,6 +96,7 @@ func (c *CmdVolumeInfoOptions) RunVolumeInfo(cmd *cobra.Command) error {
 		fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
 		return nil
 	}
+
 	// Initiallize an instance of ReplicaCollection, json response recieved from the
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
@@ -100,7 +106,31 @@ func (c *CmdVolumeInfoOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+
 	c.DisplayVolumeInfo(annotation, collection)
+	return nil
+}
+
+func updateReplicasInfoWithNodeName(replicaInfo map[int]*ReplicaInfo) error {
+	K8sClient, err := k8sclient.NewK8sClient("")
+	if err != nil {
+		return err
+	}
+
+	pods, err := K8sClient.GetPods()
+	if err != nil {
+		return err
+	}
+
+	for _, replica := range replicaInfo {
+		for _, pod := range pods {
+			if pod.Status.PodIP == replica.IP {
+				replica.NodeName = pod.Spec.NodeName
+				replica.Name = pod.ObjectMeta.Name
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -116,21 +146,19 @@ func (c *CmdVolumeInfoOptions) DisplayVolumeInfo(a *Annotations, collection clie
 	)
 	const (
 		replicaTemplate = `
-================= Replica Details =================
-IP            AccessMode               Status
-{{range $key, $value := .}}
-{{$value.IP}}     {{$value.AccessMode}}                       {{$value.Status}}
-{{end}}
-===================================================
+		
+Replica Details : 
+---------------- {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
 `
 		portalTemplate = `
-================= Portal Details ==================
+Portal Details : 
+---------------
 IQN     :   {{.IQN}}
 Volume  :   {{.VolumeName}}
 Portal  :   {{.Portal}}
 Size    :   {{.Size}}
 Status  :   {{.Status}}
-===================================================
 `
 	)
 	portalInfo = PortalInfo{
@@ -165,10 +193,10 @@ Status  :   {{.Status}}
 	replicaIPStatus := make(map[string]*Value)
 	for i, v := range addressIPStrings {
 		if v != "nil" {
-			replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "       	NA"}
+			replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
 		} else {
 			// appending address with index to avoid same key conflict
-			replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "       	NA"}
+			replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
 		}
 	}
 
@@ -176,7 +204,8 @@ Status  :   {{.Status}}
 	// We are appending modes if available in collection.data to replicaIPStatus
 
 	replicaInfo := make(map[int]*ReplicaInfo)
-
+	replicaInfo[0] = &ReplicaInfo{"IP", "ACCESSMODE", "STATUS", "NAME", "NODE"}
+	replicaInfo[1] = &ReplicaInfo{"---", "-----------", "-------", "-----", "-----"}
 	for key := range collection.Data {
 		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
 		mode = append(mode, collection.Data[key].Mode)
@@ -187,17 +216,26 @@ Status  :   {{.Status}}
 	for k, v := range replicaIPStatus {
 		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
 		if k[0:3] != "nil" {
-			replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status}
+			replicaInfo[v.index+2] = &ReplicaInfo{k, v.mode, v.status, "Error fetching Name", "Error Fetching Node"}
 		} else {
-			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status}
+			replicaInfo[v.index+2] = &ReplicaInfo{"NA", v.mode, v.status, "Error fetching Name", "Error Fetching Node"}
 		}
+	}
+
+	err = updateReplicasInfoWithNodeName(replicaInfo)
+	if err != nil {
+		fmt.Println("Error in getting information from K8s. Please try again")
 	}
 
 	tmpl = template.New("ReplicaInfo")
 	tmpl = template.Must(tmpl.Parse(replicaTemplate))
-	err = tmpl.Execute(os.Stdout, replicaInfo)
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	err = tmpl.Execute(w, replicaInfo)
 	if err != nil {
 		fmt.Println("Unable to display volume info, found error : ", err)
 	}
+	w.Flush()
+
 	return nil
 }
