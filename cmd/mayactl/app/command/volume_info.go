@@ -150,6 +150,8 @@ Status  :   {{.Status}}
 		fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 		return nil
 	}
+
+	replicaStatus := strings.Split(a.ReplicaStatus, ",")
 	// We get the info of the running replicas from the collection.data.
 	// If there are no replicas running they are either in CrashedLoopBackOff
 	// or in Pending or in ImagePullBackoff.In such cases it will show Waiting
@@ -158,11 +160,11 @@ Status  :   {{.Status}}
 	for key, _ := range collection.Data {
 		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
 		mode = append(mode, collection.Data[key].Mode)
-		replicaInfo[key] = &ReplicaInfo{address[key], mode[key], "Running"}
+		replicaInfo[key] = &ReplicaInfo{address[key], mode[key], replicaStatus[key]}
 	}
 	if length < replicaCount {
 		for i := length; i < (replicaCount); i++ {
-			replicaInfo[i] = &ReplicaInfo{"NA", "       NA", "Waiting"}
+			replicaInfo[i] = &ReplicaInfo{"NA", "       NA", replicaStatus[i]}
 		}
 	}
 	tmpl = template.New("ReplicaInfo")
