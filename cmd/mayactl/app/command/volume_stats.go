@@ -105,24 +105,24 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		fmt.Println("Volume not reachable, found controller's status", annotation.ControllerStatus)
 		return nil
 	}
-
 	replicas := strings.Split(annotation.Replicas, ",")
-	for _, replica := range replicas {
+	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
+	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
 		errCode1, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
 		if err != nil {
 			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
 				statusArray = append(statusArray, replica)
-				statusArray = append(statusArray, "waiting")
+				statusArray = append(statusArray, replicaStatus[i])
 				statusArray = append(statusArray, "Unknown")
 			} else {
 				statusArray = append(statusArray, replica)
-				statusArray = append(statusArray, "Offline")
+				statusArray = append(statusArray, replicaStatus[i])
 				statusArray = append(statusArray, "Unknown")
 			}
 		} else {
 			statusArray = append(statusArray, replica)
-			statusArray = append(statusArray, "Online")
+			statusArray = append(statusArray, replicaStatus[i])
 			statusArray = append(statusArray, status.RevisionCounter)
 		}
 	}
