@@ -30,7 +30,7 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 	}
 
 	switch req.Method {
-	case "PUT", "POST":
+	case "POST":
 		return volOp.create()
 	case "GET":
 		return volOp.httpGet()
@@ -41,48 +41,32 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 	}
 }
 
-// get deals with HTTP GET request
+// httpGet deals with http GET request
 func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
-	// Extract info from path after trimming
+	// Extract name of volume from path after trimming
 	path := strings.TrimPrefix(v.req.URL.Path, "/latest/volumes")
 
-	// check if req has valid get path
-	if path == v.req.URL.Path {
-		return nil, CodedError(405, ErrInvalidMethod)
-	}
-
-	switch {
-
-	case strings.Contains(path, "/info/"):
-		volName := strings.TrimPrefix(path, "/info/")
-		// read a cas volume
-		return v.read(volName)
-	case path == "/":
-		// list cas volumes
+	// list cas volumes
+	if path == "/" {
 		return v.list()
-	default:
-		return nil, CodedError(405, ErrInvalidMethod)
 	}
+
+	// read a cas volume
+	volName := strings.TrimPrefix(path, "/")
+	return v.read(volName)
 }
 
-// httpDelete deals with http delete request method
+// httpDelete deals with http DELETE request
 func (v *volumeAPIOpsV1alpha1) httpDelete() (interface{}, error) {
-	// Extract info from path after trimming
-	path := strings.TrimPrefix(v.req.URL.Path, "/latest/volumes")
+	// Extract name of volume from path after trimming
+	volName := strings.TrimPrefix(v.req.URL.Path, "/latest/volumes/")
 
-	// check if req has valid delete path
-	if path == v.req.URL.Path {
+	// check if req url has volume name
+	if len(volName) == 0 {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 
-	switch {
-	case strings.Contains(path, "/delete/"):
-		volName := strings.TrimPrefix(path, "/delete/")
-		// delete a cas volume
-		return v.delete(volName)
-	default:
-		return nil, CodedError(405, ErrInvalidMethod)
-	}
+	return v.delete(volName)
 }
 
 func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
@@ -128,6 +112,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	glog.Infof("cas template based volume read request was received")
 
 	vol := &v1alpha1.CASVolume{}
+	// hdrNS will store namespace from http header
 	hdrNS := ""
 
 	// get volume related details from http request
@@ -172,6 +157,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	glog.Infof("cas template based volume delete request was received")
 
 	vol := &v1alpha1.CASVolume{}
+	// hdrNS will store namespace from http header
 	hdrNS := ""
 
 	// get volume related details from http request
@@ -187,12 +173,12 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 		return nil, CodedError(400, fmt.Sprintf("failed to delete volume: missing volume name '%v'", vol))
 	}
 
-	// use run namespace from labels if volume ns is not set
+	// use namespace from labels if volume ns is not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
 	}
 
-	// use run namespace from req headers if volume ns is still not set
+	// use namespace from req headers if volume ns is still not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = hdrNS
 	}
@@ -216,6 +202,7 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 	glog.Infof("cas template based volume list request was received")
 
 	vols := &v1alpha1.CASVolumeList{}
+	// hdrNS will store namespace from http header
 	hdrNS := ""
 
 	// extract volume list details from http request
@@ -224,12 +211,12 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 		hdrNS = v.req.Header.Get(NamespaceKey)
 	}
 
-	// use run namespace from labels if volume ns is not set
+	// use namespace from labels if volume ns is not set
 	if len(vols.Namespace) == 0 {
 		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceCVK)]
 	}
 
-	// use run namespace from req headers if volume ns is still not set
+	// use namespace from req headers if volume ns is still not set
 	if len(vols.Namespace) == 0 {
 		vols.Namespace = hdrNS
 	}
