@@ -261,6 +261,64 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			},
 			output: nil,
 		},
+		"InfoWhenReplicaIsTwoAndOneCrashLoopBackOff": {
+			cmdOptions: &CmdVolumeInfoOptions{
+				volName: "vol1",
+			},
+			annotation: &Annotations{
+				TargetPortal:     "10.99.73.74:3260",
+				ClusterIP:        "10.99.73.74",
+				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+				ReplicaCount:     "3",
+				ControllerStatus: "Running",
+				ReplicaStatus:    "Running,Running,CrashLoopBackOff",
+				VolSize:          "1G",
+				ControllerIP:     "",
+				Replicas:         "10.10.10.10,10.10.10.11,nil",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.10",
+						Mode:    "RW",
+					},
+					{
+						Address: "10.10.10.11",
+						Mode:    "RW",
+					},
+				},
+			},
+			output: nil,
+		},
+		"InfoWhenReplicaIsThreeAndOneErrorPullBack": {
+			cmdOptions: &CmdVolumeInfoOptions{
+				volName: "vol1",
+			},
+			annotation: &Annotations{
+				TargetPortal:     "10.99.73.74:3260",
+				ClusterIP:        "10.99.73.74",
+				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+				ReplicaCount:     "3",
+				ControllerStatus: "Running",
+				ReplicaStatus:    "Running,Running,ErrImagePull",
+				VolSize:          "1G",
+				ControllerIP:     "",
+				Replicas:         "10.10.10.10,10.10.10.11,nil",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.10",
+						Mode:    "RW",
+					},
+					{
+						Address: "10.10.10.11",
+						Mode:    "RW",
+					},
+				},
+			},
+			output: nil,
+		},
 	}
 
 	for name, tt := range validInfo {
