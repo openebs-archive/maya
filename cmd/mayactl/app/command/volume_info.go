@@ -16,11 +16,11 @@ import (
 
 var (
 	volumeInfoCommandHelpText = `
-	    Usage: mayactl volume info --volname <vol>
+Usage: mayactl volume info --volname <vol>
 
-        This command fetches the information and status of the various
-	    aspects of the Volume such as ISCSI, Controller and Replica.
-        `
+This command fetches the information and status of the various
+aspects of the Volume such as ISCSI, Controller and Replica.
+`
 )
 
 // PortalInfo keep info about the ISCSI Target Portal.

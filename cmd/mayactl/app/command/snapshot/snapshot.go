@@ -20,11 +20,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotCommandHelpText = `
+	Usage: mayactl snapshot <subcommand> [options] [args]
+
+	This command provides operations related to a snapshot.
+
+	Create a snapshot:
+	$ mayactl snapshot create --volname <vol> --snapname <snap>
+
+	List snapshot:
+	$ mayactl snapshot list  --volname <vol>
+
+	revert snapshot:
+	$ mayactl snapshot revert --volname <vol> --snapname <snap>
+
+	`
+)
+
 func NewCmdSnapshot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "snapshot",
 		Short: "Provides operations related to snapshot of a Volume",
-		Long:  "Provides operations related to snapshot of a Volume",
+		Long:  snapshotCommandHelpText,
 	}
 
 	cmd.AddCommand(
