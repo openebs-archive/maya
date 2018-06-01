@@ -33,6 +33,375 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+func TestDynamicTemplating(t *testing.T) {
+	tests := map[string]struct {
+		ymlTpl      string
+		values      map[string]interface{}
+		ymlExpected string
+	}{
+		"test dynamic templating - +ve - pluck | first ": {
+			ymlTpl: `
+{{- $ns := .defaultNamespace -}}
+version: v1
+kind: {{ .kind }}
+label: {{ pluck $ns .labels | first }}
+`,
+			values: map[string]interface{}{
+				"defaultNamespace": "openebs",
+				"kind":             "pod",
+				"labels": map[string]interface{}{
+					"openebs": "cas-volume",
+					"local":   "host-volume",
+				},
+			},
+			ymlExpected: `
+version: v1
+kind: pod
+label: cas-volume
+`,
+		},
+		"test dynamic templating - +ve - pluck then first": {
+			ymlTpl: `
+{{- $ns := .defaultNamespace -}}
+{{- $nsLbl := pluck $ns .labels -}}
+version: v1
+kind: {{ .kind }}
+label: {{ first $nsLbl }}
+`,
+			values: map[string]interface{}{
+				"defaultNamespace": "openebs",
+				"kind":             "pod",
+				"labels": map[string]interface{}{
+					"openebs": "cas-volume",
+					"local":   "host-volume",
+				},
+			},
+			ymlExpected: `
+version: v1
+kind: pod
+label: cas-volume
+`,
+		},
+		"test dynamic templating - +ve - pick then nested ranges": {
+			ymlTpl: `
+{{- $ns := .runNamespace -}}
+{{- $results := pick .taskResult.taskid $ns -}}
+version: v1
+kind: {{ .kind }}
+{{- range $k, $v := $results }}
+{{- range $kk, $vv := $v }}
+objectName: {{ if eq $kk "objectName" }}{{ $vv }}{{ end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "default-ns",
+				"kind":         "pod",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							"hostName":   "lenovo-laptop",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"hostName":   "k8s-minion-1",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+kind: pod
+objectName: my-replica-pod`,
+		},
+		"test dynamic templating - +ve - pick then nested ranges then split then range": {
+			ymlTpl: `
+{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      {{- range $k, $v := $nsResults }}
+      {{- range $kk, $vv := $v }}
+      {{- if eq $kk "nodeNames" }}
+      {{- $nodeNames := $vv }}
+      {{- if ne $nodeNames "" }}
+      {{- $nodeNamesMap := $nodeNames | split " " }}
+      {{- range $kkk, $vvv := $nodeNamesMap }}
+      - {{ $vvv }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- end }}
+`,
+			values: map[string]interface{}{
+				"runNamespace": "openebs-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							"nodeNames":  "lenovo-laptop",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      - k8s-minion-1
+      - lenovo-laptop
+      - hp-laptop`,
+		},
+		"test dynamic templating - +ve - pick then nested ranges then splitList | first": {
+			ymlTpl: `{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+{{- range $k, $v := $nsResults }}
+{{- range $kk, $vv := $v }}
+{{- if eq $kk "nodeNames" }}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      {{- if ne $vv "" }}
+      - {{ splitList " " $vv | first }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "openebs-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							"nodeNames":  "lenovo-laptop",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      - k8s-minion-1`,
+		},
+		"test dynamic templating - boundary - pick then nested ranges then splitList of single-value | first": {
+			ymlTpl: `{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+{{- range $k, $v := $nsResults }}
+{{- range $kk, $vv := $v }}
+{{- if eq $kk "nodeNames" }}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      {{- if ne $vv "" }}
+      - {{ splitList " " $vv | first }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "default-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							// this is single value nodeNames
+							"nodeNames": "lenovo-laptop",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      - lenovo-laptop`,
+		},
+		"test dynamic templating - boundary - pick then nested ranges then splitList of single-value-with-dangling-space | first": {
+			ymlTpl: `{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+{{- range $k, $v := $nsResults }}
+{{- range $kk, $vv := $v }}
+{{- if eq $kk "nodeNames" }}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      {{- if ne $vv "" }}
+      - {{ splitList " " $vv | first }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "default-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							// this is single value with dangling space
+							"nodeNames": "lenovo-laptop ",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeSelectorTerms:
+  - matchExpressions:
+    - key: kubernetes.io/hostname
+      operator: In
+      values:
+      - lenovo-laptop`,
+		},
+		"test dynamic templating - +ve - pick then nested ranges then splitList | len": {
+			ymlTpl: `{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+{{- range $k, $v := $nsResults }}
+{{- range $kk, $vv := $v }}
+{{- if eq $kk "nodeNames" }}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeCount: {{ if ne $vv "" }}{{ splitList " " $vv | len }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "openebs-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							"nodeNames":  "lenovo-laptop ",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodeCount: 3`,
+		},
+		"test dynamic templating - +ve - pick then nested ranges then splitList | join": {
+			ymlTpl: `{{- $ns := .runNamespace -}}
+{{- $nsResults := pick .taskResult.taskid $ns -}}
+{{- range $k, $v := $nsResults }}
+{{- range $kk, $vv := $v }}
+{{- if eq $kk "nodeNames" }}
+version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodes: {{ if ne $vv "" }}{{ splitList " " $vv | join "," }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end }}`,
+			values: map[string]interface{}{
+				"runNamespace": "openebs-ns",
+				"taskResult": map[string]interface{}{
+					"taskid": map[string]interface{}{
+						"default-ns": map[string]string{
+							"objectName": "my-replica-pod",
+							"nodeNames":  "lenovo-laptop ",
+						},
+						"openebs-ns": map[string]string{
+							"objectName": "my-controller-pod",
+							"nodeNames":  "k8s-minion-1 lenovo-laptop hp-laptop",
+						},
+					},
+				},
+			},
+			ymlExpected: `version: v1
+requiredDuringSchedulingIgnoredDuringExecution:
+  nodes: k8s-minion-1,lenovo-laptop,hp-laptop`,
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			// augment the standard templating with sprig template functions
+			tpl := template.New("testdynamicvartemplating").Funcs(funcMap())
+			tpl, err := tpl.Parse(mock.ymlTpl)
+			if err != nil {
+				t.Fatalf("failed to test dynamic templating: expected 'no instantiation error': actual '%s'", err.Error())
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mock.values)
+			if err != nil {
+				t.Fatalf("failed to test dynamic templating: expected 'no execution error': actual '%s'", err.Error())
+			}
+
+			// buffer that represents a YAML can be unmarshalled into a map of any objects
+			var objActual map[string]interface{}
+			err = yaml.Unmarshal(buf.Bytes(), &objActual)
+			if err != nil {
+				t.Fatalf("failed to test dynamic templating: expected 'no error w.r.t unmarshalling bytes to any objects': actual '%s'", err.Error())
+			}
+
+			// unmarshall the expected yaml into a map of any objects
+			var objExpected map[string]interface{}
+			err = yaml.Unmarshal([]byte(mock.ymlExpected), &objExpected)
+			if err != nil {
+				t.Fatalf("failed to test dynamic templating: expected 'no error w.r.t unmarshalling expected yaml to any objects': actual '%s'", err.Error())
+			}
+
+			// compare expected vs. actual object
+			ok := reflect.DeepEqual(objExpected, objActual)
+			if !ok {
+				t.Fatalf("failed to test dynamic templating:\n\nexpected: '%s' \n\nactual: '%s'", mock.ymlExpected, buf.Bytes())
+			}
+		})
+	}
+}
+
 // txtTplMock is the mock structure to test standard templating
 // & extra templating functions provided via sprig
 type txtTplMock struct {
