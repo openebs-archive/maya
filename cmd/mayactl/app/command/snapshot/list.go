@@ -27,12 +27,12 @@ import (
 
 var (
 	snapshotListCommandHelpText = `
-	Usage: mayactl snapshot list [options]
+Usage: mayactl snapshot list [options]
 
-	$ mayactl snapshot list --volname <vol>
+$ mayactl snapshot list --volname <vol>
 
-	This command displays status of available snapshot.
-	`
+This command displays status of available snapshot.
+`
 )
 
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume

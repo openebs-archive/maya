@@ -26,12 +26,12 @@ import (
 
 var (
 	snapshotrevertHelpText = `
-	Usage: mayactl snapshot revert [options]
+Usage: mayactl snapshot revert [options]
 
-	$ mayactl snapshot revert --volname <vol> --snapname <snap>
+$ mayactl snapshot revert --volname <vol> --snapname <snap>
 
-	This command displays status of available snapshotrevert.
-	`
+This command displays status of available snapshotrevert.
+`
 )
 
 /*type CmdSnaphotCreateOptions struct {

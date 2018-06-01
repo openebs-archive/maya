@@ -27,14 +27,12 @@ import (
 
 var (
 	snapshotCreateCommandHelpText = `
-	Usage: mayactl snapshot create [options]
+Usage: mayactl snapshot create [options]
 
-	$ mayactl snapshot create --volname <vol> --snapname <snap>
+$ mayactl snapshot create --volname <vol> --snapname <snap>
 
-
-	This command creates a new snapshot.
-
-	`
+This command creates a new snapshot.
+`
 )
 
 /*func init() {

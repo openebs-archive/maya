@@ -22,18 +22,18 @@ import (
 
 var (
 	snapshotCommandHelpText = `
-	Usage: mayactl  snapshot <subcommand> [options] [args]
+Usage: mayactl  snapshot <subcommand> [options] [args]
 
-	This command provides operations related to a snapshot.
+This command provides operations related to a snapshot.
 
-	Create a snapshot:
-	$ mayactl snapshot create --volname <vol> --snapname <snap>
+Create a snapshot:
+$ mayactl snapshot create --volname <vol> --snapname <snap>
 
-	List snapshot:
-	$ mayactl snapshot list --volname <vol>
+List snapshot:
+$ mayactl snapshot list --volname <vol>
 
-	Revert a snapshot:
-	$ mayactl snapshot revert --volname <vol> --snapname <snap>
+Revert a snapshot:
+$ mayactl snapshot revert --volname <vol> --snapname <snap>
 `
 )
 
