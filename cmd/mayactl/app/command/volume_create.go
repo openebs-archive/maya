@@ -22,6 +22,7 @@ import (
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
+	mayav1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -75,10 +76,13 @@ func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
 	return nil
 }
 
-// Run does tasks related to mayaserver.
+// RunVolumeCreate makes create volume request to maya-apiserver after verifying whether the volume already exists or not. In case if the volume already exists it returns the error and come out of execution.
 func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
-
+	err := IsVolumeExist(c.volName)
+	if err != nil {
+		return err
+	}
 	resp := mapiserver.CreateVolume(c.volName, c.size)
 	if resp != nil {
 		return fmt.Errorf("Error: %v", resp)
@@ -86,5 +90,20 @@ func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 	fmt.Printf("Volume Successfully Created:%v\n", c.volName)
 
+	return nil
+}
+
+// IsVolumeExist checks whether the volume already exists or not
+func IsVolumeExist(volname string) error {
+	var vols mayav1.VolumeList
+	err := mapiserver.ListVolumes(&vols)
+	if err != nil {
+		return err
+	}
+	for _, items := range vols.Items {
+		if volname == items.ObjectMeta.Name {
+			return fmt.Errorf("Error: Volume %v already exist ", volname)
+		}
+	}
 	return nil
 }
