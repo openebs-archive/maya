@@ -31,10 +31,6 @@ Usage: mayactl volume create --volname <vol> [-size <size>]
 
 This command creates a new Volume.
 
-Volume create options:
--size
-Provisioning size of the volume(default is 5G)
-
 `
 )
 

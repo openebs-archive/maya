@@ -27,7 +27,7 @@ Usage: mayactl volume <subcommand> [options] [args]
 This command provides operations related to a Volume.
 
 Create a Volume:
-$ mayactl volume create --volname <vol> -size <size>
+$ mayactl volume create --volname <vol> --size <size>
 
 List Volumes:
 $ mayactl volume list

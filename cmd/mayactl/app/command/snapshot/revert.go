@@ -32,12 +32,9 @@ import (
 // NewCmdSnapshotRevert reverts a snapshot of OpenEBS Volume
 var (
 	snapshotRevertCommandHelpText = `
-	usage: mayactl snapshot revert --volname <vol> --snapname <snap>
+usage: mayactl snapshot revert --volname <vol> --snapname <snap>
 	
-	this command revert a volume snapshot 
-	
-
-	`
+ `
 )
 
 func NewCmdSnapshotRevert() *cobra.Command {

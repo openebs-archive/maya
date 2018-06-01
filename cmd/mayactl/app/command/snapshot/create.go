@@ -48,11 +48,10 @@ import (
 // create command
 var (
 	snapshotCreateCommandHelpText = `
-	usage: mayactl snapshot create --volname <vol> --snapname <snap>
-	
-	this command creates a volume snapshot 
-	
-	note: the volume should exit before itself
+usage: mayactl snapshot create --volname <vol> --snapname <snap>
+
+this command creates a volume snapshot 
+
 	`
 )
 
