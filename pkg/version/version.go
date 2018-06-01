@@ -106,7 +106,7 @@ func GetLatestRelease() (string, error) {
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		fmt.Printf("Unable to make a GET request. \n Error - %s\n", err)
+		fmt.Println("Unable to make a GET request. found error -", err)
 		return "", err
 	}
 
@@ -115,14 +115,14 @@ func GetLatestRelease() (string, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("Request timeout occured. \n Error - %s\n", err)
+		fmt.Println("Request timeout occured. found error -", err)
 		return "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Unable to read body. \n Error - %s\n", err)
+		fmt.Println("Unable to read body. found error -", err)
 		return "", err
 	}
 
@@ -130,7 +130,7 @@ func GetLatestRelease() (string, error) {
 
 	err = json.Unmarshal(body, &Release)
 	if err != nil {
-		fmt.Printf("Unable to unmarshal json body of latest release. \n Error%s\n", err)
+		fmt.Println("Unable to unmarshal json body of latest release. found error -", err)
 		return "", err
 	}
 
