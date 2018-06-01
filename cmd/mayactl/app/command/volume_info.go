@@ -111,7 +111,7 @@ func (c *CmdVolumeInfoOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	return nil
 }
 
-func updateReplicasInfoWithNodeName(replicaInfo map[int]*ReplicaInfo) error {
+func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 	K8sClient, err := k8sclient.NewK8sClient("")
 	if err != nil {
 		return err
@@ -222,7 +222,7 @@ Status  :   {{.Status}}
 		}
 	}
 
-	err = updateReplicasInfoWithNodeName(replicaInfo)
+	err = updateReplicasInfo(replicaInfo)
 	if err != nil {
 		fmt.Println("Error in getting information from K8s. Please try again")
 	}
