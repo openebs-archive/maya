@@ -21,9 +21,9 @@ package v1alpha1
 // properties.
 //
 // e.g.
-// Policy.prop1.subprop1 = val1
-// Policy.prop1.subprop2 = val2
-// In above example Policy is a top level object
+// Config.prop1.subprop1 = val1
+// Config.prop1.subprop2 = val2
+// In above example Config is a top level object
 //
 // NOTE:
 //  The value of any hierarchical chain of properties
@@ -31,12 +31,12 @@ package v1alpha1
 type TopLevelProperty string
 
 const (
-	// PolicyTLP is a top level property supported by volume
-	// policy engine
+	// ConfigTLP is a top level property supported by cas volume
+	// engine
 	//
 	// The policy specific properties are placed with
-	// PolicyTLP as the top level property
-	PolicyTLP TopLevelProperty = "Policy"
+	// ConfigTLP as the top level property
+	ConfigTLP TopLevelProperty = "Config"
 	// VolumeTLP is a top level property supported by volume
 	// policy engine
 	//
