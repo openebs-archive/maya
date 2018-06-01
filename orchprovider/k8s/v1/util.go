@@ -500,7 +500,7 @@ var monSideCarTpl = k8sApiV1.Container{
 	Name:  "maya-volume-exporter",
 	Image: v1.DefaultMonitoringImage,
 	Command: []string{
-		"maya-volume-exporter",
+		"maya-exporter",
 	},
 	Args: []string{
 		"-c=http://__TARGET_IP__:9501",
