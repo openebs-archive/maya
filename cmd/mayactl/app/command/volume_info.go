@@ -146,10 +146,17 @@ func (c *CmdVolumeInfoOptions) DisplayVolumeInfo(a *Annotations, collection clie
 	)
 	const (
 		replicaTemplate = `
+<<<<<<< 47d72fc44065a7693c2b53a6ddd45a234114afdf
 		
 Replica Details : 
 ---------------- {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+=======
+============================================== Replica Details ==============================================
+{{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+=============================================================================================================
+>>>>>>> Proper alignment with the use of tabwriter
 `
 		portalTemplate = `
 Portal Details : 
@@ -227,10 +234,22 @@ Status  :   {{.Status}}
 		fmt.Println("Error in getting information from K8s. Please try again")
 	}
 
+<<<<<<< 47d72fc44065a7693c2b53a6ddd45a234114afdf
 	tmpl = template.New("ReplicaInfo")
 	tmpl = template.Must(tmpl.Parse(replicaTemplate))
 
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+=======
+	if length < replicaCount {
+		for i := length; i < (replicaCount); i++ {
+			replicaInfo[i+1] = &ReplicaInfo{"NA", "NA", replicaStatus[i], "NA", "NA"}
+		}
+	}
+	tmpl = template.New("ReplicaInfo")
+	tmpl = template.Must(tmpl.Parse(replicaTemplate))
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 8, ' ', 0)
+>>>>>>> Proper alignment with the use of tabwriter
 	err = tmpl.Execute(w, replicaInfo)
 	if err != nil {
 		fmt.Println("Unable to display volume info, found error : ", err)
