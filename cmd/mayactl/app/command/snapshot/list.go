@@ -31,7 +31,7 @@ Usage: mayactl snapshot list [options]
 
 $ mayactl snapshot list --volname <vol>
 
-This command displays status of available snapshot.
+This command displays available snapshots on a volume.
 `
 )
 
