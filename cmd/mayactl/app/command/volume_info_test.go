@@ -261,6 +261,35 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			},
 			output: nil,
 		},
+		"InfoWhenReplicaIsThreeAnd1stNodePendingo": {
+			cmdOptions: &CmdVolumeInfoOptions{
+				volName: "vol1",
+			},
+			annotation: &Annotations{
+				TargetPortal:     "10.99.73.74:3260",
+				ClusterIP:        "10.99.73.74",
+				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+				ReplicaCount:     "3",
+				ControllerStatus: "Running",
+				ReplicaStatus:    "Pending,Running,Running",
+				VolSize:          "1G",
+				ControllerIP:     "",
+				Replicas:         "nil,10.10.10.11,10.10.10.12",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.11",
+						Mode:    "RW",
+					},
+					{
+						Address: "10.10.10.12",
+						Mode:    "RW",
+					},
+				},
+			},
+			output: nil,
+		},
 		"InfoWhenReplicaIsTwoAndOneCrashLoopBackOff": {
 			cmdOptions: &CmdVolumeInfoOptions{
 				volName: "vol1",
@@ -313,6 +342,56 @@ func TestDisplayVolumeInfo(t *testing.T) {
 					},
 					{
 						Address: "10.10.10.11",
+						Mode:    "RW",
+					},
+				},
+			},
+			output: nil,
+		},
+		"InfoWhenReplicaIsFourAndOneErrPullBackAndOneCrashBack": {
+			cmdOptions: &CmdVolumeInfoOptions{
+				volName: "vol1",
+			},
+			annotation: &Annotations{
+				TargetPortal:     "10.99.73.74:3260",
+				ClusterIP:        "10.99.73.74",
+				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+				ReplicaCount:     "4",
+				ControllerStatus: "Running",
+				ReplicaStatus:    "Pending,ErrImagePull,Running,CrashLoopBackOff",
+				VolSize:          "1G",
+				ControllerIP:     "",
+				Replicas:         "nil,nil,10.10.10.12,nil",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.12",
+						Mode:    "RW",
+					},
+				},
+			},
+			output: nil,
+		},
+		"InfoWhenReplicaIsFourAndOneErrPullBackAndOneCrashBackAndOneNil": {
+			cmdOptions: &CmdVolumeInfoOptions{
+				volName: "vol1",
+			},
+			annotation: &Annotations{
+				TargetPortal:     "10.99.73.74:3260",
+				ClusterIP:        "10.99.73.74",
+				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
+				ReplicaCount:     "4",
+				ControllerStatus: "Running",
+				ReplicaStatus:    "Pending,ErrImagePull,Running,CrashLoopBackOff",
+				VolSize:          "1G",
+				ControllerIP:     "",
+				Replicas:         "nil,nil,10.10.10.13,nil",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.13",
 						Mode:    "RW",
 					},
 				},
