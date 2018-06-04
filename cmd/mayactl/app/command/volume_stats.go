@@ -39,10 +39,6 @@ Usage: mayactl volume stats --volname <vol> [-size <size>]
 
 This command queries the stats of the volume.
 
-Volume stats options:
--json
-Displays the stats in json format.
-
 `
 )
 

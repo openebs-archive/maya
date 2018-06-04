@@ -37,8 +37,7 @@ $ mayactl volume delete --volname <vol>
 
 Statistics of a Volume:
 $ mayactl volume stats --volname <vol>
-
-	`
+`
 )
 
 // NewCmdVolume provides options for managing OpenEBS Volume
