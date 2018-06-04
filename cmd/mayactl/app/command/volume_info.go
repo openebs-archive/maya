@@ -23,6 +23,13 @@ var (
         `
 )
 
+//values keeps info of the values of a current address in replicaIPStatus map
+type Value struct {
+	index  int
+	status string
+	mode   string
+}
+
 // PortalInfo keep info about the ISCSI Target Portal.
 type PortalInfo struct {
 	IQN        string
@@ -144,29 +151,48 @@ Status  :   {{.Status}}
 		return nil
 	}
 	replicaCount, _ = strconv.Atoi(a.ReplicaCount)
-	length := len(collection.Data)
 	// This case will occur only if user has manually specified zero replica.
 	if replicaCount == 0 {
 		fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 		return nil
 	}
 
-	replicaStatus := strings.Split(a.ReplicaStatus, ",")
-	// We get the info of the running replicas from the collection.data.
-	// If there are no replicas running they are either in CrashedLoopBackOff
-	// or in Pending or in ImagePullBackoff.In such cases it will show Waiting
-	// NA,  NA in Status, access mode and IP fields respectively.
-	replicaInfo := make(map[int]*ReplicaInfo)
-	for key, _ := range collection.Data {
-		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
-		mode = append(mode, collection.Data[key].Mode)
-		replicaInfo[key] = &ReplicaInfo{address[key], mode[key], replicaStatus[key]}
-	}
-	if length < replicaCount {
-		for i := length; i < (replicaCount); i++ {
-			replicaInfo[i] = &ReplicaInfo{"NA", "       NA", replicaStatus[i]}
+	// Splitting strings with delimiter ','
+	replicaStatusStrings := strings.Split(a.ReplicaStatus, ",")
+	addressIPStrings := strings.Split(a.Replicas, ",")
+
+	// making a map of replica ip and their respective status,index and mode
+	replicaIPStatus := make(map[string]*Value)
+	for i, v := range addressIPStrings {
+		if v != "nil" {
+			replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "       	NA"}
+		} else {
+			// appending address with index to avoid same key conflict
+			replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "       	NA"}
 		}
 	}
+
+	// We get the info of the running replicas from the collection.data.
+	// We are appending modes if available in collection.data to replicaIPStatus
+
+	replicaInfo := make(map[int]*ReplicaInfo)
+
+	for key := range collection.Data {
+		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
+		mode = append(mode, collection.Data[key].Mode)
+		replicaIPStatus[address[key]].mode = mode[key]
+
+	}
+
+	for k, v := range replicaIPStatus {
+		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
+		if k[0:3] != "nil" {
+			replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status}
+		} else {
+			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status}
+		}
+	}
+
 	tmpl = template.New("ReplicaInfo")
 	tmpl = template.Must(tmpl.Parse(replicaTemplate))
 	err = tmpl.Execute(os.Stdout, replicaInfo)
