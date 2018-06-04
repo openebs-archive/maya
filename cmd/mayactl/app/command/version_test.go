@@ -27,6 +27,7 @@ func TestCheckLatestVersion(t *testing.T) {
 
 	fakeHandler :=
 		utiltesting.FakeHandler{
+			StatusCode:   200,
 			ResponseBody: string(response2),
 		}
 

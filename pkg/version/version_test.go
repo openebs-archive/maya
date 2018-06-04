@@ -26,6 +26,7 @@ func TestGetLatestRelease(t *testing.T) {
 		},
 		"Response": {
 			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
 				ResponseBody: string(response),
 				T:            t,
 			},
@@ -39,7 +40,7 @@ func TestGetLatestRelease(t *testing.T) {
 			GitAPIAddr = server.URL
 			got, _ := GetLatestRelease()
 			if got != tt.output {
-				t.Errorf("Actual - %s Expected - %s", got, tt.output)
+				t.Errorf("TestName - %s Actual - %s Expected - %s", name, got, tt.output)
 			}
 			defer server.Close()
 		})
