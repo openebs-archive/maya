@@ -1,11 +1,13 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	"k8s.io/client-go/kubernetes"
 )
 
 // TestK8sUtilInterfaceCompliance verifies if k8sUtil implements
@@ -168,6 +170,40 @@ func TestNS(t *testing.T) {
 
 		if nsActual != c.ns {
 			t.Errorf("TestCase: '%d' ExpectedNS: '%s' ActualNS: '%s'", i, c.ns, nsActual)
+		}
+	}
+}
+
+// TestgetOutCluster tests TestgetOutClusterCS func
+func TestGetOutClusterCS(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		expectedOutput *kubernetes.Clientset
+		expectedError  error
+	}{
+		{"default", nil, errors.New("out cluster clientset not supported in 'k8sutil @ 'default''")},
+		{"test", nil, errors.New("out cluster clientset not supported in 'k8sutil @ 'test''")},
+	}
+
+	for i, val := range cases {
+		pvc := &v1.Volume{
+			Namespace: val.name,
+		}
+
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		out, err := k8sUtl.getOutClusterCS()
+
+		if out != val.expectedOutput {
+			t.Errorf("TestCase: '%d' Expected Output :%v but got :%v", i, val.expectedOutput, out)
+		}
+		if err.Error() != val.expectedError.Error() {
+			t.Errorf("TestCase: '%d' Expected Error :%v but got :%v", i, val.expectedError, err)
 		}
 	}
 }
