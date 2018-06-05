@@ -317,7 +317,17 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
-// ListCoreV1PodAsRaw fetches a list of K8s Pods as per the provided options
+// GetPods fetches the K8s Pods
+func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
+	podLists, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return podLists.Items, nil
+}
+
+// ListCoreV1PodAsRaw fetches a list of K8s Pods with the provided options
 func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Get().
 		Namespace(k.ns).
