@@ -82,29 +82,6 @@ func CreateVolume(cStorVolume *apis.CStorVolume) error {
 
 }
 
-// func generateSparseFile(cStorVolume *apis.CStorVolume) error {
-// 	touchArgs := sparseFileCommandBuilder(cStorVolume, "touch")
-
-// 	stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/bin/touch", touchArgs...)
-// 	if err != nil {
-// 		glog.Error("failed to touch file /tmp/cstor/"+cStorVolume.Spec.VolumeName,
-// 			err.Error(), string(stdoutStderr))
-// 		return err
-// 	}
-
-// 	truncArgs := sparseFileCommandBuilder(cStorVolume, "truncate")
-
-// 	stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/bin/truncate", truncArgs...)
-// 	if err != nil {
-// 		glog.Error("failed to truncate file /tmp/cstor/"+cStorVolume.Spec.VolumeName+
-// 			" with capacity "+cStorVolume.Spec.Capacity,
-// 			err.Error(), string(stdoutStderr))
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
 // sparseFileArgumentsBuilder is to build sparse file command.
 func sparseFileCommandBuilder(cStorVolume *apis.CStorVolume, op string) []string {
 	var cmdArgs []string
@@ -216,12 +193,6 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 `)
 
 	text = append(text, text4...)
-
-	// err := FileOperatorVar.Write(IstgtConfPath, text, 0644)
-	// if err != nil {
-	// 	glog.Errorf("Failed to write istgt.conf...")
-	// }
-	// glog.Info("Done writing istgt.conf")
 
 	return text
 }
