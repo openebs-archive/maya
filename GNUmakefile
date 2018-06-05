@@ -17,6 +17,11 @@ EXTERNAL_TOOLS=\
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
+ifeq (${IMAGE_TAG}, )
+  IMAGE_TAG = local
+  export IMAGE_TAG
+endif
+
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
