@@ -22,6 +22,10 @@ package v1alpha1
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
 
+// CStorVolumeListerExpansion allows custom methods to be added to
+// CStorVolumeLister.
+type CStorVolumeListerExpansion interface{}
+
 // CStorVolumeReplicaListerExpansion allows custom methods to be added to
 // CStorVolumeReplicaLister.
 type CStorVolumeReplicaListerExpansion interface{}

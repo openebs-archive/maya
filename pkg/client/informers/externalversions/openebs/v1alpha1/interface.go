@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
+	// CStorVolumes returns a CStorVolumeInformer.
+	CStorVolumes() CStorVolumeInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
 	// StoragePools returns a StoragePoolInformer.
@@ -48,6 +50,11 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // CStorPools returns a CStorPoolInformer.
 func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.SharedInformerFactory}
+}
+
+// CStorVolumes returns a CStorVolumeInformer.
+func (v *version) CStorVolumes() CStorVolumeInformer {
+	return &cStorVolumeInformer{factory: v.SharedInformerFactory}
 }
 
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
