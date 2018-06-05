@@ -207,3 +207,37 @@ func TestGetOutClusterCS(t *testing.T) {
 		}
 	}
 }
+
+// TestIsInCluster tests the output of IsIncluster func
+func TestIsInCluster(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		expectedOutput bool
+		expectedError  error
+	}{
+		{"default", true, nil},
+		{"test", true, nil},
+	}
+
+	for i, val := range cases {
+		pvc := &v1.Volume{
+			Namespace: val.name,
+		}
+
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		out, err := k8sUtl.IsInCluster()
+
+		if out != val.expectedOutput {
+			t.Errorf("TestCase: '%d' ExpectedOutput %v but got :%v", i, val.expectedOutput, out)
+		}
+		if err != val.expectedError {
+			t.Errorf("TestCase: '%d' ExpectedError %v but got :%v", i, val.expectedError, err)
+		}
+	}
+}
