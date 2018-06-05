@@ -105,6 +105,10 @@ func parseVersion(version string) []int64 {
 	versionList := strings.Split(version, ".")
 	versionNumber := []int64{}
 
+	// Removing the string from the version
+	versionListLength := len(versionList)
+	versionList[versionListLength-1] = strings.Split(versionList[versionListLength-1], "-")[0]
+
 	for _, v := range versionList {
 		j, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {

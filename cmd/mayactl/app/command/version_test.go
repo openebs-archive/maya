@@ -21,6 +21,7 @@ func TestCheckLatestVersion(t *testing.T) {
 		"OnLatestVersion":         {"v0.5.4", "pos"},
 		"NewerVersionAvailable":   {"v0.5.6", "pos"},
 		"NewerVersionAvailable-1": {"v0.4.1", "pos"},
+		"VersionContainingString": {"v0.5.4-test", "pos"},
 		"EmptyString":             {"", "neg"},
 		"InvalidString":           {"0.5.7", "neg"},
 	}
