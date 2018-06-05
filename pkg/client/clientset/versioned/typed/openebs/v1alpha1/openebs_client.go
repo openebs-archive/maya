@@ -25,6 +25,7 @@ import (
 type OpenebsV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	CStorPoolsGetter
+	CStorVolumesGetter
 	CStorVolumeReplicasGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
@@ -38,6 +39,10 @@ type OpenebsV1alpha1Client struct {
 
 func (c *OpenebsV1alpha1Client) CStorPools() CStorPoolInterface {
 	return newCStorPools(c)
+}
+
+func (c *OpenebsV1alpha1Client) CStorVolumes() CStorVolumeInterface {
+	return newCStorVolumes(c)
 }
 
 func (c *OpenebsV1alpha1Client) CStorVolumeReplicas() CStorVolumeReplicaInterface {
