@@ -180,17 +180,17 @@ Status  :   {{.Status}}
 	}
 	replicaCount, _ = strconv.Atoi(a.ReplicaCount)
 	// This case will occur only if user has manually specified zero replica.
-	if replicaCount == 0 {
+	if replicaCount == 0 || a.ReplicaStatus == "" || a.Replicas == "" {
 		fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 		return nil
 	}
-
 	// Splitting strings with delimiter ','
 	replicaStatusStrings := strings.Split(a.ReplicaStatus, ",")
 	addressIPStrings := strings.Split(a.Replicas, ",")
 
 	// making a map of replica ip and their respective status,index and mode
 	replicaIPStatus := make(map[string]*Value)
+
 	for i, v := range addressIPStrings {
 		if v != "nil" {
 			replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
@@ -206,24 +206,27 @@ Status  :   {{.Status}}
 	replicaInfo := make(map[int]*ReplicaInfo)
 	replicaInfo[0] = &ReplicaInfo{"IP", "ACCESSMODE", "STATUS", "NAME", "NODE"}
 	replicaInfo[1] = &ReplicaInfo{"---", "-----------", "-------", "-----", "-----"}
+
 	for key := range collection.Data {
 		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
 		mode = append(mode, collection.Data[key].Mode)
-		replicaIPStatus[address[key]].mode = mode[key]
+		if _, ok := replicaIPStatus[address[key]]; ok {
+			replicaIPStatus[address[key]].mode = mode[key]
+		}
 	}
 
 	for k, v := range replicaIPStatus {
 		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
 		if k[0:3] != "nil" {
-			replicaInfo[v.index+2] = &ReplicaInfo{k, v.mode, v.status, "Error fetching Name", "Error Fetching Node"}
+			replicaInfo[v.index+2] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
 		} else {
-			replicaInfo[v.index+2] = &ReplicaInfo{"NA", v.mode, v.status, "Error fetching Name", "Error Fetching Node"}
+			replicaInfo[v.index+2] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
 		}
 	}
 
 	err = updateReplicasInfo(replicaInfo)
 	if err != nil {
-		fmt.Println("Error in getting information from K8s. Please try again")
+		fmt.Println("Error in getting specific information from K8s. Please try again.")
 	}
 
 	tmpl = template.New("ReplicaInfo")
