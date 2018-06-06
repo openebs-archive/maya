@@ -14,7 +14,7 @@ const (
 	// MaxWidth used in tabwriter
 	MaxWidth = 0
 	// Padding used in tabwriter
-	Padding = 3
+	Padding = 4
 
 	// ControllerPort : Jiva volume cotrolller listens on this for various api
 	// reqests.

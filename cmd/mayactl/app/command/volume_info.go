@@ -130,9 +130,11 @@ func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.R
 	)
 	const (
 		replicaTemplate = `
-
-Replica Details :
----------------- {{range $key, $value := .}}
+		
+Replica Details : 
+---------------- 
+{{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE" }}
+{{ printf "-----\t -----------\t -------\t ---\t -----" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
 `
 		portalTemplate = `
@@ -188,9 +190,6 @@ Status  :   {{.Status}}
 	// We are appending modes if available in collection.data to replicaIPStatus
 
 	replicaInfo := make(map[int]*ReplicaInfo)
-	replicaInfo[0] = &ReplicaInfo{"IP", "ACCESSMODE", "STATUS", "NAME", "NODE"}
-	replicaInfo[1] = &ReplicaInfo{"---", "-----------", "-------", "-----", "-----"}
-
 	for key := range collection.Data {
 		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
 		mode = append(mode, collection.Data[key].Mode)
@@ -202,9 +201,9 @@ Status  :   {{.Status}}
 	for k, v := range replicaIPStatus {
 		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
 		if k[0:3] != "nil" {
-			replicaInfo[v.index+2] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
+			replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
 		} else {
-			replicaInfo[v.index+2] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
+			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
 		}
 	}
 
@@ -216,7 +215,7 @@ Status  :   {{.Status}}
 	tmpl = template.New("ReplicaInfo")
 	tmpl = template.Must(tmpl.Parse(replicaTemplate))
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
 	err = tmpl.Execute(w, replicaInfo)
 	if err != nil {
 		fmt.Println("Unable to display volume info, found error : ", err)
