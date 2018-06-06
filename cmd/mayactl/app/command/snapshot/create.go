@@ -46,6 +46,15 @@ import (
 
 // CmdSnaphotCreateOptions holds the options for snapshot
 // create command
+var (
+	snapshotCreateCommandHelpText = `
+usage: mayactl snapshot create --volname <vol> --snapname <snap>
+
+this command creates a volume snapshot 
+
+	`
+)
+
 type CmdSnaphotCreateOptions struct {
 	volName  string
 	snapName string
@@ -58,7 +67,7 @@ func NewCmdSnapshotCreate() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Snapshot",
-		//Long:  SnapshotCreateCommandHelpText,
+		Long:  snapshotCreateCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotCreate(cmd), util.Fatal)

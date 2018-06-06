@@ -27,11 +27,11 @@ import (
 
 var (
 	volumeDeleteCommandHelpText = `
-	Usage: maya volume delete -volname <vol>
+Usage: mayactl volume delete --volname <vol>
 
-	This command initiate a delete for OpenEBS Volume.
+This command initiate a delete for OpenEBS Volume.
 
-	`
+`
 )
 
 // CmdVolumeDeleteOptions stores the input parameters

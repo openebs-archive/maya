@@ -18,11 +18,11 @@ import (
 
 var (
 	volumeInfoCommandHelpText = `
-	    Usage: mayactl volume info --volname <vol>
+Usage: mayactl volume info --volname <vol>
 
-        This command fetches the information and status of the various
-	    aspects of the Volume such as ISCSI, Controller and Replica.
-        `
+This command fetches the information and status of the various
+aspects of the Volume such as ISCSI, Controller and Replica.
+`
 )
 
 //values keeps info of the values of a current address in replicaIPStatus map

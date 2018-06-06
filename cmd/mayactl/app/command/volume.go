@@ -22,23 +22,22 @@ import (
 
 var (
 	volumeCommandHelpText = `
-	Usage: maya volume <subcommand> [options] [args]
+Usage: mayactl volume <subcommand> [options] [args]
 
-	This command provides operations related to a Volume.
+This command provides operations related to a Volume.
 
-	Create a Volume:
-	$ maya volume create -volname <vol> -size <size>
+Create a Volume:
+$ mayactl volume create --volname <vol> --size <size>
 
-	List Volumes:
-	$ maya volume list
+List Volumes:
+$ mayactl volume list
 
-	Delete a Volume:
-	$ maya volume delete -volname <vol>
+Delete a Volume:
+$ mayactl volume delete --volname <vol>
 
-	Statistics of a Volume:
-	$ maya volume stats <vol>
-
-	`
+Statistics of a Volume:
+$ mayactl volume stats --volname <vol>
+`
 )
 
 // NewCmdVolume provides options for managing OpenEBS Volume
