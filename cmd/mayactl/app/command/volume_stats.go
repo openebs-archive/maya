@@ -40,6 +40,13 @@ Usage: mayactl volume stats --volname <vol> [-size <size>]
 `
 )
 
+// ReplicaStats keep info about the replicas.
+type ReplicaStats struct {
+	Replica         string
+	Status          string
+	DataUpdateIndex string
+}
+
 // NewCmdVolumeCreate creates a new OpenEBS Volume
 func NewCmdVolumeStats() *cobra.Command {
 	cmd := &cobra.Command{
@@ -64,14 +71,11 @@ func NewCmdVolumeStats() *cobra.Command {
 func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	fmt.Println("Executing volume stats...")
 	var (
-		err, err1, err3 error
-		err2, err4      int
-		status          v1.VolStatus
-		stats1, stats2  v1.VolumeMetrics
-		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
+		status         v1.VolStatus
+		stats1, stats2 v1.VolumeMetrics
 	)
 	annotation := &Annotations{}
-	err = annotation.GetVolAnnotations(c.volName, c.namespace)
+	err := annotation.GetVolAnnotations(c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
@@ -79,45 +83,41 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		fmt.Println("Volume not reachable, found controller's status", annotation.ControllerStatus)
 		return nil
 	}
+
 	replicas := strings.Split(annotation.Replicas, ",")
 	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
+	replicaStats := make(map[int]*ReplicaStats)
 	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
-		errCode1, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
+		respStatus, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
 		if err != nil {
-			if errCode1 == 500 || strings.Contains(err.Error(), "EOF") {
-				statusArray = append(statusArray, replica)
-				statusArray = append(statusArray, replicaStatus[i])
-				statusArray = append(statusArray, "Unknown")
+			if respStatus == 500 || strings.Contains(err.Error(), "EOF") {
+				replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], "Unknown"}
 			} else {
-				statusArray = append(statusArray, replica)
-				statusArray = append(statusArray, replicaStatus[i])
-				statusArray = append(statusArray, "Unknown")
+				replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], "Unknown"}
 			}
 		} else {
-			statusArray = append(statusArray, replica)
-			statusArray = append(statusArray, replicaStatus[i])
-			statusArray = append(statusArray, status.RevisionCounter)
+			replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], status.RevisionCounter}
 		}
 	}
 
 	controllerClient := client.ControllerClient{}
-	err2, err1 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats1)
-	if err1 != nil {
-		if (err2 == 500) || (err2 == 503) || err1 != nil {
-			fmt.Println("Volume not Reachable\n", err1)
+	respStatus, err := controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats1)
+	if err != nil {
+		if (respStatus == 500) || (respStatus == 503) || err != nil {
+			fmt.Println("Volume not Reachable\n", err)
 			return nil
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		err4, err3 = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats2)
-		if err3 != nil {
-			if err4 == 500 || err4 == 503 || err3 != nil {
-				fmt.Println("Volume not Reachable\n", err3)
+		respStatus, err := controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats2)
+		if err != nil {
+			if respStatus == 500 || respStatus == 503 || err != nil {
+				fmt.Println("Volume not Reachable\n", err)
 				return nil
 			}
 		} else {
-			err := annotation.DisplayStats(c, statusArray, stats1, stats2)
+			err := annotation.DisplayStats(c, replicaStats, stats1, stats2)
 			if err != nil {
 				fmt.Println("Can't display stats\n", err)
 				return nil
@@ -130,14 +130,48 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 // DisplayStats displays the volume stats as standard output and in json format.
 // By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
-func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func (a *Annotations) DisplayStats(c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
-		err                  error
 		ReadLatency          int64
 		WriteLatency         int64
 		AvgReadBlockCountPS  int64
 		AvgWriteBlockCountPS int64
+	)
+
+	const (
+		portalTemplate = `
+Portal Details :
+---------------
+IQN     :   {{.IQN}}
+Volume  :   {{.Volume}}
+Portal  :   {{.Portal}}
+Size    :   {{.Size}}
+
+`
+		replicaTemplate = `
+Replica Stats : 
+---------------- 
+{{ printf "REPLICA\t STATUS\t DATAUPDATEINDEX" }}
+{{ printf "--------\t -------\t ----------------" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Replica }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.DataUpdateIndex }} {{end}}
+
+`
+		performanceTemplate = `
+Performance Stats :
+--------------------
+{{ printf "r/s\t w/s\t r(MB/s)\t w(MB/s)\t rLat(ms)\t wLat(ms)" }}
+{{ printf "----\t ----\t --------\t --------\t ---------\t ---------" }}
+{{ printf "%d\t" .ReadIOPS }} {{ printf "%d\t" .WriteIOPS }} {{ printf "%.3f\t" .ReadThroughput }} {{ printf "%.3f\t" .WriteThroughput }} {{ printf "%.3f\t" .ReadLatency }} {{printf "%.3f\t" .WriteLatency }} 
+
+`
+		capicityTemplate = `
+Capacity Stats :
+---------------
+{{ printf "LOGICAL(GB)\t USED(GB)" }}
+{{ printf "------------\t ---------" }}
+{{ printf "%.3f\t" .LogicalSize }} {{ printf "%.3f\t" .ActualUsed }}
+`
 	)
 
 	// 10 and 64 represents decimal and bits respectively
@@ -198,9 +232,10 @@ func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, st
 		Size:   a.VolSize,
 	}
 
+	stat1 := v1.StatsJSON{}
 	if c.json == "json" {
 
-		stat1 := v1.StatsJSON{
+		stat1 = v1.StatsJSON{
 
 			IQN:    a.Iqn,
 			Volume: c.volName,
@@ -233,17 +268,14 @@ func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, st
 		fmt.Println()
 
 	} else {
-
-		// Printing using template
-		tmpl, err1 := template.New("test").Parse("IQN     : {{.IQN}}\nVolume  : {{.Volume}}\nPortal  : {{.Portal}}\nSize    : {{.Size}}")
-		err = err1
+		tmpl, err := template.New("VolumeStats").Parse(portalTemplate)
 		if err != nil {
-			fmt.Println("Can't Parse the template ", err)
+			fmt.Println("Error in parsing portal template, found error : ", err)
 			return nil
 		}
 		err = tmpl.Execute(os.Stdout, annotation)
 		if err != nil {
-			fmt.Println("Can't execute the template ", err)
+			fmt.Println("Error in executing portal template, found error :", err)
 			return nil
 		}
 
@@ -252,26 +284,49 @@ func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, st
 			fmt.Println("Can't convert to int, found error", err)
 			return nil
 		}
-		// Printing in tabular form
-		q := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Fprintf(q, "\n\nReplica\tStatus\tDataUpdateIndex\t\n")
-		fmt.Fprintf(q, "\t\t\t\n")
-		for i := 0; i < (3 * replicaCount); i += 3 {
-			fmt.Fprintf(q, "%s\t%s\t%s\t\n", statusArray[i], statusArray[i+1], statusArray[i+2])
+		// This case will occur only if user has manually specified zero replica.
+		if replicaCount == 0 {
+			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
+			return nil
 		}
-		q.Flush()
 
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n----------- Performance Stats -----------")
-		fmt.Fprintf(w, "r/s\tw/s\tr(MB/s)\tw(MB/s)\trLat(ms)\twLat(ms)\t\n")
-		fmt.Fprintf(w, "%d\t%d\t%.3f\t%.3f\t%.3f\t%.3f\t\n", readIOPS, writeIOPS, float64(rThroughput)/v1.BytesToMB, float64(wThroughput)/v1.BytesToMB, float64(ReadLatency)/v1.MicSec, float64(WriteLatency)/v1.MicSec)
+		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+
+		tmpl, err = template.New("ReplicaStats").Parse(replicaTemplate)
+		if err != nil {
+			fmt.Println("Error in parsing replica template, found error : ", err)
+			return nil
+		}
+		err = tmpl.Execute(w, replicaStats)
+		if err != nil {
+			fmt.Println("Error in executing replica template, found error :", err)
+			return nil
+		}
 		w.Flush()
 
-		x := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', tabwriter.AlignRight|tabwriter.Debug)
-		fmt.Println("\n------------ Capacity Stats -------------")
-		fmt.Fprintf(x, "Logical(GB)\tUsed(GB)\t\n")
-		fmt.Fprintf(x, "%.3f\t%.3f\t\n", logicalSize/v1.BytesToGB, actualUsed/v1.BytesToGB)
-		x.Flush()
+		tmpl, err = template.New("PerformanceStats").Parse(performanceTemplate)
+		if err != nil {
+			fmt.Println("Error in parsing performance template, found error : ", err)
+			return nil
+		}
+		err = tmpl.Execute(w, stat1)
+		if err != nil {
+			fmt.Println("Error in executing performance template, found error :", err)
+			return nil
+		}
+		w.Flush()
+
+		tmpl, err = template.New("CapacityStats").Parse(capicityTemplate)
+		if err != nil {
+			fmt.Println("Error in parsing capacity template, found error : ", err)
+			return nil
+		}
+		err = tmpl.Execute(w, stat1)
+		if err != nil {
+			fmt.Println("Error in executing capacity template, found error :", err)
+			return nil
+		}
+		w.Flush()
 	}
-	return err
+	return nil
 }
