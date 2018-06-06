@@ -10,7 +10,7 @@ func TestDisplayStats(t *testing.T) {
 	validStats := map[string]struct {
 		annotation   *Annotations
 		cmdOptions   *CmdVolumeOptions
-		status       []string
+		replicaStats map[int]*ReplicaStats
 		initialStats v1.VolumeMetrics
 		finalStats   v1.VolumeMetrics
 		output       error
@@ -32,11 +32,7 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10",
 			},
-			status: []string{
-				"",
-				"",
-				"",
-			},
+			replicaStats: nil,
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
 				ReadIOPS:             "0",
@@ -88,10 +84,12 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -143,16 +141,22 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -204,16 +208,22 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -265,19 +275,27 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
-				"10.10.10.12",
-				"Online",
-				"1",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
+				3: {
+					Replica:         "10.10.10.12",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -329,19 +347,27 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"ErrImagePull",
-				"Unknown",
-				"10.10.10.12",
-				"Online",
-				"1",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "ErrImagePull",
+					DataUpdateIndex: "Unknown",
+				},
+				3: {
+					Replica:         "10.10.10.12",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -393,19 +419,27 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"CrashLoopBackOff",
-				"Unknown",
-				"10.10.10.12",
-				"Online",
-				"1",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "CrashLoopBackOff",
+					DataUpdateIndex: "Unknown",
+				},
+				3: {
+					Replica:         "10.10.10.12",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -457,16 +491,22 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -518,17 +558,22 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
-
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -580,17 +625,22 @@ func TestDisplayStats(t *testing.T) {
 				ControllerIP:     "",
 				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
-
-			status: []string{
-				"10.10.10.10",
-				"Online",
-				"1",
-				"10.10.10.11",
-				"Online",
-				"1",
-				"nil",
-				"Offline",
-				"Unknown",
+			replicaStats: map[int]*ReplicaStats{
+				0: {
+					Replica:         "10.10.10.10",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				1: {
+					Replica:         "10.10.10.11",
+					Status:          "Online",
+					DataUpdateIndex: "1",
+				},
+				2: {
+					Replica:         "nil",
+					Status:          "Offline",
+					DataUpdateIndex: "Unknown",
+				},
 			},
 			initialStats: v1.VolumeMetrics{
 				Name:                 "vol1",
@@ -629,8 +679,8 @@ func TestDisplayStats(t *testing.T) {
 	}
 	for name, tt := range validStats {
 		t.Run(name, func(t *testing.T) {
-			if got := tt.annotation.DisplayStats(tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats); got != tt.output {
-				t.Fatalf("DisplayStats(%v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.status, tt.initialStats, tt.finalStats, got, tt.output)
+			if got := tt.annotation.DisplayStats(tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
+				t.Fatalf("DisplayStats(%v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
 			}
 		})
 	}
