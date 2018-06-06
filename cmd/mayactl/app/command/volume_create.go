@@ -39,15 +39,8 @@ var (
 	`
 )
 
-type CmdVolumeCreateOptions struct {
-	volName string
-	size    string
-}
-
 // NewCmdVolumeCreate creates a new OpenEBS Volume
 func NewCmdVolumeCreate() *cobra.Command {
-	options := CmdVolumeCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Volume",
@@ -64,20 +57,21 @@ func NewCmdVolumeCreate() *cobra.Command {
 
 	cmd.Flags().StringVarP(&options.size, "size", "", options.size,
 		"volume capacity in GB (example: 10G) (default: 5G")
-
 	return cmd
 }
 
-// Run does tasks related to mayaserver.
-func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
+// Validate varifies whether a volume name has been provided or not followed by
+// stats command, it returns nil and proceeds to execute the command if there is
+// no error and returns the error if it is missing.
+func (c *CmdVolumeOptions) Validate(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
 		return errors.New("--volname is missing. Please specify an unique name")
 	}
 	return nil
 }
 
 // RunVolumeCreate makes create volume request to maya-apiserver after verifying whether the volume already exists or not. In case if the volume already exists it returns the error and come out of execution.
-func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
 	err := IsVolumeExist(c.volName)
 	if err != nil {

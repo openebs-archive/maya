@@ -27,8 +27,6 @@ import (
 
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
 func NewCmdSnapshotList() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lists all the snapshots of a Volume",
@@ -39,24 +37,24 @@ func NewCmdSnapshotList() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 	return cmd
 }
 
 // ValidateList validates the flag values
-func (c *CmdSnaphotCreateOptions) ValidateList(cmd *cobra.Command) error {
-	if c.volName == "" {
+func (c *CmdSnaphotOptions) ValidateList(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
 		return errors.New("--volname is missing. Please specify an unique name")
 	}
 	return nil
 }
 
 // RunSnapshotList does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotList(cmd *cobra.Command) error {
+func (c *CmdSnaphotOptions) RunSnapshotList(cmd *cobra.Command) error {
 
-	resp := mapiserver.ListSnapshot(c.volName)
+	resp := mapiserver.ListSnapshot(c.volName, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Error list available snapshot: %v", resp)
 	}

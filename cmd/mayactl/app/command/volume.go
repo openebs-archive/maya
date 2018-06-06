@@ -17,6 +17,8 @@ limitations under the License.
 package command
 
 import (
+	"flag"
+
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +41,17 @@ var (
 	$ maya volume stats <vol>
 
 	`
+	options = &CmdVolumeOptions{
+		namespace: "default",
+	}
 )
+
+type CmdVolumeOptions struct {
+	volName   string
+	size      string
+	namespace string
+	json      string
+}
 
 // NewCmdVolume provides options for managing OpenEBS Volume
 func NewCmdVolume() *cobra.Command {
@@ -56,5 +68,10 @@ func NewCmdVolume() *cobra.Command {
 		NewCmdVolumeStats(),
 		NewCmdVolumeInfo(),
 	)
+	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
+		"namespace name, required if volume is in other then dafault namespace")
+
+	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
+	flag.CommandLine.Parse([]string{})
 	return cmd
 }

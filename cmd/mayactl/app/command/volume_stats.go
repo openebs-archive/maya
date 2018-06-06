@@ -18,7 +18,6 @@ package command
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -46,16 +45,8 @@ var (
 	`
 )
 
-// CmdVolumeStatsOptions is used to store the value of flags used in the cli
-type CmdVolumeStatsOptions struct {
-	json    string
-	volName string
-}
-
 // NewCmdVolumeCreate creates a new OpenEBS Volume
 func NewCmdVolumeStats() *cobra.Command {
-	options := CmdVolumeStatsOptions{}
-
 	cmd := &cobra.Command{
 		Use:     "stats",
 		Short:   "Displays the runtime statisics of Volume",
@@ -67,27 +58,17 @@ func NewCmdVolumeStats() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.Flags().StringVarP(&options.json, "json", "j", options.json, "display output in JSON.")
 	return cmd
 }
 
-// Validate varifies whether a volume name has been provided or not followed by
-// stats command, it returns nil and proceeds to execute the command if there is
-// no error and returns the error if it is missing.
-func (c *CmdVolumeStatsOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
-		return errors.New("--volname is missing. Please try running [mayactl volume list] to see list of volumes")
-	}
-	return nil
-}
-
 // RunVolumeStats runs stats command and display the outputs in standard
 // I/O or in json format.
-func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	fmt.Println("Executing volume stats...")
-
+	fmt.Println("Namespace is :", c.namespace)
 	var (
 		err, err1, err3 error
 		err2, err4      int
@@ -95,9 +76,8 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 		stats1, stats2  v1.VolumeMetrics
 		statusArray     []string //keeps track of the replica's status such as IP, Status and Revision counter.
 	)
-
 	annotation := &Annotations{}
-	err = annotation.GetVolAnnotations(c.volName)
+	err = annotation.GetVolAnnotations(c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
@@ -156,7 +136,7 @@ func (c *CmdVolumeStatsOptions) RunVolumeStats(cmd *cobra.Command) error {
 // DisplayStats displays the volume stats as standard output and in json format.
 // By defaault it displays in standard output but if  flag json is passed it
 // displays stats in json format.
-func (a *Annotations) DisplayStats(c *CmdVolumeStatsOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		err                  error

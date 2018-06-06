@@ -20,6 +20,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	options = &CmdSnaphotOptions{
+		namespace: "default",
+	}
+)
+
+type CmdSnaphotOptions struct {
+	volName   string
+	snapName  string
+	namespace string
+}
+
 func NewCmdSnapshot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "snapshot",
@@ -32,6 +44,8 @@ func NewCmdSnapshot() *cobra.Command {
 		NewCmdSnapshotList(),
 		NewCmdSnapshotRevert(),
 	)
+	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
+		"namespace name, required if volume is in other then dafault namespace")
 
 	return cmd
 }

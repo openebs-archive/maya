@@ -1,7 +1,6 @@
 package command
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -50,14 +49,8 @@ type ReplicaInfo struct {
 	NodeName   string
 }
 
-// CmdVolumeInfoOptions is used to store the value of flags used in the cli
-type CmdVolumeInfoOptions struct {
-	volName string
-}
-
 // NewCmdVolumeInfo shows info of OpenEBS Volume
 func NewCmdVolumeInfo() *cobra.Command {
-	options := CmdVolumeInfoOptions{}
 	cmd := &cobra.Command{
 		Use:     "info",
 		Short:   "Displays the info of Volume",
@@ -68,27 +61,18 @@ func NewCmdVolumeInfo() *cobra.Command {
 			util.CheckErr(options.RunVolumeInfo(cmd), util.Fatal)
 		},
 	}
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
-
 	return cmd
-}
-
-// Validate verifies the command whether volName is passed or not.
-func (c *CmdVolumeInfoOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
-		return errors.New("--volname is missing. Please try running [mayactl volume list] to see list of volumes.")
-	}
-	return nil
 }
 
 // TODO : Add more volume information
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo
-func (c *CmdVolumeInfoOptions) RunVolumeInfo(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	annotation := &Annotations{}
 	// GetVolumeAnnotation is called to get the volume controller's info such as
-	// controller's IP, status, iqn, replica IPs etc.
-	err := annotation.GetVolAnnotations(c.volName)
+	// controller's IP, status, iqn, replica IPs etc.\
+	err := annotation.GetVolAnnotations(c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
@@ -136,7 +120,7 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently It displays volume access modes and target portal details only.
-func (c *CmdVolumeInfoOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
+func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
 	var (
 		// address, mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
@@ -146,13 +130,13 @@ func (c *CmdVolumeInfoOptions) DisplayVolumeInfo(a *Annotations, collection clie
 	)
 	const (
 		replicaTemplate = `
-		
-Replica Details : 
+
+Replica Details :
 ---------------- {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
 `
 		portalTemplate = `
-Portal Details : 
+Portal Details :
 ---------------
 IQN     :   {{.IQN}}
 Volume  :   {{.VolumeName}}

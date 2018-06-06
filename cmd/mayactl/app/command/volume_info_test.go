@@ -17,7 +17,7 @@ var (
 )
 
 func TestRunVolumeInfo(t *testing.T) {
-	options := CmdVolumeInfoOptions{}
+	options := CmdVolumeOptions{}
 	cmd := &cobra.Command{
 		Use:   "info",
 		Short: "Displays the info of Volume",
@@ -31,7 +31,7 @@ func TestRunVolumeInfo(t *testing.T) {
 	}
 
 	validCmd := map[string]struct {
-		cmdOptions  *CmdVolumeInfoOptions
+		cmdOptions  *CmdVolumeOptions
 		cmd         *cobra.Command
 		output      error
 		err         error
@@ -39,7 +39,7 @@ func TestRunVolumeInfo(t *testing.T) {
 		fakeHandler utiltesting.FakeHandler
 	}{
 		"WhenErrorGettingAnnotation": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			cmd: cmd,
@@ -52,7 +52,7 @@ func TestRunVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"WhenControllerIsNotRunning": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			cmd: cmd,
@@ -80,14 +80,14 @@ func TestRunVolumeInfo(t *testing.T) {
 }
 func TestDisplayVolumeInfo(t *testing.T) {
 	validInfo := map[string]struct {
-		cmdOptions *CmdVolumeInfoOptions
+		cmdOptions *CmdVolumeOptions
 		annotation *Annotations
 		replica    client.Replica
 		collection client.ReplicaCollection
 		output     error
 	}{
 		"InfoWhenReplicaIsZero": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -104,7 +104,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsOne": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -129,7 +129,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsTwo": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -158,7 +158,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThreeAndOnePending": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -187,7 +187,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThreeAndTwoPending": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -212,7 +212,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThreeAndAllPending": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -229,7 +229,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThree": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -262,7 +262,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThreeAnd1stNodePendingo": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -291,7 +291,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsTwoAndOneCrashLoopBackOff": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -320,7 +320,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsThreeAndOneErrorPullBack": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -349,7 +349,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsFourAndOneErrPullBackAndOneCrashBack": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{
@@ -374,7 +374,7 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			output: nil,
 		},
 		"InfoWhenReplicaIsFourAndOneErrPullBackAndOneCrashBackAndOneNil": {
-			cmdOptions: &CmdVolumeInfoOptions{
+			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			annotation: &Annotations{

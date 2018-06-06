@@ -34,15 +34,8 @@ var (
 	`
 )
 
-// CmdVolumesListOptions captures the CLI flags
-type CmdVolumesListOptions struct {
-	volName string
-}
-
 // NewCmdVolumesList display status of OpenEBS Volume(s)
 func NewCmdVolumesList() *cobra.Command {
-	options := CmdVolumesListOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Display status information about Volume(s)",
@@ -60,7 +53,7 @@ func NewCmdVolumesList() *cobra.Command {
 }
 
 //RunVolumesList will fetch the volumes from maya-apiserver
-func (c *CmdVolumesListOptions) RunVolumesList(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	//fmt.Println("Executing volume list...")
 
 	var vsms mtypesv1.VolumeList

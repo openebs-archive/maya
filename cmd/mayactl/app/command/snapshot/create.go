@@ -44,17 +44,8 @@ import (
 }
 */
 
-// CmdSnaphotCreateOptions holds the options for snapshot
-// create command
-type CmdSnaphotCreateOptions struct {
-	volName  string
-	snapName string
-}
-
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
 func NewCmdSnapshotCreate() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Snapshot",
@@ -65,23 +56,21 @@ func NewCmdSnapshotCreate() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
-	cmd.MarkPersistentFlagRequired("snapname")
-
 	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
-
+	cmd.MarkPersistentFlagRequired("snapname")
 	return cmd
 }
 
 // Validate validates the flag values
-func (c *CmdSnaphotCreateOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
+func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
 		return errors.New("--volname is missing. Please specify an unique name")
 	}
-	if c.snapName == "" {
+	if len(c.snapName) == 0 {
 		return errors.New("--snapname is missing. Please specify an unique name")
 	}
 
@@ -89,10 +78,10 @@ func (c *CmdSnaphotCreateOptions) Validate(cmd *cobra.Command) error {
 }
 
 // RunSnapshotCreate does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotCreate(cmd *cobra.Command) error {
+func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot create...")
 
-	resp := mapiserver.CreateSnapshot(c.volName, c.snapName)
+	resp := mapiserver.CreateSnapshot(c.volName, c.snapName, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Snapshot create failed: %v", resp)
 	}
