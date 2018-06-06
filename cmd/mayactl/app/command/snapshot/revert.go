@@ -24,6 +24,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotrevertHelpText = `
+Usage: mayactl snapshot revert [options]
+
+$ mayactl snapshot revert --volname <vol> --snapname <snap>
+
+This command rolls back the volume data to the specified snapshot. 
+Once the roll back to snapshot is successful, all the data changes made after the snapshot was taken will be post. 
+This command should be used cautiously and only when there is an issue with the current state of the data.
+`
+)
+
 /*type CmdSnaphotCreateOptions struct {
 	volName  string
 	snapName string
@@ -36,7 +48,7 @@ func NewCmdSnapshotRevert() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "revert",
 		Short: "Reverts to specific snapshot of a Volume",
-		Long:  "Reverts to specific snapshot of a Volume",
+		Long:  snapshotrevertHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotRevert(cmd), util.Fatal)
