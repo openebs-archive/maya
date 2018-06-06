@@ -30,7 +30,9 @@ Usage: mayactl snapshot revert [options]
 
 $ mayactl snapshot revert --volname <vol> --snapname <snap>
 
-This command rolls back the volume data to the specified snapshot. Once the roll back to snapshot is successful, all the data changes made after the snapshot was taken will be post. This command should be used cautiously and only when there is an issue with the current state of the data.
+This command rolls back the volume data to the specified snapshot. 
+Once the roll back to snapshot is successful, all the data changes made after the snapshot was taken will be post. 
+This command should be used cautiously and only when there is an issue with the current state of the data.
 `
 )
 
