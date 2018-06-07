@@ -220,9 +220,26 @@ type CStorVolumeReplicaSpec struct {
 	Capacity          string `json:"capacity"`
 }
 
+// CStorVolumeReplicaPhase is to hold result of action.
+type CStorVolumeReplicaPhase string
+
+// Status written onto CStorVolumeReplica objects.
+const (
+	// CVRStatusInit ensures the create operation is to be done, if import fails.
+	CVRStatusInit CStorVolumeReplicaPhase = "init"
+	// CVRStatusOnline ensures the resource is available.
+	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	// CVRStatusOffline ensures the resource is not available.
+	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	// CVRStatusDeletionFailed ensures the resource deletion has failed.
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	// CVRStatusInvalid ensures invalid resource.
+	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+)
+
 // CStorVolumeReplicaStatus is for handling status of cvr.
 type CStorVolumeReplicaStatus struct {
-	Phase string `json:"phase"` //init/online/offline/deletion-failed
+	Phase CStorVolumeReplicaPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
