@@ -45,7 +45,7 @@ func TestGetVolumeResource(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 		"img2VolumeResource": {
@@ -63,7 +63,7 @@ func TestGetVolumeResource(t *testing.T) {
 					Capacity:          "15G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}
@@ -114,7 +114,7 @@ func TestRemoveFinalizer(t *testing.T) {
 					Capacity:          "15G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}
@@ -154,7 +154,7 @@ func TestIsRightCStorVolumeMgmt(t *testing.T) {
 					Capacity:          "15G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}
@@ -190,7 +190,7 @@ func TestIsRightCStorVolumeMgmtNegative(t *testing.T) {
 					Capacity:          "15G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}

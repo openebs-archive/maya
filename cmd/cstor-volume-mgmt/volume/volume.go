@@ -211,7 +211,7 @@ func CheckForIscsi() {
 		err := UnixSockVar.SendCommand("STATUS\n")
 		if err != nil {
 			time.Sleep(3 * time.Second)
-			glog.Infof("Waiting for iscsi...")
+			glog.Warningf("Waiting for istgt... err : %v", err)
 			continue
 		}
 		break

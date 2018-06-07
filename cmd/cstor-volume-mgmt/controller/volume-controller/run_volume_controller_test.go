@@ -75,7 +75,7 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{Phase: "init"},
+				Status: apis.CStorVolumePhase{Phase: "init"},
 			},
 		},
 	}
@@ -128,7 +128,7 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}
@@ -182,7 +182,7 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumeStatus{},
+				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}

@@ -242,8 +242,8 @@ type CStorVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CStorVolumeSpec   `json:"spec"`
-	Status CStorVolumeStatus `json:"status"`
+	Spec   CStorVolumeSpec  `json:"spec"`
+	Status CStorVolumePhase `json:"status"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
@@ -255,8 +255,8 @@ type CStorVolumeSpec struct {
 	Status            string `json:"status"`
 }
 
-// CStorVolumeStatus is for handling status of volume.
-type CStorVolumeStatus struct {
+// CStorVolumePhase is for handling status of volume.
+type CStorVolumePhase struct {
 	Phase string `json:"phase"` //init/online/offline/deletion-failed
 }
 

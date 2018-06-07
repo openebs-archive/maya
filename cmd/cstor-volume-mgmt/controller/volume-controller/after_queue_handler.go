@@ -26,10 +26,10 @@ func (c *CStorVolumeController) syncHandler(key, operation string) error {
 		return err
 	}
 	status, err := c.cStorVolumeEventHandler(operation, cStorVolumeGot)
-	if status == common.StatusIgnore {
+	if status == common.CVStatusIgnore {
 		return nil
 	}
-	cStorVolumeGot.Status.Phase = status
+	cStorVolumeGot.Status.Phase = string(status)
 	if err != nil {
 		_, err := c.clientset.OpenebsV1alpha1().CStorVolumes().Update(cStorVolumeGot)
 		if err != nil {
@@ -45,7 +45,7 @@ func (c *CStorVolumeController) syncHandler(key, operation string) error {
 }
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
-func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorVolumeGot *apis.CStorVolume) (string, error) {
+func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
 	volume.RunnerVar = util.RealRunner{}
 	volume.FileOperatorVar = util.RealFileOperator{}
 	volume.UnixSockVar = util.RealUnixSock{}
@@ -55,7 +55,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorV
 		// CheckValidVolume is to check if volume attributes are correct.
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
-			return common.StatusOffline, err
+			return common.CVStatusOffline, err
 		}
 
 		err = volume.CreateVolume(cStorVolumeGot)
@@ -80,10 +80,10 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorV
 
 	case "destroy":
 		glog.Info("destroy event")
-		return common.StatusIgnore, nil
+		return common.CVStatusIgnore, nil
 	}
 
-	return common.StatusIgnore, nil
+	return common.CVStatusIgnore, nil
 }
 
 // enqueueCstorVolume takes a CStorVolume resource and converts it into a namespace/name
@@ -168,7 +168,7 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 
 // IsInitStatus is to check if the status of cStorVolume object is `init`.
 func IsInitStatus(cStorVolume *apis.CStorVolume) bool {
-	if cStorVolume.Status.Phase == common.StatusInit {
+	if cStorVolume.Status.Phase == string(common.CVStatusInit) {
 		return true
 	}
 	return false

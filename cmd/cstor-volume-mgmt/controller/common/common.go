@@ -29,30 +29,36 @@ const (
 	CStorVolume = "cStorVolume"
 )
 
-const (
-	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
-	SuccessSynced = "Synced"
-	// ErrResourceExists is used as part of the Event 'reason' when a resource fails
-	// to sync due to a resource of the same name already existing.
-	ErrResourceExists = "ErrResourceExists"
+//EventReason is used as part of the Event reason when a resource goes through different phases
+type EventReason string
 
-	// MessageResourceExists is the message used for Events which
+const (
+	// SuccessSyncedER is used as part of the Event 'reason' when a resource is synced
+	SuccessSyncedER EventReason = "Synced"
+	// ErrResourceExistsER is used as part of the Event 'reason' when a resource fails
+	// to sync due to a resource of the same name already existing.
+	ErrResourceExistsER EventReason = "ErrResourceExists"
+
+	// MessageResourceExistsER is the message used for Events which
 	// fails to sync due to a resource already existing
-	MessageResourceExists = "Resource %q already exists and cannot be handled"
-	// MessageResourceSynced is the message used for an Event fired when a resource
+	MessageResourceExistsER EventReason = "Resource %q already exists and cannot be handled"
+	// MessageResourceSyncedER is the message used for an Event fired when a resource
 	// is synced successfully
-	MessageResourceSynced = "Resource synced successfully"
+	MessageResourceSyncedER EventReason = "Resource synced successfully"
 )
+
+//CStorVolumeStatus represents the status of a CStorVolume object
+type CStorVolumeStatus string
 
 // Status written onto CStorVolume objects.
 const (
-	StatusInit           = "init"
-	StatusOnline         = "online"
-	StatusOffline        = "offline"
-	StatusDeletionFailed = "deletion-failed"
-	StatusInvalid        = "invalid"
+	CVStatusInit           CStorVolumeStatus = "init"
+	CVStatusOnline         CStorVolumeStatus = "online"
+	CVStatusOffline        CStorVolumeStatus = "offline"
+	CVStatusDeletionFailed CStorVolumeStatus = "deletion-failed"
+	CVStatusInvalid        CStorVolumeStatus = "invalid"
 
-	StatusIgnore = "ignore"
+	CVStatusIgnore CStorVolumeStatus = "ignore"
 )
 
 // QueueLoad is for storing the key and type of operation before entering workqueue
