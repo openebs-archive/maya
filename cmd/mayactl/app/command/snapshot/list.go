@@ -51,7 +51,7 @@ func (c *CmdSnaphotOptions) ValidateList(cmd *cobra.Command) error {
 	return nil
 }
 
-// RunSnapshotList does tasks related to mayaserver.
+// RunSnapshotList makes snapshot-list API request to maya-apiserver
 func (c *CmdSnaphotOptions) RunSnapshotList(cmd *cobra.Command) error {
 
 	resp := mapiserver.ListSnapshot(c.volName, c.namespace)

@@ -68,7 +68,6 @@ func NewCmdVolumeStats() *cobra.Command {
 // I/O or in json format.
 func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	fmt.Println("Executing volume stats...")
-	fmt.Println("Namespace is :", c.namespace)
 	var (
 		err, err1, err3 error
 		err2, err4      int
@@ -134,7 +133,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 }
 
 // DisplayStats displays the volume stats as standard output and in json format.
-// By defaault it displays in standard output but if  flag json is passed it
+// By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
 func (a *Annotations) DisplayStats(c *CmdVolumeOptions, statusArray []string, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 

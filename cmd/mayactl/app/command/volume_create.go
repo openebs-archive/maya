@@ -60,12 +60,12 @@ func NewCmdVolumeCreate() *cobra.Command {
 	return cmd
 }
 
-// Validate varifies whether a volume name has been provided or not followed by
-// stats command, it returns nil and proceeds to execute the command if there is
-// no error and returns the error if it is missing.
+// Validate verifies whether a volume name is provided or not followed by
+// stats command. It returns nil and proceeds to execute the command if there is
+// no error and returns an error if it is missing.
 func (c *CmdVolumeOptions) Validate(cmd *cobra.Command) error {
 	if len(c.volName) == 0 {
-		return errors.New("--volname is missing. Please specify an unique name")
+		return errors.New("--volname is missing. Please specify a unique name")
 	}
 	return nil
 }

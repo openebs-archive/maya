@@ -55,7 +55,7 @@ func GetVolDetails(volName string, namespace string, obj interface{}) error {
 	}
 	resp, err := c.Do(req)
 	if err != nil {
-		fmt.Printf("Could not get response, found error: %v", err)
+		fmt.Printf("Can't get a response, error found: %v", err)
 		return err
 	}
 

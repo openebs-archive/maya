@@ -51,7 +51,7 @@ func NewCmdVolumeDelete() *cobra.Command {
 	return cmd
 }
 
-//RunVolumeDelete will initiate deletion of volume from maya-apiserver
+//RunVolumeDelete will initiate the process of deleting a volume from maya-apiserver
 func (c *CmdVolumeOptions) RunVolumeDelete(cmd *cobra.Command) error {
 	fmt.Println("Executing volume delete...")
 

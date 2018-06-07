@@ -34,11 +34,11 @@ var (
 	`
 )
 
-// NewCmdVolumesList display status of OpenEBS Volume(s)
+// NewCmdVolumesList displays status of OpenEBS Volume(s)
 func NewCmdVolumesList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "Display status information about Volume(s)",
+		Short: "Displays status information about Volume(s)",
 		Long:  volumesListCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.RunVolumesList(cmd), util.Fatal)
@@ -52,7 +52,7 @@ func NewCmdVolumesList() *cobra.Command {
 	return cmd
 }
 
-//RunVolumesList will fetch the volumes from maya-apiserver
+//RunVolumesList fetchs the volumes from maya-apiserver
 func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	//fmt.Println("Executing volume list...")
 

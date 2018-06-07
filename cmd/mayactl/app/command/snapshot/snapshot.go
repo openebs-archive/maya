@@ -45,7 +45,7 @@ func NewCmdSnapshot() *cobra.Command {
 		NewCmdSnapshotRevert(),
 	)
 	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
-		"namespace name, required if volume is in other then dafault namespace")
+		"namespace name, required if volume is not in the default namespace")
 
 	return cmd
 }

@@ -69,7 +69,7 @@ func NewCmdVolume() *cobra.Command {
 		NewCmdVolumeInfo(),
 	)
 	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
-		"namespace name, required if volume is in other then dafault namespace")
+		"namespace name, required if volume is not in the default namespace")
 
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	flag.CommandLine.Parse([]string{})

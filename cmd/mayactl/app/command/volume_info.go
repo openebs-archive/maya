@@ -49,11 +49,11 @@ type ReplicaInfo struct {
 	NodeName   string
 }
 
-// NewCmdVolumeInfo shows info of OpenEBS Volume
+// NewCmdVolumeInfo displays OpenEBS Volume information.
 func NewCmdVolumeInfo() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "info",
-		Short:   "Displays the info of Volume",
+		Short:   "Displays Openebs Volume information",
 		Long:    volumeInfoCommandHelpText,
 		Example: `mayactl volume info --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
@@ -62,7 +62,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
-		"unique volume name.")
+		"a unique volume name.")
 	return cmd
 }
 
@@ -71,7 +71,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	annotation := &Annotations{}
 	// GetVolumeAnnotation is called to get the volume controller's info such as
-	// controller's IP, status, iqn, replica IPs etc.\
+	// controller's IP, status, iqn, replica IPs etc.
 	err := annotation.GetVolAnnotations(c.volName, c.namespace)
 	if err != nil {
 		return nil
@@ -119,10 +119,10 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 }
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
-// Currently It displays volume access modes and target portal details only.
+// Currently it displays volume access modes and target portal details only.
 func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
 	var (
-		// address, mode are used here as blackbox for the replica info
+		// address and mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
 		address, mode []string
 		replicaCount  int
