@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package poolcontroller
+package replicacontroller
 
 import (
 	"github.com/golang/glog"
@@ -29,25 +29,24 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 )
 
-const poolControllerName = "CStorPool"
+const replicaControllerName = "CStorVolumeReplica"
 
-// CStorPoolController is the controller implementation for CStorPool resources.
-type CStorPoolController struct {
-	// kubeclientset is a standard kubernetes clientset
+// CStorVolumeReplicaController is the controller implementation for cStorVolumeReplica resources.
+type CStorVolumeReplicaController struct {
+	// kubeclientset is a standard kubernetes clientset.
 	kubeclientset kubernetes.Interface
 
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
-	// cStorPoolSynced is used for caches sync to get populated
-	cStorPoolSynced cache.InformerSynced
+	// cStorReplicaSynced is used for caches sync to get populated
+	cStorReplicaSynced cache.InformerSynced
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -60,21 +59,21 @@ type CStorPoolController struct {
 	recorder record.EventRecorder
 }
 
-// NewCStorPoolController returns a new instance of CStorPool controller
-func NewCStorPoolController(
+// NewCStorVolumeReplicaController returns a new cStor Replica controller instance
+func NewCStorVolumeReplicaController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	cStorInformerFactory informers.SharedInformerFactory) *CStorPoolController {
+	cStorInformerFactory informers.SharedInformerFactory) *CStorVolumeReplicaController {
 
-	// obtain references to shared index informers for the cStorPool resources
-	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPools()
+	// obtain references to shared index informers for the cStorReplica resources.
+	cStorReplicaInformer := cStorInformerFactory.Openebs().V1alpha1().CStorVolumeReplicas()
 
 	openebsScheme.AddToScheme(scheme.Scheme)
 
-	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
-	// Add NewCstorPoolController types to the default Kubernetes Scheme so Events can be
-	// logged for CstorPool Controller types.
+	// Create event broadcaster
+	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be
+	// logged for cStor-Replica-controller types.
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -83,14 +82,14 @@ func NewCStorPoolController(
 	// event handler function. The return value can be ignored or used to stop recording, if
 	// desired. Events("") denotes empty namespace
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: poolControllerName})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: replicaControllerName})
 
-	controller := &CStorPoolController{
-		kubeclientset:   kubeclientset,
-		clientset:       clientset,
-		cStorPoolSynced: cStorPoolInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorPool"),
-		recorder:        recorder,
+	controller := &CStorVolumeReplicaController{
+		kubeclientset:      kubeclientset,
+		clientset:          clientset,
+		cStorReplicaSynced: cStorReplicaInformer.Informer().HasSynced,
+		workqueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolumeReplica"),
+		recorder:           recorder,
 	}
 
 	glog.Info("Setting up event handlers")
@@ -98,67 +97,68 @@ func NewCStorPoolController(
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
 
-	// Set up an event handler for when CstorPool resources change.
-	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	// Set up an event handler for when cStorReplica resources change.
+	cStorReplicaInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			cStorPool := obj.(*apis.CStorPool)
-			if !IsRightCStorPoolMgmt(cStorPool) {
+			cVR := obj.(*apis.CStorVolumeReplica)
+			if !IsRightCStorVolumeReplica(cVR) {
 				return
 			}
-			if IsDeletionFailedBefore(cStorPool) {
+			if IsDeletionFailedBefore(cVR) {
 				return
 			}
 			q.Operation = "add"
-			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
-			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageCreateSynced)
-			controller.enqueueCStorPool(obj, q)
+			glog.Infof("cStorVolumeReplica Added event : %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
+			controller.recorder.Event(cVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageCreateSynced)
+			controller.enqueueCStorReplica(obj, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
-			newCStorPool := new.(*apis.CStorPool)
-			oldCStorPool := old.(*apis.CStorPool)
-			// Periodic resync will send update events for all known CStorPool.
-			// Two different versions of the same CStorPool will always have different RVs.
-			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
+			newCVR := new.(*apis.CStorVolumeReplica)
+			oldCVR := old.(*apis.CStorVolumeReplica)
+			// Periodic resync will send update events for all known cStorReplica.
+			// Two different versions of the same cStorReplica will always have different RVs.
+			if newCVR.ResourceVersion == oldCVR.ResourceVersion {
 				return
 			}
-			if !IsRightCStorPoolMgmt(newCStorPool) {
+			if !IsRightCStorVolumeReplica(newCVR) {
 				return
 			}
-			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
-				glog.Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+			if IsOnlyStatusChange(oldCVR, newCVR) {
+				glog.Infof("Only cVR status change: %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
 				return
 			}
-			if IsDeletionFailedBefore(newCStorPool) {
+			if IsDeletionFailedBefore(newCVR) {
 				return
 			}
-			if IsDestroyEvent(newCStorPool) {
+			if IsDestroyEvent(newCVR) {
 				q.Operation = "destroy"
-				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
-				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageDestroySynced)
+				glog.Infof("cStorVolumeReplica Destroy event : %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
+				controller.recorder.Event(newCVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageDestroySynced)
 			} else {
 				q.Operation = "modify"
-				glog.Infof("cStorPool Modify event : %v, %v", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
-				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageModifySynced)
+				glog.Infof("cStorVolumeReplica Modify event : %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
+				controller.recorder.Event(newCVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageModifySynced)
 				return // will be removed once modify is implemented
 			}
-			controller.enqueueCStorPool(new, q)
+			controller.enqueueCStorReplica(new, q)
 		},
 		DeleteFunc: func(obj interface{}) {
-			cStorPool := obj.(*apis.CStorPool)
-			if !IsRightCStorPoolMgmt(cStorPool) {
+			cVR := obj.(*apis.CStorVolumeReplica)
+			if !IsRightCStorVolumeReplica(cVR) {
 				return
 			}
-			glog.Infof("\ncStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+			q.Operation = "delete"
+			glog.Infof("\ncVR Resource deleted event: %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
 		},
 	})
 
 	return controller
 }
 
-// enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
+// enqueueCStorReplica takes a CStorReplica resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj interface{}, q common.QueueLoad) {
+// passed resources of any type other than CStorReplica.
+func (c *CStorVolumeReplicaController) enqueueCStorReplica(obj interface{}, q common.QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {

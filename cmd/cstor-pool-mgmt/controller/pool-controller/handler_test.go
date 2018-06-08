@@ -1,3 +1,18 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package poolcontroller
 
 import (
@@ -442,6 +457,69 @@ func TestIsInitStatus(t *testing.T) {
 	}
 	for desc, ut := range testPoolResource {
 		obtainedOutput := IsInitStatus(ut.test)
+		if obtainedOutput != ut.expectedOutput {
+			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
+				obtainedOutput)
+		}
+	}
+}
+
+// TestIsDeletionFailedBefore is to check if status is only init.
+func TestIsDeletionFailedBefore(t *testing.T) {
+	deletionTimeStamp := metav1.Now()
+	testPoolResource := map[string]struct {
+		expectedOutput bool
+		test           *apis.CStorPool
+	}{
+		"pool-deletion-failed": {
+			expectedOutput: true,
+			test: &apis.CStorPool{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "pool2",
+					UID:               types.UID("abcd"),
+					Finalizers:        []string{"cstorpool.openebs.io/finalizer"},
+					DeletionTimestamp: &deletionTimeStamp,
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img2.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool2.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{Phase: "deletion-failed"},
+			},
+		},
+		"pool-online": {
+			expectedOutput: false,
+			test: &apis.CStorPool{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "pool1",
+					UID:               types.UID("abcde"),
+					Finalizers:        []string{"cstorpool.openebs.io/finalizer"},
+					DeletionTimestamp: &deletionTimeStamp,
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img2.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool2.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{Phase: "online"},
+			},
+		},
+	}
+	for desc, ut := range testPoolResource {
+		obtainedOutput := IsDeletionFailedBefore(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)

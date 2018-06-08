@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package poolcontroller
+package replicacontroller
 
 import (
 	"testing"
@@ -25,23 +25,23 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestNewCStorPoolController tests if the kubernetes and openebs configs
-// are present in pool controller instance.
-func TestNewCStorPoolController(t *testing.T) {
+// TestNewCStorVolumeReplicaController tests if the kubernetes and openebs
+// configs are present in volume replica controller instance.
+func TestNewCStorVolumeReplicaController(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
-	// Instantiate the cStor Pool controllers.
-	poolController := NewCStorPoolController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	// Instantiate the cStor VolumeReplica controllers.
+	volumeReplicaController := NewCStorVolumeReplicaController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
-	if poolController.kubeclientset != fakeKubeClient {
+	if volumeReplicaController.kubeclientset != fakeKubeClient {
 		t.Fatalf("Pool controller object's kubeclientset mismatch")
 	}
-	if poolController.clientset != fakeOpenebsClient {
+	if volumeReplicaController.clientset != fakeOpenebsClient {
 		t.Fatalf("Pool controller object's OpenebsClientset mismatch")
 	}
 }

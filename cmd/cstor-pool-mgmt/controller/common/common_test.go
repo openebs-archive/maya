@@ -10,8 +10,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
-	//github.com/openebs/maya/vendor/k8s.io/client-go/kubernetes/fake
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TestCheckForCStorPoolCRD validates if CStorPool CRD operations
@@ -22,6 +24,7 @@ func TestCheckForCStorPoolCRD(t *testing.T) {
 
 	go func(done chan bool) {
 		CheckForCStorPoolCRD(fakeOpenebsClient)
+		fmt.Println("debug:")
 		done <- true
 	}(done)
 
@@ -29,6 +32,7 @@ func TestCheckForCStorPoolCRD(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatalf("Timeout - CStorPool is unknown")
 	case <-done:
+		break
 	}
 }
 
@@ -124,23 +128,85 @@ func TestGetterProcess(*testing.T) {
 
 // TestPoolNameHandler is test temporary blocking call for pool availability.
 func TestPoolNameHandler(t *testing.T) {
-	testPoolResource := map[string]struct {
-		expectedPoolName string
-		expectedError    error
+	testResource := map[string]struct {
+		expectedFlag bool
+		test         *apis.CStorVolumeReplica
 	}{
-		"img1PoolResource": {
-			expectedPoolName: "cstor-123abc\n",
-			expectedError:    nil,
+		"cVR": {
+			expectedFlag: true,
+			test: &apis.CStorVolumeReplica{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "VolumeReplicaResource1",
+					UID:  "abcd123",
+					Labels: map[string]string{
+						"cstorpool.openebs.io/uid":  "123abc",
+						"cstorpool.openebs.io/name": "cstor-123abc",
+					},
+				},
+				Spec: apis.CStorVolumeReplicaSpec{
+					CStorControllerIP: "127.0.0.1",
+					Capacity:          "100MB",
+				},
+			},
 		},
 	}
 	pool.RunnerVar = TestRunner{}
-	obtainedPoolName, obtainedErr := PoolNameHandler(1)
-	//	obtainedPoolName, obtainedErr := GetPoolName()
-	fmt.Println(obtainedPoolName, obtainedErr)
-	if testPoolResource["img1PoolResource"].expectedPoolName != obtainedPoolName {
-		t.Fatalf("Expected: %v, Got: %v", testPoolResource["img1PoolResource"].expectedPoolName, obtainedPoolName)
+	obtainedFlag := PoolNameHandler(testResource["cVR"].test, 1)
+	fmt.Println(obtainedFlag)
+	if testResource["cVR"].expectedFlag != obtainedFlag {
+		t.Fatalf("Expected: %v, Got: %v", testResource["cVR"].expectedFlag, obtainedFlag)
 	}
-	if testPoolResource["img1PoolResource"].expectedError != obtainedErr {
-		t.Fatalf("Expected: %v, Got: %v", testPoolResource["img1PoolResource"].expectedError, obtainedErr)
+}
+
+// TestCheckForInitialImportedPoolVol tests if pool/vols are already imported.
+func TestCheckForInitialImportedPoolVol(t *testing.T) {
+	testResource := map[string]struct {
+		expectedPresentFlag        bool
+		expectedDeletedEntryFlag   bool
+		InitialImportedPoolVolName []string
+		fullvolname                string
+	}{
+		"pool1/vol1-Resource": {
+			expectedPresentFlag:        true,
+			expectedDeletedEntryFlag:   false,
+			InitialImportedPoolVolName: []string{"pool1/vol1", "pool1/vol2"},
+			fullvolname:                "pool1/vol1",
+		},
+	}
+	for desc, ut := range testResource {
+		obtainedPresentFlag := CheckForInitialImportedPoolVol(ut.InitialImportedPoolVolName, ut.fullvolname)
+		obtainedDeletedEntryFlag := CheckForInitialImportedPoolVol(ut.InitialImportedPoolVolName, ut.fullvolname)
+
+		if obtainedPresentFlag != ut.expectedPresentFlag {
+			t.Fatalf("Desc:%v, Test case failure, Expected:%v, Got:%v", desc, ut.expectedPresentFlag,
+				obtainedPresentFlag)
+		}
+		if obtainedDeletedEntryFlag != ut.expectedDeletedEntryFlag {
+			t.Fatalf("Desc:%v, Test case failure, Expected:%v, Got:%v", desc, ut.expectedDeletedEntryFlag,
+				obtainedDeletedEntryFlag)
+		}
+	}
+}
+
+// CheckIfPresent tests if pool/vols are already imported.
+func TestCheckIfPresent(t *testing.T) {
+	testResource := map[string]struct {
+		expectedFlag bool
+		arrStr       []string
+		searchStr    string
+	}{
+		"pool1/vol1-Resource": {
+			expectedFlag: true,
+			arrStr:       []string{"pool1/vol1", "pool1/vol2"},
+			searchStr:    "pool1/vol1",
+		},
+	}
+	for desc, ut := range testResource {
+		obtainedFlag := CheckIfPresent(ut.arrStr, ut.searchStr)
+
+		if obtainedFlag != ut.expectedFlag {
+			t.Fatalf("Desc:%v, Test case failure, Expected:%v, Got:%v", desc, ut.expectedFlag,
+				obtainedFlag)
+		}
 	}
 }

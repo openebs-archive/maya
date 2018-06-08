@@ -19,7 +19,6 @@ package startcontroller
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
 	kubeinformers "k8s.io/client-go/informers"
@@ -29,7 +28,9 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
+	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
@@ -59,6 +60,7 @@ func StartControllers(kubeconfig string) {
 
 	// Making RunnerVar to use RealRunner
 	pool.RunnerVar = util.RealRunner{}
+	volumereplica.RunnerVar = util.RealRunner{}
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
 	pool.CheckForZrepl()
@@ -69,11 +71,14 @@ func StartControllers(kubeconfig string) {
 	// Blocking call for checking status of CStorVolumeReplica CRD.
 	common.CheckForCStorVolumeReplicaCRD(openebsClient)
 
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, common.SharedInformerInterval)
+	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, common.SharedInformerInterval)
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
 	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
+
+	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	go kubeInformerFactory.Start(stopCh)
@@ -85,8 +90,17 @@ func StartControllers(kubeconfig string) {
 
 	// Run controller for cStorPool.
 	go func() {
-		if err = cStorPoolController.Run(2, stopCh); err != nil {
+		if err = cStorPoolController.Run(1, stopCh); err != nil {
 			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
+		}
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	// Run controller for cStorVolumeReplica.
+	go func() {
+		if err = volumeReplicaController.Run(1, stopCh); err != nil {
+			glog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -98,7 +112,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("failed to get k8s Incluster config. %+v", err)
+		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if kubeconfig == "" {
 			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
 		}

@@ -1,3 +1,18 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package pool
 
 import (
@@ -5,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"reflect"
 	"testing"
 	"time"
 
@@ -42,6 +58,10 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 	case "status":
 		cs = []string{"-test.run=TestStatusProcess", "--"}
 		cmd.Env = []string{"StatusErr=nil"}
+		break
+	case "set":
+		cs = []string{"-test.run=TestSetCachefileProcess", "--"}
+		cmd.Env = []string{"SetErr=nil"}
 		break
 	}
 	stdout, err := cmd.CombinedOutput()
@@ -131,6 +151,15 @@ func TestStatusProcess(*testing.T) {
 	fmt.Println(nil)
 }
 
+// TestSetCachefileProcess mocks zpool set cachefile.
+func TestSetCachefileProcess(*testing.T) {
+	if os.Getenv("SetErr") != "nil" {
+		return
+	}
+	defer os.Exit(0)
+	fmt.Println(nil)
+}
+
 // TestCreatePool is to test cStorPool creation.
 func TestCreatePool(t *testing.T) {
 	testPoolResource := map[string]struct {
@@ -146,7 +175,27 @@ func TestCreatePool(t *testing.T) {
 				},
 				Spec: apis.CStorPoolSpec{
 					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img"},
+						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"img2PoolResource": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
@@ -159,9 +208,11 @@ func TestCreatePool(t *testing.T) {
 		},
 	}
 	RunnerVar = TestRunner{}
-	obtainedErr := CreatePool(testPoolResource["img1PoolResource"].test)
-	if testPoolResource["img1PoolResource"].expectedError != obtainedErr {
-		t.Fatalf("Expected: %v, Got: %v", testPoolResource["img1PoolResource"].expectedError, obtainedErr)
+	for desc, ut := range testPoolResource {
+		obtainedErr := CreatePool(ut.test)
+		if ut.expectedError != obtainedErr {
+			t.Fatalf("Desc: %v, Expected: %v, Got: %v", desc, ut.expectedError, obtainedErr)
+		}
 	}
 }
 
@@ -170,9 +221,32 @@ func TestImportPool(t *testing.T) {
 	testPoolResource := map[string]struct {
 		expectedError error
 		test          *apis.CStorPool
+		cachefileFlag bool
 	}{
 		"img1PoolResource": {
 			expectedError: nil,
+			cachefileFlag: true,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img1.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "mirror",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"img2PoolResource": {
+			expectedError: nil,
+			cachefileFlag: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -193,9 +267,11 @@ func TestImportPool(t *testing.T) {
 		},
 	}
 	RunnerVar = TestRunner{}
-	obtainedErr := ImportPool(testPoolResource["img1PoolResource"].test)
-	if testPoolResource["img1PoolResource"].expectedError != obtainedErr {
-		t.Fatalf("Expected: %v, Got: %v", testPoolResource["img1PoolResource"].expectedError, obtainedErr)
+	for desc, ut := range testPoolResource {
+		obtainedErr := ImportPool(ut.test, ut.cachefileFlag)
+		if ut.expectedError != obtainedErr {
+			t.Fatalf("desc:%v, Expected: %v, Got: %v", desc, ut.expectedError, obtainedErr)
+		}
 	}
 }
 
@@ -235,6 +311,42 @@ func TestLabelClear(t *testing.T) {
 	}
 }
 
+// TestSetCacheFile is to test cachefile set for pool.
+func TestSetCacheFile(t *testing.T) {
+	testPoolResource := map[string]struct {
+		expectedError error
+		test          *apis.CStorPool
+	}{
+		"img1PoolResource": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+	}
+	RunnerVar = TestRunner{}
+	for desc, ut := range testPoolResource {
+		obtainedErr := SetCachefile(ut.test)
+		if ut.expectedError != obtainedErr {
+			t.Fatalf("Desc: %v, Expected: %v, Got: %v", desc, ut.expectedError, obtainedErr)
+		}
+	}
+}
+
 // TestCheckForZrepl is to test zrepl running.
 func TestCheckForZrepl(t *testing.T) {
 	done := make(chan bool)
@@ -255,18 +367,17 @@ func TestCheckForZrepl(t *testing.T) {
 // TestGetPool is to test zrepl running.
 func TestGetPool(t *testing.T) {
 	testPoolResource := map[string]struct {
-		expectedPoolName string
+		expectedPoolName []string
 		expectedError    error
 	}{
 		"img1PoolResource": {
-			expectedPoolName: "cstor-123abc\n",
+			expectedPoolName: []string{"cstor-123abc"},
 			expectedError:    nil,
 		},
 	}
 	RunnerVar = TestRunner{}
 	obtainedPoolName, obtainedErr := GetPoolName()
-	fmt.Println(obtainedPoolName, obtainedErr)
-	if testPoolResource["img1PoolResource"].expectedPoolName != obtainedPoolName {
+	if reflect.DeepEqual(testPoolResource["img1PoolResource"].expectedPoolName, obtainedPoolName) {
 		t.Fatalf("Expected: %v, Got: %v", testPoolResource["img1PoolResource"].expectedPoolName, obtainedPoolName)
 	}
 	if testPoolResource["img1PoolResource"].expectedError != obtainedErr {
@@ -281,11 +392,12 @@ func TestCheckValidPool(t *testing.T) {
 		test          *apis.CStorPool
 	}{
 		"Invalid-poolNameEmpty": {
-			expectedError: fmt.Errorf("Poolname cannot be empty"),
+			expectedError: fmt.Errorf("Poolname/UID cannot be empty"),
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID(""),
+					Name: "pool1-abc",
+					UID:  types.UID(""),
 				},
 				Spec: apis.CStorPoolSpec{
 					Disks: apis.DiskAttr{
@@ -320,8 +432,47 @@ func TestCheckValidPool(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
+		"Invalid-MirrorOddDisks": {
+			expectedError: fmt.Errorf("Mirror poolType needs even number of disks"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "mirror",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Valid-Pool": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "mirror",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
 	}
-
 	for desc, ut := range testPoolResource {
 		Obtainederr := CheckValidPool(ut.test)
 		if Obtainederr != nil {
@@ -330,6 +481,5 @@ func TestCheckValidPool(t *testing.T) {
 					desc, ut.expectedError, Obtainederr)
 			}
 		}
-
 	}
 }

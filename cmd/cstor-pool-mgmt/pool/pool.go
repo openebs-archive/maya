@@ -18,6 +18,7 @@ package pool
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -27,37 +28,34 @@ import (
 
 // PoolOperator is the name of the tool that makes pool-related operations.
 const (
-	PoolOperator = "zpool"
+	PoolOperator       = "zpool"
+	ZreplRetryInterval = 3 * time.Second
 )
 
 var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
-func ImportPool(cStorPool *apis.CStorPool) error {
-	importAttr := importPoolBuilder(cStorPool)
-
+func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
+	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, importAttr...)
 	if err != nil {
-		glog.Error("Unable to import pool:", err.Error(), string(stdoutStderr))
+		glog.Errorf("Unable to import pool: %v, %v", err.Error(), string(stdoutStderr))
 		return err
 	}
-
 	glog.Info("Importing Pool Successful")
 	return nil
 }
 
 // importPoolBuilder is to build pool import command.
-func importPoolBuilder(cStorPool *apis.CStorPool) []string {
+func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 	// populate pool import attributes.
 	var importAttr []string
 	importAttr = append(importAttr, "import")
-	if cStorPool.Spec.PoolSpec.CacheFile != "" {
+	if cStorPool.Spec.PoolSpec.CacheFile != "" && cachefileFlag {
 		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile,
 			"-o", cStorPool.Spec.PoolSpec.CacheFile)
 	}
-
 	importAttr = append(importAttr, "cstor-"+string(cStorPool.ObjectMeta.UID))
-
 	return importAttr
 }
 
@@ -68,11 +66,9 @@ func CreatePool(cStorPool *apis.CStorPool) error {
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
 	if err != nil {
-		glog.Error("Unable to create pool:", err.Error(), string(stdoutStderr))
+		glog.Errorf("Unable to create pool: %v", string(stdoutStderr))
 		return err
 	}
-
-	glog.Info("Creating Pool Successful")
 	return nil
 }
 
@@ -94,12 +90,11 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 	// To generate mirror disk0 disk1 mirror disk2 disk3 format.
 	for i, disk := range cStorPool.Spec.Disks.DiskList {
-		if cStorPool.Spec.PoolSpec.PoolType == "mirror" && i%3 == 0 {
+		if cStorPool.Spec.PoolSpec.PoolType == "mirror" && i%2 == 0 {
 			createAttr = append(createAttr, "mirror")
 		}
 		createAttr = append(createAttr, disk)
 	}
-
 	return createAttr
 
 }
@@ -107,7 +102,7 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 // CheckValidPool checks for validity of CStorPool resource.
 func CheckValidPool(cStorPool *apis.CStorPool) error {
 	if string(cStorPool.ObjectMeta.UID) == "" {
-		return fmt.Errorf("Poolname cannot be empty")
+		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
 	if len(cStorPool.Spec.Disks.DiskList) < 1 {
 		return fmt.Errorf("Disk name(s) cannot be empty")
@@ -120,15 +115,21 @@ func CheckValidPool(cStorPool *apis.CStorPool) error {
 }
 
 // GetPoolName return the pool already created.
-func GetPoolName() (string, error) {
+func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
 	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
-	if err != nil {
-		glog.Errorf("Unable to get pool:", poolNameByte)
+	if err != nil || string(poolNameByte) == "" {
+		glog.Errorf("Unable to get pool: %v", string(poolNameByte))
+		return []string{}, nil
 	}
-	poolName := string(poolNameByte)
-	glog.Infof("poolname : ", poolName)
-	return poolName, nil
+	noisyPoolName := string(poolNameByte)
+	sepNoisyPoolName := strings.Split(noisyPoolName, "\n")
+	var poolNames []string
+	for _, poolName := range sepNoisyPoolName {
+		poolName = strings.TrimSpace(poolName)
+		poolNames = append(poolNames, poolName)
+	}
+	return poolNames, nil
 }
 
 // DeletePool destroys the pool created.
@@ -136,7 +137,20 @@ func DeletePool(poolName string) error {
 	deletePoolStr := []string{"destroy", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, deletePoolStr...)
 	if err != nil {
-		glog.Errorf("Unable to delete pool:", err.Error(), string(stdoutStderr))
+		glog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
+		return err
+	}
+	return nil
+}
+
+// SetCachefile is to set the cachefile for pool.
+func SetCachefile(cStorPool *apis.CStorPool) error {
+	poolNameUID := "cstor-" + string(cStorPool.ObjectMeta.UID)
+	setCachefileStr := []string{"set", "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile,
+		poolNameUID}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, setCachefileStr...)
+	if err != nil {
+		glog.Errorf("Unable to set cachefile: %v", string(stdoutStderr))
 		return err
 	}
 	return nil
@@ -147,8 +161,8 @@ func CheckForZrepl() {
 	for {
 		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err != nil {
-			time.Sleep(3 * time.Second)
-			glog.Infof("Waiting for zrepl...")
+			time.Sleep(ZreplRetryInterval)
+			glog.Infof("Waiting for zpool replication container to start......")
 			continue
 		}
 		break
@@ -161,7 +175,7 @@ func LabelClear(disks []string) error {
 		labelClearStr := []string{"labelclear", "-f", disk}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label", err.Error(), string(stdoutStderr))
+			glog.Errorf("Unable to clear label: %v", string(stdoutStderr))
 			return err
 		}
 	}

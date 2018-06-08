@@ -13,7 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package poolcontroller
+
+package replicacontroller
 
 import (
 	"fmt"
@@ -29,27 +30,29 @@ import (
 // as syncing informer caches and starting workers. It will block until stopCh
 // is closed, at which point it will shutdown the workqueue and wait for
 // workers to finish processing their current work items.
-func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error {
+func (c *CStorVolumeReplicaController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer runtime.HandleCrash()
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting CStorPool controller")
+	glog.Info("Starting CStorVolumeReplica controller")
 
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.cStorPoolSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.cStorReplicaSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
-	glog.Info("Starting CStorPool workers")
-	// Launch worker to process CStorPool resources
+
+	glog.Info("Starting CStorVolumeReplica workers")
+
+	// Launch two workers to process CStorReplica resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, common.ResourceWorkerInterval, stopCh)
 	}
 
-	glog.Info("Started CStorPool workers")
+	glog.Info("Started CStorVolumeReplica workers")
 	<-stopCh
-	glog.Info("Shutting down CStorPool workers")
+	glog.Info("Shutting down CStorVolumeReplica workers")
 
 	return nil
 }
@@ -57,15 +60,16 @@ func (c *CStorPoolController) Run(threadiness int, stopCh <-chan struct{}) error
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (c *CStorPoolController) runWorker() {
+func (c *CStorVolumeReplicaController) runWorker() {
 	for c.processNextWorkItem() {
 	}
 }
 
 // processNextWorkItem will read a single work item off the workqueue and
 // attempt to process it, by calling the syncHandler.
-func (c *CStorPoolController) processNextWorkItem() bool {
+func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 	obj, shutdown := c.workqueue.Get()
+
 	if shutdown {
 		return false
 	}
@@ -81,7 +85,6 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 		defer c.workqueue.Done(obj)
 		var q common.QueueLoad
 		var ok bool
-
 		// We expect strings to come off the workqueue. These are of the
 		// form namespace/name. We do this as the delayed nature of the
 		// workqueue means the items in the informer cache may actually be
@@ -96,7 +99,7 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
-		// cStorPool resource to be synced.
+		// CStorReplica resource to be synced.
 		if err := c.syncHandler(q.Key, q.Operation); err != nil {
 			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
 		}
@@ -111,6 +114,5 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 		runtime.HandleError(err)
 		return true
 	}
-
 	return true
 }

@@ -17,6 +17,8 @@ limitations under the License.
 package command
 
 import (
+	goflag "flag"
+
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/start-controller"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +39,10 @@ func NewCmdStart() *cobra.Command {
 			startcontroller.StartControllers(options.kubeconfig)
 		},
 	}
-
+	// Bind & parse flags defined by external projects.
+	// e.g. This imports the golang/glog pkg flags into the cmd flagset.
+	getCmd.Flags().AddGoFlagSet(goflag.CommandLine)
+	goflag.CommandLine.Parse([]string{})
 	getCmd.Flags().StringVar(&options.kubeconfig, "kubeconfig", "",
 		`kubeconfig needs to be specified if out of cluster`)
 	return getCmd

@@ -184,9 +184,25 @@ type CStorPoolAttr struct {
 	OverProvisioning bool   `json:"overProvisioning"` //true or false
 }
 
+type CStorPoolPhase string
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+const (
+	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
+	CStorPoolStatusInit CStorPoolPhase = "init"
+	// CStorPoolStatusOnline ensures the resource is available.
+	CStorPoolStatusOnline CStorPoolPhase = "online"
+	// CStorPoolStatusOffline ensures the resource is not available.
+	CStorPoolStatusOffline CStorPoolPhase = "offline"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+)
+
 // CStorPoolStatus is for handling status of pool.
 type CStorPoolStatus struct {
-	Phase string `json:"phase"` //init/online/offline/deletion-failed
+	Phase CStorPoolPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

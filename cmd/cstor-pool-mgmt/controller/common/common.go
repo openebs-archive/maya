@@ -17,44 +17,68 @@ limitations under the License.
 package common
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// CStor controllers to be watched
-const (
-	CStorPool          = "cStorPool"
-	CStorVolumeReplica = "cStorVolumeReplica"
 )
 
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
 	SuccessSynced = "Synced"
-	// ErrResourceExists is used as part of the Event 'reason' when a resource fails
-	// to sync due to a resource of the same name already existing.
-	ErrResourceExists = "ErrResourceExists"
+	// MessageCreateSynced holds message for corresponding create request sync.
+	MessageCreateSynced = "Received Resource create event"
+	// MessageModifySynced holds message for corresponding modify request sync.
+	MessageModifySynced = "Received Resource modify event"
+	// MessageDestroySynced holds message for corresponding destroy request sync.
+	MessageDestroySynced = "Received Resource destroy event"
 
-	// MessageResourceExists is the message used for Events which
-	// fails to sync due to a resource already existing
-	MessageResourceExists = "Resource %q already exists and cannot be handled"
-	// MessageResourceSynced is the message used for an Event fired when a resource
-	// is synced successfully
-	MessageResourceSynced = "Resource synced successfully"
+	// SuccessCreated holds status for corresponding created resource.
+	SuccessCreated = "Created"
+	// MessageResourceCreated holds message for corresponding created resource.
+	MessageResourceCreated = "Resource created successfully"
+
+	// FailureCreate holds status for corresponding failed create resource.
+	FailureCreate = "FailCreate"
+	// MessageResourceFailCreate holds message for corresponding failed create resource.
+	MessageResourceFailCreate = "Resource creation failed"
+
+	// SuccessImported holds status for corresponding imported resource.
+	SuccessImported = "Imported"
+	// MessageResourceImported holds message for corresponding imported resource.
+	MessageResourceImported = "Resource imported successfully"
+
+	// FailureImport holds status for corresponding failed import resource.
+	FailureImport = "FailImport"
+	// MessageResourceFailImport holds message for corresponding failed import resource.
+	MessageResourceFailImport = "Resource import failed"
+
+	// FailureDestroy holds status for corresponding failed destroy resource.
+	FailureDestroy = "FailDestroy"
+	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
+	MessageResourceFailDestroy = "Resource Destroy failed"
+
+	// FailureValidate holds status for corresponding failed validate resource.
+	FailureValidate = "FailValidate"
+	// MessageResourceFailValidate holds message for corresponding failed validate resource.
+	MessageResourceFailValidate = "Resource validation failed"
+
+	// AlreadyPresent holds status for corresponding already present resource.
+	AlreadyPresent = "AlreadyPresent"
+	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
+	MessageResourceAlreadyPresent = "Resource already present"
 )
 
-// Status written onto CStorPool and CStorVolumeReplica objects.
+// Periodic interval duration.
 const (
-	StatusInit           = "init"
-	StatusOnline         = "online"
-	StatusOffline        = "offline"
-	StatusDeletionFailed = "deletion-failed"
-	StatusInvalid        = "invalid"
-
-	StatusIgnore = "ignore"
+	CRDRetryInterval        = 10 * time.Second
+	PoolNameHandlerInterval = 5 * time.Second
+	SharedInformerInterval  = 5 * time.Minute
+	ResourceWorkerInterval  = time.Second
 )
 
 // InitialImportedPoolVol is to store pool-volume names while pod restart.
@@ -68,17 +92,17 @@ type QueueLoad struct {
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.
-func PoolNameHandler(cnt int) (string, error) {
+func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
-		poolname, err := pool.GetPoolName()
-		if err != nil {
-			glog.Infof("Attempt %v: Waiting for Pool..", i)
-			time.Sleep(5 * time.Second)
+		poolname, _ := pool.GetPoolName()
+		if reflect.DeepEqual(poolname, []string{}) || !CheckIfPresent(poolname, "cstor-"+cVR.Labels["cstorpool.openebs.io/uid"]) {
+			glog.Infof("Attempt %v: No pool found", i)
+			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
-				return "", err
+				return false
 			}
-		} else {
-			return poolname, nil
+		} else if CheckIfPresent(poolname, "cstor-"+cVR.Labels["cstorpool.openebs.io/uid"]) {
+			return true
 		}
 	}
 }
@@ -88,8 +112,8 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 	for {
 		_, err := clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorPool CRD not found...")
-			time.Sleep(10 * time.Second)
+			glog.Errorf("CStorPool CRD not found. Retrying after %v", CRDRetryInterval)
+			time.Sleep(CRDRetryInterval)
 			continue
 		}
 		glog.Info("CStorPool CRD found")
@@ -102,11 +126,35 @@ func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
 		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas().List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolumeReplica CRD not found...")
-			time.Sleep(10 * time.Second)
+			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
+			time.Sleep(CRDRetryInterval)
 			continue
 		}
 		glog.Info("CStorVolumeReplica CRD found")
 		break
 	}
+}
+
+// CheckForInitialImportedPoolVol is to check if volume is already
+// imported with pool.
+func CheckForInitialImportedPoolVol(InitialImportedPoolVol []string, fullvolname string) bool {
+	for i, initialVol := range InitialImportedPoolVol {
+		if initialVol == fullvolname {
+			if i < len(InitialImportedPoolVol) {
+				InitialImportedPoolVol = append(InitialImportedPoolVol[:i], InitialImportedPoolVol[i+1:]...)
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// CheckIfPresent is to check if search string is present in array of string.
+func CheckIfPresent(arrStr []string, searchStr string) bool {
+	for _, str := range arrStr {
+		if str == searchStr {
+			return true
+		}
+	}
+	return false
 }
