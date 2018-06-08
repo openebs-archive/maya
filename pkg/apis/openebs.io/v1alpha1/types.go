@@ -206,18 +206,40 @@ type CStorPoolList struct {
 // +resource:path=cstorvolumereplica
 // +genclient:nonNamespaced
 
-// CStorVolumeReplica describes a cstor pool resource created as custom resource
+// CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec `json:"spec"`
+	Spec              CStorVolumeReplicaSpec   `json:"spec"`
+	Status            CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
 	CStorControllerIP string `json:"cStorControllerIP"`
-	VolName           string `json:"volName"`
 	Capacity          string `json:"capacity"`
+}
+
+// CStorVolumeReplicaPhase is to hold result of action.
+type CStorVolumeReplicaPhase string
+
+// Status written onto CStorVolumeReplica objects.
+const (
+	// CVRStatusInit ensures the create operation is to be done, if import fails.
+	CVRStatusInit CStorVolumeReplicaPhase = "init"
+	// CVRStatusOnline ensures the resource is available.
+	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	// CVRStatusOffline ensures the resource is not available.
+	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	// CVRStatusDeletionFailed ensures the resource deletion has failed.
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	// CVRStatusInvalid ensures invalid resource.
+	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+)
+
+// CStorVolumeReplicaStatus is for handling status of cvr.
+type CStorVolumeReplicaStatus struct {
+	Phase CStorVolumeReplicaPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
