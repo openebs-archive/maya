@@ -12,16 +12,16 @@ Sinks
 The `metrics` package makes use of a `MetricSink` interface to support delivery
 to any type of backend. Currently the following sinks are provided:
 
-* StatsiteSink : Sinks to a [statsite](https://github.com/armon/statsite/) instance (TCP)
-* StatsdSink: Sinks to a [StatsD](https://github.com/etsy/statsd/) / statsite instance (UDP)
-* PrometheusSink: Sinks to a [Prometheus](http://prometheus.io/) metrics endpoint (exposed via HTTP for scrapes)
-* InmemSink : Provides in-memory aggregation, can be used to export stats
+* StatsiteSink : Sinks to a [statsite](https://github.com/armon/statsite/) instance (TCP).
+* StatsdSink: Sinks to a [StatsD](https://github.com/etsy/statsd/) / statsite instance (UDP).
+* PrometheusSink: Sinks to a [Prometheus](http://prometheus.io/) metrics endpoint (exposed via HTTP for scrapes).
+* InmemSink : Provides in-memory aggregation, can be used to export stats.
 * FanoutSink : Sinks to multiple sinks. Enables writing to multiple statsite instances for example.
-* BlackholeSink : Sinks to nowhere
+* BlackholeSink : Sinks to nowhere.
 
 In addition to the sinks, the `InmemSignal` can be used to catch a signal,
 and dump a formatted output of recent metrics. For example, when a process gets
-a SIGUSR1, it can dump to stderr recent performance metrics for debugging.
+a SIGUSR1, it can dump to `stderr` recent performance metrics for debugging.
 
 Examples
 ========
@@ -65,7 +65,7 @@ inm.AddSample([]string{"method", "wow"}, 22)
 ....
 ```
 
-When a signal comes in, output like the following will be dumped to stderr:
+When a signal comes in, output like the following will be dumped to `stderr`:
 
     [2014-01-28 14:57:33.04 -0800 PST][G] 'foo': 42.000
     [2014-01-28 14:57:33.04 -0800 PST][P] 'bar': 30.000

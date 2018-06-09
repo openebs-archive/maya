@@ -2,7 +2,7 @@
 [![Stability: Sustained](https://masterminds.github.io/stability/sustained.svg)](https://masterminds.github.io/stability/sustained.html)
 [![Build Status](https://travis-ci.org/Masterminds/sprig.svg?branch=master)](https://travis-ci.org/Masterminds/sprig)
 
-The Go language comes with a [built-in template
+The `Go` language comes with a [built-in template
 language](http://golang.org/pkg/text/template/), but not
 very many template functions. This library provides a group of commonly
 used template functions.
@@ -16,7 +16,7 @@ JavaScript libraries, such as [underscore.js](http://underscorejs.org/).
 Template developers can read the [Sprig function documentation](http://masterminds.github.io/sprig/) to
 learn about the >100 template functions available.
 
-For Go developers wishing to include Sprig as a library in their programs,
+For `Go` developers wishing to include Sprig as a library in their programs,
 API documentation is available [at GoDoc.org](http://godoc.org/github.com/Masterminds/sprig), but
 read on for standard usage.
 
@@ -42,7 +42,7 @@ tpl := template.Must(
 
 ### Call the functions inside of templates
 
-By convention, all functions are lowercase. This seems to follow the Go
+By convention, all functions are lowercase. This seems to follow the `Go`
 idiom for template functions (as opposed to template methods, which are
 TitleCase).
 
@@ -66,10 +66,10 @@ determining how to implement them.
 
 - Template functions should be used to build layout. Therefore, the following
   types of operations are within the domain of template functions:
-  - Formatting
-  - Layout
-  - Simple type conversions
-  - Utilities that assist in handling common formatting and layout needs (e.g. arithmetic)
+  - Formatting,
+  - Layout,
+  - Simple type conversions,
+  - Utilities that assist in handling common formatting and layout needs (e.g. arithmetic).
 - Template functions should not return errors unless there is no way to print
   a sensible value. For example, converting a string to an integer should not
   produce an error if conversion fails. Instead, it should display a default
@@ -78,4 +78,4 @@ determining how to implement them.
   (anything other than arithmetic) should be done outside of templates.
 - Template functions only deal with the data passed into them. They never retrieve
   data from a source.
-- Finally, do not override core Go template functions.
+- Finally, do not override core `Go` template functions.

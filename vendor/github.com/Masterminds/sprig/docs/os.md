@@ -1,15 +1,15 @@
 # OS Functions
 
-_WARNING:_ These functions can lead to information leakage if not used
+_WARNING:_ These functions can lead to information leakage, if not used
 appropriately.
 
 _WARNING:_ Some notable implementations of Sprig (such as 
-[Kubernetes Helm](http://helm.sh) _do not provide these functions for security
+[Kubernetes Helm](http://helm.sh)) _do not provide these functions for security
 reasons_.
 
 ## env
 
-The `env` function reads an environment variable:
+The `env` function reads an environment variable.
 
 ```
 env "HOME"
@@ -17,7 +17,7 @@ env "HOME"
 
 ## expandenv
 
-To substitute environment variables in a string, use `expandenv`:
+The `expandenv` function substitutes environment variables in a string.
 
 ```
 expandenv "Your path is set to $PATH"

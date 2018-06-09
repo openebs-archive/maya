@@ -4,9 +4,9 @@
 
 Contains a bunch of helper functions:
 
-* convert between value and pointers for builtins
-* convert from string to builtin
-* fast json concatenation
-* search in path
-* load from file or http
-* name manglin
+* convert between value and pointers for builtins,
+* convert from string to builtin,
+* fast json concatenation,
+* search in path,
+* load from file or http,
+* name manglin.

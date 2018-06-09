@@ -37,19 +37,19 @@ develop a Cobra-based application.
 
 Cobra provides:
 * Easy subcommand-based CLIs: `app server`, `app fetch`, etc.
-* Fully POSIX-compliant flags (including short & long versions)
-* Nested subcommands
-* Global, local and cascading flags
-* Easy generation of applications & commands with `cobra init appname` & `cobra add cmdname`
-* Intelligent suggestions (`app srver`... did you mean `app server`?)
-* Automatic help generation for commands and flags
-* Automatic detailed help for `app help [command]`
+* Fully POSIX-compliant flags (including short & long versions).
+* Nested subcommands.
+* Global, local and cascading flags.
+* Easy generation of applications & commands with `cobra init appname` & `cobra add cmdname`.
+* Intelligent suggestions (`app srver`... did you mean `app server`?).
+* Automatic help generation for commands and flags.
+* Automatic detailed help for `app help [command]`.
 * Automatic help flag recognition of `-h`, `--help`, etc.
-* Automatically generated bash autocomplete for your application
-* Automatically generated man pages for your application
-* Command aliases so you can change things without breaking them
+* Automatically generated bash autocomplete for your application.
+* Automatically generated man pages for your application.
+* Command aliases so you can change things without breaking them.
 * The flexibility to define your own help, usage, etc.
-* Optional tight integration with [viper](http://github.com/spf13/viper) for 12-factor apps
+* Optional tight integration with [viper](http://github.com/spf13/viper) for 12-factor apps.
 
 Cobra has an exceptionally clean interface and simple design without needless
 constructors or initialization methods.
@@ -951,11 +951,11 @@ Libraries for extending Cobra:
 
 ## Contributing
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+1. Fork it.
+2. Create your feature branch (`git checkout -b my-new-feature`).
+3. Commit your changes (`git commit -am 'Add some feature'`).
+4. Push to the branch (`git push origin my-new-feature`).
+5. Create new Pull Request.
 
 ## Contributors
 

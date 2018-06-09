@@ -116,7 +116,7 @@ between client-go versions.
 
 Key:
 
-* `✓` Changes in main Kubernetes repo are actively published to client-go by a bot
+* `✓` Changes in main Kubernetes repo are actively published to client-go by a bot.
 * `=` Maintenance is manual, only severe security bugs will be patched.
 * `-` Deprecated; please upgrade.
 
@@ -149,8 +149,8 @@ refer to the out-of-cluster [example](examples/out-of-cluster-client-configurati
 
 ### Dependency management
 
-If your application depends on a package that client-go depends on, and you let the Go compiler find the dependency in `GOPATH`, you will end up with duplicated dependencies: one copy from the `GOPATH`, and one from the vendor folder of client-go. This will cause unexpected runtime error like flag redefinition, since the go compiler ends up importing both packages separately, even if they are exactly the same thing. If this happens, you can either
-* run `godep restore` ([godep](https://github.com/tools/godep)) in the client-go/ folder, then remove the vendor folder of client-go. Then the packages in your GOPATH will be the only copy
+If your application depends on a package that client-go depends on, and you let the Go compiler find the dependency in `GOPATH`, you will end up with duplicated dependencies: one copy from the `GOPATH`, and one from the vendor folder of client-go. This will cause unexpected runtime error like flag redefinition, since the go compiler ends up importing both packages separately, even if they are exactly the same thing. If this happens, you can either:
+* run `godep restore` ([godep](https://github.com/tools/godep)) in the client-go/ folder, then remove the vendor folder of client-go. Then the packages in your GOPATH will be the only copy.
 * or run `godep save` in your application folder to flatten all dependencies.
 
 ### Contributing code

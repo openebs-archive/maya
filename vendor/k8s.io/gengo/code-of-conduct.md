@@ -14,12 +14,12 @@ religion, or nationality.
 
 Examples of unacceptable behavior by participants include:
 
-* The use of sexualized language or imagery
-* Personal attacks
-* Trolling or insulting/derogatory comments
-* Public or private harassment
+* The use of sexualized language or imagery.
+* Personal attacks.
+* Trolling or insulting/derogatory comments.
+* Public or private harassment.
 * Publishing other's private information, such as physical or electronic addresses,
- without explicit permission
+ without explicit permission.
 * Other unethical or unprofessional conduct.
 
 Project maintainers have the right and responsibility to remove, edit, or reject
@@ -35,8 +35,7 @@ when an individual is representing the project or its community.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by contacting a Kubernetes maintainer, Sarah Novotny <sarahnovotny@google.com>, and/or Dan Kohn <dan@linuxfoundation.org>.
 
 This Code of Conduct is adapted from the Contributor Covenant
-(http://contributor-covenant.org), version 1.2.0, available at
-http://contributor-covenant.org/version/1/2/0/
+(http://contributor-covenant.org), version 1.2.0, available [here](http://contributor-covenant.org/version/1/2/0/).
 
 ### Kubernetes Events Code of Conduct
 
@@ -52,7 +51,7 @@ The Kubernetes team does not condone any statements by speakers contrary to thes
 team reserves the right to deny entrance and/or eject from an event (without refund) any individual found to
 be engaging in discriminatory or offensive speech or actions.
 
-Please bring any concerns to to the immediate attention of Kubernetes event staff
+Please bring any concerns to to the immediate attention of Kubernetes event staff.
 
 
 [![Analytics](https://kubernetes-site.appspot.com/UA-36037335-10/GitHub/code-of-conduct.md?pixel)]()

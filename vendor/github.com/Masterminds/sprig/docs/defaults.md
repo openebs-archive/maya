@@ -34,7 +34,7 @@ The `empty` function returns `true` if the given value is considered empty, and
 empty .Foo
 ```
 
-Note that in Go template conditionals, emptiness is calculated for you. Thus,
+**Note:** In `Go` template conditionals, emptiness is calculated for you. Thus,
 you rarely need `if empty .Foo`. Instead, just use `if .Foo`.
 
 ## coalesce

@@ -62,7 +62,7 @@ func init() {
 ```
 
 Or you can create custom flags that satisfy the Value interface (with
-pointer receivers) and couple them to flag parsing by
+pointer receivers) and couple them to flag parsing by:
 
 ``` go
 flag.Var(&flagVal, "name", "help message for flagname")
@@ -70,7 +70,7 @@ flag.Var(&flagVal, "name", "help message for flagname")
 
 For such flags, the default value is just the initial value of the variable.
 
-After all flags are defined, call
+After all flags are defined, call:
 
 ``` go
 flag.Parse()
@@ -135,7 +135,7 @@ var ip = flag.IntP("flagname", "f", 1234, "help message")
 flag.Lookup("flagname").NoOptDefVal = "4321"
 ```
 
-Would result in something like
+Would result in something like:
 
 | Parsed Arguments | Resulting Value |
 | -------------    | -------------   |
@@ -154,7 +154,7 @@ Would result in something like
 Unlike the flag package, a single dash before an option means something
 different than a double dash. Single dashes signify a series of shorthand
 letters for flags. All but the last shorthand letter must be boolean flags
-or a flag with a default value
+or a flag with a default value.
 
 ```
 // boolean or flags where the 'no option default value' is set
@@ -269,7 +269,7 @@ flags.PrintDefaults()
 In order to support flags defined using Go's `flag` package, they must be added to the `pflag` flagset. This is usually necessary
 to support flags defined by third-party dependencies (e.g. `golang/glog`).
 
-**Example**: You want to add the Go flags to the `CommandLine` flagset
+**Example**: You want to add the Go flags to the `CommandLine` flagset.
 ```go
 import (
 	goflag "flag"
