@@ -86,7 +86,7 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 
 	var q common.QueueLoad
 	q.Key = "volume2"
-	q.Operation = "add"
+	q.Operation = common.QOpAdd
 	volumeController.workqueue.AddRateLimited(q)
 
 	obtainedOutput := volumeController.processNextWorkItem()
@@ -140,7 +140,7 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 
 	var q common.QueueLoad
 	q.Key = "volume2"
-	q.Operation = "modify"
+	q.Operation = common.QOpModify
 	volumeController.workqueue.AddRateLimited(q)
 
 	obtainedOutput := volumeController.processNextWorkItem()
@@ -194,7 +194,7 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 
 	var q common.QueueLoad
 	q.Key = "volume2"
-	q.Operation = "destroy"
+	q.Operation = common.QOpDestroy
 	volumeController.workqueue.AddRateLimited(q)
 
 	obtainedOutput := volumeController.processNextWorkItem()

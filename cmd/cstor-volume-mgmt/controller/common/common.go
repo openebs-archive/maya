@@ -57,26 +57,37 @@ const (
 	CVStatusOffline        CStorVolumeStatus = "offline"
 	CVStatusDeletionFailed CStorVolumeStatus = "deletion-failed"
 	CVStatusInvalid        CStorVolumeStatus = "invalid"
+	CVStatusFailed         CStorVolumeStatus = "failed"
 
 	CVStatusIgnore CStorVolumeStatus = "ignore"
 )
 
+//QueueOperation represents the type of operation on the controller work queue
+type QueueOperation string
+
+//Different type of operations on the controller work queue
+const (
+	QOpAdd     QueueOperation = "add"
+	QOpDestroy QueueOperation = "destroy"
+	QOpModify  QueueOperation = "modify"
+)
+
 // QueueLoad is for storing the key and type of operation before entering workqueue
 type QueueLoad struct {
-	Key       string
-	Operation string
+	Key       string // Key is the name of cstor volume given in metadata name field in the yaml
+	Operation QueueOperation
 }
 
-// CheckForCStorVolumeCRD is Blocking call for checking status of CStorVolume CRD.
-func CheckForCStorVolumeCRD(clientset clientset.Interface) {
+// CheckForCStorVolumeCR is Blocking call for checking status of CStorVolume CR.
+func CheckForCStorVolumeCR(clientset clientset.Interface) {
 	for {
 		_, err := clientset.OpenebsV1alpha1().CStorVolumes().List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolume CRD not found...")
+			glog.Errorf("CStorVolume CR not found...")
 			time.Sleep(10 * time.Second)
 			continue
 		}
-		glog.Info("CStorVolume CRD found")
+		glog.Info("CStorVolume CR found")
 		break
 	}
 }

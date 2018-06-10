@@ -56,7 +56,6 @@ func TestCreateVolume(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}
@@ -89,7 +88,6 @@ func TestCheckValidVolume(t *testing.T) {
 					Capacity:          "5G",
 					Status:            "init",
 				},
-				Status: apis.CStorVolumePhase{},
 			},
 		},
 	}

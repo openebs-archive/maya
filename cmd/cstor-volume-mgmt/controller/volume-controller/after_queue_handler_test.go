@@ -82,58 +82,8 @@ func TestGetVolumeResource(t *testing.T) {
 	}
 }
 
-// TestRemoveFinalizer is to remove volume resource.
-func TestRemoveFinalizer(t *testing.T) {
-	fakeKubeClient := fake.NewSimpleClientset()
-	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
-
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
-
-	// Instantiate the cStor Volume controllers.
-	volumeController := NewCStorVolumeController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
-		openebsInformerFactory)
-
-	testVolumeResource := map[string]struct {
-		expectedError error
-		test          *apis.CStorVolume
-	}{
-		"img2VolumeResource": {
-			expectedError: nil,
-			test: &apis.CStorVolume{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "volume2",
-					UID:        types.UID("abcd"),
-					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
-				},
-				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abcd",
-					VolumeID:          "abcd",
-					Capacity:          "15G",
-					Status:            "init",
-				},
-				Status: apis.CStorVolumePhase{},
-			},
-		},
-	}
-	for desc, ut := range testVolumeResource {
-		// Create Volume resource
-		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes().Create(ut.test)
-		if err != nil {
-			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
-		}
-		obtainedErr := volumeController.removeFinalizer(ut.test)
-		if obtainedErr != ut.expectedError {
-			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedError,
-				obtainedErr)
-		}
-	}
-}
-
-// TestIsRightCStorVolumeMgmt is to check if right sidecar does operation with env match.
-func TestIsRightCStorVolumeMgmt(t *testing.T) {
+// TestIsValidCStorVolumeMgmt is to check if right sidecar does operation with env match.
+func TestIsValidCStorVolumeMgmt(t *testing.T) {
 	testVolumeResource := map[string]struct {
 		expectedOutput bool
 		test           *apis.CStorVolume
@@ -159,17 +109,18 @@ func TestIsRightCStorVolumeMgmt(t *testing.T) {
 		},
 	}
 	for desc, ut := range testVolumeResource {
-		os.Setenv("cstorid", string(ut.test.UID))
-		obtainedOutput := IsRightCStorVolumeMgmt(ut.test)
+		os.Setenv("OPENEBS_IO_CSTOR_VOLUME_ID", string(ut.test.UID))
+		obtainedOutput := IsValidCStorVolumeMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
 		}
+		os.Setenv("OPENEBS_IO_CSTOR_VOLUME_ID", "")
 	}
 }
 
-// TestIsRightCStorVolumeMgmtNegative is to check if right sidecar does operation with env match.
-func TestIsRightCStorVolumeMgmtNegative(t *testing.T) {
+// TestIsValidCStorVolumeMgmtNegative is to check if right sidecar does operation with env match.
+func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 	testVolumeResource := map[string]struct {
 		expectedOutput bool
 		test           *apis.CStorVolume
@@ -195,11 +146,12 @@ func TestIsRightCStorVolumeMgmtNegative(t *testing.T) {
 		},
 	}
 	for desc, ut := range testVolumeResource {
-		os.Setenv("cstorid", string("awer"))
-		obtainedOutput := IsRightCStorVolumeMgmt(ut.test)
+		os.Setenv("OPENEBS_IO_CSTOR_VOLUME_ID", string("awer"))
+		obtainedOutput := IsValidCStorVolumeMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
 		}
+		os.Setenv("OPENEBS_IO_CSTOR_VOLUME_ID", "")
 	}
 }

@@ -93,8 +93,8 @@ func NewCStorVolumeController(
 		deletedIndexer: cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,
 			cache.Indexers{}),
 		cStorVolumeSynced: cStorVolumeInformer.Informer().HasSynced,
-		workqueue:       workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolume"),
-		recorder:        recorder,
+		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolume"),
+		recorder:          recorder,
 	}
 
 	glog.Info("Setting up event handlers")
@@ -105,12 +105,12 @@ func NewCStorVolumeController(
 	// Set up an event handler for when CstorVolume resources change.
 	cStorVolumeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			if !IsRightCStorVolumeMgmt(obj.(*apis.CStorVolume)) {
+			if !IsValidCStorVolumeMgmt(obj.(*apis.CStorVolume)) {
 				return
 			}
-			q.Operation = "add"
+			q.Operation = common.QOpAdd
 			glog.Infof("added event")
-			controller.enqueueCStorVolume(obj, q)
+			controller.enqueueCStorVolume(obj.(*apis.CStorVolume), q)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			newCStorVolume := new.(*apis.CStorVolume)
@@ -120,7 +120,7 @@ func NewCStorVolumeController(
 			if newCStorVolume.ResourceVersion == oldCStorVolume.ResourceVersion {
 				return
 			}
-			if !IsRightCStorVolumeMgmt(newCStorVolume) {
+			if !IsValidCStorVolumeMgmt(newCStorVolume) {
 				return
 			}
 
@@ -128,12 +128,12 @@ func NewCStorVolumeController(
 				return
 			}
 			if IsDestroyEvent(newCStorVolume) {
-				q.Operation = "destroy"
+				q.Operation = common.QOpDestroy
 			} else {
-				q.Operation = "modify"
+				q.Operation = common.QOpModify
 				return // will be removed once modify is implemented
 			}
-			controller.enqueueCStorVolume(new, q)
+			controller.enqueueCStorVolume(newCStorVolume, q)
 		},
 		DeleteFunc: func(obj interface{}) {
 			glog.Infof("\nk8s-deleted event")

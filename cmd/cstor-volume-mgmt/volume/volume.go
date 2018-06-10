@@ -199,7 +199,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 
 // CheckValidVolume checks for validity of CStorVolume resource.
 func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
-	if string(cStorVolume.ObjectMeta.UID) == "" {
+	if len(string(cStorVolume.ObjectMeta.UID)) == 0 {
 		return fmt.Errorf("Volumename cannot be empty")
 	}
 	return nil

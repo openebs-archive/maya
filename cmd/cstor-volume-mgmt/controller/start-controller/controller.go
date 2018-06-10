@@ -36,6 +36,12 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
+// constants
+const (
+	NumThreads            = 2
+	NumRoutinesThatFollow = 1
+)
+
 // StartControllers instantiates CStorVolume controllers
 // and watches them.
 func StartControllers(kubeconfig string) {
@@ -67,9 +73,12 @@ func StartControllers(kubeconfig string) {
 	// Blocking call for checking status of istgt running in cstor-volume container.
 	volume.CheckForIscsi()
 
-	// Blocking call for checking status of CStorVolume CRD.
-	common.CheckForCStorVolumeCRD(openebsClient)
+	// Blocking call for checking status of CStorVolume CR.
+	common.CheckForCStorVolumeCR(openebsClient)
 
+	//NewInformer returns a cache.Store and a controller for populating the store
+	// while also providing event notifications. It’s basically a controller with some
+	//boilerplate code to sync events from the FIFO queue to the downstream store.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 
@@ -82,11 +91,11 @@ func StartControllers(kubeconfig string) {
 
 	// Waitgroup for starting volume controller goroutines.
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(NumRoutinesThatFollow)
 
 	// Run controller for cStorVolume.
 	go func() {
-		if err = cStorVolumeController.Run(2, stopCh); err != nil {
+		if err = cStorVolumeController.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorVolume controller: %s", err.Error())
 		}
 		wg.Done()
@@ -99,9 +108,9 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Errorf("failed to get k8s Incluster config. %+v", err)
-		if kubeconfig == "" {
-			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
+		glog.Warningf("failed to get k8s Incluster config. %+v", err)
+		if len(kubeconfig) == 0 {
+			return nil, fmt.Errorf("kubeconfig is empty")
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {

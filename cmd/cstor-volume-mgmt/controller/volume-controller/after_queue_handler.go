@@ -19,7 +19,7 @@ import (
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the cStorVolumeUpdated resource
 // with the current status of the resource.
-func (c *CStorVolumeController) syncHandler(key, operation string) error {
+func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOperation) error {
 	glog.Infof("at sync handler")
 	cStorVolumeGot, err := c.getVolumeResource(key)
 	if err != nil {
@@ -45,13 +45,13 @@ func (c *CStorVolumeController) syncHandler(key, operation string) error {
 }
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
-func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
+func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOperation, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
 	volume.RunnerVar = util.RealRunner{}
 	volume.FileOperatorVar = util.RealFileOperator{}
 	volume.UnixSockVar = util.RealUnixSock{}
+	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Spec.VolumeName)
 	switch operation {
-	case "add":
-		glog.Info("added event")
+	case common.QOpAdd:
 		// CheckValidVolume is to check if volume attributes are correct.
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
@@ -60,26 +60,23 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorV
 
 		err = volume.CreateVolume(cStorVolumeGot)
 		if err != nil {
-			return "", err
+			return common.CVStatusFailed, err
 		}
 		break
 
-	case "modify":
-		glog.Info("modify event") //ignoring as of now
-
+	case common.QOpModify:
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
-			return "", err
+			return common.CVStatusInvalid, err
 		}
 
 		err = volume.CreateVolume(cStorVolumeGot)
 		if err != nil {
-			return "", err
+			return common.CVStatusFailed, err
 		}
 		break
 
-	case "destroy":
-		glog.Info("destroy event")
+	case common.QOpDestroy:
 		return common.CVStatusIgnore, nil
 	}
 
@@ -89,7 +86,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation string, cStorV
 // enqueueCstorVolume takes a CStorVolume resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorVolumes.
-func (c *CStorVolumeController) enqueueCStorVolume(obj interface{}, q common.QueueLoad) {
+func (c *CStorVolumeController) enqueueCStorVolume(obj *apis.CStorVolume, q common.QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -105,7 +102,7 @@ func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume
 	// Convert the key(namespace/name) string into a distinct name
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		runtime.HandleError(fmt.Errorf("invalid resource key: %s, err: %v", key, err))
 		return nil, nil
 	}
 
@@ -123,35 +120,23 @@ func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume
 	return cStorVolumeGot, nil
 }
 
-// removeFinalizer is to remove finalizer of cstorvolume resource.
-func (c *CStorVolumeController) removeFinalizer(cStorVolumeGot *apis.CStorVolume) error {
-	if len(cStorVolumeGot.Finalizers) > 0 {
-		cStorVolumeGot.Finalizers = []string{}
-	}
-	_, err := c.clientset.OpenebsV1alpha1().CStorVolumes().Update(cStorVolumeGot)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// IsRightCStorVolumeMgmt is to check if the volume request is for particular pod/application.
-func IsRightCStorVolumeMgmt(cStorVolume *apis.CStorVolume) bool {
-	if os.Getenv("cstorid") == string(cStorVolume.ObjectMeta.UID) {
-		glog.Infof("right sidecar")
+// IsValidCStorVolumeMgmt is to check if the volume request is for particular pod/application.
+func IsValidCStorVolumeMgmt(cStorVolume *apis.CStorVolume) bool {
+	if os.Getenv("OPENEBS_IO_CSTOR_VOLUME_ID") == string(cStorVolume.ObjectMeta.UID) {
+		glog.V(2).Infof("right sidecar for the cstor volume with id : %s", cStorVolume.ObjectMeta.UID)
 		return true
 	}
-	glog.Infof("wrong sidecar")
+	glog.V(2).Infof("wrong sidecar for the cstor volume with id : %s", cStorVolume.ObjectMeta.UID)
 	return false
 }
 
 // IsDestroyEvent is to check if the call is for cStorVolume destroy.
 func IsDestroyEvent(cStorVolume *apis.CStorVolume) bool {
 	if cStorVolume.ObjectMeta.DeletionTimestamp != nil {
-		glog.Infof("cstor destroy event")
+		glog.V(2).Infof("cstor volume destroy event for volume : %s", cStorVolume.Spec.VolumeName)
 		return true
 	}
-	glog.Infof("cstor modify event")
+	glog.V(2).Infof("cstor volume modify event for volume : %s", cStorVolume.Spec.VolumeName)
 	return false
 }
 
@@ -159,10 +144,10 @@ func IsDestroyEvent(cStorVolume *apis.CStorVolume) bool {
 func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	if reflect.DeepEqual(oldCStorVolume.Spec, newCStorVolume.Spec) &&
 		!reflect.DeepEqual(oldCStorVolume.Status, newCStorVolume.Status) {
-		glog.Infof("only status change")
+		glog.V(2).Infof("only status changed for cstor volume : %s", newCStorVolume.Spec.VolumeName)
 		return true
 	}
-	glog.Infof("not status change")
+	glog.V(2).Infof("no status changed for cstor volume : %s", newCStorVolume.Spec.VolumeName)
 	return false
 }
 
