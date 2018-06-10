@@ -19,13 +19,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -34,9 +36,15 @@ const (
 	http_timeout = 5 * time.Second
 )
 
+// SnapshotInfo stores the details of snapshot
+type SnapshotInfo struct {
+	Name    string
+	Created string
+	Size    string
+}
+
 // CreateSnapshot creates a snapshot of volume by API request to m-apiserver
 func CreateSnapshot(volName string, snapName string, namespace string) error {
-
 	_, err := GetStatus()
 	if err != nil {
 		return err
@@ -169,20 +177,31 @@ func ListSnapshot(volName string, namespace string) error {
 	if err != nil {
 		fmt.Println("Failed to get the snapshot info", err)
 	}
-	out := make([]string, len(snapdisk)+1)
 
-	out[0] = "Name|Created At|Size"
+	snapshotList := make(map[int]*SnapshotInfo)
+
+	// out := make([]string, len(snapdisk)+1)
+
+	// out[0] = "Name|Created At|Size"
 	var i int
 
 	for _, disk := range snapdisk {
 		//	if !util.IsHeadDisk(disk.Name) {
-		out[i+1] = fmt.Sprintf("%s|%s|%s",
-			strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
-			disk.Created,
-			disk.Size)
-		i = i + 1
+		// out[i+1] = fmt.Sprintf("%s|%s|%s",
+		// 	strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
+		// 	disk.Created,
+		// 	disk.Size)
+		// i = i + 1
+		snapshotList[i] = &SnapshotInfo{strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"), disk.Created, disk.Size}
+		i++
 	}
-	fmt.Println(util.FormatList(out))
+	err = displayVolumeSnapshot(snapshotList)
+	if err != nil {
+		fmt.Println("Error displaying snapshot list, found error - ", err)
+		return err
+	}
+
+	// fmt.Println(util.FormatList(out))
 	return nil
 }
 
@@ -195,4 +214,28 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 		return nil, err
 	}
 	return s, err
+}
+
+func displayVolumeSnapshot(snapshotList map[int]*SnapshotInfo) error {
+	const (
+		snapshotTemplate = `
+Snapshot Details: 
+------------------
+{{ printf "NAME\t CREATED AT\t SIZE" }}
+{{ printf "-----\t -----------\t -----" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ end }}
+`
+	)
+
+	tmpl := template.New("SnapshotList")
+	tmpl = template.Must(tmpl.Parse(snapshotTemplate))
+
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+	err := tmpl.Execute(w, snapshotList)
+	if err != nil {
+		return err
+	}
+	w.Flush()
+
+	return nil
 }
