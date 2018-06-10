@@ -698,7 +698,7 @@ func (k *k8sUtil) K8sClient() (K8sClient, bool) {
 // NS provides the namespace where operations will be executed
 func (k *k8sUtil) NS() (string, error) {
 	if nil == k.volProfile {
-		return "", fmt.Errorf("Volume provisioner profile not initialized at '%s'", k.Name())
+		return "", fmt.Errorf("Volume provisioner profile not initialized")
 	}
 
 	// Fetch vol from volume provisioner profile
