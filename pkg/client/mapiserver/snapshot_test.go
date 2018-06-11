@@ -14,11 +14,13 @@ import (
 )
 
 var (
-	snapshotResponse          = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
-	volumeNameIsMissing       = errors.New("Volume name is missing")
-	badReqErr                 = errors.New(snapshotResponse)
-	volNotFound               = errors.New("Volume not found")
-	NamespaceSnapshotResponse = `{volume-snap-testsnap.img":{"children":["volume-head-001.img"],"created":"2018-06-06T12:45:55Z","name":"volume-snap-testsnap.img","parent":"volume-snap-85437a6a-1945-427b-ba93-58011b34f634.img","removed":false,"size":"377753600","usercreated":true}`
+	snapshotResponse     = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
+	volumeNameIsMissing  = errors.New("Volume name is missing")
+	badReqErr            = errors.New(snapshotResponse)
+	volNotFound          = errors.New("Volume not found")
+	SnapshotListResponse = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap3.img": {"name": "volume-snap-snap3.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
+	ZeroSnapshotResponse = `{"volume-head-001.img": {"name": "volume-head-001.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
+	jsonError            = errors.New("unexpected end of JSON input")
 )
 
 func TestCreateSnapshot(t *testing.T) {
@@ -90,7 +92,7 @@ func TestCreateSnapshot(t *testing.T) {
 			namespace:  "app",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(NamespaceSnapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 				T:            t,
 			},
 			err:  nil,
@@ -192,7 +194,7 @@ func TestRevertSnapshot(t *testing.T) {
 			namespace:  "app",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(NamespaceSnapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 				T:            t,
 			},
 			err:  nil,
@@ -237,17 +239,27 @@ func TestListSnapshot(t *testing.T) {
 			volumeName: "qwewretrytu",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(snapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 				T:            t,
 			},
 			err:  nil,
+			addr: "MAPI_ADDR",
+		},
+		"NoResponse": {
+			volumeName: "test",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode: 500,
+				// ResponseBody: string(SnapshotListResponse),
+				T: t,
+			},
+			err:  fmt.Errorf("Server status error: %v", http.StatusText(500)),
 			addr: "MAPI_ADDR",
 		},
 		"BadRequest": {
 			volumeName: "12324rty653423",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   400,
-				ResponseBody: string(snapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 				T:            t,
 			},
 			err:  fmt.Errorf("Server status error: %v", http.StatusText(400)),
@@ -257,7 +269,7 @@ func TestListSnapshot(t *testing.T) {
 			volumeName: "234t5rgfgt-ht4",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(snapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 			},
 			err:  util.MAPIADDRNotSet,
 			addr: "",
@@ -287,7 +299,7 @@ func TestListSnapshot(t *testing.T) {
 			namespace:  "app",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(NamespaceSnapshotResponse),
+				ResponseBody: string(SnapshotListResponse),
 				T:            t,
 			},
 			err:  nil,
@@ -302,6 +314,26 @@ func TestListSnapshot(t *testing.T) {
 				T:            t,
 			},
 			err:  fmt.Errorf("Server status error: %v", http.StatusText(404)),
+			addr: "MAPI_ADDR",
+		},
+		"UnableToParseJSON": {
+			volumeName: "foo",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(""),
+				T:            t,
+			},
+			err:  fmt.Errorf("Failed to get the snapshot info, found error - %v", jsonError),
+			addr: "MAPI_ADDR",
+		},
+		"ZeroSnapshots": {
+			volumeName: "test",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(ZeroSnapshotResponse),
+				T:            t,
+			},
+			err:  nil,
 			addr: "MAPI_ADDR",
 		},
 	}
