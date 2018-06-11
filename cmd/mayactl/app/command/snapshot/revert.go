@@ -24,15 +24,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-/*type CmdSnaphotCreateOptions struct {
-	volName  string
-	snapName string
-}*/
-
 // NewCmdSnapshotRevert reverts a snapshot of OpenEBS Volume
 func NewCmdSnapshotRevert() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "revert",
 		Short: "Reverts to specific snapshot of a Volume",
@@ -43,22 +36,21 @@ func NewCmdSnapshotRevert() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
-	cmd.MarkPersistentFlagRequired("snapname")
-
 	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
+	cmd.MarkPersistentFlagRequired("snapname")
 
 	return cmd
 }
 
 // RunSnapshotRevert does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotRevert(cmd *cobra.Command) error {
+func (c *CmdSnaphotOptions) RunSnapshotRevert(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot revert ...")
 
-	resp := mapiserver.RevertSnapshot(c.volName, c.snapName)
+	resp := mapiserver.RevertSnapshot(c.volName, c.snapName, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Error: %v", resp)
 	}
