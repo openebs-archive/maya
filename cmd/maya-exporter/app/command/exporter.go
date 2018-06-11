@@ -5,10 +5,9 @@
 package command
 
 import (
-	"errors"
-	"log"
 	"net/http"
 
+	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -34,16 +33,10 @@ func Initialize(options *VolumeExporterOptions) string {
 // StartMayaExporter starts an HTTP server that exposes the metrics on
 // "/metrics" endpoint.
 func (options *VolumeExporterOptions) StartMayaExporter() error {
-	log.Printf("Starting Server: %s", options.ListenAddress)
-	if options.MetricsPath == "" || options.MetricsPath == "/" {
-
-		http.Handle(options.MetricsPath, promhttp.Handler())
-
-	} else {
-
-		http.Handle(options.MetricsPath, promhttp.Handler())
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			homepage := `<html>
+	glog.Info("Starting http server....")
+	http.Handle(options.MetricsPath, promhttp.Handler())
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		homepage := `<html>
 <head><title>OpenEBS Exporter</title></head>
 <body>
 <h1>OpenEBS Exporter</h1>
@@ -51,15 +44,11 @@ func (options *VolumeExporterOptions) StartMayaExporter() error {
 </body>
 </html>
 `
-			w.Write([]byte(homepage))
-		})
-
-	}
-
+		w.Write([]byte(homepage))
+	})
 	err := http.ListenAndServe(options.ListenAddress, nil)
 	if err != nil {
-		log.Println(err)
-		return errors.New("bind address already in use, please use another address")
+		glog.Error(err)
 	}
 	return err
 }

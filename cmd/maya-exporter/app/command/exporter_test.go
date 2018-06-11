@@ -52,14 +52,14 @@ func TestStartMayaExporter(t *testing.T) {
 				MetricsPath:       "/metrics",
 				ListenAddress:     ":9500",
 			},
-			err: errors.New("bind address already in use, please use another address"),
+			err: errors.New("listen tcp :9500: bind: address already in use"),
 		},
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
 			startTestServer(t, tt.cmdOptions, ErrorMessage)
 			msg := <-ErrorMessage
-			if !reflect.DeepEqual(msg, tt.err) {
+			if !reflect.DeepEqual(msg.Error(), tt.err.Error()) {
 				t.Fatalf("StartMayaExporter() : expected %v, got %v", tt.err, msg)
 			}
 		})

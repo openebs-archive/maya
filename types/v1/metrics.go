@@ -1,6 +1,6 @@
 package v1
 
-// OpenEBSVolumeMetrics is used to store the collected metrics
+// VolumeMetrics is used to store the collected metrics
 // all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
 type VolumeMetrics struct {
 	Resource        Resource

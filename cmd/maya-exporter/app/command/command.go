@@ -4,6 +4,7 @@ import (
 	"errors"
 	goflag "flag"
 	"log"
+	"net"
 	"net/url"
 
 	"github.com/golang/glog"
@@ -88,7 +89,6 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 	AddListenAddressFlag(cmd, &options.ListenAddress)
 	AddMetricsPathFlag(cmd, &options.MetricsPath)
 	AddCASTypeFlag(cmd, &options.CASType)
-
 	return cmd, nil
 }
 
@@ -97,17 +97,20 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	glog.Infof("Starting maya-exporter ...")
 	option := Initialize(options)
-	if option == "" {
-		log.Println("maya-exporter only supports jiva and cstor as storage engine")
+	if len(option) == 0 {
+		glog.Fatal("maya-exporter only supports jiva and cstor as storage engine")
 		return nil
 	}
 	if option == "cstor" {
-		log.Println("maya-exporter does not support cstor yet")
-		return nil
+		glog.Infof("initialising maya-exporter for the cstor")
+		options.RegisterCstorStatsExporter()
 	}
 	if option == "jiva" {
 		log.Println("Initialising maya-exporter for the jiva")
-		options.RegisterJivaStatsExporter()
+		if err := options.RegisterJivaStatsExporter(); err != nil {
+			glog.Fatal(err)
+			return nil
+		}
 	}
 	options.StartMayaExporter()
 	return nil
@@ -118,10 +121,23 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 	controllerURL, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
-		log.Println(err)
+		glog.Error(err)
 		return errors.New("Error in parsing the URI")
 	}
-	exporter := collector.NewExporter(controllerURL)
+	exporter := collector.NewJivaStatsExporter(controllerURL)
 	prometheus.MustRegister(exporter)
 	return nil
+}
+
+// RegisterCstorStatsExporter initiates the connection with the cstor and register
+// the exporter with Prometheus for collecting the metrics.If the connection creation
+func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
+	var conn net.Conn
+	if conn = collector.InitiateConnection(); conn == nil {
+		glog.Error("Connection is not established with the target.")
+	}
+	exporter := collector.NewCstorStatsExporter(conn)
+	prometheus.MustRegister(exporter)
+	glog.Info("Registered the exporter")
+	return
 }
