@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -38,9 +37,11 @@ const (
 
 // SnapshotInfo stores the details of snapshot
 type SnapshotInfo struct {
-	Name    string
-	Created string
-	Size    string
+	Name     string
+	Created  string
+	Size     string
+	Parent   string
+	Children string
 }
 
 // CreateSnapshot creates a snapshot of volume by API request to m-apiserver
@@ -169,31 +170,57 @@ func ListSnapshot(volName string, namespace string) error {
 	if err != nil {
 		return err
 	}
+
 	code := resp.StatusCode
 	if code != http.StatusOK {
 		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 	snapdisk, err := getInfo(body)
 	if err != nil {
-		fmt.Println("Failed to get the snapshot info", err)
+		return fmt.Errorf("Failed to get the snapshot info, found error - %v", err)
+	}
+
+	if len(snapdisk) == 1 || len(snapdisk) == 0 {
+		fmt.Println("No snapshots available. \nUse `mayactl snapshot create --volname <vol-name> --snapname <snap-name>` to create snapshot")
+		return nil
 	}
 
 	snapshotList := make(map[int]*SnapshotInfo)
-
-	// out := make([]string, len(snapdisk)+1)
-
-	// out[0] = "Name|Created At|Size"
 	var i int
 
 	for _, disk := range snapdisk {
-		//	if !util.IsHeadDisk(disk.Name) {
-		// out[i+1] = fmt.Sprintf("%s|%s|%s",
-		// 	strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
-		// 	disk.Created,
-		// 	disk.Size)
-		// i = i + 1
-		snapshotList[i] = &SnapshotInfo{strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"), disk.Created, disk.Size}
-		i++
+		if !client.IsHeadDisk(disk.Name) {
+			if len(disk.Children) > 1 {
+				for _, value := range disk.Children {
+					snapshotList[i] = &SnapshotInfo{
+						Name:     client.TrimSnapshotName(disk.Name),
+						Created:  disk.Created,
+						Size:     disk.Size,
+						Parent:   client.TrimSnapshotName(disk.Parent),
+						Children: client.TrimSnapshotName(value),
+					}
+					i++
+				}
+			} else if len(disk.Children) == 0 {
+				snapshotList[i] = &SnapshotInfo{
+					Name:     client.TrimSnapshotName(disk.Name),
+					Created:  disk.Created,
+					Size:     disk.Size,
+					Parent:   client.TrimSnapshotName(disk.Parent),
+					Children: "NA",
+				}
+				i++
+			} else {
+				snapshotList[i] = &SnapshotInfo{
+					Name:     client.TrimSnapshotName(disk.Name),
+					Created:  disk.Created,
+					Size:     disk.Size,
+					Parent:   client.TrimSnapshotName(disk.Parent),
+					Children: client.TrimSnapshotName(disk.Children[0]),
+				}
+				i++
+			}
+		}
 	}
 	err = displayVolumeSnapshot(snapshotList)
 	if err != nil {
@@ -201,7 +228,6 @@ func ListSnapshot(volName string, namespace string) error {
 		return err
 	}
 
-	// fmt.Println(util.FormatList(out))
 	return nil
 }
 
@@ -221,9 +247,9 @@ func displayVolumeSnapshot(snapshotList map[int]*SnapshotInfo) error {
 		snapshotTemplate = `
 Snapshot Details: 
 ------------------
-{{ printf "NAME\t CREATED AT\t SIZE" }}
-{{ printf "-----\t -----------\t -----" }} {{range $key, $value := .}}
-{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ end }}
+{{ printf "NAME\t CREATED AT\t SIZE\t PARENT\t CHILDREN" }}
+{{ printf "-----\t -----------\t -----\t -------\t ---------" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ printf "%s\t" $value.Children }} {{ end }}
 `
 	)
 
