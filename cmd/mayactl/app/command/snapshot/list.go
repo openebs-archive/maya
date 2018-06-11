@@ -25,12 +25,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotListCommandHelpText = `
+This command displays available snapshots on a volume.
+
+Usage: mayactl snapshot list [options]
+
+$ mayactl snapshot list --volname <vol>
+`
+)
+
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
 func NewCmdSnapshotList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lists all the snapshots of a Volume",
-		//Long:  SnapshotCreateCommandHelpText,
+		Long:  snapshotListCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.ValidateList(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotList(cmd), util.Fatal)

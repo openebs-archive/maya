@@ -25,6 +25,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotCreateCommandHelpText = `
+This command creates a new snapshot.
+
+Usage: mayactl snapshot create [options]
+
+$ mayactl snapshot create --volname <vol> --snapname <snap>
+`
+)
+
 /*func init() {
 	host := os.Getenv("MAPI_ADDR")
 	port := os.Getenv("MAPI_PORT")
@@ -49,7 +59,7 @@ func NewCmdSnapshotCreate() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Snapshot",
-		//Long:  SnapshotCreateCommandHelpText,
+		Long:  snapshotCreateCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotCreate(cmd), util.Fatal)
