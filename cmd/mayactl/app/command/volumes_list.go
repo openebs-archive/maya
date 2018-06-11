@@ -27,10 +27,10 @@ import (
 
 var (
 	volumesListCommandHelpText = `
-	Usage: maya volume list [options]
+This command displays status of available Volumes.
+If no volume ID is given, a list of all known volumes will be displayed.
 
-	This command displays status of available Volumes.
-	If no volume ID is given, a list of all known volume will be dumped.
+Usage: mayactl volume list [options]
 	`
 )
 

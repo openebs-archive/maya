@@ -25,7 +25,7 @@ import (
 func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mayactl",
-		Short: "Maya means 'Magic'a tool for storage orchestration",
+		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 	}
 
