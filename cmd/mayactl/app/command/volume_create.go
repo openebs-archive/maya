@@ -28,15 +28,10 @@ import (
 
 var (
 	volumeCreateCommandHelpText = `
-	Usage: maya volume create -volname <vol> [-size <size>]
+This command creates a new Volume.
 
-	This command creates a new Volume.
-
-	Volume create options:
-	-size
-	Provisioning size of the volume(default is 5G)
-
-	`
+Usage: mayactl volume create --volname <vol> [-size <size>]
+`
 )
 
 // NewCmdVolumeCreate creates a new OpenEBS Volume
@@ -79,11 +74,9 @@ func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	}
 	resp := mapiserver.CreateVolume(c.volName, c.size)
 	if resp != nil {
-		return fmt.Errorf("Error: %v", resp)
+		return fmt.Errorf("Volume creation failed: %v", resp)
 	}
-
 	fmt.Printf("Volume Successfully Created:%v\n", c.volName)
-
 	return nil
 }
 

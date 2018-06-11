@@ -26,11 +26,10 @@ import (
 
 var (
 	volumeDeleteCommandHelpText = `
-	Usage: maya volume delete -volname <vol>
+This command initiates a deletion process for an OpenEBS Volume.
 
-	This command initiate a delete for OpenEBS Volume.
-
-	`
+Usage: mayactl volume delete --volname <vol>
+`
 )
 
 // NewCmdVolumeDelete creates a new OpenEBS Volume
@@ -57,7 +56,7 @@ func (c *CmdVolumeOptions) RunVolumeDelete(cmd *cobra.Command) error {
 
 	resp := mapiserver.DeleteVolume(c.volName, c.namespace)
 	if resp != nil {
-		return fmt.Errorf("Error: %v", resp)
+		return fmt.Errorf("Volume deletion failed: %v", resp)
 	}
 
 	fmt.Printf("Volume deletion initiated:%v\n", c.volName)

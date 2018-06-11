@@ -34,15 +34,10 @@ import (
 
 var (
 	volumeStatsCommandHelpText = `
-	Usage: maya volume stats <vol> [-size <size>]
+This command queries the statisics of a volume.
 
-	This command queries the stats of the volume.
-
-	Volume stats options:
-	-json
-	Displays the stats in json format.
-
-	`
+Usage: mayactl volume stats --volname <vol> [-size <size>]
+`
 )
 
 // NewCmdVolumeCreate creates a new OpenEBS Volume
@@ -51,7 +46,7 @@ func NewCmdVolumeStats() *cobra.Command {
 		Use:     "stats",
 		Short:   "Displays the runtime statisics of Volume",
 		Long:    volumeStatsCommandHelpText,
-		Example: ` maya volume stats --volname=vol -j=json`,
+		Example: ` mayactl volume stats --volname=vol -j=json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunVolumeStats(cmd), util.Fatal)
