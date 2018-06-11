@@ -131,7 +131,6 @@ func NewCStorVolumeController(
 				q.Operation = common.QOpDestroy
 			} else {
 				q.Operation = common.QOpModify
-				return // will be removed once modify is implemented
 			}
 			controller.enqueueCStorVolume(newCStorVolume, q)
 		},
