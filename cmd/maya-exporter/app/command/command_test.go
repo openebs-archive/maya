@@ -34,13 +34,12 @@ func TestRegisterJivaStatsExporter(t *testing.T) {
 			},
 			output: errors.New("Error in parsing the URI"),
 		},
-        	"EmptyURL": {
+		"EmptyURL": {
 			option: &VolumeExporterOptions{
 				ControllerAddress: "",
 			},
 			output: errors.New("Error in parsing the URI"),
 		},
-
 	}
 
 	for name, tt := range cases {

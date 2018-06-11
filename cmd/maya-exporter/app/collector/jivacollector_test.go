@@ -1,21 +1,28 @@
 package collector
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"regexp"
 	"testing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	utiltesting "k8s.io/client-go/util/testing"
+)
+
+var (
+	controllerResponse = `{"Name":"vol1","ReadIOPS":"0","ReplicaCounter":0,"RevisionCounter":0,"SCSIIOCount":{},"SectorSize":"4096","Size":"1073741824","TotalReadBlockCount":"0","TotalReadTime":"0","TotalWriteTime":"0","TotatWriteBlockCount":"0","UpTime":158.667823193,"UsedBlocks":"5","UsedLogicalBlocks":"0","WriteIOPS":"0","actions":{},"links":{"self":"http://10.42.0.1:9501/v1/stats"},"type":"stats"}`
 )
 
 // TestCollector tests collector.go
-func TestCollector(t *testing.T) {
+func TestJivaCollector(t *testing.T) {
 
 	for _, tt := range []struct {
 		input          string
@@ -119,7 +126,7 @@ func TestCollector(t *testing.T) {
 			control, err := url.Parse(controller.URL)
 			// col is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			col := NewExporter(control)
+			col := NewJivaStatsExporter(control)
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
@@ -154,5 +161,48 @@ func TestCollector(t *testing.T) {
 			}
 
 		}()
+	}
+}
+
+func TestJivaStatsCollector(t *testing.T) {
+	cases := map[string]struct {
+		exporter    *JivaStatsExporter
+		err         error
+		fakehandler utiltesting.FakeHandler
+		testServer  bool
+	}{
+		"[Success] If controller is Jiva and its running": {
+			exporter: &JivaStatsExporter{
+				VolumeControllerURL: "localhost:9500",
+				Metrics:             metrics,
+			},
+			testServer: true,
+			fakehandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(controllerResponse),
+				T:            t,
+			},
+
+			err: nil,
+		},
+		"[Failure] If controller is Jiva and it is not reachable": {
+			exporter: &JivaStatsExporter{
+				VolumeControllerURL: "localhost:9500",
+				Metrics:             metrics,
+			},
+			err: errors.New("error in collecting metrics"),
+		},
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			if tt.testServer {
+				server := httptest.NewServer(&tt.fakehandler)
+				tt.exporter.VolumeControllerURL = server.URL
+			}
+			got := tt.exporter.collector()
+			if !reflect.DeepEqual(got, tt.err) {
+				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
+			}
+		})
 	}
 }
