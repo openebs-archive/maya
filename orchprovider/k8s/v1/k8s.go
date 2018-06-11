@@ -800,6 +800,8 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		return nil, err
 	}
 
+	pvc := vol.Labels.K8sPersistentVolumeClaim
+
 	if clusterIP == "" {
 		return nil, fmt.Errorf("Volume cluster IP is required to create controller for volume 'name: %s'", vsm)
 	}
@@ -835,6 +837,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 			Name: vsm + string(v1.ControllerSuffix),
 			Labels: map[string]string{
 				string(v1.VSMSelectorKey):               vsm,
+				string(v1.PVCSelectorKey):               pvc,
 				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
 				string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
 			},
@@ -848,6 +851,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						string(v1.VSMSelectorKey):        vsm,
+						string(v1.PVCSelectorKey):        pvc,
 						string(v1.ControllerSelectorKey): string(v1.JivaControllerSelectorValue),
 					},
 				},
@@ -971,6 +975,8 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		return nil, err
 	}
 
+	pvc := vol.Labels.K8sPersistentVolumeClaim
+
 	// The position is always send as 1
 	// We might want to get the replica index & send it
 	// However, this does not matter if replicas are placed on different hosts !!
@@ -1006,6 +1012,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 			Name: vsm + string(v1.ReplicaSuffix),
 			Labels: map[string]string{
 				string(v1.VSMSelectorKey):               vsm,
+				string(v1.PVCSelectorKey):               pvc,
 				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
 				string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
 				// -- if manual replica addition
@@ -1023,6 +1030,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						string(v1.VSMSelectorKey):     vsm,
+						string(v1.PVCSelectorKey):     pvc,
 						string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
 					},
 				},
