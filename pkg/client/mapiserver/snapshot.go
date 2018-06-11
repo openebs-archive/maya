@@ -34,8 +34,8 @@ const (
 	http_timeout = 5 * time.Second
 )
 
-// CreateSnapshot creates a snapshot of volume by invoking the API call to m-apiserver
-func CreateSnapshot(volName string, snapName string) error {
+// CreateSnapshot creates a snapshot of volume by API request to m-apiserver
+func CreateSnapshot(volName string, snapName string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -59,6 +59,7 @@ func CreateSnapshot(volName string, snapName string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/yaml")
+	req.Header.Set("namespace", namespace)
 
 	c := &http.Client{
 		Timeout: http_timeout,
@@ -84,8 +85,8 @@ func CreateSnapshot(volName string, snapName string) error {
 	return nil
 }
 
-// RevertSnapshot revert a snapshot of volume by invoking the API call to m-apiserver
-func RevertSnapshot(volName string, snapName string) error {
+// RevertSnapshot reverts a snapshot of volume by API request to m-apiserver
+func RevertSnapshot(volName string, snapName string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -109,7 +110,7 @@ func RevertSnapshot(volName string, snapName string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/yaml")
-
+	req.Header.Set("namespace", namespace)
 	c := &http.Client{
 		Timeout: http_timeout,
 	}
@@ -131,8 +132,8 @@ func RevertSnapshot(volName string, snapName string) error {
 	return nil
 }
 
-// ListSnapshot list snapshots of volume by invoking the API call to m-apiserver
-func ListSnapshot(volName string) error {
+// ListSnapshot lists snapshots of volume by API request to m-apiserver
+func ListSnapshot(volName string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -145,6 +146,8 @@ func ListSnapshot(volName string) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("namespace", namespace)
+
 	c := &http.Client{
 		Timeout: timeoutVolumeDelete,
 	}

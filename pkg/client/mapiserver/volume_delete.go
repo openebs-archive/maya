@@ -13,7 +13,7 @@ const (
 )
 
 // DeleteVolume will request maya-apiserver to delete volume (vname)
-func DeleteVolume(vname string) error {
+func DeleteVolume(vname string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -25,6 +25,8 @@ func DeleteVolume(vname string) error {
 	if err != nil {
 		return err
 	}
+
+	req.Header.Set("namespace", namespace)
 	c := &http.Client{
 		Timeout: timeoutVolumeDelete,
 	}

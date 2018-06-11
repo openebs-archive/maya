@@ -9,7 +9,7 @@ import (
 func TestDisplayStats(t *testing.T) {
 	validStats := map[string]struct {
 		annotation   *Annotations
-		cmdOptions   *CmdVolumeStatsOptions
+		cmdOptions   *CmdVolumeOptions
 		status       []string
 		initialStats v1.VolumeMetrics
 		finalStats   v1.VolumeMetrics
@@ -17,7 +17,7 @@ func TestDisplayStats(t *testing.T) {
 		replicaCount int
 	}{
 		"StatsStdWhenReplicaIs0": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -73,7 +73,7 @@ func TestDisplayStats(t *testing.T) {
 		},
 
 		"StatsStdWhenReplicaIs1": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -128,7 +128,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs2": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -189,7 +189,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsJSONWhenReplicaIs3": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "json",
 				volName: "vol1",
 			},
@@ -250,7 +250,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -314,7 +314,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4AndOneErrorPullBack": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -378,7 +378,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4AndOneCrashLoopBackOff": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -442,7 +442,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"StatsStd": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -503,7 +503,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"ReadIOPSIsNotZero": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
@@ -565,7 +565,7 @@ func TestDisplayStats(t *testing.T) {
 			output: nil,
 		},
 		"WriteIOPSIsZero": {
-			cmdOptions: &CmdVolumeStatsOptions{
+			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
 			},
