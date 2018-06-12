@@ -18,6 +18,44 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// NewJivaStatsExporter returns Jiva volume controller URL along with Path.
+func NewJivaStatsExporter(volumeControllerURL *url.URL) *JivaStatsExporter {
+	volumeControllerURL.Path = v1.StatsAPI
+	return &JivaStatsExporter{
+		VolumeControllerURL: volumeControllerURL.String(),
+		Metrics:             *MetricsInitializer(),
+	}
+}
+
+// gaugeList returns the list of the registered gauge variables
+func (j *JivaStatsExporter) gaugesList() []prometheus.Gauge {
+	return []prometheus.Gauge{
+		j.Metrics.readIOPS,
+		j.Metrics.writeIOPS,
+		j.Metrics.readTimePS,
+		j.Metrics.writeTimePS,
+		j.Metrics.readBlockCountPS,
+		j.Metrics.writeBlockCountPS,
+		j.Metrics.actualUsed,
+		j.Metrics.logicalSize,
+		j.Metrics.sectorSize,
+		j.Metrics.readLatency,
+		j.Metrics.writeLatency,
+		j.Metrics.avgReadBlockCountPS,
+		j.Metrics.avgWriteBlockCountPS,
+		j.Metrics.sizeOfVolume,
+	}
+}
+
+// counterList returns the list of registered counter variables
+func (j *JivaStatsExporter) countersList() []prometheus.Collector {
+	return []prometheus.Collector{
+		j.Metrics.volumeUpTime,
+		j.Metrics.connectionErrorCounter,
+		j.Metrics.connectionRetryCounter,
+	}
+}
+
 // Describe sends the super-set of all possible descriptors of metrics
 // collected by this Collector to the provided channel and returns once
 // the last descriptor has been sent. The sent descriptors fulfill the
@@ -32,23 +70,25 @@ import (
 
 // Describe describes all the registered stats metrics from the OpenEBS volumes.
 func (j *JivaStatsExporter) Describe(ch chan<- *prometheus.Desc) {
-	j.Metrics.readIOPS.Describe(ch)
-	j.Metrics.readTimePS.Describe(ch)
-	j.Metrics.readBlockCountPS.Describe(ch)
-	j.Metrics.writeIOPS.Describe(ch)
-	j.Metrics.writeTimePS.Describe(ch)
-	j.Metrics.writeBlockCountPS.Describe(ch)
-	j.Metrics.actualUsed.Describe(ch)
-	j.Metrics.logicalSize.Describe(ch)
-	j.Metrics.sectorSize.Describe(ch)
-	j.Metrics.readLatency.Describe(ch)
-	j.Metrics.writeLatency.Describe(ch)
-	j.Metrics.avgReadBlockCountPS.Describe(ch)
-	j.Metrics.avgWriteBlockCountPS.Describe(ch)
-	j.Metrics.sizeOfVolume.Describe(ch)
-	j.Metrics.volumeUpTime.Describe(ch)
-	j.Metrics.connectionRetryCounter.Describe(ch)
-	j.Metrics.connectionErrorCounter.Describe(ch)
+	for _, gauge := range j.gaugesList() {
+		gauge.Describe(ch)
+	}
+
+	for _, counter := range j.countersList() {
+		counter.Describe(ch)
+	}
+}
+
+// collector selects the container attached storage for the collection of
+// metrics.Supported CAS are jiva and cstor.
+func (j *JivaStatsExporter) collector() error {
+	// collect the metrics from jiva controller and send it via channels
+	if err := j.collect(); err != nil {
+		j.Metrics.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
+		glog.Error("Error in collecting metrics, found error:", err)
+		return errors.New("error in collecting metrics")
+	}
+	return nil
 }
 
 // Collect is called by the Prometheus registry when collecting
@@ -65,45 +105,16 @@ func (j *JivaStatsExporter) Describe(ch chan<- *prometheus.Desc) {
 // Collect collects all the registered stats metrics from the Ope...nEBS volumes.
 // It tries to reconnect with the volume if there is any error via a goroutine.
 func (j *JivaStatsExporter) Collect(ch chan<- prometheus.Metric) {
-	j.collector()
-	// collect the metrics extracted by collect methods called above
-	j.Metrics.readIOPS.Collect(ch)
-	j.Metrics.readTimePS.Collect(ch)
-	j.Metrics.readBlockCountPS.Collect(ch)
-	j.Metrics.writeIOPS.Collect(ch)
-	j.Metrics.writeTimePS.Collect(ch)
-	j.Metrics.writeBlockCountPS.Collect(ch)
-	j.Metrics.actualUsed.Collect(ch)
-	j.Metrics.logicalSize.Collect(ch)
-	j.Metrics.sectorSize.Collect(ch)
-	j.Metrics.readLatency.Collect(ch)
-	j.Metrics.writeLatency.Collect(ch)
-	j.Metrics.avgReadBlockCountPS.Collect(ch)
-	j.Metrics.avgWriteBlockCountPS.Collect(ch)
-	j.Metrics.sizeOfVolume.Collect(ch)
-	j.Metrics.volumeUpTime.Collect(ch)
-	j.Metrics.connectionRetryCounter.Collect(ch)
-	j.Metrics.connectionErrorCounter.Collect(ch)
-}
-
-// collector selects the container attached storage for the collection of
-// metrics.Supported CAS are jiva and cstor.
-func (j *JivaStatsExporter) collector() error {
-	// collect the metrics from jiva controller and send it via channels
-	if err := j.collect(); err != nil {
-		j.Metrics.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
-		glog.Error("Error in collecting metrics, found error:", err)
-		return errors.New("error in collecting metrics")
+	// no need to catch the error as exporter should work even if
+	// there are failures in collecting the metrics due to connection
+	// issues or anything else.
+	_ = j.collector()
+	// collect the metrics extracted by collect method
+	for _, gauge := range j.gaugesList() {
+		gauge.Collect(ch)
 	}
-	return nil
-}
-
-// NewJivaStatsExporter returns Jiva volume controller URL along with Path.
-func NewJivaStatsExporter(volumeControllerURL *url.URL) *JivaStatsExporter {
-	volumeControllerURL.Path = v1.StatsAPI
-	return &JivaStatsExporter{
-		VolumeControllerURL: volumeControllerURL.String(),
-		Metrics:             metrics,
+	for _, counter := range j.countersList() {
+		counter.Collect(ch)
 	}
 }
 
@@ -131,8 +142,17 @@ func (j *JivaStatsExporter) getVolumeStats(obj interface{}) error {
 	return nil
 }
 
-// collect is used to set the values gathered from OpenEBS volume controller
-// to prometheus gauges.
+// collect is used to set the values gathered from OpenEBS volume
+// controller to prometheus gauges. In this method two RestAPI
+// calls made over a gap of 1 second.
+// For exp : suppose we got reads = 10 at 3:30:00 PM in the
+// first call and reads = 25 at 3:30:01 PM in the second call
+// then reads per second = (25 - 10) = 15 . i.e, 15 is set to
+// the read.
+// This call happens as per the prometheus'c configuration.So
+// if scrap interval in prometheus config is set to 5 seconds
+// then this method makes two calls over a gap of one second
+// to calculate the stats per second.
 func (j *JivaStatsExporter) collect() error {
 	var (
 		initialMetrics, finalMetrics v1.VolumeMetrics

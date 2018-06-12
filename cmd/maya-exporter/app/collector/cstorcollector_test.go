@@ -301,7 +301,7 @@ func TestCstorStatsCollector(t *testing.T) {
 			exporter: &CstorStatsExporter{
 				// Value of Conn will be overwritten at run time
 				Conn:    nil,
-				Metrics: metrics,
+				Metrics: *MetricsInitializer(),
 			},
 			fakeUnixServer: true,
 			err:            nil,
@@ -309,7 +309,7 @@ func TestCstorStatsCollector(t *testing.T) {
 		"[failure] If controller is cstor and its not running": {
 			exporter: &CstorStatsExporter{
 				Conn:    nil,
-				Metrics: metrics,
+				Metrics: *MetricsInitializer(),
 			},
 			err: errors.New("error in initiating connection with socket"),
 		},
