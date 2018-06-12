@@ -174,7 +174,7 @@ func TestJivaStatsCollector(t *testing.T) {
 		"[Success] If controller is Jiva and its running": {
 			exporter: &JivaStatsExporter{
 				VolumeControllerURL: "localhost:9500",
-				Metrics:             metrics,
+				Metrics:             *MetricsInitializer(),
 			},
 			testServer: true,
 			fakehandler: utiltesting.FakeHandler{
@@ -188,7 +188,7 @@ func TestJivaStatsCollector(t *testing.T) {
 		"[Failure] If controller is Jiva and it is not reachable": {
 			exporter: &JivaStatsExporter{
 				VolumeControllerURL: "localhost:9500",
-				Metrics:             metrics,
+				Metrics:             *MetricsInitializer(),
 			},
 			err: errors.New("error in collecting metrics"),
 		},

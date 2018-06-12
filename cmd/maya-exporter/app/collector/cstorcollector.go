@@ -32,7 +32,36 @@ type Response struct {
 func NewCstorStatsExporter(conn net.Conn) *CstorStatsExporter {
 	return &CstorStatsExporter{
 		Conn:    conn,
-		Metrics: metrics,
+		Metrics: *MetricsInitializer(),
+	}
+}
+
+// gaugeList returns the list of the registered gauge variables
+func (c *CstorStatsExporter) gaugesList() []prometheus.Gauge {
+	return []prometheus.Gauge{
+		c.Metrics.readIOPS,
+		c.Metrics.writeIOPS,
+		c.Metrics.readTimePS,
+		c.Metrics.writeTimePS,
+		c.Metrics.readBlockCountPS,
+		c.Metrics.writeBlockCountPS,
+		c.Metrics.actualUsed,
+		c.Metrics.logicalSize,
+		c.Metrics.sectorSize,
+		c.Metrics.readLatency,
+		c.Metrics.writeLatency,
+		c.Metrics.avgReadBlockCountPS,
+		c.Metrics.avgWriteBlockCountPS,
+		c.Metrics.sizeOfVolume,
+	}
+}
+
+// counterList returns the list of registered counter variables
+func (c *CstorStatsExporter) countersList() []prometheus.Collector {
+	return []prometheus.Collector{
+		c.Metrics.volumeUpTime,
+		c.Metrics.connectionErrorCounter,
+		c.Metrics.connectionRetryCounter,
 	}
 }
 
@@ -50,23 +79,13 @@ func NewCstorStatsExporter(conn net.Conn) *CstorStatsExporter {
 
 // Describe describes all the registered stats metrics from the OpenEBS volumes.
 func (c *CstorStatsExporter) Describe(ch chan<- *prometheus.Desc) {
-	c.Metrics.readIOPS.Describe(ch)
-	c.Metrics.readTimePS.Describe(ch)
-	c.Metrics.readBlockCountPS.Describe(ch)
-	c.Metrics.writeIOPS.Describe(ch)
-	c.Metrics.writeTimePS.Describe(ch)
-	c.Metrics.writeBlockCountPS.Describe(ch)
-	c.Metrics.actualUsed.Describe(ch)
-	c.Metrics.logicalSize.Describe(ch)
-	c.Metrics.sectorSize.Describe(ch)
-	c.Metrics.readLatency.Describe(ch)
-	c.Metrics.writeLatency.Describe(ch)
-	c.Metrics.avgReadBlockCountPS.Describe(ch)
-	c.Metrics.avgWriteBlockCountPS.Describe(ch)
-	c.Metrics.sizeOfVolume.Describe(ch)
-	c.Metrics.volumeUpTime.Describe(ch)
-	c.Metrics.connectionRetryCounter.Describe(ch)
-	c.Metrics.connectionErrorCounter.Describe(ch)
+	for _, gauge := range c.gaugesList() {
+		gauge.Describe(ch)
+	}
+
+	for _, counter := range c.countersList() {
+		counter.Describe(ch)
+	}
 }
 
 // Collect is called by the Prometheus registry when collecting
@@ -83,28 +102,20 @@ func (c *CstorStatsExporter) Describe(ch chan<- *prometheus.Desc) {
 // Collect collects all the registered stats metrics from the OpenEBS volumes.
 // It tries to reconnect with the volume if there is any error via a goroutine.
 func (c *CstorStatsExporter) Collect(ch chan<- prometheus.Metric) {
-	c.collector()
-	// collect the metrics extracted by collect methods called above
-	c.Metrics.readIOPS.Collect(ch)
-	c.Metrics.readTimePS.Collect(ch)
-	c.Metrics.readBlockCountPS.Collect(ch)
-	c.Metrics.writeIOPS.Collect(ch)
-	c.Metrics.writeTimePS.Collect(ch)
-	c.Metrics.writeBlockCountPS.Collect(ch)
-	c.Metrics.actualUsed.Collect(ch)
-	c.Metrics.logicalSize.Collect(ch)
-	c.Metrics.sectorSize.Collect(ch)
-	c.Metrics.readLatency.Collect(ch)
-	c.Metrics.writeLatency.Collect(ch)
-	c.Metrics.avgReadBlockCountPS.Collect(ch)
-	c.Metrics.avgWriteBlockCountPS.Collect(ch)
-	c.Metrics.sizeOfVolume.Collect(ch)
-	c.Metrics.volumeUpTime.Collect(ch)
-	c.Metrics.connectionRetryCounter.Collect(ch)
-	c.Metrics.connectionErrorCounter.Collect(ch)
+	// no need to catch the error as exporter should work even if
+	// there are failures in collecting the metrics due to connection
+	// issues or anything else.
+	_ = c.collector()
+	// collect the metrics extracted by collect method
+	for _, gauge := range c.gaugesList() {
+		gauge.Collect(ch)
+	}
+	for _, counter := range c.countersList() {
+		counter.Collect(ch)
+	}
 }
 
-// CASSelector selects the container attached storage for the collection of
+// collector selects the container attached storage for the collection of
 // metrics.Supported CAS are jiva and cstor.
 func (c *CstorStatsExporter) collector() error {
 
@@ -198,6 +209,14 @@ func unmarshaller(result string) Response {
 // IOSTATS command over wire and then reads the response.
 // There are two consecutive calls for read and write over
 // a gap of 1 second to get the I/O stats per second.
+// For exp : suppose we got reads = 10 at 3:30:00 PM in the
+// first call and reads = 25 at 3:30:01 PM in the second call
+// then reads per second = (25 - 10) = 15 .i.e, 15 is set to
+// the read.
+// This call happens as per the prometheus'c configuration.So
+// if scrap interval in prometheus config is set to 5 seconds
+// then this method makes two calls over a gap of one second
+// to calculate the stats per second.
 func (c *CstorStatsExporter) collect() error {
 	var (
 		initialResponse, finalResponse string

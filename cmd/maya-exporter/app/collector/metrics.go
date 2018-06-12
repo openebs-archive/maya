@@ -21,11 +21,25 @@ const (
 	Command = "IOSTATS"
 )
 
-// Exporter interface defines the methods that to be implemented by
-// the CstorStatsExporter and JivaStatsExporter
+// Exporter interface defines the interfaces that has methods to be
+// implemented by the CstorStatsExporter and JivaStatsExporter.
 type Exporter interface {
-	collector()
+	Collect()
+	Parse()
+}
+
+// Parse interface defines the method that to be implemented by the
+// CstorStatsExporter and JivaStatsExporter. parse() is used to parse
+// the response into the Metrics struct.
+type Parse interface {
 	parser()
+}
+
+// Collect interface defines the the method that to be implemented by
+// the CstorStatsExporter and JivaStatsExporter. collector() is used
+// to collect the metrics from the Jiva and Cstor.
+type Collect interface {
+	collector()
 }
 
 // Collector is the interface implemented by struct that can be used by
@@ -110,11 +124,11 @@ type MetricsDiff struct {
 	uptime               float64
 }
 
-var (
-	// Declare the Metrics instance to reuse it in registration
-	// of exporter while instantiating JivaStatsExporter and
-	// CstorStatsExporter.
-	metrics = Metrics{
+// MetricsInitializer returns the Metrics instance used for registration
+// of exporter while instantiating JivaStatsExporter and
+// CstorStatsExporter.
+func MetricsInitializer() *Metrics {
+	return &Metrics{
 		actualUsed: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: "OpenEBS",
 			Name:      "actual_used",
@@ -221,4 +235,4 @@ var (
 			[]string{"err"},
 		),
 	}
-)
+}
