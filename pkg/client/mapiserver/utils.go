@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// MAPIAddr stores address of mapi server if passed through flag
+var MAPIAddr string
+
+// Initialize func sets the env variable with local ip address
 func Initialize() {
 	mapiaddr := os.Getenv("MAPI_ADDR")
 	if mapiaddr == "" {
@@ -15,10 +19,15 @@ func Initialize() {
 	}
 }
 
+// GetURL returns the mapi server address
 func GetURL() string {
+	if MAPIAddr != "" {
+		return "http://" + MAPIAddr + ":5656"
+	}
 	return os.Getenv("MAPI_ADDR")
 }
 
+// GetConnectionStatus return the status of the connecion
 func GetConnectionStatus() string {
 	_, err := GetStatus()
 	if err != nil {

@@ -87,6 +87,7 @@ func IsVolumeExist(volname string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, items := range vols.Items {
 		if volname == items.ObjectMeta.Name {
 			return fmt.Errorf("Error: Volume %v already exist ", volname)

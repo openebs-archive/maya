@@ -47,16 +47,6 @@ func TestIsVolumeExist(t *testing.T) {
 			addr:           "MAPI_ADDR",
 			expectedOutput: fmt.Errorf("Status Error: Not Found"),
 		},
-		"MAPI_ADDR not set": {
-			volname: "test4",
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(""),
-				T:            t,
-			},
-			addr:           "MAPI",
-			expectedOutput: fmt.Errorf("MAPI_ADDR environment variable not set"),
-		},
 		"Creating volume which already exist": {
 			volname: "test5",
 			fakeHandler: utiltesting.FakeHandler{
@@ -76,10 +66,10 @@ func TestIsVolumeExist(t *testing.T) {
 			defer server.Close()
 			os.Setenv(c.addr, server.URL)
 			err := IsVolumeExist(c.volname)
-			if err != nil && err.Error() != c.expectedOutput.Error() {
+			if (err != nil && c.expectedOutput != nil) && err.Error() != c.expectedOutput.Error() {
 				t.Errorf("\nExpected output was : %v \nbut got : %v", c.expectedOutput, err)
-			} else if err == nil && c.expectedOutput != nil {
-				t.Errorf("\nExpected output was : %v \nbut got : %v", c.expectedOutput, nil)
+			} else if (err != nil && c.expectedOutput == nil) || (err == nil && c.expectedOutput != nil) {
+				t.Errorf("\nExpected output was : %v \nbut got : %v", c.expectedOutput, err)
 			}
 		})
 	}

@@ -30,7 +30,7 @@ func TestRunVolumeInfo(t *testing.T) {
 		},
 	}
 
-	validCmd := map[string]struct {
+	validCmd := map[string]*struct {
 		cmdOptions  *CmdVolumeOptions
 		cmd         *cobra.Command
 		output      error

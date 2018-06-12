@@ -16,10 +16,10 @@ const (
 // ListVolumes and return them as obj
 func ListVolumes(obj interface{}) error {
 
-	_, err := GetStatus()
-	if err != nil {
-		return err
-	}
+	// _, err := GetStatus()
+	// if err != nil {
+	// 	return err
+	// }
 
 	url := GetURL() + "/latest/volumes/"
 	client := &http.Client{

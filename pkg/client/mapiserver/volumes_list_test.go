@@ -21,7 +21,7 @@ func TestListVolumes(t *testing.T) {
 	var (
 		vsm v1.VolumeList
 	)
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		fakeHandler utiltesting.FakeHandler
 		err         error
 		addr        string

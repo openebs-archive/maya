@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/openebs/maya/pkg/client/mapiserver"
 
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 )
 
+// Client interface contans GetVolAnnotation
 type Client interface {
 	GetVolAnnotations(string) (*Annotations, error)
 }
@@ -32,16 +34,10 @@ const (
 	timeout = 5 * time.Second
 )
 
-// getVolDetails gets response in json format of a volume from m-apiserver
+// GetVolDetails gets response in json format of a volume from m-apiserver
 func GetVolDetails(volName string, namespace string, obj interface{}) error {
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := util.MAPIADDRNotSet
-		fmt.Printf("error getting env variable: %v", err)
-		return err
-	}
 
-	url := addr + "/latest/volumes/info/" + volName
+	url := mapiserver.GetURL() + "/latest/volumes/info/" + volName
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -90,6 +86,7 @@ func (annotations *Annotations) GetVolAnnotations(volName string, namespace stri
 		}
 		return err
 	}
+
 	for key, value := range volume.ObjectMeta.Annotations {
 		switch key {
 		case "vsm.openebs.io/volume-size":

@@ -9,13 +9,14 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
-// Get the status of maya-apiserver via http
+// GetStatus returns the status of maya-apiserver via http
 func GetStatus() (string, error) {
 
 	var url bytes.Buffer
 	addr := GetURL()
+
 	if addr == "" {
-		return "", util.MAPIADDRNotSet
+		return "", util.ServerUnavailable
 	}
 	url.WriteString(addr + "/latest/meta-data/instance-id")
 	resp, err := http.Get(url.String())
@@ -30,6 +31,8 @@ func GetStatus() (string, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	return string(body[:]), err
+	if string(body) != `"any-compute"` {
+		err = util.ServerUnavailable
+	}
+	return string(body), err
 }
