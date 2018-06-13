@@ -424,6 +424,11 @@ func (p *VolumeMarkerBuilder) AddMonitoringPolicy(value string) {
 	_ = p.Add(string(v1.MonitorVK), value)
 }
 
+//
+func (p *VolumeMarkerBuilder) AddStorageClass(value string) {
+	_ = p.Add(string(v1.VolumeStorageClassVK), value)
+}
+
 // Build returns the volume markers as a map of strings
 func (p *VolumeMarkerBuilder) Build() map[string]string {
 	markers := map[string]string{}
