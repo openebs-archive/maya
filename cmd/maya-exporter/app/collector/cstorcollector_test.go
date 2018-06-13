@@ -18,6 +18,8 @@ import (
 )
 
 var (
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }"
+	NilCstorResponse             = "OK IOSTATS\r\n"
 	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
 	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }"
 	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n`
@@ -91,56 +93,6 @@ func sendFakeResponse(t *testing.T, c net.Conn) {
 	}
 }
 
-func TestReadHeader(t *testing.T) {
-	cases := map[string]struct {
-		exporter       *CstorStatsExporter
-		err            error
-		fakeUnixServer bool
-		header         string
-	}{
-		// Only success case of this can be performed, because you
-		// can't control the server's status at the run time in unit test.
-		// To test the failure case, we need to down the server at
-		// the run time and determining that situation (time) is not
-		// possible in unit test.
-		"[Success] Read header if server is available": {
-			exporter: &CstorStatsExporter{
-				// conn value will be set at the run time after
-				// making the connection.
-				Conn: nil,
-			},
-			err:            nil,
-			fakeUnixServer: true,
-			header:         "iSCSI Target Controller version istgt:0.5.20121028:15:21:49:Jun  8 2018 on  from \r\n",
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			if tt.fakeUnixServer {
-				var wg sync.WaitGroup
-				wg.Add(1)
-				runFakeUnixServer(t, &wg)
-				wg.Wait()
-				conn, err := net.Dial("unix", "/tmp/go.sock")
-				if err != nil {
-					t.Fatal("err in dial :", err)
-				}
-				// overwrite the value of conn from nil to
-				// expected value.
-				tt.exporter.Conn = conn
-				CstorResponse = tt.header
-				tt.exporter.writer()
-			}
-			got := ReadHeader(tt.exporter.Conn)
-			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.exporter.Conn, tt.err, got)
-			}
-		})
-		// unlink the socketpath
-		Unlink(t)
-	}
-}
-
 // unlink the socket and close the connection
 func Unlink(t *testing.T) {
 	err := syscall.Unlink("/tmp/go.sock")
@@ -177,6 +129,7 @@ func TestCstorCollector(t *testing.T) {
 		"size_of_volume": 10,
 	}
 }`,
+			response: CstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
 				regexp.MustCompile(`OpenEBS_read_iops 0`),
@@ -190,6 +143,42 @@ func TestCstorCollector(t *testing.T) {
 				regexp.MustCompile(`OpenEBS_avg_read_block_count_per_second 0`),
 				regexp.MustCompile(`OpenEBS_avg_write_block_count_per_second 0`),
 				regexp.MustCompile(`OpenEBS_size_of_volume 10`),
+			},
+			// unmatch is used for negative test, but this use case is for
+			// positive test, so passing default value.
+			unmatch: []*regexp.Regexp{},
+		},
+		{
+			input: `
+			{
+				"stats": {
+					"read_iops": 0,
+					"read_time_per_second": 0,
+					"read_block_count_per_second": ,
+					"write_iops": 0,
+					"write_time_per_second": 0,
+					"write_block_count_per_second": 0,
+					"read_latency": 0,
+					"write_latency": 0,
+					"avg_read_block_count_per_second": 0,
+					"avg_write_block_count_per_second": ,
+					"size_of_volume": 0,
+				}
+			}`,
+			response: NilCstorResponse,
+			// match matches the response with the expected input.
+			match: []*regexp.Regexp{
+				regexp.MustCompile(`OpenEBS_read_iops 0`),
+				regexp.MustCompile(`OpenEBS_read_time_per_second 0`),
+				regexp.MustCompile(`OpenEBS_read_block_count_per_second 0`),
+				regexp.MustCompile(`OpenEBS_write_iops 0`),
+				regexp.MustCompile(`OpenEBS_write_time_per_second 0`),
+				regexp.MustCompile(`OpenEBS_write_block_count_per_second 0`),
+				regexp.MustCompile(`OpenEBS_read_latency 0`),
+				regexp.MustCompile(`OpenEBS_write_latency 0`),
+				regexp.MustCompile(`OpenEBS_avg_read_block_count_per_second 0`),
+				regexp.MustCompile(`OpenEBS_avg_write_block_count_per_second 0`),
+				regexp.MustCompile(`OpenEBS_size_of_volume 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -217,7 +206,8 @@ func TestCstorCollector(t *testing.T) {
 		"size_of_volume": 0,
 	}
 }`,
-			match: []*regexp.Regexp{},
+			response: CstorResponse,
+			match:    []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
 				regexp.MustCompile(`OpenEBS_actual_used`),
@@ -239,8 +229,7 @@ func TestCstorCollector(t *testing.T) {
 	} {
 		func() {
 			var wg sync.WaitGroup
-			cstorResponse := "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
-			CstorResponse = cstorResponse
+			CstorResponse = tt.response
 			wg.Add(1)
 			runFakeUnixServer(t, &wg)
 			wg.Wait()
@@ -334,6 +323,81 @@ func TestCstorStatsCollector(t *testing.T) {
 				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
 			}
 		})
+		Unlink(t)
+	}
+}
+
+func TestSplitter(t *testing.T) {
+	cases := map[string]struct {
+		response         string
+		splittedResponse string
+	}{
+		"[Success] If response is as expected": {
+			response:         CstorResponse,
+			splittedResponse: SplittedResponse,
+		},
+		"[Failure] If response is not as expected, splitter should return nil string": {
+			response:         NilCstorResponse,
+			splittedResponse: "",
+		},
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			if got := splitter(tt.response); !reflect.DeepEqual(got, tt.splittedResponse) {
+				t.Fatalf("splitter(%v) => expected %v, got %v", tt.response, tt.splittedResponse, got)
+			}
+		})
+	}
+
+}
+
+func TestReadHeader(t *testing.T) {
+	Unlink(t)
+	cases := map[string]struct {
+		exporter       *CstorStatsExporter
+		err            error
+		fakeUnixServer bool
+		header         string
+	}{
+		// Only success case of this can be performed, because you
+		// can't control the server's status at the run time in unit test.
+		// To test the failure case, we need to down the server at
+		// the run time and determining that situation (time) is not
+		// possible in unit test.
+		"[Success] Read header if server is available": {
+			exporter: &CstorStatsExporter{
+				// conn value will be set at the run time after
+				// making the connection.
+				Conn: nil,
+			},
+			err:            nil,
+			fakeUnixServer: true,
+			header:         "iSCSI Target Controller version istgt:0.5.20121028:15:21:49:Jun  8 2018 on  from \r\n",
+		},
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			if tt.fakeUnixServer {
+				var wg sync.WaitGroup
+				wg.Add(1)
+				runFakeUnixServer(t, &wg)
+				wg.Wait()
+				conn, err := net.Dial("unix", "/tmp/go.sock")
+				if err != nil {
+					t.Fatal("err in dial :", err)
+				}
+				// overwrite the value of conn from nil to
+				// expected value.
+				tt.exporter.Conn = conn
+				CstorResponse = tt.header
+				tt.exporter.writer()
+			}
+			got := ReadHeader(tt.exporter.Conn)
+			if !reflect.DeepEqual(got, tt.err) {
+				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.exporter.Conn, tt.err, got)
+			}
+		})
+		// unlink the socketpath
 		Unlink(t)
 	}
 }

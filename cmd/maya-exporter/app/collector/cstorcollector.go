@@ -191,6 +191,9 @@ func splitter(resp string) string {
 	var result []string
 	result = strings.Split(resp, EOF)
 	result = v1.Remove(result, Footer)
+	if len(result[0]) == 0 {
+		return ""
+	}
 	res := strings.TrimPrefix(result[0], Command+"  ")
 	return res
 }
@@ -247,6 +250,10 @@ func (c *CstorStatsExporter) collect() error {
 	// the string and remove the command and footer.
 	initialResponse = splitter(initialResponse)
 	finalResponse = splitter(finalResponse)
+	if len(initialResponse) == 0 || len(finalResponse) == 0 {
+		glog.Error("Got empty response from cstor")
+		return errors.New("Got empty response from cstor")
+	}
 
 	// unmarshal the json response into Metrics instances.
 	initialMetrics = unmarshaller(initialResponse)
