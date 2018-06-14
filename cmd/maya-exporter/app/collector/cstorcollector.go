@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -104,7 +103,7 @@ func (c *CstorStatsExporter) Describe(ch chan<- *prometheus.Desc) {
 func (c *CstorStatsExporter) Collect(ch chan<- prometheus.Metric) {
 	// no need to catch the error as exporter should work even if
 	// there are failures in collecting the metrics due to connection
-	// issues or anything else.
+	// issues or anything else. This also makes collector unit testable.
 	_ = c.collector()
 	// collect the metrics extracted by collect method
 	for _, gauge := range c.gaugesList() {
@@ -123,21 +122,24 @@ func (c *CstorStatsExporter) collector() error {
 		// initiate the connection again if connection with the istgt closed
 		// due to timeout or some other errors from istgt side.
 		c.Metrics.connectionRetryCounter.WithLabelValues("Connection closed from cstor, retry").Inc()
-		if c.Conn = InitiateConnection(); c.Conn == nil {
+		c.InitiateConnection()
+		if c.Conn == nil {
 			glog.Error("Error in initiating the connection")
 			return errors.New("error in initiating connection with socket")
 		}
-	} else {
-		// collect the metrics from cstor if cstor is reachable, else set nil to
-		// the value of net.Conn in case of error so that new connection be created
-		// after the new request from prometheus comes.
-		if err := c.collect(); err != nil {
-			c.Metrics.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
-			glog.Error("Error in connection, closing the connection")
-			c.Conn = nil
-			return err
-		}
+
 	}
+	// collect the metrics from cstor if cstor is reachable, else set nil to
+	// the value of net.Conn in case of error so that new connection be created
+	// after the new request from prometheus comes.
+	if err := c.collect(); err != nil {
+		c.Metrics.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
+		glog.Error("Error in connection, closing the connection")
+		c.Conn.Close()
+		c.Conn = nil
+		return err
+	}
+
 	return nil
 }
 
@@ -198,8 +200,8 @@ func splitter(resp string) string {
 	return res
 }
 
-// unmarshaller unmarshal the JSON into Response instances.
-func unmarshaller(result string) Response {
+// newResponse unmarshal the JSON into Response instances.
+func newResponse(result string) Response {
 	metrics := Response{}
 	if err := json.Unmarshal([]byte(result), &metrics); err != nil {
 		glog.Error("Error in unmarshalling, found error: ", err)
@@ -256,8 +258,8 @@ func (c *CstorStatsExporter) collect() error {
 	}
 
 	// unmarshal the json response into Metrics instances.
-	initialMetrics = unmarshaller(initialResponse)
-	finalMetrics = unmarshaller(finalResponse)
+	initialMetrics = newResponse(initialResponse)
+	finalMetrics = newResponse(finalResponse)
 
 	// since json can only parse the data upto 53 bit precision, we need
 	// to convert uint64 into string and then send in json.
@@ -296,20 +298,21 @@ func (c *CstorStatsExporter) parser(m1, m2 Response) MetricsDiff {
 // InitiateConnection tries to initiates the connection with the cstor
 // over unix domain socket. This function can not be unit tested (only
 // negative cases are possible).
-func InitiateConnection() net.Conn {
+func (c *CstorStatsExporter) InitiateConnection() {
 	conn, err := net.Dial("unix", SocketPath)
 	if err != nil {
 		glog.Errorln("Dial error :", err)
 	}
 	if conn != nil {
+		c.Conn = conn
 		glog.Info("Connection established")
-		ReadHeader(conn)
+		c.ReadHeader()
 	}
-	return conn
+	return
 }
 
 // ReadHeader only reads the header of the response from cstor
-func ReadHeader(r io.Reader) error {
+func (c *CstorStatsExporter) ReadHeader() error {
 	buf := make([]byte, 1024)
 	var (
 		err    error
@@ -319,7 +322,7 @@ func ReadHeader(r io.Reader) error {
 	)
 	// collect all the chunks ending with EOF ("\r\n").
 	for {
-		n, err = r.Read(buf[:])
+		n, err = c.Conn.Read(buf[:])
 		if err != nil {
 			glog.Error("Error in reading response, found error : ", err)
 			return err

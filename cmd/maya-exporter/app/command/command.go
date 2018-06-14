@@ -4,7 +4,6 @@ import (
 	"errors"
 	goflag "flag"
 	"log"
-	"net"
 	"net/url"
 
 	"github.com/golang/glog"
@@ -116,8 +115,9 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	return nil
 }
 
-// RegisterJivaStatsExporter parses the jiva controller URL and initialises an instance of
-// VolumeExporter.
+// RegisterJivaStatsExporter parses the jiva controller URL and
+// initialises an instance of JivaStatsExporter.This returns err
+// if the URL is not correct.
 func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 	controllerURL, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
@@ -130,13 +130,15 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 }
 
 // RegisterCstorStatsExporter initiates the connection with the cstor and register
-// the exporter with Prometheus for collecting the metrics.If the connection creation
+// the exporter with Prometheus for collecting the metrics.This doesn't returns
+// error because that case is handled in InitiateConnection().
 func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
-	var conn net.Conn
-	if conn = collector.InitiateConnection(); conn == nil {
-		glog.Error("Connection is not established with the target.")
+	var c collector.CstorStatsExporter
+	c.InitiateConnection()
+	if c.Conn == nil {
+		glog.Error("Connection is not established with the cstor.")
 	}
-	exporter := collector.NewCstorStatsExporter(conn)
+	exporter := collector.NewCstorStatsExporter(c.Conn)
 	prometheus.MustRegister(exporter)
 	glog.Info("Registered the exporter")
 	return
