@@ -176,23 +176,29 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   BlockLength 512
   QueueDepth 32
   Luworkers 1
-  UnitInquiry "OpenEBS" "iscsi" "0" "4059aab98f093c5d95207f7af09d1413"
-  PhysRecordLength 4096
 `)
 	text = append(text, text3...)
+
+	unitinquiry := []byte("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + cStorVolume.Spec.VolumeID + "\"")
+	text = append(text, unitinquiry...)
+
+	text4 := []byte(`
+  PhysRecordLength 4096
+`)
+	text = append(text, text4...)
 
 	lun0storage := []byte("  LUN0 Storage /tmp/cstor/" +
 		cStorVolume.Spec.VolumeName + " " + cStorVolume.Spec.Capacity + " 32k")
 	text = append(text, lun0storage...)
 
-	text4 := []byte(`
+	text5 := []byte(`
   LUN0 Option Unmap Disable
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable
   LUN0 Option XCOPY Disable
 `)
 
-	text = append(text, text4...)
+	text = append(text, text5...)
 
 	return text
 }
