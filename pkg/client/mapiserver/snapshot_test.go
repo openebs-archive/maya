@@ -14,13 +14,15 @@ import (
 )
 
 var (
-	snapshotResponse     = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
-	volumeNameIsMissing  = errors.New("Volume name is missing")
-	badReqErr            = errors.New(snapshotResponse)
-	volNotFound          = errors.New("Volume not found")
-	SnapshotListResponse = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap3.img": {"name": "volume-snap-snap3.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
-	ZeroSnapshotResponse = `{"volume-head-001.img": {"name": "volume-head-001.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
-	jsonError            = errors.New("unexpected end of JSON input")
+	snapshotResponse        = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
+	volumeNameIsMissing     = errors.New("Volume name is missing")
+	badReqErr               = errors.New(snapshotResponse)
+	volNotFound             = errors.New("Volume not found")
+	SnapshotListResponse    = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap3.img": {"name": "volume-snap-snap3.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-head-01.img": {"name": "volume-head-01.img", "parent": "", "children":[ ], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}}`
+	ZeroSnapshotResponse    = `{"volume-head-001.img": {"name": "volume-head-001.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
+	WrongDateFormatResponse = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-head-01.img": {"name": "volume-head-01.img", "parent": "", "children":[ ], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}}`
+	jsonError               = errors.New("unexpected end of JSON input")
+	errdateParse            = errors.New("parsing time \"2018-06-10T19:33:\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"\" as \"05\"")
 )
 
 func TestCreateSnapshot(t *testing.T) {
@@ -334,6 +336,16 @@ func TestListSnapshot(t *testing.T) {
 				T:            t,
 			},
 			err:  nil,
+			addr: "MAPI_ADDR",
+		},
+		"ParsingErrorWrongDateFormat": {
+			volumeName: "dateFormat",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(WrongDateFormatResponse),
+				T:            t,
+			},
+			err:  fmt.Errorf("Error changing date format to UnixDate, found error - %v", errdateParse),
 			addr: "MAPI_ADDR",
 		},
 	}

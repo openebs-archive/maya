@@ -186,3 +186,16 @@ func TrimSnapshotName(diskName string) string {
 
 	return "NA"
 }
+
+// TrimSnapshotNamesOfSlice trims the each snapshot name in diskNames Slice
+func TrimSnapshotNamesOfSlice(diskNames []string) []string {
+	if len(diskNames) == 0 {
+		return []string{"NA"}
+	}
+
+	snapChildren := make([]string, len(diskNames))
+	for index, diskName := range diskNames {
+		snapChildren[index] = TrimSnapshotName(diskName)
+	}
+	return snapChildren
+}

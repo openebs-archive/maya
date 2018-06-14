@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"text/tabwriter"
 	"time"
 
@@ -37,11 +38,13 @@ const (
 
 // SnapshotInfo stores the details of snapshot
 type SnapshotInfo struct {
-	Name     string
-	Created  string
-	Size     string
-	Parent   string
-	Children string
+	Name    string
+	Created string
+	Size    string
+	// Parent keeps most recently saved version of current state of volume
+	Parent string
+	// Child keeps latest saved version of volume
+	Children []string
 }
 
 // CreateSnapshot creates a snapshot of volume by API request to m-apiserver
@@ -185,43 +188,29 @@ func ListSnapshot(volName string, namespace string) error {
 		return nil
 	}
 
-	snapshotList := make(map[int]*SnapshotInfo)
-	var i int
+	snapshotList := make([]SnapshotInfo, len(snapdisk)-1)
+	i := 0
 
 	for _, disk := range snapdisk {
 		if !client.IsHeadDisk(disk.Name) {
-			if len(disk.Children) > 1 {
-				for _, value := range disk.Children {
-					snapshotList[i] = &SnapshotInfo{
-						Name:     client.TrimSnapshotName(disk.Name),
-						Created:  disk.Created,
-						Size:     disk.Size,
-						Parent:   client.TrimSnapshotName(disk.Parent),
-						Children: client.TrimSnapshotName(value),
-					}
-					i++
-				}
-			} else if len(disk.Children) == 0 {
-				snapshotList[i] = &SnapshotInfo{
-					Name:     client.TrimSnapshotName(disk.Name),
-					Created:  disk.Created,
-					Size:     disk.Size,
-					Parent:   client.TrimSnapshotName(disk.Parent),
-					Children: "NA",
-				}
-				i++
-			} else {
-				snapshotList[i] = &SnapshotInfo{
-					Name:     client.TrimSnapshotName(disk.Name),
-					Created:  disk.Created,
-					Size:     disk.Size,
-					Parent:   client.TrimSnapshotName(disk.Parent),
-					Children: client.TrimSnapshotName(disk.Children[0]),
-				}
-				i++
+			size, _ := strconv.ParseFloat(disk.Size, 64)
+			size = size / v1.BytesToMB
+			snapshotList[i] = SnapshotInfo{
+				Name:     client.TrimSnapshotName(disk.Name),
+				Created:  disk.Created,
+				Size:     fmt.Sprintf("%.4f", size),
+				Parent:   client.TrimSnapshotName(disk.Parent),
+				Children: client.TrimSnapshotNamesOfSlice(disk.Children),
 			}
+			i++
 		}
 	}
+	SortSnapshotDisksByDateTime(snapshotList)
+	err = ChangeDateFormatToUnixDate(snapshotList)
+	if err != nil {
+		return fmt.Errorf("Error changing date format to UnixDate, found error - %v", err)
+	}
+
 	err = displayVolumeSnapshot(snapshotList)
 	if err != nil {
 		fmt.Println("Error displaying snapshot list, found error - ", err)
@@ -242,14 +231,14 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 	return s, err
 }
 
-func displayVolumeSnapshot(snapshotList map[int]*SnapshotInfo) error {
+func displayVolumeSnapshot(snapshotList []SnapshotInfo) error {
 	const (
 		snapshotTemplate = `
 Snapshot Details: 
 ------------------
-{{ printf "NAME\t CREATED AT\t SIZE\t PARENT\t CHILDREN" }}
-{{ printf "-----\t -----------\t -----\t -------\t ---------" }} {{range $key, $value := .}}
-{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ printf "%s\t" $value.Children }} {{ end }}
+{{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
+{{ printf "-----\t -----------\t ------------\t -------\t ---------" }} {{ range $key, $value := . }}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ range $value.Children -}} {{printf "%s\n\t \t \t \t" . }} {{ end }} {{ end }}
 `
 	)
 
