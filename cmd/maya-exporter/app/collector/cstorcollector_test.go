@@ -25,7 +25,7 @@ var (
 	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n`
 )
 
-func TestUnmarshaller(t *testing.T) {
+func TestNewResponse(t *testing.T) {
 	cases := map[string]struct {
 		response string
 		output   Response
@@ -48,7 +48,7 @@ func TestUnmarshaller(t *testing.T) {
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := unmarshaller(tt.response)
+			got := newResponse(tt.response)
 			if !reflect.DeepEqual(got, tt.output) {
 				t.Fatalf("unmarshal(%v) : expected %v, got %v", tt.response, tt.output, got)
 			}
@@ -392,7 +392,7 @@ func TestReadHeader(t *testing.T) {
 				CstorResponse = tt.header
 				tt.exporter.writer()
 			}
-			got := ReadHeader(tt.exporter.Conn)
+			got := tt.exporter.ReadHeader()
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.exporter.Conn, tt.err, got)
 			}
