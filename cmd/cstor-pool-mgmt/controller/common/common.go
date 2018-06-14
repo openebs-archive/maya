@@ -96,7 +96,7 @@ func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
 		poolname, _ := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) || !CheckIfPresent(poolname, "cstor-"+cVR.Labels["cstorpool.openebs.io/uid"]) {
-			glog.Infof("Attempt %v: No pool found", i)
+			glog.Infof("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
 				return false
@@ -157,4 +157,19 @@ func CheckIfPresent(arrStr []string, searchStr string) bool {
 		}
 	}
 	return false
+}
+
+// CheckForCStorPool tries to get pool name and blocks forever because
+// volumereplica can be created only if pool is present.
+func CheckForCStorPool() {
+	for {
+		poolname, _ := pool.GetPoolName()
+		if reflect.DeepEqual(poolname, []string{}) {
+			glog.Errorf("CStorPool not found. Retrying after %v", PoolNameHandlerInterval)
+			time.Sleep(PoolNameHandlerInterval)
+			continue
+		}
+		glog.Info("CStorPool found")
+		break
+	}
 }

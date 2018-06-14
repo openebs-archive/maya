@@ -24,7 +24,6 @@ func TestCheckForCStorPoolCRD(t *testing.T) {
 
 	go func(done chan bool) {
 		CheckForCStorPoolCRD(fakeOpenebsClient)
-		fmt.Println("debug:")
 		done <- true
 	}(done)
 
@@ -152,7 +151,6 @@ func TestPoolNameHandler(t *testing.T) {
 	}
 	pool.RunnerVar = TestRunner{}
 	obtainedFlag := PoolNameHandler(testResource["cVR"].test, 1)
-	fmt.Println(obtainedFlag)
 	if testResource["cVR"].expectedFlag != obtainedFlag {
 		t.Fatalf("Expected: %v, Got: %v", testResource["cVR"].expectedFlag, obtainedFlag)
 	}
@@ -208,5 +206,22 @@ func TestCheckIfPresent(t *testing.T) {
 			t.Fatalf("Desc:%v, Test case failure, Expected:%v, Got:%v", desc, ut.expectedFlag,
 				obtainedFlag)
 		}
+	}
+}
+
+// TestCheckForCStorPool validates if CStorVolumeReplica CRD
+// operations can be done.
+func TestCheckForCStorPool(t *testing.T) {
+	done := make(chan bool)
+	pool.RunnerVar = TestRunner{}
+	go func(done chan bool) {
+		CheckForCStorPool()
+		done <- true
+	}(done)
+
+	select {
+	case <-time.After(10 * time.Second):
+		t.Fatalf("CStorPool not found")
+	case <-done:
 	}
 }

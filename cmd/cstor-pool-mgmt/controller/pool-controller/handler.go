@@ -80,7 +80,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation string, cStorPoolG
 		}
 
 		// If pool is already present.
-		existingPool, err := pool.GetPoolName()
+		existingPool, _ := pool.GetPoolName()
 		if common.CheckIfPresent(existingPool, "cstor-"+string(cStorPoolGot.GetUID())) {
 			common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 			if err != nil {
@@ -110,7 +110,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation string, cStorPoolG
 			// LabelClear is to clear pool label
 			err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
 			if err != nil {
-				glog.Errorf("Unable to clear pool labels : %v, %v", err.Error(), cStorPoolGot.GetUID())
+				glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 			}
 			glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
 
@@ -141,7 +141,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation string, cStorPoolG
 		// LabelClear is to clear pool label
 		err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
 		if err != nil {
-			glog.Errorf("Unable to clear pool labels : %v, %v", err.Error(), cStorPoolGot.GetUID())
+			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 		}
 		glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
 

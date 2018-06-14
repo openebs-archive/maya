@@ -74,12 +74,9 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation string, cVR *ap
 
 	// PoolNameHandler tries to get pool name and blocks for
 	// particular number of attempts.
-	var noOfAttempts = 5
+	var noOfAttempts = 2
 	if !common.PoolNameHandler(cVR, noOfAttempts) {
 		return string(apis.CVRStatusOffline), fmt.Errorf("Pool not present")
-	}
-	if err != nil {
-		return string(apis.CVRStatusOffline), err
 	}
 
 	fullVolName := "cstor-" + cVR.Labels["cstorpool.openebs.io/uid"] + "/" + cVR.Labels["cstorvolume.openebs.io/uid"]

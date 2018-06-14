@@ -119,7 +119,6 @@ func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
 	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
 	if err != nil || string(poolNameByte) == "" {
-		glog.Errorf("Unable to get pool: %v", string(poolNameByte))
 		return []string{}, nil
 	}
 	noisyPoolName := string(poolNameByte)
@@ -171,13 +170,17 @@ func CheckForZrepl() {
 
 // LabelClear is to clear zpool label on disks.
 func LabelClear(disks []string) error {
+	var failLabelClear = false
 	for _, disk := range disks {
 		labelClearStr := []string{"labelclear", "-f", disk}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
 			glog.Errorf("Unable to clear label: %v", string(stdoutStderr))
-			return err
+			failLabelClear = true
 		}
+	}
+	if failLabelClear {
+		return fmt.Errorf("Unable to clear labels from the disks of the pool")
 	}
 	return nil
 }

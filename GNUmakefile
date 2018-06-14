@@ -128,7 +128,7 @@ pool-mgmt-image: cstor-pool-mgmt
 	@echo "--> cstor-pool-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:ci --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 	@sh buildscripts/cstor-pool-mgmt/push
 

@@ -96,6 +96,10 @@ func StartControllers(kubeconfig string) {
 		wg.Done()
 	}()
 
+	// CheckForCStorPool tries to get pool name and blocks forever because
+	// volumereplica can be created only if pool is present.
+	common.CheckForCStorPool()
+
 	wg.Add(1)
 	// Run controller for cStorVolumeReplica.
 	go func() {

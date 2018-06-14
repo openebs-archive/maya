@@ -115,12 +115,12 @@ func NewCStorVolumeReplicaController(
 		UpdateFunc: func(old, new interface{}) {
 			newCVR := new.(*apis.CStorVolumeReplica)
 			oldCVR := old.(*apis.CStorVolumeReplica)
+			if !IsRightCStorVolumeReplica(newCVR) {
+				return
+			}
 			// Periodic resync will send update events for all known cStorReplica.
 			// Two different versions of the same cStorReplica will always have different RVs.
 			if newCVR.ResourceVersion == oldCVR.ResourceVersion {
-				return
-			}
-			if !IsRightCStorVolumeReplica(newCVR) {
 				return
 			}
 			if IsOnlyStatusChange(oldCVR, newCVR) {
@@ -148,7 +148,7 @@ func NewCStorVolumeReplicaController(
 				return
 			}
 			q.Operation = "delete"
-			glog.Infof("\ncVR Resource deleted event: %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
+			glog.Infof("cVR Resource deleted event: %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
 		},
 	})
 

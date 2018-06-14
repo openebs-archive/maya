@@ -116,12 +116,12 @@ func NewCStorPoolController(
 		UpdateFunc: func(old, new interface{}) {
 			newCStorPool := new.(*apis.CStorPool)
 			oldCStorPool := old.(*apis.CStorPool)
+			if !IsRightCStorPoolMgmt(newCStorPool) {
+				return
+			}
 			// Periodic resync will send update events for all known CStorPool.
 			// Two different versions of the same CStorPool will always have different RVs.
 			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
-				return
-			}
-			if !IsRightCStorPoolMgmt(newCStorPool) {
 				return
 			}
 			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
@@ -148,7 +148,7 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			glog.Infof("\ncStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
+			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 		},
 	})
 
