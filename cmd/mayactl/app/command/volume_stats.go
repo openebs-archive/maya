@@ -232,32 +232,31 @@ Capacity Stats :
 		Size:   a.VolSize,
 	}
 
-	stat1 := v1.StatsJSON{}
+	stat1 := v1.StatsJSON{
+
+		IQN:    a.Iqn,
+		Volume: c.volName,
+		Portal: a.TargetPortal,
+		Size:   a.VolSize,
+
+		ReadIOPS:  readIOPS,
+		WriteIOPS: writeIOPS,
+
+		ReadThroughput:  float64(rThroughput) / v1.BytesToMB, // bytes to MB
+		WriteThroughput: float64(wThroughput) / v1.BytesToMB,
+
+		ReadLatency:  float64(ReadLatency) / v1.MicSec, // Microsecond
+		WriteLatency: float64(WriteLatency) / v1.MicSec,
+
+		AvgReadBlockSize:  AvgReadBlockCountPS / v1.BytesToKB, // Bytes to KB
+		AvgWriteBlockSize: AvgWriteBlockCountPS / v1.BytesToKB,
+
+		SectorSize:  sectorSize,
+		ActualUsed:  actualUsed / v1.BytesToGB,
+		LogicalSize: logicalSize / v1.BytesToGB,
+	}
+
 	if c.json == "json" {
-
-		stat1 = v1.StatsJSON{
-
-			IQN:    a.Iqn,
-			Volume: c.volName,
-			Portal: a.TargetPortal,
-			Size:   a.VolSize,
-
-			ReadIOPS:  readIOPS,
-			WriteIOPS: writeIOPS,
-
-			ReadThroughput:  float64(rThroughput) / v1.BytesToMB, // bytes to MB
-			WriteThroughput: float64(wThroughput) / v1.BytesToMB,
-
-			ReadLatency:  float64(ReadLatency) / v1.MicSec, // Microsecond
-			WriteLatency: float64(WriteLatency) / v1.MicSec,
-
-			AvgReadBlockSize:  AvgReadBlockCountPS / v1.BytesToKB, // Bytes to KB
-			AvgWriteBlockSize: AvgWriteBlockCountPS / v1.BytesToKB,
-
-			SectorSize:  sectorSize,
-			ActualUsed:  actualUsed / v1.BytesToGB,
-			LogicalSize: logicalSize / v1.BytesToGB,
-		}
 
 		data, err := json.MarshalIndent(stat1, "", "\t")
 		if err != nil {
