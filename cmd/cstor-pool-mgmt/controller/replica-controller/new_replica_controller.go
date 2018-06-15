@@ -107,10 +107,10 @@ func NewCStorVolumeReplicaController(
 			if IsDeletionFailedBefore(cVR) {
 				return
 			}
-			q.Operation = "add"
+			q.Operation = common.QOpAdd
 			glog.Infof("cStorVolumeReplica Added event : %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
-			controller.recorder.Event(cVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageCreateSynced)
-			controller.enqueueCStorReplica(obj, q)
+			controller.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+			controller.enqueueCStorReplica(cVR, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			newCVR := new.(*apis.CStorVolumeReplica)
@@ -131,16 +131,16 @@ func NewCStorVolumeReplicaController(
 				return
 			}
 			if IsDestroyEvent(newCVR) {
-				q.Operation = "destroy"
+				q.Operation = common.QOpDestroy
 				glog.Infof("cStorVolumeReplica Destroy event : %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
-				controller.recorder.Event(newCVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageDestroySynced)
+				controller.recorder.Event(newCVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
-				q.Operation = "modify"
+				q.Operation = common.QOpModify
 				glog.Infof("cStorVolumeReplica Modify event : %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
-				controller.recorder.Event(newCVR, corev1.EventTypeNormal, common.SuccessSynced, common.MessageModifySynced)
+				controller.recorder.Event(newCVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 				return // will be removed once modify is implemented
 			}
-			controller.enqueueCStorReplica(new, q)
+			controller.enqueueCStorReplica(newCVR, q)
 		},
 		DeleteFunc: func(obj interface{}) {
 			cVR := obj.(*apis.CStorVolumeReplica)
@@ -158,7 +158,7 @@ func NewCStorVolumeReplicaController(
 // enqueueCStorReplica takes a CStorReplica resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorReplica.
-func (c *CStorVolumeReplicaController) enqueueCStorReplica(obj interface{}, q common.QueueLoad) {
+func (c *CStorVolumeReplicaController) enqueueCStorReplica(obj *apis.CStorVolumeReplica, q common.QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {

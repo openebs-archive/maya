@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
@@ -186,12 +187,13 @@ func TestIsRightCStorPoolMgmt(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		os.Setenv("cstorid", string(ut.test.UID))
+		os.Setenv(string(common.OpenEBSIOCStorID), string(ut.test.UID))
 		obtainedOutput := IsRightCStorPoolMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
 		}
+		os.Unsetenv(string(common.OpenEBSIOCStorID))
 	}
 }
 
@@ -225,12 +227,13 @@ func TestIsRightCStorPoolMgmtNegative(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		os.Setenv("cstorid", string("awer"))
+		os.Setenv(string(common.OpenEBSIOCStorID), string("awer"))
 		obtainedOutput := IsRightCStorPoolMgmt(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
 		}
+		os.Unsetenv(string(common.OpenEBSIOCStorID))
 	}
 }
 

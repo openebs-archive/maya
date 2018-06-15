@@ -37,22 +37,22 @@ var RunnerVar util.Runner
 // CheckValidVolumeReplica checks for validity of cStor replica resource.
 func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 	var err error
-	if cVR.Labels["cstorvolume.openebs.io/uid"] == "" {
+	if len(cVR.Labels["cstorvolume.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Volume Name/UID cannot be empty")
 		glog.Errorf(err.Error())
 		return err
 	}
-	if cVR.Spec.CStorControllerIP == "" {
+	if len(cVR.Spec.CStorControllerIP) == 0 {
 		err = fmt.Errorf("CStorControllerIP cannot be empty")
 		glog.Errorf(err.Error())
 		return err
 	}
-	if cVR.Spec.Capacity == "" {
+	if len(cVR.Spec.Capacity) == 0 {
 		err = fmt.Errorf("Capacity cannot be empty")
 		glog.Errorf(err.Error())
 		return err
 	}
-	if cVR.Labels["cstorpool.openebs.io/uid"] == "" {
+	if len(cVR.Labels["cstorpool.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Pool cannot be empty")
 		glog.Errorf(err.Error())
 		return err

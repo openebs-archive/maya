@@ -37,6 +37,13 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
+const (
+	// NumThreads defines number of worker threads for resource watcher.
+	NumThreads = 2
+	// NumRoutinesThatFollow is for handling golang waitgroups.
+	NumRoutinesThatFollow = 1
+)
+
 // StartControllers instantiates CStorPool and CStorVolumeReplica controllers
 // and watches them.
 func StartControllers(kubeconfig string) {
@@ -71,7 +78,9 @@ func StartControllers(kubeconfig string) {
 	// Blocking call for checking status of CStorVolumeReplica CRD.
 	common.CheckForCStorVolumeReplicaCRD(openebsClient)
 
+	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, common.SharedInformerInterval)
+	// openebsInformerFactory constructs a new instance of openebs sharedInformerFactory.
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, common.SharedInformerInterval)
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
@@ -86,11 +95,11 @@ func StartControllers(kubeconfig string) {
 
 	// Waitgroup for starting pool and VolumeReplica controller goroutines.
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(NumRoutinesThatFollow)
 
 	// Run controller for cStorPool.
 	go func() {
-		if err = cStorPoolController.Run(1, stopCh); err != nil {
+		if err = cStorPoolController.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorPool controller: %s", err.Error())
 		}
 		wg.Done()
@@ -100,10 +109,10 @@ func StartControllers(kubeconfig string) {
 	// volumereplica can be created only if pool is present.
 	common.CheckForCStorPool()
 
-	wg.Add(1)
+	wg.Add(NumRoutinesThatFollow)
 	// Run controller for cStorVolumeReplica.
 	go func() {
-		if err = volumeReplicaController.Run(1, stopCh); err != nil {
+		if err = volumeReplicaController.Run(NumThreads, stopCh); err != nil {
 			glog.Fatalf("Error running CStorVolumeReplica controller: %s", err.Error())
 		}
 		wg.Done()
@@ -117,7 +126,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
-		if kubeconfig == "" {
+		if len(kubeconfig) == 0 {
 			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)

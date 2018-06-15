@@ -103,7 +103,7 @@ func (c *CStorPoolController) processNextWorkItem() bool {
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.
 		c.workqueue.Forget(obj)
-		glog.Infof("Successfully synced '%s'", q.Key)
+		glog.Infof("Successfully synced '%s' for operation: %s", q.Key, string(q.Operation))
 		return nil
 	}(obj)
 

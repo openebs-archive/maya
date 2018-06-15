@@ -7,14 +7,18 @@ import (
 	"github.com/golang/glog"
 )
 
+// Runner interface implements various methods of running binaries which can be
+// modified for unit testing.
 type Runner interface {
 	RunCombinedOutput(string, ...string) ([]byte, error)
 	RunStdoutPipe(string, ...string) ([]byte, error)
 }
 
+// RealRunner is the real runner for the program that actually execs the command.
 type RealRunner struct{}
 
-// the real runner for the actual program, actually execs the command
+// RunCombinedOutput runs the command and returns its combined standard output
+// and standard error.
 func (r RealRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
 	//execute pool creation command.
 	cmd := exec.Command(command, args...)
@@ -22,6 +26,8 @@ func (r RealRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 	return out, err
 }
 
+// RunStdoutPipe returns a pipe that will be connected to the command's standard output
+// when the command starts.
 func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error) {
 	cmd := exec.Command(command, args...)
 

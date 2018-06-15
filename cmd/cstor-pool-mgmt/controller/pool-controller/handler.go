@@ -37,7 +37,7 @@ import (
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the cStorPoolUpdated resource
 // with the current status of the resource.
-func (c *CStorPoolController) syncHandler(key, operation string) error {
+func (c *CStorPoolController) syncHandler(key string, operation common.QueueOperation) error {
 	cStorPoolGot, err := c.getPoolResource(key)
 	if err != nil {
 		return err
@@ -67,40 +67,40 @@ func (c *CStorPoolController) syncHandler(key, operation string) error {
 }
 
 // cStorPoolEventHandler is to handle cstor pool related events.
-func (c *CStorPoolController) cStorPoolEventHandler(operation string, cStorPoolGot *apis.CStorPool) (string, error) {
+func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperation, cStorPoolGot *apis.CStorPool) (string, error) {
 	pool.RunnerVar = util.RealRunner{}
 	switch operation {
-	case "add":
+	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 		// CheckValidPool is to check if pool attributes are correct.
 		err := pool.CheckValidPool(cStorPoolGot)
 		if err != nil {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, common.FailureValidate, common.MessageResourceFailValidate)
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 			return string(apis.CStorPoolStatusOffline), err
 		}
 
 		// If pool is already present.
 		existingPool, _ := pool.GetPoolName()
-		if common.CheckIfPresent(existingPool, "cstor-"+string(cStorPoolGot.GetUID())) {
+		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
 			common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 			if err != nil {
 				return string(apis.CStorPoolStatusOffline), err
 			}
-			glog.Errorf("Pool %v already present", "cstor-"+string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, common.AlreadyPresent, common.MessageResourceAlreadyPresent)
-			return string(apis.CStorPoolStatusInvalid), nil
+			glog.Errorf("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+			return string(apis.CStorPoolStatusAlreadyPresent), nil
 		}
 
 		cachefileFlag := true
 		status, _ := c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, common.SuccessImported, common.MessageResourceImported)
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
 			return status, nil
 		} else {
 			cachefileFlag = false
 			status, _ := c.importPool(cStorPoolGot, cachefileFlag)
 			if status == string(apis.CStorPoolStatusOnline) {
-				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, common.SuccessImported, common.MessageResourceImported)
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
 				return status, nil
 			}
 		}
@@ -118,23 +118,23 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation string, cStorPoolG
 			err = pool.CreatePool(cStorPoolGot)
 			if err != nil {
 				glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
-				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, common.FailureCreate, common.MessageResourceFailCreate)
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
 				return string(apis.CStorPoolStatusOffline), err
 			}
 			glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, common.SuccessCreated, common.MessageResourceCreated)
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 			return string(apis.CStorPoolStatusOnline), nil
 		}
 		glog.Infof("Not init status: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 		break
 
-	case "destroy":
+	case common.QOpDestroy:
 		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 		// DeletePool is to delete cstor pool.
-		err := pool.DeletePool("cstor-" + string(cStorPoolGot.ObjectMeta.UID))
+		err := pool.DeletePool(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
 		if err != nil {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, common.FailureDestroy, common.MessageResourceFailDestroy)
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
 			return string(apis.CStorPoolStatusDeletionFailed), err
 		}
 
@@ -212,7 +212,7 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 
 // IsRightCStorPoolMgmt is to check if the pool request is for particular pod/application.
 func IsRightCStorPoolMgmt(cStorPool *apis.CStorPool) bool {
-	if os.Getenv("cstorid") == string(cStorPool.ObjectMeta.UID) {
+	if os.Getenv(string(common.OpenEBSIOCStorID)) == string(cStorPool.ObjectMeta.UID) {
 		return true
 	}
 	return false
@@ -248,7 +248,7 @@ func IsInitStatus(cStorPool *apis.CStorPool) bool {
 // IsDeletionFailedBefore is to make sure no other operation should happen if the
 // status of cStorPool is deletion-failed.
 func IsDeletionFailedBefore(cStorPool *apis.CStorPool) bool {
-	if cStorPool.Status.Phase == "deletion-failed" {
+	if cStorPool.Status.Phase == apis.CStorPoolStatusDeletionFailed {
 		return true
 	}
 	return false

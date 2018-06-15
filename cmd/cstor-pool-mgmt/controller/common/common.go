@@ -27,50 +27,53 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+//EventReason is used as part of the Event reason when a resource goes through different phases
+type EventReason string
+
 const (
 	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
-	SuccessSynced = "Synced"
+	SuccessSynced EventReason = "Synced"
 	// MessageCreateSynced holds message for corresponding create request sync.
-	MessageCreateSynced = "Received Resource create event"
+	MessageCreateSynced EventReason = "Received Resource create event"
 	// MessageModifySynced holds message for corresponding modify request sync.
-	MessageModifySynced = "Received Resource modify event"
+	MessageModifySynced EventReason = "Received Resource modify event"
 	// MessageDestroySynced holds message for corresponding destroy request sync.
-	MessageDestroySynced = "Received Resource destroy event"
+	MessageDestroySynced EventReason = "Received Resource destroy event"
 
 	// SuccessCreated holds status for corresponding created resource.
-	SuccessCreated = "Created"
+	SuccessCreated EventReason = "Created"
 	// MessageResourceCreated holds message for corresponding created resource.
-	MessageResourceCreated = "Resource created successfully"
+	MessageResourceCreated EventReason = "Resource created successfully"
 
 	// FailureCreate holds status for corresponding failed create resource.
-	FailureCreate = "FailCreate"
+	FailureCreate EventReason = "FailCreate"
 	// MessageResourceFailCreate holds message for corresponding failed create resource.
-	MessageResourceFailCreate = "Resource creation failed"
+	MessageResourceFailCreate EventReason = "Resource creation failed"
 
 	// SuccessImported holds status for corresponding imported resource.
-	SuccessImported = "Imported"
+	SuccessImported EventReason = "Imported"
 	// MessageResourceImported holds message for corresponding imported resource.
-	MessageResourceImported = "Resource imported successfully"
+	MessageResourceImported EventReason = "Resource imported successfully"
 
 	// FailureImport holds status for corresponding failed import resource.
-	FailureImport = "FailImport"
+	FailureImport EventReason = "FailImport"
 	// MessageResourceFailImport holds message for corresponding failed import resource.
-	MessageResourceFailImport = "Resource import failed"
+	MessageResourceFailImport EventReason = "Resource import failed"
 
 	// FailureDestroy holds status for corresponding failed destroy resource.
-	FailureDestroy = "FailDestroy"
+	FailureDestroy EventReason = "FailDestroy"
 	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
-	MessageResourceFailDestroy = "Resource Destroy failed"
+	MessageResourceFailDestroy EventReason = "Resource Destroy failed"
 
 	// FailureValidate holds status for corresponding failed validate resource.
-	FailureValidate = "FailValidate"
+	FailureValidate EventReason = "FailValidate"
 	// MessageResourceFailValidate holds message for corresponding failed validate resource.
-	MessageResourceFailValidate = "Resource validation failed"
+	MessageResourceFailValidate EventReason = "Resource validation failed"
 
 	// AlreadyPresent holds status for corresponding already present resource.
-	AlreadyPresent = "AlreadyPresent"
+	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
-	MessageResourceAlreadyPresent = "Resource already present"
+	MessageResourceAlreadyPresent EventReason = "Resource already present"
 )
 
 // Periodic interval duration.
@@ -87,21 +90,38 @@ var InitialImportedPoolVol []string
 // QueueLoad is for storing the key and type of operation before entering workqueue
 type QueueLoad struct {
 	Key       string
-	Operation string
+	Operation QueueOperation
 }
+
+type Environment string
+
+const (
+	// OpenEBSIOCStorID is the environment variable specified in pod.
+	OpenEBSIOCStorID Environment = "OPENEBS_IO_CSTOR_ID"
+)
+
+//QueueOperation represents the type of operation on resource
+type QueueOperation string
+
+//Different type of operations on the controller
+const (
+	QOpAdd     QueueOperation = "add"
+	QOpDestroy QueueOperation = "destroy"
+	QOpModify  QueueOperation = "modify"
+)
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.
 func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
 		poolname, _ := pool.GetPoolName()
-		if reflect.DeepEqual(poolname, []string{}) || !CheckIfPresent(poolname, "cstor-"+cVR.Labels["cstorpool.openebs.io/uid"]) {
-			glog.Infof("Attempt %v: No pool found", i+1)
+		if reflect.DeepEqual(poolname, []string{}) || !CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+			glog.Warningf("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {
 				return false
 			}
-		} else if CheckIfPresent(poolname, "cstor-"+cVR.Labels["cstorpool.openebs.io/uid"]) {
+		} else if CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
 			return true
 		}
 	}
@@ -165,7 +185,7 @@ func CheckForCStorPool() {
 	for {
 		poolname, _ := pool.GetPoolName()
 		if reflect.DeepEqual(poolname, []string{}) {
-			glog.Errorf("CStorPool not found. Retrying after %v", PoolNameHandlerInterval)
+			glog.Warningf("CStorPool not found. Retrying after %v", PoolNameHandlerInterval)
 			time.Sleep(PoolNameHandlerInterval)
 			continue
 		}

@@ -32,6 +32,12 @@ const (
 	ZreplRetryInterval = 3 * time.Second
 )
 
+type PoolNamePrefix string
+
+const (
+	PoolPrefix PoolNamePrefix = "cstor-"
+)
+
 var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
@@ -55,7 +61,7 @@ func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 		importAttr = append(importAttr, "-c", cStorPool.Spec.PoolSpec.CacheFile,
 			"-o", cStorPool.Spec.PoolSpec.CacheFile)
 	}
-	importAttr = append(importAttr, "cstor-"+string(cStorPool.ObjectMeta.UID))
+	importAttr = append(importAttr, string(PoolPrefix)+string(cStorPool.ObjectMeta.UID))
 	return importAttr
 }
 
@@ -85,7 +91,7 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	openebsPoolname := "io.openebs:poolname=" + cStorPool.Name
 	createAttr = append(createAttr, "-O", openebsPoolname)
 
-	poolNameUID := "cstor-" + string(cStorPool.ObjectMeta.UID)
+	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	createAttr = append(createAttr, poolNameUID)
 
 	// To generate mirror disk0 disk1 mirror disk2 disk3 format.
@@ -101,7 +107,7 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 // CheckValidPool checks for validity of CStorPool resource.
 func CheckValidPool(cStorPool *apis.CStorPool) error {
-	if string(cStorPool.ObjectMeta.UID) == "" {
+	if len(string(cStorPool.ObjectMeta.UID)) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
 	if len(cStorPool.Spec.Disks.DiskList) < 1 {
@@ -118,7 +124,7 @@ func CheckValidPool(cStorPool *apis.CStorPool) error {
 func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
 	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
-	if err != nil || string(poolNameByte) == "" {
+	if err != nil || len(string(poolNameByte)) == 0 {
 		return []string{}, nil
 	}
 	noisyPoolName := string(poolNameByte)
@@ -144,7 +150,7 @@ func DeletePool(poolName string) error {
 
 // SetCachefile is to set the cachefile for pool.
 func SetCachefile(cStorPool *apis.CStorPool) error {
-	poolNameUID := "cstor-" + string(cStorPool.ObjectMeta.UID)
+	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	setCachefileStr := []string{"set", "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile,
 		poolNameUID}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, setCachefileStr...)

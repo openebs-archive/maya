@@ -108,10 +108,10 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(cStorPool) {
 				return
 			}
-			q.Operation = "add"
+			q.Operation = common.QOpAdd
 			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
-			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageCreateSynced)
-			controller.enqueueCStorPool(obj, q)
+			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+			controller.enqueueCStorPool(cStorPool, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			newCStorPool := new.(*apis.CStorPool)
@@ -132,16 +132,16 @@ func NewCStorPoolController(
 				return
 			}
 			if IsDestroyEvent(newCStorPool) {
-				q.Operation = "destroy"
+				q.Operation = common.QOpDestroy
 				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
-				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageDestroySynced)
+				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
-				q.Operation = "modify"
+				q.Operation = common.QOpModify
 				glog.Infof("cStorPool Modify event : %v, %v", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
-				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, common.SuccessSynced, common.MessageModifySynced)
+				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 				return // will be removed once modify is implemented
 			}
-			controller.enqueueCStorPool(new, q)
+			controller.enqueueCStorPool(newCStorPool, q)
 		},
 		DeleteFunc: func(obj interface{}) {
 			cStorPool := obj.(*apis.CStorPool)
@@ -158,7 +158,7 @@ func NewCStorPoolController(
 // enqueueCstorPool takes a CStorPool resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than CStorPools.
-func (c *CStorPoolController) enqueueCStorPool(obj interface{}, q common.QueueLoad) {
+func (c *CStorPoolController) enqueueCStorPool(obj *apis.CStorPool, q common.QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {

@@ -73,7 +73,7 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 		}
 
 		// Get volume replica resource with name
-		cStorVolumeReplicaObtained, err := volumeReplicaController.getVolumeReplicaResource(ut.test.ObjectMeta.Name, "")
+		cStorVolumeReplicaObtained, err := volumeReplicaController.getVolumeReplicaResource(ut.test.ObjectMeta.Name)
 
 		if cStorVolumeReplicaObtained.Name != ut.expectedName {
 			t.Fatalf("Desc:%v, volName mismatch, Expected:%v, Got:%v", desc, ut.expectedName,
