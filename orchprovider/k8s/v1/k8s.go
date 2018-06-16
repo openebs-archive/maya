@@ -786,6 +786,38 @@ func (k *k8sOrchestrator) addNodeTolerationsToDeploy(nodeTaintTolerations []stri
 	return nil
 }
 
+// addNodeSelectorsToDeploy
+func (k *k8sOrchestrator) addNodeSelectorsToDeploy(nodeSelectors []string, deploy *k8sApisExtnsBeta1.Deployment) error {
+
+	//Add nodeSelectors only if they are present.
+	if len(nodeSelectors) < 1 {
+		return nil
+	}
+
+	nsSpec := map[string]string{}
+
+	// nodeSelector is expected to be in key=value
+	for _, nodeSelector := range nodeSelectors {
+		kveArr := strings.Split(nodeSelector, "=")
+		if len(kveArr) != 2 {
+			glog.Warningf("Invalid args '%s' provided for node selector", nodeSelector)
+			continue
+		}
+
+		k := strings.TrimSpace(kveArr[0])
+		v := strings.TrimSpace(kveArr[1])
+
+		nsSpec[k] = v
+	}
+
+	//Add nodeSelectors only if they are present.
+	if len(nsSpec) > 0 {
+		deploy.Spec.Template.Spec.NodeSelector = nsSpec
+	}
+
+	return nil
+}
+
 // createControllerDeployment creates a persistent volume controller deployment in
 // kubernetes
 func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.VolumeProvisionerProfile, clusterIP string) (*k8sApisExtnsBeta1.Deployment, error) {
@@ -904,6 +936,20 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 			return nil, err
 		}
 	}
+
+	// check if node level selectors are required for controller?
+	nodeSelectors, nsReqd, nsErr := volProProfile.IsControllerNodeSelectors()
+	if nsErr != nil {
+		return nil, nsErr
+	}
+
+	if nsReqd {
+		nsErr = k.addNodeSelectorsToDeploy(nodeSelectors, deploy)
+		if nsErr != nil {
+			return nil, nsErr
+		}
+	}
+
 	// is volume monitoring enabled ?
 	isMonitoring := !util.CheckFalsy(vol.Monitor)
 	if isMonitoring {
@@ -1137,6 +1183,19 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		err = k.addNodeTolerationsToDeploy(nTTs, deploy)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	// check if node level selectors are required for replica?
+	nodeSelectors, nsReqd, nsErr := volProProfile.IsReplicaNodeSelectors()
+	if nsErr != nil {
+		return nil, nsErr
+	}
+
+	if nsReqd {
+		nsErr = k.addNodeSelectorsToDeploy(nodeSelectors, deploy)
+		if nsErr != nil {
+			return nil, nsErr
 		}
 	}
 
