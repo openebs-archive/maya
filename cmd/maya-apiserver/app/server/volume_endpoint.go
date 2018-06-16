@@ -332,10 +332,13 @@ func (s *HTTPServer) getVolumeCloneDetails(resp http.ResponseWriter, req *http.R
 	if err != nil {
 		return err
 	}
+	vol.CloneIP = voldetails.Annotations[string(v1.ControllerIPsAPILbl)]
 
-	vol.CloneIP = voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	// Snapshot-controller will populate the volume Storage-class field as part of
+	// clone request, if not then storage class will be extracted from the
+	// volume annotations, helpful in the case of mayactl clone based operations.
 	if len(vol.Labels.K8sStorageClass) == 0 {
-		vol.ObjectMeta.Labels.K8sStorageClass = voldetails.Annotations["openebs.io/storage-class"]
+		vol.ObjectMeta.Labels.K8sStorageClass = voldetails.Annotations[string(v1.VolumeStorageClassVK)]
 	}
 	return nil
 }

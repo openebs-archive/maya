@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/openebs/maya/orchprovider"
@@ -132,6 +133,35 @@ func TestAddStorage(t *testing.T) {
 		_, err := sOps.AddStorage(volP)
 		if err != nil && c.err != err.Error() {
 			t.Errorf("ExpectedAddStorageErr: '%s' ActualAddStorageErr: '%s'", c.err, err.Error())
+		}
+	}
+}
+
+func TestReadStorage(t *testing.T) {
+	cases := []struct {
+		volname string
+		err     error
+	}{
+		{"demo-vol", fmt.Errorf("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined")},
+		//{"demo-vol", nil},
+	}
+	for _, c := range cases {
+
+		vol := &v1.Volume{
+			Namespace: "test",
+		}
+		vol.Name = c.volname
+
+		volP, _ := volProfile.GetDefaultVolProProfile(vol)
+		mockedO := &mockK8sOrch{
+			k8sOrchestrator: k8sOrchestrator{},
+		}
+		//client, _ := mockedO.GetK8sUtil(volP).K8sClient()
+
+		_, err := mockedO.ReadStorage(volP)
+
+		if !reflect.DeepEqual(err, c.err) {
+			t.Errorf("ExpectedReadStorage Error : %v but got : %v", c.err, err)
 		}
 	}
 }
