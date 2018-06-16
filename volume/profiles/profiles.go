@@ -77,6 +77,12 @@ type VolumeProvisionerProfile interface {
 
 	// Verify if node level taint tolerations are required for replica?
 	IsReplicaNodeTaintTolerations() ([]string, bool, error)
+
+	// Verify if node selectors are required for controller?
+	IsControllerNodeSelectors() ([]string, bool, error)
+
+	// Verify if node selectors are required for replica?
+	IsReplicaNodeSelectors() ([]string, bool, error)
 }
 
 // GetVolProProfile will return a specific persistent volume provisioner
@@ -310,6 +316,48 @@ func (pp *defVolProProfile) IsReplicaNodeTaintTolerations() ([]string, bool, err
 	// __or__
 	// key=value:effect
 	return strings.Split(nTTs, ","), true, nil
+}
+
+// IsControllerNodeSelectors provides the node selectors for controller
+// Since node selectors for controller is an optional feature, it
+// can return false.
+func (pp *defVolProProfile) IsControllerNodeSelectors() ([]string, bool, error) {
+	// Extract the node selectors for Controller
+	nodeSelectors, err := v1.GetControllerNodeSelectors(nil)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if strings.TrimSpace(nodeSelectors) == "" {
+		return nil, false, nil
+	}
+
+	// nodeSelectors is expected of below form
+	// key1=value1, key2=value2
+	// __or__
+	// key=value
+	return strings.Split(nodeSelectors, ","), true, nil
+}
+
+// IsReplicaNodeSelectors provides the node selectors for replica
+// Since node selectors for replica is an optional feature, it
+// can return false.
+func (pp *defVolProProfile) IsReplicaNodeSelectors() ([]string, bool, error) {
+	// Extract the node selectors for replica
+	nodeSelectors, err := v1.GetReplicaNodeSelectors(nil)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if strings.TrimSpace(nodeSelectors) == "" {
+		return nil, false, nil
+	}
+
+	// nodeSelectors is expected of below form
+	// key1=value1, key2=value2
+	// __or__
+	// key=value
+	return strings.Split(nodeSelectors, ","), true, nil
 }
 
 // StorageSize gets the storage size for each persistent volume replica(s)
