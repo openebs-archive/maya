@@ -431,6 +431,16 @@ func (e *okVsmNameVolumeProfile) IsReplicaNodeTaintTolerations() ([]string, bool
 	return []string{"k=v:NoSchedule"}, true, nil
 }
 
+// IsControllerNodeSelectors specifies a single key value
+func (e *okVsmNameVolumeProfile) IsControllerNodeSelectors() ([]string, bool, error) {
+	return []string{"k=v"}, true, nil
+}
+
+// IsReplicaNodeSelectors specifies a single key value
+func (e *okVsmNameVolumeProfile) IsReplicaNodeSelectors() ([]string, bool, error) {
+	return []string{"k=v"}, true, nil
+}
+
 // okCtrlImgVolumeProfile focusses on not returning any error during invocation
 // of ControllerImage() method
 type okCtrlImgVolumeProfile struct {
@@ -445,6 +455,16 @@ func (e *okCtrlImgVolumeProfile) ControllerImage() (string, bool, error) {
 // ControllerImage does not return any error
 func (e *okCtrlImgVolumeProfile) IsReplicaNodeTaintTolerations() ([]string, bool, error) {
 	return []string{"k=v:NoSchedule"}, true, nil
+}
+
+// IsControllerNodeSelectors specifies a single key value
+func (e *okCtrlImgVolumeProfile) IsControllerNodeSelectors() ([]string, bool, error) {
+	return []string{"k=v"}, true, nil
+}
+
+// IsReplicaNodeSelectors specifies a single key value
+func (e *okCtrlImgVolumeProfile) IsReplicaNodeSelectors() ([]string, bool, error) {
+	return []string{"k=v"}, true, nil
 }
 
 // errVsmNameVolumeProfile focusses on returning error during invocation of
