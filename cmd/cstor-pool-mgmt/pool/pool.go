@@ -28,8 +28,7 @@ import (
 
 // PoolOperator is the name of the tool that makes pool-related operations.
 const (
-	PoolOperator       = "zpool"
-	ZreplRetryInterval = 3 * time.Second
+	PoolOperator = "zpool"
 )
 
 type PoolNamePrefix string
@@ -161,13 +160,25 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 	return nil
 }
 
-// CheckForZrepl is blocking call for checking status of zrepl in cstor-pool container.
-func CheckForZrepl() {
+// CheckForZreplInitial is blocking call for checking status of zrepl in cstor-pool container.
+func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 	for {
 		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
 			glog.Infof("Waiting for zpool replication container to start......")
+			continue
+		}
+		break
+	}
+}
+
+// CheckForZreplContinuous is continuous health checker for status of zrepl in cstor-pool container.
+func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
+	for {
+		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		if err == nil {
+			time.Sleep(ZreplRetryInterval)
 			continue
 		}
 		break

@@ -78,10 +78,18 @@ const (
 
 // Periodic interval duration.
 const (
-	CRDRetryInterval        = 10 * time.Second
+	// CRDRetryInterval is used if CRD is not present.
+	CRDRetryInterval = 10 * time.Second
+	// PoolNameHandlerInterval is used when expected pool is not present.
 	PoolNameHandlerInterval = 5 * time.Second
-	SharedInformerInterval  = 5 * time.Minute
-	ResourceWorkerInterval  = time.Second
+	// SharedInformerInterval is used to sync watcher controller.
+	SharedInformerInterval = 5 * time.Minute
+	// ResourceWorkerInterval is used for resource sync.
+	ResourceWorkerInterval = time.Second
+	// InitialZreplRetryInterval is used while initially starting controller.
+	InitialZreplRetryInterval = 3 * time.Second
+	// ContinuousZreplRetryInterval is used while controller has started running.
+	ContinuousZreplRetryInterval = 1 * time.Second
 )
 
 const (

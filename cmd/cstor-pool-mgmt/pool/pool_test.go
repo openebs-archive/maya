@@ -347,20 +347,36 @@ func TestSetCacheFile(t *testing.T) {
 	}
 }
 
-// TestCheckForZrepl is to test zrepl running.
-func TestCheckForZrepl(t *testing.T) {
+// TestCheckForZreplInitialis to test zrepl running.
+func TestCheckForZreplInitial(t *testing.T) {
 	done := make(chan bool)
 	RunnerVar = TestRunner{}
 	go func(done chan bool) {
-		CheckForZrepl()
+		CheckForZreplInitial(3 * time.Second)
 		done <- true
 	}(done)
 
 	select {
 	case <-time.After(3 * time.Second):
-		t.Fatalf("Zrepl test failure - Timed out")
+		t.Fatalf("Check for Zrepl initial test failure - Timed out")
 	case <-done:
 
+	}
+}
+
+// TestCheckForZreplContinuous is to test zrepl running.
+func TestCheckForZreplContinuous(t *testing.T) {
+	done := make(chan bool)
+	RunnerVar = TestRunner{}
+	go func(done chan bool) {
+		CheckForZreplContinuous(1 * time.Second)
+		done <- true
+	}(done)
+
+	select {
+	case <-time.After(3 * time.Second):
+	case <-done:
+		t.Fatalf("Check for Zrepl continuous test failure")
 	}
 }
 

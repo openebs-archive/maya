@@ -18,6 +18,7 @@ package startcontroller
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/golang/glog"
@@ -71,8 +72,12 @@ func StartControllers(kubeconfig string) {
 	common.IsImported = make(chan bool, 1)
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
-	pool.CheckForZrepl()
-
+	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)
+	go func() {
+		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
+		glog.Errorf("Zrepl is not available, Shutting down")
+		os.Exit(1)
+	}()
 	// Blocking call for checking status of CStorPool CRD.
 	common.CheckForCStorPoolCRD(openebsClient)
 
