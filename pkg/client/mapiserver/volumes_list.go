@@ -2,11 +2,10 @@ package mapiserver
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 
 	"time"
+
+	"github.com/openebs/maya/types/v1"
 )
 
 const (
@@ -16,27 +15,8 @@ const (
 // ListVolumes and return them as obj
 func ListVolumes(obj interface{}) error {
 
-	_, err := GetStatus()
-	if err != nil {
-		return err
-	}
+	body, err := getRequest(GetURL()+"/latest/volumes/", v1.DefaultNamespaceForListOps, false)
 
-	url := GetURL() + "/latest/volumes/"
-	client := &http.Client{
-		Timeout: timeoutVolumesList,
-	}
-	resp, err := client.Get(url)
-	if err != nil {
-		return err
-	}
-
-	code := resp.StatusCode
-	if code != http.StatusOK {
-		return fmt.Errorf("Status Error: %v", http.StatusText(code))
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

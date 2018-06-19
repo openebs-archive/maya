@@ -268,12 +268,16 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 	glog.Infof("Processing Volume add request")
 
 	vol := &v1.Volume{}
-
 	// The yaml/json spec is decoded to vol struct
 	if err := decodeBody(req, vol); err != nil {
 		return nil, CodedError(400, err.Error())
 	}
-
+	if vol.Clone {
+		err := s.getVolumeCloneDetails(resp, req, vol)
+		if err != nil {
+			return nil, err
+		}
+	}
 	// Name is expected to be available even in the minimalist specs
 	if vol.Name == "" {
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", vol))
@@ -317,4 +321,21 @@ func (s *HTTPServer) volumeAdd(resp http.ResponseWriter, req *http.Request) (int
 	glog.Infof("Processed Volume add request successfully for '" + vol.Name + "'")
 
 	return details, nil
+}
+
+// getVolumeCloneDetails gets source volume controller-ip and storage class
+// information for creating clone volume for clone enabled volume.
+func (s *HTTPServer) getVolumeCloneDetails(resp http.ResponseWriter, req *http.Request, vol *v1.Volume) error {
+	glog.Infof("Processing Volume clone for volume : '%s', request for volume '%s'", vol.Name, vol.SourceVolume)
+
+	voldetails, err := s.volumeRead(resp, req, vol.SourceVolume)
+	if err != nil {
+		return err
+	}
+
+	vol.CloneIP = voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	if len(vol.Labels.K8sStorageClass) == 0 {
+		vol.ObjectMeta.Labels.K8sStorageClass = voldetails.Annotations["openebs.io/storage-class"]
+	}
+	return nil
 }

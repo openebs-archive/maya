@@ -24,7 +24,7 @@ Usage: mayactl volume info --volname <vol>
 `
 )
 
-//values keeps info of the values of a current address in replicaIPStatus map
+// Value keeps info of the values of a current address in replicaIPStatus map
 type Value struct {
 	index  int
 	status string
@@ -57,7 +57,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 		Long:    volumeInfoCommandHelpText,
 		Example: `mayactl volume info --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeInfo(cmd), util.Fatal)
 		},
 	}
@@ -66,7 +66,6 @@ func NewCmdVolumeInfo() *cobra.Command {
 	return cmd
 }
 
-// TODO : Add more volume information
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	annotation := &Annotations{}
