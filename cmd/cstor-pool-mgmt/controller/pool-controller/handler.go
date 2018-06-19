@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
@@ -81,28 +82,56 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 
 		// If pool is already present.
 		existingPool, _ := pool.GetPoolName()
-		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
-			common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
-			if err != nil {
-				return string(apis.CStorPoolStatusOffline), err
+		flag := len(existingPool) != 0
+		cnt := common.NoOfPoolWaitAttempts
+		for i := 0; flag && i < cnt; i++ {
+			existingPool, _ := pool.GetPoolName()
+			if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
+				flag = true
+				common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
+				if err != nil {
+					common.IsImported <- false
+					return string(apis.CStorPoolStatusOffline), err
+				}
+				if i == cnt-1 {
+					if IsInitStatus(cStorPoolGot) {
+						glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+						c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+						common.IsImported <- true
+						return string(apis.CStorPoolStatusOnline), nil
+					}
+					glog.Errorf("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+					c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+					common.IsImported <- true
+					return string(apis.CStorPoolStatusAlreadyPresent), nil
+				}
+				glog.Infof("Attempt %v: Waiting...", i+1)
+				time.Sleep(common.PoolWaitInterval)
+			} else {
+				flag = false
+				common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 			}
-			glog.Errorf("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-			return string(apis.CStorPoolStatusAlreadyPresent), nil
 		}
 
 		cachefileFlag := true
 		status, _ := c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+			common.IsImported <- true
 			return status, nil
+		}
+		cachefileFlag = false
+		status, _ = c.importPool(cStorPoolGot, cachefileFlag)
+		if status == string(apis.CStorPoolStatusOnline) {
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+			common.IsImported <- true
+			return status, nil
+		}
+
+		if len(common.InitialImportedPoolVol) != 0 {
+			common.IsImported <- true
 		} else {
-			cachefileFlag = false
-			status, _ := c.importPool(cStorPoolGot, cachefileFlag)
-			if status == string(apis.CStorPoolStatusOnline) {
-				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-				return status, nil
-			}
+			common.IsImported <- false
 		}
 
 		// IsInitStatus is to check if initial status of cstorpool object is `init`.
@@ -197,11 +226,13 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 	if err == nil {
 		err = pool.SetCachefile(cStorPoolGot)
 		if err != nil {
+			common.IsImported <- false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
 		common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 		if err != nil {
+			common.IsImported <- false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Import Pool with cachefile successful: %v", string(cStorPoolGot.GetUID()))

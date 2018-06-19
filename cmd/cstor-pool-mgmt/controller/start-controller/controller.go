@@ -68,6 +68,7 @@ func StartControllers(kubeconfig string) {
 	// Making RunnerVar to use RealRunner
 	pool.RunnerVar = util.RealRunner{}
 	volumereplica.RunnerVar = util.RealRunner{}
+	common.IsImported = make(chan bool, 1)
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
 	pool.CheckForZrepl()

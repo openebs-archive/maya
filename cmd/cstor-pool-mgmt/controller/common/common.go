@@ -84,6 +84,13 @@ const (
 	ResourceWorkerInterval  = time.Second
 )
 
+const (
+	// NoOfPoolWaitAttempts is number of attempts to wait in case of pod/container restarts.
+	NoOfPoolWaitAttempts = 60
+	// PoolWaitInterval is the interval to wait for pod/container restarts.
+	PoolWaitInterval = 2 * time.Second
+)
+
 // InitialImportedPoolVol is to store pool-volume names while pod restart.
 var InitialImportedPoolVol []string
 
@@ -93,6 +100,7 @@ type QueueLoad struct {
 	Operation QueueOperation
 }
 
+// Environment is for environment variables passed for cstor-pool-mgmt.
 type Environment string
 
 const (
@@ -109,6 +117,9 @@ const (
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
 )
+
+// IsImported is channel to block cvr until certain pool import operations are over.
+var IsImported chan bool
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.

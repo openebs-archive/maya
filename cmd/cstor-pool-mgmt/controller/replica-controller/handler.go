@@ -67,6 +67,7 @@ func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.
 }
 
 func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOperation, cVR *apis.CStorVolumeReplica) (string, error) {
+
 	err := volumereplica.CheckValidVolumeReplica(cVR)
 	if err != nil {
 		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
@@ -87,12 +88,15 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 	case common.QOpAdd:
 		glog.Infof("Processing cvr added event: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
 
-		// To check if volume is already imported with pool.
-		importedFlag := common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
-		if importedFlag && !IsInitStatus(cVR) {
-			glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
-			c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			return string(apis.CVRStatusOnline), nil
+		importedFlag := <-common.IsImported
+		if importedFlag {
+			// To check if volume is already imported with pool.
+			importedFlag = common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
+			if importedFlag && !IsInitStatus(cVR) {
+				glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
+				c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+				return string(apis.CVRStatusOnline), nil
+			}
 		}
 
 		// If volumereplica is already present.
