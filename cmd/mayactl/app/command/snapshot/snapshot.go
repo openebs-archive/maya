@@ -26,6 +26,7 @@ var (
 	}
 )
 
+// CmdSnaphotOptions holds informations of snapshots being operated
 type CmdSnaphotOptions struct {
 	volName   string
 	snapName  string
@@ -63,6 +64,7 @@ Examples:
 `
 )
 
+// NewCmdSnapshot adds command for operating on snapshot
 func NewCmdSnapshot() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "snapshot",

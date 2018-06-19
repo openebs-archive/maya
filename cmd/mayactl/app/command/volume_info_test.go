@@ -25,7 +25,7 @@ func TestRunVolumeInfo(t *testing.T) {
 
 		Example: `mayactl volume info --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeInfo(cmd), util.Fatal)
 		},
 	}
