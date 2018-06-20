@@ -86,36 +86,24 @@ type casCommon struct {
 	taskGroupRunner *task.TaskGroupRunner
 }
 
-// addTaskResultsToTaskResultTLP will add a run task's results to TaskResultTLP
-//
-// NOTE:
-//  This is a concrete implementation of task.PostTaskRunFn type.
-// Since task package does the low level execution, it has the results of
-// the execution as well the properties of resulting objects. This
-// function will be passed as a **closure** till task execution.
+// buildCASCommon constructs and returns a casCommon structure based on the
+// given arguments
+func buildCASCommon(
+	casTemplate *v1alpha1.CASTemplate,
+	runtimeVals map[string]string,
+	fetcher task.TaskSpecFetcher,
+	grpRunner *task.TaskGroupRunner) casCommon {
 
-// In other words it gets executed lazily post the run task's execution.
-//
-// NOTE:
-//  This will enable templating a run task template as follows:
-//
-// {{ .TaskResult.<Identity>.<prop1> }}
-// {{ .TaskResult.<Identity>.<prop2> }}
-//
-// NOTE:
-//  Above parsing scheme is translated by running `go template` against the run
-// task template
-func (c *casCommon) addTaskResultsToTaskResultTLP(taskResultsMap map[string]interface{}) {
-	if taskResultsMap == nil {
-		// nothing to do
-		return
-	}
-
-	// task results are mapped against the task's identity
-	for tID, tResults := range taskResultsMap {
-		// task result is added or updated to template values
-		// task result is set against TaskResultTLP.tID path of template values
-		util.SetNestedField(c.templateValues, tResults, string(v1alpha1.TaskResultTLP), tID)
+	return casCommon{
+		casTemplate: casTemplate,
+		templateValues: map[string]interface{}{
+			// runtime volume info is set against volume top level property
+			string(v1alpha1.VolumeTLP): runtimeVals,
+			// list items is set as a top level property
+			string(v1alpha1.ListItemsTLP): map[string]interface{}{},
+		},
+		taskSpecFetcher: fetcher,
+		taskGroupRunner: grpRunner,
 	}
 }
 
@@ -123,19 +111,15 @@ func (c *casCommon) addTaskResultsToTaskResultTLP(taskResultsMap map[string]inte
 // info needed to run the tasks
 func (c *casCommon) prepareTasksForExec() error {
 	// prepare the tasks mentioned in cas template
-	for _, t := range c.casTemplate.Spec.RunTasks.Tasks {
-		// fetch task & meta task specifications from task name
-		metaTaskYml, taskYml, err := c.taskSpecFetcher.Fetch(t.TaskName)
+	for _, taskName := range c.casTemplate.Spec.RunTasks.Tasks {
+		// fetch runtask from task name
+		runtask, err := c.taskSpecFetcher.Fetch(taskName)
 		if err != nil {
 			return err
 		}
 
-		// prepare the task group runner by adding the run task's specifications
-		//
-		// NOTE: a run task has two specs:
-		//  1/ meta task specifications &
-		//  2/ task specifications
-		err = c.taskGroupRunner.AddTaskSpec(t.Identity, metaTaskYml, taskYml)
+		// prepare the task group runner by adding the runtask
+		err = c.taskGroupRunner.AddRunTask(runtask)
 		if err != nil {
 			return err
 		}
@@ -145,37 +129,52 @@ func (c *casCommon) prepareTasksForExec() error {
 }
 
 // prepareOutputTask prepares the taskGroupRunner instance with the
-// info needed to output after successful execution of the tasks
-func (c *casCommon) prepareOutputTask() error {
-	opTask := c.casTemplate.Spec.RunTasks.Output
-	if len(opTask.TaskName) == 0 {
+// yaml template which becomes the output of the runner. This is
+// invoked after successful execution of all the runtasks.
+func (c *casCommon) prepareOutputTask() (err error) {
+	opTaskName := c.casTemplate.Spec.OutputTask
+	if len(opTaskName) == 0 {
 		// no output task was specified; nothing to do
-		return nil
+		return
 	}
 
-	metaOpYml, taskOpYml, err := c.taskSpecFetcher.Fetch(opTask.TaskName)
+	runtask, err := c.taskSpecFetcher.Fetch(opTaskName)
 	if err != nil {
-		return err
+		return
 	}
 
-	c.taskGroupRunner.SetOutputTaskSpec(metaOpYml, taskOpYml)
+	err = c.taskGroupRunner.SetOutputTask(runtask)
+	return
+}
 
-	return nil
+// initTaskResultAsTLP adds task result as a top level property i.e. becomes
+// part of values to be used for templating
+//
+// NOTE:
+//  This will enable templating a run task template as follows:
+//
+// {{ .TaskResult }}
+// {{ .TaskResult.<nestedProperty1> }}
+func (c *casCommon) initTaskResultAsTLP() {
+	c.templateValues[string(v1alpha1.TaskResultTLP)] = nil
 }
 
 // run executes the cas engine based on the tasks set in the cas template
 func (c *casCommon) run() (output []byte, err error) {
+	c.initTaskResultAsTLP()
+
 	err = c.prepareTasksForExec()
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	err = c.prepareOutputTask()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	return c.taskGroupRunner.Run(c.templateValues, c.addTaskResultsToTaskResultTLP)
+	//return c.taskGroupRunner.Run(c.templateValues, c.addTaskResultsToTaskResultTLP)
+	return c.taskGroupRunner.Run(c.templateValues)
 }
 
 // casCreate is capable of creating a CAS volume
@@ -209,7 +208,7 @@ func NewCASCreate(casConfigPVC string, casConfigSC string, casTemplate *v1alpha1
 		return nil, fmt.Errorf("failed to create cas template engine: nil runtime volume values")
 	}
 
-	f, err := task.NewK8sTaskSpecFetcher(casTemplate.Spec.RunTasks.TaskNamespace)
+	f, err := task.NewK8sTaskSpecFetcher(casTemplate.Spec.TaskNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -230,15 +229,7 @@ func NewCASCreate(casConfigPVC string, casConfigSC string, casTemplate *v1alpha1
 	}
 
 	return &casCreate{
-		casCommon: casCommon{
-			casTemplate: casTemplate,
-			templateValues: map[string]interface{}{
-				// runtime volume info is set against volume top level property
-				string(v1alpha1.VolumeTLP): runtimeVolumeVals,
-			},
-			taskSpecFetcher: f,
-			taskGroupRunner: r,
-		},
+		casCommon:     buildCASCommon(casTemplate, runtimeVolumeVals, f, r),
 		defaultConfig: casTemplate.Spec.Defaults,
 		casConfigSC:   casConfSC,
 		casConfigPVC:  casConfPVC,
@@ -294,31 +285,6 @@ func (c *casCreate) addConfigToConfigTLP() error {
 	return nil
 }
 
-// getAnnotations will fetch the annotations from all tasks
-func (c *casCreate) getAnnotations() (map[string]string, error) {
-	// extract results of all tasks
-	allTasksResults := c.templateValues[string(v1alpha1.TaskResultTLP)]
-	if allTasksResults == nil {
-		return nil, nil
-	}
-
-	annotations := map[string]string{}
-
-	if allTasksResultsMap, ok := allTasksResults.(map[string]interface{}); ok {
-		// iterate through each task & capture its annotation from task results
-		for tID, _ := range allTasksResultsMap {
-			if strings.Contains(tID, string(v1alpha1.AnnotationsTRTP)) {
-				isMerged := util.MergeMapOfStrings(annotations, util.GetMapOfStrings(allTasksResultsMap, tID))
-				if !isMerged {
-					return nil, fmt.Errorf("failed to add annotations from task having task result id '%s'", tID)
-				}
-			}
-		}
-	}
-
-	return annotations, nil
-}
-
 // create creates a cas volume
 func (c *casCreate) create() (output []byte, err error) {
 	// add config
@@ -328,11 +294,6 @@ func (c *casCreate) create() (output []byte, err error) {
 	}
 
 	return c.run()
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//return c.getAnnotations()
 }
 
 // casEngine supports various cas volume related operations
@@ -361,7 +322,7 @@ func NewCASEngine(casTemplate *v1alpha1.CASTemplate, runtimeVolumeVals map[strin
 		return nil, fmt.Errorf("failed to create cas template engine: nil runtime volume values")
 	}
 
-	fr, err := task.NewK8sTaskSpecFetcher(casTemplate.Spec.RunTasks.TaskNamespace)
+	fr, err := task.NewK8sTaskSpecFetcher(casTemplate.Spec.TaskNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -372,15 +333,7 @@ func NewCASEngine(casTemplate *v1alpha1.CASTemplate, runtimeVolumeVals map[strin
 	}
 
 	return &casEngine{
-		casCommon: casCommon{
-			casTemplate: casTemplate,
-			templateValues: map[string]interface{}{
-				// runtime volume info is set against volume top level property
-				string(v1alpha1.VolumeTLP): runtimeVolumeVals,
-			},
-			taskSpecFetcher: fr,
-			taskGroupRunner: gr,
-		},
+		casCommon: buildCASCommon(casTemplate, runtimeVolumeVals, fr, gr),
 	}, nil
 }
 

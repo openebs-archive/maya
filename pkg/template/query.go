@@ -44,17 +44,17 @@ type Query interface {
 type JsonQuery struct {
 	// name given to this json query operation
 	name string
-	// values is data against which json path will be run
-	values []byte
+	// jsondoc is the json doc against which json path will be run
+	jsondoc []byte
 	// path represents the json path used to query the json doc
 	path string
 }
 
-func NewJsonQuery(name string, values []byte, path string) *JsonQuery {
+func NewJsonQuery(name string, jsondoc []byte, path string) *JsonQuery {
 	return &JsonQuery{
-		name:   name,
-		values: values,
-		path:   path,
+		name:    name,
+		jsondoc: jsondoc,
+		path:    path,
 	}
 }
 
@@ -72,7 +72,7 @@ func (m *JsonQuery) Query() (output string, err error) {
 	}
 
 	var values interface{}
-	err = json.Unmarshal(m.values, &values)
+	err = json.Unmarshal(m.jsondoc, &values)
 	if err != nil {
 		return
 	}

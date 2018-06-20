@@ -83,13 +83,13 @@ const (
 	CASConfigCVK CASVolumeKey = "cas.openebs.io/config"
 
 	// NamespaceCVK is the key to fetch volume's namespace
-	NamespaceCVK CASVolumeKey = "k8s.io/namespace"
+	NamespaceCVK CASVolumeKey = "openebs.io/namespace"
 
 	// PersistentVolumeClaimCVK is the key to fetch volume's PVC
-	PersistentVolumeClaimCVK CASVolumeKey = "k8s.io/pvc"
+	PersistentVolumeClaimCVK CASVolumeKey = "openebs.io/pvc"
 
 	// StorageClassCVK is the key to fetch volume's SC
-	StorageClassCVK CASVolumeKey = "k8s.io/storage-class"
+	StorageClassCVK CASVolumeKey = "openebs.io/storage-class"
 )
 
 // CASVolumeDeprecatedKey is a typed string to represent cas volume related
@@ -101,6 +101,15 @@ const (
 	//
 	// CapacityCVDK is a label key used to set volume capacity
 	CapacityCVDK CASVolumeDeprecatedKey = "volumeprovisioner.mapi.openebs.io/storage-size"
+
+	// NamespaceCVK is the key to fetch volume's namespace
+	NamespaceCVDK CASVolumeDeprecatedKey = "k8s.io/namespace"
+
+	// PersistentVolumeClaimCVK is the key to fetch volume's PVC
+	PersistentVolumeClaimCVDK CASVolumeDeprecatedKey = "k8s.io/pvc"
+
+	// StorageClassCVK is the key to fetch volume's SC
+	StorageClassCVDK CASVolumeDeprecatedKey = "k8s.io/storage-class"
 )
 
 // CASVolumeDefault is a typed string to represent default cas volume related
@@ -167,7 +176,7 @@ const (
 type CASVolumeList struct {
 	metav1.ListOptions `json:",inline"`
 	metav1.ObjectMeta  `json:"metadata,omitempty"`
-	metav1.ListMeta    `json:"metadata"`
+	metav1.ListMeta    `json:"metalist"`
 
 	// Items are the list of volumes
 	Items []CASVolume `json:"items"`
