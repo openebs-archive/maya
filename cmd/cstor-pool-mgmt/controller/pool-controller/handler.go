@@ -80,13 +80,22 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			return string(apis.CStorPoolStatusOffline), err
 		}
 
-		// If pool is already present.
+		/* 	If pool is already present.
+		Pool CR status is online. This means pool (main car) is running successfully,
+		but watcher container got restarted.
+		Pool CR status is init/online. If entire pod got restarted, both zrepl and watcher
+		are started.
+		a) Zrepl could have come up first, in this case, watcher will update after
+		the specified interval of 120s.
+		b) Watcher could have come up first, in this case, there is a possibility
+		that zrepl goes down and comes up and the watcher sees that no pool is there,
+		so it will break the loop and attempt to import the pool. */
 		existingPool, _ := pool.GetPoolName()
 		flag := len(existingPool) != 0
 		// cnt is no of attempts to wait and handle in case of already present pool.
 		cnt := common.NoOfPoolWaitAttempts
 		for i := 0; flag && i < cnt; i++ {
-			common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
+			common.InitialImportedPoolVol, _ = volumereplica.GetVolumes()
 			// GetPoolName is to get pool name for particular no. of attempts.
 			existingPool, _ := pool.GetPoolName()
 			if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
@@ -94,15 +103,18 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 				// In the last attempt, ignore and update the status.
 				if i == cnt-1 {
 					if IsInitStatus(cStorPoolGot) {
+						// Pool CR status is init. This means pool deployment was done
+						// successfully, but before updating the CR to Online status,
+						// the watcher container got restarted.
 						glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
-						c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+						c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 						common.IsImported <- true
 						return string(apis.CStorPoolStatusOnline), nil
 					}
-					glog.Errorf("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
-					c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+					glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 					common.IsImported <- true
-					return string(apis.CStorPoolStatusAlreadyPresent), nil
+					return string(apis.CStorPoolStatusOnline), nil
 				}
 				glog.Infof("Attempt %v: Waiting...", i+1)
 				time.Sleep(common.PoolWaitInterval)

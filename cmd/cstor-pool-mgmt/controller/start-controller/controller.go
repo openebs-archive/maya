@@ -74,6 +74,12 @@ func StartControllers(kubeconfig string) {
 	// Blocking call for checking status of zrepl running in cstor-pool container.
 	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)
 	go func() {
+		// CheckForZreplContinuous is continuous health checker for status of
+		// zrepl in cstor-pool container.
+		// When zrepl is getting terminated and restarted very fast: zpool status
+		// goroutine may miss this failure. To resolve, we’ll give InitialTimeDelay y
+		// for zrepl container such that the period(x) of the goroutine thread will
+		// be half that of this initialTimeDelay y. (x = 1/2 y).
 		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
 		glog.Errorf("Zrepl is not available, Shutting down")
 		os.Exit(1)

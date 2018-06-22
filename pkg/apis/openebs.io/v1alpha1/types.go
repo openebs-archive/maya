@@ -198,8 +198,6 @@ const (
 	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
 	// CStorPoolStatusInvalid ensures invalid resource.
 	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
-	// CStorPoolStatusAlreadyPresent ensures resource is already present.
-	CStorPoolStatusAlreadyPresent CStorPoolPhase = "already-present"
 )
 
 // CStorPoolStatus is for handling status of pool.
@@ -253,8 +251,6 @@ const (
 	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
 	// CVRStatusInvalid ensures invalid resource.
 	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
-	// CVRStatusAlreadyPresent ensures invalid resource.
-	CVRStatusAlreadyPresent CStorVolumeReplicaPhase = "already-present"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.

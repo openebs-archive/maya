@@ -92,7 +92,7 @@ func GetVolumes() ([]string, error) {
 	volnameByte, err := RunnerVar.RunStdoutPipe(VolumeReplicaOperator, volStrCmd...)
 	if err != nil || string(volnameByte) == "" {
 		glog.Errorf("Unable to get volumes:%v", string(volnameByte))
-		return []string{}, nil
+		return []string{}, err
 	}
 	noisyVolname := string(volnameByte)
 	sepNoisyVolName := strings.Split(noisyVolname, "\n")

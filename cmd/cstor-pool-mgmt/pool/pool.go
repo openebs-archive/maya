@@ -124,7 +124,7 @@ func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
 	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
 	if err != nil || len(string(poolNameByte)) == 0 {
-		return []string{}, nil
+		return []string{}, err
 	}
 	noisyPoolName := string(poolNameByte)
 	sepNoisyPoolName := strings.Split(noisyPoolName, "\n")
@@ -166,7 +166,7 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
-			glog.Infof("Waiting for zpool replication container to start......")
+			glog.Infof("Waiting for zpool replication container to start...")
 			continue
 		}
 		break

@@ -94,7 +94,7 @@ const (
 
 const (
 	// NoOfPoolWaitAttempts is number of attempts to wait in case of pod/container restarts.
-	NoOfPoolWaitAttempts = 60
+	NoOfPoolWaitAttempts = 30
 	// PoolWaitInterval is the interval to wait for pod/container restarts.
 	PoolWaitInterval = 2 * time.Second
 )
@@ -134,7 +134,8 @@ var IsImported chan bool
 func PoolNameHandler(cVR *apis.CStorVolumeReplica, cnt int) bool {
 	for i := 0; ; i++ {
 		poolname, _ := pool.GetPoolName()
-		if reflect.DeepEqual(poolname, []string{}) || !CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
+		if reflect.DeepEqual(poolname, []string{}) ||
+			!CheckIfPresent(poolname, string(pool.PoolPrefix)+cVR.Labels["cstorpool.openebs.io/uid"]) {
 			glog.Warningf("Attempt %v: No pool found", i+1)
 			time.Sleep(PoolNameHandlerInterval)
 			if i > cnt {

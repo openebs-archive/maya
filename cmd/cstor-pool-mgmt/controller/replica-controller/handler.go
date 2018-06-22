@@ -102,9 +102,9 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 		// If volumereplica is already present.
 		existingvol, _ := volumereplica.GetVolumes()
 		if common.CheckIfPresent(existingvol, fullVolName) {
-			glog.Errorf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
+			glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
 			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-			return string(apis.CStorPoolStatusAlreadyPresent), nil
+			return string(apis.CVRStatusOnline), nil
 		}
 
 		// IsInitStatus is to check if initial status of cVR object is `init`.
