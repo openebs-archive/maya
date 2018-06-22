@@ -99,6 +99,10 @@ type K8sClient struct {
 	// NOTE: This property enables unit testing
 	Pod *api_core_v1.Pod
 
+	// Pods refers to a K8s Pod object
+	// NOTE: This property enables unit testing
+	Pods []api_core_v1.Pod
+
 	// Service refers to a K8s Service object
 	// NOTE: This property enables unit testing
 	Service *api_core_v1.Service
@@ -319,6 +323,11 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 
 // GetPods fetches the K8s Pods
 func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
+	// this condition is used only in unit testing otherwise is always nil
+	if k.Pods != nil {
+		return k.Pods, nil
+	}
+
 	podLists, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
 		return nil, err

@@ -58,7 +58,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 		Example: `mayactl volume info --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
-			util.CheckErr(options.RunVolumeInfo(cmd), util.Fatal)
+			util.CheckErr(options.RunVolumeInfo(cmd, &client.ControllerClient{}), util.Fatal)
 		},
 	}
 	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
@@ -68,7 +68,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 
 // TODO : Add more volume information
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo
-func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command, controllerClient client.VolStats) error {
 	annotation := &Annotations{}
 	// GetVolumeAnnotation is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
@@ -85,22 +85,21 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
 	collection := client.ReplicaCollection{}
-	controllerClient := client.ControllerClient{}
 	_, err = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.InfoAPI, &collection)
 	if err != nil {
 		return err
 	}
 
-	c.DisplayVolumeInfo(annotation, collection)
-	return nil
-}
-
-func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
-	K8sClient, err := k8sclient.NewK8sClient("")
+	K8sClient, err := k8sclient.NewK8sClient(c.namespace)
 	if err != nil {
 		return err
 	}
 
+	c.DisplayVolumeInfo(annotation, collection, K8sClient)
+	return nil
+}
+
+func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo, K8sClient *k8sclient.K8sClient) error {
 	pods, err := K8sClient.GetPods()
 	if err != nil {
 		return err
@@ -120,7 +119,7 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently it displays volume access modes and target portal details only.
-func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
+func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection, K8sClient *k8sclient.K8sClient) error {
 	var (
 		// address and mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
@@ -207,7 +206,7 @@ Status  :   {{.Status}}
 		}
 	}
 
-	err = updateReplicasInfo(replicaInfo)
+	err = updateReplicasInfo(replicaInfo, K8sClient)
 	if err != nil {
 		fmt.Println("Error in getting specific information from K8s. Please try again.")
 	}

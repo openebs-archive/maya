@@ -14,6 +14,11 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
+// VolStats interface is used to get volume stats
+type VolStats interface {
+	GetVolumeStats(address string, api string, obj interface{}) (int, error)
+}
+
 // NewControllerClient create the new controller client
 func NewControllerClient(address string) (*ControllerClient, error) {
 	address = strings.TrimPrefix(address, "tcp://")
