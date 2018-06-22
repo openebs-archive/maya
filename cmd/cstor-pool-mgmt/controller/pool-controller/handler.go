@@ -83,16 +83,15 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// If pool is already present.
 		existingPool, _ := pool.GetPoolName()
 		flag := len(existingPool) != 0
+		// cnt is no of attempts to wait and handle in case of already present pool.
 		cnt := common.NoOfPoolWaitAttempts
 		for i := 0; flag && i < cnt; i++ {
+			common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
+			// GetPoolName is to get pool name for particular no. of attempts.
 			existingPool, _ := pool.GetPoolName()
 			if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
 				flag = true
-				common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
-				if err != nil {
-					common.IsImported <- false
-					return string(apis.CStorPoolStatusOffline), err
-				}
+				// In the last attempt, ignore and update the status.
 				if i == cnt-1 {
 					if IsInitStatus(cStorPoolGot) {
 						glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
@@ -108,11 +107,13 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 				glog.Infof("Attempt %v: Waiting...", i+1)
 				time.Sleep(common.PoolWaitInterval)
 			} else {
+				// If no pool is present while trying for getpoolname, set flag to false and
+				// break the loop, to import the pool later.
 				flag = false
-				common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 			}
 		}
 
+		// import pool with cachefile.
 		cachefileFlag := true
 		status, _ := c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
@@ -120,6 +121,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			common.IsImported <- true
 			return status, nil
 		}
+		// import pool without cachefile.
 		cachefileFlag = false
 		status, _ = c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
@@ -128,6 +130,8 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			return status, nil
 		}
 
+		// make a check if initialImportedPoolVol is not empty, then notify cvr controller
+		// through channel.
 		if len(common.InitialImportedPoolVol) != 0 {
 			common.IsImported <- true
 		} else {
