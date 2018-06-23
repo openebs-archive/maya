@@ -96,10 +96,18 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 }
 
 func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
-	K8sClient, err := k8sclient.NewK8sClient("")
+	// kubernetes clientset
+	kubernetesClientSet, err := k8sclient.GetInClusterCS()
 	if err != nil {
 		return err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := k8sclient.GetInClusterOECS()
+	if err != nil {
+		return err
+	}
+	K8sClient := k8sclient.NewK8sClient(kubernetesClientSet, openEBSClientSet, "")
 
 	pods, err := K8sClient.GetPods()
 	if err != nil {
