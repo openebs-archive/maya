@@ -1,5 +1,7 @@
 package v1
 
+import "encoding/json"
+
 // VolumeMetrics is used to store the collected metrics
 // all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
 type VolumeMetrics struct {
@@ -22,6 +24,29 @@ type VolumeMetrics struct {
 	Size              string  `json:"Size"`
 	UpTime            float64 `json:"UpTime"`
 	Name              string  `json:"Name"`
+}
+
+// VolumeStats is used to store the collected metrics
+// TODO: Make this generic, so that it can be used by mayactl
+// and other components of maya.
+type VolumeStats struct {
+	Iqn                 string      `json:"iqn"`
+	Reads               json.Number `json:"ReadIOPS"`
+	TotalReadTime       json.Number `json:"TotalReadTime"`
+	TotalReadBlockCount json.Number `json:"TotalReadBlockCount"`
+	TotalReadBytes      json.Number `json:"TotalReadBytes"`
+
+	Writes               json.Number `json:"WriteIOPS"`
+	TotalWriteTime       json.Number `json:"TotalWriteTime"`
+	TotalWriteBlockCount json.Number `json:"TotatWriteBlockCount"`
+	TotalWriteBytes      json.Number `json:"TotalWriteBytes"`
+
+	UsedLogicalBlocks json.Number `json:"UsedLogicalBlocks"`
+	UsedBlocks        json.Number `json:"UsedBlocks"`
+	SectorSize        json.Number `json:"SectorSize"`
+	Size              json.Number `json:"Size"`
+	UpTime            float64     `json:"UpTime"`
+	Name              string      `json:"Name"`
 }
 
 type VolStatus struct {
