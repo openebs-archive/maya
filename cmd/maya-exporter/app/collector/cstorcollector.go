@@ -27,12 +27,12 @@ func NewCstorStatsExporter(conn net.Conn, casType string) *VolumeStatsExporter {
 // collector makes call to set for the collection of metrics
 // if the connection is available else retry to initiate
 // connection again.
-func (c *Cstor) collector(v *VolumeStatsExporter) error {
+func (c *Cstor) collector(m *Metrics) error {
 
 	if c.Conn == nil {
 		// initiate the connection again if connection with the istgt closed
 		// due to timeout or some other errors from istgt side.
-		v.connectionRetryCounter.WithLabelValues("Connection closed from cstor, retry").Inc()
+		m.connectionRetryCounter.WithLabelValues("Connection closed from cstor, retry").Inc()
 		if c.InitiateConnection(); c.Conn == nil {
 			glog.Error("Error in initiating the connection")
 			return errors.New("error in initiating connection with socket")
@@ -41,8 +41,8 @@ func (c *Cstor) collector(v *VolumeStatsExporter) error {
 	// set the values of stats from cstor if cstor is reachable, else set nil to
 	// the value of net.Conn in case of error so that new connection be created
 	// after the new request from prometheus comes.
-	if err := c.set(v); err != nil {
-		v.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
+	if err := c.set(m); err != nil {
+		m.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
 		glog.Error("Error in connection, closing the connection")
 		c.Conn.Close()
 		c.Conn = nil
@@ -67,7 +67,7 @@ func (c *Cstor) writer() error {
 // reader reads the response from socket in the buffer and
 // exits if the buffer contains the "IOSTATS\r\n" at the end.
 func (c *Cstor) reader() (string, error) {
-	buf := make([]byte, 256)
+	buf := make([]byte, BufSize)
 	var (
 		err           error
 		n             int
@@ -122,7 +122,7 @@ func newResponse(result string) v1.VolumeStats {
 // set make call to reader and writer to write the
 // IOSTATS command over wire and then reads the response.
 
-func (c *Cstor) set(v *VolumeStatsExporter) error {
+func (c *Cstor) set(m *Metrics) error {
 	var (
 		// aggregated response from cstor stored into response
 		response string
@@ -152,18 +152,18 @@ func (c *Cstor) set(v *VolumeStatsExporter) error {
 	// unmarshal the json response into Metrics instances.
 	newResp = newResponse(response)
 	volStats = c.parser(newResp)
-	v.reads.Set(volStats.reads)
-	v.writes.Set(volStats.writes)
-	v.totalReadBytes.Set(volStats.totalReadBytes)
-	v.totalWriteBytes.Set(volStats.totalWriteBytes)
-	v.sizeOfVolume.Set(volStats.size)
+	m.reads.Set(volStats.reads)
+	m.writes.Set(volStats.writes)
+	m.totalReadBytes.Set(volStats.totalReadBytes)
+	m.totalWriteBytes.Set(volStats.totalWriteBytes)
+	m.sizeOfVolume.Set(volStats.size)
 	volName := strings.TrimPrefix(newResp.Iqn, "iqn.2017-08.OpenEBS.cstor:")
 	// currently volumeUpTime, portal address is not available
 	// from the cstor.
 	// TODO : Update the volumeUpTime from 0 to the exact value
 	// and add portal address and remove hardcoded value.
 	now := time.Now()
-	v.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost").Set(float64(now.Second()))
+	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost").Set(float64(now.Second()))
 	return nil
 }
 

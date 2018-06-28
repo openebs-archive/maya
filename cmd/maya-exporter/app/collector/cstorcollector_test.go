@@ -295,7 +295,7 @@ func TestCstorStatsCollector(t *testing.T) {
 				// value at run time.
 				tt.exporter.Conn = conn
 			}
-			got := tt.exporter.Cstor.collector(tt.exporter)
+			got := tt.exporter.Cstor.collector(&tt.exporter.Metrics)
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
 			}

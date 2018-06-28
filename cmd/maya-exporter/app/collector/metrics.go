@@ -19,6 +19,8 @@ const (
 	// Command is a command that is used to write over wire and get
 	// the iostats from the cstor.
 	Command = "IOSTATS"
+	// BufSize is the size of response from cstor.
+	BufSize = 256
 )
 
 // Exporter interface defines the interfaces that has methods to be
@@ -139,20 +141,6 @@ type VolumeStats struct {
 // CstorStatsExporter.
 func MetricsInitializer(casType string) *Metrics {
 	return &Metrics{
-		totalReadBytes: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
-				Name:      "total_read_bytes",
-				Help:      "Total read bytes",
-			}),
-		totalWriteBytes: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
-				Name:      "total_write_bytes",
-				Help:      "Total write bytes",
-			}),
 		actualUsed: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "OpenEBS",
@@ -169,12 +157,28 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Logical size of volume",
 			}),
 
+		sizeOfVolume: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "size_of_volume",
+				Help:      "Size of the volume requested",
+			}),
+
 		sectorSize: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "OpenEBS",
 				Subsystem: casType,
 				Name:      "sector_size",
 				Help:      "sector size of volume",
+			}),
+
+		totalReadBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_read_bytes",
+				Help:      "Total read bytes",
 			}),
 
 		reads: prometheus.NewGauge(
@@ -201,6 +205,14 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Read Block count of volume",
 			}),
 
+		totalWriteBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_write_bytes",
+				Help:      "Total write bytes",
+			}),
+
 		writes: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "OpenEBS",
@@ -225,14 +237,6 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Write Block count of volume",
 			}),
 
-		sizeOfVolume: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
-				Name:      "size_of_volume",
-				Help:      "Size of the volume requested",
-			}),
-
 		volumeUpTime: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: "OpenEBS",
@@ -242,6 +246,7 @@ func MetricsInitializer(casType string) *Metrics {
 			},
 			[]string{"volName", "iqn", "portal"},
 		),
+
 		connectionRetryCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: "OpenEBS",
@@ -251,6 +256,7 @@ func MetricsInitializer(casType string) *Metrics {
 			},
 			[]string{"err"},
 		),
+
 		connectionErrorCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Namespace: "OpenEBS",
@@ -332,9 +338,9 @@ func (v *VolumeStatsExporter) Collect(ch chan<- prometheus.Metric) {
 	// issues or anything else.
 	switch v.CASType {
 	case "cstor":
-		_ = v.Cstor.collector(v)
+		_ = v.Cstor.collector(&v.Metrics)
 	case "jiva":
-		_ = v.Jiva.collector(v)
+		_ = v.Jiva.collector(&v.Metrics)
 	}
 
 	// collect the metrics extracted by collect method

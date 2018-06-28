@@ -31,18 +31,17 @@ func NewJivaStatsExporter(volumeControllerURL *url.URL, casType string) *VolumeS
 
 // collector selects the container attached storage for the collection of
 // metrics.Supported CAS are jiva and cstor.
-func (j *Jiva) collector(v *VolumeStatsExporter) error {
+func (j *Jiva) collector(m *Metrics) error {
 	// set the metrics from jiva controller and send it via channels
-	if err := j.set(v); err != nil {
-		v.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
+	if err := j.set(m); err != nil {
+		m.connectionErrorCounter.WithLabelValues(err.Error()).Inc()
 		return errors.New("error in collecting metrics")
 	}
 	return nil
 }
 
-// getVolumeStats is used to decode the response from the Jiva controller
-// response received by the client is in json format which then decoded
-// and mapped to VolumeMetrics.
+// getVolumeStats is used to get the response from the Jiva controller
+// which then unmarshalled into the v1.VolumeStats structure.
 func (j *Jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	httpClient := http.DefaultClient
 	httpClient.Timeout = 1 * time.Second
@@ -71,7 +70,7 @@ func (j *Jiva) getVolumeStats(obj *v1.VolumeStats) error {
 
 // set is used to set the values gathered from Jiva volume
 // controller to prometheus gauges and counters.
-func (j *Jiva) set(v *VolumeStatsExporter) error {
+func (j *Jiva) set(m *Metrics) error {
 	var (
 		// JSON response from jiva controller
 		volStatsJSON v1.VolumeStats
@@ -85,20 +84,20 @@ func (j *Jiva) set(v *VolumeStatsExporter) error {
 	}
 	volStats = j.parser(volStatsJSON)
 
-	v.reads.Set(volStats.reads)
-	v.totalReadTime.Set(volStats.totalReadTime)
-	v.writes.Set(volStats.writes)
-	v.totalWriteTime.Set(volStats.totalWriteTime)
-	v.totalReadBlockCount.Set(volStats.totalReadBlockCount)
-	v.totalWriteBlockCount.Set(volStats.totalWriteBlockCount)
-	v.sectorSize.Set(volStats.sectorSize)
-	v.logicalSize.Set(volStats.logicalSize)
-	v.actualUsed.Set(volStats.actualSize)
-	v.sizeOfVolume.Set(volStats.size)
+	m.reads.Set(volStats.reads)
+	m.totalReadTime.Set(volStats.totalReadTime)
+	m.writes.Set(volStats.writes)
+	m.totalWriteTime.Set(volStats.totalWriteTime)
+	m.totalReadBlockCount.Set(volStats.totalReadBlockCount)
+	m.totalWriteBlockCount.Set(volStats.totalWriteBlockCount)
+	m.sectorSize.Set(volStats.sectorSize)
+	m.logicalSize.Set(volStats.logicalSize)
+	m.actualUsed.Set(volStats.actualSize)
+	m.sizeOfVolume.Set(volStats.size)
 	url := j.VolumeControllerURL
 	url = strings.TrimSuffix(url, ":9501/v1/stats")
 	url = strings.TrimPrefix(url, "http://")
-	v.volumeUpTime.WithLabelValues(volStatsJSON.Name, "iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name, url).Set(volStatsJSON.UpTime)
+	m.volumeUpTime.WithLabelValues(volStatsJSON.Name, "iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name, url).Set(volStatsJSON.UpTime)
 	return nil
 }
 

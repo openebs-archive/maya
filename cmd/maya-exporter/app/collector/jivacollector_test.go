@@ -195,7 +195,7 @@ func TestJivaStatsCollector(t *testing.T) {
 				server := httptest.NewServer(&tt.fakehandler)
 				tt.exporter.VolumeControllerURL = server.URL
 			}
-			got := tt.exporter.Jiva.collector(tt.exporter)
+			got := tt.exporter.Jiva.collector(&tt.exporter.Metrics)
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
 			}
