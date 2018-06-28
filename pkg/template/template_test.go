@@ -19,10 +19,14 @@ limitations under the License.
 // into understanding the standard templating features used
 // by maya
 //
-// NOTE:
-// BuiltIn funcs https://golang.org/src/text/template/funcs.go
-// More funcs https://github.com/Masterminds/sprig/tree/master/docs
-// Templating guide https://github.com/kubernetes/helm/tree/master/docs/chart_template_guide
+// NOTE on templating:
+//
+// BuiltIn funcs: https://golang.org/src/text/template/funcs.go
+// Custom template funcs:
+// - https://github.com/Masterminds/sprig/tree/master/docs
+// Templating guides:
+// - https://github.com/kubernetes/helm/tree/master/docs/chart_template_guide
+// - https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
 package template
 
 import (
@@ -35,6 +39,311 @@ import (
 	"encoding/json"
 	"github.com/ghodss/yaml"
 )
+
+func TestSplitKeyMap(t *testing.T) {
+	tests := map[string]struct {
+		splitters   string
+		destFields  string
+		given       []string
+		destination map[string]interface{}
+		expected    map[string]interface{}
+	}{
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs separated by ::
+      - NOTE: If there is only one k=v pair then :: is not provided
+      - Verify if the result matches the expected`: {
+			splitters:   ":: =",
+			destFields:  "test1",
+			given:       []string{"co1=k8s::co2=swarm", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test1": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs separated by --
+      - NOTE: If there is only one k=v pair then -- is not provided
+      - NOTE: primary key value is provided for some keyvalue pairs
+      - Verify if the result matches the expected`: {
+			splitters:   "-- =",
+			destFields:  "test2",
+			given:       []string{"co1=k8s--co2=swarm", "pkey=myCO--co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test2": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+					},
+					"myCO": map[string]interface{}{
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k::v pairs separated by --
+      - NOTE: If there is only one k::v pair then -- is not provided
+      - NOTE: primary key value is provided for some keyvalue pairs
+      - Verify if the result matches the expected`: {
+			splitters:   "-- ::",
+			destFields:  "test3",
+			given:       []string{"co1::k8s--co2::swarm", "pkey::myCO--co3::nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test3": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+					},
+					"myCO": map[string]interface{}{
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs without any splitters
+      - NOTE: primary key value is provided only for some keyvalue pairs
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "test4",
+			given:       []string{"co1=k8s,co2=swarm", "pkey=myCO,co3=nomad", "co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test4": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co4": "custom",
+					},
+					"myCO": map[string]interface{}{
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs without any splitters and primary key
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "test5",
+			given:       []string{"co1=k8s,co2=swarm", "co3=nomad", "co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test5": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co3": "nomad",
+						"co4": "custom",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs with common keys & without splitters & primary key
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "test6",
+			given:       []string{"co1=k8s,co2=swarm,co3=newK8s,co4=newSwarm", "co3=nomad", "co3=mySched,co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test6": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co3": "newK8s, nomad, mySched",
+						"co4": "newSwarm, custom",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs with common keys & without splitters & different primary keys
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "test7",
+			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "pkey=beta,co3=nomad", "pkey=delta,co3=mySched,co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test7": map[string]interface{}{
+					"alpha": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+					},
+					"beta": map[string]interface{}{
+						"co3": "nomad",
+					},
+					"delta": map[string]interface{}{
+						"co3": "mySched",
+						"co4": "custom",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs without destination field
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "pkey=beta,co3=nomad", "pkey=delta,co3=mySched,co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"alpha": map[string]interface{}{
+					"co1": "k8s",
+					"co2": "swarm",
+				},
+				"beta": map[string]interface{}{
+					"co3": "nomad",
+				},
+				"delta": map[string]interface{}{
+					"co3": "mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs without destination field & some primary keys
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "co3=nomad", "co3=mySched,co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"alpha": map[string]interface{}{
+					"co1": "k8s",
+					"co2": "swarm",
+				},
+				"pkey": map[string]interface{}{
+					"co3": "nomad, mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with k=v pairs without destination field & primary key
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"co1=k8s,co2=swarm", "co3=nomad", "co3=mySched,co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"pkey": map[string]interface{}{
+					"co1": "k8s",
+					"co2": "swarm",
+					"co3": "nomad, mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with 'comma' as pair delimiter or 'comma with dangling spaces as pair delimiter'
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"co1=k8s,co2=swarm ,  co3=newK8s", "co3=nomad", "co3=mySched, co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"pkey": map[string]interface{}{
+					"co1": "k8s",
+					"co2": "swarm",
+					"co3": "newK8s, nomad, mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with blank value(s) & 'comma with dangling space delimiter'
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"co1=,co2=swarm ,  co3= ", "co3=nomad", "co3=mySched, co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"pkey": map[string]interface{}{
+					"co1": "",
+					"co2": "swarm",
+					"co3": "nomad, mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with blank key(s), blank value(s) & 'comma with dangling space delimiter'
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"co1=,=swarm ,  =newK8s ", "co3=nomad", "co3=mySched, co4=custom"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"pkey": map[string]interface{}{
+					"co1": "",
+					"co3": "nomad, mySched",
+					"co4": "custom",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with blank string & strings with whitespaces
+      - Verify if the result matches the expected`: {
+			splitters:   "",
+			destFields:  "",
+			given:       []string{"", "  ", "  co3=mySched, co4=custom  "},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"pkey": map[string]interface{}{
+					"co3": "mySched",
+					"co4": "custom",
+				},
+			},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := splitKeyMap(mock.splitters, mock.destFields, mock.destination, mock.given)
+
+			if !reflect.DeepEqual(mock.expected, result) {
+				t.Fatalf("test split key map failed:\n\nexpected: '%#v' \n\nactual: '%#v'", mock.expected, result)
+			}
+		})
+	}
+}
 
 // MockJsonList is a struct used during unit testing that can be marshaled from
 // go object to []byte & vice-versa
@@ -84,6 +393,358 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		expectedYaml           string
 		expectedTemplateValues map[string]interface{}
 	}{
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw VerifyError error for non-empty string:
+		  - Provide a non empty string to verifyErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- "I am not empty" | empty | verifyErr "empty string provided" | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml:           ``,
+			expectedTemplateValues: map[string]interface{}{},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw VerifyError error for non-empty list:
+		  - Provide a non empty list to verifyErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- list "I am not empty" | empty | verifyErr "empty list provided" | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml:           ``,
+			expectedTemplateValues: map[string]interface{}{},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw VerifyError error for non-empty dict:
+		  - Provide a non empty dict to verifyErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- dict "k1" "v1" "k2" "v2" | empty | verifyErr "empty dict provided" | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml:           ``,
+			expectedTemplateValues: map[string]interface{}{},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw VerifyError for empty list:
+		  - Provide a empty list to verifyErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- list | empty | verifyErr "empty list provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &VerifyError{"empty list provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw VerifyError for empty dict:
+		  - Provide a empty dict to verifyErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- dict | empty | verifyErr "empty dictionary provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &VerifyError{"empty dictionary provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw VerifyError for empty string:
+		  - Provide a empty string to verifyErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- "" | empty | verifyErr "empty string provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &VerifyError{"empty string provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test: Does not throw VerifyError for non-empty kind objects: 
+		  - Get a list of kinds via jsonpath as a string output, 
+		  - Then trim this output which has two items i.e. output is non-empty,
+		  - Then split this output via " " into an array
+		  - Then throw verify error if this output array length is not 2
+		  - Verify this templating does not throw VerifyError error`: {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
+{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}
+value: {{ .Values.TaskResult.tskId.kind }}`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonListMarshal(&MockJsonList{
+					ApiVersion: "v1beta1",
+					Items: []MockJson{
+						MockJson{
+							Kind: "Pod",
+						},
+						MockJson{
+							Kind: "Deployment",
+						},
+					},
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: `
+value: Pod Deployment`,
+			expectedTemplateValues: map[string]interface{}{
+				"err": nil,
+				"TaskResult": map[string]interface{}{
+					"tskId": map[string]interface{}{
+						"kind": "Pod Deployment",
+					},
+				},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test: Throw VerifyError due to empty kind objects: 
+		  - Get a list of kinds via jsonpath as a string output, 
+		  - Then trim this output which is empty in this case,
+		  - Then split this output via " " into an array
+		  - Then throw VerifyError if this output array length is not 2
+		  - Verify this templating throws VerifyError during template execution`: {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
+{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonListMarshal(&MockJsonList{
+					ApiVersion: "v1beta1",
+					Items: []MockJson{
+						MockJson{
+							Kind: "",
+						},
+						MockJson{
+							Kind: "",
+						},
+					},
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &VerifyError{"kind count is not two"},
+				"TaskResult": map[string]interface{}{
+					"tskId": map[string]interface{}{
+						"kind": "",
+					},
+				},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test: Throws VerifyError as count of kind is not 2: 
+		  - Get a list of kinds via jsonpath as a string output, 
+		  - Then trim this output which has one item i.e. output is non-empty,
+		  - Then split this output via " " into an array
+		  - Then throw VerifyError if this output array length is not 2
+		  - Verify VerifyError is thrown during template execution`: {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
+{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonListMarshal(&MockJsonList{
+					ApiVersion: "v1beta1",
+					Items: []MockJson{
+						MockJson{
+							Kind: "",
+						},
+						MockJson{
+							Kind: "Deployment",
+						},
+					},
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &VerifyError{"kind count is not two"},
+				"TaskResult": map[string]interface{}{
+					"tskId": map[string]interface{}{
+						"kind": "Deployment",
+					},
+				},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw notFoundErr for empty list:
+		  - Provide a empty list to notFoundErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- list | notFoundErr "empty list provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &NotFoundError{"empty list provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw notFoundErr for empty dict:
+		  - Provide a empty dict to notFoundErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- dict | notFoundErr "empty dictionary provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &NotFoundError{"empty dictionary provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw notFoundErr for empty string:
+		  - Provide a empty string to notFoundErr template function
+		  - Verify it should throw an error`: {
+			templateInYaml: `
+{{- "" | notFoundErr "empty string provided" | saveIf "err" .Values | noop -}}`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &NotFoundError{"empty string provided"},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw notFoundErr error for non-empty string:
+		  - Provide a non empty string to notFoundErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- "I am not empty" | notFoundErr "empty string provided" | saveIf "err" .Values | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": nil,
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw notFoundErr error for non-empty list:
+		  - Provide a non empty list to notFoundErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- list "I am not empty" | notFoundErr "empty list provided" | saveIf "err" .Values | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": nil,
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw notFoundErr error for non-empty dict:
+		  - Provide a non empty dict to notFoundErr template function
+		  - Verify it should not throw any error`: {
+			templateInYaml: `
+{{- dict "k1" "v1" "k2" "v2" | notFoundErr "empty dict provided" | saveIf "err" .Values | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": nil,
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Positive Test - Does not throw notFoundErr error for non empty kind
+		  - NOTE: jsonpath, saveAs and notFoundErr are template functions
+		  - Verify go templating should not throw any error`: {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | notFoundErr "kind is missing" | saveIf "err" .Values | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonMarshal(&MockJson{
+					Kind: "Pod",
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": nil,
+				"TaskResult": map[string]interface{}{
+					"tskId": map[string]interface{}{
+						"kind": "Pod",
+					},
+				},
+			},
+		},
+		//
+		// start of test scenario
+		//
+		`Negative Test - Throw notFoundErr error for empty kind
+		  - NOTE: jsonpath, saveAs and notFoundErr are template functions
+		  - Verify go templating throw error`: {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | notFoundErr "kind is missing" | saveIf "err" .Values | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonMarshal(&MockJson{
+					Kind: "",
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: ``,
+			expectedTemplateValues: map[string]interface{}{
+				"err": &NotFoundError{"kind is missing"},
+				"TaskResult": map[string]interface{}{
+					"tskId": map[string]interface{}{
+						"kind": "",
+					},
+				},
+			},
+		},
 		//
 		// start of test scenario
 		//
@@ -343,9 +1004,9 @@ openebs:
 		//
 		`Positive Test - simple - To test if 'asKeyMap' works as expected
 		  - NOTE: 'asKeyMap' is a template function
-		  - Given a string in 'pkey=value k1=v1 k2=v2 k3=v3' format
+		  - Given a string in 'pkey=value,k1=v1,k2=v2,k3=v3' format
 		  - Then split the string via " " resulting into an array
-		  - Then translate above array into a map of k:v pairs via 'asKeyMap' 
+		  - Then translate above array into a map of k=v pairs via 'asKeyMap' 
 		    - NOTE: Each item of the array is framed into a map of k:v pairs
 		    - NOTE: Above map of k:v pairs is set into .Values.scenario at its pkey property 
 		    - i.e. {{ .Values.<pkey-value> }} # if pkey is provided
@@ -353,9 +1014,9 @@ openebs:
 		    - {{ .Values.pkey }} # if pkey is not provided
 		  - Verify the maps at .Values.scenario to verify working of 'asKeyMap'`: {
 			templateInYaml: `
-{{- "pkey=openebs stor1=jiva stor2=cstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}
-{{- "co1=swarm co2=k8s" | splitList " " | asKeyMap "scenario" .Values | noop -}}
-{{- "pkey=openebs stor2=mstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}`,
+{{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}
+{{- "co1=swarm,co2=k8s" | splitList " " | asKeyMap "scenario" .Values | noop -}}
+{{- "pkey=openebs,stor2=mstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
 				"Values": map[string]interface{}{},
 			},
@@ -377,7 +1038,7 @@ openebs:
 		// start of test scenario
 		//
 		`Positive Test - complex - To test use of a map generated via 'asKeyMap'
-		  - Get all the properties via jsonpath in 'pkey=value k1=v1 k2=v2 k3=v3;' format
+		  - Get all the properties via jsonpath in 'pkey=value,k1=v1,k2=v2,k3=v3;' format
 		    - NOTE: 'jsonpath' & 'asKeyMap' are template functions
 		    - NOTE: 'jsonpath' is a range on a list of items
 		    - NOTE: 'jsonpath' is a path expression made out of back ticks to handle paths with field itself having dot '.'
@@ -385,7 +1046,7 @@ openebs:
 		    - NOTE: ';' is used as delimiter to separate one output item from next output item
 		  - Then trim this output for any whitespaces
 		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a map of k:v pairs via 'asKeyMap' 
+		  - Then translate above array into a map of k=v pairs via 'asKeyMap' 
 		    - NOTE: Each item of the array is framed into a map of k:v pairs
 		    - NOTE: Above map of k:v pairs is set into .Values at its pkey property 
 		    - i.e. {{ .Values.<pkey-value> }} # if pkey is provided
@@ -444,7 +1105,7 @@ items:
 					},
 				}),
 				"Values": map[string]interface{}{
-					"path": `{range .items[*]}pkey={@.labels.openebs\.io/pv} name={@.name} kind={@.kind} owner={@.owner};{end}`,
+					"path": `{range .items[*]}pkey={@.labels.openebs\.io/pv},name={@.name},kind={@.kind},owner={@.owner};{end}`,
 				},
 			},
 			expectedYaml: `
@@ -462,7 +1123,7 @@ items:
     owner: User
     count: 1`,
 			expectedTemplateValues: map[string]interface{}{
-				"path": `{range .items[*]}pkey={@.labels.openebs\.io/pv} name={@.name} kind={@.kind} owner={@.owner};{end}`,
+				"path": `{range .items[*]}pkey={@.labels.openebs\.io/pv},name={@.name},kind={@.kind},owner={@.owner};{end}`,
 				"scenario": map[string]interface{}{
 					"pvc-1234-abc": map[string]interface{}{
 						"kind":  "Service, Pod",
@@ -533,219 +1194,6 @@ apiVersion: v1beta1`,
 				"TaskResult": map[string]interface{}{
 					"tskId": map[string]interface{}{
 						"myplace": "v1beta1",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		`Positive Test: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which has two items i.e. output is non-empty,
-		  - Then split this output via " " into an array
-		  - Then try to set verify error if this output array length is not 2`: {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
-{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "TaskResult.tskId.verifyErr" .Values | noop -}}
-value: {{ .Values.TaskResult.tskId.kind }}
-verifyErr: {{ .Values.TaskResult.tskId.verifyErr }}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "Pod",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "Deployment",
-							Namespace: "default",
-							Name:      "mydeploy",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-value: Pod Deployment
-verifyErr: <no value>`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind":      "Pod Deployment",
-						"verifyErr": nil,
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		`Negative Test: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which has one item i.e. output is non-empty,
-		  - Then split this output via " " into an array
-		  - Then try to set verify error if this output array length is not 2`: {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
-{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "TaskResult.tskId.verifyErr" .Values | noop -}}
-value: {{ .Values.TaskResult.tskId.kind }}
-verifyErr: {{ .Values.TaskResult.tskId.verifyErr }}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "Deployment",
-							Namespace: "default",
-							Name:      "mydeploy",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-value: Deployment
-verifyErr: kind count is not two`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind":      "Deployment",
-						"verifyErr": &VerifyError{"kind count is not two"},
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		`Negative Test: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which is empty in this case,
-		  - Then split this output via " " into an array
-		  - Then try to set verify error if this output array length is not 2`: {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
-{{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "TaskResult.tskId.verifyErr" .Values | noop -}}
-value: {{ .Values.TaskResult.tskId.kind }}
-verifyErr: {{ .Values.TaskResult.tskId.verifyErr }}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "",
-							Namespace: "default",
-							Name:      "mydeploy",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-value:
-verifyErr: kind count is not two`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind":      "",
-						"verifyErr": &VerifyError{"kind count is not two"},
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		`Negative Test: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which is non-empty in this case,
-		  - Then try to set verify error if this output is empty`: {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
-{{- .Values.TaskResult.tskId.kind | empty | verifyErr "kind is empty" | saveIf "TaskResult.tskId.verifyErr" .Values | noop -}}
-value: {{ .Values.TaskResult.tskId.kind }}
-verifyErr: {{ .Values.TaskResult.tskId.verifyErr }}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "Pod",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "Deployment",
-							Namespace: "default",
-							Name:      "mydeploy",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-value: Pod Deployment
-verifyErr: <no value>`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind":      "Pod Deployment",
-						"verifyErr": nil,
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		`Positive Test: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this white spaced output,
-		  - Then try to set verify error if this output is empty`: {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
-{{- .Values.TaskResult.tskId.kind | empty | verifyErr "kind is empty" | saveIf "TaskResult.tskId.verifyErr" .Values | noop -}}
-value: {{ .Values.TaskResult.tskId.kind }}
-verifyErr: {{ .Values.TaskResult.tskId.verifyErr }}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "",
-							Namespace: "openebs",
-							Name:      "yourpod",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-value:
-verifyErr: kind is empty`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind":      "",
-						"verifyErr": &VerifyError{"kind is empty"},
 					},
 				},
 			},
@@ -860,48 +1308,6 @@ show: {{ .Values.TaskResult.tskId.kinds }}`,
 		//
 		// start of test scenario
 		//
-		"Positive Test - list of items - jsonpath | splitList | isLen ": {
-			templateInYaml: `
-{{- $noop := jsonpath .JsonDoc "{.items[*].kind}" | saveAs "TaskResult.tskId.kinds" .Values -}}
-kinds: {{ .Values.TaskResult.tskId.kinds }}
-isCountEqualsTwo: {{ .Values.TaskResult.tskId.kinds | splitList " " | isLen 2 }}
-isTwoErrMsg: {{ .Values.TaskResult.tskId.kinds | splitList " " | isLen 2 | not | verifyErr "invalid count" | saveIf "TaskResult.tskId.verifyErr" .Values | default "false" }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonListMarshal(&MockJsonList{
-					ApiVersion: "v1beta1",
-					Items: []MockJson{
-						MockJson{
-							Kind:      "Pod",
-							Namespace: "openebs",
-							Name:      "mypod",
-						},
-						MockJson{
-							Kind:      "Pod",
-							Namespace: "openebs",
-							Name:      "yourpod",
-						},
-					},
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-kinds: Pod Pod
-isCountEqualsTwo: true
-isTwoErrMsg: false
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kinds":     "Pod Pod",
-						"verifyErr": nil,
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
 		"Positive Test - list of items - jsonpath | saveAs | len": {
 			templateInYaml: `
 apiVersion: {{ jsonpath .JsonDoc "{.apiVersion}" | saveAs "TaskResult.tskId.apiVersion" .Values }}
@@ -992,159 +1398,6 @@ kind: Pod
 				"TaskResult": map[string]interface{}{
 					"tskId": map[string]interface{}{
 						"kind": "Pod",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		"Positive Test - kind is not missing - jsonpath | saveAs | notFoundErr | toString ": {
-			templateInYaml: `
-kindErr: {{ jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | notFoundErr "kind is missing" | toString }}
-isKindErr: {{ .Values.TaskResult.tskId.kind | empty }}
-kind: {{ .Values.TaskResult.tskId.kind }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonMarshal(&MockJson{
-					Kind:      "Pod",
-					Namespace: "openebs",
-					Name:      "",
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-kindErr: <nil>
-isKindErr: false
-kind: Pod
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"kind": "Pod",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		"Negative Test - name is missing - jsonpath | saveAs | notFoundErr | toString ": {
-			templateInYaml: `
-nameErr: {{ jsonpath .JsonDoc "{.name}" | saveAs "TaskResult.tskId.name" .Values | notFoundErr "name is missing" | toString }}
-isNameErr: {{ .Values.TaskResult.tskId.name | empty }}
-name: {{ .Values.TaskResult.tskId.name }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonMarshal(&MockJson{
-					Kind:      "Deployment",
-					Namespace: "default",
-					Name:      "",
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-nameErr: name is missing
-isNameErr: true
-name:
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"name": "",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		"Negative Test - name is missing - jsonpath | notFoundErr | toString | saveAs": {
-			templateInYaml: `
-{{- $noop := jsonpath .JsonDoc "{.name}" | notFoundErr "" | toString | saveAs "TaskResult.tskId.notFoundErrMsg" .Values -}}
-nameErr: {{ .Values.TaskResult.tskId.notFoundErrMsg }}
-isNameErr: {{ .Values.TaskResult.tskId.notFoundErrMsg | empty | not }}
-name: {{ jsonpath .JsonDoc "{.name}" }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonMarshal(&MockJson{
-					Kind:      "Deployment",
-					Namespace: "default",
-					Name:      "",
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-nameErr: item is not found
-isNameErr: true
-name:
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"notFoundErrMsg": "item is not found",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		"Negative Test - name is missing - jsonpath | notFoundErr | toString | saveAs | noop ": {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.name}" | notFoundErr "" | toString | saveAs "TaskResult.tskId.notFoundErrMsg" .Values | noop -}}
-nameErr: {{ .Values.TaskResult.tskId.notFoundErrMsg }}
-isNameErr: {{ .Values.TaskResult.tskId.notFoundErrMsg | empty | not }}
-name: {{ jsonpath .JsonDoc "{.name}" }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonMarshal(&MockJson{
-					Kind:      "Deployment",
-					Namespace: "default",
-					Name:      "",
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-nameErr: item is not found
-isNameErr: true
-name:
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"notFoundErrMsg": "item is not found",
-					},
-				},
-			},
-		},
-		//
-		// start of test scenario
-		//
-		"Negative Test - name is missing - jsonpath | empty | verifyErr | toString | saveAs | noop ": {
-			templateInYaml: `
-{{- jsonpath .JsonDoc "{.name}" | empty | verifyErr "name is missing" | toString | saveAs "TaskResult.tskId.verifyErrMsg" .Values | noop -}}
-nameErr: {{ .Values.TaskResult.tskId.verifyErrMsg }}
-isNameErr: {{ .Values.TaskResult.tskId.verifyErrMsg | empty | not }}
-name: {{ jsonpath .JsonDoc "{.name}" }}
-`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": mockJsonMarshal(&MockJson{
-					Kind:      "Deployment",
-					Namespace: "default",
-					Name:      "",
-				}),
-				"Values": map[string]interface{}{},
-			},
-			expectedYaml: `
-nameErr: name is missing
-isNameErr: true
-name:
-`,
-			expectedTemplateValues: map[string]interface{}{
-				"TaskResult": map[string]interface{}{
-					"tskId": map[string]interface{}{
-						"verifyErrMsg": "name is missing",
 					},
 				},
 			},

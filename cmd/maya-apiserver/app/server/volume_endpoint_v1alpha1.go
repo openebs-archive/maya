@@ -86,7 +86,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 
 	// use run namespace from labels if volume's namespace is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use run namespace from http request header if volume's namespace is still not set
@@ -131,7 +131,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	// use namespace from labels if volume ns is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -179,7 +179,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 
 	// use namespace from labels if volume ns is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -220,7 +220,7 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	// use namespace from labels if volume ns is not set
 	if len(vols.Namespace) == 0 {
-		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceCVK)]
+		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set

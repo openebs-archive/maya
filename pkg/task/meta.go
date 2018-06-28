@@ -73,8 +73,8 @@ type MetaTask struct {
 	// Options is a set of selectors that can be used for
 	// get or list actions
 	Options string `json:"options"`
-	// TODO
-	// Depecrate this in favour of 'post' property found in RunTask
+	// @Deprecated
+	//  In favour of 'RunTask.post' property
 	//
 	// TaskResultQueries will consist of the queries to be run against the
 	// task's result
@@ -243,6 +243,10 @@ func (m *metaTaskExecutor) isDeleteAppsV1B1Deploy() bool {
 
 func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isListCoreV1PVC() bool {
+	return m.identifier.isCoreV1PVC() && m.isList()
 }
 
 func (m *metaTaskExecutor) isListCoreV1Pod() bool {
