@@ -105,13 +105,13 @@ type Metrics struct {
 	reads                  prometheus.Gauge
 	totalReadTime          prometheus.Gauge
 	totalReadBlockCount    prometheus.Gauge
-	totalReadBytes         prometheus.Counter
+	totalReadBytes         prometheus.Gauge
 	writes                 prometheus.Gauge
 	totalWriteTime         prometheus.Gauge
 	totalWriteBlockCount   prometheus.Gauge
-	totalWriteBytes        prometheus.Counter
+	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
-	volumeUpTime           *prometheus.GaugeVec
+	volumeUpTime           *prometheus.CounterVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
 }
@@ -139,94 +139,124 @@ type VolumeStats struct {
 // CstorStatsExporter.
 func MetricsInitializer(casType string) *Metrics {
 	return &Metrics{
-		totalReadBytes: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "OpenEBS",
-			Name:      "total_read_bytes",
-			Help:      "Total read bytes",
-		}),
-		totalWriteBytes: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "OpenEBS",
-			Name:      "total_write_bytes",
-			Help:      "Total write bytes",
-		}),
-		actualUsed: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "actual_used",
-			Help:      "Actual volume size used",
-		}),
+		totalReadBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_read_bytes",
+				Help:      "Total read bytes",
+			}),
+		totalWriteBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_write_bytes",
+				Help:      "Total write bytes",
+			}),
+		actualUsed: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "actual_used",
+				Help:      "Actual volume size used",
+			}),
 
-		logicalSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "logical_size",
-			Help:      "Logical size of volume",
-		}),
+		logicalSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "logical_size",
+				Help:      "Logical size of volume",
+			}),
 
-		sectorSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "sector_size",
-			Help:      "sector size of volume",
-		}),
+		sectorSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "sector_size",
+				Help:      "sector size of volume",
+			}),
 
-		reads: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "reads",
-			Help:      "Read Input/Outputs on Volume",
-		}),
+		reads: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "reads",
+				Help:      "Read Input/Outputs on Volume",
+			}),
 
-		totalReadTime: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_time",
-			Help:      "Read time on volume",
-		}),
+		totalReadTime: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "read_time",
+				Help:      "Read time on volume",
+			}),
 
-		totalReadBlockCount: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_block_count",
-			Help:      "Read Block count of volume",
-		}),
+		totalReadBlockCount: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "read_block_count",
+				Help:      "Read Block count of volume",
+			}),
 
-		writes: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "writes",
-			Help:      "Write Input/Outputs on Volume",
-		}),
+		writes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "writes",
+				Help:      "Write Input/Outputs on Volume",
+			}),
 
-		totalWriteTime: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_time",
-			Help:      "Write time on volume",
-		}),
+		totalWriteTime: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "write_time",
+				Help:      "Write time on volume",
+			}),
 
-		totalWriteBlockCount: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_block_count",
-			Help:      "Write Block count of volume",
-		}),
+		totalWriteBlockCount: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "write_block_count",
+				Help:      "Write Block count of volume",
+			}),
 
-		sizeOfVolume: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "size_of_volume",
-			Help:      "Size of the volume requested",
-		}),
+		sizeOfVolume: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "size_of_volume",
+				Help:      "Size of the volume requested",
+			}),
 
-		volumeUpTime: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "volume_uptime",
-			Help:      "Time since volume has registered",
-		},
+		volumeUpTime: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "volume_uptime",
+				Help:      "Time since volume has registered",
+			},
 			[]string{"volName", "iqn", "portal"},
 		),
 		connectionRetryCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "connection_retry_total",
-				Help: "Total no of connection retry requests",
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "connection_retry_total",
+				Help:      "Total no of connection retry requests",
 			},
 			[]string{"err"},
 		),
 		connectionErrorCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "connection_error_total",
-				Help: "Total no of connection errors",
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "connection_error_total",
+				Help:      "Total no of connection errors",
 			},
 			[]string{"err"},
 		),
@@ -238,6 +268,8 @@ func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
 	return []prometheus.Gauge{
 		v.reads,
 		v.writes,
+		v.totalReadBytes,
+		v.totalWriteBytes,
 		v.totalReadTime,
 		v.totalWriteTime,
 		v.totalReadBlockCount,
@@ -252,8 +284,6 @@ func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
 // counterList returns the list of registered counter variables
 func (v *VolumeStatsExporter) countersList() []prometheus.Collector {
 	return []prometheus.Collector{
-		v.totalReadBytes,
-		v.totalWriteBytes,
 		v.volumeUpTime,
 		v.connectionErrorCounter,
 		v.connectionRetryCounter,

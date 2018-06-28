@@ -109,7 +109,7 @@ func splitter(resp string) string {
 	return res
 }
 
-// unmarshaller unmarshal the JSON into Response instances.
+// newResponse unmarshal the JSON into Response instances.
 func newResponse(result string) v1.VolumeStats {
 	metrics := v1.VolumeStats{}
 	if err := json.Unmarshal([]byte(result), &metrics); err != nil {
@@ -170,13 +170,13 @@ func (c *Cstor) set(v *VolumeStatsExporter) error {
 // Parser can used to parse the json strings into the respective types.
 // TODO: Instead of using two parser methods make it
 // a generic parser that can be used for both jiva and cstor.
-func (c *Cstor) parser(m1 v1.VolumeStats) VolumeStats {
+func (c *Cstor) parser(stats v1.VolumeStats) VolumeStats {
 	volStats := VolumeStats{}
-	volStats.reads, _ = m1.Reads.Float64()
-	volStats.writes, _ = m1.Writes.Float64()
-	volStats.totalReadBytes, _ = m1.TotalReadBytes.Float64()
-	volStats.totalWriteBytes, _ = m1.TotalWriteBytes.Float64()
-	size, _ := m1.Size.Float64()
+	volStats.reads, _ = stats.Reads.Float64()
+	volStats.writes, _ = stats.Writes.Float64()
+	volStats.totalReadBytes, _ = stats.TotalReadBytes.Float64()
+	volStats.totalWriteBytes, _ = stats.TotalWriteBytes.Float64()
+	size, _ := stats.Size.Float64()
 	size, _ = v1.DivideFloat64(size, v1.BytesToGB)
 	volStats.size = size
 	return volStats

@@ -102,24 +102,24 @@ func (j *Jiva) set(v *VolumeStatsExporter) error {
 	return nil
 }
 
-func (j *Jiva) parser(m1 v1.VolumeStats) VolumeStats {
+func (j *Jiva) parser(stats v1.VolumeStats) VolumeStats {
 	volStats := VolumeStats{}
-	volStats.reads, _ = m1.Reads.Float64()
-	volStats.writes, _ = m1.Writes.Float64()
-	volStats.totalReadTime, _ = m1.TotalReadTime.Float64()
-	volStats.totalWriteTime, _ = m1.TotalWriteTime.Float64()
-	volStats.totalReadBlockCount, _ = m1.TotalReadBlockCount.Float64()
-	volStats.totalWriteBlockCount, _ = m1.TotalWriteBlockCount.Float64()
+	volStats.reads, _ = stats.Reads.Float64()
+	volStats.writes, _ = stats.Writes.Float64()
+	volStats.totalReadTime, _ = stats.TotalReadTime.Float64()
+	volStats.totalWriteTime, _ = stats.TotalWriteTime.Float64()
+	volStats.totalReadBlockCount, _ = stats.TotalReadBlockCount.Float64()
+	volStats.totalWriteBlockCount, _ = stats.TotalWriteBlockCount.Float64()
 
-	volStats.sectorSize, _ = m1.SectorSize.Float64()
+	volStats.sectorSize, _ = stats.SectorSize.Float64()
 
-	uBlocks, _ := m1.UsedBlocks.Float64()
+	uBlocks, _ := stats.UsedBlocks.Float64()
 	uBlocks = uBlocks * volStats.sectorSize
 	volStats.logicalSize, _ = v1.DivideFloat64(uBlocks, v1.BytesToGB)
-	aUsed, _ := m1.UsedLogicalBlocks.Float64()
+	aUsed, _ := stats.UsedLogicalBlocks.Float64()
 	aUsed = aUsed * volStats.sectorSize
 	volStats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
-	size, _ := m1.Size.Float64()
+	size, _ := stats.Size.Float64()
 	volStats.size, _ = v1.DivideFloat64(size, v1.BytesToGB)
 	return volStats
 }

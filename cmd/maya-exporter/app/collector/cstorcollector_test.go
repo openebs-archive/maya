@@ -129,13 +129,13 @@ func TestCstorCollector(t *testing.T) {
 			response: CstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
-				regexp.MustCompile(`OpenEBS_reads 0`),
-				regexp.MustCompile(`OpenEBS_read_time 0`),
-				regexp.MustCompile(`OpenEBS_total_read_bytes 0`),
-				regexp.MustCompile(`OpenEBS_writes 0`),
-				regexp.MustCompile(`OpenEBS_write_time 0`),
-				regexp.MustCompile(`OpenEBS_total_write_bytes 0`),
-				regexp.MustCompile(`OpenEBS_size_of_volume 10`),
+				regexp.MustCompile(`OpenEBS_cstor_reads 0`),
+				regexp.MustCompile(`OpenEBS_cstor_read_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_writes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_write_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume 10`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -158,13 +158,13 @@ func TestCstorCollector(t *testing.T) {
 			response: NilCstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
-				regexp.MustCompile(`OpenEBS_reads 0`),
-				regexp.MustCompile(`OpenEBS_read_time 0`),
-				regexp.MustCompile(`OpenEBS_total_read_bytes 0`),
-				regexp.MustCompile(`OpenEBS_writes 0`),
-				regexp.MustCompile(`OpenEBS_write_time 0`),
-				regexp.MustCompile(`OpenEBS_total_write_bytes 0`),
-				regexp.MustCompile(`OpenEBS_size_of_volume 0`),
+				regexp.MustCompile(`OpenEBS_cstor_reads 0`),
+				regexp.MustCompile(`OpenEBS_cstor_read_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_writes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_write_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -188,13 +188,13 @@ func TestCstorCollector(t *testing.T) {
 			match:    []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
-				regexp.MustCompile(`OpenEBS_reads `),
-				regexp.MustCompile(`OpenEBS_read_time `),
-				regexp.MustCompile(`OpenEBS_total_read_bytes `),
-				regexp.MustCompile(`OpenEBS_writes `),
-				regexp.MustCompile(`OpenEBS_write_time `),
-				regexp.MustCompile(`OpenEBS_total_write_bytes `),
-				regexp.MustCompile(`OpenEBS_size_of_volume `),
+				regexp.MustCompile(`OpenEBS_cstor_reads `),
+				regexp.MustCompile(`OpenEBS_cstor_read_time `),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes `),
+				regexp.MustCompile(`OpenEBS_cstor_writes `),
+				regexp.MustCompile(`OpenEBS_cstor_write_time `),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes `),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume `),
 			},
 		},
 	} {
