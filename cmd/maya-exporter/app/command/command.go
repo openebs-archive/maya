@@ -124,7 +124,7 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 		glog.Error(err)
 		return errors.New("Error in parsing the URI")
 	}
-	exporter := collector.NewJivaStatsExporter(controllerURL)
+	exporter := collector.NewJivaStatsExporter(controllerURL, o.CASType)
 	prometheus.MustRegister(exporter)
 	return nil
 }
@@ -133,12 +133,12 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 // the exporter with Prometheus for collecting the metrics.This doesn't returns
 // error because that case is handled in InitiateConnection().
 func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
-	var c collector.CstorStatsExporter
+	var c collector.Cstor
 	c.InitiateConnection()
 	if c.Conn == nil {
 		glog.Error("Connection is not established with the cstor.")
 	}
-	exporter := collector.NewCstorStatsExporter(c.Conn)
+	exporter := collector.NewCstorStatsExporter(c.Conn, o.CASType)
 	prometheus.MustRegister(exporter)
 	glog.Info("Registered the exporter")
 	return

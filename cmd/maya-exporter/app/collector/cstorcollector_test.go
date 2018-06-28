@@ -13,26 +13,27 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
-	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }"
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }"
 	NilCstorResponse             = "OK IOSTATS\r\n"
-	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
-	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }"
-	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"writes\": \"0\", \"reads\": \"0\", \"totalwritebytes\": \"0\", \"totalreadbytes\": \"0\", \"size\": \"10737418240\" }\r\nOK IOSTATS\r\n`
+	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
+	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }"
+	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }\r\nOK IOSTATS\r\n`
 )
 
 func TestNewResponse(t *testing.T) {
 	cases := map[string]struct {
 		response string
-		output   Response
+		output   v1.VolumeStats
 	}{
 		"[Success]Unmarshal Response into Metrics struct": {
 			response: JSONFormatedResponse,
-			output: Response{
+			output: v1.VolumeStats{
 				Size:            "10737418240",
 				Iqn:             "iqn.2017-08.OpenEBS.cstor:vol1",
 				Writes:          "0",
@@ -43,7 +44,7 @@ func TestNewResponse(t *testing.T) {
 		},
 		"[Failure]Unmarshal Response returns empty Metrics": {
 			response: ImproperJSONFormatedResponse,
-			output:   Response{},
+			output:   v1.VolumeStats{},
 		},
 	}
 	for name, tt := range cases {
@@ -116,33 +117,25 @@ func TestCstorCollector(t *testing.T) {
 			input: `
 {
 	"stats": {
-		"read_iops": 0,
-		"read_time_per_second": 0,
-		"read_block_count_per_second": ,
-		"write_iops": 0,
-		"write_time_per_second": 0,
-		"write_block_count_per_second": 0,
-		"read_latency": 0,
-		"write_latency": 0,
-		"avg_read_block_count_per_second": 0,
-		"avg_write_block_count_per_second": ,
+		"reads": 0,
+		"read_time": 0,
+		"total_read_bytes": 0,
+		"writes": 0,
+		"write_time": 0,
+		"total_write_bytes": 0,
 		"size_of_volume": 10,
 	}
 }`,
 			response: CstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
-				regexp.MustCompile(`OpenEBS_read_iops 0`),
-				regexp.MustCompile(`OpenEBS_read_time_per_second 0`),
-				regexp.MustCompile(`OpenEBS_read_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_write_iops 0`),
-				regexp.MustCompile(`OpenEBS_write_time_per_second 0`),
-				regexp.MustCompile(`OpenEBS_write_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_read_latency 0`),
-				regexp.MustCompile(`OpenEBS_write_latency 0`),
-				regexp.MustCompile(`OpenEBS_avg_read_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_avg_write_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_size_of_volume 10`),
+				regexp.MustCompile(`OpenEBS_cstor_reads 0`),
+				regexp.MustCompile(`OpenEBS_cstor_read_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_writes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_write_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume 10`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -152,33 +145,26 @@ func TestCstorCollector(t *testing.T) {
 			input: `
 			{
 				"stats": {
-					"read_iops": 0,
-					"read_time_per_second": 0,
-					"read_block_count_per_second": ,
-					"write_iops": 0,
-					"write_time_per_second": 0,
-					"write_block_count_per_second": 0,
-					"read_latency": 0,
-					"write_latency": 0,
-					"avg_read_block_count_per_second": 0,
-					"avg_write_block_count_per_second": ,
-					"size_of_volume": 0,
-				}
+				"reads": 0,
+				"read_time": 0,
+				"total_read_bytes": 0,
+				"writes": 0,
+				"write_time": 0,
+				"total_write_bytes": 0,
+				"size_of_volume": 0,
+			}
+
 			}`,
 			response: NilCstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
-				regexp.MustCompile(`OpenEBS_read_iops 0`),
-				regexp.MustCompile(`OpenEBS_read_time_per_second 0`),
-				regexp.MustCompile(`OpenEBS_read_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_write_iops 0`),
-				regexp.MustCompile(`OpenEBS_write_time_per_second 0`),
-				regexp.MustCompile(`OpenEBS_write_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_read_latency 0`),
-				regexp.MustCompile(`OpenEBS_write_latency 0`),
-				regexp.MustCompile(`OpenEBS_avg_read_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_avg_write_block_count_per_second 0`),
-				regexp.MustCompile(`OpenEBS_size_of_volume 0`),
+				regexp.MustCompile(`OpenEBS_cstor_reads 0`),
+				regexp.MustCompile(`OpenEBS_cstor_read_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_writes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_write_time 0`),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes 0`),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
@@ -190,40 +176,25 @@ func TestCstorCollector(t *testing.T) {
 			input: `
 {
 	"stats": {
-		"actual_used": 0,
-		"logical_size": 0,
-		"sector_size": 4096,
-		"read_iops": 0,
-		"read_time_per_second": 0,
-		"read_block_count_per_second": ,
-		"write_iops": 0,
-		"write_time_per_second": 0,
-		"write_block_count_per_second": 0,
-		"read_latency": 0,
-		"write_latency": 0,
-		"avg_read_block_count_per_second": 0,
-		"avg_write_block_count_per_second": ,
-		"size_of_volume": 0,
-	}
+	"reads": 0,
+	"read_time": 0,
+	"total_read_bytes": 0,
+	"writes": 0,
+	"write_time": 0,
+	"total_write_bytes": 0,
+	"size_of_volume": 0,
 }`,
 			response: CstorResponse,
 			match:    []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
-				regexp.MustCompile(`OpenEBS_actual_used`),
-				regexp.MustCompile(`OpenEBS_logical_size`),
-				regexp.MustCompile(`OpenEBS_sector_size`),
-				regexp.MustCompile(`OpenEBS_read_iops`),
-				regexp.MustCompile(`OpenEBS_read_time_per_second`),
-				regexp.MustCompile(`OpenEBS_read_block_count_per_second`),
-				regexp.MustCompile(`OpenEBS_write_iops`),
-				regexp.MustCompile(`OpenEBS_write_time_per_second`),
-				regexp.MustCompile(`OpenEBS_write_block_count_per_second`),
-				regexp.MustCompile(`OpenEBS_read_latency`),
-				regexp.MustCompile(`OpenEBS_write_latency`),
-				regexp.MustCompile(`OpenEBS_avg_read_block_count_per_second`),
-				regexp.MustCompile(`OpenEBS_avg_write_block_count_per_second`),
-				regexp.MustCompile(`OpenEBS_size_of_volume`),
+				regexp.MustCompile(`OpenEBS_cstor_reads `),
+				regexp.MustCompile(`OpenEBS_cstor_read_time `),
+				regexp.MustCompile(`OpenEBS_cstor_total_read_bytes `),
+				regexp.MustCompile(`OpenEBS_cstor_writes `),
+				regexp.MustCompile(`OpenEBS_cstor_write_time `),
+				regexp.MustCompile(`OpenEBS_cstor_total_write_bytes `),
+				regexp.MustCompile(`OpenEBS_cstor_size_of_volume `),
 			},
 		},
 	} {
@@ -239,7 +210,7 @@ func TestCstorCollector(t *testing.T) {
 			}
 			// col is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			col := NewCstorStatsExporter(conn)
+			col := NewCstorStatsExporter(conn, "cstor")
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
@@ -282,23 +253,29 @@ func TestCstorStatsCollector(t *testing.T) {
 	// else ignore.
 	Unlink(t)
 	cases := map[string]struct {
-		exporter       *CstorStatsExporter
+		exporter       *VolumeStatsExporter
 		err            error
 		fakeUnixServer bool
 	}{
 		"[Success] If controller is cstor and its running": {
-			exporter: &CstorStatsExporter{
+			exporter: &VolumeStatsExporter{
+				CASType: "cstor",
 				// Value of Conn will be overwritten at run time
-				Conn:    nil,
-				Metrics: *MetricsInitializer(),
+				Cstor: Cstor{
+					Conn: nil,
+				},
+				Metrics: *MetricsInitializer("cstor"),
 			},
 			fakeUnixServer: true,
 			err:            nil,
 		},
 		"[failure] If controller is cstor and its not running": {
-			exporter: &CstorStatsExporter{
-				Conn:    nil,
-				Metrics: *MetricsInitializer(),
+			exporter: &VolumeStatsExporter{
+				CASType: "cstor",
+				Cstor: Cstor{
+					Conn: nil,
+				},
+				Metrics: *MetricsInitializer("cstor"),
 			},
 			err: errors.New("error in initiating connection with socket"),
 		},
@@ -318,7 +295,7 @@ func TestCstorStatsCollector(t *testing.T) {
 				// value at run time.
 				tt.exporter.Conn = conn
 			}
-			got := tt.exporter.collector()
+			got := tt.exporter.Cstor.collector(&tt.exporter.Metrics)
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
 			}
@@ -354,7 +331,7 @@ func TestSplitter(t *testing.T) {
 func TestReadHeader(t *testing.T) {
 	Unlink(t)
 	cases := map[string]struct {
-		exporter       *CstorStatsExporter
+		cstor          *Cstor
 		err            error
 		fakeUnixServer bool
 		header         string
@@ -365,7 +342,7 @@ func TestReadHeader(t *testing.T) {
 		// the run time and determining that situation (time) is not
 		// possible in unit test.
 		"[Success] Read header if server is available": {
-			exporter: &CstorStatsExporter{
+			cstor: &Cstor{
 				// conn value will be set at the run time after
 				// making the connection.
 				Conn: nil,
@@ -388,13 +365,13 @@ func TestReadHeader(t *testing.T) {
 				}
 				// overwrite the value of conn from nil to
 				// expected value.
-				tt.exporter.Conn = conn
+				tt.cstor.Conn = conn
 				CstorResponse = tt.header
-				tt.exporter.writer()
+				tt.cstor.writer()
 			}
-			got := tt.exporter.ReadHeader()
+			got := tt.cstor.ReadHeader()
 			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.exporter.Conn, tt.err, got)
+				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.cstor.Conn, tt.err, got)
 			}
 		})
 		// unlink the socketpath

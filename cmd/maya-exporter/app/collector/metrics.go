@@ -19,6 +19,8 @@ const (
 	// Command is a command that is used to write over wire and get
 	// the iostats from the cstor.
 	Command = "IOSTATS"
+	// BufSize is the size of response from cstor.
+	BufSize = 256
 )
 
 // Exporter interface defines the interfaces that has methods to be
@@ -26,6 +28,7 @@ const (
 type Exporter interface {
 	Collect()
 	Parse()
+	Set()
 }
 
 // Parse interface defines the method that to be implemented by the
@@ -42,22 +45,35 @@ type Collect interface {
 	collector()
 }
 
+// Set interface defines the method set() which is used to set the
+// values to the gauges and counters.
+type Set interface {
+	set()
+}
+
+// VolumeStatsExporter inherits the properties of cstor and jiva,
+// these properties includes metrics of the volumes.
+type VolumeStatsExporter struct {
+	CASType string
+	Cstor
+	Jiva
+	Metrics
+}
+
 // Collector is the interface implemented by struct that can be used by
 // Prometheus to collect metrics. A Collector has to be registered for
 // collection of  metrics. Basically it has two methods Describe and Collect.
 
-// CstorStatsExporter implements the prometheus.Collector interface. It exposes
+// Cstor implements the prometheus.Collector interface. It exposes
 // the metrics of a OpenEBS (cstor) volume.
-type CstorStatsExporter struct {
-	Conn    net.Conn
-	Metrics Metrics
+type Cstor struct {
+	Conn net.Conn
 }
 
-// JivaStatsExporter implements the prometheus.Collector interface. It exposes
+// Jiva implements the prometheus.Collector interface. It exposes
 // the metrics of a OpenEBS (Jiva) volume.
-type JivaStatsExporter struct {
+type Jiva struct {
 	VolumeControllerURL string
-	Metrics             Metrics
 }
 
 // A gauge is a metric that represents a single numerical value that can
@@ -88,35 +104,31 @@ type Metrics struct {
 	actualUsed             prometheus.Gauge
 	logicalSize            prometheus.Gauge
 	sectorSize             prometheus.Gauge
-	readIOPS               prometheus.Gauge
-	readTimePS             prometheus.Gauge
-	readBlockCountPS       prometheus.Gauge
-	writeIOPS              prometheus.Gauge
-	writeTimePS            prometheus.Gauge
-	writeBlockCountPS      prometheus.Gauge
-	readLatency            prometheus.Gauge
-	writeLatency           prometheus.Gauge
-	avgReadBlockCountPS    prometheus.Gauge
-	avgWriteBlockCountPS   prometheus.Gauge
+	reads                  prometheus.Gauge
+	totalReadTime          prometheus.Gauge
+	totalReadBlockCount    prometheus.Gauge
+	totalReadBytes         prometheus.Gauge
+	writes                 prometheus.Gauge
+	totalWriteTime         prometheus.Gauge
+	totalWriteBlockCount   prometheus.Gauge
+	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
-	volumeUpTime           *prometheus.GaugeVec
+	volumeUpTime           *prometheus.CounterVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
 }
 
-// MetricsDiff keep the difference of the read/write I/O's and
+// VolumeStats keep the values of read/write I/O's and
 // other volume statistics per second.
-type MetricsDiff struct {
-	readIOPS             float64
-	writeIOPS            float64
-	readBlockCountPS     float64
-	writeBlockCountPS    float64
-	readTimePS           float64
-	writeTimePS          float64
-	readLatency          float64
-	writeLatency         float64
-	avgReadBlockCountPS  float64
-	avgWriteBlockCountPS float64
+type VolumeStats struct {
+	reads                float64
+	writes               float64
+	totalReadBlockCount  float64
+	totalReadBytes       float64
+	totalWriteBlockCount float64
+	totalWriteBytes      float64
+	totalReadTime        float64
+	totalWriteTime       float64
 	size                 float64
 	sectorSize           float64
 	logicalSize          float64
@@ -127,112 +139,215 @@ type MetricsDiff struct {
 // MetricsInitializer returns the Metrics instance used for registration
 // of exporter while instantiating JivaStatsExporter and
 // CstorStatsExporter.
-func MetricsInitializer() *Metrics {
+func MetricsInitializer(casType string) *Metrics {
 	return &Metrics{
-		actualUsed: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "actual_used",
-			Help:      "Actual volume size used",
-		}),
+		actualUsed: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "actual_used",
+				Help:      "Actual volume size used",
+			}),
 
-		logicalSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "logical_size",
-			Help:      "Logical size of volume",
-		}),
+		logicalSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "logical_size",
+				Help:      "Logical size of volume",
+			}),
 
-		sectorSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "sector_size",
-			Help:      "sector size of volume",
-		}),
+		sizeOfVolume: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "size_of_volume",
+				Help:      "Size of the volume requested",
+			}),
 
-		readIOPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_iops",
-			Help:      "Read Input/Outputs on Volume",
-		}),
+		sectorSize: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "sector_size",
+				Help:      "sector size of volume",
+			}),
 
-		readTimePS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_time_per_second",
-			Help:      "Read time on volume per second",
-		}),
+		totalReadBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_read_bytes",
+				Help:      "Total read bytes",
+			}),
 
-		readBlockCountPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_block_count_per_second",
-			Help:      "Read Block count of volume per second",
-		}),
+		reads: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "reads",
+				Help:      "Read Input/Outputs on Volume",
+			}),
 
-		writeIOPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_iops",
-			Help:      "Write Input/Outputs on Volume per second",
-		}),
+		totalReadTime: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "read_time",
+				Help:      "Read time on volume",
+			}),
 
-		writeTimePS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_time_per_second",
-			Help:      "Write time on volume per second",
-		}),
+		totalReadBlockCount: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "read_block_count",
+				Help:      "Read Block count of volume",
+			}),
 
-		writeBlockCountPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_block_count_per_second",
-			Help:      "Write Block count of volume per second",
-		}),
+		totalWriteBytes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "total_write_bytes",
+				Help:      "Total write bytes",
+			}),
 
-		readLatency: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "read_latency",
-			Help:      "Read Latency count of volume",
-		}),
+		writes: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "writes",
+				Help:      "Write Input/Outputs on Volume",
+			}),
 
-		writeLatency: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "write_latency",
-			Help:      "Write Latency count of volume",
-		}),
+		totalWriteTime: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "write_time",
+				Help:      "Write time on volume",
+			}),
 
-		avgReadBlockCountPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "avg_read_block_count_per_second",
-			Help:      "Average Read Block count of volume per second",
-		}),
+		totalWriteBlockCount: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "write_block_count",
+				Help:      "Write Block count of volume",
+			}),
 
-		avgWriteBlockCountPS: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "avg_write_block_count_per_second",
-			Help:      "Average Write Block count of volume per second",
-		}),
-
-		sizeOfVolume: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "size_of_volume",
-			Help:      "Size of the volume requested",
-		}),
-
-		volumeUpTime: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Namespace: "OpenEBS",
-			Name:      "volume_uptime",
-			Help:      "Time since volume has registered",
-		},
+		volumeUpTime: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "volume_uptime",
+				Help:      "Time since volume has registered",
+			},
 			[]string{"volName", "iqn", "portal"},
 		),
+
 		connectionRetryCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "connection_retry_total",
-				Help: "Total no of connection retry requests",
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "connection_retry_total",
+				Help:      "Total no of connection retry requests",
 			},
 			[]string{"err"},
 		),
+
 		connectionErrorCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "connection_error_total",
-				Help: "Total no of connection errors",
+				Namespace: "OpenEBS",
+				Subsystem: casType,
+				Name:      "connection_error_total",
+				Help:      "Total no of connection errors",
 			},
 			[]string{"err"},
 		),
+	}
+}
+
+// gaugeList returns the list of the registered gauge variables
+func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
+	return []prometheus.Gauge{
+		v.reads,
+		v.writes,
+		v.totalReadBytes,
+		v.totalWriteBytes,
+		v.totalReadTime,
+		v.totalWriteTime,
+		v.totalReadBlockCount,
+		v.totalWriteBlockCount,
+		v.actualUsed,
+		v.logicalSize,
+		v.sectorSize,
+		v.sizeOfVolume,
+	}
+}
+
+// counterList returns the list of registered counter variables
+func (v *VolumeStatsExporter) countersList() []prometheus.Collector {
+	return []prometheus.Collector{
+		v.volumeUpTime,
+		v.connectionErrorCounter,
+		v.connectionRetryCounter,
+	}
+}
+
+// Describe sends the super-set of all possible descriptors of metrics
+// collected by this Collector to the provided channel and returns once
+// the last descriptor has been sent. The sent descriptors fulfill the
+// consistency and uniqueness requirements described in the Desc
+// documentation. (It is valid if one and the same Collector sends
+// duplicate descriptors. Those duplicates are simply ignored. However,
+// two different Collectors must not send duplicate descriptors.) This
+// method idempotently sends the same descriptors throughout the
+// lifetime of the Collector. If a Collector encounters an error while
+// executing this method, it must send an invalid descriptor (created
+// with NewInvalidDesc) to signal the error to the registry.
+
+// Describe describes all the registered stats metrics from the OpenEBS volumes.
+func (v *VolumeStatsExporter) Describe(ch chan<- *prometheus.Desc) {
+	for _, gauge := range v.gaugesList() {
+		gauge.Describe(ch)
+	}
+
+	for _, counter := range v.countersList() {
+		counter.Describe(ch)
+	}
+}
+
+// Collect is called by the Prometheus registry when collecting
+// metrics. The implementation sends each collected metric via the
+// provided channel and returns once the last metric has been sent. The
+// descriptor of each sent metric is one of those returned by
+// Describe. Returned metrics that share the same descriptor must differ
+// in their variable label values. This method may be called
+// way. Bloc	king occurs at the expense of total performance of rendering
+// concurrently and must therefore be implemented in a concurrency safe
+// all registered metrics. Ideally, Collector implementations support
+// concurrent readers.
+
+// Collect collects all the registered stats metrics from the OpenEBS volumes.
+// It tries to reconnect with the volume if there is any error via a goroutine.
+func (v *VolumeStatsExporter) Collect(ch chan<- prometheus.Metric) {
+	// no need to catch the error as exporter should work even if
+	// there are failures in collecting the metrics due to connection
+	// issues or anything else.
+	switch v.CASType {
+	case "cstor":
+		_ = v.Cstor.collector(&v.Metrics)
+	case "jiva":
+		_ = v.Jiva.collector(&v.Metrics)
+	}
+
+	// collect the metrics extracted by collect method
+	for _, gauge := range v.gaugesList() {
+		gauge.Collect(ch)
+	}
+	for _, counter := range v.countersList() {
+		counter.Collect(ch)
 	}
 }
