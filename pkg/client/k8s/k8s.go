@@ -327,6 +327,17 @@ func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
 	return podLists.Items, nil
 }
 
+// ListCoreV1PVCAsRaw fetches a list of K8s PVCs with the provided options
+func (k *K8sClient) ListCoreV1PVCAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("persistentvolumeclaims").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
 // ListCoreV1PodAsRaw fetches a list of K8s Pods with the provided options
 func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Get().

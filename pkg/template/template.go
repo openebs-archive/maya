@@ -130,7 +130,8 @@ func jsonPath(json []byte, path string) string {
 // NOTE:
 //  It is intended to be used as a template function where the output of another
 // template function is piped to noop to be consumed and this in-turn returns a
-// blank.
+// blank. This is required for cases where we would like to preserve the
+// yaml/template format.
 //
 // e.g.
 //
@@ -212,10 +213,16 @@ func pickContains(match string, given []string) (matched string) {
 	return
 }
 
-// asKeyMap builds a list of map of key:value pairs where each map is set
+// splitKeyMap builds a list of map of key:value pairs where each map is set
 // against a key. It accepts an array where each array item is converted into a
 // map. Each map is set against a key known as primary key i.e. pkey. The
-// resulting pkey:map pairs are set against the destination object.
+// resulting pkey:map pairs are set against the destination object. This
+// function is same as asKeyMap with user defined splitters as extra
+// parameters here.
+//
+// NOTE:
+//  Technically, it forms a map[string]interface{} structure where interface{}
+// is a map[string]string.
 //
 // NOTE:
 //  This is intended to be used as a template function
@@ -224,16 +231,171 @@ func pickContains(match string, given []string) (matched string) {
 //  This appends current value to original value if any.
 //
 // Example:
-//  {{- "pkey=openebs stor1=jiva stor2=cstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
-//  {{- "co1=swarm co2=k8s" | splitList " " | asKeyMap "vals" .Target | noop -}}
-//  {{- "pkey=openebs stor2=mstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
+//  {{- "pkey=openebs--stor1=jiva--stor2=cstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
+//  {{- "co1=swarm--co2=k8s" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
+//  {{- "pkey=openebs--stor2=mstor" | splitList " " | splitKeyMap "-- =" "vals" .Target | noop -}}
 //
 // Above will result into following:
 //  Target: map[string]interface{}{
 //    "vals": map[string]interface{}{
 //      "openebs": map[string]interface{}{
 //        "stor1": "jiva",
-//        "stor2": "cstor mstor",
+//        "stor2": "cstor, mstor",
+//      },
+//      "pkey": map[string]interface{}{
+//        "co1": "swarm",
+//        "co2": "k8s",
+//      },
+//    },
+//  }
+//
+// The assumption here is '.Target' is of type 'map[string]interface{}'
+func splitKeyMap(splitters string, destinationFields string, destination map[string]interface{}, given []string) interface{} {
+	var (
+		primaryKey string
+		key        string
+		value      string
+		destFields []string
+		fields     []string
+	)
+
+	// defaultPKey is the default primary key if primary key (to build the
+	// maps) is not specified
+	defaultPKey := "pkey"
+	// defaultPairItemsSplitter is the default delimiter to separate the keyvalue
+	// pairs from a given string
+	defaultPairItemsSplitter := ","
+	// defaultPairSplitter is the default delimiter to split a pair i.e. split
+	// a pair's key from its value
+	defaultPairSplitter := "="
+	// defaultAppendDelimiter is the default delimiter to append current value
+	// to existing value at a particular path i.e. key path
+	defaultAppendDelimiter := ", "
+	// defaultValue is the default value to be set at a particular path i.e. key
+	// path if value is empty for a keyvalue pair
+	defaultValue := ""
+
+	// destination fields is the path at which maps will be set
+	if len(strings.TrimSpace(destinationFields)) != 0 {
+		destFields = strings.Split(destinationFields, ".")
+	}
+
+	splitterItems := strings.Split(strings.TrimSpace(splitters), " ")
+	// pairItemsSplitter to separate keyvalue pairs from a string
+	pairItemsSplitter := ""
+	// pairSplitter to separate key from its value of one pair
+	pairSplitter := ""
+	if len(splitterItems) == 2 {
+		pairItemsSplitter = strings.TrimSpace(splitterItems[0])
+		pairSplitter = strings.TrimSpace(splitterItems[1])
+	}
+
+	// default delimiter between pairs, if not set
+	if len(pairItemsSplitter) == 0 {
+		pairItemsSplitter = defaultPairItemsSplitter
+	}
+
+	// default delimiter of a pair, if not set
+	if len(pairSplitter) == 0 {
+		pairSplitter = defaultPairSplitter
+	}
+
+	// givenItem has a list of keyvalue pairs
+	for _, givenItem := range given {
+		// get all the kv pairs separated via pairItemsSplitter
+		pairs := strings.Split(givenItem, pairItemsSplitter)
+
+		// primary key is determined among the pairs
+		pKeyPair := pickPrefix(defaultPKey+pairSplitter, pairs)
+
+		// below logic is for setting the primary key value
+		pKeyPairs := strings.Split(pKeyPair, pairSplitter)
+		if len(pKeyPairs) == 2 {
+			primaryKey = pKeyPairs[1]
+		} else {
+			// default to pkey as the primary key value
+			primaryKey = defaultPKey
+		}
+
+		if len(primaryKey) == 0 {
+			// default to pkey as the primary key value
+			primaryKey = defaultPKey
+		}
+
+		for _, pair := range pairs {
+			if pair == pKeyPair || len(pair) == 0 {
+				// primary key value pair has already been considered & nothing
+				// to be done for empty pair
+				continue
+			}
+
+			// split the current pair by pairSplitter
+			kvPairs := strings.Split(pair, pairSplitter)
+			if len(kvPairs) == 0 {
+				continue
+			}
+
+			// key value pair is determined here
+			if len(kvPairs) == 2 {
+				key = strings.TrimSpace(kvPairs[0])
+				value = strings.TrimSpace(kvPairs[1])
+			} else {
+				key = strings.TrimSpace(kvPairs[0])
+				value = defaultValue
+			}
+
+			if len(key) == 0 {
+				// value can not be set at appropriate path if its key is empty
+				// hence nothing to be done
+				continue
+			}
+
+			// reset the path fields first
+			fields = nil
+			fields = append(destFields, primaryKey, key)
+
+			// append to existing value if any
+			origVal := strings.TrimSpace(util.GetNestedString(destination, fields...))
+			if len(origVal) != 0 {
+				value = strings.Join([]string{origVal, value}, defaultAppendDelimiter)
+				// trim for cases where new value is empty
+				value = strings.TrimSuffix(value, defaultAppendDelimiter)
+			}
+
+			// set the current given item value at destination object
+			util.SetNestedField(destination, value, fields...)
+		}
+	}
+
+	return destination
+}
+
+// asKeyMap builds a list of map of key:value pairs where each map is set
+// against a key. It accepts an array where each array item is converted into a
+// map. Each map is set against a key known as primary key i.e. pkey. The
+// resulting pkey:map pairs are set against the destination object.
+//
+// NOTE:
+//  Technically, it forms a map[string]interface{} structure where interface{}
+// is a map[string]string.
+//
+// NOTE:
+//  This is intended to be used as a template function
+//
+// NOTE:
+//  This appends current value to original value if any.
+//
+// Example:
+//  {{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
+//  {{- "co1=swarm,co2=k8s" | splitList " " | asKeyMap "vals" .Target | noop -}}
+//  {{- "pkey=openebs,stor2=mstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
+//
+// Above will result into following:
+//  Target: map[string]interface{}{
+//    "vals": map[string]interface{}{
+//      "openebs": map[string]interface{}{
+//        "stor1": "jiva",
+//        "stor2": "cstor, mstor",
 //      },
 //      "pkey": map[string]interface{}{
 //        "co1": "swarm",
@@ -244,79 +406,7 @@ func pickContains(match string, given []string) (matched string) {
 //
 // The assumption here is '.Target' is of type 'map[string]interface{}'
 func asKeyMap(destinationFields string, destination map[string]interface{}, given []string) interface{} {
-	var (
-		primaryKey string
-		key        string
-		value      string
-		destFields []string
-		fields     []string
-	)
-
-	// destFields is the path at which maps will be set
-	if len(strings.TrimSpace(destinationFields)) != 0 {
-		destFields = strings.Split(destinationFields, ".")
-	}
-
-	for _, givenItem := range given {
-		// get all the kv pairs
-		pairs := strings.Split(givenItem, " ")
-
-		// primary key is determined for each given item
-		pKeyPair := pickPrefix("pkey=", pairs)
-		pKeyPairs := strings.Split(pKeyPair, "=")
-		if len(pKeyPairs) == 2 {
-			primaryKey = pKeyPairs[1]
-		}
-
-		if len(primaryKey) == 0 {
-			// default to pkey
-			primaryKey = "pkey"
-		}
-
-		for _, pair := range pairs {
-			if pair == pKeyPair || len(pair) == 0 {
-				// primary key value pair has already been considered & nothing
-				// to be done for empty pair
-				continue
-			}
-
-			// split the current pair by "="
-			kvPairs := strings.Split(pair, "=")
-			if len(kvPairs) == 0 {
-				continue
-			}
-
-			// key value pair is determined here
-			if len(kvPairs) == 2 {
-				key = kvPairs[0]
-				value = kvPairs[1]
-			} else {
-				key = kvPairs[0]
-				value = ""
-			}
-
-			if len(key) == 0 {
-				// nothing needs to be done
-				continue
-			}
-
-			// reset the fields first
-			fields = nil
-			fields = append(destFields, primaryKey, key)
-
-			// append to existing value if any
-			origVal := strings.TrimSpace(util.GetNestedString(destination, fields...))
-			if len(origVal) != 0 {
-				value = strings.Join([]string{origVal, value}, ", ")
-				value = strings.TrimSuffix(value, ", ")
-			}
-
-			// set the current given item value at destination object
-			util.SetNestedField(destination, value, fields...)
-		}
-	}
-
-	return destination
+	return splitKeyMap(", =", destinationFields, destination, given)
 }
 
 // asNestedMap builds a nested map from the given string(s). These strings are
@@ -450,19 +540,22 @@ func saveIf(fields string, values map[string]interface{}, value interface{}) int
 	return value
 }
 
-// notFoundErr returns NotFoundError if given object is empty
+// notFoundErr throws NotFoundError if given object is empty
+//
+// NOTE:
+//  This function is intended to be used as a go template function
 //
 // Example:
-// {{- "" | notFoundErr "empty object" | toString | saveAs "TaskResult.notFoundErrMsg" .Values | noop -}}
-// {{- .Values.TaskResult.notFoundErrMsg -}}
+// {{- "" | notFoundErr "empty object" | saveIf "errMsg" .Values | noop -}}
 //
-// Above will print 'empty object'
+// Above returns NotFoundError during template execution. However this
+// does not result in a runtime error.
 //
-// {{- "" | empty | notFoundErr "replica pod(s) not found" | saveIf "createlistrep.notFoundErr" .Values | noop -}}
+// {{- "I am not empty" | notFoundErr "empty object" | saveIf "errMsg" .Values | noop -}}
 //
-// Above stores *template.NotFoundError at .Values.createlistrep.notFoundErr
+// Above does not return any error during template execution.
 //
-// In both the cases assumption is '.Values' is of type 'map[string]interface{}'
+// Assumption here is .Values is of type 'map[string]interface{}'
 func notFoundErr(errMessage string, given interface{}) (err error) {
 	if !empty(given) {
 		// no error if not empty
@@ -476,22 +569,26 @@ func notFoundErr(errMessage string, given interface{}) (err error) {
 	err = &NotFoundError{
 		err: errMessage,
 	}
+
 	return
 }
 
 // verifyErr returns VerifyError if given verification flag failed i.e. is true
 //
+// NOTE:
+//  This is intended to be used as a go template function
+//
 // Example:
-// {{- "" | empty | verifyErr "name is missing" | toString | saveAs "TaskResult.verifyErrMsg" .Values | noop -}}
-// {{- .Values.TaskResult.verifyErrMsg -}}
+// {{- "" | empty | verifyErr "empty value provided" | saveIf "errMsg" .Values | noop -}}
 //
-// Above prints 'name is missing'
+// Above returns VerifyError during template execution. However this
+// does not result in a runtime error.
 //
-// {{- "" | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .Values | noop -}}
+// {{- "I am not empty" | empty | verifyErr "empty value provided" | saveIf "errMsg" .Values | noop -}}
 //
-// Above stores *template.VerifyError at .Values.createlistrep.verifyErr
+// Above does not return any error during template execution.
 //
-// In both the cases assumption is '.Values' is of type 'map[string]interface{}'
+// Assumption here is .Values is of type 'map[string]interface{}'
 func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 	if !hasVerificationFailed {
 		// no error if verification did pass successfully
@@ -505,6 +602,7 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 	err = &VerifyError{
 		err: errMessage,
 	}
+
 	return
 }
 
@@ -515,13 +613,15 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 //
 // NOTE: Borrowed from a similar function in helm
 //  https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
-func toYaml(v interface{}) string {
+func toYaml(v interface{}) (yamlstr string) {
 	data, err := yaml.Marshal(v)
 	if err != nil {
-		// Swallow errors inside of a template.
-		return ""
+		// error is swallowed
+		return
 	}
-	return string(data)
+
+	yamlstr = string(data)
+	return
 }
 
 // fromYaml converts a YAML document into a map[string]interface{}.
@@ -562,6 +662,7 @@ func funcMap() template.FuncMap {
 		"isLen":        isLen,
 		"asNestedMap":  asNestedMap,
 		"asKeyMap":     asKeyMap,
+		"splitKeyMap":  splitKeyMap,
 	}
 
 	for k, v := range extra {

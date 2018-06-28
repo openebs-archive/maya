@@ -261,6 +261,8 @@ func (m *taskExecutor) retryOnVerificationError() (err error) {
 	retryAttempts, interval := m.metaTaskExec.getRetry()
 
 	// original invocation as well as all retry attempts
+	// i == 0 implies original task execute invocation
+	// i > 0 implies a retry operation
 	for i := 0; i <= retryAttempts; i++ {
 		// first reset the previous verify error if any
 		m.resetTaskResultVerifyError()
@@ -268,11 +270,18 @@ func (m *taskExecutor) retryOnVerificationError() (err error) {
 		// execute the task function
 		err = m.ExecuteIt()
 		if err != nil {
-			// will exit in case of unhandled runtime error
+			// break this retry execution loop if there were any runtime errors
 			return
 		}
 
-		// verify error is a handled runtime error
+		// check for VerifyError if any
+		//
+		// NOTE:
+		//  VerifyError is a handled runtime error which is handled via templating
+		//
+		// NOTE:
+		//  retry is done only if VerifyError is thrown during post task
+		// execution
 		verifyErr := m.getTaskResultVerifyError()
 		if verifyErr == nil {
 			// no need to retry if task execution was a success & there was no
@@ -284,15 +293,15 @@ func (m *taskExecutor) retryOnVerificationError() (err error) {
 		err, _ = verifyErr.(*template.VerifyError)
 
 		if i != retryAttempts {
-			glog.Warningf("verify error was found during post runtask operations '%s': error '%#v': will retry task execution'%d'", m.identity, verifyErr, i+1)
+			glog.Warningf("verify error was found during post runtask operations '%s': error '%#v': will retry task execution'%d'", m.identity, err, i+1)
 
-			// will retry after an interval
+			// will retry after the specified interval
 			time.Sleep(interval)
 		}
 	}
 
 	// return after exhausting the original invocation and all retries;
-	// verification error of the last attempt will be returned
+	// verification error of the final attempt will be returned here
 	return
 }
 
@@ -630,6 +639,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = m.k8sClient.ListExtnV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListAppsV1B1Deploy() {
 		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
+	} else if m.metaTaskExec.isListCoreV1PVC() {
+		op, err = m.k8sClient.ListCoreV1PVCAsRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%#v'", m.metaTaskExec.getTaskIdentity())
 	}
