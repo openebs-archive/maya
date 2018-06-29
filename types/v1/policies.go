@@ -34,6 +34,16 @@ type OldVolumeLabels struct {
 
 	// ControllersOld contains the controller count
 	ControllersOld *int32 `json:"volumeprovisioner.mapi.openebs.io/controller-count,omitempty" protobuf:"varint,1,opt,name=volumeprovisioner.mapi.openebs.io/controller-count"`
+
+	// ApplicationOld contains the application label associated with volume
+	ApplicationOld string `json:"volumeprovisioner.mapi.openebs.io/application,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/application"`
+
+	// ReplicaTopologyKeyDomainOld contains the domain that needs to be specified for Replica Deployment PodAntiAffinity Topology Key
+	ReplicaTopologyKeyDomainOld string `json:"volumeprovisioner.mapi.openebs.io/replica-topology-key-domain,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/replica-topology-key-domain"`
+
+	// ReplicaTopologyKeyTypeOld contains the type that needs to be specified for Replica Deployment PodAntiAffinity Topology Key
+	ReplicaTopologyKeyTypeOld string `json:"volumeprovisioner.mapi.openebs.io/replica-topology-key-type,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/replica-topology-key-type"`
+
 }
 
 // K8sVolumeLabels is a typed structure that consists of

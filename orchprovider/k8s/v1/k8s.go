@@ -864,15 +864,23 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
+	ctrlLabelSpec := map[string]string {
+		string(v1.VSMSelectorKey):               vsm,
+		string(v1.PVCSelectorKey):               pvc,
+		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
+		string(v1.ControllerSelectorKey):           string(v1.JivaControllerSelectorValue),
+	}
+
+	//Add the application label to the replica deployment if it exists.
+	appLV := vol.Labels.ApplicationOld
+	if appLV != "" {
+		ctrlLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+	}
+
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: vsm + string(v1.ControllerSuffix),
-			Labels: map[string]string{
-				string(v1.VSMSelectorKey):               vsm,
-				string(v1.PVCSelectorKey):               pvc,
-				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
-				string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
-			},
+			Labels: ctrlLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(v1.K8sKindDeployment),
@@ -881,11 +889,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		Spec: k8sApisExtnsBeta1.DeploymentSpec{
 			Template: k8sApiV1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						string(v1.VSMSelectorKey):        vsm,
-						string(v1.PVCSelectorKey):        pvc,
-						string(v1.ControllerSelectorKey): string(v1.JivaControllerSelectorValue),
-					},
+					Labels: ctrlLabelSpec,
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the controller gets EVICTED as soon as possible
@@ -1051,19 +1055,30 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 
 	glog.Infof("Adding replica(s) for Volume '%s'", vsm)
 
+	repLabelSpec := map[string]string {
+		string(v1.VSMSelectorKey):               vsm,
+		string(v1.PVCSelectorKey):               pvc,
+		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
+		string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
+		// -- if manual replica addition
+		//string(v1.ReplicaCountSelectorKey):      strconv.Itoa(rCount),
+	}
+
+	//Add the application label to the replica deployment if it exists.
+	appLV := vol.Labels.ApplicationOld
+	if appLV != "" {
+		repLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+	}
+
+	//replicaTopoKeyDomainLV := vol.Labels.ReplicaTopologyKeyDomainOld
+	//replicaTopoKeyTypeLV := vol.Labels.ReplicaTopologyKeyTypeOld
+
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			// -- if manual replica addition
 			//Name: vsm + string(v1.ReplicaSuffix) + strconv.Itoa(rcIndex),
 			Name: vsm + string(v1.ReplicaSuffix),
-			Labels: map[string]string{
-				string(v1.VSMSelectorKey):               vsm,
-				string(v1.PVCSelectorKey):               pvc,
-				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
-				string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
-				// -- if manual replica addition
-				//string(v1.ReplicaCountSelectorKey):      strconv.Itoa(rCount),
-			},
+			Labels: repLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(v1.K8sKindDeployment),
@@ -1074,11 +1089,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 			Replicas: rCount,
 			Template: k8sApiV1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						string(v1.VSMSelectorKey):     vsm,
-						string(v1.PVCSelectorKey):     pvc,
-						string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
-					},
+					Labels: repLabelSpec,
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the replicas stick to its placement node even if the node dies
