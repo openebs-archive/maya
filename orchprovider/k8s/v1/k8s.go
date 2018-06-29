@@ -871,7 +871,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		string(v1.ControllerSelectorKey):           string(v1.JivaControllerSelectorValue),
 	}
 
-	//Add the application label to the replica deployment if it exists.
+	//Add the application label to the controller deployment if it exists.
 	appLV := vol.Labels.ApplicationOld
 	if appLV != "" {
 		ctrlLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
