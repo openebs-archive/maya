@@ -1070,8 +1070,36 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		repLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
 	}
 
-	//replicaTopoKeyDomainLV := vol.Labels.ReplicaTopologyKeyDomainOld
-	//replicaTopoKeyTypeLV := vol.Labels.ReplicaTopologyKeyTypeOld
+	//Set the Default Replica Topology Key ( kubernetes.io/hostname )
+	replicaTopoKey :=  v1.GetPVPReplicaTopologyKey(nil)
+
+	//One of the labels to match will always be a constant, which is 
+	// specific to OpenEBS. This is to avoid collision with application pods.
+	repAntiAffinityLabelSpec := map[string]string {
+		string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
+	}
+
+	//Check if a custom topology key has been provided for this volume.
+	// Note: The custom topology keys have to be passed via the PVCs as labels.
+	// And since these labels don't allow special characters like '/' in the value,
+	// the topology key has been divided into domain and type. 
+	// Examples:
+	//   kubernetes.io/hostname
+	//   failure-domain.beta.kubernetes.io/zone
+	//   failure-domain.beta.kubernetes.io/region
+	replicaTopoKeyDomainLV := vol.Labels.ReplicaTopologyKeyDomainOld
+	replicaTopoKeyTypeLV := vol.Labels.ReplicaTopologyKeyTypeOld
+
+	//Depending on the topology key, additional label selectors may be required. 
+	if replicaTopoKeyDomainLV  != "" && replicaTopoKeyTypeLV  != "" {
+		replicaTopoKey =  replicaTopoKeyDomainLV   + "/" + replicaTopoKeyTypeLV  
+		//TODO : We are assuming here that the topology keys depend on
+		// the application label.
+		repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+	} else {
+		//For host based anti-affinity, use the vsm name additional label
+		repAntiAffinityLabelSpec[string(v1.VSMSelectorKey)] = vsm
+	}
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1112,10 +1140,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							RequiredDuringSchedulingIgnoredDuringExecution: []k8sApiV1.PodAffinityTerm{
 								k8sApiV1.PodAffinityTerm{
 									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											string(v1.VSMSelectorKey):     vsm,
-											string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
-										},
+										MatchLabels: repAntiAffinityLabelSpec, 
 									},
 									// TODO
 									// This is host based inter-pod anti-affinity
@@ -1137,7 +1162,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// Considering above scenarios, it might make more sense to have
 									// separate K8s Deployment for each replica. However,
 									// there are dis-advantages in diverging from K8s replica set.
-									TopologyKey: v1.GetPVPReplicaTopologyKey(nil),
+									TopologyKey: replicaTopoKey,
 								},
 							},
 						},
