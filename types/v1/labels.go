@@ -508,6 +508,9 @@ const (
 	//PVCSelectorKey is used to get pvc label
 	PVCSelectorKey GenericAnnotations = "pvc"
 
+	//ApplicationSelectorKey is used to get application label
+	ApplicationSelectorKey GenericAnnotations = "application"
+
 	// VSMSelectorKeyEquals is used to filter vsm when selector logic is used
 	VSMSelectorKeyEquals GenericAnnotations = VSMSelectorKey + "="
 
