@@ -893,6 +893,8 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the controller gets EVICTED as soon as possible
+					// If we don't specify the following explicitly, then k8s will 
+					// add a toleration of 300 seconds. 
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
@@ -903,6 +905,18 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 						k8sApiV1.Toleration{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
 							Key:               "node.alpha.kubernetes.io/unreachable",
+							Operator:          k8sApiV1.TolerationOpExists,
+							TolerationSeconds: &tolerationSeconds,
+						},
+						k8sApiV1.Toleration{
+							Effect:            k8sApiV1.TaintEffectNoExecute,
+							Key:               "node.kubernetes.io/not-ready",
+							Operator:          k8sApiV1.TolerationOpExists,
+							TolerationSeconds: &tolerationSeconds,
+						},
+						k8sApiV1.Toleration{
+							Effect:            k8sApiV1.TaintEffectNoExecute,
+							Key:               "node.kubernetes.io/unreachable",
 							Operator:          k8sApiV1.TolerationOpExists,
 							TolerationSeconds: &tolerationSeconds,
 						},
@@ -1122,6 +1136,9 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the replicas stick to its placement node even if the node dies
 					// In other words DO NOT EVICT these replicas
+					// The list of taints have been updated with the list available from 1.11
+					// Note: this will be replaced by CAS templates, which provide the 
+					//   flexibility of using either Statefulset or DaemonSet in future.
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
@@ -1131,6 +1148,46 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 						k8sApiV1.Toleration{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.alpha.kubernetes.io/unreachable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/not-ready",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/unreachable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/out-of-disk",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/memory-pressure",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/disk-pressure",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/network-unavailable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/unschedulable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.cloudprovider.kubernetes.io/uninitialized",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
 					},
