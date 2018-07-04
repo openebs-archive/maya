@@ -33,12 +33,12 @@ func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {
 	return &FakeCStorPools{c}
 }
 
-func (c *FakeOpenebsV1alpha1) CStorVolumes() v1alpha1.CStorVolumeInterface {
-	return &FakeCStorVolumes{c}
+func (c *FakeOpenebsV1alpha1) CStorVolumes(namespace string) v1alpha1.CStorVolumeInterface {
+	return &FakeCStorVolumes{c, namespace}
 }
 
-func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas() v1alpha1.CStorVolumeReplicaInterface {
-	return &FakeCStorVolumeReplicas{c}
+func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas(namespace string) v1alpha1.CStorVolumeReplicaInterface {
+	return &FakeCStorVolumeReplicas{c, namespace}
 }
 
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {

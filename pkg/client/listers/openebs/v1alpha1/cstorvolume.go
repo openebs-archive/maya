@@ -29,8 +29,8 @@ import (
 type CStorVolumeLister interface {
 	// List lists all CStorVolumes in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorVolume, err error)
-	// Get retrieves the CStorVolume from the index for a given name.
-	Get(name string) (*v1alpha1.CStorVolume, error)
+	// CStorVolumes returns an object that can list and get CStorVolumes.
+	CStorVolumes(namespace string) CStorVolumeNamespaceLister
 	CStorVolumeListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *cStorVolumeLister) List(selector labels.Selector) (ret []*v1alpha1.CSto
 	return ret, err
 }
 
-// Get retrieves the CStorVolume from the index for a given name.
-func (s *cStorVolumeLister) Get(name string) (*v1alpha1.CStorVolume, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// CStorVolumes returns an object that can list and get CStorVolumes.
+func (s *cStorVolumeLister) CStorVolumes(namespace string) CStorVolumeNamespaceLister {
+	return cStorVolumeNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// CStorVolumeNamespaceLister helps list and get CStorVolumes.
+type CStorVolumeNamespaceLister interface {
+	// List lists all CStorVolumes in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.CStorVolume, err error)
+	// Get retrieves the CStorVolume from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.CStorVolume, error)
+	CStorVolumeNamespaceListerExpansion
+}
+
+// cStorVolumeNamespaceLister implements the CStorVolumeNamespaceLister
+// interface.
+type cStorVolumeNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all CStorVolumes in the indexer for a given namespace.
+func (s cStorVolumeNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.CStorVolume, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.CStorVolume))
+	})
+	return ret, err
+}
+
+// Get retrieves the CStorVolume from the indexer for a given namespace and name.
+func (s cStorVolumeNamespaceLister) Get(name string) (*v1alpha1.CStorVolume, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

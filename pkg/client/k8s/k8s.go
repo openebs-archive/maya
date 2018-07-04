@@ -235,7 +235,7 @@ func (k *K8sClient) CreateOEV1alpha1CV(cv *api_oe_v1alpha1.CStorVolume) (*api_oe
 // oeV1alpha1CVOps is a utility function that provides a instance capable of
 // executing various OpenEBS CstorVolume related operations
 func (k *K8sClient) oeV1alpha1CVOps() typed_oe_v1alpha1.CStorVolumeInterface {
-	return k.oecs.OpenebsV1alpha1().CStorVolumes()
+	return k.oecs.OpenebsV1alpha1().CStorVolumes(k.ns)
 }
 
 // GetOEV1alpha1CV fetches the OpenEBS CstorVolume specs based on
@@ -268,7 +268,7 @@ func (k *K8sClient) CreateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica)
 // oeV1alpha1CVROps is a utility function that provides a instance capable of
 // executing various OpenEBS CstorVolumeReplica related operations
 func (k *K8sClient) oeV1alpha1CVROps() typed_oe_v1alpha1.CStorVolumeReplicaInterface {
-	return k.oecs.OpenebsV1alpha1().CStorVolumeReplicas()
+	return k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(k.ns)
 }
 
 // GetOEV1alpha1CVR fetches the OpenEBS CstorVolumeReplica specs based on

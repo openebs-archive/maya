@@ -28,6 +28,7 @@ import (
 // FakeCStorVolumes implements CStorVolumeInterface
 type FakeCStorVolumes struct {
 	Fake *FakeOpenebsV1alpha1
+	ns   string
 }
 
 var cstorvolumesResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha1", Resource: "cstorvolumes"}
@@ -37,7 +38,8 @@ var cstorvolumesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1
 // Get takes name of the cStorVolume, and returns the corresponding cStorVolume object, and an error if there is any.
 func (c *FakeCStorVolumes) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(cstorvolumesResource, name), &v1alpha1.CStorVolume{})
+		Invokes(testing.NewGetAction(cstorvolumesResource, c.ns, name), &v1alpha1.CStorVolume{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -47,7 +49,8 @@ func (c *FakeCStorVolumes) Get(name string, options v1.GetOptions) (result *v1al
 // List takes label and field selectors, and returns the list of CStorVolumes that match those selectors.
 func (c *FakeCStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(cstorvolumesResource, cstorvolumesKind, opts), &v1alpha1.CStorVolumeList{})
+		Invokes(testing.NewListAction(cstorvolumesResource, cstorvolumesKind, c.ns, opts), &v1alpha1.CStorVolumeList{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -68,13 +71,15 @@ func (c *FakeCStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolu
 // Watch returns a watch.Interface that watches the requested cStorVolumes.
 func (c *FakeCStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(cstorvolumesResource, opts))
+		InvokesWatch(testing.NewWatchAction(cstorvolumesResource, c.ns, opts))
+
 }
 
 // Create takes the representation of a cStorVolume and creates it.  Returns the server's representation of the cStorVolume, and an error, if there is any.
 func (c *FakeCStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(cstorvolumesResource, cStorVolume), &v1alpha1.CStorVolume{})
+		Invokes(testing.NewCreateAction(cstorvolumesResource, c.ns, cStorVolume), &v1alpha1.CStorVolume{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -84,7 +89,8 @@ func (c *FakeCStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1
 // Update takes the representation of a cStorVolume and updates it. Returns the server's representation of the cStorVolume, and an error, if there is any.
 func (c *FakeCStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(cstorvolumesResource, cStorVolume), &v1alpha1.CStorVolume{})
+		Invokes(testing.NewUpdateAction(cstorvolumesResource, c.ns, cStorVolume), &v1alpha1.CStorVolume{})
+
 	if obj == nil {
 		return nil, err
 	}
@@ -94,13 +100,14 @@ func (c *FakeCStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1
 // Delete takes name of the cStorVolume and deletes it. Returns an error if one occurs.
 func (c *FakeCStorVolumes) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(cstorvolumesResource, name), &v1alpha1.CStorVolume{})
+		Invokes(testing.NewDeleteAction(cstorvolumesResource, c.ns, name), &v1alpha1.CStorVolume{})
+
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeCStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(cstorvolumesResource, listOptions)
+	action := testing.NewDeleteCollectionAction(cstorvolumesResource, c.ns, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.CStorVolumeList{})
 	return err
@@ -109,7 +116,8 @@ func (c *FakeCStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched cStorVolume.
 func (c *FakeCStorVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(cstorvolumesResource, name, data, subresources...), &v1alpha1.CStorVolume{})
+		Invokes(testing.NewPatchSubresourceAction(cstorvolumesResource, c.ns, name, data, subresources...), &v1alpha1.CStorVolume{})
+
 	if obj == nil {
 		return nil, err
 	}
