@@ -106,7 +106,7 @@ func newK8sClient(runNamespace string) (kc *m_k8s_client.K8sClient, err error) {
 
 	if len(runNamespace) == 0 {
 		// run namespace is optional hence no error
-		return
+		//	return
 	}
 
 	kc, err = m_k8s_client.NewK8sClient(runNamespace)
@@ -344,7 +344,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = fmt.Errorf("%s: task '%s'", emsg, m.getTaskIdentity())
 		return
 	}
-
+	glog.Infof("%+v", m)
 	if m.metaTaskExec.isPutExtnV1B1Deploy() {
 		err = m.putExtnV1B1Deploy()
 	} else if m.metaTaskExec.isPutAppsV1B1Deploy() {
@@ -355,9 +355,9 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchAppsV1B1Deploy()
 	} else if m.metaTaskExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
-	} else if m.metaTaskExec.isPutOEV1alpha1CstorVolume() {
+	} else if m.metaTaskExec.isPutOEV1alpha1CSV() {
 		err = m.putCstorVolume()
-	} else if m.metaTaskExec.isPutOEV1alpha1CstorVolumeReplica() {
+	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
 		err = m.putCstorVolumeReplica()
 	} else if m.metaTaskExec.isDeleteExtnV1B1Deploy() {
 		err = m.deleteExtnV1B1Deployment()
@@ -371,8 +371,10 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getCoreV1PVC()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
-	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
-		err = m.listK8sResources()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1CSV() {
+		err = m.deleteOEV1alpha1CSV()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1CVR() {
+		err = m.deleteOEV1alpha1CVR()
 	} else {
 		err = fmt.Errorf("failed to execute task: not a supported operation: meta info '%#v'", m.metaTaskExec.getMetaInfo())
 	}
@@ -551,6 +553,36 @@ func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
 	return
 }
 
+// deleteOEV1alpha1CSV will delete one or more Deployments as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1CSV(name)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+// deleteOEV1alpha1CVR will delete one or more Deployments as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1CVR() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1CVR(name)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 // deleteExtnV1B1Deployment will delete one or more Deployments as specified in
 // the RunTask
 func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
@@ -692,6 +724,10 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
 		op, err = m.k8sClient.ListOEV1alpha1CSPRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CVR() {
+		op, err = m.k8sClient.ListOEV1alpha1CVRRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CV() {
+		op, err = m.k8sClient.ListOEV1alpha1CVRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%#v'", m.metaTaskExec.getTaskIdentity())
 	}

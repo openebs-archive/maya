@@ -489,6 +489,30 @@ func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (re
 	return
 }
 
+// ListOEV1alpha1CVRRaw fetches a list of CStorVolumeReplica as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1CVRRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cvrOps := k.oeV1alpha1CVROps()
+	cvrList, err := cvrOps.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(cvrList)
+	return
+}
+
+// ListOEV1alpha1CVRaw fetches a list of CStorVolume as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1CVRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cvOps := k.oeV1alpha1CVOps()
+	cvrList, err := cvOps.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(cvrList)
+	return
+}
+
 // serviceOps is a utility function that provides a instance capable of
 // executing various k8s service related operations.
 func (k *K8sClient) serviceOps() typed_core_v1.ServiceInterface {
@@ -680,6 +704,26 @@ func (k *K8sClient) DeleteAppsV1B1Deployment(name string) error {
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteOEV1alpha1CSV deletes the CStorVolume with the provided name
+func (k *K8sClient) DeleteOEV1alpha1CSV(name string) error {
+	cvops := k.oeV1alpha1CVOps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return cvops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteOEV1alpha1CSV deletes the CStorVolumeReplica with the provided name
+func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
+	cvrops := k.oeV1alpha1CVROps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return cvrops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }

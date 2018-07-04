@@ -134,11 +134,11 @@ func (i taskIdentifier) isOEV1alpha1SP() bool {
 	return i.isOEV1alpha1() && i.isStoragePool()
 }
 
-func (i taskIdentifier) isOEV1alpha1CstorVolume() bool {
+func (i taskIdentifier) isOEV1alpha1CV() bool {
 	return i.isOEV1alpha1() && i.isCstorVolume()
 }
 
-func (i taskIdentifier) isOEV1alpha1CstorVolumeReplica() bool {
+func (i taskIdentifier) isOEV1alpha1CVR() bool {
 	return i.isOEV1alpha1() && i.isCstorVolumeReplica()
 }
 

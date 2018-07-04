@@ -233,12 +233,12 @@ func (m *metaTaskExecutor) isPutCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1CstorVolume() bool {
-	return m.identifier.isOEV1alpha1CstorVolume() && m.isPut()
+func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1CstorVolumeReplica() bool {
-	return m.identifier.isOEV1alpha1CstorVolumeReplica() && m.isPut()
+func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
 func (m *metaTaskExecutor) isDeleteExtnV1B1Deploy() bool {
@@ -247,6 +247,14 @@ func (m *metaTaskExecutor) isDeleteExtnV1B1Deploy() bool {
 
 func (m *metaTaskExecutor) isDeleteAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
 }
 
 func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
@@ -273,12 +281,24 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isGetOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }
 
 func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isList()
 }
 
 // asRollbackInstance defines a metaTaskExecutor suitable for
