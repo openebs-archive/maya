@@ -252,7 +252,6 @@ type CStorVolumeReplica struct {
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
 	CStorControllerIP string `json:"cStorControllerIP"`
-	VolName           string `json:"volName"`
 	Capacity          string `json:"capacity"`
 }
 
@@ -261,6 +260,39 @@ type CStorVolumeReplicaSpec struct {
 
 // CStorVolumeReplicaList is a list of CStorVolumeReplica resources
 type CStorVolumeReplicaList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorVolumeReplica `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolume
+// +genclient:nonNamespaced
+
+// CStorVolume describes a cstor volume resource created as custom resource
+type CStorVolume struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              CStorVolumeSpec `json:"spec"`
+}
+
+// CStorVolumeSpec is the spec for a CStorVolume resource
+type CStorVolumeSpec struct {
+	VolumeName        string `json:"volumeName"`
+	Capacity          string `json:"capacity"`
+	CStorControllerIP string `json:"cStorControllerIP"`
+	Status            string `json:"status"`
+	VolumeID          string `json:"volumeID"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolume
+
+// CStorVolumeReplicaList is a list of CStorVolume resources
+type CStorVolumeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 

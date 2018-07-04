@@ -355,6 +355,10 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchAppsV1B1Deploy()
 	} else if m.metaTaskExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
+	} else if m.metaTaskExec.isPutOEV1alpha1CstorVolume() {
+		err = m.putCstorVolume()
+	} else if m.metaTaskExec.isPutOEV1alpha1CstorVolumeReplica() {
+		err = m.putCstorVolumeReplica()
 	} else if m.metaTaskExec.isDeleteExtnV1B1Deploy() {
 		err = m.deleteExtnV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
@@ -366,6 +370,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
 	} else if m.metaTaskExec.isList() {
+		err = m.listK8sResources()
+	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
 		err = m.listK8sResources()
 	} else {
 		err = fmt.Errorf("failed to execute task: not a supported operation: meta info '%#v'", m.metaTaskExec.getMetaInfo())
@@ -426,6 +432,28 @@ func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) 
 	}
 
 	return d.AsExtnV1B1Deployment()
+}
+
+// asCstorVolume generates a CstorVolume object
+// out of the embedded yaml
+func (m *taskExecutor) asCstorVolume() (*v1alpha1.CStorVolume, error) {
+	d, err := m_k8s.NewCstorVolumeYml("CstorVolume", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsCstorVolumeYml()
+}
+
+// asCstorVolumeReplica generates a CStorVolumeReplica object
+// out of the embedded yaml
+func (m *taskExecutor) asCstorVolumeReplica() (*v1alpha1.CStorVolumeReplica, error) {
+	d, err := m_k8s.NewCstorVolumeReplicaYml("CstorVolumeReplica", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsCstorVolumeReplicaYml()
 }
 
 // asCoreV1Svc generates a K8s Service object
@@ -554,6 +582,38 @@ func (m *taskExecutor) putCoreV1Service() (err error) {
 	return
 }
 
+// putCstorVolume will put a CstorVolume as defined in the task
+func (m *taskExecutor) putCstorVolume() (err error) {
+	c, err := m.asCstorVolume()
+	if err != nil {
+		return
+	}
+
+	cstorVolume, err := m.k8sClient.CreateOEV1alpha1CVAsRaw(c)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cstorVolume, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// putCstorVolumeReplica will put a CstorVolumeReplica as defined in the task
+func (m *taskExecutor) putCstorVolumeReplica() (err error) {
+	d, err := m.asCstorVolumeReplica()
+	if err != nil {
+		return
+	}
+
+	cstorVolumeReplica, err := m.k8sClient.CreateOEV1alpha1CVRAsRaw(d)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
 // deleteCoreV1Service will delete one or more services as specified in
 // the RunTask
 func (m *taskExecutor) deleteCoreV1Service() (err error) {
@@ -630,6 +690,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = m.k8sClient.ListExtnV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListAppsV1B1Deploy() {
 		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
+		op, err = m.k8sClient.ListOEV1alpha1CSPRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%#v'", m.metaTaskExec.getTaskIdentity())
 	}

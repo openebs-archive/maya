@@ -233,6 +233,14 @@ func (m *metaTaskExecutor) isPutCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isPutOEV1alpha1CstorVolume() bool {
+	return m.identifier.isOEV1alpha1CstorVolume() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1CstorVolumeReplica() bool {
+	return m.identifier.isOEV1alpha1CstorVolumeReplica() && m.isPut()
+}
+
 func (m *metaTaskExecutor) isDeleteExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isDelete()
 }
@@ -267,6 +275,10 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 
 func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isList()
 }
 
 // asRollbackInstance defines a metaTaskExecutor suitable for

@@ -152,7 +152,7 @@ apiserver:
 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
-apiserver-image: mayactl apiserver
+apiserver-image: apiserver
 	@echo "----------------------------"
 	@echo "--> apiserver image         "
 	@echo "----------------------------"
