@@ -220,7 +220,6 @@ type CStorPoolList struct {
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolumereplica
-// +genclient:nonNamespaced
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {

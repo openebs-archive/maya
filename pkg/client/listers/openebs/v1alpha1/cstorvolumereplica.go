@@ -29,8 +29,8 @@ import (
 type CStorVolumeReplicaLister interface {
 	// List lists all CStorVolumeReplicas in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.CStorVolumeReplica, err error)
-	// Get retrieves the CStorVolumeReplica from the index for a given name.
-	Get(name string) (*v1alpha1.CStorVolumeReplica, error)
+	// CStorVolumeReplicas returns an object that can list and get CStorVolumeReplicas.
+	CStorVolumeReplicas(namespace string) CStorVolumeReplicaNamespaceLister
 	CStorVolumeReplicaListerExpansion
 }
 
@@ -52,9 +52,38 @@ func (s *cStorVolumeReplicaLister) List(selector labels.Selector) (ret []*v1alph
 	return ret, err
 }
 
-// Get retrieves the CStorVolumeReplica from the index for a given name.
-func (s *cStorVolumeReplicaLister) Get(name string) (*v1alpha1.CStorVolumeReplica, error) {
-	obj, exists, err := s.indexer.GetByKey(name)
+// CStorVolumeReplicas returns an object that can list and get CStorVolumeReplicas.
+func (s *cStorVolumeReplicaLister) CStorVolumeReplicas(namespace string) CStorVolumeReplicaNamespaceLister {
+	return cStorVolumeReplicaNamespaceLister{indexer: s.indexer, namespace: namespace}
+}
+
+// CStorVolumeReplicaNamespaceLister helps list and get CStorVolumeReplicas.
+type CStorVolumeReplicaNamespaceLister interface {
+	// List lists all CStorVolumeReplicas in the indexer for a given namespace.
+	List(selector labels.Selector) (ret []*v1alpha1.CStorVolumeReplica, err error)
+	// Get retrieves the CStorVolumeReplica from the indexer for a given namespace and name.
+	Get(name string) (*v1alpha1.CStorVolumeReplica, error)
+	CStorVolumeReplicaNamespaceListerExpansion
+}
+
+// cStorVolumeReplicaNamespaceLister implements the CStorVolumeReplicaNamespaceLister
+// interface.
+type cStorVolumeReplicaNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all CStorVolumeReplicas in the indexer for a given namespace.
+func (s cStorVolumeReplicaNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.CStorVolumeReplica, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1alpha1.CStorVolumeReplica))
+	})
+	return ret, err
+}
+
+// Get retrieves the CStorVolumeReplica from the indexer for a given namespace and name.
+func (s cStorVolumeReplicaNamespaceLister) Get(name string) (*v1alpha1.CStorVolumeReplica, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
 	if err != nil {
 		return nil, err
 	}

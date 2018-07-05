@@ -18,6 +18,7 @@ package common
 
 import (
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -126,8 +127,19 @@ const (
 	QOpModify  QueueOperation = "modify"
 )
 
-// IsImported is channel to block cvr until certain pool import operations are over.
-var IsImported chan bool
+// namespace defines kubernetes namespace specified for cvr.
+type namespace string
+
+// Different types of k8s namespaces.
+const (
+	defaultNameSpace namespace = "default"
+)
+
+// Mux is mutex variable to block cvr until certain pool operations are complete.
+var Mux *sync.Mutex
+
+// IsImported is boolean flag to check at cvr until certain pool import operations are complete.
+var IsImported bool
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.
@@ -164,7 +176,7 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 // CheckForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
 func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
-		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas().List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
 			time.Sleep(CRDRetryInterval)

@@ -90,10 +90,12 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		b) Watcher could have come up first, in this case, there is a possibility
 		that zrepl goes down and comes up and the watcher sees that no pool is there,
 		so it will break the loop and attempt to import the pool. */
-		existingPool, _ := pool.GetPoolName()
-		flag := len(existingPool) != 0
+
 		// cnt is no of attempts to wait and handle in case of already present pool.
 		cnt := common.NoOfPoolWaitAttempts
+		existingPool, _ := pool.GetPoolName()
+		flag := len(existingPool) != 0
+		common.Mux.Lock()
 		for i := 0; flag && i < cnt; i++ {
 			common.InitialImportedPoolVol, _ = volumereplica.GetVolumes()
 			// GetPoolName is to get pool name for particular no. of attempts.
@@ -102,18 +104,21 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 				flag = true
 				// In the last attempt, ignore and update the status.
 				if i == cnt-1 {
+					flag = false
 					if IsInitStatus(cStorPoolGot) {
 						// Pool CR status is init. This means pool deployment was done
 						// successfully, but before updating the CR to Online status,
 						// the watcher container got restarted.
 						glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 						c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-						common.IsImported <- true
+						common.IsImported = true
+						common.Mux.Unlock()
 						return string(apis.CStorPoolStatusOnline), nil
 					}
 					glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-					common.IsImported <- true
+					common.IsImported = true
+					common.Mux.Unlock()
 					return string(apis.CStorPoolStatusOnline), nil
 				}
 				glog.Infof("Attempt %v: Waiting...", i+1)
@@ -130,7 +135,8 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		status, _ := c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.IsImported <- true
+			common.IsImported = true
+			common.Mux.Unlock()
 			return status, nil
 		}
 		// import pool without cachefile.
@@ -138,17 +144,19 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		status, _ = c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.IsImported <- true
+			common.IsImported = true
+			common.Mux.Unlock()
 			return status, nil
 		}
 
 		// make a check if initialImportedPoolVol is not empty, then notify cvr controller
 		// through channel.
 		if len(common.InitialImportedPoolVol) != 0 {
-			common.IsImported <- true
+			common.IsImported = true
 		} else {
-			common.IsImported <- false
+			common.IsImported = false
 		}
+		common.Mux.Unlock()
 
 		// IsInitStatus is to check if initial status of cstorpool object is `init`.
 		if IsInitStatus(cStorPoolGot) {
@@ -242,13 +250,13 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 	if err == nil {
 		err = pool.SetCachefile(cStorPoolGot)
 		if err != nil {
-			common.IsImported <- false
+			common.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
 		common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 		if err != nil {
-			common.IsImported <- false
+			common.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Import Pool with cachefile successful: %v", string(cStorPoolGot.GetUID()))
