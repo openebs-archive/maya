@@ -21,6 +21,7 @@ func TestGetVolDetails(t *testing.T) {
 	)
 	tests := map[string]struct {
 		volumeName string
+		namespace  string
 
 		fakeHandler utiltesting.FakeHandler
 		err         error
@@ -81,12 +82,33 @@ func TestGetVolDetails(t *testing.T) {
 			err:  util.PageNotFound,
 			addr: "MAPI_ADDR",
 		},
+		"OpenebsNamespacedVolume": {
+			volumeName: "vol",
+			namespace:  "",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode: 404,
+				T:          t,
+			},
+			err:  util.PageNotFound,
+			addr: "MAPI_ADDR",
+		},
+		"AppNamespacedVolume": {
+			volumeName: "vol",
+			namespace:  "app",
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: string(response),
+				T:            t,
+			},
+			err:  nil,
+			addr: "MAPI_ADDR",
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			server = httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
-			if got := annotation.GetVolAnnotations(tt.volumeName); got != tt.err {
+			if got := annotation.GetVolAnnotations(tt.volumeName, tt.namespace); got != tt.err {
 				t.Fatalf("GetVolDetails(%v) => got %v, want %v ", tt.volumeName, got, tt.err)
 			}
 			defer os.Unsetenv(tt.addr)

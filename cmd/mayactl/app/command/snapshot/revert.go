@@ -24,45 +24,48 @@ import (
 	"github.com/spf13/cobra"
 )
 
-/*type CmdSnaphotCreateOptions struct {
-	volName  string
-	snapName string
-}*/
+var (
+	snapshotrevertHelpText = `
+This command rolls back volume data to the specified snapshot. Once the roll back
+to snapshot is successful, all data changes made after the snapshot was taken will
+be posted. This command should be used cautiously and only if there is an issue with
+the current state of data.
+
+Usage: mayactl snapshot revert [options]
+
+$ mayactl snapshot revert --volname <vol> --snapname <snap>
+
+`
+)
 
 // NewCmdSnapshotRevert reverts a snapshot of OpenEBS Volume
 func NewCmdSnapshotRevert() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "revert",
 		Short: "Reverts to specific snapshot of a Volume",
-		Long:  "Reverts to specific snapshot of a Volume",
+		Long:  snapshotrevertHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotRevert(cmd), util.Fatal)
 		},
 	}
-
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
-	cmd.MarkPersistentFlagRequired("snapname")
-
 	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
-
+	cmd.MarkPersistentFlagRequired("snapname")
 	return cmd
 }
 
 // RunSnapshotRevert does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotRevert(cmd *cobra.Command) error {
+func (c *CmdSnaphotOptions) RunSnapshotRevert(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot revert ...")
 
-	resp := mapiserver.RevertSnapshot(c.volName, c.snapName)
+	resp := mapiserver.RevertSnapshot(c.volName, c.snapName, c.namespace)
 	if resp != nil {
-		return fmt.Errorf("Error: %v", resp)
+		return fmt.Errorf("Snapshot revert failed: %v", resp)
 	}
-
 	fmt.Printf("Reverting to snapshot [%s] of volume [%s]\n", c.snapName, c.volName)
 	return nil
 }

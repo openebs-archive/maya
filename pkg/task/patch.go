@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/pkg/template"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -70,6 +71,19 @@ type TaskPatch struct {
 	Specs string `json:"pspec"`
 }
 
+// asTaskPatch runs go template against the yaml document & converts it
+// to a TaskPatch type
+func asTaskPatch(context, yml string, values map[string]interface{}) (patch TaskPatch, err error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return
+	}
+
+	// unmarshall into TaskPatch
+	err = yaml.Unmarshal(b, &patch)
+	return
+}
+
 type taskPatchExecutor struct {
 	patch TaskPatch
 }
@@ -88,9 +102,9 @@ func newTaskPatchExecutor(patch TaskPatch) (*taskPatchExecutor, error) {
 	}, nil
 }
 
-// build converts the patch in yaml document format to corresponding
+// toJson converts the patch in yaml document format to corresponding
 // json document
-func (p *taskPatchExecutor) build() ([]byte, error) {
+func (p *taskPatchExecutor) toJson() ([]byte, error) {
 	m := map[string]interface{}{}
 	err := yaml.Unmarshal([]byte(p.patch.Specs), &m)
 	if err != nil {

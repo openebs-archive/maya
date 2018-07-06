@@ -1,11 +1,13 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/openebs/maya/types/v1"
 	volProfile "github.com/openebs/maya/volume/profiles"
+	"k8s.io/client-go/kubernetes"
 )
 
 // TestK8sUtilInterfaceCompliance verifies if k8sUtil implements
@@ -134,6 +136,108 @@ func TestK8sUtilServices(t *testing.T) {
 
 		if err != nil && err.Error() != c.err {
 			t.Errorf("TestCase: '%d' ExpectedServicesErr: '%s' ActualServicesErr: '%s'", i, c.err, err.Error())
+		}
+	}
+}
+
+// TestNS tests the namespace property of k8sUtil instance.
+func TestNS(t *testing.T) {
+
+	cases := []struct {
+		ns string
+	}{
+		{"default"},
+		{"test"},
+	}
+
+	for i, c := range cases {
+
+		// a noop pvc that in turn signals use of defaults
+		pvc := &v1.Volume{
+			Namespace: c.ns,
+		}
+
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		nsActual, err := k8sUtl.NS()
+		if err != nil {
+			t.Errorf("TestCase: '%d' ExpectedNSErr: 'nil' ActualNSErr: '%s'", i, err.Error())
+		}
+
+		if nsActual != c.ns {
+			t.Errorf("TestCase: '%d' ExpectedNS: '%s' ActualNS: '%s'", i, c.ns, nsActual)
+		}
+	}
+}
+
+// TestgetOutCluster tests TestgetOutClusterCS func
+func TestGetOutClusterCS(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		expectedOutput *kubernetes.Clientset
+		expectedError  error
+	}{
+		{"default", nil, errors.New("out cluster clientset not supported in 'k8sutil @ 'default''")},
+		{"test", nil, errors.New("out cluster clientset not supported in 'k8sutil @ 'test''")},
+	}
+
+	for i, val := range cases {
+		pvc := &v1.Volume{
+			Namespace: val.name,
+		}
+
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		out, err := k8sUtl.getOutClusterCS()
+
+		if out != val.expectedOutput {
+			t.Errorf("TestCase: '%d' Expected Output :%v but got :%v", i, val.expectedOutput, out)
+		}
+		if err.Error() != val.expectedError.Error() {
+			t.Errorf("TestCase: '%d' Expected Error :%v but got :%v", i, val.expectedError, err)
+		}
+	}
+}
+
+// TestIsInCluster tests the output of IsIncluster func
+func TestIsInCluster(t *testing.T) {
+
+	cases := []struct {
+		name           string
+		expectedOutput bool
+		expectedError  error
+	}{
+		{"default", true, nil},
+		{"test", true, nil},
+	}
+
+	for i, val := range cases {
+		pvc := &v1.Volume{
+			Namespace: val.name,
+		}
+
+		volP, _ := volProfile.GetDefaultVolProProfile(pvc)
+
+		k8sUtl := &k8sUtil{
+			volProfile: volP,
+		}
+
+		out, err := k8sUtl.IsInCluster()
+
+		if out != val.expectedOutput {
+			t.Errorf("TestCase: '%d' ExpectedOutput %v but got :%v", i, val.expectedOutput, out)
+		}
+		if err != val.expectedError {
+			t.Errorf("TestCase: '%d' ExpectedError %v but got :%v", i, val.expectedError, err)
 		}
 	}
 }

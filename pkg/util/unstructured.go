@@ -120,10 +120,13 @@ func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]strin
 	return nil
 }
 
-// TODO
-// Unit Test
 func SetNestedField(obj map[string]interface{}, value interface{}, fields ...string) {
 	m := obj
+	if len(fields) == 0 {
+		// no changes to obj
+		return
+	}
+
 	if len(fields) > 1 {
 		for _, field := range fields[0 : len(fields)-1] {
 			if _, ok := m[field].(map[string]interface{}); !ok {
@@ -178,7 +181,8 @@ func MergeMapOfStrings(dest map[string]string, src map[string]string) bool {
 	return true
 }
 
-// MergeMapOfObjects will merge the map from src to dest
+// MergeMapOfObjects will merge the map from src to dest. It will override
+// existing keys of the destination
 func MergeMapOfObjects(dest map[string]interface{}, src map[string]interface{}) bool {
 	// nil check as storing into a nil map panics
 	if dest == nil {

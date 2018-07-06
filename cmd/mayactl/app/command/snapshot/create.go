@@ -25,6 +25,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotCreateCommandHelpText = `
+This command creates a new snapshot.
+
+Usage: mayactl snapshot create [options]
+
+$ mayactl snapshot create --volname <vol> --snapname <snap>
+`
+)
+
 /*func init() {
 	host := os.Getenv("MAPI_ADDR")
 	port := os.Getenv("MAPI_PORT")
@@ -44,44 +54,33 @@ import (
 }
 */
 
-// CmdSnaphotCreateOptions holds the options for snapshot
-// create command
-type CmdSnaphotCreateOptions struct {
-	volName  string
-	snapName string
-}
-
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
 func NewCmdSnapshotCreate() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Snapshot",
-		//Long:  SnapshotCreateCommandHelpText,
+		Long:  snapshotCreateCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotCreate(cmd), util.Fatal)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
-	cmd.MarkPersistentFlagRequired("snapname")
-
 	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
-
+	cmd.MarkPersistentFlagRequired("snapname")
 	return cmd
 }
 
 // Validate validates the flag values
-func (c *CmdSnaphotCreateOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
+func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
 		return errors.New("--volname is missing. Please specify an unique name")
 	}
-	if c.snapName == "" {
+	if len(c.snapName) == 0 {
 		return errors.New("--snapname is missing. Please specify an unique name")
 	}
 
@@ -89,12 +88,12 @@ func (c *CmdSnaphotCreateOptions) Validate(cmd *cobra.Command) error {
 }
 
 // RunSnapshotCreate does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotCreate(cmd *cobra.Command) error {
+func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot create...")
 
-	resp := mapiserver.CreateSnapshot(c.volName, c.snapName)
+	resp := mapiserver.CreateSnapshot(c.volName, c.snapName, c.namespace)
 	if resp != nil {
-		return fmt.Errorf("Snapshot create failed: %v", resp)
+		return fmt.Errorf("Snapshot creation failed: %v", resp)
 	}
 
 	fmt.Printf("Volume snapshot Successfully Created:%v\n", c.volName)

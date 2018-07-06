@@ -34,6 +34,15 @@ type OldVolumeLabels struct {
 
 	// ControllersOld contains the controller count
 	ControllersOld *int32 `json:"volumeprovisioner.mapi.openebs.io/controller-count,omitempty" protobuf:"varint,1,opt,name=volumeprovisioner.mapi.openebs.io/controller-count"`
+
+	// ApplicationOld contains the application label associated with volume
+	ApplicationOld string `json:"volumeprovisioner.mapi.openebs.io/application,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/application"`
+
+	// ReplicaTopologyKeyDomainOld contains the domain that needs to be specified for Replica Deployment PodAntiAffinity Topology Key
+	ReplicaTopologyKeyDomainOld string `json:"volumeprovisioner.mapi.openebs.io/replica-topology-key-domain,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/replica-topology-key-domain"`
+
+	// ReplicaTopologyKeyTypeOld contains the type that needs to be specified for Replica Deployment PodAntiAffinity Topology Key
+	ReplicaTopologyKeyTypeOld string `json:"volumeprovisioner.mapi.openebs.io/replica-topology-key-type,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/replica-topology-key-type"`
 }
 
 // K8sVolumeLabels is a typed structure that consists of
@@ -81,11 +90,24 @@ type VolumeLabels struct {
 type VolumeKey string
 
 const (
-	// VolumeParameterGroupVK is the key to fetch VolumeParameterGroup
-	VolumeParameterGroupVK VolumeKey = "openebs.io/volume-parameter-group"
+	// CASTemplateVK is the key to fetch name of CASTemplate custom resource
+	// to create a cas volume
+	CASTemplateVK VolumeKey = "cas.openebs.io/template"
 
-	// VolumePolicyVK is the key to fetch volume policy
-	//VolumePolicyVK VolumeKey = "openebs.io/volume-policy"
+	// CASTemplateForReadVK is the key to fetch name of CASTemplate custom
+	// resource to read a cas volume
+	CASTemplateForReadVK VolumeKey = "cas.openebs.io/read-template"
+
+	// CASTemplateForDeleteVK is the key to fetch name of CASTemplate custom
+	// resource to delete a cas volume
+	CASTemplateForDeleteVK VolumeKey = "cas.openebs.io/delete-template"
+
+	// CASTemplateForListVK is the key to fetch name of CASTemplate custom
+	// resource to list cas volumes
+	CASTemplateForListVK VolumeKey = "cas.openebs.io/list-template"
+
+	// CASConfigVK is the key to fetch configurations w.r.t a CAS volume
+	CASConfigVK VolumeKey = "cas.openebs.io/config"
 
 	// CapacityVK is the key to fetch volume capacity
 	CapacityVK VolumeKey = "openebs.io/capacity"

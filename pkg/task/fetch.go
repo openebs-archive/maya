@@ -87,7 +87,7 @@ func (f *K8sTaskSpecFetcher) Fetch(taskName string) (metaTaskYml string, taskYml
 	taskYml = cm.Data["task"]
 	if len(taskYml) == 0 {
 		// This can be empty for get API calls
-		glog.Warningf("Nil task specs: Will use meta task specs: Task: '%s' MetaTask: '%s'", taskName, metaTaskYml)
+		glog.Warningf("nil task specs: will use meta task specs: task '%s'", taskName)
 	}
 
 	return metaTaskYml, taskYml, nil

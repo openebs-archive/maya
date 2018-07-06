@@ -22,31 +22,20 @@ import (
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
+	mayav1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
 var (
 	volumeCreateCommandHelpText = `
-	Usage: maya volume create -volname <vol> [-size <size>]
+This command creates a new Volume.
 
-	This command creates a new Volume.
-
-	Volume create options:
-	-size
-	Provisioning size of the volume(default is 5G)
-
-	`
+Usage: mayactl volume create --volname <vol> [-size <size>]
+`
 )
-
-type CmdVolumeCreateOptions struct {
-	volName string
-	size    string
-}
 
 // NewCmdVolumeCreate creates a new OpenEBS Volume
 func NewCmdVolumeCreate() *cobra.Command {
-	options := CmdVolumeCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Creates a new Volume",
@@ -63,28 +52,45 @@ func NewCmdVolumeCreate() *cobra.Command {
 
 	cmd.Flags().StringVarP(&options.size, "size", "", options.size,
 		"volume capacity in GB (example: 10G) (default: 5G")
-
 	return cmd
 }
 
-// Run does tasks related to mayaserver.
-func (c *CmdVolumeCreateOptions) Validate(cmd *cobra.Command) error {
-	if c.volName == "" {
-		return errors.New("--volname is missing. Please specify an unique name")
+// Validate verifies whether a volume name is provided or not followed by
+// stats command. It returns nil and proceeds to execute the command if there is
+// no error and returns an error if it is missing.
+func (c *CmdVolumeOptions) Validate(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
+		return errors.New("--volname is missing. Please specify a unique name")
 	}
 	return nil
 }
 
-// Run does tasks related to mayaserver.
-func (c *CmdVolumeCreateOptions) RunVolumeCreate(cmd *cobra.Command) error {
+// RunVolumeCreate makes create volume request to maya-apiserver after verifying whether the volume already exists or not. In case if the volume already exists it returns the error and come out of execution.
+func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume create...")
-
+	err := IsVolumeExist(c.volName)
+	if err != nil {
+		return err
+	}
 	resp := mapiserver.CreateVolume(c.volName, c.size)
 	if resp != nil {
-		return fmt.Errorf("Error: %v", resp)
+		return fmt.Errorf("Volume creation failed: %v", resp)
 	}
-
 	fmt.Printf("Volume Successfully Created:%v\n", c.volName)
+	return nil
+}
 
+// IsVolumeExist checks whether the volume already exists or not
+func IsVolumeExist(volname string) error {
+	var vols mayav1.VolumeList
+	err := mapiserver.ListVolumes(&vols)
+	if err != nil {
+		return err
+	}
+	for _, items := range vols.Items {
+		if volname == items.ObjectMeta.Name {
+			return fmt.Errorf("Error: Volume %v already exist ", volname)
+		}
+	}
 	return nil
 }

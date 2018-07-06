@@ -17,6 +17,8 @@ limitations under the License.
 package k8s
 
 import (
+	"encoding/json"
+
 	openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -119,10 +121,10 @@ type K8sClient struct {
 	// during unit testing
 	StoragePool *api_oe_v1alpha1.StoragePool
 
-	// VolumeParameterGroup refers to a K8s VolumeParameterGroup CRD object
+	// CASTemplate refers to a K8s CASTemplate custom resource
 	// NOTE: This property is useful to mock
 	// during unit testing
-	VolumeParameterGroup *api_oe_v1alpha1.VolumeParameterGroup
+	CASTemplate *api_oe_v1alpha1.CASTemplate
 
 	// various cert related to connecting to K8s API
 	caCert     string
@@ -186,21 +188,21 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 	return spOps.Get(name, mach_apis_meta_v1.GetOptions{})
 }
 
-// oeV1alpha1VPOps is a utility function that provides a instance capable of
-// executing various OpenEBS VolumeParameterGroup related operations
-func (k *K8sClient) oeV1alpha1VPOps() typed_oe_v1alpha1.VolumeParameterGroupInterface {
-	return k.oecs.OpenebsV1alpha1().VolumeParameterGroups()
+// oeV1alpha1CASTOps is a utility function that provides a instance capable of
+// executing various OpenEBS CASTemplate related operations
+func (k *K8sClient) oeV1alpha1CASTOps() typed_oe_v1alpha1.CASTemplateInterface {
+	return k.oecs.OpenebsV1alpha1().CASTemplates()
 }
 
-// GetOEV1alpha1VPG fetches the OpenEBS VolumeParameterGroup specs based on
+// GetOEV1alpha1CAST fetches the OpenEBS CASTemplate specs based on
 // the provided name
-func (k *K8sClient) GetOEV1alpha1VPG(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.VolumeParameterGroup, error) {
-	if k.VolumeParameterGroup != nil {
-		return k.VolumeParameterGroup, nil
+func (k *K8sClient) GetOEV1alpha1CAST(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.CASTemplate, error) {
+	if k.CASTemplate != nil {
+		return k.CASTemplate, nil
 	}
 
-	vpOps := k.oeV1alpha1VPOps()
-	return vpOps.Get(name, opts)
+	castOps := k.oeV1alpha1CASTOps()
+	return castOps.Get(name, opts)
 }
 
 // cmOps is a utility function that provides a instance capable of
@@ -237,7 +239,8 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 
 // GetCoreV1PVCAsRaw fetches the K8s PVC with the provided name
 func (k *K8sClient) GetCoreV1PVCAsRaw(name string) (result []byte, err error) {
-	result, err = k.cs.CoreV1().RESTClient().Get().
+	result, err = k.cs.CoreV1().RESTClient().
+		Get().
 		Namespace(k.ns).
 		Resource("persistentvolumeclaims").
 		Name(name).
@@ -245,6 +248,57 @@ func (k *K8sClient) GetCoreV1PVCAsRaw(name string) (result []byte, err error) {
 		DoRaw()
 
 	return
+}
+
+// GetExtnV1B1DeploymentAsRaw fetches the K8s Deployment with the provided name
+func (k *K8sClient) GetExtnV1B1DeploymentAsRaw(name string) (result []byte, err error) {
+	result, err = k.cs.ExtensionsV1beta1().RESTClient().
+		Get().
+		Namespace(k.ns).
+		Resource("deployments").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
+// GetAppsV1B1DeploymentAsRaw fetches the K8s Deployment with the provided name
+func (k *K8sClient) GetAppsV1B1DeploymentAsRaw(name string) (result []byte, err error) {
+	result, err = k.cs.AppsV1beta1().RESTClient().
+		Get().
+		Namespace(k.ns).
+		Resource("deployments").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
+// GetOEV1alpha1SPAsRaw fetches the OpenEBS SP with the provided name
+func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error) {
+	sp, err := k.GetOEV1alpha1SP(name)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(sp)
+
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
+	//result, err = k.oecs.OpenebsV1alpha1().RESTClient().
+	//	Get().
+	//	Namespace(k.ns).
+	//	Resource("storagepools").
+	//	Name(name).
+	//	VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+	//	DoRaw()
+
+	//return
 }
 
 // podOps is a utility function that provides a instance capable of
@@ -263,11 +317,56 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
+// GetPods fetches the K8s Pods
+func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
+	podLists, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return podLists.Items, nil
+}
+
 // ListCoreV1PodAsRaw fetches a list of K8s Pods with the provided options
 func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Get().
 		Namespace(k.ns).
 		Resource("pods").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
+// ListCoreV1ServiceAsRaw fetches a list of K8s Services as per the provided options
+func (k *K8sClient) ListCoreV1ServiceAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("services").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
+// ListExtnV1B1DeploymentAsRaw fetches a list of K8s Deployments as per the
+// provided options
+func (k *K8sClient) ListExtnV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.ExtensionsV1beta1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("deployments").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
+// ListAppsV1B1DeploymentAsRaw fetches a list of K8s Deployments as per the
+// provided options
+func (k *K8sClient) ListAppsV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.AppsV1beta1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
 
@@ -302,7 +401,7 @@ func (k *K8sClient) CreateCoreV1Service(svc *api_core_v1.Service) (*api_core_v1.
 	return sops.Create(svc)
 }
 
-// CreateCoreV1Service deletes a K8s Service
+// DeleteCoreV1Service deletes a K8s Service
 func (k *K8sClient) DeleteCoreV1Service(name string) error {
 	sops := k.coreV1ServiceOps()
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
@@ -335,10 +434,82 @@ func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions
 	return dops.Get(name, opts)
 }
 
-// CreateExtnV1B1Deployment creates the K8s Deployment with the provided name
+// CreateExtnV1B1Deployment creates a K8s Deployment
 func (k *K8sClient) CreateExtnV1B1Deployment(d *api_extn_v1beta1.Deployment) (*api_extn_v1beta1.Deployment, error) {
 	dops := k.extnV1B1DeploymentOps()
 	return dops.Create(d)
+}
+
+// CreateExtnV1B1DeploymentAsRaw creates a K8s Deployment
+func (k *K8sClient) CreateExtnV1B1DeploymentAsRaw(d *api_extn_v1beta1.Deployment) (result []byte, err error) {
+	deploy, err := k.CreateExtnV1B1Deployment(d)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(deploy)
+
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
+	//result, err = k.cs.ExtensionsV1beta1().RESTClient().
+	//	Put().
+	//	Namespace(k.ns).
+	//	Resource("deployments").
+	//	Body(d).
+	//	DoRaw()
+
+	//return
+}
+
+// CreateAppsV1B1DeploymentAsRaw creates a K8s Deployment
+func (k *K8sClient) CreateAppsV1B1DeploymentAsRaw(d *api_apps_v1beta1.Deployment) (result []byte, err error) {
+	deploy, err := k.CreateAppsV1B1Deployment(d)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(deploy)
+
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
+	//result, err = k.cs.AppsV1beta1().RESTClient().
+	//	Put().
+	//	Namespace(k.ns).
+	//	Resource("deployments").
+	//	Body(d).
+	//	DoRaw()
+
+	//return
+}
+
+// CreateCoreV1ServiceAsRaw creates a K8s Service
+func (k *K8sClient) CreateCoreV1ServiceAsRaw(s *api_core_v1.Service) (result []byte, err error) {
+	svc, err := k.CreateCoreV1Service(s)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(svc)
+
+	// TODO
+	//  A better way needs to be determined to get or use raw bytes of a resource.
+	// These lines will be removed or refactor-ed once we conclude on this better
+	// approach.
+	//
+	//result, err = k.cs.CoreV1().RESTClient().
+	//	Put().
+	//	Namespace(k.ns).
+	//	Resource("services").
+	//	Body(s).
+	//	DoRaw()
+
+	//return
 }
 
 // PatchExtnV1B1Deployment patches the K8s Deployment with the provided patches

@@ -33,7 +33,7 @@ const (
 )
 
 // getVolDetails gets response in json format of a volume from m-apiserver
-func GetVolDetails(volName string, obj interface{}) error {
+func GetVolDetails(volName string, namespace string, obj interface{}) error {
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {
 		err := util.MAPIADDRNotSet
@@ -42,13 +42,20 @@ func GetVolDetails(volName string, obj interface{}) error {
 	}
 
 	url := addr + "/latest/volumes/info/" + volName
-	client := &http.Client{
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("namespace", namespace)
+
+	c := &http.Client{
 		Timeout: timeout,
 	}
-	resp, err := client.Get(url)
-
+	resp, err := c.Do(req)
 	if err != nil {
-		fmt.Printf("Could not get response, found error: %v", err)
+		fmt.Printf("Can't get a response, error found: %v", err)
 		return err
 	}
 
@@ -74,9 +81,9 @@ func GetVolDetails(volName string, obj interface{}) error {
 }
 
 // GetVolAnnotations maps annotations of volume to Annotations structure.
-func (annotations *Annotations) GetVolAnnotations(volName string) error {
+func (annotations *Annotations) GetVolAnnotations(volName string, namespace string) error {
 	var volume v1.Volume
-	err := GetVolDetails(volName, &volume)
+	err := GetVolDetails(volName, namespace, &volume)
 	if err != nil || volume.ObjectMeta.Annotations == nil {
 		if volume.Status.Reason == "pending" {
 			fmt.Println("VOLUME status Unknown to M_API server")
