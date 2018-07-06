@@ -94,22 +94,15 @@ type taskExecutor struct {
 // namespace.
 //
 // NOTE:
-//  Providing a run namespace can be optional. It is optional in cases where
-// list operations are executed which in turn may involve more than one run
-// namespaces.
+//  Providing a run namespace can be optional. It is optional for cluster wide
+// operations.
 //
 // NOTE:
 //  In cases where more than one namespaces are involved, **repeatWith**
 // metatask property is used.
 func newK8sClient(runNamespace string) (kc *m_k8s_client.K8sClient, err error) {
-	runNamespace = strings.TrimSpace(runNamespace)
-
-	if len(runNamespace) == 0 {
-		// run namespace is optional hence no error
-		return
-	}
-
-	kc, err = m_k8s_client.NewK8sClient(runNamespace)
+	ns := strings.TrimSpace(runNamespace)
+	kc, err = m_k8s_client.NewK8sClient(ns)
 	return
 }
 
@@ -117,10 +110,11 @@ func newK8sClient(runNamespace string) (kc *m_k8s_client.K8sClient, err error) {
 // namespace
 func (m *taskExecutor) resetK8sClient(namespace string) (*taskExecutor, error) {
 	// client to make K8s API calls using the provided namespace
-	kc, err := m_k8s_client.NewK8sClient(namespace)
+	kc, err := newK8sClient(namespace)
 	if err != nil {
 		return nil, err
 	}
+
 	// reset the k8s client
 	m.k8sClient = kc
 	return m, nil

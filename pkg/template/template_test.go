@@ -40,6 +40,273 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+func TestNestedKeyMap(t *testing.T) {
+	tests := map[string]struct {
+		delimiters  string
+		given       []string
+		destination map[string]interface{}
+		expected    map[string]interface{}
+	}{
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with valid pairs & delimiters`: {
+			delimiters:  "=",
+			given:       []string{"co/co1=k8s", "co1=k8sNew", "co2=swarm", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"co/co1": "k8s",
+				"co1":    "k8sNew",
+				"co2":    "swarm",
+				"co3":    "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with valid pairs, multiple values per key & delimiters`: {
+			delimiters:  "=",
+			given:       []string{"co/co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"co/co1": "k8s",
+				"co2":    "swarm, swarm2",
+				"co3":    "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with two-step i.e. multi level keys`: {
+			delimiters:  "/ =",
+			given:       []string{"co/co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"co": map[string]interface{}{
+					"co1": "k8s",
+				},
+				"co2": "swarm, swarm2",
+				"co3": "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with three-step i.e. multi level keys`: {
+			delimiters:  "/ @ =",
+			given:       []string{"cloud/co@co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"cloud": map[string]interface{}{
+					"co": map[string]interface{}{
+						"co1": "k8s",
+					},
+				},
+				"co2": "swarm, swarm2",
+				"co3": "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with three-step i.e. multi level duplicate keys`: {
+			delimiters:  "/ / =",
+			given:       []string{"cloud/co/co1=k8s", "co/co2=swarm", "co2=swarm2", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"cloud": map[string]interface{}{
+					"co": map[string]interface{}{
+						"co1": "k8s",
+					},
+				},
+				"co": map[string]interface{}{
+					"co2": "swarm",
+				},
+				"co2": "swarm2",
+				"co3": "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with keys as well as values having whitespaces`: {
+			delimiters:  "=",
+			given:       []string{" co/co1 =k8s", "co2 = swarm ", " co2= swarm2", "co3=nomad "},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"co/co1": "k8s",
+				"co2":    "swarm, swarm2",
+				"co3":    "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with multi level keys with some keys as blank`: {
+			delimiters:  "/ / =",
+			given:       []string{"cloud/ /co1=k8s", "co/=swarm", "co=swarm2", "co3=nomad"},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"cloud": map[string]interface{}{
+					"co1": "k8s",
+				},
+				"co":  "swarm, swarm2",
+				"co3": "nomad",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with some values as blank`: {
+			delimiters:  "/ / =",
+			given:       []string{"cloud/ /co1=k8s", "cloud/ /co1=", "co/=", "co=swarm2", "co3=nomad", "co4="},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"cloud": map[string]interface{}{
+					"co1": "k8s",
+				},
+				"co":  "swarm2",
+				"co3": "nomad",
+				"co4": "",
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with some keys & values as whitespaces`: {
+			delimiters:  "/ / =",
+			given:       []string{"cloud/ /co1=k8s", "cloud/ /co1=  ", "  =  ", " co3 = nomad ", "co4=  "},
+			destination: map[string]interface{}{},
+			expected: map[string]interface{}{
+				"cloud": map[string]interface{}{
+					"co1": "k8s",
+				},
+				"co3": "nomad",
+				"co4": "",
+			},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := nestedKeyMap(mock.delimiters, mock.destination, mock.given)
+
+			if !reflect.DeepEqual(mock.expected, result) {
+				t.Fatalf("test nested key map failed:\n\nexpected: '%#v' \n\nactual: '%#v'", mock.expected, result)
+			}
+		})
+	}
+}
+
+func TestKeyMap(t *testing.T) {
+	tests := map[string]struct {
+		destinationFields string
+		given             []string
+		destination       map[string]interface{}
+		expected          map[string]interface{}
+	}{
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with valid pairs & delimiters:
+      - Verify if the result matches the expected`: {
+			destinationFields: "test1",
+			given:             []string{"co1=k8s,co2=swarm", "co3=nomad"},
+			destination:       map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test1": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Positive Test - Verify map creation with valid pairs, primary keys & delimiters:
+      - Verify if the result matches the expected`: {
+			destinationFields: "test1",
+			given:             []string{"co1=k8s,co2=swarm,pkey=one", "pkey=two,co3=nomad"},
+			destination:       map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test1": map[string]interface{}{
+					"one": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+					},
+					"two": map[string]interface{}{
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with valid pairs & delimiters & erratic whitespaces:
+      - Verify if the result matches the expected`: {
+			destinationFields: "test2",
+			given:             []string{"co1 = k8s,  co2= swarm  ", "   co3=nomad  "},
+			destination:       map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test2": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "swarm",
+						"co3": "nomad",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with pairs having missing value(s) or key(s) or both:
+      - Verify if the result matches the expected`: {
+			destinationFields: "test3",
+			given:             []string{"= k8s,  co2=  ", " = "},
+			destination:       map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test3": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co2": "",
+					},
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		`Negative Test - Verify map creation with primary key but missing primary key's value:
+      - Verify if the result matches the expected`: {
+			destinationFields: "test4",
+			given:             []string{"pkey=,co1= k8s,  co2=,=nomad  ", " = "},
+			destination:       map[string]interface{}{},
+			expected: map[string]interface{}{
+				"test4": map[string]interface{}{
+					"pkey": map[string]interface{}{
+						"co1": "k8s",
+						"co2": "",
+					},
+				},
+			},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			result := keyMap(mock.destinationFields, mock.destination, mock.given)
+
+			if !reflect.DeepEqual(mock.expected, result) {
+				t.Fatalf("test key map failed:\n\nexpected: '%#v' \n\nactual: '%#v'", mock.expected, result)
+			}
+		})
+	}
+}
+
 func TestSplitKeyMap(t *testing.T) {
 	tests := map[string]struct {
 		splitters   string
@@ -748,21 +1015,10 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - simple - To test if 'asNestedMap' works with nil list:
-		  - Get all the kinds via jsonpath in 'namespacename@kind=value;' format
-		    - NOTE: 'jsonpath' & 'asNestedMap' are template functions
-		    - NOTE: '/' '@' and '=' are used to frame a jsonpath output item
-		    - NOTE: ';' is used to join one jsonpath output item with next output item
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a nested map via 'asNestedMap'
-		    - NOTE: 'asNestedMap' builds a nested map using each array item
-		    - NOTE: 'asNestedMap' splits each array item via '@' & '='
-		    - NOTE: 'asNestedMap' sets this nested map against .Values
-		  - Verify if templating works even with nil list`: {
+		`Negative Test - Verify if 'nestedKeyMap' works with nil list`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | asNestedMap "/ @ =" .Values | noop -}}`,
+{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
 				"JsonDoc": mockJsonListMarshal(nil),
 				"Values":  map[string]interface{}{},
@@ -773,21 +1029,10 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - simple - To test if 'asNestedMap' works with empty byte:
-		  - Get all the kinds via jsonpath in 'namespacename@kind=value;' format
-		    - NOTE: 'jsonpath' & 'asNestedMap' are template functions
-		    - NOTE: '/' '@' and '=' are used to frame a jsonpath output item
-		    - NOTE: ';' is used to join one jsonpath output item with next output item
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a nested map via 'asNestedMap'
-		    - NOTE: 'asNestedMap' builds a nested map using each array item
-		    - NOTE: 'asNestedMap' splits each array item via '@' & '='
-		    - NOTE: 'asNestedMap' sets this nested map against .Values
-		  - Verify if templating works even with nil list`: {
+		`Negative Test - Verify if 'nestedKeyMap' works with empty byte`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | asNestedMap "/ @ =" .Values | noop -}}`,
+{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
 				"JsonDoc": []byte{},
 				"Values":  map[string]interface{}{},
@@ -798,18 +1043,11 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - simple - To test if template function 'asNestedMap' works as expected:
-	    - NOTE: 'asNestedMap' is a template function
-	    - Given a string values separated by " "
-	    - NOTE: '/' '@' and '=' are supposed to be used as delimiters
-		  - Then split the string via " " resulting into an array
-		  - Then translate above array into a nested map 
-		  - NOTE: 'asNestedMap' builds the maps by making use of the provided delimiters
-		  - Verify the nested map at .Values to verify correctness of 'asNestedMap'`: {
+		`Positive Test - Verify if template function 'nestedKeyMap' works as expected`: {
 			templateInYaml: `
-{{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | asNestedMap "@ =" .Values | noop -}}
-{{- "default/mypod@backend=true default/mypod@app=jiva2" | splitList " " | asNestedMap "@ =" .Values | noop -}}
-{{- "litmus/mypod@backend=true" | splitList " " | asNestedMap "/ @ =" .Values | noop -}}`,
+{{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | nestedKeyMap "@ =" .Values | noop -}}
+{{- "default/mypod@backend=true default/mypod@app=jiva2" | splitList " " | nestedKeyMap "@ =" .Values | noop -}}
+{{- "litmus/mypod@backend=true" | splitList " " | nestedKeyMap "/ @ =" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
 				"Values": map[string]interface{}{},
 			},
@@ -832,21 +1070,10 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - complex - To test if template function 'asNestMap' works as expected:
-		  - Get all the kinds via jsonpath in 'namespace/name@kind=value;' format
-		    - NOTE: 'jsonpath' is a template function
-		    - NOTE: namespace and name are joined via '/' delimiter
-		    - NOTE: '/' '@' and '=' are supposed to be used as delimiters
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a nested map by splitting with delimiters '/' '@' and '='
-		    - NOTE: The first delimiter is '/'
-		    - NOTE: The first delimiter is '@' 
-		    - NOTE: The next delimiter is '='
-		  - Finally verify the .Values i.e. template values`: {
+		`Positive Test - Verify if template function 'nestedKeyMap' works as expected with jsonpath`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | asNestedMap "/ @ =" .Values | noop -}}
+{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
 kindOne: {{ .Values.openebs.mypod.kind }}
 kindTwo: {{ .Values.default.mydeploy.kind }}`,
 			templateValues: map[string]interface{}{
@@ -886,21 +1113,10 @@ kindTwo: Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - complex - To test if template function 'asNestedMap' works with multiple values:
-		  - Get all the kinds via jsonpath in 'namespace/name@kind=value1;namespace/name@kind=value2;' format
-		    - NOTE: 'jsonpath' is a template function
-		    - NOTE: namespace and name are joined via '/' delimiter
-		    - NOTE: '/' '@' and '=' are used to frame the jsonpath output
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array via 'asNestedMap'
-		    - NOTE: asNestedMap makes use of delimiters to build a nested map
-		    - NOTE: the delimiters to be used here are '/' '@' and '='
-		    - NOTE: as there are multiple values for the same key, they are joined together by 'comma'
-		  - Finally verify the .Values i.e. template values`: {
+		`Positive Test - Verify if template function 'nestedKeyMap' works with multiple values for same key`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | asNestedMap "/ @ =" .Values | noop -}}
+{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
 kindOne: {{ .Values.openebs.myapp.kind }}
 kindTwo: {{ .Values.default.mydeploy.kind }}`,
 			templateValues: map[string]interface{}{
@@ -945,21 +1161,10 @@ kindTwo: Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - complex - To test use of map generated via template function 'asNestedMap'
-		  - Get all the kinds via jsonpath in 'namespace/name@kind=value;' format
-		    - NOTE: 'jsonpath' is a template function
-		    - NOTE: namespace and name are joined via '/' delimiter
-		    - NOTE: '/' '@' and '=' are supposed to be used as delimiters
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a nested map by splitting with delimiters '/' '@' and '='
-		    - NOTE: The first delimiter is '/'
-		    - NOTE: The first delimiter is '@' 
-		    - NOTE: The next delimiter is '='
-		  - Finally use the .Values i.e. template values which is of map datatype`: {
+		`Positive Test - Verify yaml rendering of the map generated via 'nestedKeyMap`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | asNestedMap "/ @ =" .Values | noop -}}
+{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
 {{- .Values | toYaml -}}`,
 			templateValues: map[string]interface{}{
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
@@ -1002,21 +1207,11 @@ openebs:
 		//
 		// start of test scenario
 		//
-		`Positive Test - simple - To test if 'asKeyMap' works as expected
-		  - NOTE: 'asKeyMap' is a template function
-		  - Given a string in 'pkey=value,k1=v1,k2=v2,k3=v3' format
-		  - Then split the string via " " resulting into an array
-		  - Then translate above array into a map of k=v pairs via 'asKeyMap' 
-		    - NOTE: Each item of the array is framed into a map of k:v pairs
-		    - NOTE: Above map of k:v pairs is set into .Values.scenario at its pkey property 
-		    - i.e. {{ .Values.<pkey-value> }} # if pkey is provided
-		    - or
-		    - {{ .Values.pkey }} # if pkey is not provided
-		  - Verify the maps at .Values.scenario to verify working of 'asKeyMap'`: {
+		`Positive Test - Verify if 'keyMap' works as expected`: {
 			templateInYaml: `
-{{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}
-{{- "co1=swarm,co2=k8s" | splitList " " | asKeyMap "scenario" .Values | noop -}}
-{{- "pkey=openebs,stor2=mstor" | splitList " " | asKeyMap "scenario" .Values | noop -}}`,
+{{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | keyMap "scenario" .Values | noop -}}
+{{- "co1=swarm,co2=k8s" | splitList " " | keyMap "scenario" .Values | noop -}}
+{{- "pkey=openebs,stor2=mstor" | splitList " " | keyMap "scenario" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
 				"Values": map[string]interface{}{},
 			},
@@ -1037,25 +1232,10 @@ openebs:
 		//
 		// start of test scenario
 		//
-		`Positive Test - complex - To test use of a map generated via 'asKeyMap'
-		  - Get all the properties via jsonpath in 'pkey=value,k1=v1,k2=v2,k3=v3;' format
-		    - NOTE: 'jsonpath' & 'asKeyMap' are template functions
-		    - NOTE: 'jsonpath' is a range on a list of items
-		    - NOTE: 'jsonpath' is a path expression made out of back ticks to handle paths with field itself having dot '.'
-		    - NOTE: For example a field path that equals 'openebs\.io/pv' needs to be handled with back ticks
-		    - NOTE: ';' is used as delimiter to separate one output item from next output item
-		  - Then trim this output for any whitespaces
-		  - Then split the resulting output via ";" resulting into an array
-		  - Then translate above array into a map of k=v pairs via 'asKeyMap' 
-		    - NOTE: Each item of the array is framed into a map of k:v pairs
-		    - NOTE: Above map of k:v pairs is set into .Values at its pkey property 
-		    - i.e. {{ .Values.<pkey-value> }} # if pkey is provided
-		    - or
-		    - {{ .Values.pkey }} # if pkey is not provided
-		  - Verify iteration of .Values i.e. template values, which is also of datatype map`: {
+		`Positive Test - Verify yaml rendering of map generated via keyMap`: {
 			templateInYaml: `
 {{- $all := jsonpath .JsonDoc .Values.path | trim | splitList ";" -}}
-{{- $all | asKeyMap "scenario" .Values | noop -}}
+{{- $all | keyMap "scenario" .Values | noop -}}
 kind: MyList
 apiVersion: v1alpha1
 items:

@@ -217,7 +217,7 @@ func pickContains(match string, given []string) (matched string) {
 // against a key. It accepts an array where each array item is converted into a
 // map. Each map is set against a key known as primary key i.e. pkey. The
 // resulting pkey:map pairs are set against the destination object. This
-// function is same as asKeyMap with user defined splitters as extra
+// function is same as 'keyMap' with user defined splitters as extra
 // parameters here.
 //
 // NOTE:
@@ -370,7 +370,7 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 	return destination
 }
 
-// asKeyMap builds a list of map of key:value pairs where each map is set
+// keyMap builds a list of map of key:value pairs where each map is set
 // against a key. It accepts an array where each array item is converted into a
 // map. Each map is set against a key known as primary key i.e. pkey. The
 // resulting pkey:map pairs are set against the destination object.
@@ -386,9 +386,9 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 //  This appends current value to original value if any.
 //
 // Example:
-//  {{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
-//  {{- "co1=swarm,co2=k8s" | splitList " " | asKeyMap "vals" .Target | noop -}}
-//  {{- "pkey=openebs,stor2=mstor" | splitList " " | asKeyMap "vals" .Target | noop -}}
+//  {{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | keyMap "vals" .Target | noop -}}
+//  {{- "co1=swarm,co2=k8s" | splitList " " | keyMap "vals" .Target | noop -}}
+//  {{- "pkey=openebs,stor2=mstor" | splitList " " | keyMap "vals" .Target | noop -}}
 //
 // Above will result into following:
 //  Target: map[string]interface{}{
@@ -405,13 +405,15 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 //  }
 //
 // The assumption here is '.Target' is of type 'map[string]interface{}'
-func asKeyMap(destinationFields string, destination map[string]interface{}, given []string) interface{} {
+func keyMap(destinationFields string, destination map[string]interface{}, given []string) interface{} {
 	return splitKeyMap(", =", destinationFields, destination, given)
 }
 
-// asNestedMap builds a nested map from the given string(s). These strings are
-// split as per the provided delimiters fields. The resulting map is set into the
-// provided destination object.
+// nestedKeyMap builds a nested map from the given string(s). Each string item is
+// split as per the provided set of delimiters and is transformed into a
+// hierarchical path that is used to set the value. Value here implies the last
+// resulting split item once all the splits are perfomed. The resulting map is
+// then set into the provided destination object.
 //
 // NOTE:
 //  This is intended to be used as a template function
@@ -420,9 +422,9 @@ func asKeyMap(destinationFields string, destination map[string]interface{}, give
 //  This appends current value to original value if any.
 //
 // Example:
-//  {{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | asNestedMap "@ =" .Target | noop -}}
-//  {{- "default/mypod@backend=true" | splitList " " | asNestedMap "@ =" .Target | noop -}}
-//  {{- "litmus/mypod@backend=true" | splitList " " | asNestedMap "/ @ =" .Target | noop -}}
+//  {{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
+//  {{- "default/mypod@backend=true" | splitList " " | nestedKeyMap "@ =" .Target | noop -}}
+//  {{- "litmus/mypod@backend=true" | splitList " " | nestedKeyMap "/ @ =" .Target | noop -}}
 //
 // Above will result into following:
 //  Target: map[string]interface{}{
@@ -442,12 +444,12 @@ func asKeyMap(destinationFields string, destination map[string]interface{}, give
 //
 // Above assumes that .Target is defined as a map[string]interface{} before
 // executing the go template
-func asNestedMap(delimiters string, destination map[string]interface{}, given []string) interface{} {
+func nestedKeyMap(delimiters string, destination map[string]interface{}, given []string) interface{} {
 	var (
 		nestedKeys  []string
 		nestedValue string
 	)
-	// get all the splitters
+	// get all the splitters which are separated by a space i.e. " "
 	splitters := strings.Split(delimiters, " ")
 
 	for _, givenItem := range given {
@@ -455,13 +457,24 @@ func asNestedMap(delimiters string, destination map[string]interface{}, given []
 		nestedValue = givenItem
 
 		for _, splitItem := range splitters {
-			// split the current given item by the current split item
-			kv := strings.Split(nestedValue, splitItem)
+			// split into two substrings only the current given item by the
+			// current split item
+			kv := strings.SplitN(nestedValue, splitItem, 2)
 			if len(kv) != 2 {
 				continue
 			}
-			nestedKeys = append(nestedKeys, kv[0])
-			nestedValue = kv[1]
+
+			k := strings.TrimSpace(kv[0])
+			if len(k) != 0 {
+				nestedKeys = append(nestedKeys, k)
+			}
+			nestedValue = strings.TrimSpace(kv[1])
+		}
+
+		if len(nestedKeys) == 0 {
+			// there is no specific path to set the value
+			// hence avoid setting this value
+			continue
 		}
 
 		// append to existing value if any
@@ -660,8 +673,8 @@ func funcMap() template.FuncMap {
 		"notFoundErr":  notFoundErr,
 		"verifyErr":    verifyErr,
 		"isLen":        isLen,
-		"asNestedMap":  asNestedMap,
-		"asKeyMap":     asKeyMap,
+		"nestedKeyMap": nestedKeyMap,
+		"keyMap":       keyMap,
 		"splitKeyMap":  splitKeyMap,
 	}
 

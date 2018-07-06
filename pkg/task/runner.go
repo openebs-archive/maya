@@ -18,6 +18,7 @@ package task
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -91,13 +92,15 @@ func (m *TaskGroupRunner) SetOutputTask(runtask RunTask) (err error) {
 // isTaskIDUnique verifies if the tasks present in this group runner
 // have unique task ids.
 func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
-	if util.ContainsString(m.allTaskIDs, identity) {
+	id := strings.ToLower(identity)
+
+	if util.ContainsString(m.allTaskIDs, id) {
 		unique = false
 		return
 	}
 
 	// else add the identity for future verfications
-	m.allTaskIDs = append(m.allTaskIDs, identity)
+	m.allTaskIDs = append(m.allTaskIDs, id)
 	unique = true
 	return
 }

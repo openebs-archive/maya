@@ -83,21 +83,29 @@ func NewCASVolumeEngine(
 	runtimeKey string,
 	runtimeVolumeValues map[string]interface{}) (volumeEngine *casVolumeEngine, err error) {
 
-	if len(runtimeVolumeValues) == 0 {
-		err = fmt.Errorf("failed to create cas template engine: nil runtime volume values")
+	if len(strings.TrimSpace(runtimeKey)) == 0 {
+		err = fmt.Errorf("failed to create cas template engine: nil runtime volume key was provided")
 		return
 	}
 
+	if len(runtimeVolumeValues) == 0 {
+		err = fmt.Errorf("failed to create cas template engine: nil runtime volume values was provided")
+		return
+	}
+
+	// CAS config from  PersistentVolumeClaim
 	casConfPVC, err := unMarshallToConfig(casConfigPVC)
 	if err != nil {
 		return
 	}
 
+	// CAS config from StorageClass
 	casConfSC, err := unMarshallToConfig(casConfigSC)
 	if err != nil {
 		return
 	}
 
+	// make use of the generic CAS template engine
 	cEngine, err := engine.NewCASEngine(casTemplate, runtimeKey, runtimeVolumeValues)
 	if err != nil {
 		return
@@ -113,11 +121,18 @@ func NewCASVolumeEngine(
 	return
 }
 
+// prepareFinalConfig returns the final config which is a result of merge
+// of CAS configs from PersistentVolumeClaim, StorageClass & CAS Template's
+// default config.
+//
+// NOTE:
+//  The priority of config merge is as follows:
+//  PersistentVolumeClaim >> StorageClass >> CAS Template Default Config
 func (c *casVolumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	// merge unique config elements from SC with config from PVC
 	mc := mergeConfig(c.casConfigPVC, c.casConfigSC)
 
-	// merge unique config from above result with default config from CASTemplate
+	// merge above resulting config with default config from CASTemplate
 	final = mergeConfig(mc, c.defaultConfig)
 
 	return
@@ -163,13 +178,14 @@ func (c *casVolumeEngine) addConfigToConfigTLP() error {
 	return nil
 }
 
-// create creates a cas volume
+// Create creates a CAS volume
 func (c *casVolumeEngine) Create() ([]byte, error) {
-	// set config as a top level property
+	// set customized CAS config as a top level property
 	err := c.addConfigToConfigTLP()
 	if err != nil {
 		return nil, err
 	}
 
+	// delegate to generic cas template engine
 	return c.casEngine.Run()
 }
