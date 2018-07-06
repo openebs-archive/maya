@@ -893,8 +893,8 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the controller gets EVICTED as soon as possible
-					// If we don't specify the following explicitly, then k8s will 
-					// add a toleration of 300 seconds. 
+					// If we don't specify the following explicitly, then k8s will
+					// add a toleration of 300 seconds.
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
@@ -1137,7 +1137,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 					// Ensure the replicas stick to its placement node even if the node dies
 					// In other words DO NOT EVICT these replicas
 					// The list of taints have been updated with the list available from 1.11
-					// Note: this will be replaced by CAS templates, which provide the 
+					// Note: this will be replaced by CAS templates, which provide the
 					//   flexibility of using either Statefulset or DaemonSet in future.
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
