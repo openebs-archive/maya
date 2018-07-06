@@ -864,11 +864,11 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
-	ctrlLabelSpec := map[string]string {
+	ctrlLabelSpec := map[string]string{
 		string(v1.VSMSelectorKey):               vsm,
 		string(v1.PVCSelectorKey):               pvc,
 		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
-		string(v1.ControllerSelectorKey):           string(v1.JivaControllerSelectorValue),
+		string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
 	}
 
 	//Add the application label to the controller deployment if it exists.
@@ -879,7 +879,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: vsm + string(v1.ControllerSuffix),
+			Name:   vsm + string(v1.ControllerSuffix),
 			Labels: ctrlLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -1055,7 +1055,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 
 	glog.Infof("Adding replica(s) for Volume '%s'", vsm)
 
-	repLabelSpec := map[string]string {
+	repLabelSpec := map[string]string{
 		string(v1.VSMSelectorKey):               vsm,
 		string(v1.PVCSelectorKey):               pvc,
 		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
@@ -1071,18 +1071,18 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	}
 
 	//Set the Default Replica Topology Key ( kubernetes.io/hostname )
-	replicaTopoKey :=  v1.GetPVPReplicaTopologyKey(nil)
+	replicaTopoKey := v1.GetPVPReplicaTopologyKey(nil)
 
-	//One of the labels to match will always be a constant, which is 
+	//One of the labels to match will always be a constant, which is
 	// specific to OpenEBS. This is to avoid collision with application pods.
-	repAntiAffinityLabelSpec := map[string]string {
+	repAntiAffinityLabelSpec := map[string]string{
 		string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
 	}
 
 	//Check if a custom topology key has been provided for this volume.
 	// Note: The custom topology keys have to be passed via the PVCs as labels.
 	// And since these labels don't allow special characters like '/' in the value,
-	// the topology key has been divided into domain and type. 
+	// the topology key has been divided into domain and type.
 	// Examples:
 	//   kubernetes.io/hostname
 	//   failure-domain.beta.kubernetes.io/zone
@@ -1090,9 +1090,9 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	replicaTopoKeyDomainLV := vol.Labels.ReplicaTopologyKeyDomainOld
 	replicaTopoKeyTypeLV := vol.Labels.ReplicaTopologyKeyTypeOld
 
-	//Depending on the topology key, additional label selectors may be required. 
-	if replicaTopoKeyDomainLV  != "" && replicaTopoKeyTypeLV  != "" {
-		replicaTopoKey =  replicaTopoKeyDomainLV   + "/" + replicaTopoKeyTypeLV  
+	//Depending on the topology key, additional label selectors may be required.
+	if replicaTopoKeyDomainLV != "" && replicaTopoKeyTypeLV != "" {
+		replicaTopoKey = replicaTopoKeyDomainLV + "/" + replicaTopoKeyTypeLV
 		//TODO : We are assuming here that the topology keys depend on
 		// the application label.
 		repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
@@ -1105,7 +1105,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		ObjectMeta: metav1.ObjectMeta{
 			// -- if manual replica addition
 			//Name: vsm + string(v1.ReplicaSuffix) + strconv.Itoa(rcIndex),
-			Name: vsm + string(v1.ReplicaSuffix),
+			Name:   vsm + string(v1.ReplicaSuffix),
 			Labels: repLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -1140,7 +1140,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							RequiredDuringSchedulingIgnoredDuringExecution: []k8sApiV1.PodAffinityTerm{
 								k8sApiV1.PodAffinityTerm{
 									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: repAntiAffinityLabelSpec, 
+										MatchLabels: repAntiAffinityLabelSpec,
 									},
 									// TODO
 									// This is host based inter-pod anti-affinity
