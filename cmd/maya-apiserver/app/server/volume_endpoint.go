@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	policies_v1 "github.com/openebs/maya/volume/policies/v1"
 	"github.com/openebs/maya/volume/provisioners"
@@ -19,15 +20,19 @@ const (
 
 // VolumeSpecificRequest is a http handler implementation. It deals with HTTP
 // requests w.r.t a single Volume.
-//
-// TODO
-//    Should it return specific types than interface{} ?
 func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-
-	fmt.Println("[DEBUG] Processing", req.Method, "request")
+	glog.Infof("received volume request: method '%s'", req.Method)
 
 	switch req.Method {
 	case "PUT", "POST":
+		// check the feature gate & switch if enabled
+		//
+		// NOTE:
+		//  feature gate is enabled/disabled for volume create request only
+		if util.CASTemplateFeatureGate() {
+			return s.volumeV1alpha1SpecificRequest(resp, req)
+		}
+
 		return s.volumeAdd(resp, req)
 	case "GET":
 		return s.volumeSpecificGetRequest(resp, req)
