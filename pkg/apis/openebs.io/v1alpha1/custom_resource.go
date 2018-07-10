@@ -20,6 +20,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Status written onto CStorVolumeReplica objects.
+const (
+	// CVRStatusInit ensures the create operation is to be done, if import fails.
+	CVRStatusInit CStorVolumeReplicaPhase = ""
+	// CVRStatusOnline ensures the resource is available.
+	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	// CVRStatusOffline ensures the resource is not available.
+	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	// CVRStatusDeletionFailed ensures the resource deletion has failed.
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	// CVRStatusInvalid ensures invalid resource.
+	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+)
+
+type CStorVolumeReplicaPhase string
+
 // +genclient
 // +genclient:noStatus
 // +genclient:nonNamespaced
@@ -110,8 +126,14 @@ type CASTemplateSpec struct {
 	// Defaults are a list of default configurations that may be applied
 	// during provisioning of a CAS volume
 	Defaults []Config `json:"defaultConfig"`
+	// TaskNamespace is the namespace where the tasks
+	// are expected to be found
+	TaskNamespace string `json:"taskNamespace"`
 	// RunTasks refers to a set of tasks to be run
 	RunTasks RunTasks `json:"run"`
+	// OutputTask is the task that has the CAS template result's output
+	// format
+	OutputTask string `json:"output"`
 }
 
 // CASUpdateSpec is the specification to update a CAS volume
@@ -164,14 +186,8 @@ type Config struct {
 // RunTasks contains fields to run a set of
 // tasks
 type RunTasks struct {
-	// TaskNamespace is the namespace where the tasks
-	// are expected to be found
-	TaskNamespace string `json:"taskNamespace"`
 	// Items is a set of order-ed tasks
-	Tasks []Task `json:"tasks"`
-	// Output is the task that has the output
-	// format specified
-	Output Task `json:"output"`
+	Tasks []string `json:"tasks"`
 }
 
 // Task has information about an action and a resource where the action
@@ -179,19 +195,19 @@ type RunTasks struct {
 //
 // For example a resource can be a kubernetes resource and the corresponding
 // action can be to apply this resource to kubernetes cluster.
-type Task struct {
-	// TaskName is the name of the task.
-	//
-	// NOTE: A task refers to a K8s ConfigMap.
-	TaskName string `json:"task"`
-	// Identity is the unique identity that can differentiate
-	// two tasks even when using the same template
-	Identity string `json:"id"`
-	// APIVersion is the version related to the task's resource
-	//APIVersion string `json:"apiVersion"`
-	// Kind is the kind corresponding to the task's resource
-	//Kind string `json:"kind"`
-}
+//type Task struct {
+// TaskName is the name of the task.
+//
+// NOTE: A task refers to a K8s ConfigMap.
+//TaskName string `json:"task"`
+// Identity is the unique identity that can differentiate
+// two tasks even when using the same template
+//Identity string `json:"id"`
+// APIVersion is the version related to the task's resource
+//APIVersion string `json:"apiVersion"`
+// Kind is the kind corresponding to the task's resource
+//Kind string `json:"kind"`
+//}
 
 // +genclient
 // +genclient:noStatus
@@ -204,7 +220,8 @@ type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CStorPoolSpec `json:"spec"`
+	Spec   CStorPoolSpec   `json:"spec"`
+	Status CStorPoolStatus `json:"status"`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
@@ -220,9 +237,30 @@ type DiskAttr struct {
 
 // CStorPoolAttr is to describe zpool related attributes.
 type CStorPoolAttr struct {
-	PoolName  string `json:"poolName"`
-	CacheFile string `json:"cacheFile"`
-	PoolType  string `json:"poolType"` //mirror, striped
+	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
+	PoolType         string `json:"poolType"`         //mirror, striped
+	OverProvisioning bool   `json:"overProvisioning"` //true or false
+}
+
+type CStorPoolPhase string
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+const (
+	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
+	CStorPoolStatusInit CStorPoolPhase = "init"
+	// CStorPoolStatusOnline ensures the resource is available.
+	CStorPoolStatusOnline CStorPoolPhase = "online"
+	// CStorPoolStatusOffline ensures the resource is not available.
+	CStorPoolStatusOffline CStorPoolPhase = "offline"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+)
+
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase CStorPoolPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -240,20 +278,24 @@ type CStorPoolList struct {
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolumereplica
-// +genclient:nonNamespaced
 
 // CStorVolumeReplica describes a cstor pool resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec `json:"spec"`
+	metav1.TypeMeta                 `json:",inline"`
+	metav1.ObjectMeta               `json:"metadata,omitempty"`
+	Spec   CStorVolumeReplicaSpec   `json:"spec"`
+	Status CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	CStorControllerIP string `json:"cStorControllerIP"`
-	VolName           string `json:"volName"`
-	Capacity          string `json:"capacity"`
+	TargetIP string `json:"targetIP"`
+	Capacity string `json:"capacity"`
+}
+
+// CStorVolumeReplicaPhase is to hold result of action
+type CStorVolumeReplicaStatus struct {
+	Phase CStorVolumeReplicaPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -261,6 +303,39 @@ type CStorVolumeReplicaSpec struct {
 
 // CStorVolumeReplicaList is a list of CStorVolumeReplica resources
 type CStorVolumeReplicaList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorVolumeReplica `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolume
+
+// CStorVolume describes a cstor volume resource created as custom resource
+type CStorVolume struct {
+	metav1.TypeMeta      `json:",inline"`
+	metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Spec CStorVolumeSpec `json:"spec"`
+}
+
+// CStorVolumeSpec is the spec for a CStorVolume resource
+type CStorVolumeSpec struct {
+	Capacity     string `json:"capacity"`
+	TargetIP     string `json:"targetIP"`
+	TargetPort   string `json:"targetPort"`
+	Iqn          string `json:"iqn"`
+	TargetPortal string `json:"targetPortal"`
+	Status       string `json:"status"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorvolume
+
+// CStorVolumeReplicaList is a list of CStorVolume resources
+type CStorVolumeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 

@@ -27,10 +27,7 @@ type TaskIdentity struct {
 	// Identifier provides a unique identification of this
 	// task. There should not be two tasks with same identity
 	// in a workflow.
-	//
-	// NOTE:
-	//  Identity will be provided by the workflow
-	Identity string
+	Identity string `json:"id"`
 	// Kind of the task
 	Kind string `json:"kind"`
 	// APIVersion of the task
@@ -45,15 +42,15 @@ type taskIdentifier struct {
 
 func newTaskIdentifier(identity TaskIdentity) (taskIdentifier, error) {
 	if len(identity.Identity) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task identity: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task id is missing")
 	}
 
 	if len(identity.Kind) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task kind: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task kind is missing")
 	}
 
 	if len(identity.APIVersion) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task apiVersion: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task apiVersion is missing")
 	}
 
 	return taskIdentifier{
@@ -75,6 +72,18 @@ func (i taskIdentifier) isService() bool {
 
 func (i taskIdentifier) isStoragePool() bool {
 	return i.identity.Kind == string(m_k8s_client.StroagePoolCRKK)
+}
+
+func (i taskIdentifier) isCstorVolume() bool {
+	return i.identity.Kind == string(m_k8s_client.CstorVolumeCRKK)
+}
+
+func (i taskIdentifier) isCstorPool() bool {
+	return i.identity.Kind == string(m_k8s_client.CstorPoolCRKK)
+}
+
+func (i taskIdentifier) isCstorVolumeReplica() bool {
+	return i.identity.Kind == string(m_k8s_client.CstorVolumeReplicaCRKK)
 }
 
 func (i taskIdentifier) isConfigMap() bool {
@@ -123,4 +132,16 @@ func (i taskIdentifier) isCoreV1PVC() bool {
 
 func (i taskIdentifier) isOEV1alpha1SP() bool {
 	return i.isOEV1alpha1() && i.isStoragePool()
+}
+
+func (i taskIdentifier) isOEV1alpha1CV() bool {
+	return i.isOEV1alpha1() && i.isCstorVolume()
+}
+
+func (i taskIdentifier) isOEV1alpha1CVR() bool {
+	return i.isOEV1alpha1() && i.isCstorVolumeReplica()
+}
+
+func (i taskIdentifier) isOEV1alpha1CSP() bool {
+	return i.isOEV1alpha1() && i.isCstorPool()
 }

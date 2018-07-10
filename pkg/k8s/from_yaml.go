@@ -19,8 +19,10 @@ package k8s
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
@@ -109,4 +111,72 @@ func (m *ServiceYml) AsCoreV1Service() (*api_core_v1.Service, error) {
 	}
 
 	return svc, nil
+}
+
+//CstorVolumeYml provides utility methods to generate K8s CStorVolume objects
+type CstorVolumeYml struct {
+	// YmlInBytes represents a CstorVolume in
+	// yaml format
+	YmlInBytes []byte
+}
+
+func NewCstorVolumeYml(context, yml string, values map[string]interface{}) (*CstorVolumeYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CstorVolumeYml{
+		YmlInBytes: b,
+	}, nil
+}
+
+// AsCstorVolumeYml returns a v1 CStorVolume instance
+func (m *CstorVolumeYml) AsCstorVolumeYml() (*v1alpha1.CStorVolume, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into CStorVolume object
+	cstorVolume := &v1alpha1.CStorVolume{}
+	err := yaml.Unmarshal(m.YmlInBytes, cstorVolume)
+	if err != nil {
+		return nil, err
+	}
+
+	return cstorVolume, nil
+}
+
+// CstorVolumeReplicaYml provides utility methods to generate K8s CStorVolumeReplica objects
+type CstorVolumeReplicaYml struct {
+	// YmlInBytes represents a CstorVolumeReplica in
+	// yaml format
+	YmlInBytes []byte
+}
+
+func NewCstorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CstorVolumeReplicaYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CstorVolumeReplicaYml{
+		YmlInBytes: b,
+	}, nil
+}
+
+// AsCstorVolumeReplicaYml returns a v1 Service instance
+func (m *CstorVolumeReplicaYml) AsCstorVolumeReplicaYml() (*v1alpha1.CStorVolumeReplica, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into CStorVolumeReplica object
+	cstorVolumeReplica := &v1alpha1.CStorVolumeReplica{}
+	err := yaml.Unmarshal(m.YmlInBytes, cstorVolumeReplica)
+	if err != nil {
+		return nil, err
+	}
+
+	return cstorVolumeReplica, nil
 }

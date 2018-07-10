@@ -28,8 +28,6 @@ import (
 // volumeOperationOptions contains the options with respect to
 // volume related operations
 type volumeOperationOptions struct {
-	// runNamespace is the namespace where volume operation will happen
-	//runNamespace string
 	// k8sClient will make K8s API calls
 	k8sClient *m_k8s_client.K8sClient
 }
@@ -63,7 +61,6 @@ func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
 		volume: volume,
 		volumeOperationOptions: volumeOperationOptions{
 			k8sClient: kc,
-			//runNamespace: volume.Namespace,
 		},
 	}, nil
 }
@@ -262,9 +259,6 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 
 // VolumeListOperation exposes methods to execute volume list operation
 type VolumeListOperation struct {
-	// namespaces is the list of comma separated namespaces where list operation
-	// will be executed
-	//namespaces string
 	// volumeOperationOptions has the options to various volume related
 	// operations
 	volumeOperationOptions
@@ -285,7 +279,6 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 	}
 
 	return &VolumeListOperation{
-		//namespaces: namespaces,
 		volumes: volumes,
 		volumeOperationOptions: volumeOperationOptions{
 			k8sClient: kc,
