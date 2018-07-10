@@ -17,6 +17,7 @@ limitations under the License.
 package task
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -47,6 +48,10 @@ const (
 	// PatchTA flags a action as patch. Typically used to
 	// patch an object.
 	PatchTA TaskAction = "patch"
+	// OutputTA flags the task action as output. Typically used to
+	// provide a schema (i.e. a custom defined) based output after
+	// running one or more tasks.
+	OutputTA TaskAction = "output"
 )
 
 // MetaTask contains information about a Task
@@ -81,7 +86,7 @@ type MetaTask struct {
 	Retry string `json:"retry"`
 	// TaskPatch will consist of patches that gets applied
 	// against the task object
-	TaskPatch `json:"patch"`
+	//TaskPatch `json:"patch"`
 }
 
 type metaTaskExecutor struct {
@@ -94,6 +99,10 @@ type metaTaskExecutor struct {
 
 // newMetaTaskExecutor provides a new instance of metaTaskExecutor
 func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*metaTaskExecutor, error) {
+	if len(strings.TrimSpace(identity)) == 0 {
+		return nil, fmt.Errorf("failed to create meta task executor: blank identity provided")
+	}
+
 	// transform the yaml with provided values
 	b, err := template.AsTemplatedBytes("MetaTask", yml, values)
 	if err != nil {
@@ -130,9 +139,9 @@ func (m *metaTaskExecutor) getTaskResultQueries() []TaskResultQuery {
 	return m.metaTask.TaskResultQueries
 }
 
-func (m *metaTaskExecutor) getTaskPatch() TaskPatch {
-	return m.metaTask.TaskPatch
-}
+//func (m *metaTaskExecutor) getTaskPatch() TaskPatch {
+//	return m.metaTask.TaskPatch
+//}
 
 func (m *metaTaskExecutor) getObjectName() string {
 	return m.metaTask.ObjectName
@@ -225,6 +234,18 @@ func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
 
 func (m *metaTaskExecutor) isListCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListCoreV1Service() bool {
+	return m.identifier.isCoreV1Service() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListExtnV1B1Deploy() bool {
+	return m.identifier.isExtnV1B1Deploy() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
+	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
 
 func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {

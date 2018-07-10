@@ -31,9 +31,6 @@ const (
 	IstgtConfPath  = "/usr/local/etc/istgt/istgt.conf"
 )
 
-//RunnerVar is
-var RunnerVar util.Runner
-
 //FileOperatorVar is
 var FileOperatorVar util.FileOperator
 
@@ -42,58 +39,22 @@ var UnixSockVar util.UnixSock
 
 // CreateVolume creates a new cStor volume istgt config.
 func CreateVolume(cStorVolume *apis.CStorVolume) error {
-
-	//generate sparse file
-	// generateSparseFile(cStorVolume)
-	touchArgs := sparseFileCommandBuilder(cStorVolume, "touch")
-
-	stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/bin/touch", touchArgs...)
-	if err != nil {
-		glog.Error("failed to touch file /tmp/cstor/"+cStorVolume.Spec.VolumeName,
-			err.Error(), string(stdoutStderr))
-		return err
-	}
-
-	truncArgs := sparseFileCommandBuilder(cStorVolume, "truncate")
-
-	stdoutStderr, err = RunnerVar.RunCombinedOutput("/usr/bin/truncate", truncArgs...)
-	if err != nil {
-		glog.Error("failed to truncate file /tmp/cstor/"+cStorVolume.Spec.VolumeName+
-			" with capacity "+cStorVolume.Spec.Capacity,
-			err.Error(), string(stdoutStderr))
-		return err
-	}
-
 	// create conf file
 	text := CreateIstgtConf(cStorVolume)
-	err = FileOperatorVar.Write(IstgtConfPath, text, 0644)
+	err := FileOperatorVar.Write(IstgtConfPath, text, 0644)
 	if err != nil {
 		glog.Errorf("Failed to write istgt.conf...")
 	}
 	glog.Info("Done writing istgt.conf")
 
 	// send refresh command to istgt
-	err = UnixSockVar.SendCommand("REFRESH\n")
+	_, err = UnixSockVar.SendCommand("REFRESH\r\n")
 	if err != nil {
 		glog.Info("refresh failed")
 	}
 	glog.Info("Creating Iscsi Volume Successful")
 	return nil
 
-}
-
-// sparseFileArgumentsBuilder is to build sparse file command.
-func sparseFileCommandBuilder(cStorVolume *apis.CStorVolume, op string) []string {
-	var cmdArgs []string
-	if op == "touch" {
-		cmdArgs = append(cmdArgs, "/tmp/cstor/"+cStorVolume.Spec.VolumeName)
-	} else if op == "truncate" {
-		cmdArgs = append(cmdArgs, "-s")
-		cmdArgs = append(cmdArgs, cStorVolume.Spec.Capacity)
-		cmdArgs = append(cmdArgs, "/tmp/cstor/"+cStorVolume.Spec.VolumeName)
-	}
-
-	return cmdArgs
 }
 
 // CreateIstgtConf creates istgt.conf file
@@ -187,8 +148,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 `)
 	text = append(text, text4...)
 
-	lun0storage := []byte("  LUN0 Storage /tmp/cstor/" +
-		cStorVolume.Spec.VolumeName + " " + cStorVolume.Spec.Capacity + " 32k")
+	lun0storage := []byte("  LUN0 Storage " + cStorVolume.Spec.Capacity + " 32k")
 	text = append(text, lun0storage...)
 
 	text5 := []byte(`
@@ -214,7 +174,7 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 // CheckForIscsi is blocking call for checking status of istgt in cstor-iscsi container.
 func CheckForIscsi() {
 	for {
-		err := UnixSockVar.SendCommand("STATUS\n")
+		_, err := UnixSockVar.SendCommand("STATUS\r\n")
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			glog.Warningf("Waiting for istgt... err : %v", err)

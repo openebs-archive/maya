@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// VolumeParameterGroupInformer provides access to a shared informer and lister for
-// VolumeParameterGroups.
-type VolumeParameterGroupInformer interface {
+// CASTemplateInformer provides access to a shared informer and lister for
+// CASTemplates.
+type CASTemplateInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.VolumeParameterGroupLister
+	Lister() v1alpha1.CASTemplateLister
 }
 
-type volumeParameterGroupInformer struct {
+type cASTemplateInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewVolumeParameterGroupInformer constructs a new informer for VolumeParameterGroup type.
+// NewCASTemplateInformer constructs a new informer for CASTemplate type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewVolumeParameterGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCASTemplateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().VolumeParameterGroups().List(options)
+				return client.OpenebsV1alpha1().CASTemplates().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().VolumeParameterGroups().Watch(options)
+				return client.OpenebsV1alpha1().CASTemplates().Watch(options)
 			},
 		},
-		&openebs_io_v1alpha1.VolumeParameterGroup{},
+		&openebs_io_v1alpha1.CASTemplate{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultVolumeParameterGroupInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewVolumeParameterGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultCASTemplateInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewCASTemplateInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *volumeParameterGroupInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebs_io_v1alpha1.VolumeParameterGroup{}, defaultVolumeParameterGroupInformer)
+func (f *cASTemplateInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebs_io_v1alpha1.CASTemplate{}, defaultCASTemplateInformer)
 }
 
-func (f *volumeParameterGroupInformer) Lister() v1alpha1.VolumeParameterGroupLister {
-	return v1alpha1.NewVolumeParameterGroupLister(f.Informer().GetIndexer())
+func (f *cASTemplateInformer) Lister() v1alpha1.CASTemplateLister {
+	return v1alpha1.NewCASTemplateLister(f.Informer().GetIndexer())
 }

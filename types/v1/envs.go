@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Deprecate this file & use instead pkg/util/env.go
 package v1
 
 import (

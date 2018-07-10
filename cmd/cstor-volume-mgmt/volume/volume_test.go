@@ -59,7 +59,6 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 	}
-	RunnerVar = TestRunner{}
 	FileOperatorVar = TestFileOperator{}
 	UnixSockVar = TestUnixSock{}
 	obtainedErr := CreateVolume(testVolumeResource["img1VolumeResource"].test)

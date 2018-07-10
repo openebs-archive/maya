@@ -37,7 +37,7 @@ type TaskResultVerify struct {
 	// split: `,`
 	// ```
 	//
-	// This property will be used along with the Count property.
+	// This property can be used along with the other properties e.g. Count.
 	Split string `json:"split"`
 }
 
@@ -51,20 +51,18 @@ func (e *taskResultVerifyError) Error() string {
 }
 
 type taskResultVerifyExecutor struct {
-	// taskID is the identity of the task
-	taskID string
 	// property is the name of the task result property whose value is being
 	// verified
 	property string
-	// actual represents the value to be verified
+	// actual represents the actual value which will be verified against the
+	// expected
 	actual string
 	// expected represents the expected value
 	expected TaskResultVerify
 }
 
-func newTaskResultVerifyExecutor(taskID, property, actual string, expected TaskResultVerify) *taskResultVerifyExecutor {
+func newTaskResultVerifyExecutor(property, actual string, expected TaskResultVerify) *taskResultVerifyExecutor {
 	return &taskResultVerifyExecutor{
-		taskID:   taskID,
 		property: property,
 		actual:   actual,
 		expected: expected,
@@ -80,6 +78,7 @@ func calculateCount(value, split string) string {
 	return strconv.Itoa(len(valArr))
 }
 
+// isCount is count verification w.r.t task result property
 func (t *taskResultVerifyExecutor) isCount() (ok bool, err error) {
 	ok = true
 
@@ -107,6 +106,9 @@ func (t *taskResultVerifyExecutor) isCount() (ok bool, err error) {
 	return
 }
 
+// verify verifies the task result property
+//
+// It supports count verification currently
 func (t *taskResultVerifyExecutor) verify() (bool, error) {
 	return t.isCount()
 }

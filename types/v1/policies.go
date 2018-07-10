@@ -81,11 +81,24 @@ type VolumeLabels struct {
 type VolumeKey string
 
 const (
-	// VolumeParameterGroupVK is the key to fetch VolumeParameterGroup
-	VolumeParameterGroupVK VolumeKey = "openebs.io/volume-parameter-group"
+	// CASTemplateVK is the key to fetch name of CASTemplate custom resource
+	// to create a cas volume
+	CASTemplateVK VolumeKey = "cas.openebs.io/template"
 
-	// VolumePolicyVK is the key to fetch volume policy
-	//VolumePolicyVK VolumeKey = "openebs.io/volume-policy"
+	// CASTemplateForReadVK is the key to fetch name of CASTemplate custom
+	// resource to read a cas volume
+	CASTemplateForReadVK VolumeKey = "cas.openebs.io/read-template"
+
+	// CASTemplateForDeleteVK is the key to fetch name of CASTemplate custom
+	// resource to delete a cas volume
+	CASTemplateForDeleteVK VolumeKey = "cas.openebs.io/delete-template"
+
+	// CASTemplateForListVK is the key to fetch name of CASTemplate custom
+	// resource to list cas volumes
+	CASTemplateForListVK VolumeKey = "cas.openebs.io/list-template"
+
+	// CASConfigVK is the key to fetch configurations w.r.t a CAS volume
+	CASConfigVK VolumeKey = "cas.openebs.io/config"
 
 	// CapacityVK is the key to fetch volume capacity
 	CapacityVK VolumeKey = "openebs.io/capacity"

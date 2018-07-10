@@ -46,7 +46,6 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
 func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOperation, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
-	volume.RunnerVar = util.RealRunner{}
 	volume.FileOperatorVar = util.RealFileOperator{}
 	volume.UnixSockVar = util.RealUnixSock{}
 	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Spec.VolumeName)

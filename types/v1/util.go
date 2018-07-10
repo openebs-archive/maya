@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -1219,4 +1220,39 @@ func OSGetEnv(envKey string, profileMap map[string]string) string {
 	glog.Infof("Will use env var '%s: %s'", evCtxVal+envKey, val)
 
 	return val
+}
+
+// ParseAndSubstract parses the string and then returns the the substracted
+// values and error if any.
+func ParseAndSubstract(initial, final string) (float64, error) {
+	var (
+		i, f float64
+		err  error
+	)
+	i, err = strconv.ParseFloat(initial, 64)
+	if err != nil {
+		glog.Error(err)
+		return 0, errors.New("Error in parsing string")
+	}
+	f, err = strconv.ParseFloat(final, 64)
+	if err != nil {
+		glog.Error(err)
+		return 0, errors.New("Error in parsing string")
+	}
+	result, ok := SubstractFloat64(f, i)
+	if !ok {
+		glog.Errorf("Error in substraction %v > %v", i, f)
+		return 0, nil
+	}
+	return result, nil
+}
+
+// Remove removes the string r passed as argument from the slice s
+func Remove(slice []string, str string) []string {
+	for index, value := range slice {
+		if value == str {
+			slice = append(slice[:index], slice[index+1:]...)
+		}
+	}
+	return slice
 }

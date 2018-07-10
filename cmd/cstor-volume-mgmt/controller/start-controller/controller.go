@@ -63,9 +63,6 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
-	// Making RunnerVar to use RealRunner
-	volume.RunnerVar = util.RealRunner{}
-
 	volume.FileOperatorVar = util.RealFileOperator{}
 
 	volume.UnixSockVar = util.RealUnixSock{}
