@@ -20,6 +20,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Status written onto CStorVolumeReplica objects.
+const (
+	// CVRStatusInit ensures the create operation is to be done, if import fails.
+	CVRStatusInit CStorVolumeReplicaPhase = ""
+	// CVRStatusOnline ensures the resource is available.
+	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	// CVRStatusOffline ensures the resource is not available.
+	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	// CVRStatusDeletionFailed ensures the resource deletion has failed.
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	// CVRStatusInvalid ensures invalid resource.
+	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+)
+
+type CStorVolumeReplicaPhase string
+
 // +genclient
 // +genclient:noStatus
 // +genclient:nonNamespaced
@@ -204,7 +220,8 @@ type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CStorPoolSpec `json:"spec"`
+	Spec   CStorPoolSpec   `json:"spec"`
+	Status CStorPoolStatus `json:"status"`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
@@ -220,9 +237,30 @@ type DiskAttr struct {
 
 // CStorPoolAttr is to describe zpool related attributes.
 type CStorPoolAttr struct {
-	PoolName  string `json:"poolName"`
-	CacheFile string `json:"cacheFile"`
-	PoolType  string `json:"poolType"` //mirror, striped
+	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
+	PoolType         string `json:"poolType"`         //mirror, striped
+	OverProvisioning bool   `json:"overProvisioning"` //true or false
+}
+
+type CStorPoolPhase string
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+const (
+	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
+	CStorPoolStatusInit CStorPoolPhase = "init"
+	// CStorPoolStatusOnline ensures the resource is available.
+	CStorPoolStatusOnline CStorPoolPhase = "online"
+	// CStorPoolStatusOffline ensures the resource is not available.
+	CStorPoolStatusOffline CStorPoolPhase = "offline"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+)
+
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase CStorPoolPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -243,15 +281,21 @@ type CStorPoolList struct {
 
 // CStorVolumeReplica describes a cstor pool resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec `json:"spec"`
+	metav1.TypeMeta                 `json:",inline"`
+	metav1.ObjectMeta               `json:"metadata,omitempty"`
+	Spec   CStorVolumeReplicaSpec   `json:"spec"`
+	Status CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	CStorControllerIP string `json:"cStorControllerIP"`
-	Capacity          string `json:"capacity"`
+	TargetIP string `json:"targetIP"`
+	Capacity string `json:"capacity"`
+}
+
+// CStorVolumeReplicaPhase is to hold result of action
+type CStorVolumeReplicaStatus struct {
+	Phase CStorVolumeReplicaPhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -272,18 +316,19 @@ type CStorVolumeReplicaList struct {
 
 // CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeSpec `json:"spec"`
+	metav1.TypeMeta      `json:",inline"`
+	metav1.ObjectMeta    `json:"metadata,omitempty"`
+	Spec CStorVolumeSpec `json:"spec"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	VolumeName        string `json:"volumeName"`
-	Capacity          string `json:"capacity"`
-	CStorControllerIP string `json:"cStorControllerIP"`
-	Status            string `json:"status"`
-	VolumeID          string `json:"volumeID"`
+	Capacity     string `json:"capacity"`
+	TargetIP     string `json:"targetIP"`
+	TargetPort   string `json:"targetPort"`
+	Iqn          string `json:"iqn"`
+	TargetPortal string `json:"targetPortal"`
+	Status       string `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
