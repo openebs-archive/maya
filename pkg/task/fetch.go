@@ -19,7 +19,6 @@ package task
 import (
 	"fmt"
 
-	//"github.com/golang/glog"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

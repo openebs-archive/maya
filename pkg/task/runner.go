@@ -29,7 +29,7 @@ import (
 // result doc i.e. bytes and replace it with "--redacted--"
 //
 // NOTE:
-//  This should be done once the the task group runner has finished executing all
+//  This should be done once the task group runner has finished executing all
 // its tasks or when executing a task met an error & is now exiting by logging
 // the error.
 func redactJsonResult(templateValues map[string]interface{}) {

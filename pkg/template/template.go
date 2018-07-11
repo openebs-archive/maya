@@ -20,6 +20,7 @@ package template
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 	"text/template"
@@ -629,7 +630,8 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 func toYaml(v interface{}) (yamlstr string) {
 	data, err := yaml.Marshal(v)
 	if err != nil {
-		// error is swallowed
+		// error is handled
+		yamlstr = fmt.Sprintf("error: %s", err.Error())
 		return
 	}
 

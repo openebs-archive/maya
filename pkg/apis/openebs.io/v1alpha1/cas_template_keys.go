@@ -46,14 +46,9 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
-	// TaskTLP is a top level property supported by CAS template engine
-	//
-	// The task related properties as placed with TaskTLP as the top level
-	// property
-	//TaskTLP TopLevelProperty = "Task"
 	// TaskResultTLP is a top level property supported by CAS template engine
 	//
-	// The specific results after the execution of a task as placed with
+	// The specific results after the execution of a task are placed with
 	// TaskResultTLP as the top level property
 	//
 	// NOTE:

@@ -40,6 +40,75 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+func TestToYaml(t *testing.T) {
+	tests := map[string]struct {
+		data           interface{}
+		expected       string
+		isErr          bool
+		expectedErrMsg string
+	}{
+		//
+		// start of test case
+		//
+		"Positive Test - Test by providing a simple map": {
+			data: map[string]string{
+				"co":      "k8s",
+				"storage": "openebs",
+			},
+			expected: fmt.Sprintf("co: k8s \nstorage: openebs\n"),
+		},
+		//
+		// start of test case
+		//
+		"Positive Test - Test by providing a nested map": {
+			data: map[string]interface{}{
+				"co": "k8s",
+				"storage": map[string]string{
+					"gen1": "jiva",
+					"gen2": "cstor",
+				},
+			},
+			expected: `
+co: k8s
+storage:
+  gen1: jiva
+  gen2: cstor`,
+		},
+		//
+		// start of test case
+		//
+		"Negative Test - Test by providing a non map object": {
+			data:           []interface{}{"co", "k8s", "storage", "gen1", "jiva", "gen2", "cstor"},
+			isErr:          true,
+			expectedErrMsg: "error unmarshaling JSON: json: cannot unmarshal array into Go value of type map[string]interface {}",
+		},
+		//
+		// start of test case
+		//
+		"Negative Test - Test by providing a nil object": {
+			data: nil,
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			actual := fromYaml(toYaml(mock.data))
+			expected := fromYaml(mock.expected)
+
+			if mock.isErr {
+				actualErrMsg, _ := actual["Error"].(string)
+				if mock.expectedErrMsg != actualErrMsg {
+					t.Fatalf("toYaml test failed: expected error '%s': actual error '%s'", mock.expectedErrMsg, actualErrMsg)
+				}
+			}
+
+			if !mock.isErr && !reflect.DeepEqual(expected, actual) {
+				t.Fatalf("toYaml test failed: expected '%#v': actual '%#v'", expected, actual)
+			}
+		})
+	}
+}
+
 func TestNestedKeyMap(t *testing.T) {
 	tests := map[string]struct {
 		delimiters  string
