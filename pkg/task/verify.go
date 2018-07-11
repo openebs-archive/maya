@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// @Deprecated
+//  All the structures, functions and methods present here are deprecated in
+// favour of 'RunTask.post' property
 package task
 
 import (
@@ -41,12 +44,12 @@ type TaskResultVerify struct {
 	Split string `json:"split"`
 }
 
-// taskResultVerifyError represent task result verification errors only
-type taskResultVerifyError struct {
+// TaskResultVerifyError represent task result verification related error
+type TaskResultVerifyError struct {
 	err string
 }
 
-func (e *taskResultVerifyError) Error() string {
+func (e *TaskResultVerifyError) Error() string {
 	return e.err
 }
 
@@ -89,7 +92,7 @@ func (t *taskResultVerifyExecutor) isCount() (ok bool, err error) {
 
 	if len(t.actual) == 0 {
 		ok = false
-		err = &taskResultVerifyError{fmt.Sprintf("%s's expected count: '%s' actual: '%s'", t.property, t.expected.Count, t.actual)}
+		err = &TaskResultVerifyError{fmt.Sprintf("%s's expected count: '%s' actual: '%s'", t.property, t.expected.Count, t.actual)}
 	}
 
 	count := t.actual
@@ -100,7 +103,7 @@ func (t *taskResultVerifyExecutor) isCount() (ok bool, err error) {
 
 	if count != t.expected.Count {
 		ok = false
-		err = &taskResultVerifyError{fmt.Sprintf("%s's expected count: '%s' actual count: '%s' actual: '%s'", t.property, t.expected.Count, count, t.actual)}
+		err = &TaskResultVerifyError{fmt.Sprintf("%s's expected count: '%s' actual count: '%s' actual: '%s'", t.property, t.expected.Count, count, t.actual)}
 	}
 
 	return

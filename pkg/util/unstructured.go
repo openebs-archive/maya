@@ -105,8 +105,6 @@ func GetNestedSlice(obj map[string]interface{}, fields ...string) []string {
 	return nil
 }
 
-// TODO
-// Unit Test
 func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]string {
 	if m, ok := GetNestedField(obj, fields...).(map[string]interface{}); ok {
 		strMap := make(map[string]string, len(m))
@@ -121,11 +119,12 @@ func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]strin
 }
 
 func SetNestedField(obj map[string]interface{}, value interface{}, fields ...string) {
-	m := obj
-	if len(fields) == 0 {
-		// no changes to obj
+	if len(fields) == 0 || obj == nil {
+		// changes can not be done to the obj
 		return
 	}
+
+	m := obj
 
 	if len(fields) > 1 {
 		for _, field := range fields[0 : len(fields)-1] {
@@ -139,6 +138,11 @@ func SetNestedField(obj map[string]interface{}, value interface{}, fields ...str
 }
 
 func DeleteNestedField(obj map[string]interface{}, fields ...string) {
+	if len(fields) == 0 || obj == nil {
+		// changes can not be done to the obj
+		return
+	}
+
 	m := obj
 	if len(fields) > 1 {
 		for _, field := range fields[0 : len(fields)-1] {

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2017 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -326,7 +326,7 @@ func TestPrepareFinalConfig(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			e := &casCreate{
+			e := &casVolumeEngine{
 				defaultConfig: mock.configDefault,
 				casConfigSC:   mock.configSC,
 				casConfigPVC:  mock.configPVC,

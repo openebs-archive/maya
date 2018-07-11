@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// @Deprecated
+//  All the structures, functions and methods present here are deprecated in
+// favour of 'RunTask.post' property
 package task
 
 import (

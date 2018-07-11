@@ -14,26 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// @Deprecated
-//  All the structures, functions and methods present here are deprecated in
-// favour of 'RunTask.post' property
-package task
-
-import (
-	"testing"
-)
+package engine
 
 // TODO
-func TestTaskResultVerifyError(t *testing.T) {}
-
-// TODO
-func TestNewTaskResultVerifyExecutor(t *testing.T) {}
-
-// TODO
-func TestCalculateCount(t *testing.T) {}
-
-// TODO
-func TestIsCount(t *testing.T) {}
-
-// TODO
-func TestVerify(t *testing.T) {}
