@@ -559,6 +559,9 @@ const (
 	// PortNameAPI is the name given to api ports
 	PortNameAPI JivaAnnotations = "api"
 
+	// ReplicationFactorEnvKey is the name used to pass replica count as env
+	ReplicationFactorEnvKey JivaAnnotations = "REPLICATION_FACTOR"
+
 	// JivaCtrlIPHolder is used as a placeholder for persistent volume controller's
 	// IP address
 	//

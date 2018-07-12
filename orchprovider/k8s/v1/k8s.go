@@ -5,6 +5,7 @@ package v1
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -877,6 +878,19 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		ctrlLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
 	}
 
+	//The replication count will be specified as REPLICATION_FACTOR
+	//  ENV for jiva controller. The controller will use this value
+	//  to determine if quorum is available for making volume as read-write.
+	//  For example,
+	//   - if replication factor is 1, volume will be marked as RW when one replica connects
+	//   - if replication factor is 3, volume will be marked as RW when when atleast 2 replica connect
+	//  Similar logic will be applied to turn the volume into RO, when qorum is lost.
+	//Note: When kubectl scale up/down is done, this ENV needs to be patched. 
+	rCount, err := volProProfile.ReplicaCount()
+	if err != nil {
+		return nil, err
+	}
+
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: vsm + string(v1.ControllerSuffix),
@@ -925,6 +939,12 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 						k8sApiV1.Container{
 							Name:    vsm + string(v1.ControllerSuffix) + string(v1.ContainerSuffix),
 							Image:   cImg,
+							Env: []k8sApiV1.EnvVar{
+								k8sApiV1.EnvVar{
+									Name: string(v1.ReplicationFactorEnvKey),
+									Value: strconv.Itoa(int(*rCount)),
+								},
+							},
 							Command: v1.JivaCtrlCmd,
 							Args:    v1.MakeOrDefJivaControllerArgs(vsm, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
