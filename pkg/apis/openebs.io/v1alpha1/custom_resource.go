@@ -317,9 +317,9 @@ type CStorVolumeReplicaList struct {
 
 // CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
-	metav1.TypeMeta      `json:",inline"`
-	metav1.ObjectMeta    `json:"metadata,omitempty"`
-	Spec CStorVolumeSpec `json:"spec"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              CStorVolumeSpec `json:"spec"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource

@@ -164,7 +164,7 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 // CheckForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
 func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
-		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas().List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas("").List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
 			time.Sleep(CRDRetryInterval)

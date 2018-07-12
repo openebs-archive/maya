@@ -50,13 +50,13 @@ func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.
 		glog.Errorf(err.Error())
 		glog.Infof("cVR:%v, %v; Status: %v", cVRGot.Name,
 			string(cVRGot.GetUID()), cVRGot.Status.Phase)
-		_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVRGot)
+		_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Update(cVRGot)
 		if err != nil {
 			return err
 		}
 		return err
 	}
-	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVRGot)
+	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Update(cVRGot)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*ap
 		return nil, nil
 	}
 
-	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Get(name, metav1.GetOptions{})
+	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
@@ -166,7 +166,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(cVR *apis.CStorVolumeRepl
 	if len(cVR.Finalizers) > 0 {
 		cVR.Finalizers = []string{}
 	}
-	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVR)
+	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Update(cVR)
 	if err != nil {
 		return err
 	}

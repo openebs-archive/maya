@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"github.com/ghodss/yaml"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 // DeploymentYml provides utility methods to generate K8s Deployment objects
@@ -179,4 +179,3 @@ func (m *CStorVolumeReplicaYml) AsCStorVolumeReplicaYml() (*v1alpha1.CStorVolume
 
 	return cstorVolumeReplica, nil
 }
-
