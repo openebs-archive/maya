@@ -98,6 +98,22 @@ func (i taskIdentifier) isOEV1alpha1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.OEV1alpha1KA)
 }
 
+func (i taskIdentifier) isCstorPool() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorPoolCRKK)
+}
+
+func (i taskIdentifier) isCstorVolume() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorVolumeCRKK)
+}
+
+func (i taskIdentifier) isCstorVolumeReplica() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorVolumeReplicaCRKK)
+}
+
+func (i taskIdentifier) isOEV1alpha1CSP() bool {
+	return i.isOEV1alpha1() && i.isCstorPool()
+}
+
 func (i taskIdentifier) isExtnV1B1Deploy() bool {
 	return i.isExtnV1B1() && i.isDeployment()
 }
@@ -120,4 +136,12 @@ func (i taskIdentifier) isCoreV1PVC() bool {
 
 func (i taskIdentifier) isOEV1alpha1SP() bool {
 	return i.isOEV1alpha1() && i.isStoragePool()
+}
+
+func (i taskIdentifier) isOEV1alpha1CV() bool {
+	return i.isOEV1alpha1() && i.isCstorVolume()
+}
+
+func (i taskIdentifier) isOEV1alpha1CVR() bool {
+	return i.isOEV1alpha1() && i.isCstorVolumeReplica()
 }

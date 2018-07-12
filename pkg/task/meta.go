@@ -273,6 +273,34 @@ func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isList()
+}
+
 // asRollbackInstance defines a metaTaskExecutor suitable for
 // rollback operation.
 //
