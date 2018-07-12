@@ -30,44 +30,44 @@ import (
 	time "time"
 )
 
-// CStorVolumeReplicaInformer provides access to a shared informer and lister for
-// CStorVolumeReplicas.
-type CStorVolumeReplicaInformer interface {
+// CStorVolumeInformer provides access to a shared informer and lister for
+// CStorVolumes.
+type CStorVolumeInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.CStorVolumeReplicaLister
+	Lister() v1alpha1.CStorVolumeLister
 }
 
-type cStorVolumeReplicaInformer struct {
+type cStorVolumeInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-// NewCStorVolumeReplicaInformer constructs a new informer for CStorVolumeReplica type.
+// NewCStorVolumeInformer constructs a new informer for CStorVolume type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCStorVolumeReplicaInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCStorVolumeInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.OpenebsV1alpha1().CStorVolumeReplicas(namespace).List(options)
+				return client.OpenebsV1alpha1().CStorVolumes(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Watch(options)
+				return client.OpenebsV1alpha1().CStorVolumes(namespace).Watch(options)
 			},
 		},
-		&openebs_io_v1alpha1.CStorVolumeReplica{},
+		&openebs_io_v1alpha1.CStorVolume{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func defaultCStorVolumeReplicaInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewCStorVolumeReplicaInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+func defaultCStorVolumeInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewCStorVolumeInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
-func (f *cStorVolumeReplicaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebs_io_v1alpha1.CStorVolumeReplica{}, defaultCStorVolumeReplicaInformer)
+func (f *cStorVolumeInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebs_io_v1alpha1.CStorVolume{}, defaultCStorVolumeInformer)
 }
 
-func (f *cStorVolumeReplicaInformer) Lister() v1alpha1.CStorVolumeReplicaLister {
-	return v1alpha1.NewCStorVolumeReplicaLister(f.Informer().GetIndexer())
+func (f *cStorVolumeInformer) Lister() v1alpha1.CStorVolumeLister {
+	return v1alpha1.NewCStorVolumeLister(f.Informer().GetIndexer())
 }
