@@ -885,7 +885,8 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	//   - if replication factor is 1, volume will be marked as RW when one replica connects
 	//   - if replication factor is 3, volume will be marked as RW when when atleast 2 replica connect
 	//  Similar logic will be applied to turn the volume into RO, when qorum is lost.
-	//Note: When kubectl scale up/down is done, this ENV needs to be patched. 
+	//Note: When kubectl scale up/down is done for replica deployment, 
+	// this ENV on controller deployment needs to be patched. 
 	rCount, err := volProProfile.ReplicaCount()
 	if err != nil {
 		return nil, err
