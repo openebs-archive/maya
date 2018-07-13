@@ -112,26 +112,26 @@ func (m *ServiceYml) AsCoreV1Service() (*api_core_v1.Service, error) {
 	return svc, nil
 }
 
-//CstorVolumeYml provides utility methods to generate K8s CStorVolume objects
-type CstorVolumeYml struct {
+//CStorVolumeYml provides utility methods to generate K8s CStorVolume objects
+type CStorVolumeYml struct {
 	// YmlInBytes represents a CStorVolume in
 	// yaml format
 	YmlInBytes []byte
 }
 
-func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CstorVolumeYml, error) {
+func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
 		return nil, err
 	}
 
-	return &CstorVolumeYml{
+	return &CStorVolumeYml{
 		YmlInBytes: b,
 	}, nil
 }
 
 // AsCStorVolumeYml returns a v1 CStorVolume instance
-func (m *CstorVolumeYml) AsCStorVolumeYml() (*v1alpha1.CStorVolume, error) {
+func (m *CStorVolumeYml) AsCStorVolumeYml() (*v1alpha1.CStorVolume, error) {
 	if m.YmlInBytes == nil {
 		return nil, fmt.Errorf("Missing yaml")
 	}

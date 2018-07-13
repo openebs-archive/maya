@@ -371,8 +371,6 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.putCStorVolume()
 	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
 		err = m.putCStorVolumeReplica()
-	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
-		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CSV() {
 		err = m.deleteOEV1alpha1CSV()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CVR() {
@@ -557,7 +555,7 @@ func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
 	return
 }
 
-// deleteOEV1alpha1CVR will delete one or more Deployments as specified in
+// deleteOEV1alpha1CVR will delete one or more CStorVolumeReplica as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1CVR() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
@@ -694,7 +692,7 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 	return
 }
 
-// deleteOEV1alpha1CSV will delete one or more Deployments as specified in
+// deleteOEV1alpha1CSV will delete one or more CStorVolume as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
