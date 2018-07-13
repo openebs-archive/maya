@@ -1128,9 +1128,17 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 	//Depending on the topology key, additional label selectors may be required. 
 	if replicaTopoKeyDomainLV  != "" && replicaTopoKeyTypeLV  != "" {
 		replicaTopoKey =  replicaTopoKeyDomainLV   + "/" + replicaTopoKeyTypeLV  
-		//TODO : We are assuming here that the topology keys depend on
-		// the application label.
-		repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+		//There are two scenarios for specifying custom topology keys:
+		//(a) Deploy the application using a statefulset where application has single replica
+		//    In this case, an application label to use as key is specified. 
+		//(b) Deploy the replicas of a single application need to be spread out.
+		//    In this case, there is no need to specify a seperate the application label.
+		//    Use the auto generated id. 
+		if appLV != "" {
+			repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+		} else {
+			repAntiAffinityLabelSpec[string(v1.VSMSelectorKey)] = vsm
+		}
 	} else {
 		//For host based anti-affinity, use the vsm name additional label
 		repAntiAffinityLabelSpec[string(v1.VSMSelectorKey)] = vsm
