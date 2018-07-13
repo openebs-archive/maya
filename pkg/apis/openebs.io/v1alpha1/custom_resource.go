@@ -1,3 +1,19 @@
+/*
+Copyright 2017 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package v1alpha1
 
 import (
@@ -76,45 +92,76 @@ type StoragePoolList struct {
 // +genclient:noStatus
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=volumeparametergroup
+// +resource:path=castemplate
 
-// VolumeParameterGroup describes a VolumeParameterGroup
-type VolumeParameterGroup struct {
+// CASTemplate describes a Container Attached Storage template that is used
+// to provision a CAS volume
+type CASTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec VolumeParameterGroupSpec `json:"spec"`
+	Spec CASTemplateSpec `json:"spec"`
 }
 
-// VolumeParameterGroupSpec is the specifications for a VolumeParameterGroup resource
-type VolumeParameterGroupSpec struct {
-	// Policies are a list of policies to be applied on
-	// the tasks during policy execution
-	Policies []Policy `json:"policies"`
+// CASTemplateSpec is the specifications for a CASTemplate resource
+type CASTemplateSpec struct {
+	// Update specifications to update a CAS volume
+	Update CASUpdateSpec `json:"update"`
+	// Defaults are a list of default configurations that may be applied
+	// during provisioning of a CAS volume
+	Defaults []Config `json:"defaultConfig"`
+	// TaskNamespace is the namespace where the tasks
+	// are expected to be found
+	TaskNamespace string `json:"taskNamespace"`
 	// RunTasks refers to a set of tasks to be run
 	RunTasks RunTasks `json:"run"`
+	// OutputTask is the task that has the CAS template result's output
+	// format
+	OutputTask string `json:"output"`
+}
+
+// CASUpdateSpec is the specification to update a CAS volume
+// One or more CAS volumes may be updated at a time based on PVC or SC
+// respectively.
+type CASUpdateSpec struct {
+	// Kind refers to a Kubernetes kind. In this case it can be a
+	// StorageClass or a PVC
+	Kind string `json:"kind"`
+	// Name refers to the Kubernetes resource. In this case it can
+	// be the name of StorageClass or PVC.
+	Name string `json:"name"`
+	// Selector filters the relevant CAS volumes to be updated
+	Selector string `json:"selector"`
+	// CurrentVersion is the expected current version of a CAS volume
+	// that is eligible for update
+	CurrentVersion string `json:"currentVersion"`
+	// DesiredVersion is the desired version of a CAS volume after a
+	// successful update
+	DesiredVersion string `json:"desiredVersion"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=volumeparametergroups
+// +resource:path=castemplates
 
-// VolumeParameterGroupList is a list of VolumeParameterGroup resources
-type VolumeParameterGroupList struct {
+// CASTemplateList is a list of CASTemplate resources
+type CASTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []VolumeParameterGroup `json:"items"`
+	Items []CASTemplate `json:"items"`
 }
 
-// Policy is the structure that defines a volume policy
-type Policy struct {
-	// Name of the policy
+// Config holds a configuration element
+//
+// For example, it can represent a config property of a CAS volume
+type Config struct {
+	// Name of the config
 	Name string `json:"name"`
-	// Enabled flags if this policy is enabled or disabled
+	// Enabled flags if this config is enabled or disabled;
 	// true indicates enabled while false indicates disabled
 	Enabled string `json:"enabled"`
-	// Value represents any specific value that is relevant
-	// to this policy
+	// Value represents any specific value that is applicable
+	// to this config
 	Value string `json:"value"`
 	// Data represents an arbitrary map of key value pairs
 	Data map[string]string `json:"data"`
@@ -123,33 +170,28 @@ type Policy struct {
 // RunTasks contains fields to run a set of
 // tasks
 type RunTasks struct {
-	// TemplateNamespace is the namespace where the tasks
-	// are expected to be found
-	//
-	// NOTE:
-	//  There are two types of namespaces possible in volume parameter group
-	// i.e. TemplateNamespace & RunNamespace. A RunNamespace is the
-	// namespace where tasks are expected to be run.
-	TemplateNamespace string `json:"templateNamespace"`
 	// Items is a set of order-ed tasks
-	Tasks []Task `json:"tasks"`
+	Tasks []string `json:"tasks"`
 }
 
-// Task has information about a task
-type Task struct {
-	// TemplateName is the name of the template. A template
-	// represents a task in yaml format. A template refers to
-	// a K8s ConfigMap.
-	TemplateName string `json:"template"`
-	// Identity is the unique identity that can differentiate
-	// two tasks even when using the same template
-	Identity string `json:"id"`
-	// APIVersion is the version related to the task's actual
-	// content
-	APIVersion string `json:"apiVersion"`
-	// Kind is the kind corresponding to the task's actual content
-	Kind string `json:"kind"`
-}
+// Task has information about an action and a resource where the action
+// is performed against the resource.
+//
+// For example a resource can be a kubernetes resource and the corresponding
+// action can be to apply this resource to kubernetes cluster.
+//type Task struct {
+// TaskName is the name of the task.
+//
+// NOTE: A task refers to a K8s ConfigMap.
+//TaskName string `json:"task"`
+// Identity is the unique identity that can differentiate
+// two tasks even when using the same template
+//Identity string `json:"id"`
+// APIVersion is the version related to the task's resource
+//APIVersion string `json:"apiVersion"`
+// Kind is the kind corresponding to the task's resource
+//Kind string `json:"kind"`
+//}
 
 // +genclient
 // +genclient:noStatus

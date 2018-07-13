@@ -35,6 +35,8 @@ type taskPatchMock struct {
 	expectedPatchType types.PatchType
 }
 
+// TODO
+// Simplify the unit test to make it easier for all to understand
 func TestPatch(t *testing.T) {
 	tests := map[string]taskPatchMock{
 		"Test 'strategic patch' in yaml": {
@@ -110,9 +112,9 @@ func TestPatch(t *testing.T) {
 				return
 			}
 
-			_, err = pe.build()
+			_, err = pe.toJson()
 			if err != nil && !mock.isError {
-				t.Fatalf("Failed to build patch: Expected: 'no error' Actual: '%#v'", err)
+				t.Fatalf("Failed to convert patch to json: Expected: 'no error' Actual: '%#v'", err)
 			}
 
 			pt := pe.patchType()

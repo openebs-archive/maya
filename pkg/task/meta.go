@@ -17,11 +17,13 @@ limitations under the License.
 package task
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/template"
 
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +49,10 @@ const (
 	// PatchTA flags a action as patch. Typically used to
 	// patch an object.
 	PatchTA TaskAction = "patch"
+	// OutputTA flags the task action as output. Typically used to
+	// provide a schema (i.e. a custom defined) based output after
+	// running one or more tasks.
+	OutputTA TaskAction = "output"
 )
 
 // MetaTask contains information about a Task
@@ -67,6 +73,9 @@ type MetaTask struct {
 	// Options is a set of selectors that can be used for
 	// get or list actions
 	Options string `json:"options"`
+	// @Deprecated
+	//  In favour of 'RunTask.post' property
+	//
 	// TaskResultQueries will consist of the queries to be run against the
 	// task's result
 	TaskResultQueries []TaskResultQuery `json:"queries"`
@@ -79,9 +88,12 @@ type MetaTask struct {
 	// # max of 10 attempts in 20 seconds interval
 	// retry: "10,20s"
 	Retry string `json:"retry"`
-	// TaskPatch will consist of patches that gets applied
-	// against the task object
-	TaskPatch `json:"patch"`
+	// RepeatWith sets one or more resources of a given kind that leads to
+	// repetitive execution of a task (in other words a task template is executed
+	// multiple times). The repetition count is determined by the resource names
+	// specified. Each task execution is based on a resource from this provided
+	// list of resources.
+	RepeatWith RepeatWithResource `json:"repeatWith"`
 }
 
 type metaTaskExecutor struct {
@@ -90,10 +102,13 @@ type metaTaskExecutor struct {
 	// identifier is a utility struct that enables a task's identity
 	// related operations
 	identifier taskIdentifier
+	// repeater exposes operations with respect to repetitive execution of this
+	// task
+	repeater repeatWithResourceExecutor
 }
 
 // newMetaTaskExecutor provides a new instance of metaTaskExecutor
-func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*metaTaskExecutor, error) {
+func newMetaTaskExecutor(yml string, values map[string]interface{}) (*metaTaskExecutor, error) {
 	// transform the yaml with provided values
 	b, err := template.AsTemplatedBytes("MetaTask", yml, values)
 	if err != nil {
@@ -107,9 +122,6 @@ func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*
 		return nil, err
 	}
 
-	// set the task identity
-	m.Identity = identity
-
 	// instantiate the task identifier based out of this MetaTask
 	i, err := newTaskIdentifier(m.TaskIdentity)
 	if err != nil {
@@ -119,6 +131,7 @@ func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*
 	return &metaTaskExecutor{
 		metaTask:   m,
 		identifier: i,
+		repeater:   newRepeatWithResourceExecutor(m.RepeatWith),
 	}, nil
 }
 
@@ -126,12 +139,20 @@ func (m *metaTaskExecutor) getMetaInfo() MetaTask {
 	return m.metaTask
 }
 
-func (m *metaTaskExecutor) getTaskResultQueries() []TaskResultQuery {
-	return m.metaTask.TaskResultQueries
+func (m *metaTaskExecutor) getRepeatWithResourceExecutor() repeatWithResourceExecutor {
+	return m.repeater
 }
 
-func (m *metaTaskExecutor) getTaskPatch() TaskPatch {
-	return m.metaTask.TaskPatch
+func (m *metaTaskExecutor) getIdentity() string {
+	return m.metaTask.Identity
+}
+
+func (m *metaTaskExecutor) getTaskIdentity() TaskIdentity {
+	return m.metaTask.TaskIdentity
+}
+
+func (m *metaTaskExecutor) getTaskResultQueries() []TaskResultQuery {
+	return m.metaTask.TaskResultQueries
 }
 
 func (m *metaTaskExecutor) getObjectName() string {
@@ -145,7 +166,7 @@ func (m *metaTaskExecutor) getRunNamespace() string {
 func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
 	retry := m.metaTask.Retry
 	// "attempts,interval" format
-	defRetry := "1,0s"
+	defRetry := "0,0s"
 
 	// retry is a comma separated string with attempts as first element &
 	// interval as second element
@@ -156,8 +177,9 @@ func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
 
 	// determine the attempts
 	attempts, _ = strconv.Atoi(retryArr[0])
-	if attempts == 0 {
-		attempts = 1
+	if attempts < 0 {
+		// no retries for negative attempt value
+		attempts = 0
 	}
 	// determine the interval
 	interval, _ = time.ParseDuration(retryArr[1])
@@ -223,8 +245,24 @@ func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isDelete()
 }
 
+func (m *metaTaskExecutor) isListCoreV1PVC() bool {
+	return m.identifier.isCoreV1PVC() && m.isList()
+}
+
 func (m *metaTaskExecutor) isListCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListCoreV1Service() bool {
+	return m.identifier.isCoreV1Service() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListExtnV1B1Deploy() bool {
+	return m.identifier.isExtnV1B1Deploy() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
+	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
 
 func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
@@ -251,6 +289,12 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, false, nil
 	}
 
+	if len(objectName) == 0 {
+		errMsg := fmt.Sprintf("failed to build rollback instance for task '%s': object name is missing", m.getIdentity())
+		glog.Errorf(fmt.Sprintf("%s: meta task '%#v'", errMsg, m.getMetaInfo()))
+		return nil, true, fmt.Errorf(errMsg)
+	}
+
 	// build the rollback version of this MetaTask
 	rbMT := MetaTask{
 		Action:     DeleteTA,
@@ -270,8 +314,14 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, err
 	}
 
+	var repeater repeatWithResourceExecutor
+	if m.repeater.isRepeat() {
+		repeater = newRepeatWithResourceExecByObjectNames(objectName)
+	}
+
 	return &metaTaskExecutor{
 		metaTask:   rbMT,
 		identifier: i,
+		repeater:   repeater,
 	}, true, nil
 }

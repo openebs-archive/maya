@@ -19,7 +19,6 @@ package task
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,7 +26,7 @@ import (
 // TaskSpecFetcher is the contract to fetch task
 // specification that includes the task's meta specification
 type TaskSpecFetcher interface {
-	Fetch(taskName string) (metaTaskYml string, taskYml string, err error)
+	Fetch(taskName string) (runtask RunTask, err error)
 }
 
 // K8sTaskSpecFetcher deals with fetching a task specifications
@@ -65,30 +64,23 @@ func NewK8sTaskSpecFetcher(searchNamespace string) (*K8sTaskSpecFetcher, error) 
 //
 // NOTE:
 //  This is an implementation of TaskSpecFetcher interface
-func (f *K8sTaskSpecFetcher) Fetch(taskName string) (metaTaskYml string, taskYml string, err error) {
+func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask RunTask, err error) {
 	if len(taskName) == 0 {
-		return "", "", fmt.Errorf("Nil task name: Task can not be fetched")
+		err = fmt.Errorf("failed to fetch runtask: nil task name was provided")
+		return
 	}
 
 	cm, err := f.k8sClient.GetConfigMap(taskName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return "", "", err
+		return
 	}
 
-	// TODO
-	// Validations if this CM is actually a Task
-
-	// return the yaml string representation of metatask & task respectively
-	metaTaskYml = cm.Data["meta"]
-	if len(metaTaskYml) == 0 {
-		return "", "", fmt.Errorf("Nil meta task specs: Fetched task is invalid '%s'", taskName)
+	runtask = RunTask{
+		Name:                 taskName,
+		MetaYml:              cm.Data["meta"],
+		TaskYml:              cm.Data["task"],
+		PostRunTemplateFuncs: cm.Data["post"],
 	}
 
-	taskYml = cm.Data["task"]
-	if len(taskYml) == 0 {
-		// This can be empty for get API calls
-		glog.Warningf("Nil task specs: Will use meta task specs: Task: '%s' MetaTask: '%s'", taskName, metaTaskYml)
-	}
-
-	return metaTaskYml, taskYml, nil
+	return
 }

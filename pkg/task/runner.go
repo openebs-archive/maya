@@ -25,58 +25,97 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
-// PostTaskRunFn is a closure definition that provides option
-// to act on individual task's result
-type PostTaskRunFn func(taskResult map[string]interface{})
-
-// taskSpecHolder is a utility structure that composes specifications
-// of task as well as metatask
-type taskSpecHolder struct {
-	identity    string
-	metaTaskYml string
-	taskYml     string
+// redactJsonResult will update the provided map by removing the original json
+// result doc i.e. bytes and replace it with "--redacted--"
+//
+// NOTE:
+//  This should be done once the task group runner has finished executing all
+// its tasks or when executing a task met an error & is now exiting by logging
+// the error.
+func redactJsonResult(templateValues map[string]interface{}) {
+	templateValues[string(v1alpha1.CurrentJsonResultTLP)] = "--redacted--"
 }
 
-// TaskRunner helps in running a set of Tasks in sequence
-type TaskRunner struct {
-	// taskSpecs is an array of task specifications
-	taskSpecs []taskSpecHolder
-	// rollbacks is an array of tasks that need to be run in
+// PostTaskRunFn is a closure definition that provides option
+// to act on an individual task's result
+type PostTaskRunFn func(taskResult map[string]interface{})
+
+// TaskGroupRunner helps in running a set of Tasks in sequence
+type TaskGroupRunner struct {
+	// allTaskIDs will hold the identity of the run tasks managed by this
+	// group runner
+	allTaskIDs []string
+	// allTasks is an array of run tasks
+	allTasks []RunTask
+	// outputTask holds the specs to return this group runner's
+	// output in the format (i.e. specs) defined in this output run task
+	outputTask RunTask
+	// rollbacks is an array of task executor that need to be run in
 	// sequence in the event of any error
 	rollbacks []*taskExecutor
 }
 
-func NewTaskRunner() *TaskRunner {
-	return &TaskRunner{}
+func NewTaskGroupRunner() *TaskGroupRunner {
+	return &TaskGroupRunner{}
 }
 
-func (m *TaskRunner) AddTaskSpec(identity, metaTaskYml, taskYml string) error {
-	if len(strings.TrimSpace(identity)) == 0 {
-		fmt.Errorf("Missing task identity: Failed to add task spec")
+func (m *TaskGroupRunner) AddRunTask(runtask RunTask) (err error) {
+	if len(runtask.MetaYml) == 0 {
+		err = fmt.Errorf("failed to add run task: nil meta task specs found: task name '%s'", runtask.Name)
+		return
 	}
 
-	tSpec := taskSpecHolder{
-		identity:    strings.TrimSpace(identity),
-		metaTaskYml: metaTaskYml,
-		taskYml:     taskYml,
-	}
-	m.taskSpecs = append(m.taskSpecs, tSpec)
-
-	return nil
+	m.allTasks = append(m.allTasks, runtask)
+	return
 }
 
-// planForRollback in case of errors in executing next tasks.
-// This will add to the list of rollback tasks
+// SetOutputTask sets this runner with a run task that will be used
+// to return the output after successful execution of this runner.
+//
+// NOTE:
+//  This output format is specified in the provided run task.
+func (m *TaskGroupRunner) SetOutputTask(runtask RunTask) (err error) {
+	if len(runtask.MetaYml) == 0 {
+		err = fmt.Errorf("failed to set output task: nil meta task specs found: task name '%s'", runtask.Name)
+		return
+	}
+
+	if len(runtask.TaskYml) == 0 {
+		err = fmt.Errorf("failed to set output task: nil task specs found: task name '%s'", runtask.Name)
+		return
+	}
+
+	m.outputTask = runtask
+	return
+}
+
+// isTaskIDUnique verifies if the tasks present in this group runner
+// have unique task ids.
+func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
+	id := strings.ToLower(identity)
+
+	if util.ContainsString(m.allTaskIDs, id) {
+		unique = false
+		return
+	}
+
+	// else add the identity for future verfications
+	m.allTaskIDs = append(m.allTaskIDs, id)
+	unique = true
+	return
+}
+
+// planForRollback plans for rollback in case of future errors while executing
+// the tasks. This will add to the list of rollback tasks
 //
 // NOTE:
 //  This is just the planning for rollback & not actual rollback.
 // In the events of issues this planning will be useful.
-func (m *TaskRunner) planForRollback(tSpec taskSpecHolder, te *taskExecutor, objectName string) {
-	// the entire rollback policy is encapsulated
-	// in the task itself; so just invoke this method
+func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) (err error) {
+	// the entire rollback plan is encapsulated in the task itself
 	rte, err := te.asRollbackInstance(objectName)
 	if err != nil {
-		glog.Warningf("Error during rollback plan: Error: '%s' Identity: '%s' Meta YAML '%s' YAML '%s'", err.Error(), tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml)
+		return
 	}
 
 	if rte == nil {
@@ -86,93 +125,106 @@ func (m *TaskRunner) planForRollback(tSpec taskSpecHolder, te *taskExecutor, obj
 	}
 
 	m.rollbacks = append(m.rollbacks, rte)
+	return
 }
 
-// rollback will rollback the run operation
-func (m *TaskRunner) rollback() {
+// rollback will rollback the previously run operation(s)
+func (m *TaskGroupRunner) rollback() {
 	count := len(m.rollbacks)
 	if count == 0 {
-		glog.Infof("Nothing to rollback")
+		glog.Warningf("did not rollback: no rollback run tasks were found")
 		return
 	}
 
-	// execute the rollback tasks in reverse order
+	// execute the rollback tasks in **reverse order**
 	for i := count - 1; i >= 0; i-- {
-		_, err := m.rollbacks[i].execute()
+		err := m.rollbacks[i].ExecuteIt()
 		if err != nil {
-			glog.Warningf("Error during rollback: Task: '%#v' Error: '%s'", m.rollbacks[i], err.Error())
+			// warn this rollback error & continue with the next rollbacks
+			glog.Warningf("failed to rollback run task: '%s': error '%s'", m.rollbacks[i], err.Error())
 		}
 	}
 }
 
-// Run will run all tasks in the sequence of provided array
-//
-// NOTE:
-//  The error is logged with verbose details before being returned
-func (m *TaskRunner) runTasks(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
-	for _, tSpec := range m.taskSpecs {
-		// build a task executor
-		// this is all about utilizing the meta task information
-		te, err := newTaskExecutor(tSpec.identity, tSpec.metaTaskYml, tSpec.taskYml, values)
-		if err != nil {
-			// log with verbose details
-			glog.Errorf("Failed to execute task: Identity: '%s' Meta YAML: '%s' Values: '%#v'", tSpec.identity, tSpec.metaTaskYml, values)
-			return err
-		}
-
-		// actual task execution begins here
-		result, err := te.execute()
-		if err != nil {
-			// log with verbose details
-			glog.Errorf("Failed to execute task: Identity: '%s' Meta Task: '%#v' YAML: '%s' Values: '%#v'", tSpec.identity, te.getMetaTaskExecutor(), tSpec.taskYml, values)
-			return err
-		}
-
-		// these are some post task execution steps
-		// if execution was successful then add it to rollback set;
-		// this set will be used incase of a failure while executing the
-		// next or future task(s)
-		// get the object that was created by this task
-		taskResults := util.GetMapOfStrings(result, tSpec.identity)
-		if taskResults == nil {
-			// log with verbose details
-			glog.Errorf("Nil task results: could not execute task: Identity: '%s' Meta Task: '%#v' YAML: '%s' Values: '%#v' Result: '%#v'", tSpec.identity, te.getMetaTaskExecutor(), tSpec.taskYml, values, result)
-			// return error minus verbosity
-			return fmt.Errorf("Nil task results: could not execute task: Identity: '%s'", tSpec.identity)
-		}
-
-		// extract the name of this object
-		objName := taskResults[string(v1alpha1.ObjectNameTRTP)]
-		if len(objName) == 0 {
-			// log with verbose details
-			glog.Errorf("Missing object name: Invalid task execution: Identity: '%s' Meta Task: '%#v' YAML: '%s' Values: '%#v' Result: '%#v'", tSpec.identity, te.getMetaTaskExecutor(), tSpec.taskYml, values, result)
-			// return error minus verbosity
-			return fmt.Errorf("Missing object name: Invalid task execution: Identity: '%s'", tSpec.identity)
-		}
-
-		// this is planning & not the actual rollback
-		m.planForRollback(tSpec, te, objName)
-
-		// executing this closure provides a way to capture the result of this task;
-		// this is used to provide data to the next task before the latter's
-		// execution
-		postTaskRunFn(result)
-	}
-
-	return nil
-}
-
-// Run will run all the defined tasks & will rollback in case of
-// any error
-//
-// NOTE: values will be modified to include the results from execution of
-// each task
-func (m *TaskRunner) Run(values map[string]interface{}, postTaskRunFn PostTaskRunFn) error {
-	err := m.runTasks(values, postTaskRunFn)
+// runATask will run a task based on the task specs & template values
+func (m *TaskGroupRunner) runATask(runtask RunTask, values map[string]interface{}) (err error) {
+	te, err := newTaskExecutor(runtask, values)
 	if err != nil {
-		glog.Errorf("Failed to execute task: will rollback previous task(s): Error: '%s'", err.Error())
-		m.rollback()
+		// log with verbose details
+		glog.Errorf("failed to instantiate run task executor: name '%s': meta yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, values)
+		return
 	}
 
-	return err
+	// check if the task ID is unique in this group
+	if !m.isTaskIDUnique(te.getTaskIdentity()) {
+		return fmt.Errorf("failed to execute the run task: multiple tasks having same identity is not allowed in a group run: duplicate id '%s'", te.getTaskIdentity())
+	}
+
+	err = te.Execute()
+
+	// remove the json doc (i.e. []byte) from template values since it will not
+	// be used anymore and if these template values are logged will not clutter
+	// the logs
+	redactJsonResult(values)
+
+	if err != nil {
+		// log with verbose details
+		glog.Errorf("failed to execute the run task: name '%s': meta yaml '%s': task yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, runtask.TaskYml, values)
+		return
+	}
+
+	// this is planning & not the actual rollback
+	err = m.planForRollback(te, util.GetNestedString(values, string(v1alpha1.TaskResultTLP), te.getTaskIdentity(), string(v1alpha1.ObjectNameTRTP)))
+	return
+}
+
+// runAllTasks will run all tasks in the sequence as defined in the array
+func (m *TaskGroupRunner) runAllTasks(values map[string]interface{}) (err error) {
+	for _, runtask := range m.allTasks {
+		err = m.runATask(runtask, values)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+// runOutput gets the output of this runner once all the tasks were executed
+// successfully
+func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byte, err error) {
+	if len(m.outputTask.TaskYml) == 0 {
+		// nothing needs to be done
+		return
+	}
+
+	te, err := newTaskExecutor(m.outputTask, values)
+	if err != nil {
+		return
+	}
+
+	output, err = te.Output()
+	if err != nil {
+		// log with verbose details
+		glog.Errorf("failed to execute output task: runtask '%#v': template values '%#v'", m.outputTask, values)
+	}
+	return
+}
+
+// Run will run all the defined tasks & will rollback in case of any error
+//
+// NOTE: values is mutated (i.e. gets modified after each task execution) to
+// let the task execution result be made available to the next task before execution
+// of this next task
+func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err error) {
+	err = m.runAllTasks(values)
+	if err != nil {
+		glog.Errorf("failed to execute runtasks: will rollback previously executed runtask(s): runtask error '%s'", err.Error())
+		m.rollback()
+	} else {
+		// return this runner's output if there were no errors
+		return m.runOutput(values)
+	}
+
+	return
 }
