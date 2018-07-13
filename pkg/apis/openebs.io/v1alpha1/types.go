@@ -189,7 +189,7 @@ type CStorPoolPhase string
 // Status written onto CStorPool and CStorVolumeReplica objects.
 const (
 	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
-	CStorPoolStatusInit CStorPoolPhase = "init"
+	CStorPoolStatusInit CStorPoolPhase = ""
 	// CStorPoolStatusOnline ensures the resource is available.
 	CStorPoolStatusOnline CStorPoolPhase = "online"
 	// CStorPoolStatusOffline ensures the resource is not available.
@@ -198,6 +198,8 @@ const (
 	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
 	// CStorPoolStatusInvalid ensures invalid resource.
 	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.
+	CStorPoolStatusErrorDuplicate CStorPoolPhase = "error-duplicate"
 )
 
 // CStorPoolStatus is for handling status of pool.
@@ -231,8 +233,8 @@ type CStorVolumeReplica struct {
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	CStorControllerIP string `json:"cStorControllerIP"`
-	Capacity          string `json:"capacity"`
+	TargetIP string `json:"targetIP"`
+	Capacity string `json:"capacity"`
 }
 
 // CStorVolumeReplicaPhase is to hold result of action.
@@ -241,7 +243,7 @@ type CStorVolumeReplicaPhase string
 // Status written onto CStorVolumeReplica objects.
 const (
 	// CVRStatusInit ensures the create operation is to be done, if import fails.
-	CVRStatusInit CStorVolumeReplicaPhase = "init"
+	CVRStatusInit CStorVolumeReplicaPhase = ""
 	// CVRStatusOnline ensures the resource is available.
 	CVRStatusOnline CStorVolumeReplicaPhase = "online"
 	// CVRStatusOffline ensures the resource is not available.
@@ -250,6 +252,8 @@ const (
 	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
 	// CVRStatusInvalid ensures invalid resource.
 	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
+	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "error-duplicate"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.

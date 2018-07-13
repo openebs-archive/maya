@@ -176,6 +176,10 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 // CheckForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
 func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
+		// Since this blocking function is restricted to check if CVR CRD is present
+		// or not, we are trying to handle only the error of CVR CR List api indirectly.
+		// CRD has only two types of scope, cluster and namespaced. If CR list api
+		// for default namespace works fine, then CR list api works for all namespaces.
 		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)

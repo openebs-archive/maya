@@ -81,7 +81,7 @@ func CreatePool(cStorPool *apis.CStorPool) error {
 func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	// populate pool creation attributes.
 	var createAttr []string
-	createAttr = append(createAttr, "create")
+	createAttr = append(createAttr, "create", "-f")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" {
 		cachefile := "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile
 		createAttr = append(createAttr, "-o", cachefile)

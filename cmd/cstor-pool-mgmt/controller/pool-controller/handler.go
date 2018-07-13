@@ -73,140 +73,149 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	switch operation {
 	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
-		// CheckValidPool is to check if pool attributes are correct.
-		err := pool.CheckValidPool(cStorPoolGot)
-		if err != nil {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
-			return string(apis.CStorPoolStatusOffline), err
-		}
 
-		/* 	If pool is already present.
-		Pool CR status is online. This means pool (main car) is running successfully,
-		but watcher container got restarted.
-		Pool CR status is init/online. If entire pod got restarted, both zrepl and watcher
-		are started.
-		a) Zrepl could have come up first, in this case, watcher will update after
-		the specified interval of 120s.
-		b) Watcher could have come up first, in this case, there is a possibility
-		that zrepl goes down and comes up and the watcher sees that no pool is there,
-		so it will break the loop and attempt to import the pool. */
-
-		// cnt is no of attempts to wait and handle in case of already present pool.
-		cnt := common.NoOfPoolWaitAttempts
-		existingPool, _ := pool.GetPoolName()
-		flag := len(existingPool) != 0
 		common.Mux.Lock()
-		for i := 0; flag && i < cnt; i++ {
-			common.InitialImportedPoolVol, _ = volumereplica.GetVolumes()
-			// GetPoolName is to get pool name for particular no. of attempts.
-			existingPool, _ := pool.GetPoolName()
-			if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
-				flag = true
-				// In the last attempt, ignore and update the status.
-				if i == cnt-1 {
-					flag = false
-					if IsInitStatus(cStorPoolGot) {
-						// Pool CR status is init. This means pool deployment was done
-						// successfully, but before updating the CR to Online status,
-						// the watcher container got restarted.
-						glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
-						c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-						common.IsImported = true
-						common.Mux.Unlock()
-						return string(apis.CStorPoolStatusOnline), nil
-					}
-					glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
-					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-					common.IsImported = true
-					common.Mux.Unlock()
-					return string(apis.CStorPoolStatusOnline), nil
-				}
-				glog.Infof("Attempt %v: Waiting...", i+1)
-				time.Sleep(common.PoolWaitInterval)
-			} else {
-				// If no pool is present while trying for getpoolname, set flag to false and
-				// break the loop, to import the pool later.
-				flag = false
-			}
-		}
-
-		// import pool with cachefile.
-		cachefileFlag := true
-		status, _ := c.importPool(cStorPoolGot, cachefileFlag)
-		if status == string(apis.CStorPoolStatusOnline) {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.IsImported = true
-			common.Mux.Unlock()
-			return status, nil
-		}
-		// import pool without cachefile.
-		cachefileFlag = false
-		status, _ = c.importPool(cStorPoolGot, cachefileFlag)
-		if status == string(apis.CStorPoolStatusOnline) {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.IsImported = true
-			common.Mux.Unlock()
-			return status, nil
-		}
-
-		// make a check if initialImportedPoolVol is not empty, then notify cvr controller
-		// through channel.
-		if len(common.InitialImportedPoolVol) != 0 {
-			common.IsImported = true
-		} else {
-			common.IsImported = false
-		}
+		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 		common.Mux.Unlock()
 
-		// IsInitStatus is to check if initial status of cstorpool object is `init`.
-		if IsInitStatus(cStorPoolGot) {
-			// LabelClear is to clear pool label
-			err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
-			if err != nil {
-				glog.Errorf(err.Error(), cStorPoolGot.GetUID())
-			}
-			glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
-
-			// CreatePool is to create cstor pool.
-			err = pool.CreatePool(cStorPoolGot)
-			if err != nil {
-				glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
-				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
-				return string(apis.CStorPoolStatusOffline), err
-			}
-			glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-			return string(apis.CStorPoolStatusOnline), nil
-		}
-		glog.Infof("Not init status: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
-
-		break
+		return status, err
 
 	case common.QOpDestroy:
 		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
-		// DeletePool is to delete cstor pool.
-		err := pool.DeletePool(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
-		if err != nil {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
-			return string(apis.CStorPoolStatusDeletionFailed), err
-		}
 
+		status, err := c.cStorPoolDestroyEventHandler(cStorPoolGot)
+		return status, err
+	}
+	return string(apis.CStorPoolStatusInvalid), nil
+}
+
+func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
+	// CheckValidPool is to check if pool attributes are correct.
+	err := pool.CheckValidPool(cStorPoolGot)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		return string(apis.CStorPoolStatusOffline), err
+	}
+
+	/* 	If pool is already present.
+	Pool CR status is online. This means pool (main car) is running successfully,
+	but watcher container got restarted.
+	Pool CR status is init/online. If entire pod got restarted, both zrepl and watcher
+	are started.
+	a) Zrepl could have come up first, in this case, watcher will update after
+	the specified interval of 120s.
+	b) Watcher could have come up first, in this case, there is a possibility
+	that zrepl goes down and comes up and the watcher sees that no pool is there,
+	so it will break the loop and attempt to import the pool. */
+
+	// cnt is no of attempts to wait and handle in case of already present pool.
+	cnt := common.NoOfPoolWaitAttempts
+	existingPool, _ := pool.GetPoolName()
+	isPoolExists := len(existingPool) != 0
+
+	for i := 0; isPoolExists && i < cnt; i++ {
+		// GetVolumes is called because, while importing a pool, volumes corresponding
+		// to the pool are also imported. This needs to be handled and made visible
+		// to cvr controller.
+		common.InitialImportedPoolVol, _ = volumereplica.GetVolumes()
+		// GetPoolName is to get pool name for particular no. of attempts.
+		existingPool, _ := pool.GetPoolName()
+		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
+			isPoolExists = true
+			// In the last attempt, ignore and update the status.
+			if i == cnt-1 {
+				isPoolExists = false
+				if IsInitStatus(cStorPoolGot) {
+					// Pool CR status is init. This means pool deployment was done
+					// successfully, but before updating the CR to Online status,
+					// the watcher container got restarted.
+					glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+					common.IsImported = true
+					return string(apis.CStorPoolStatusOnline), nil
+				}
+				glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+				common.IsImported = true
+				return string(apis.CStorPoolStatusErrorDuplicate), nil
+			}
+			glog.Infof("Attempt %v: Waiting...", i+1)
+			time.Sleep(common.PoolWaitInterval)
+		} else {
+			// If no pool is present while trying for getpoolname, set isPoolExists to false and
+			// break the loop, to import the pool later.
+			isPoolExists = false
+		}
+	}
+	var importPoolErr error
+	cachfileFlags := []bool{true, false}
+	for _, cachefileFlag := range cachfileFlags {
+		status, importPoolErr := c.importPool(cStorPoolGot, cachefileFlag)
+		if status == string(apis.CStorPoolStatusOnline) {
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+			common.IsImported = true
+			return status, nil
+		}
+		_ = importPoolErr
+	}
+
+	// make a check if initialImportedPoolVol is not empty, then notify cvr controller
+	// through channel.
+	if len(common.InitialImportedPoolVol) != 0 {
+		common.IsImported = true
+	} else {
+		common.IsImported = false
+	}
+
+	// IsInitStatus is to check if initial status of cstorpool object is `init`.
+	if IsInitStatus(cStorPoolGot) {
 		// LabelClear is to clear pool label
 		err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
 		if err != nil {
 			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
+		} else {
+			glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
 		}
-		glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
 
-		// removeFinalizer is to remove finalizer of cStorPool resource.
-		err = c.removeFinalizer(cStorPoolGot)
+		// CreatePool is to create cstor pool.
+		err = pool.CreatePool(cStorPoolGot)
 		if err != nil {
+			glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
 			return string(apis.CStorPoolStatusOffline), err
 		}
-		return "", nil
+		glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+		return string(apis.CStorPoolStatusOnline), nil
+	}
+	glog.Infof("Not init status: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
+
+	return string(apis.CStorPoolStatusOffline), importPoolErr
+}
+
+func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
+	// DeletePool is to delete cstor pool.
+	err := pool.DeletePool(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
+		return string(apis.CStorPoolStatusDeletionFailed), err
 	}
 
-	return string(apis.CStorPoolStatusInvalid), nil
+	// LabelClear is to clear pool label
+	err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
+	if err != nil {
+		glog.Errorf(err.Error(), cStorPoolGot.GetUID())
+	} else {
+		glog.Infof("Label clear successful: %v", string(cStorPoolGot.GetUID()))
+	}
+
+	// removeFinalizer is to remove finalizer of cStorPool resource.
+	err = c.removeFinalizer(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), err
+	}
+	return "", nil
+
 }
 
 // getPoolResource returns object corresponding to the resource key
@@ -254,6 +263,9 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
+		// GetVolumes is called because, while importing a pool, volumes corresponding
+		// to the pool are also imported. This needs to be handled and made visible
+		// to cvr controller.
 		common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 		if err != nil {
 			common.IsImported = false

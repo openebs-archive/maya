@@ -88,38 +88,8 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 	case common.QOpAdd:
 		glog.Infof("Processing cvr added event: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
 
-		common.Mux.Lock()
-		if common.IsImported {
-			common.Mux.Unlock()
-			// To check if volume is already imported with pool.
-			importedFlag := common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
-			if importedFlag && !IsInitStatus(cVR) {
-				glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
-				c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-				return string(apis.CVRStatusOnline), nil
-			}
-		}
-		// If volumereplica is already present.
-		existingvol, _ := volumereplica.GetVolumes()
-		if common.CheckIfPresent(existingvol, fullVolName) {
-			glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
-			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-			return string(apis.CVRStatusOnline), nil
-		}
-
-		// IsInitStatus is to check if initial status of cVR object is `init`.
-		if IsInitStatus(cVR) {
-			err = volumereplica.CreateVolume(cVR, fullVolName)
-			if err != nil {
-				glog.Errorf("cVr creation failure: %v", err.Error())
-				return string(apis.CVRStatusOffline), err
-			}
-			c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-			glog.Infof("cVR creation successful: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
-			return string(apis.CVRStatusOnline), nil
-		}
-
-		break
+		status, err := c.cVRAddEventHandler(cVR, fullVolName)
+		return status, err
 
 	case common.QOpDestroy:
 		glog.Infof("Processing cvr deleted event %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
@@ -139,6 +109,40 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 	return string(apis.CVRStatusInvalid), nil
 }
 
+func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
+	common.Mux.Lock()
+	if common.IsImported {
+		common.Mux.Unlock()
+		// To check if volume is already imported with pool.
+		importedFlag := common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
+		if importedFlag && !IsInitStatus(cVR) {
+			glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
+			c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+			return string(apis.CVRStatusOnline), nil
+		}
+	}
+	// If volumereplica is already present.
+	existingvol, _ := volumereplica.GetVolumes()
+	if common.CheckIfPresent(existingvol, fullVolName) {
+		glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
+		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+		return string(apis.CVRStatusErrorDuplicate), nil
+	}
+
+	// IsInitStatus is to check if initial status of cVR object is `init`.
+	if IsInitStatus(cVR) {
+		err := volumereplica.CreateVolume(cVR, fullVolName)
+		if err != nil {
+			glog.Errorf("cVR creation failure: %v", err.Error())
+			return string(apis.CVRStatusOffline), err
+		}
+		c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+		glog.Infof("cVR creation successful: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
+		return string(apis.CVRStatusOnline), nil
+	}
+	return string(apis.CVRStatusOffline), fmt.Errorf("VolumeReplica offline: %v, %v", cVR.Name, cVR.Labels["cstorvolume.openebs.io/uid"])
+}
+
 // getVolumeReplicaResource returns object corresponding to the resource key
 func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*apis.CStorVolumeReplica, error) {
 	// Convert the key(namespace/name) string into a distinct name
@@ -150,7 +154,6 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*ap
 
 	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
-		fmt.Println()
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {

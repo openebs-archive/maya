@@ -431,7 +431,7 @@ func TestIsInitStatus(t *testing.T) {
 						OverProvisioning: false,
 					},
 				},
-				Status: apis.CStorPoolStatus{Phase: "init"},
+				Status: apis.CStorPoolStatus{Phase: ""},
 			},
 		},
 		"img1PoolResource": {

@@ -40,7 +40,7 @@ import (
 
 const (
 	// NumThreads defines number of worker threads for resource watcher.
-	NumThreads = 2
+	NumThreads = 1
 	// NumRoutinesThatFollow is for handling golang waitgroups.
 	NumRoutinesThatFollow = 1
 )

@@ -95,14 +95,14 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.102.206",
-					Capacity:          "10MB",
+					TargetIP: "10.210.102.206",
+					Capacity: "10MB",
 				},
 				Status: apis.CStorVolumeReplicaStatus{Phase: "init"},
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
@@ -150,14 +150,14 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.102.206",
-					Capacity:          "10MB",
+					TargetIP: "10.210.102.206",
+					Capacity: "10MB",
 				},
 				Status: apis.CStorVolumeReplicaStatus{Phase: "init"},
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
