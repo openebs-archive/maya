@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -111,21 +112,26 @@ func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
 // NOTE:
 //  This is just the planning for rollback & not actual rollback.
 // In the events of issues this planning will be useful.
-func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) (err error) {
-	// the entire rollback plan is encapsulated in the task itself
-	rte, err := te.asRollbackInstance(objectName)
-	if err != nil {
-		return
+func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) error {
+	objNames := strings.Split(objectName, ",")
+
+	// plan the rollback for all the objects that got created
+	for _, oName := range objNames {
+		// entire rollback plan is encapsulated in the task itself
+		rte, err := te.asRollbackInstance(strings.TrimSpace(oName))
+		if err != nil {
+			return err
+		}
+
+		if rte == nil {
+			// this task does not need a rollback
+			continue
+		}
+
+		m.rollbacks = append(m.rollbacks, rte)
 	}
 
-	if rte == nil {
-		// this task does not need a rollback or
-		// can not be rollback-ed in-case of above error
-		return
-	}
-
-	m.rollbacks = append(m.rollbacks, rte)
-	return
+	return nil
 }
 
 // rollback will rollback the previously run operation(s)
@@ -151,7 +157,7 @@ func (m *TaskGroupRunner) runATask(runtask RunTask, values map[string]interface{
 	te, err := newTaskExecutor(runtask, values)
 	if err != nil {
 		// log with verbose details
-		glog.Errorf("failed to instantiate run task executor: name '%s': meta yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, values)
+		glog.Errorf("failed to initialize runtask executor: name '%s': meta yaml '%s': template values in yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, template.ToYaml(values), values)
 		return
 	}
 
@@ -169,7 +175,7 @@ func (m *TaskGroupRunner) runATask(runtask RunTask, values map[string]interface{
 
 	if err != nil {
 		// log with verbose details
-		glog.Errorf("failed to execute the run task: name '%s': meta yaml '%s': task yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, runtask.TaskYml, values)
+		glog.Errorf("failed to execute runtask: name '%s': meta yaml '%s': task yaml '%s': template values in yaml '%s': template values '%#v'", runtask.Name, runtask.MetaYml, runtask.TaskYml, template.ToYaml(values), values)
 		return
 	}
 
@@ -206,7 +212,7 @@ func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byt
 	output, err = te.Output()
 	if err != nil {
 		// log with verbose details
-		glog.Errorf("failed to execute output task: runtask '%#v': template values '%#v'", m.outputTask, values)
+		glog.Errorf("failed to execute output task: runtask '%#v': template values in yaml '%s': template values '%#v'", m.outputTask, template.ToYaml(values), values)
 	}
 	return
 }

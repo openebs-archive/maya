@@ -40,6 +40,91 @@ import (
 	"github.com/ghodss/yaml"
 )
 
+func TestAddTo(t *testing.T) {
+	tests := map[string]struct {
+		fields              string
+		destination         map[string]interface{}
+		value               string
+		expectedValue       string
+		expectedDestination map[string]interface{}
+	}{
+		//
+		// start of test case
+		//
+		"Positive Test - Test by providing value to a new key hierarchy": {
+			fields:        "k1.k2",
+			destination:   map[string]interface{}{},
+			value:         "hi",
+			expectedValue: "hi",
+			expectedDestination: map[string]interface{}{
+				"k1": map[string]interface{}{
+					"k2": "hi",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		"Positive Test - Test by providing value to an existing key hierarchy": {
+			fields: "k1.k2",
+			destination: map[string]interface{}{
+				"k1": map[string]interface{}{
+					"k2": "hi",
+				},
+			},
+			value:         "hello",
+			expectedValue: "hello",
+			expectedDestination: map[string]interface{}{
+				"k1": map[string]interface{}{
+					"k2": "hi, hello",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		"Negative Test - Test by providing empty value to an existing key hierarchy": {
+			fields: "k1.k2",
+			destination: map[string]interface{}{
+				"k1": map[string]interface{}{
+					"k2": "hi",
+				},
+			},
+			value:         "",
+			expectedValue: "",
+			expectedDestination: map[string]interface{}{
+				"k1": map[string]interface{}{
+					"k2": "hi",
+				},
+			},
+		},
+		//
+		// start of test case
+		//
+		"Negative Test - Test by providing empty value to an empty destination": {
+			fields:              "k1.k2",
+			destination:         map[string]interface{}{},
+			value:               "",
+			expectedValue:       "",
+			expectedDestination: map[string]interface{}{},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			actual := addTo(mock.fields, mock.destination, mock.value)
+
+			if actual != mock.expectedValue {
+				t.Fatalf("addTo test failed: expected '%s' actual '%s'", mock.expectedValue, actual)
+			}
+
+			if !reflect.DeepEqual(mock.expectedDestination, mock.destination) {
+				t.Fatalf("addTo test failed: expected destination '%#v' actual destination '%#v'", mock.expectedDestination, mock.destination)
+			}
+		})
+	}
+}
+
 func TestToYaml(t *testing.T) {
 	tests := map[string]struct {
 		data           interface{}
@@ -92,18 +177,18 @@ storage:
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			actual := fromYaml(toYaml(mock.data))
+			actual := fromYaml(ToYaml(mock.data))
 			expected := fromYaml(mock.expected)
 
 			if mock.isErr {
 				actualErrMsg, _ := actual["Error"].(string)
 				if mock.expectedErrMsg != actualErrMsg {
-					t.Fatalf("toYaml test failed: expected error '%s': actual error '%s'", mock.expectedErrMsg, actualErrMsg)
+					t.Fatalf("toYaml test failed: expected error '%s' actual error '%s'", mock.expectedErrMsg, actualErrMsg)
 				}
 			}
 
 			if !mock.isErr && !reflect.DeepEqual(expected, actual) {
-				t.Fatalf("toYaml test failed: expected '%#v': actual '%#v'", expected, actual)
+				t.Fatalf("toYaml test failed: expected '%#v' actual '%#v'", expected, actual)
 			}
 		})
 	}

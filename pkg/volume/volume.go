@@ -171,6 +171,10 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
 
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for delete
+	//
 	// cas template to delete a cas volume
 	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	if len(castName) == 0 {
@@ -222,6 +226,10 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for read
+	//
 	// cas template to read a cas volume
 	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	if len(castName) == 0 {
@@ -297,6 +305,10 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 }
 
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for list
+	//
 	// cas template to list cas volumes
 	castName := v.volumes.Annotations[string(v1alpha1.CASTemplateKeyForVolumeList)]
 	if len(castName) == 0 {
