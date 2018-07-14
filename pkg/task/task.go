@@ -87,12 +87,20 @@ func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]in
 		return nil, err
 	}
 
-	// client to make K8s API calls using the namespace on
-	// which this task is supposed to be executed
-	kc, err := m_k8s_client.NewK8sClient(mte.getRunNamespace())
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+	// client to make K8s API calls using the namespace on
+	// which this task is supposed to be executed
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, mte.getRunNamespace())
 
 	return &taskExecutor{
 		identity:          identity,
@@ -111,11 +119,19 @@ func newTaskExecutor(identity, metaTaskYml, taskYml string, values map[string]in
 // resetK8sClient returns a new instance of taskExecutor pointing to a new
 // namespace
 func (m *taskExecutor) resetK8sClient(namespace string) (*taskExecutor, error) {
-	// client to make K8s API calls using the provided namespace
-	kc, err := m_k8s_client.NewK8sClient(namespace)
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+	// client to make K8s API calls using the provided namespace
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, namespace)
 	// reset the k8s client
 	m.k8sClient = kc
 	return m, nil
@@ -186,10 +202,19 @@ func (m *taskExecutor) asRollbackInstance(objectName string) (*taskExecutor, err
 		return nil, nil
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(mte.getRunNamespace())
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, mte.getRunNamespace())
 
 	// Only the meta info is required for a rollback. In
 	// other words no need of task yaml template & values

@@ -54,10 +54,22 @@ func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
 		return nil, fmt.Errorf("failed to instantiate volume operation: missing run namespace")
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(volume.Namespace)
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO
+	// Check if k8sclient needs a namespace as its being used to
+	// query StorageClass
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, volume.Namespace)
 
 	return &VolumeOperation{
 		volume: volume,
@@ -279,10 +291,19 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 		return nil, fmt.Errorf("failed to instantiate 'volume list operation': nil list options provided")
 	}
 
-	kc, err := m_k8s_client.NewK8sClient("")
+	// kubernetes clientset
+	kubernetesClientSet, err := m_k8s_client.GetInClusterCS()
 	if err != nil {
 		return nil, err
 	}
+
+	// openEBS clientset
+	openEBSClientSet, err := m_k8s_client.GetInClusterOECS()
+	if err != nil {
+		return nil, err
+	}
+
+	kc := m_k8s_client.NewK8sClient(kubernetesClientSet, openEBSClientSet, "")
 
 	return &VolumeListOperation{
 		//namespaces: namespaces,

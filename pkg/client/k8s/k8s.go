@@ -34,14 +34,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
+	"k8s.io/client-go/kubernetes/scheme"
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	typed_ext_v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
-
-	"k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" //gcp authorization
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// annotations
+const storageProvider = "volume.beta.kubernetes.io/storage-provisioner"
+const openEBSStorageProvider = "openebs.io/provisioner-iscsi"
 
 // K8sKind represents the Kinds understood by Kubernetes
 type K8sKind string
@@ -134,24 +138,12 @@ type K8sClient struct {
 	insecure   bool
 }
 
-func NewK8sClient(ns string) (*K8sClient, error) {
-	// get the appropriate clientset
-	cs, err := getInClusterCS()
-	if err != nil {
-		return nil, err
-	}
-
-	// get the appropriate openebs clientset
-	oecs, err := getInClusterOECS()
-	if err != nil {
-		return nil, err
-	}
-
+func NewK8sClient(kubeClientSet *kubernetes.Clientset, openEBSClientSet *openebs.Clientset, namespace string) *K8sClient {
 	return &K8sClient{
-		ns:   ns,
-		cs:   cs,
-		oecs: oecs,
-	}, nil
+		ns:   namespace,
+		cs:   kubeClientSet,
+		oecs: openEBSClientSet,
+	}
 }
 
 // scOps is a utility function that provides a instance capable of
@@ -581,9 +573,46 @@ func getK8sConfig() (config *rest.Config, err error) {
 	return rest.InClusterConfig()
 }
 
-// getInClusterCS is used to initialize and return a new http client capable
+// getEBSPersistantVolumeClaims returns claimNames, which are running on OpenEBS
+func (k *K8sClient) getEBSPersistantVolumeClaims(namespace string) (claimNames []string, err error) {
+	volumeClaimList, err := k.cs.Core().PersistentVolumeClaims(namespace).List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return
+	}
+	for _, volumeClaim := range volumeClaimList.Items {
+		if volumeClaim.Annotations[storageProvider] == openEBSStorageProvider {
+			claimNames = append(claimNames, volumeClaim.GetName())
+		}
+	}
+	return
+}
+
+// GetPodWithEBSVolume returns pod running on openebs volumes
+func (k *K8sClient) GetPodWithEBSVolume() (pods []api_core_v1.Pod, err error) {
+	// get claim Name from all namespaces
+	claimNames, err := k.getEBSPersistantVolumeClaims("")
+	if err != nil {
+		return
+	}
+	// don't do further pod request
+	if len(claimNames) == 0 {
+		return
+	}
+	podList, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return
+	}
+	for _, pod := range podList.Items {
+		if isOpenEBSPod(claimNames, pod) {
+			pods = append(pods, pod)
+		}
+	}
+	return
+}
+
+// GetInClusterCS is used to initialize and return a new http client capable
 // of invoking K8s APIs within the cluster
-func getInClusterCS() (clientset *kubernetes.Clientset, err error) {
+func GetInClusterCS() (clientset *kubernetes.Clientset, err error) {
 	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
@@ -598,9 +627,9 @@ func getInClusterCS() (clientset *kubernetes.Clientset, err error) {
 	return clientset, nil
 }
 
-// getInClusterOECS is used to initialize and return a new http client capable
+// GetInClusterOECS is used to initialize and return a new http client capable
 // of invoking OpenEBS CRD APIs within the cluster
-func getInClusterOECS() (clientset *openebs.Clientset, err error) {
+func GetInClusterOECS() (clientset *openebs.Clientset, err error) {
 	config, err := getK8sConfig()
 	if err != nil {
 		return nil, err
@@ -613,4 +642,20 @@ func getInClusterOECS() (clientset *openebs.Clientset, err error) {
 	}
 
 	return clientset, nil
+}
+
+func GetOutClusterCS() (clientset *kubernetes.Clientset, err error) {
+	configPath, err := getExternalConfigPath()
+	if err != nil {
+		return
+	}
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", configPath)
+	if err != nil {
+		return
+	}
+	clientset, err = kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		return
+	}
+	return
 }
