@@ -18,8 +18,12 @@ import (
 	"flag"
 
 	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/spf13/cobra"
 )
+
+// Variable to capture value from --apiserver flag
+var apiserver *string
 
 // NewCommand creates the `maya` command and its nested children.
 func NewMayaCommand() *cobra.Command {
@@ -27,14 +31,24 @@ func NewMayaCommand() *cobra.Command {
 		Use:   "mayactl",
 		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+		// PersistentPreRun is used so that it is inherited in all child commands
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			flagValue := cmd.Flag("apiserver").Value.String()
+			if !(flagValue == "") {
+				mapiserver.SetFlag(flagValue)
+			}
+		},
 	}
-
 	cmd.AddCommand(
 		NewCmdVersion(),
 		NewCmdVolume(),
 		snapshot.NewCmdSnapshot(),
 	)
-
+	// Register --apiserver flag to mayactl command with persistence to all child commands
+	apiserver = cmd.PersistentFlags().StringP("apiserver", "a", "", "IP to connect to maya server[format:scheme://apiserverIP:port]")
 	// add the glog flags
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
