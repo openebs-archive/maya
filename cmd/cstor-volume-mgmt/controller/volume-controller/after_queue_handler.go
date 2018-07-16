@@ -122,10 +122,10 @@ func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume
 // IsValidCStorVolumeMgmt is to check if the volume request is for particular pod/application.
 func IsValidCStorVolumeMgmt(cStorVolume *apis.CStorVolume) bool {
 	if os.Getenv("OPENEBS_IO_CSTOR_VOLUME_ID") == string(cStorVolume.ObjectMeta.UID) {
-		glog.V(2).Infof("right sidecar for the cstor volume with id : %s", cStorVolume.ObjectMeta.UID)
+		glog.V(2).Infof("right watcher for the cstor volume resource with id : %s", cStorVolume.ObjectMeta.UID)
 		return true
 	}
-	glog.V(2).Infof("wrong sidecar for the cstor volume with id : %s", cStorVolume.ObjectMeta.UID)
+	glog.V(2).Infof("wrong watcher for the cstor volume resource with id : %s", cStorVolume.ObjectMeta.UID)
 	return false
 }
 

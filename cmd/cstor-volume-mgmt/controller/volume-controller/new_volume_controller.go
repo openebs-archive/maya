@@ -48,9 +48,6 @@ type CStorVolumeController struct {
 	// cStorVolumeSynced is used for caches sync to get populated
 	cStorVolumeSynced cache.InformerSynced
 
-	// deletedIndexer holds deleted resource to be retrived after workqueue
-	deletedIndexer cache.Indexer
-
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
@@ -88,10 +85,8 @@ func NewCStorVolumeController(
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: volumeControllerName})
 
 	controller := &CStorVolumeController{
-		kubeclientset: kubeclientset,
-		clientset:     clientset,
-		deletedIndexer: cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,
-			cache.Indexers{}),
+		kubeclientset:     kubeclientset,
+		clientset:         clientset,
 		cStorVolumeSynced: cStorVolumeInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorVolume"),
 		recorder:          recorder,
@@ -109,7 +104,7 @@ func NewCStorVolumeController(
 				return
 			}
 			q.Operation = common.QOpAdd
-			glog.Infof("added event")
+			glog.Infof("added event for cstorvolume : %s", obj.(*apis.CStorVolume).Spec.VolumeName)
 			controller.enqueueCStorVolume(obj.(*apis.CStorVolume), q)
 		},
 		UpdateFunc: func(old, new interface{}) {
