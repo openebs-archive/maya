@@ -67,7 +67,7 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 	}
 	for desc, ut := range testVolumeReplicaResource {
 		// Create a volume-replica resource.
-		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Create(ut.test)
+		_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(ut.test)
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}

@@ -102,7 +102,7 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
@@ -157,7 +157,7 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 			},
 		},
 	}
-	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("").Create(testPoolResource["img2PoolResource"].test)
+	_, err := volumeReplicaController.clientset.OpenebsV1alpha1().CStorVolumeReplicas("default").Create(testPoolResource["img2PoolResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testPoolResource["img2PoolResource"].test.ObjectMeta.Name)
 	}
