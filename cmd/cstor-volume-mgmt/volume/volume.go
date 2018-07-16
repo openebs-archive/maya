@@ -27,8 +27,10 @@ import (
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
 const (
-	VolumeOperator = "iscsi"
-	IstgtConfPath  = "/usr/local/etc/istgt/istgt.conf"
+	VolumeOperator  = "iscsi"
+	IstgtConfPath   = "/usr/local/etc/istgt/istgt.conf"
+	IstgtStatusCmd  = "STATUS"
+	IstgtRefreshCmd = "REFRESH"
 )
 
 //FileOperatorVar is
@@ -47,8 +49,8 @@ func CreateVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	glog.Info("Done writing istgt.conf")
 
-	// send refresh command to istgt
-	_, err = UnixSockVar.SendCommand("REFRESH\r\n")
+	// send refresh command to istgt and read the response
+	_, err = UnixSockVar.SendCommand(IstgtRefreshCmd)
 	if err != nil {
 		glog.Info("refresh failed")
 	}
@@ -171,10 +173,10 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	return nil
 }
 
-// CheckForIscsi is blocking call for checking status of istgt in cstor-iscsi container.
+// CheckForIscsi is blocking call for checking status of istgt in cstor-istgt container.
 func CheckForIscsi() {
 	for {
-		_, err := UnixSockVar.SendCommand("STATUS\r\n")
+		_, err := UnixSockVar.SendCommand(IstgtStatusCmd)
 		if err != nil {
 			time.Sleep(3 * time.Second)
 			glog.Warningf("Waiting for istgt... err : %v", err)

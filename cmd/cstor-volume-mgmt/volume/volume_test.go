@@ -32,8 +32,8 @@ func (r TestFileOperator) Write(filename string, data []byte, perm os.FileMode) 
 type TestUnixSock struct{}
 
 //SendCommand for the real unix sock for the actual program,
-func (r TestUnixSock) SendCommand(cmd string) error {
-	return nil
+func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
+	return nil, nil
 }
 
 // TestCreateVolume is to test cStorVolume creation.
