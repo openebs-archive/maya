@@ -110,9 +110,11 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 }
 
 func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
-	common.Mux.Lock()
-	if common.IsImported {
-		common.Mux.Unlock()
+	// lock is to synchronize pool and volumereplica. Until certain pool related
+	// operations are over, the volumereplica threads will be held.
+	common.SyncResources.Mux.Lock()
+	if common.SyncResources.IsImported {
+		common.SyncResources.Mux.Unlock()
 		// To check if volume is already imported with pool.
 		importedFlag := common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
 		if importedFlag && !IsInitStatus(cVR) {

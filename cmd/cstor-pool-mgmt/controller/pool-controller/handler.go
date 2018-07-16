@@ -74,9 +74,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
-		common.Mux.Lock()
+		// lock is to synchronize pool and volumereplica. Until certain pool related
+		// operations are over, the volumereplica threads will be held.
+		common.SyncResources.Mux.Lock()
 		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
-		common.Mux.Unlock()
+		common.SyncResources.Mux.Unlock()
 
 		return status, err
 
@@ -131,12 +133,12 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 					// the watcher container got restarted.
 					glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-					common.IsImported = true
+					common.SyncResources.IsImported = true
 					return string(apis.CStorPoolStatusOnline), nil
 				}
 				glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-				common.IsImported = true
+				common.SyncResources.IsImported = true
 				return string(apis.CStorPoolStatusErrorDuplicate), nil
 			}
 			glog.Infof("Attempt %v: Waiting...", i+1)
@@ -153,7 +155,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		status, importPoolErr := c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-			common.IsImported = true
+			common.SyncResources.IsImported = true
 			return status, nil
 		}
 		_ = importPoolErr
@@ -162,9 +164,9 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	// make a check if initialImportedPoolVol is not empty, then notify cvr controller
 	// through channel.
 	if len(common.InitialImportedPoolVol) != 0 {
-		common.IsImported = true
+		common.SyncResources.IsImported = true
 	} else {
-		common.IsImported = false
+		common.SyncResources.IsImported = false
 	}
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
@@ -259,7 +261,7 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 	if err == nil {
 		err = pool.SetCachefile(cStorPoolGot)
 		if err != nil {
-			common.IsImported = false
+			common.SyncResources.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Set cachefile successful: %v", string(cStorPoolGot.GetUID()))
@@ -268,7 +270,7 @@ func (c *CStorPoolController) importPool(cStorPoolGot *apis.CStorPool, cachefile
 		// to cvr controller.
 		common.InitialImportedPoolVol, err = volumereplica.GetVolumes()
 		if err != nil {
-			common.IsImported = false
+			common.SyncResources.IsImported = false
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Import Pool with cachefile successful: %v", string(cStorPoolGot.GetUID()))

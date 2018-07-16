@@ -23,8 +23,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -135,11 +137,17 @@ const (
 	defaultNameSpace namespace = "default"
 )
 
-// Mux is mutex variable to block cvr until certain pool operations are complete.
-var Mux *sync.Mutex
+// SyncResources is to synchronize pool and volumereplica.
+var SyncResources SyncCStorPoolCVR
 
-// IsImported is boolean flag to check at cvr until certain pool import operations are complete.
-var IsImported bool
+// SyncCStorPoolCVR is to hold synchronization related variables.
+type SyncCStorPoolCVR struct {
+	// Mux is mutex variable to block cvr until certain pool operations are complete.
+	Mux *sync.Mutex
+
+	// IsImported is boolean flag to check at cvr until certain pool import operations are complete.
+	IsImported bool
+}
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.
@@ -228,4 +236,15 @@ func CheckForCStorPool() {
 		glog.Info("CStorPool found")
 		break
 	}
+}
+
+// Init is to instantiate variable used between pool and volumereplica while
+// starting controller.
+func Init() {
+	// Instantiate mutex variable.
+	SyncResources.Mux = &sync.Mutex{}
+
+	// Making RunnerVar to use RealRunner
+	pool.RunnerVar = util.RealRunner{}
+	volumereplica.RunnerVar = util.RealRunner{}
 }
