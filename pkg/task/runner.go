@@ -113,12 +113,15 @@ func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
 //  This is just the planning for rollback & not actual rollback.
 // In the events of issues this planning will be useful.
 func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) error {
+	// There are cases where multiple objects may be created due to a single
+	// RunTask. In such cases, object name will have comma separated list of
+	// object names.
 	objNames := strings.Split(objectName, ",")
 
 	// plan the rollback for all the objects that got created
-	for _, oName := range objNames {
+	for _, name := range objNames {
 		// entire rollback plan is encapsulated in the task itself
-		rte, err := te.asRollbackInstance(strings.TrimSpace(oName))
+		rte, err := te.asRollbackInstance(strings.TrimSpace(name))
 		if err != nil {
 			return err
 		}

@@ -2137,6 +2137,37 @@ requiredDuringSchedulingIgnoredDuringExecution:
 requiredDuringSchedulingIgnoredDuringExecution:
   nodes: k8s-minion-1,lenovo-laptop,hp-laptop`,
 		},
+		//
+		// start of test scenario
+		//
+		"Positive test - suffix with number": {
+			ymlTpl: `{{- $count := "3" -}}
+all:
+{{- range $i, $e := until ($count|int) }}
+- pvc-{{$e}}
+{{- end -}}
+`,
+			ymlExpected: `all:
+- pvc-0
+- pvc-1
+- pvc-2
+`,
+		},
+		//
+		// start of test scenario
+		//
+		"Positive test - suffix with number - customized": {
+			ymlTpl: `{{- $count := "3" -}}
+all:
+{{- range $i, $e := untilStep 1 ($count|int) 1 }}
+- pvc-{{$e}}
+{{- end -}}
+`,
+			ymlExpected: `all:
+- pvc-1
+- pvc-2
+`,
+		},
 	}
 
 	for name, mock := range tests {
