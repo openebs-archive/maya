@@ -126,6 +126,14 @@ const (
 	QOpModify  QueueOperation = "modify"
 )
 
+// namespace defines kubernetes namespace specified for cvr.
+type namespace string
+
+// Different types of k8s namespaces.
+const (
+	defaultNameSpace namespace = "default"
+)
+
 // IsImported is channel to block cvr until certain pool import operations are over.
 var IsImported chan bool
 
@@ -164,7 +172,7 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 // CheckForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
 func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
-		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas().List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
 			time.Sleep(CRDRetryInterval)

@@ -50,13 +50,13 @@ func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.
 		glog.Errorf(err.Error())
 		glog.Infof("cVR:%v, %v; Status: %v", cVRGot.Name,
 			string(cVRGot.GetUID()), cVRGot.Status.Phase)
-		_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVRGot)
+		_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVRGot.Namespace).Update(cVRGot)
 		if err != nil {
 			return err
 		}
 		return err
 	}
-	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVRGot)
+	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVRGot.Namespace).Update(cVRGot)
 	if err != nil {
 		return err
 	}
@@ -142,13 +142,13 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 // getVolumeReplicaResource returns object corresponding to the resource key
 func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*apis.CStorVolumeReplica, error) {
 	// Convert the key(namespace/name) string into a distinct name
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil, nil
 	}
 
-	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Get(name, metav1.GetOptions{})
+	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
@@ -166,7 +166,7 @@ func (c *CStorVolumeReplicaController) removeFinalizer(cVR *apis.CStorVolumeRepl
 	if len(cVR.Finalizers) > 0 {
 		cVR.Finalizers = []string{}
 	}
-	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas().Update(cVR)
+	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Update(cVR)
 	if err != nil {
 		return err
 	}

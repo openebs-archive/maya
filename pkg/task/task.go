@@ -218,7 +218,6 @@ func (m *taskExecutor) resetTaskResultVerifyError() {
 //  Each task execution depends on the currently active repeat resource.
 func (m *taskExecutor) repeatWith() (err error) {
 	rwExec := m.metaTaskExec.getRepeatWithResourceExecutor()
-
 	if !rwExec.isRepeat() {
 		// no need to repeat if this task is not meant to be repeated;
 		// so execute once & return
@@ -368,6 +367,14 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
+	} else if m.metaTaskExec.isPutOEV1alpha1CSV() {
+		err = m.putCStorVolume()
+	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
+		err = m.putCStorVolumeReplica()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1CSV() {
+		err = m.deleteOEV1alpha1CSV()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1CVR() {
+		err = m.deleteOEV1alpha1CVR()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else {
@@ -429,6 +436,28 @@ func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) 
 	}
 
 	return d.AsExtnV1B1Deployment()
+}
+
+// asCStorVolume generates a CstorVolume object
+// out of the embedded yaml
+func (m *taskExecutor) asCStorVolume() (*v1alpha1.CStorVolume, error) {
+	d, err := m_k8s.NewCStorVolumeYml("CstorVolume", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsCStorVolumeYml()
+}
+
+// asCstorVolumeReplica generates a CStorVolumeReplica object
+// out of the embedded yaml
+func (m *taskExecutor) asCstorVolumeReplica() (*v1alpha1.CStorVolumeReplica, error) {
+	d, err := m_k8s.NewCStorVolumeReplicaYml("CstorVolumeReplica", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsCStorVolumeReplicaYml()
 }
 
 // asCoreV1Svc generates a K8s Service object
@@ -518,6 +547,21 @@ func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
 
 	for _, name := range objectNames {
 		err = m.k8sClient.DeleteAppsV1B1Deployment(name)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+// deleteOEV1alpha1CVR will delete one or more CStorVolumeReplica as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1CVR() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1CVR(name)
 		if err != nil {
 			return
 		}
@@ -616,6 +660,53 @@ func (m *taskExecutor) getCoreV1PVC() (err error) {
 	return
 }
 
+// putCStorVolume will put a CStorVolume as defined in the task
+func (m *taskExecutor) putCStorVolume() (err error) {
+	c, err := m.asCStorVolume()
+	if err != nil {
+		return
+	}
+
+	cstorVolume, err := m.k8sClient.CreateOEV1alpha1CVAsRaw(c)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cstorVolume, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// putCStorVolumeReplica will put a CStorVolumeReplica as defined in the task
+func (m *taskExecutor) putCStorVolumeReplica() (err error) {
+	d, err := m.asCstorVolumeReplica()
+	if err != nil {
+		return
+	}
+
+	cstorVolumeReplica, err := m.k8sClient.CreateOEV1alpha1CVRAsRaw(d)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// deleteOEV1alpha1CSV will delete one or more CStorVolume as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1CSV(name)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 // listK8sResources will list resources as specified in the RunTask
 func (m *taskExecutor) listK8sResources() (err error) {
 	opts, err := m.metaTaskExec.getListOptions()
@@ -635,6 +726,12 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1PVC() {
 		op, err = m.k8sClient.ListCoreV1PVCAsRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
+		op, err = m.k8sClient.ListOEV1alpha1CSPRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CVR() {
+		op, err = m.k8sClient.ListOEV1alpha1CVRRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1CV() {
+		op, err = m.k8sClient.ListOEV1alpha1CVRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%#v'", m.metaTaskExec.getTaskIdentity())
 	}

@@ -42,8 +42,8 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 		glog.Errorf(err.Error())
 		return err
 	}
-	if len(cVR.Spec.CStorControllerIP) == 0 {
-		err = fmt.Errorf("CStorControllerIP cannot be empty")
+	if len(cVR.Spec.TargetIP) == 0 {
+		err = fmt.Errorf("TargetIP cannot be empty")
 		glog.Errorf(err.Error())
 		return err
 	}
@@ -77,7 +77,7 @@ func createVolumeBuilder(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
 
-	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.CStorControllerIP
+	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	createVolAttr = append(createVolAttr, "create",
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName,
