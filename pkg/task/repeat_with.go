@@ -28,6 +28,9 @@ const (
 	// NamespaceRWK indicates that the repeat resource is of kind Kubernetes
 	// namespace
 	NamespaceRWK RepeatWithKind = "namespace"
+	// TaskObjectNameRWK indicates that the repeat resource is of type task object
+	// name
+	TaskObjectNameRWK RepeatWithKind = "name"
 )
 
 // RepeatWithResource enables repetitive execution of a task based on this
@@ -75,6 +78,7 @@ func newRepeatWithResourceExecutor(repeatWith RepeatWithResource) repeatWithReso
 func newRepeatWithResourceExecByObjectNames(objectNames string) repeatWithResourceExecutor {
 	return repeatWithResourceExecutor{
 		repeatWith: RepeatWithResource{
+			Kind:      TaskObjectNameRWK,
 			Resources: strings.Split(strings.TrimSpace(objectNames), ","),
 		},
 	}
@@ -84,6 +88,12 @@ func newRepeatWithResourceExecByObjectNames(objectNames string) repeatWithResour
 // namespace
 func (r repeatWithResourceExecutor) isNamespaceRepeat() bool {
 	return r.repeatWith.Kind == NamespaceRWK
+}
+
+// isTaskObjectNameRepeat flags if the repeat resource is of kind task object
+// name
+func (r repeatWithResourceExecutor) isTaskObjectNameRepeat() bool {
+	return r.repeatWith.Kind == TaskObjectNameRWK
 }
 
 // isRepeat flags if there is any requirement to repeat the task execution

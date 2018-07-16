@@ -135,6 +135,10 @@ func newMetaTaskExecutor(yml string, values map[string]interface{}) (*metaTaskEx
 	}, nil
 }
 
+func (m *metaTaskExecutor) setObjectName(objName string) {
+	m.metaTask.ObjectName = objName
+}
+
 func (m *metaTaskExecutor) getMetaInfo() MetaTask {
 	return m.metaTask
 }
@@ -323,8 +327,9 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, fmt.Errorf(errMsg)
 	}
 
-	// build the rollback version of this MetaTask
+	// build the rollback version of this meta task
 	rbMT := MetaTask{
+		// Setting the action to "Delete" is the key
 		Action:     DeleteTA,
 		ObjectName: objectName,
 		TaskIdentity: TaskIdentity{
@@ -342,14 +347,8 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, err
 	}
 
-	var repeater repeatWithResourceExecutor
-	if m.repeater.isRepeat() {
-		repeater = newRepeatWithResourceExecByObjectNames(objectName)
-	}
-
 	return &metaTaskExecutor{
 		metaTask:   rbMT,
 		identifier: i,
-		repeater:   repeater,
 	}, true, nil
 }

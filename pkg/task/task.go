@@ -233,6 +233,13 @@ func (m *taskExecutor) repeatWith() (err error) {
 			m.resetK8sClient(resource)
 		}
 
+		if rwExec.isTaskObjectNameRepeat() {
+			// if repetition is based on task object name itself, then the task's
+			// object name needs to be set
+			m.metaTaskExec.setObjectName(resource)
+			m.objectName = resource
+		}
+
 		// set the currently active repeat resource
 		util.SetNestedField(m.templateValues, resource, string(v1alpha1.ListItemsTLP), string(v1alpha1.CurrentRepeatResourceLITP))
 
@@ -546,7 +553,7 @@ func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteAppsV1B1Deployment(name)
+		err = m.k8sClient.DeleteAppsV1B1Deployment(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
@@ -576,7 +583,7 @@ func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteExtnV1B1Deployment(name)
+		err = m.k8sClient.DeleteExtnV1B1Deployment(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
@@ -607,7 +614,7 @@ func (m *taskExecutor) deleteCoreV1Service() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteCoreV1Service(name)
+		err = m.k8sClient.DeleteCoreV1Service(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
