@@ -319,14 +319,8 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, err
 	}
 
-	//var repeater repeatWithResourceExecutor
-	//if m.repeater.isRepeat() {
-	//	repeater = newRepeatWithResourceExecByObjectNames(objectName)
-	//}
-
 	return &metaTaskExecutor{
 		metaTask:   rbMT,
 		identifier: i,
-		//repeater:   repeater,
 	}, true, nil
 }
