@@ -47,8 +47,8 @@ func TestCheckValidVolume(t *testing.T) {
 		expectedError error
 		test          *apis.CStorVolume
 	}{
-		"Invalid-volumeNameEmpty": {
-			expectedError: fmt.Errorf("Volumename cannot be empty"),
+		"Invalid-volumeResource": {
+			expectedError: fmt.Errorf("Invalid volume resource"),
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -59,6 +59,71 @@ func TestCheckValidVolume(t *testing.T) {
 					VolumeName:        "abc",
 					VolumeID:          "abc",
 					Capacity:          "5G",
+					Status:            "init",
+				},
+			},
+		},
+		"Invalid-cstorControllerIPEmpty": {
+			expectedError: fmt.Errorf("cstorControllerIP cannot be empty"),
+			test: &apis.CStorVolume{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("123"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					CStorControllerIP: "",
+					VolumeName:        "abc",
+					VolumeID:          "abc",
+					Capacity:          "5G",
+					Status:            "init",
+				},
+			},
+		},
+
+		"Invalid-volumeNameEmpty": {
+			expectedError: fmt.Errorf("volumeName cannot be empty"),
+			test: &apis.CStorVolume{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("123"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					CStorControllerIP: "0.0.0.0",
+					VolumeName:        "",
+					VolumeID:          "abc",
+					Capacity:          "5G",
+					Status:            "init",
+				},
+			},
+		},
+		"Invalid-volumeIDEmpty": {
+			expectedError: fmt.Errorf("volumeID cannot be empty"),
+			test: &apis.CStorVolume{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("123"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					CStorControllerIP: "0.0.0.0",
+					VolumeName:        "abc",
+					VolumeID:          "",
+					Capacity:          "5G",
+					Status:            "init",
+				},
+			},
+		},
+		"Invalid-volumeCapacityEmpty": {
+			expectedError: fmt.Errorf("capacity cannot be empty"),
+			test: &apis.CStorVolume{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("123"),
+				},
+				Spec: apis.CStorVolumeSpec{
+					CStorControllerIP: "0.0.0.0",
+					VolumeName:        "abc",
+					VolumeID:          "abc",
+					Capacity:          "",
 					Status:            "init",
 				},
 			},
