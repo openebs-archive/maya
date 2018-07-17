@@ -12,7 +12,7 @@ import (
 func TestCheckForCStorVolumeCR(t *testing.T) {
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
 	done := make(chan bool)
-
+	defer close(done)
 	go func(done chan bool) {
 		//CheckForCStorVolumeCR tries to find the volume CR and if is is not found
 		// it will wait for 10 seconds and continue trying in the loop.

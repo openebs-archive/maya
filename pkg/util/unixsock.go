@@ -88,3 +88,11 @@ func (r RealUnixSock) SendCommand(cmd string) ([]string, error) {
 	c.Close()
 	return resp, err
 }
+
+//TestUnixSock is used as a dummy UnixSock
+type TestUnixSock struct{}
+
+//SendCommand for the real unix sock for the actual program,
+func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
+	return nil, nil
+}

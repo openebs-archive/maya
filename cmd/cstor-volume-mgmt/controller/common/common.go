@@ -52,13 +52,17 @@ type CStorVolumeStatus string
 
 // Status written onto CStorVolume objects.
 const (
-	CVStatusInit           CStorVolumeStatus = "init"
-	CVStatusOnline         CStorVolumeStatus = "online"
-	CVStatusOffline        CStorVolumeStatus = "offline"
-	CVStatusDeletionFailed CStorVolumeStatus = "deletion-failed"
-	CVStatusInvalid        CStorVolumeStatus = "invalid"
-	CVStatusFailed         CStorVolumeStatus = "failed"
-
+	// volume is getting initialized
+	CVStatusInit CStorVolumeStatus = "init"
+	// volume is up and running
+	CVStatusOnline CStorVolumeStatus = "online"
+	// initial volume controller config generation did not happen and the volume is offline
+	CVStatusOffline CStorVolumeStatus = "offline"
+	// volume controller config generation failed due to invalid parameters
+	CVStatusInvalid CStorVolumeStatus = "invalid"
+	// volume controller config generation failed
+	CVStatusFailed CStorVolumeStatus = "failed"
+	// CR event ignored
 	CVStatusIgnore CStorVolumeStatus = "ignore"
 )
 

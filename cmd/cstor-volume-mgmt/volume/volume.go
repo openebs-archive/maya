@@ -33,10 +33,10 @@ const (
 	IstgtRefreshCmd = "REFRESH"
 )
 
-//FileOperatorVar is
+//FileOperatorVar is used for doing File Operations
 var FileOperatorVar util.FileOperator
 
-//UnixSockVar is
+//UnixSockVar is used for communication through Unix Socket
 var UnixSockVar util.UnixSock
 
 // CreateVolume creates a new cStor volume istgt config.

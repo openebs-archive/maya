@@ -23,3 +23,11 @@ func (r RealFileOperator) Write(filename string, data []byte, perm os.FileMode) 
 	}
 	return err
 }
+
+//TestFileOperator is used as a dummy FileOperator
+type TestFileOperator struct{}
+
+//Write is to mock write operation for FileOperator interface
+func (r TestFileOperator) Write(filename string, data []byte, perm os.FileMode) error {
+	return nil
+}

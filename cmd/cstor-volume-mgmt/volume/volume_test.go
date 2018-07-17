@@ -2,39 +2,13 @@ package volume
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-type TestRunner struct{}
-
-// RunCombinedOutput is to mock Real runner exec.
-func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
-	return []byte("success"), nil
-}
-
-// RunStdoutPipe is to mock real runner exec with stdoutpipe.
-func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error) {
-	return []byte("successs"), nil
-}
-
-type TestFileOperator struct{}
-
-//Write is to mock write operation for FileOperator interface
-func (r TestFileOperator) Write(filename string, data []byte, perm os.FileMode) error {
-	return nil
-}
-
-type TestUnixSock struct{}
-
-//SendCommand for the real unix sock for the actual program,
-func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
-	return nil, nil
-}
 
 // TestCreateVolume is to test cStorVolume creation.
 func TestCreateVolume(t *testing.T) {
@@ -59,8 +33,8 @@ func TestCreateVolume(t *testing.T) {
 			},
 		},
 	}
-	FileOperatorVar = TestFileOperator{}
-	UnixSockVar = TestUnixSock{}
+	FileOperatorVar = util.TestFileOperator{}
+	UnixSockVar = util.TestUnixSock{}
 	obtainedErr := CreateVolume(testVolumeResource["img1VolumeResource"].test)
 	if testVolumeResource["img1VolumeResource"].expectedError != obtainedErr {
 		t.Fatalf("Expected: %v, Got: %v", testVolumeResource["img1VolumeResource"].expectedError, obtainedErr)

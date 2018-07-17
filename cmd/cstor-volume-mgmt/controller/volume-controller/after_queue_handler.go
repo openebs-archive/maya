@@ -9,7 +9,6 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -46,8 +45,8 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
 func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOperation, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
-	volume.FileOperatorVar = util.RealFileOperator{}
-	volume.UnixSockVar = util.RealUnixSock{}
+	// volume.FileOperatorVar = util.RealFileOperator{}
+	// volume.UnixSockVar = util.RealUnixSock{}
 	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Spec.VolumeName)
 	switch operation {
 	case common.QOpAdd:
@@ -147,13 +146,5 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 		return true
 	}
 	glog.V(2).Infof("no status changed for cstor volume : %s", newCStorVolume.Spec.VolumeName)
-	return false
-}
-
-// IsInitStatus is to check if the status of cStorVolume object is `init`.
-func IsInitStatus(cStorVolume *apis.CStorVolume) bool {
-	if cStorVolume.Status.Phase == string(common.CVStatusInit) {
-		return true
-	}
 	return false
 }

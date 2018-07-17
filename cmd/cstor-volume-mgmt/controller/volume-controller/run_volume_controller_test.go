@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
+	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
+	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
@@ -88,7 +90,8 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 	q.Key = "volume2"
 	q.Operation = common.QOpAdd
 	volumeController.workqueue.AddRateLimited(q)
-
+	volume.FileOperatorVar = util.TestFileOperator{}
+	volume.UnixSockVar = util.TestUnixSock{}
 	obtainedOutput := volumeController.processNextWorkItem()
 	if obtainedOutput != testVolumeResource["img2VolumeResource"].expectedOutput {
 		t.Fatalf("Expected:%v, Got:%v", testVolumeResource["img2VolumeResource"].expectedOutput,
