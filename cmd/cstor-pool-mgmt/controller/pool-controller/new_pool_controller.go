@@ -105,12 +105,14 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			if IsDeletionFailedBefore(cStorPool) {
+			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
 				return
 			}
 			q.Operation = common.QOpAdd
 			glog.Infof("cStorPool Added event : %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
 			controller.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+			cStorPool.Status.Phase = apis.CStorPoolStatusPending
+			cStorPool, _ = controller.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPool)
 			controller.enqueueCStorPool(cStorPool, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
@@ -128,7 +130,7 @@ func NewCStorPoolController(
 				glog.Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
 			}
-			if IsDeletionFailedBefore(newCStorPool) {
+			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
 				return
 			}
 			if IsDestroyEvent(newCStorPool) {

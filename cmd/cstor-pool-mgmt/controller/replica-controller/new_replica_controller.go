@@ -104,12 +104,14 @@ func NewCStorVolumeReplicaController(
 			if !IsRightCStorVolumeReplica(cVR) {
 				return
 			}
-			if IsDeletionFailedBefore(cVR) {
+			if IsDeletionFailedBefore(cVR) || IsErrorDuplicate(cVR) {
 				return
 			}
 			q.Operation = common.QOpAdd
 			glog.Infof("cStorVolumeReplica Added event : %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
 			controller.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
+			cVR.Status.Phase = apis.CVRStatusPending
+			cVR, _ = controller.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Update(cVR)
 			controller.enqueueCStorReplica(cVR, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
@@ -127,7 +129,7 @@ func NewCStorVolumeReplicaController(
 				glog.Infof("Only cVR status change: %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
 				return
 			}
-			if IsDeletionFailedBefore(newCVR) {
+			if IsDeletionFailedBefore(newCVR) || IsErrorDuplicate(newCVR) {
 				return
 			}
 			if IsDestroyEvent(newCVR) {
@@ -147,7 +149,6 @@ func NewCStorVolumeReplicaController(
 			if !IsRightCStorVolumeReplica(cVR) {
 				return
 			}
-			q.Operation = "delete"
 			glog.Infof("cVR Resource deleted event: %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
 		},
 	})

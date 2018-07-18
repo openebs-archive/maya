@@ -123,11 +123,10 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		// GetPoolName is to get pool name for particular no. of attempts.
 		existingPool, _ := pool.GetPoolName()
 		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
-			isPoolExists = true
 			// In the last attempt, ignore and update the status.
 			if i == cnt-1 {
 				isPoolExists = false
-				if IsInitStatus(cStorPoolGot) {
+				if IsPendingStatus(cStorPoolGot) || IsEmptyStatus(cStorPoolGot) {
 					// Pool CR status is init. This means pool deployment was done
 					// successfully, but before updating the CR to Online status,
 					// the watcher container got restarted.
@@ -139,7 +138,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 				glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 				c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 				common.SyncResources.IsImported = true
-				return string(apis.CStorPoolStatusErrorDuplicate), nil
+				return string(apis.CStorPoolStatusErrorDuplicate), fmt.Errorf("Duplicate resource request")
 			}
 			glog.Infof("Attempt %v: Waiting...", i+1)
 			time.Sleep(common.PoolWaitInterval)
@@ -150,15 +149,15 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		}
 	}
 	var importPoolErr error
+	var status string
 	cachfileFlags := []bool{true, false}
 	for _, cachefileFlag := range cachfileFlags {
-		status, importPoolErr := c.importPool(cStorPoolGot, cachefileFlag)
+		status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
 			common.SyncResources.IsImported = true
 			return status, nil
 		}
-		_ = importPoolErr
 	}
 
 	// make a check if initialImportedPoolVol is not empty, then notify cvr controller
@@ -170,7 +169,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	}
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
-	if IsInitStatus(cStorPoolGot) {
+	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
 		// LabelClear is to clear pool label
 		err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
 		if err != nil {
@@ -304,13 +303,33 @@ func IsOnlyStatusChange(oldCStorPool, newCStorPool *apis.CStorPool) bool {
 	return false
 }
 
-// IsInitStatus is to check if the status of cStorPool object is `init`.
-func IsInitStatus(cStorPool *apis.CStorPool) bool {
-	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusInit) {
-		glog.Infof("cStorPool init: %v", string(cStorPool.ObjectMeta.UID))
+// IsEmptyStatus is to check if the status of cStorPool object is empty.
+func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
+	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusEmpty) {
+		glog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof("Not init status: %v", string(cStorPool.ObjectMeta.UID))
+	glog.Infof("Not empty status: %v", string(cStorPool.ObjectMeta.UID))
+	return false
+}
+
+// IsPendingStatus is to check if the status of cStorPool object is pending.
+func IsPendingStatus(cStorPool *apis.CStorPool) bool {
+	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusPending) {
+		glog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("Not pending status: %v", string(cStorPool.ObjectMeta.UID))
+	return false
+}
+
+// IsErrorDuplicate is to check if the status of cStorPool object is error-duplicate.
+func IsErrorDuplicate(cStorPool *apis.CStorPool) bool {
+	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusErrorDuplicate) {
+		glog.Infof("cStorPool duplication error: %v", string(cStorPool.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("Not error duplicate status: %v", string(cStorPool.ObjectMeta.UID))
 	return false
 }
 

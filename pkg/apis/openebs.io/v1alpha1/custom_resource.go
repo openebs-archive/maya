@@ -230,18 +230,20 @@ type CStorPoolPhase string
 
 // Status written onto CStorPool and CStorVolumeReplica objects.
 const (
-	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
-	CStorPoolStatusInit CStorPoolPhase = ""
+	// CStorPoolStatusEmpty ensures the create operation is to be done, if import fails.
+	CStorPoolStatusEmpty CStorPoolPhase = ""
 	// CStorPoolStatusOnline ensures the resource is available.
-	CStorPoolStatusOnline CStorPoolPhase = "online"
+	CStorPoolStatusOnline CStorPoolPhase = "Online"
 	// CStorPoolStatusOffline ensures the resource is not available.
-	CStorPoolStatusOffline CStorPoolPhase = "offline"
+	CStorPoolStatusOffline CStorPoolPhase = "Offline"
 	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
-	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"
 	// CStorPoolStatusInvalid ensures invalid resource.
-	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+	CStorPoolStatusInvalid CStorPoolPhase = "Invalid"
 	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.
-	CStorPoolStatusErrorDuplicate CStorPoolPhase = "error-duplicate"
+	CStorPoolStatusErrorDuplicate CStorPoolPhase = "ErrorDuplicate"
+	// CStorPoolStatusPending ensures pending task for cstorpool.
+	CStorPoolStatusPending CStorPoolPhase = "Pending"
 )
 
 // CStorPoolStatus is for handling status of pool.
@@ -284,18 +286,20 @@ type CStorVolumeReplicaPhase string
 
 // Status written onto CStorVolumeReplica objects.
 const (
-	// CVRStatusInit ensures the create operation is to be done, if import fails.
-	CVRStatusInit CStorVolumeReplicaPhase = ""
+	// CVRStatusEmpty ensures the create operation is to be done, if import fails.
+	CVRStatusEmpty CStorVolumeReplicaPhase = ""
 	// CVRStatusOnline ensures the resource is available.
-	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	CVRStatusOnline CStorVolumeReplicaPhase = "Online"
 	// CVRStatusOffline ensures the resource is not available.
-	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	CVRStatusOffline CStorVolumeReplicaPhase = "Offline"
 	// CVRStatusDeletionFailed ensures the resource deletion has failed.
-	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
 	// CVRStatusInvalid ensures invalid resource.
-	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
-	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "error-duplicate"
+	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "ErrorDuplicate"
+	// CVRStatusPending ensures pending task of cvr resource.
+	CVRStatusPending CStorVolumeReplicaPhase = "Pending"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
