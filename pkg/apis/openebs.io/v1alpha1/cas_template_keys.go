@@ -125,6 +125,11 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .CstorPool.poolType }}
 	PoolTypeCTP CstorPoolTLPProperty = "poolType"
+	// OverProvisioningCTP is is a bool (e.g. true or false)
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.overProvisioning }}
+	OverProvisioningCTP CstorPoolTLPProperty = "overProvisioning"
 
 	// PoolPhaseCTP is the phase of the pool (e.g. init, online, offline etc)
 	// NOTE:

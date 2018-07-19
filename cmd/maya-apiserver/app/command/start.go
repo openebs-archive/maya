@@ -130,7 +130,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	go func(){
 		err := spc.Start()
 		if err != nil{
-			glog.Errorf("coould not start controller: %s", err.Error())
+			glog.Errorf("Could not start controller: %s", err.Error())
 		}
 	}()
 	//TODO Setup Log Level

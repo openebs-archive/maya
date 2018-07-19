@@ -26,28 +26,31 @@ import (
 
 func DeleteCstorpool(key string) (error) {
 	// Business logic for deletion of cstor pool cr
-	glog.Infof("cas template based cstor pool delete request was received")
+	glog.Infof("Cstorpool delete event received for storagepoolclaim %s",key)
+
+	// Check for key
 	poolName := key
 	if len(poolName) == 0 {
-		glog.Errorf("failed to delete cas template based cstorpool: pool name not provided")
-	}
-	// Create an empty cstor pool object
-	cstorPool := &v1alpha1.CStorPool{}
-	// Fill the name in cstor pool object
-	// This object contains pool information for performing cstor pool deletion
-	cstorPool.ObjectMeta.Name =poolName
-	spcOps, err := storagepool.NewCstorPoolOperation(cstorPool)
-	if err != nil {
-		fmt.Println("NewCstorPoolDeletePeration Failed with following error")
-		fmt.Println(err)
-	}
-	spc, err := spcOps.Delete()
-	if err != nil {
-		glog.Errorf("failed to delete cas template based cstorpool: error '%s'", err.Error())
-		//return nil, CodedError(500, err.Error())
-	} else {
-		glog.Infof("cas template based cstorpool delete successfully: name '%s'", spc.Name)
+		return fmt.Errorf("failed to delete cas template based cstorpool: pool name not provided")
 	}
 
+	// Create an empty cstor pool object
+	cstorPool := &v1alpha1.CStorPool{}
+
+	// Fill the name in cstor pool object
+	// This object contains pool information for performing cstor pool deletion
+	// The information used here is the storagepoolclaim name
+	cstorPool.ObjectMeta.Name =poolName
+
+	spcOps, err := storagepool.NewCstorPoolOperation(cstorPool)
+	if err != nil {
+		return fmt.Errorf("NewCstorPoolOPeration Failed error '%s'", err.Error())
+	}
+	_, err = spcOps.Delete()
+	if err != nil {
+		return fmt.Errorf("Failed to delete cas template based cstorpool: error '%s'", err.Error())
+	}
+
+	glog.Infof("Cas template based cstorpool delete successfully: name '%s'", key)
 	return nil
 }

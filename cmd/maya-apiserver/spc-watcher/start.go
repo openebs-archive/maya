@@ -45,19 +45,19 @@ func Start() (error) {
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		return fmt.Errorf("error building kubeconfig: %s", err.Error())
+		return fmt.Errorf("Error building kubeconfig: %s", err.Error())
 	}
 
 	// Building Kubernetes Clientset
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("error building kubernetes clientset: %s", err.Error())
+		return fmt.Errorf("Error building kubernetes clientset: %s", err.Error())
 	}
 
 	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("error building openebs clientset: %s", err.Error())
+		return fmt.Errorf("Error building openebs clientset: %s", err.Error())
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
@@ -80,7 +80,7 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	if err != nil {
 		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if kubeconfig == "" {
-			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
+			return nil, fmt.Errorf("Kubeconfig is empty: %v", err.Error())
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {

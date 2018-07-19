@@ -55,7 +55,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		err := cstorpool.CreateCstorpool(spcGot)
 
 		if err !=nil{
-			glog.Error("cstor pool could not be created:",err)
+			glog.Error("Cstorpool could not be created:",err)
 			// To-Do
 			// If Some error occur patch the spc object with appropriate reason
 		}
@@ -73,7 +73,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		err := cstorpool.DeleteCstorpool(key)
 
 		if err !=nil{
-			glog.Error("cstor pool could not be deleted:",err)
+			glog.Error("Cstorpool could not be deleted:",err)
 		}
 
 		return deleteEvent, err
@@ -104,7 +104,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 	// Convert the key(namespace/name) string into a distinct name
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		runtime.HandleError(fmt.Errorf("Invalid resource key: %s", key))
 		return nil, nil
 	}
 	spcGot, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(name,metav1.GetOptions{})

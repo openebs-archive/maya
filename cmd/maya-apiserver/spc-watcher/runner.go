@@ -93,13 +93,13 @@ func (c *Controller) processNextWorkItem() bool {
 			// Forget here else we'd go into a loop of attempting to
 			// process a work item that is invalid.
 			c.workqueue.Forget(obj)
-			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			runtime.HandleError(fmt.Errorf("Expected string in workqueue but got %#v", obj))
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		//SPC resource to be synced.
 		if err := c.syncHandler(q.Key, q.Operation); err != nil {
-			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
+			return fmt.Errorf("Error syncing '%s': %s", q.Key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not
 		// get queued again until another change happens.

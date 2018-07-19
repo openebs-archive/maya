@@ -84,16 +84,14 @@ func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 	}
 	// provision cas cstorPool via cas template engine
 	cc, err := NewCASStoragePoolEngine(
-		// To-Do : pvc and sc config should be striped off in context to pool
+		// ToDo : pvc and sc config should be striped off in context to pool
 		"null",
 		"null",
 		cast,
 		string(v1alpha1.CstorPoolTLP),
 		map[string]interface{}{
 			string(v1alpha1.OwnerCTP):    v.cstorPool.Name,
-			string(v1alpha1.StoragePoolClaimCTP):  v.cstorPool.Labels[string(v1alpha1.StoragePoolClaimCK)],
 			string(v1alpha1.PoolTypeCTP):     v.cstorPool.Spec.PoolSpec.PoolType,
-			string(v1alpha1.PoolPhaseCTP):    string(v.cstorPool.Status.Phase),
 		},
 	)
 	if err != nil {
