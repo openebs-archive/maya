@@ -135,6 +135,10 @@ func newMetaTaskExecutor(yml string, values map[string]interface{}) (*metaTaskEx
 	}, nil
 }
 
+func (m *metaTaskExecutor) setObjectName(objName string) {
+	m.metaTask.ObjectName = objName
+}
+
 func (m *metaTaskExecutor) getMetaInfo() MetaTask {
 	return m.metaTask
 }
@@ -273,6 +277,34 @@ func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isList()
+}
+
 // asRollbackInstance defines a metaTaskExecutor suitable for
 // rollback operation.
 //
@@ -295,8 +327,9 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, fmt.Errorf(errMsg)
 	}
 
-	// build the rollback version of this MetaTask
+	// build the rollback version of this meta task
 	rbMT := MetaTask{
+		// Setting the action to "Delete" is the key
 		Action:     DeleteTA,
 		ObjectName: objectName,
 		TaskIdentity: TaskIdentity{
@@ -314,14 +347,8 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, err
 	}
 
-	var repeater repeatWithResourceExecutor
-	if m.repeater.isRepeat() {
-		repeater = newRepeatWithResourceExecByObjectNames(objectName)
-	}
-
 	return &metaTaskExecutor{
 		metaTask:   rbMT,
 		identifier: i,
-		repeater:   repeater,
 	}, true, nil
 }

@@ -263,7 +263,7 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 	// defaultPKey is the default primary key if primary key (to build the
 	// maps) is not specified
 	defaultPKey := "pkey"
-	// defaultPairItemsSplitter is the default delimiter to separate the keyvalue
+	// defaultPairItemsSplitter is the default delimiter to separate each keyvalue
 	// pairs from a given string
 	defaultPairItemsSplitter := ","
 	// defaultPairSplitter is the default delimiter to split a pair i.e. split
@@ -492,12 +492,51 @@ func nestedKeyMap(delimiters string, destination map[string]interface{}, given [
 	return destination
 }
 
+// addTo stores the provided value at specific hierarchy as mentioned in the
+// fields inside the values object.
+//
+// NOTE:
+//  This hierarchy along with the provided value is added or appended
+// (as comma separated) in the values object.
+//
+// NOTE:
+//  fields is represented as a single string with each field separated by dot
+// i.e. '.'
+//
+// Example:
+// {{- "Hi" | addTo "TaskResult.msg" .Values | noop -}}
+// {{- "Hello" | addTo "TaskResult.msg" .Values | noop -}}
+// {{- .Values.TaskResult.msg -}}
+//
+// Above will result in printing 'Hi,Hello'
+// Assumption here is .Values is of type map[string]interface{}
+func addTo(fields string, values map[string]interface{}, value string) string {
+	newVal := strings.TrimSpace(value)
+	// no need to do anything if provided value is empty
+	if len(newVal) == 0 {
+		// return what was provided
+		return value
+	}
+
+	fieldsArr := strings.Split(fields, ".")
+	oldValue := util.GetNestedString(values, fieldsArr...)
+
+	// append to the old value if any
+	if len(oldValue) != 0 {
+		newVal = strings.Join([]string{oldValue, newVal}, ", ")
+	}
+	util.SetNestedField(values, newVal, fieldsArr...)
+
+	// return what was provided
+	return value
+}
+
 // saveAs stores the provided value at specific hierarchy as mentioned in the
 // fields inside the values object.
 //
 // NOTE:
-//  This hierarchy along with the provided value is formed/updated in the
-// values object.
+//  This hierarchy along with the provided value is added or updated
+// (i.e. overriden) in the values object.
 //
 // NOTE:
 //  fields is represented as a single string with each field separated by dot
@@ -620,14 +659,14 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 	return
 }
 
-// toYaml takes an interface, marshals it to yaml, and returns a string. It will
+// ToYaml takes an interface, marshals it to yaml, and returns a string. It will
 // always return a string, even on marshal error (empty string).
 //
 // This is designed to be called from a template.
 //
 // NOTE: Borrowed from a similar function in helm
 //  https://github.com/kubernetes/helm/blob/master/pkg/chartutil/files.go
-func toYaml(v interface{}) (yamlstr string) {
+func ToYaml(v interface{}) (yamlstr string) {
 	data, err := yaml.Marshal(v)
 	if err != nil {
 		// error is handled
@@ -666,11 +705,12 @@ func funcMap() template.FuncMap {
 		"pickContains": pickContains,
 		"pickSuffix":   pickSuffix,
 		"pickPrefix":   pickPrefix,
-		"toYaml":       toYaml,
+		"toYaml":       ToYaml,
 		"fromYaml":     fromYaml,
 		"jsonpath":     jsonPath,
 		"saveAs":       saveAs,
 		"saveIf":       saveIf,
+		"addTo":        addTo,
 		"noop":         noop,
 		"notFoundErr":  notFoundErr,
 		"verifyErr":    verifyErr,
