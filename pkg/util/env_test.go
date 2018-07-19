@@ -4,77 +4,83 @@ import (
 	"testing"
 	"os"
 	"reflect"
+	"strconv"
+	"errors"
 )
 
 func TestLookEnv(t *testing.T) {
-	// set required environment
-	os.Setenv("_MY_PRESENT_TEST_KEY_", "value1")
-	os.Setenv("_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE", "")
-	os.Unsetenv("_MY_MISSING_TEST_KEY_") // for safety
-
-	cases := map[string]struct {
+	testCases := map[string]struct {
 		key         ENVKey
+		value       string
 		expectValue string
 	}{
 		"Missing env variable": {
-			key:         "_MY_MISSING_TEST_KEY_",
-			expectValue: "false",
+			"",
+			"",
+			"false",
 		},
-		"Present env variable": {
-			key:         "_MY_PRESENT_TEST_KEY_",
-			expectValue: "value1",
+		"Present env variable with value": {
+			"_MY_PRESENT_TEST_KEY_",
+			"value1",
+			"value1",
 		},
 		"Present env variable with empty value": {
-			key:         "_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
-			expectValue: "",
+			"_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
+			"",
+			"",
 		},
 	}
 
-	for k, v := range cases {
+	for k, v := range testCases {
 		t.Run(k, func(t *testing.T) {
+			os.Setenv(string(v.key), v.value)
 			actualValue := lookEnv(v.key)
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
+			os.Unsetenv(string(v.key))
 		})
 	}
 }
 
 func TestCASTemplateFeatureGate(t *testing.T) {
-	// avoiding table driven parallel tests as tests depend
-	// on hosts environment variable
-
-	// negative testcase, incorrect value
-	os.Setenv(string(CASTemplateFeatureGateENVK), "on")
-	_, err := CASTemplateFeatureGate()
-	if err == nil {
-		t.Errorf("expected error when feature gate %s is %s", CASTemplateFeatureGateENVK, "on")
+	testCases := map[string]struct {
+		expectedError error
+		key, value    string
+		expectedValue bool
+	}{
+		"Incorrect value 'on'": {
+			&strconv.NumError{Func: "ParseBool", Err: errors.New("invalid syntax"), Num: "on"},
+			string(CASTemplateFeatureGateENVK),
+			"on", false},
+		"Incorrect value empty string": {
+			&strconv.NumError{Func: "ParseBool", Err: errors.New("invalid syntax"), Num: ""},
+			string(CASTemplateFeatureGateENVK),
+			"", false},
+		"Missing key": {
+			expectedError: nil,
+			value:         "",
+			key:           "",
+			expectedValue: false,
+		},
+		"Correct key and value": {
+			expectedError: nil,
+			value:         "true",
+			key:           string(CASTemplateFeatureGateENVK),
+			expectedValue: true,
+		},
 	}
 
-	// negative testcase, empty value
-	os.Setenv(string(CASTemplateFeatureGateENVK), "")
-	_, err = CASTemplateFeatureGate()
-	if err == nil {
-		t.Errorf("expected error when feature gate %s is empty", CASTemplateFeatureGateENVK)
-	}
+	for _, v := range testCases {
+		os.Setenv(v.key, v.value)
+		feature, err := CASTemplateFeatureGate()
+		if !reflect.DeepEqual(v.expectedError, err) {
+			t.Errorf("expected %s got %s", v.expectedError, err)
+		}
+		if !reflect.DeepEqual(v.expectedValue, feature) {
+			t.Errorf("expected %s got %t", v.expectedValue, feature)
+		}
 
-	// Positive testcase, absent env variable
-	os.Unsetenv(string(CASTemplateFeatureGateENVK))
-	feature, err := CASTemplateFeatureGate()
-	if err != nil {
-		t.Errorf("expected no error when feature gate %s is unset", CASTemplateFeatureGateENVK)
-	}
-	if feature {
-		t.Errorf("expected false when feature gate %s is unset", CASTemplateFeatureGateENVK)
-	}
-
-	// Positive testcase, env variable set to true
-	os.Setenv(string(CASTemplateFeatureGateENVK), "true")
-	feature, err = CASTemplateFeatureGate()
-	if err != nil {
-		t.Errorf("expected no error when feature gate %s is 'true'", CASTemplateFeatureGateENVK)
-	}
-	if !feature {
-		t.Errorf("expected true when feature gate %s is 'true'", CASTemplateFeatureGateENVK)
+		os.Unsetenv(v.key)
 	}
 }
