@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@ type Interface interface {
 	CStorVolumes() CStorVolumeInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
+	// Disks returns a DiskInformer.
+	Disks() DiskInformer
 	// StoragePools returns a StoragePoolInformer.
 	StoragePools() StoragePoolInformer
 	// StoragePoolClaims returns a StoragePoolClaimInformer.
@@ -65,6 +67,11 @@ func (v *version) CStorVolumes() CStorVolumeInformer {
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 func (v *version) CStorVolumeReplicas() CStorVolumeReplicaInformer {
 	return &cStorVolumeReplicaInformer{factory: v.SharedInformerFactory}
+}
+
+// Disks returns a DiskInformer.
+func (v *version) Disks() DiskInformer {
+	return &diskInformer{factory: v.SharedInformerFactory}
 }
 
 // StoragePools returns a StoragePoolInformer.

@@ -229,6 +229,10 @@ func (m *metaTaskExecutor) isPutAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isPatchOEV1alpha1SPC() bool {
+	return m.identifier.isStoragePoolClaim() && m.isPatch()
+}
+
 func (m *metaTaskExecutor) isPatchAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPatch()
 }
@@ -269,12 +273,27 @@ func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
 
+func (m *metaTaskExecutor) isGetOEV1alpha1Disk() bool {
+	return m.identifier.isOEV1alpha1Disk() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isGetOEV1alpha1SPC() bool {
+	return m.identifier.isOEV1alpha1SPC() && m.isGet()
+}
 func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
 func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1SP() bool {
+	return m.identifier.isOEV1alpha1SP() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isPut()
 }
 
 func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
@@ -285,12 +304,28 @@ func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isDeleteOEV1alpha1SP() bool {
+	return m.identifier.isOEV1alpha1SP() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isDelete()
+}
+
 func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isDelete()
 }
 
 func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1Disk() bool {
+	return m.identifier.isOEV1alpha1Disk() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1SP() bool {
+	return m.identifier.isOEV1alpha1SP() && m.isList()
 }
 
 func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {

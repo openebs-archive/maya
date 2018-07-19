@@ -112,11 +112,47 @@ func (m *ServiceYml) AsCoreV1Service() (*api_core_v1.Service, error) {
 	return svc, nil
 }
 
+//CStorPoolYml provides utility methods to generate K8s CStorPool objects
+type CStorPoolYml struct {
+	// YmlInBytes represents a CStorPool in
+	// yaml format
+	YmlInBytes []byte
+}
+
 //CStorVolumeYml provides utility methods to generate K8s CStorVolume objects
 type CStorVolumeYml struct {
 	// YmlInBytes represents a CStorVolume in
 	// yaml format
 	YmlInBytes []byte
+}
+
+//StoragePoolYml provides utility methods to generate K8s StoragePool objects
+type StoragePoolYml struct {
+	// YmlInBytes represents a StoragePool in
+	// yaml format
+	YmlInBytes []byte
+}
+
+func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CStorPoolYml{
+		YmlInBytes: b,
+	}, nil
+}
+
+func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StoragePoolYml{
+		YmlInBytes: b,
+	}, nil
 }
 
 func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
@@ -128,6 +164,38 @@ func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CSt
 	return &CStorVolumeYml{
 		YmlInBytes: b,
 	}, nil
+}
+
+// AsCStorPoolYml returns a v1 CStorPool instance
+func (m *CStorPoolYml) AsCStorPoolYml() (*v1alpha1.CStorPool, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into CStorVolume object
+	cstorPool := &v1alpha1.CStorPool{}
+	err := yaml.Unmarshal(m.YmlInBytes, cstorPool)
+	if err != nil {
+		return nil, err
+	}
+
+	return cstorPool, nil
+}
+
+// AsStoragePoolYml returns a v1 StoragePool instance
+func (m *StoragePoolYml) AsStoragePoolYml() (*v1alpha1.StoragePool, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+
+	// unmarshall the byte into StoragePool object
+	storagePool := &v1alpha1.StoragePool{}
+	err := yaml.Unmarshal(m.YmlInBytes, storagePool)
+	if err != nil {
+		return nil, err
+	}
+
+	return storagePool, nil
 }
 
 // AsCStorVolumeYml returns a v1 CStorVolume instance

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -60,6 +60,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumes().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("cstorvolumereplicas"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().CStorVolumeReplicas().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("disks"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().Disks().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("storagepools"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().StoragePools().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("storagepoolclaims"):

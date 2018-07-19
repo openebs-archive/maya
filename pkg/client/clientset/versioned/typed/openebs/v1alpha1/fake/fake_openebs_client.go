@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package fake
 
 import (
@@ -39,6 +40,10 @@ func (c *FakeOpenebsV1alpha1) CStorVolumes(namespace string) v1alpha1.CStorVolum
 
 func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas(namespace string) v1alpha1.CStorVolumeReplicaInterface {
 	return &FakeCStorVolumeReplicas{c, namespace}
+}
+
+func (c *FakeOpenebsV1alpha1) Disks() v1alpha1.DiskInterface {
+	return &FakeDisks{c}
 }
 
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {

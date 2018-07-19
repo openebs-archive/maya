@@ -16,6 +16,13 @@ limitations under the License.
 
 package v1alpha1
 
+type CasKey string
+
+const(
+	SPCASTemplateCK CasKey = "openebs.io/create-template"
+	StoragePoolClaimCK CasKey = "openebs.io/storagePoolClaim"
+)
+
 // TopLevelProperty represents the top level property that
 // is a starting point to represent a hierarchical chain of
 // properties.
@@ -46,6 +53,16 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
+	// CstorPoolTLP is a top level property supported by CAS template engine
+	//
+	// The properties provided by the caller are placed with CstorPoolTLP
+	// as the top level property
+	//
+	// NOTE:
+	//  CAS template engine cannot modify these properties. These are the
+	// runtime properties that are provided as inputs to CAS template
+	// engine.
+	CstorPoolTLP TopLevelProperty = "CstorPool"
 	// TaskResultTLP is a top level property supported by CAS template engine
 	//
 	// The specific results after the execution of a task are placed with
@@ -75,7 +92,47 @@ const (
 	// {{- .ListItems.volumes.openebs.mypv.status -}}
 	ListItemsTLP TopLevelProperty = "ListItems"
 )
+// CstorPoolTLPProperty is used to define properties that comes
+// after CstorPoolTLP
+type CstorPoolTLPProperty string
 
+const (
+	// OwnerCTP indicates the owner of this pool; the one who
+	// is executing this policy
+	//
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.owner }}
+	OwnerCTP CstorPoolTLPProperty = "owner"
+	// RunNamespaceCTP is the namespace where this policy is
+	// supposed to run
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.runNamespace }}
+	RunNamespaceCTP CstorPoolTLPProperty = "runNamespace"
+	// CapacityCTP is the capacity of the pool
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.capacity }}
+	CapacityCTP CstorPoolTLPProperty = "capacity"
+	// StoragePoolClaimCTP is the SPC of the pool
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.spc }}
+	StoragePoolClaimCTP CstorPoolTLPProperty = "spc"
+	// PoolTypeCTP is the pool type of the pool(e.g. mirrored or striped etc)
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.poolType }}
+	PoolTypeCTP CstorPoolTLPProperty = "poolType"
+
+	// PoolPhaseCTP is the phase of the pool (e.g. init, online, offline etc)
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .CstorPool.phase }}
+	PoolPhaseCTP CstorPoolTLPProperty = "phase"
+
+)
 // VolumeTLPProperty is used to define properties that comes
 // after VolumeTLP
 type VolumeTLPProperty string

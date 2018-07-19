@@ -26,20 +26,30 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=storagepoolclaim
 
-// StoragePoolClaim describes a StoragePoolClaim.
+// StoragePoolClaim describes a StoragePoolClaim custom resource.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
 	Spec StoragePoolClaimSpec `json:"spec"`
-}
+	Status StoragePoolClaimStatus `json:"status"`
 
+}
 // StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Name       string `json:"name"`
-	Format     string `json:"format"`
-	Mountpoint string `json:"mountpoint"`
-	Path       string `json:"path"`
+	Name         string `json:"name"`
+	Format       string `json:"format"`
+	Mountpoint	 string `json:"mountpoint"`
+	Path       	 string `json:"path"`
+	Type       	 string `json:"type"`
+	NodeSelector []string `json:"nodeSelector"`
+	Capacity     string `json:"capacity"`
+	MaxPools     string `json:"maxPools"`
+	Disks DiskAttr `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+// StoragePoolClaim is for handling status of pool.
+type StoragePoolClaimStatus struct {
+	Phase string `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -52,6 +62,72 @@ type StoragePoolClaimList struct {
 
 	Items []StoragePoolClaim `json:"items"`
 }
+
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+// +resource:path=cstorpool
+
+// CStorPool describes a cstor pool resource created as custom resource.
+type CStorPool struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CStorPoolSpec   `json:"spec"`
+	Status CStorPoolStatus `json:"status"`
+}
+
+// CStorPoolSpec is the spec listing fields for a CStorPool resource.
+type CStorPoolSpec struct {
+	Disks    DiskAttr      `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+// DiskAttr stores the disk related attributes.
+type DiskAttr struct {
+	DiskList []string `json:"diskList"`
+}
+
+// CStorPoolAttr is to describe zpool related attributes.
+type CStorPoolAttr struct {
+	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
+	PoolType         string `json:"poolType"`         //mirror, striped
+	OverProvisioning bool   `json:"overProvisioning"` //true or false
+}
+
+type CStorPoolPhase string
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+const (
+	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
+	CStorPoolStatusInit CStorPoolPhase = "init"
+	// CStorPoolStatusOnline ensures the resource is available.
+	CStorPoolStatusOnline CStorPoolPhase = "online"
+	// CStorPoolStatusOffline ensures the resource is not available.
+	CStorPoolStatusOffline CStorPoolPhase = "offline"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
+)
+
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase CStorPoolPhase `json:"phase"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorpools
+
+// CStorPoolList is a list of CStorPoolList resources
+type CStorPoolList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorPool `json:"items"`
+}
+
 
 // +genclient
 // +genclient:noStatus
@@ -75,6 +151,9 @@ type StoragePoolSpec struct {
 	Nodename   string `json:"nodename"`
 	Message    string `json:"message"`
 	Path       string `json:"path"`
+	Disks    DiskAttr      `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -86,6 +165,61 @@ type StoragePoolList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []StoragePool `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=disk
+
+// Disk describes disk resource.
+type Disk struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata, omitempty"`
+
+	Spec   DiskSpec   `json:"spec"`
+	Status DiskStatus `json:"status"`
+}
+
+// DiskSpec is the specification for the disk stored as CRD
+type DiskSpec struct {
+	Path     string        `json:"path"`               //Path contain devpath (e.g. /dev/sdb)
+	Capacity DiskCapacity  `json:"capacity"`           //Capacity
+	Details  DiskDetails   `json:"details"`            //Details contains static attributes (model, serial ..)
+	DevLinks []DiskDevLink `json:"devlinks,omitempty"` //DevLinks contains soft links of one disk
+}
+
+type DiskStatus struct {
+	State string `json:"state"` //current state of the disk (Active/Inactive)
+}
+
+type DiskCapacity struct {
+	Storage uint64 `json:"storage"` //disk size in byte
+}
+
+// DiskDetails contains basic and static info of a disk
+type DiskDetails struct {
+	Model  string `json:"model"`  // Model is model of disk
+	Serial string `json:"serial"` // Serial is serial no of disk
+	Vendor string `json:"vendor"` // Vendor is vendor of disk
+}
+
+// DiskDevlink holds the maping between type and links like by-id type or by-path type link
+type DiskDevLink struct {
+	Kind  string   `json:"kind,omitempty"`  // Kind is the type of link like by-id or by-path.
+	Links []string `json:"links,omitempty"` // Links are the soft links of Type type
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=disks
+
+// DiskList is a list of Disk object resources
+type DiskList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []Disk `json:"items"`
 }
 
 // +genclient
@@ -193,70 +327,6 @@ type RunTasks struct {
 //Kind string `json:"kind"`
 //}
 
-// +genclient
-// +genclient:noStatus
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
-// +resource:path=cstorpool
-
-// CStorPool describes a cstor pool resource created as custom resource.
-type CStorPool struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:"status"`
-}
-
-// CStorPoolSpec is the spec listing fields for a CStorPool resource.
-type CStorPoolSpec struct {
-	Disks    DiskAttr      `json:"disks"`
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
-}
-
-// DiskAttr stores the disk related attributes.
-type DiskAttr struct {
-	DiskList []string `json:"diskList"`
-}
-
-// CStorPoolAttr is to describe zpool related attributes.
-type CStorPoolAttr struct {
-	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
-	PoolType         string `json:"poolType"`         //mirror, striped
-	OverProvisioning bool   `json:"overProvisioning"` //true or false
-}
-
-type CStorPoolPhase string
-
-// Status written onto CStorPool and CStorVolumeReplica objects.
-const (
-	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
-	CStorPoolStatusInit CStorPoolPhase = "init"
-	// CStorPoolStatusOnline ensures the resource is available.
-	CStorPoolStatusOnline CStorPoolPhase = "online"
-	// CStorPoolStatusOffline ensures the resource is not available.
-	CStorPoolStatusOffline CStorPoolPhase = "offline"
-	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
-	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
-	// CStorPoolStatusInvalid ensures invalid resource.
-	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
-)
-
-// CStorPoolStatus is for handling status of pool.
-type CStorPoolStatus struct {
-	Phase CStorPoolPhase `json:"phase"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorpools
-
-// CStorPoolList is a list of CStorPoolList resources
-type CStorPoolList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []CStorPool `json:"items"`
-}
 
 // +genclient
 // +genclient:noStatus
