@@ -18,12 +18,15 @@ package common
 
 import (
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -134,8 +137,17 @@ const (
 	defaultNameSpace namespace = "default"
 )
 
-// IsImported is channel to block cvr until certain pool import operations are over.
-var IsImported chan bool
+// SyncResources is to synchronize pool and volumereplica.
+var SyncResources SyncCStorPoolCVR
+
+// SyncCStorPoolCVR is to hold synchronization related variables.
+type SyncCStorPoolCVR struct {
+	// Mux is mutex variable to block cvr until certain pool operations are complete.
+	Mux *sync.Mutex
+
+	// IsImported is boolean flag to check at cvr until certain pool import operations are complete.
+	IsImported bool
+}
 
 // PoolNameHandler tries to get pool name and blocks for
 // particular number of attempts.
@@ -172,6 +184,10 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 // CheckForCStorVolumeReplicaCRD is Blocking call for checking status of CStorVolumeReplica CRD.
 func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 	for {
+		// Since this blocking function is restricted to check if CVR CRD is present
+		// or not, we are trying to handle only the error of CVR CR List api indirectly.
+		// CRD has only two types of scope, cluster and namespaced. If CR list api
+		// for default namespace works fine, then CR list api works for all namespaces.
 		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
@@ -220,4 +236,15 @@ func CheckForCStorPool() {
 		glog.Info("CStorPool found")
 		break
 	}
+}
+
+// Init is to instantiate variable used between pool and volumereplica while
+// starting controller.
+func Init() {
+	// Instantiate mutex variable.
+	SyncResources.Mux = &sync.Mutex{}
+
+	// Making RunnerVar to use RealRunner
+	pool.RunnerVar = util.RealRunner{}
+	volumereplica.RunnerVar = util.RealRunner{}
 }

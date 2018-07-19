@@ -404,8 +404,8 @@ func TestIsOnlyStatusChange(t *testing.T) {
 	}
 }
 
-// TestIsInitStatus is to check if status is only init.
-func TestIsInitStatus(t *testing.T) {
+// TestIsEmptyStatus is to check if status is empty.
+func TestIsEmptyStatus(t *testing.T) {
 	deletionTimeStamp := metav1.Now()
 	testPoolResource := map[string]struct {
 		expectedOutput bool
@@ -431,7 +431,7 @@ func TestIsInitStatus(t *testing.T) {
 						OverProvisioning: false,
 					},
 				},
-				Status: apis.CStorPoolStatus{Phase: "init"},
+				Status: apis.CStorPoolStatus{Phase: ""},
 			},
 		},
 		"img1PoolResource": {
@@ -459,7 +459,7 @@ func TestIsInitStatus(t *testing.T) {
 		},
 	}
 	for desc, ut := range testPoolResource {
-		obtainedOutput := IsInitStatus(ut.test)
+		obtainedOutput := IsEmptyStatus(ut.test)
 		if obtainedOutput != ut.expectedOutput {
 			t.Fatalf("Desc:%v, Expected:%v, Got:%v", desc, ut.expectedOutput,
 				obtainedOutput)
@@ -494,7 +494,7 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 						OverProvisioning: false,
 					},
 				},
-				Status: apis.CStorPoolStatus{Phase: "deletion-failed"},
+				Status: apis.CStorPoolStatus{Phase: "DeletionFailed"},
 			},
 		},
 		"pool-online": {
@@ -517,7 +517,7 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 						OverProvisioning: false,
 					},
 				},
-				Status: apis.CStorPoolStatus{Phase: "online"},
+				Status: apis.CStorPoolStatus{Phase: "Online"},
 			},
 		},
 	}
