@@ -31,16 +31,14 @@ import (
 	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
-	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
-	"github.com/openebs/maya/pkg/util"
 )
 
 const (
 	// NumThreads defines number of worker threads for resource watcher.
-	NumThreads = 2
+	NumThreads = 1
 	// NumRoutinesThatFollow is for handling golang waitgroups.
 	NumRoutinesThatFollow = 1
 )
@@ -66,10 +64,7 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
-	// Making RunnerVar to use RealRunner
-	pool.RunnerVar = util.RealRunner{}
-	volumereplica.RunnerVar = util.RealRunner{}
-	common.IsImported = make(chan bool, 1)
+	common.Init()
 
 	// Blocking call for checking status of zrepl running in cstor-pool container.
 	pool.CheckForZreplInitial(common.InitialZreplRetryInterval)

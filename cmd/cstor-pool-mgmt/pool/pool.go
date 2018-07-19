@@ -81,7 +81,9 @@ func CreatePool(cStorPool *apis.CStorPool) error {
 func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	// populate pool creation attributes.
 	var createAttr []string
-	createAttr = append(createAttr, "create")
+	// When disks of other file formats, say ext4, are used to create cstorpool,
+	// it errors out with normal zpool create. To avoid that, we go for forceful create.
+	createAttr = append(createAttr, "create", "-f")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" {
 		cachefile := "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile
 		createAttr = append(createAttr, "-o", cachefile)

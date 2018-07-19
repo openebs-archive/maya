@@ -65,72 +65,6 @@ type StoragePoolClaimList struct {
 
 // +genclient
 // +genclient:noStatus
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +genclient:nonNamespaced
-// +resource:path=cstorpool
-
-// CStorPool describes a cstor pool resource created as custom resource.
-type CStorPool struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:"status"`
-}
-
-// CStorPoolSpec is the spec listing fields for a CStorPool resource.
-type CStorPoolSpec struct {
-	Disks    DiskAttr      `json:"disks"`
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
-}
-
-// DiskAttr stores the disk related attributes.
-type DiskAttr struct {
-	DiskList []string `json:"diskList"`
-}
-
-// CStorPoolAttr is to describe zpool related attributes.
-type CStorPoolAttr struct {
-	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
-	PoolType         string `json:"poolType"`         //mirror, striped
-	OverProvisioning bool   `json:"overProvisioning"` //true or false
-}
-
-type CStorPoolPhase string
-
-// Status written onto CStorPool and CStorVolumeReplica objects.
-const (
-	// CStorPoolStatusInit ensures the create operation is to be done, if import fails.
-	CStorPoolStatusInit CStorPoolPhase = "init"
-	// CStorPoolStatusOnline ensures the resource is available.
-	CStorPoolStatusOnline CStorPoolPhase = "online"
-	// CStorPoolStatusOffline ensures the resource is not available.
-	CStorPoolStatusOffline CStorPoolPhase = "offline"
-	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
-	CStorPoolStatusDeletionFailed CStorPoolPhase = "deletion-failed"
-	// CStorPoolStatusInvalid ensures invalid resource.
-	CStorPoolStatusInvalid CStorPoolPhase = "invalid"
-)
-
-// CStorPoolStatus is for handling status of pool.
-type CStorPoolStatus struct {
-	Phase CStorPoolPhase `json:"phase"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorpools
-
-// CStorPoolList is a list of CStorPoolList resources
-type CStorPoolList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []CStorPool `json:"items"`
-}
-
-
-// +genclient
-// +genclient:noStatus
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=storagepool
@@ -327,6 +261,74 @@ type RunTasks struct {
 //Kind string `json:"kind"`
 //}
 
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +genclient:nonNamespaced
+// +resource:path=cstorpool
+
+// CStorPool describes a cstor pool resource created as custom resource.
+type CStorPool struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CStorPoolSpec   `json:"spec"`
+	Status CStorPoolStatus `json:"status"`
+}
+
+// CStorPoolSpec is the spec listing fields for a CStorPool resource.
+type CStorPoolSpec struct {
+	Disks    DiskAttr      `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+// DiskAttr stores the disk related attributes.
+type DiskAttr struct {
+	DiskList []string `json:"diskList"`
+}
+
+// CStorPoolAttr is to describe zpool related attributes.
+type CStorPoolAttr struct {
+	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
+	PoolType         string `json:"poolType"`         //mirror, striped
+	OverProvisioning bool   `json:"overProvisioning"` //true or false
+}
+
+type CStorPoolPhase string
+
+// Status written onto CStorPool and CStorVolumeReplica objects.
+const (
+	// CStorPoolStatusEmpty ensures the create operation is to be done, if import fails.
+	CStorPoolStatusEmpty CStorPoolPhase = ""
+	// CStorPoolStatusOnline ensures the resource is available.
+	CStorPoolStatusOnline CStorPoolPhase = "Online"
+	// CStorPoolStatusOffline ensures the resource is not available.
+	CStorPoolStatusOffline CStorPoolPhase = "Offline"
+	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
+	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"
+	// CStorPoolStatusInvalid ensures invalid resource.
+	CStorPoolStatusInvalid CStorPoolPhase = "Invalid"
+	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.
+	CStorPoolStatusErrorDuplicate CStorPoolPhase = "ErrorDuplicate"
+	// CStorPoolStatusPending ensures pending task for cstorpool.
+	CStorPoolStatusPending CStorPoolPhase = "Pending"
+)
+
+// CStorPoolStatus is for handling status of pool.
+type CStorPoolStatus struct {
+	Phase CStorPoolPhase `json:"phase"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=cstorpools
+
+// CStorPoolList is a list of CStorPoolList resources
+type CStorPoolList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CStorPool `json:"items"`
+}
 
 // +genclient
 // +genclient:noStatus
@@ -352,16 +354,20 @@ type CStorVolumeReplicaPhase string
 
 // Status written onto CStorVolumeReplica objects.
 const (
-	// CVRStatusInit ensures the create operation is to be done, if import fails.
-	CVRStatusInit CStorVolumeReplicaPhase = "init"
+	// CVRStatusEmpty ensures the create operation is to be done, if import fails.
+	CVRStatusEmpty CStorVolumeReplicaPhase = ""
 	// CVRStatusOnline ensures the resource is available.
-	CVRStatusOnline CStorVolumeReplicaPhase = "online"
+	CVRStatusOnline CStorVolumeReplicaPhase = "Online"
 	// CVRStatusOffline ensures the resource is not available.
-	CVRStatusOffline CStorVolumeReplicaPhase = "offline"
+	CVRStatusOffline CStorVolumeReplicaPhase = "Offline"
 	// CVRStatusDeletionFailed ensures the resource deletion has failed.
-	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "deletion-failed"
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
 	// CVRStatusInvalid ensures invalid resource.
-	CVRStatusInvalid CStorVolumeReplicaPhase = "invalid"
+	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
+	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
+	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "ErrorDuplicate"
+	// CVRStatusPending ensures pending task of cvr resource.
+	CVRStatusPending CStorVolumeReplicaPhase = "Pending"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
