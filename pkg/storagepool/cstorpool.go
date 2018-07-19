@@ -23,6 +23,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openebs/maya/pkg/engine"
 )
 
 // cstorPool OperationOptions contains the options with respect to
@@ -82,13 +83,13 @@ func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 		return nil, err
 	}
 	// provision cas cstorPool via cas template engine
-	cc, err := NewCASCreate(
+	cc, err := NewCASStoragePoolEngine(
+		// To-Do : pvc and sc config should be striped off in context to pool
 		"null",
 		"null",
 		cast,
-		map[string]string{
-			// Make it cstor pool specific
-			//string(v1alpha1.OwnerVTP):                 v.cstorPool.Name,
+		string(v1alpha1.CstorPoolTLP),
+		map[string]interface{}{
 			string(v1alpha1.OwnerCTP):    v.cstorPool.Name,
 			string(v1alpha1.StoragePoolClaimCTP):  v.cstorPool.Labels[string(v1alpha1.StoragePoolClaimCK)],
 			string(v1alpha1.PoolTypeCTP):     v.cstorPool.Spec.PoolSpec.PoolType,
@@ -100,7 +101,7 @@ func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 	}
 
 	// create the cstorPool
-	data, err := cc.create()
+	data, err := cc.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +136,10 @@ func (v *cstorPoolOperation) Delete() (*v1alpha1.CStorPool, error) {
 	}
 
 	// delete cstor pool via cas template engine
-	engine, err := NewCASEngine(
+	engine, err := engine.NewCASEngine(
 		cast,
-		map[string]string{
+		string(v1alpha1.CstorPoolTLP),
+		map[string]interface{}{
 			string(v1alpha1.OwnerCTP):    v.cstorPool.Name,
 		},
 	)
@@ -146,7 +148,7 @@ func (v *cstorPoolOperation) Delete() (*v1alpha1.CStorPool, error) {
 	}
 
 	// delete the cas cstorPool
-	data, err := engine.delete()
+	data, err := engine.Delete()
 	if err != nil {
 		return nil, err
 	}

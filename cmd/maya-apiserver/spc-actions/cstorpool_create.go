@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2017 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,10 +85,6 @@ func poolCreateWorker(spcGot *apis.StoragePoolClaim) (error) {
 	// Push storage pool claim name to cstor pool cr object as a label
 	// This label will be present in the actual object
 	mapLabels[string(v1alpha1.StoragePoolClaimCK)] = spcGot.Name
-
-	// Add init status
-	cstorPool.Status.Phase= v1alpha1.CStorPoolStatusInit
-
 
 	// Push node hostname to cstor pool cr object as a label.
 
