@@ -22,7 +22,12 @@ const (
 // requests w.r.t a single Volume.
 func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// check the feature gate & switch if enabled
-	if util.CASTemplateFeatureGate() {
+	feature, err := util.CASTemplateFeatureGate()
+	if err != nil {
+		// exit if invalid value
+		glog.Fatalf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
+	}
+	if feature {
 		return s.volumeV1alpha1SpecificRequest(resp, req)
 	}
 
