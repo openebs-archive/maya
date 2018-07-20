@@ -14,7 +14,14 @@ func TestCheckForCStorVolumeCRD(t *testing.T) {
 	done := make(chan bool)
 	defer close(done)
 	go func(done chan bool) {
+		//CheckForCStorVolumeCR tries to find the volume CR and if is is not found
+		// it will wait for 10 seconds and continue trying in the loop.
+		// as we are already passing the fake CR, it has to find it immediately
+		// if not, it means the code is not working properly
 		CheckForCStorVolumeCRD(fakeOpenebsClient)
+		//this below line will get executed only when CheckForCStorVolumeCR has
+		//found the CR. Otherwise, the function will not return and we timeout
+		// in the below select block and fail the testcase.
 		done <- true
 	}(done)
 

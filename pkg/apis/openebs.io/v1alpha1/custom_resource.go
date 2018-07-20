@@ -333,12 +333,14 @@ type CStorVolume struct {
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	Capacity     string `json:"capacity"`
-	TargetIP     string `json:"targetIP"`
-	TargetPort   string `json:"targetPort"`
-	Iqn          string `json:"iqn"`
-	TargetPortal string `json:"targetPortal"`
-	Status       string `json:"status"`
+	Capacity          string `json:"capacity"`
+	TargetIP          string `json:"targetIP"`
+	TargetPort        string `json:"targetPort"`
+	Iqn               string `json:"iqn"`
+	TargetPortal      string `json:"targetPortal"`
+	Status            string `json:"status"`
+	ReplicationFactor int    `json:"replicationFactor"`
+	ConsistencyFactor int    `json:"consistencyFactor"`
 }
 
 // CStorVolumePhase is to hold result of action.

@@ -17,7 +17,9 @@ limitations under the License.
 package volume
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/golang/glog"
@@ -62,10 +64,13 @@ func CreateVolume(cStorVolume *apis.CStorVolume) error {
 
 // CreateIstgtConf creates istgt.conf file
 func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
-	text := []byte(`
-# Global section
+
+	var buffer bytes.Buffer
+	buffer.WriteString(`# Global section
 [Global]
-  NodeBase "iqn.2017-08.OpenEBS.cstor"
+`)
+	buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.Iqn + "\"")
+	buffer.WriteString(`
   PidFile "/var/run/istgt.pid"
   AuthFile "/usr/local/etc/istgt/auth.conf"
   LogFile "/usr/local/etc/istgt/logfile"
@@ -85,28 +90,20 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   DefaultTime2Wait 2
   DefaultTime2Retain 20
   OperationalMode 0
+
 # UnitControl section
 [UnitControl]
   AuthMethod None
-  AuthGroup None
+  AuthGroup None	
 `)
-
-	portaluc1 := []byte("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
-	text = append(text, portaluc1...)
-
-	netmask := []byte("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
-	text = append(text, netmask...)
-
-	text1 := []byte(`
+	buffer.WriteString("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
+	buffer.WriteString("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
+	buffer.WriteString(`
 # PortalGroup section
 [PortalGroup1]
 `)
-	text = append(text, text1...)
-
-	portalda1 := []byte("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
-	text = append(text, portalda1...)
-
-	text2 := []byte(`
+	buffer.WriteString("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
+	buffer.WriteString(`
 # InitiatorGroup section
 [InitiatorGroup1]
   InitiatorName "ALL"
@@ -119,51 +116,37 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 # LogicalUnit section
 [LogicalUnit2]
 `)
-
-	text = append(text, text2...)
-
-	targetName := []byte("  TargetName " + cStorVolume.Name + "\n")
-	text = append(text, targetName...)
-	targetAlias := []byte("  TargetAlias nicknamefor-" + cStorVolume.Name)
-	text = append(text, targetAlias...)
-
-	text3 := []byte(`
+	buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
+	buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
+	buffer.WriteString(`
   Mapping PortalGroup1 InitiatorGroup1
   AuthMethod None
   AuthGroup None
   UseDigest Auto
   ReadOnly No
-  ReplicationFactor 3
-  ConsistencyFactor 2
+`)
+	buffer.WriteString("  ReplicationFactor " + strconv.Itoa(cStorVolume.Spec.ReplicationFactor) + "\n")
+	buffer.WriteString("  ConsistencyFactor " + strconv.Itoa(cStorVolume.Spec.ConsistencyFactor))
+	buffer.WriteString(`
   UnitType Disk
   UnitOnline Yes
   BlockLength 512
   QueueDepth 32
   Luworkers 1
 `)
-	text = append(text, text3...)
-
-	unitinquiry := []byte("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + cStorVolume.UID + "\"")
-	text = append(text, unitinquiry...)
-
-	text4 := []byte(`
+	buffer.WriteString("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + string(cStorVolume.UID) + "\"")
+	buffer.WriteString(`
   PhysRecordLength 4096
 `)
-	text = append(text, text4...)
-
-	lun0storage := []byte("  LUN0 Storage " + cStorVolume.Spec.Capacity + " 32k")
-	text = append(text, lun0storage...)
-
-	text5 := []byte(`
+	buffer.WriteString("  LUN0 Storage " + cStorVolume.Spec.Capacity + " 32k")
+	buffer.WriteString(`
   LUN0 Option Unmap Disable
   LUN0 Option WZero Disable
   LUN0 Option ATS Disable
   LUN0 Option XCOPY Disable
 `)
 
-	text = append(text, text5...)
-
-	return text
+	return buffer.Bytes()
 }
 
 // CheckValidVolume checks for validity of CStorVolume resource.
@@ -182,6 +165,12 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	}
 	if len(string(cStorVolume.Spec.Capacity)) == 0 {
 		return fmt.Errorf("capacity cannot be empty")
+	}
+	if len(string(cStorVolume.Spec.ReplicationFactor)) == 0 {
+		return fmt.Errorf("replicationFactor cannot be empty")
+	}
+	if len(string(cStorVolume.Spec.ConsistencyFactor)) == 0 {
+		return fmt.Errorf("consistencyFactor cannot be empty")
 	}
 
 	return nil
