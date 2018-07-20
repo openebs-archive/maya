@@ -15,19 +15,19 @@ func TestLookEnv(t *testing.T) {
 		expectValue string
 	}{
 		"Missing env variable": {
-			"",
-			"",
-			"false",
+			key:         "",
+			value:       "",
+			expectValue: "false",
 		},
 		"Present env variable with value": {
-			"_MY_PRESENT_TEST_KEY_",
-			"value1",
-			"value1",
+			key:         "_MY_PRESENT_TEST_KEY_",
+			value:       "value1",
+			expectValue: "value1",
 		},
 		"Present env variable with empty value": {
-			"_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
-			"",
-			"",
+			key:         "_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
+			value:       "",
+			expectValue: "",
 		},
 	}
 
@@ -44,43 +44,52 @@ func TestLookEnv(t *testing.T) {
 }
 
 func TestCASTemplateFeatureGate(t *testing.T) {
-	testCases := map[string]struct {
-		expectedError error
-		key, value    string
-		expectedValue bool
+
+	cases := map[string]struct {
+		key, value  string
+		expectValue bool
+		expectErr   error
 	}{
-		"Incorrect value 'on'": {
-			&strconv.NumError{Func: "ParseBool", Err: errors.New("invalid syntax"), Num: "on"},
-			string(CASTemplateFeatureGateENVK),
-			"on", false},
-		"Incorrect value empty string": {
-			&strconv.NumError{Func: "ParseBool", Err: errors.New("invalid syntax"), Num: ""},
-			string(CASTemplateFeatureGateENVK),
-			"", false},
-		"Missing key": {
-			expectedError: nil,
-			value:         "",
-			key:           "",
-			expectedValue: false,
+		"Incorrect value on": {
+			key:         string(CASTemplateFeatureGateENVK),
+			value:       "on",
+			expectValue: false,
+			expectErr:   errors.New("invalid syntax"),
 		},
-		"Correct key and value": {
-			expectedError: nil,
-			value:         "true",
-			key:           string(CASTemplateFeatureGateENVK),
-			expectedValue: true,
+		"Key and value nil": {
+			key:         "",
+			value:       "",
+			expectValue: false,
+			expectErr:   nil,
+		},
+		"Value is nil": {
+			key:         string(CASTemplateFeatureGateENVK),
+			value:       "",
+			expectValue: false,
+			expectErr:   errors.New("invalid syntax"),
+		},
+		"Valid key and value": {
+			key:         string(CASTemplateFeatureGateENVK),
+			value:       "true",
+			expectValue: true,
+			expectErr:   nil,
 		},
 	}
 
-	for _, v := range testCases {
-		os.Setenv(v.key, v.value)
-		feature, err := CASTemplateFeatureGate()
-		if !reflect.DeepEqual(v.expectedError, err) {
-			t.Errorf("expected %s got %s", v.expectedError, err)
-		}
-		if !reflect.DeepEqual(v.expectedValue, feature) {
-			t.Errorf("expected %s got %t", v.expectedValue, feature)
-		}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			os.Setenv(tc.key, tc.value)
+			defer os.Unsetenv(tc.key)
 
-		os.Unsetenv(v.key)
+			feature, err := CASTemplateFeatureGate()
+			if tc.expectErr != nil {
+				if !reflect.DeepEqual(tc.expectErr, err.(*strconv.NumError).Err) {
+					t.Errorf("Expected %s, got %s", tc.expectErr, err)
+				}
+			}
+			if !reflect.DeepEqual(feature, tc.expectValue) {
+				t.Errorf("Expected %v, got %v", tc.expectValue, feature)
+			}
+		})
 	}
 }
