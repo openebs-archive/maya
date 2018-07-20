@@ -24,6 +24,10 @@ import (
 	"github.com/openebs/maya/pkg/storagepool"
 	"fmt"
 )
+
+const(
+	onlineStatus = "Online"
+)
 // Cas template is a custom resource which has a list of runTasks.
 
 // runTasks are configmaps which has defined yaml templates for resources that needs
@@ -43,20 +47,20 @@ func CreateCstorpool(spcGot *apis.StoragePoolClaim) (error) {
 	glog.Infof("Cstorpool create event received for storagepoolclaim %s",spcGot.ObjectMeta.Name)
 
 	// Check wether the spc object has been processed for cstor pool creation
-	if(spcGot.Status.Phase=="Online"){
+	if(spcGot.Status.Phase==onlineStatus){
 		return errors.New("Cstorpool already exists since the status on storagepoolclaim object is Online")
 	}
 
 	// Check for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if(poolType==""){
-		return errors.New("Aborting... as no poolType specified")
+		return errors.New("Aborting cstorpool create operation as no poolType is specified")
 	}
 
 	// Check for disks
 	diskList := spcGot.Spec.Disks.DiskList
 	if(len(diskList)==0){
-		return errors.New("Aborting... as no disk specified")
+		return errors.New("Aborting cstorpool create operation as no disk is specified")
 	}
 
 	// The name of cas template should be provided as annotation in storagepoolclaim yaml
@@ -65,7 +69,7 @@ func CreateCstorpool(spcGot *apis.StoragePoolClaim) (error) {
 	// Check for cas template
 	castTemplateName := spcGot.Annotations[string(v1alpha1.SPCASTemplateCK)]
 	if(castTemplateName==""){
-		return errors.New("Aborting... as no cas template name specified")
+		return errors.New("Aborting cstorpool create operation as no cas template is specified")
 	}
 
 	// Calling worker function to create cstorpool

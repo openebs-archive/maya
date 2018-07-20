@@ -48,7 +48,7 @@ type cstorPoolOperation struct {
 // NewCstorPoolOperation returns a new instance of cstorPoolOperation
 func NewCstorPoolOperation(cstorPool *v1alpha1.CStorPool) (*cstorPoolOperation, error) {
 	if cstorPool == nil {
-		return nil, fmt.Errorf("failed to instantiate cstorPool operation: nil cstorPool was provided")
+		return nil, fmt.Errorf("Failed to instantiate cstorpool operation: nil cstorpool was provided")
 	}
 
 	kc, err := m_k8s_client.NewK8sClient(cstorPool.Namespace)
@@ -67,13 +67,13 @@ func NewCstorPoolOperation(cstorPool *v1alpha1.CStorPool) (*cstorPoolOperation, 
 // Create provisions an OpenEBS cstorPool
 func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 	if v.k8sClient == nil {
-		return nil, fmt.Errorf("unable to create cstorPool: nil k8s client")
+		return nil, fmt.Errorf("Unable to create cstorpool: nil k8s client")
 	}
 
 	castName := v.cstorPool.Annotations[string(v1alpha1.SPCASTemplateCK)]
 	if len(castName) == 0 {
 		//return nil, fmt.Errorf("unable to create cstorPool: missing create cas template at '%s'", v1alpha1.CASTemplateCVK)
-		return nil, fmt.Errorf("unable to create cstorPool: missing create cas template")
+		return nil, fmt.Errorf("Unable to create cstorpool: missing create cas template")
 	}
 
 	// fetch CASTemplate specifications
@@ -84,9 +84,6 @@ func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 	}
 	// provision cas cstorPool via cas template engine
 	cc, err := NewCASStoragePoolEngine(
-		// ToDo : pvc and sc config should be striped off in context to pool
-		"null",
-		"null",
 		cast,
 		string(v1alpha1.CstorPoolTLP),
 		map[string]interface{}{
@@ -115,11 +112,11 @@ func (v *cstorPoolOperation) Create() (*v1alpha1.CStorPool, error) {
 
 func (v *cstorPoolOperation) Delete() (*v1alpha1.CStorPool, error) {
 	if len(v.cstorPool.Name) == 0 {
-		return nil, fmt.Errorf("unable to delete cstor pool: cstor pool name not provided")
+		return nil, fmt.Errorf("Unable to delete cstorpool: cstor pool name not provided")
 	}
 
 	// cas template to delete a cstor pool
-	// Need to pass it as env variable
+	// Need to decide on correct way of passing it.
 	castName := "cstor-pool-delete-cast"
 	if len(castName) == 0 {
 		// use the default delete cas template otherwise

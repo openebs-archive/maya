@@ -20,7 +20,6 @@ type CasKey string
 
 const(
 	SPCASTemplateCK CasKey = "openebs.io/create-template"
-	StoragePoolClaimCK CasKey = "openebs.io/storagePoolClaim"
 )
 
 // TopLevelProperty represents the top level property that

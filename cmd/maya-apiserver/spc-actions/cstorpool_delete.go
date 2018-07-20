@@ -28,19 +28,13 @@ func DeleteCstorpool(key string) (error) {
 	// Business logic for deletion of cstor pool cr
 	glog.Infof("Cstorpool delete event received for storagepoolclaim %s",key)
 
-	// Check for key
-	poolName := key
-	if len(poolName) == 0 {
-		return fmt.Errorf("failed to delete cas template based cstorpool: pool name not provided")
-	}
-
 	// Create an empty cstor pool object
 	cstorPool := &v1alpha1.CStorPool{}
 
 	// Fill the name in cstor pool object
 	// This object contains pool information for performing cstor pool deletion
 	// The information used here is the storagepoolclaim name
-	cstorPool.ObjectMeta.Name =poolName
+	cstorPool.ObjectMeta.Name = key
 
 	spcOps, err := storagepool.NewCstorPoolOperation(cstorPool)
 	if err != nil {

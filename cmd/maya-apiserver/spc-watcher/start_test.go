@@ -34,6 +34,6 @@ func TestStart(t *testing.T){
 		err=nil
 	}
 	if err==nil{
-		t.Fatal("Error Should Not be Nil As No incluster config is present")
+		t.Fatal("Error should not be nil as no incluster config is present")
 	}
 }
