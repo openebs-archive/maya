@@ -24,8 +24,9 @@ func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.R
 	// check the feature gate & switch if enabled
 	feature, err := util.CASTemplateFeatureGate()
 	if err != nil {
-		// exit if invalid value
-		glog.Fatalf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
+		// log and return http error 500
+		glog.Errorf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
+		return nil, CodedError(500, http.StatusText(500))
 	}
 	if feature {
 		return s.volumeV1alpha1SpecificRequest(resp, req)
