@@ -47,3 +47,16 @@ func (r RealRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	}
 	return data, nil
 }
+
+//TestRunner is used as a dummy Runner
+type TestRunner struct{}
+
+// RunCombinedOutput is to mock Real runner exec.
+func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
+// RunStdoutPipe is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}

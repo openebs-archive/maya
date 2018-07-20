@@ -26,13 +26,14 @@ endif
 MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
+VOLUME_MGMT=cstor-volume-mgmt
 AGENT=maya-agent
 EXPORTER=maya-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image maya-agent pool-mgmt-image
+all: mayactl apiserver-image exporter-image maya-agent pool-mgmt-image volume-mgmt-image
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -53,6 +54,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
+	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -131,6 +133,22 @@ pool-mgmt-image: cstor-pool-mgmt
 	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 	@sh buildscripts/cstor-pool-mgmt/push
+
+#Use this to build cstor-volume-mgmt
+cstor-volume-mgmt:
+	@echo "----------------------------"
+	@echo "--> cstor-volume-mgmt           "            
+	@echo "----------------------------"
+	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
+
+volume-mgmt-image: cstor-volume-mgmt
+	@echo "----------------------------"
+	@echo "--> cstor-volume-mgmt image         "
+	@echo "----------------------------"
+	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
+	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
+	@sh buildscripts/cstor-volume-mgmt/push
 
 # Use this to build only the maya-agent.
 maya-agent:
