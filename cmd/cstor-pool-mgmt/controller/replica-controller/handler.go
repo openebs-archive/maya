@@ -88,38 +88,8 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 	case common.QOpAdd:
 		glog.Infof("Processing cvr added event: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
 
-		importedFlag := <-common.IsImported
-		if importedFlag {
-			// To check if volume is already imported with pool.
-			importedFlag = common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
-			if importedFlag && !IsInitStatus(cVR) {
-				glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
-				c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
-				return string(apis.CVRStatusOnline), nil
-			}
-		}
-
-		// If volumereplica is already present.
-		existingvol, _ := volumereplica.GetVolumes()
-		if common.CheckIfPresent(existingvol, fullVolName) {
-			glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
-			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-			return string(apis.CVRStatusOnline), nil
-		}
-
-		// IsInitStatus is to check if initial status of cVR object is `init`.
-		if IsInitStatus(cVR) {
-			err = volumereplica.CreateVolume(cVR, fullVolName)
-			if err != nil {
-				glog.Errorf("cVr creation failure: %v", err.Error())
-				return string(apis.CVRStatusOffline), err
-			}
-			c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-			glog.Infof("cVR creation successful: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
-			return string(apis.CVRStatusOnline), nil
-		}
-
-		break
+		status, err := c.cVRAddEventHandler(cVR, fullVolName)
+		return status, err
 
 	case common.QOpDestroy:
 		glog.Infof("Processing cvr deleted event %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
@@ -139,6 +109,44 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 	return string(apis.CVRStatusInvalid), nil
 }
 
+func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
+	// lock is to synchronize pool and volumereplica. Until certain pool related
+	// operations are over, the volumereplica threads will be held.
+	common.SyncResources.Mux.Lock()
+	if common.SyncResources.IsImported {
+		common.SyncResources.Mux.Unlock()
+		// To check if volume is already imported with pool.
+		importedFlag := common.CheckForInitialImportedPoolVol(common.InitialImportedPoolVol, fullVolName)
+		if importedFlag && !IsEmptyStatus(cVR) {
+			glog.Infof("CStorVolumeReplica %v is already imported", string(cVR.ObjectMeta.UID))
+			c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
+			return string(apis.CVRStatusOnline), nil
+		}
+	} else {
+		common.SyncResources.Mux.Unlock()
+	}
+	// If volumereplica is already present.
+	existingvol, _ := volumereplica.GetVolumes()
+	if common.CheckIfPresent(existingvol, fullVolName) {
+		glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
+		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+		return string(apis.CVRStatusErrorDuplicate), nil
+	}
+
+	// IsEmptyStatus is to check if initial status of cVR object is empty.
+	if IsEmptyStatus(cVR) || IsPendingStatus(cVR) {
+		err := volumereplica.CreateVolume(cVR, fullVolName)
+		if err != nil {
+			glog.Errorf("cVR creation failure: %v", err.Error())
+			return string(apis.CVRStatusOffline), err
+		}
+		c.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+		glog.Infof("cVR creation successful: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
+		return string(apis.CVRStatusOnline), nil
+	}
+	return string(apis.CVRStatusOffline), fmt.Errorf("VolumeReplica offline: %v, %v", cVR.Name, cVR.Labels["cstorvolume.openebs.io/uid"])
+}
+
 // getVolumeReplicaResource returns object corresponding to the resource key
 func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*apis.CStorVolumeReplica, error) {
 	// Convert the key(namespace/name) string into a distinct name
@@ -147,6 +155,7 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*ap
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil, nil
 	}
+
 	cStorVolumeReplicaUpdated, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
@@ -198,20 +207,41 @@ func IsOnlyStatusChange(oldCVR, newCVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
-// IsInitStatus is to check if the status of cStorVolumeReplica object is `init`.
-func IsInitStatus(cVR *apis.CStorVolumeReplica) bool {
-	if string(cVR.Status.Phase) == string(apis.CVRStatusInit) {
-		glog.Infof("cVR init: %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
-		return true
-	}
-	return false
-}
-
 // IsDeletionFailedBefore is to make sure no other operation should happen if the
 // status of CStorVolumeReplica is deletion-failed.
 func IsDeletionFailedBefore(cVR *apis.CStorVolumeReplica) bool {
 	if cVR.Status.Phase == apis.CVRStatusDeletionFailed {
 		return true
 	}
+	return false
+}
+
+// IsEmptyStatus is to check if the status of cStorVolumeReplica object is empty.
+func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusEmpty) {
+		glog.Infof("cVR empty status: %v", string(cVR.ObjectMeta.UID))
+		return true
+	}
+	glog.Infof("Not empty status: %v", string(cVR.ObjectMeta.UID))
+	return false
+}
+
+// IsPendingStatus is to check if the status of cStorVolumeReplica object is pending.
+func IsPendingStatus(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusPending) {
+		glog.Infof("cVR pending: %v", string(cVR.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("Not pending status: %v", string(cVR.ObjectMeta.UID))
+	return false
+}
+
+// IsErrorDuplicate is to check if the status of cStorVolumeReplica object is error-duplicate.
+func IsErrorDuplicate(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusErrorDuplicate) {
+		glog.Infof("cVR duplication error: %v", string(cVR.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("Not error duplicate status: %v", string(cVR.ObjectMeta.UID))
 	return false
 }

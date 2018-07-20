@@ -39,22 +39,18 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 	var err error
 	if len(cVR.Labels["cstorvolume.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Volume Name/UID cannot be empty")
-		glog.Errorf(err.Error())
 		return err
 	}
 	if len(cVR.Spec.TargetIP) == 0 {
 		err = fmt.Errorf("TargetIP cannot be empty")
-		glog.Errorf(err.Error())
 		return err
 	}
 	if len(cVR.Spec.Capacity) == 0 {
 		err = fmt.Errorf("Capacity cannot be empty")
-		glog.Errorf(err.Error())
 		return err
 	}
 	if len(cVR.Labels["cstorpool.openebs.io/uid"]) == 0 {
 		err = fmt.Errorf("Pool cannot be empty")
-		glog.Errorf(err.Error())
 		return err
 	}
 	return nil
