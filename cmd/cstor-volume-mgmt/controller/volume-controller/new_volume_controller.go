@@ -74,7 +74,7 @@ func NewCStorVolumeController(
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
 	// Add NewCstorVolumeController types to the default Kubernetes Scheme so Events can be
 	// logged for CstorVolume Controller types.
-	glog.V(4).Info("Creating event broadcaster")
+	glog.Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 
@@ -104,33 +104,38 @@ func NewCStorVolumeController(
 				return
 			}
 			q.Operation = common.QOpAdd
-			glog.Infof("added event for cstorvolume : %s", obj.(*apis.CStorVolume).Spec.VolumeName)
+			glog.Infof("Add event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
 			controller.enqueueCStorVolume(obj.(*apis.CStorVolume), q)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			newCStorVolume := new.(*apis.CStorVolume)
 			oldCStorVolume := old.(*apis.CStorVolume)
+			if !IsValidCStorVolumeMgmt(newCStorVolume) {
+				return
+			}
 			// Periodic resync will send update events for all known CStorVolume.
 			// Two different versions of the same CStorVolume will always have different RVs.
 			if newCStorVolume.ResourceVersion == oldCStorVolume.ResourceVersion {
 				return
 			}
-			if !IsValidCStorVolumeMgmt(newCStorVolume) {
-				return
-			}
 
 			if IsOnlyStatusChange(oldCStorVolume, newCStorVolume) {
+				glog.Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				return
 			}
 			if IsDestroyEvent(newCStorVolume) {
 				q.Operation = common.QOpDestroy
+				glog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
 				q.Operation = common.QOpModify
+				glog.Infof("cStorVolume Modify event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 			}
 			controller.enqueueCStorVolume(newCStorVolume, q)
 		},
 		DeleteFunc: func(obj interface{}) {
-			glog.Infof("\nk8s-deleted event")
+			glog.Infof("Delete event received for cstorvolume : %s", obj.(*apis.CStorVolume).Name)
 		},
 	})
 

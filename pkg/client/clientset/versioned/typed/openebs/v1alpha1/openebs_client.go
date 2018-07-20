@@ -45,12 +45,12 @@ func (c *OpenebsV1alpha1Client) CStorPools() CStorPoolInterface {
 	return newCStorPools(c)
 }
 
-func (c *OpenebsV1alpha1Client) CStorVolumes() CStorVolumeInterface {
-	return newCStorVolumes(c)
+func (c *OpenebsV1alpha1Client) CStorVolumes(namespace string) CStorVolumeInterface {
+	return newCStorVolumes(c, namespace)
 }
 
-func (c *OpenebsV1alpha1Client) CStorVolumeReplicas() CStorVolumeReplicaInterface {
-	return newCStorVolumeReplicas(c)
+func (c *OpenebsV1alpha1Client) CStorVolumeReplicas(namespace string) CStorVolumeReplicaInterface {
+	return newCStorVolumeReplicas(c, namespace)
 }
 
 func (c *OpenebsV1alpha1Client) StoragePools() StoragePoolInterface {

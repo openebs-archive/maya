@@ -124,8 +124,8 @@ func TestCreateVolume(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.110.121",
-					Capacity:          "10MB",
+					TargetIP: "10.210.110.121",
+					Capacity: "10MB",
 				},
 			},
 		},
@@ -154,8 +154,8 @@ func TestDeleteVolume(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.110.121",
-					Capacity:          "100MB",
+					TargetIP: "10.210.110.121",
+					Capacity: "100MB",
 				},
 			},
 		},
@@ -201,13 +201,13 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					Name: "VolumeReplicaResource1",
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "",
-					Capacity:          "100MB",
+					TargetIP: "",
+					Capacity: "100MB",
 				},
 			},
 		},
 		"Invalid-controllerIpEmpty": {
-			expectedError: fmt.Errorf("CStorControllerIP cannot be empty"),
+			expectedError: fmt.Errorf("TargetIP cannot be empty"),
 			test: &apis.CStorVolumeReplica{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "VolumeReplicaResource1",
@@ -216,8 +216,8 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "",
-					Capacity:          "100MB",
+					TargetIP: "",
+					Capacity: "100MB",
 				},
 			},
 		},
@@ -231,8 +231,8 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.110.121",
-					Capacity:          "",
+					TargetIP: "10.210.110.121",
+					Capacity: "",
 				},
 			},
 		},
@@ -246,8 +246,8 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "10.210.110.121",
-					Capacity:          "100MB",
+					TargetIP: "10.210.110.121",
+					Capacity: "100MB",
 				},
 			},
 		},

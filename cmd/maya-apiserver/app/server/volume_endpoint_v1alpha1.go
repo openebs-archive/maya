@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/volume"
 )
 
@@ -85,7 +86,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 
 	// use run namespace from labels if volume's namespace is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use run namespace from http request header if volume's namespace is still not set
@@ -130,7 +131,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	// use namespace from labels if volume ns is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -146,6 +147,9 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	cvol, err := vOps.Read()
 	if err != nil {
 		glog.Errorf("failed to read cas template based volume: error '%s'", err.Error())
+		if _, ok := err.(*template.NotFoundError); ok {
+			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+		}
 		return nil, CodedError(500, err.Error())
 	}
 
@@ -175,7 +179,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 
 	// use namespace from labels if volume ns is not set
 	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceCVK)]
+		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -191,6 +195,9 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	cvol, err := vOps.Delete()
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
+		if _, ok := err.(*template.NotFoundError); ok {
+			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+		}
 		return nil, CodedError(500, err.Error())
 	}
 
@@ -213,7 +220,7 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	// use namespace from labels if volume ns is not set
 	if len(vols.Namespace) == 0 {
-		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceCVK)]
+		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -228,10 +235,10 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	cvols, err := vOps.List()
 	if err != nil {
-		glog.Errorf("failed to list cas template based volumes: error '%s'", err.Error())
+		glog.Errorf("failed to list cas template based volumes at namespaces '%s': error '%s'", vols.Namespace, err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("cas template based volumes were listed successfully")
+	glog.Infof("cas template based volumes were listed successfully: namespaces '%s'", vols.Namespace)
 	return cvols, nil
 }

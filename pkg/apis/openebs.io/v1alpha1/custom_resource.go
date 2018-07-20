@@ -110,8 +110,14 @@ type CASTemplateSpec struct {
 	// Defaults are a list of default configurations that may be applied
 	// during provisioning of a CAS volume
 	Defaults []Config `json:"defaultConfig"`
+	// TaskNamespace is the namespace where the tasks
+	// are expected to be found
+	TaskNamespace string `json:"taskNamespace"`
 	// RunTasks refers to a set of tasks to be run
 	RunTasks RunTasks `json:"run"`
+	// OutputTask is the task that has the CAS template result's output
+	// format
+	OutputTask string `json:"output"`
 }
 
 // CASUpdateSpec is the specification to update a CAS volume
@@ -164,14 +170,8 @@ type Config struct {
 // RunTasks contains fields to run a set of
 // tasks
 type RunTasks struct {
-	// TaskNamespace is the namespace where the tasks
-	// are expected to be found
-	TaskNamespace string `json:"taskNamespace"`
 	// Items is a set of order-ed tasks
-	Tasks []Task `json:"tasks"`
-	// Output is the task that has the output
-	// format specified
-	Output Task `json:"output"`
+	Tasks []string `json:"tasks"`
 }
 
 // Task has information about an action and a resource where the action
@@ -179,19 +179,19 @@ type RunTasks struct {
 //
 // For example a resource can be a kubernetes resource and the corresponding
 // action can be to apply this resource to kubernetes cluster.
-type Task struct {
-	// TaskName is the name of the task.
-	//
-	// NOTE: A task refers to a K8s ConfigMap.
-	TaskName string `json:"task"`
-	// Identity is the unique identity that can differentiate
-	// two tasks even when using the same template
-	Identity string `json:"id"`
-	// APIVersion is the version related to the task's resource
-	//APIVersion string `json:"apiVersion"`
-	// Kind is the kind corresponding to the task's resource
-	//Kind string `json:"kind"`
-}
+//type Task struct {
+// TaskName is the name of the task.
+//
+// NOTE: A task refers to a K8s ConfigMap.
+//TaskName string `json:"task"`
+// Identity is the unique identity that can differentiate
+// two tasks even when using the same template
+//Identity string `json:"id"`
+// APIVersion is the version related to the task's resource
+//APIVersion string `json:"apiVersion"`
+// Kind is the kind corresponding to the task's resource
+//Kind string `json:"kind"`
+//}
 
 // +genclient
 // +genclient:noStatus
@@ -262,7 +262,6 @@ type CStorPoolList struct {
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolumereplica
-// +genclient:nonNamespaced
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
@@ -274,8 +273,8 @@ type CStorVolumeReplica struct {
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	CStorControllerIP string `json:"cStorControllerIP"`
-	Capacity          string `json:"capacity"`
+	TargetIP string `json:"targetIP"`
+	Capacity string `json:"capacity"`
 }
 
 // CStorVolumeReplicaPhase is to hold result of action.
@@ -313,35 +312,37 @@ type CStorVolumeReplicaList struct {
 
 // +genclient
 // +genclient:noStatus
-// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolume
 
-// CStorVolume describes a CStorVolume.
+// CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   CStorVolumeSpec  `json:"spec"`
-	Status CStorVolumePhase `json:"status"`
+	Spec              CStorVolumeSpec   `json:"spec"`
+	Status            CStorVolumeStatus `json:"status"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	CStorControllerIP string `json:"cstorControllerIP"`
-	VolumeName        string `json:"volumeName"`
-	VolumeID          string `json:"volumeID"`
-	Capacity          string `json:"capacity"`
-	Status            string `json:"status"`
+	Capacity     string `json:"capacity"`
+	TargetIP     string `json:"targetIP"`
+	TargetPort   string `json:"targetPort"`
+	Iqn          string `json:"iqn"`
+	TargetPortal string `json:"targetPortal"`
+	Status       string `json:"status"`
 }
 
-// CStorVolumePhase is for handling status of volume.
-type CStorVolumePhase struct {
-	Phase string `json:"phase"` //init/online/offline/deletion-failed
+// CStorVolumePhase is to hold result of action.
+type CStorVolumePhase string
+
+// CStorVolumeStatus is for handling status of cvr.
+type CStorVolumeStatus struct {
+	Phase CStorVolumePhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=cstorvolumes
+// +resource:path=cstorvolume
 
 // CStorVolumeList is a list of CStorVolume resources
 type CStorVolumeList struct {

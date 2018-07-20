@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/template"
 
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,6 +73,9 @@ type MetaTask struct {
 	// Options is a set of selectors that can be used for
 	// get or list actions
 	Options string `json:"options"`
+	// @Deprecated
+	//  In favour of 'RunTask.post' property
+	//
 	// TaskResultQueries will consist of the queries to be run against the
 	// task's result
 	TaskResultQueries []TaskResultQuery `json:"queries"`
@@ -84,9 +88,12 @@ type MetaTask struct {
 	// # max of 10 attempts in 20 seconds interval
 	// retry: "10,20s"
 	Retry string `json:"retry"`
-	// TaskPatch will consist of patches that gets applied
-	// against the task object
-	//TaskPatch `json:"patch"`
+	// RepeatWith sets one or more resources of a given kind that leads to
+	// repetitive execution of a task (in other words a task template is executed
+	// multiple times). The repetition count is determined by the resource names
+	// specified. Each task execution is based on a resource from this provided
+	// list of resources.
+	RepeatWith RepeatWithResource `json:"repeatWith"`
 }
 
 type metaTaskExecutor struct {
@@ -95,14 +102,13 @@ type metaTaskExecutor struct {
 	// identifier is a utility struct that enables a task's identity
 	// related operations
 	identifier taskIdentifier
+	// repeater exposes operations with respect to repetitive execution of this
+	// task
+	repeater repeatWithResourceExecutor
 }
 
 // newMetaTaskExecutor provides a new instance of metaTaskExecutor
-func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*metaTaskExecutor, error) {
-	if len(strings.TrimSpace(identity)) == 0 {
-		return nil, fmt.Errorf("failed to create meta task executor: blank identity provided")
-	}
-
+func newMetaTaskExecutor(yml string, values map[string]interface{}) (*metaTaskExecutor, error) {
 	// transform the yaml with provided values
 	b, err := template.AsTemplatedBytes("MetaTask", yml, values)
 	if err != nil {
@@ -116,9 +122,6 @@ func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*
 		return nil, err
 	}
 
-	// set the task identity
-	m.Identity = identity
-
 	// instantiate the task identifier based out of this MetaTask
 	i, err := newTaskIdentifier(m.TaskIdentity)
 	if err != nil {
@@ -128,20 +131,33 @@ func newMetaTaskExecutor(identity, yml string, values map[string]interface{}) (*
 	return &metaTaskExecutor{
 		metaTask:   m,
 		identifier: i,
+		repeater:   newRepeatWithResourceExecutor(m.RepeatWith),
 	}, nil
+}
+
+func (m *metaTaskExecutor) setObjectName(objName string) {
+	m.metaTask.ObjectName = objName
 }
 
 func (m *metaTaskExecutor) getMetaInfo() MetaTask {
 	return m.metaTask
 }
 
+func (m *metaTaskExecutor) getRepeatWithResourceExecutor() repeatWithResourceExecutor {
+	return m.repeater
+}
+
+func (m *metaTaskExecutor) getIdentity() string {
+	return m.metaTask.Identity
+}
+
+func (m *metaTaskExecutor) getTaskIdentity() TaskIdentity {
+	return m.metaTask.TaskIdentity
+}
+
 func (m *metaTaskExecutor) getTaskResultQueries() []TaskResultQuery {
 	return m.metaTask.TaskResultQueries
 }
-
-//func (m *metaTaskExecutor) getTaskPatch() TaskPatch {
-//	return m.metaTask.TaskPatch
-//}
 
 func (m *metaTaskExecutor) getObjectName() string {
 	return m.metaTask.ObjectName
@@ -154,7 +170,7 @@ func (m *metaTaskExecutor) getRunNamespace() string {
 func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
 	retry := m.metaTask.Retry
 	// "attempts,interval" format
-	defRetry := "1,0s"
+	defRetry := "0,0s"
 
 	// retry is a comma separated string with attempts as first element &
 	// interval as second element
@@ -165,8 +181,9 @@ func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
 
 	// determine the attempts
 	attempts, _ = strconv.Atoi(retryArr[0])
-	if attempts == 0 {
-		attempts = 1
+	if attempts < 0 {
+		// no retries for negative attempt value
+		attempts = 0
 	}
 	// determine the interval
 	interval, _ = time.ParseDuration(retryArr[1])
@@ -232,6 +249,10 @@ func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isDelete()
 }
 
+func (m *metaTaskExecutor) isListCoreV1PVC() bool {
+	return m.identifier.isCoreV1PVC() && m.isList()
+}
+
 func (m *metaTaskExecutor) isListCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isList()
 }
@@ -256,6 +277,34 @@ func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isPut()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isList()
+}
+
+func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isList()
+}
+
 // asRollbackInstance defines a metaTaskExecutor suitable for
 // rollback operation.
 //
@@ -272,8 +321,15 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, false, nil
 	}
 
-	// build the rollback version of this MetaTask
+	if len(objectName) == 0 {
+		errMsg := fmt.Sprintf("failed to build rollback instance for task '%s': object name is missing", m.getIdentity())
+		glog.Errorf(fmt.Sprintf("%s: meta task '%#v'", errMsg, m.getMetaInfo()))
+		return nil, true, fmt.Errorf(errMsg)
+	}
+
+	// build the rollback version of this meta task
 	rbMT := MetaTask{
+		// Setting the action to "Delete" is the key
 		Action:     DeleteTA,
 		ObjectName: objectName,
 		TaskIdentity: TaskIdentity{

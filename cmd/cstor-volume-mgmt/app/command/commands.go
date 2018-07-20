@@ -41,8 +41,7 @@ func NewCmdOptions() *cobra.Command {
 	return cmd
 }
 
-// NewCStorVolumeMgmt creates a new CStorVolumeMgmt. This cmd includes logging,
-// cmd option parsing from flags.
+// NewCStorVolumeMgmt creates a new CStorVolume CRD watcher command.
 func NewCStorVolumeMgmt() (*cobra.Command, error) {
 	// Create a new command.
 	cmd := &cobra.Command{
@@ -60,7 +59,7 @@ func NewCStorVolumeMgmt() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-// Run is to CStorVolumeMgmt.
+// Run is to run cstor-volume-mgmt command without any arguments
 func Run(cmd *cobra.Command) error {
 	glog.Infof("cstor-volume-mgmt watcher for CStorVolume objects")
 	return nil

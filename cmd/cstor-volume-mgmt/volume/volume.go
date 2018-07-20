@@ -27,10 +27,11 @@ import (
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
 const (
-	VolumeOperator  = "iscsi"
-	IstgtConfPath   = "/usr/local/etc/istgt/istgt.conf"
-	IstgtStatusCmd  = "STATUS"
-	IstgtRefreshCmd = "REFRESH"
+	VolumeOperator   = "iscsi"
+	IstgtConfPath    = "/usr/local/etc/istgt/istgt.conf"
+	IstgtStatusCmd   = "STATUS"
+	IstgtRefreshCmd  = "REFRESH"
+	WaitTimeForIscsi = 3 * time.Second
 )
 
 //FileOperatorVar is used for doing File Operations
@@ -45,14 +46,14 @@ func CreateVolume(cStorVolume *apis.CStorVolume) error {
 	text := CreateIstgtConf(cStorVolume)
 	err := FileOperatorVar.Write(IstgtConfPath, text, 0644)
 	if err != nil {
-		glog.Errorf("Failed to write istgt.conf...")
+		glog.Errorf("Failed to write istgt.conf")
 	}
 	glog.Info("Done writing istgt.conf")
 
 	// send refresh command to istgt and read the response
 	_, err = UnixSockVar.SendCommand(IstgtRefreshCmd)
 	if err != nil {
-		glog.Info("refresh failed")
+		glog.Info("Failed to refresh iscsi service with new configuration.")
 	}
 	glog.Info("Creating Iscsi Volume Successful")
 	return nil
@@ -90,10 +91,10 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   AuthGroup None
 `)
 
-	portaluc1 := []byte("  Portal UC1 " + cStorVolume.Spec.CStorControllerIP + ":3261\n")
+	portaluc1 := []byte("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
 	text = append(text, portaluc1...)
 
-	netmask := []byte("  Netmask " + cStorVolume.Spec.CStorControllerIP + "/8\n")
+	netmask := []byte("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
 	text = append(text, netmask...)
 
 	text1 := []byte(`
@@ -102,7 +103,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 `)
 	text = append(text, text1...)
 
-	portalda1 := []byte("  Portal DA1 " + cStorVolume.Spec.CStorControllerIP + ":3260\n")
+	portalda1 := []byte("  Portal DA1 " + cStorVolume.Spec.TargetIP + ":3260\n")
 	text = append(text, portalda1...)
 
 	text2 := []byte(`
@@ -121,9 +122,9 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 
 	text = append(text, text2...)
 
-	targetName := []byte("  TargetName " + cStorVolume.Spec.VolumeName + "\n")
+	targetName := []byte("  TargetName " + cStorVolume.Name + "\n")
 	text = append(text, targetName...)
-	targetAlias := []byte("  TargetAlias nicknamefor-" + cStorVolume.Spec.VolumeName)
+	targetAlias := []byte("  TargetAlias nicknamefor-" + cStorVolume.Name)
 	text = append(text, targetAlias...)
 
 	text3 := []byte(`
@@ -142,7 +143,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 `)
 	text = append(text, text3...)
 
-	unitinquiry := []byte("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + cStorVolume.Spec.VolumeID + "\"")
+	unitinquiry := []byte("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + cStorVolume.UID + "\"")
 	text = append(text, unitinquiry...)
 
 	text4 := []byte(`
@@ -170,13 +171,13 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.ObjectMeta.UID)) == 0 {
 		return fmt.Errorf("Invalid volume resource")
 	}
-	if len(string(cStorVolume.Spec.CStorControllerIP)) == 0 {
-		return fmt.Errorf("cstorControllerIP cannot be empty")
+	if len(string(cStorVolume.Spec.TargetIP)) == 0 {
+		return fmt.Errorf("targetIP cannot be empty")
 	}
-	if len(string(cStorVolume.Spec.VolumeName)) == 0 {
+	if len(string(cStorVolume.Name)) == 0 {
 		return fmt.Errorf("volumeName cannot be empty")
 	}
-	if len(string(cStorVolume.Spec.VolumeID)) == 0 {
+	if len(string(cStorVolume.UID)) == 0 {
 		return fmt.Errorf("volumeID cannot be empty")
 	}
 	if len(string(cStorVolume.Spec.Capacity)) == 0 {
@@ -191,7 +192,7 @@ func CheckForIscsi() {
 	for {
 		_, err := UnixSockVar.SendCommand(IstgtStatusCmd)
 		if err != nil {
-			time.Sleep(3 * time.Second)
+			time.Sleep(WaitTimeForIscsi)
 			glog.Warningf("Waiting for istgt... err : %v", err)
 			continue
 		}

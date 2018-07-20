@@ -27,7 +27,7 @@ import (
 // CStorVolumesGetter has a method to return a CStorVolumeInterface.
 // A group's client should implement this interface.
 type CStorVolumesGetter interface {
-	CStorVolumes() CStorVolumeInterface
+	CStorVolumes(namespace string) CStorVolumeInterface
 }
 
 // CStorVolumeInterface has methods to work with CStorVolume resources.
@@ -46,12 +46,14 @@ type CStorVolumeInterface interface {
 // cStorVolumes implements CStorVolumeInterface
 type cStorVolumes struct {
 	client rest.Interface
+	ns     string
 }
 
 // newCStorVolumes returns a CStorVolumes
-func newCStorVolumes(c *OpenebsV1alpha1Client) *cStorVolumes {
+func newCStorVolumes(c *OpenebsV1alpha1Client, namespace string) *cStorVolumes {
 	return &cStorVolumes{
 		client: c.RESTClient(),
+		ns:     namespace,
 	}
 }
 
@@ -59,6 +61,7 @@ func newCStorVolumes(c *OpenebsV1alpha1Client) *cStorVolumes {
 func (c *cStorVolumes) Get(name string, options v1.GetOptions) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -71,6 +74,7 @@ func (c *cStorVolumes) Get(name string, options v1.GetOptions) (result *v1alpha1
 func (c *cStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeList, err error) {
 	result = &v1alpha1.CStorVolumeList{}
 	err = c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -82,6 +86,7 @@ func (c *cStorVolumes) List(opts v1.ListOptions) (result *v1alpha1.CStorVolumeLi
 func (c *cStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -91,6 +96,7 @@ func (c *cStorVolumes) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *cStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Post().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Body(cStorVolume).
 		Do().
@@ -102,6 +108,7 @@ func (c *cStorVolumes) Create(cStorVolume *v1alpha1.CStorVolume) (result *v1alph
 func (c *cStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Put().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(cStorVolume.Name).
 		Body(cStorVolume).
@@ -113,6 +120,7 @@ func (c *cStorVolumes) Update(cStorVolume *v1alpha1.CStorVolume) (result *v1alph
 // Delete takes name of the cStorVolume and deletes it. Returns an error if one occurs.
 func (c *cStorVolumes) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		Name(name).
 		Body(options).
@@ -123,6 +131,7 @@ func (c *cStorVolumes) Delete(name string, options *v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *cStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -134,6 +143,7 @@ func (c *cStorVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions v
 func (c *cStorVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CStorVolume, err error) {
 	result = &v1alpha1.CStorVolume{}
 	err = c.client.Patch(pt).
+		Namespace(c.ns).
 		Resource("cstorvolumes").
 		SubResource(subresources...).
 		Name(name).

@@ -1,11 +1,11 @@
 package util
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"net"
 	"strings"
+
+	"github.com/golang/glog"
 )
 
 // IstgtUctlUnxpath is the storage path for the UNIX domain socket from istgt
@@ -24,13 +24,13 @@ func Reader(r io.Reader, cmd string) []string {
 		buf := make([]byte, 1024)
 		n, err := r.Read(buf[:])
 		if n > 0 {
-			println("Client got:", string(buf[0:n]))
+			glog.Infof("Client got:", string(buf[0:n]))
 			fulllines = append(fulllines, buf[0:n]...)
 			if strings.HasSuffix(string(fulllines), EndOfLine) {
 				lines := strings.Split(string(fulllines), EndOfLine)
 				for _, line := range lines {
 					if len(line) != 0 {
-						println("appending line to resp : ", line)
+						glog.Infof("Appending line to resp : ", line)
 						resp = append(resp, line+EndOfLine)
 					}
 				}
@@ -40,17 +40,17 @@ func Reader(r io.Reader, cmd string) []string {
 
 			if !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
 				!strings.HasPrefix(resp[len(resp)-1], cmd) {
-				println("breaking out of loop for line :", resp[len(resp)-1])
+				glog.Infof("Breaking out of loop for line :", resp[len(resp)-1])
 				break
 			}
 		}
 		if err != nil {
-			log.Print("Read error:", err)
+			glog.Errorf("Read error : %v", err)
 			break
 		}
 		buf = nil
 	}
-	fmt.Printf("response : %v\n ", resp)
+	glog.Infof("response : %v", resp)
 	return resp
 }
 
@@ -58,9 +58,9 @@ func Reader(r io.Reader, cmd string) []string {
 func Writer(w io.Writer, msg string) error {
 	_, err := w.Write([]byte(msg))
 	if err != nil {
-		log.Fatal("Write error:", err)
+		glog.Fatal("Write error: ", err)
 	} else {
-		println("Client sent:", msg)
+		glog.Infof("Client sent:", msg)
 	}
 	return err
 }
@@ -77,7 +77,7 @@ type RealUnixSock struct{}
 func (r RealUnixSock) SendCommand(cmd string) ([]string, error) {
 	c, err := net.Dial("unix", IstgtUctlUnxpath)
 	if err != nil {
-		log.Fatal("Dial error", err)
+		glog.Fatal("Dial error", err)
 	}
 	err = Writer(c, cmd+EndOfLine)
 	if err != nil {

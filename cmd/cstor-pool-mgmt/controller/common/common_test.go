@@ -143,8 +143,8 @@ func TestPoolNameHandler(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					CStorControllerIP: "127.0.0.1",
-					Capacity:          "100MB",
+					TargetIP: "127.0.0.1",
+					Capacity: "100MB",
 				},
 			},
 		},

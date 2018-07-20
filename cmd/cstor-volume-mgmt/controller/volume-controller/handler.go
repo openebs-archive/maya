@@ -1,3 +1,19 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package volumecontroller
 
 import (
@@ -19,7 +35,7 @@ import (
 // converge the two. It then updates the Status block of the cStorVolumeUpdated resource
 // with the current status of the resource.
 func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOperation) error {
-	glog.Infof("at sync handler")
+	glog.Infof("Handling %v operation for resource : %s ", operation, key)
 	cStorVolumeGot, err := c.getVolumeResource(key)
 	if err != nil {
 		return err
@@ -28,26 +44,31 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 	if status == common.CVStatusIgnore {
 		return nil
 	}
-	cStorVolumeGot.Status.Phase = string(status)
+	cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(status)
 	if err != nil {
-		_, err := c.clientset.OpenebsV1alpha1().CStorVolumes().Update(cStorVolumeGot)
+		glog.Errorf(err.Error())
+		glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
+			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
+
+		_, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 		if err != nil {
 			return err
 		}
 		return err
 	}
-	_, err = c.clientset.OpenebsV1alpha1().CStorVolumes().Update(cStorVolumeGot)
+	_, err = c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 	if err != nil {
 		return err
 	}
+	glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
+		string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
 	return nil
+
 }
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
 func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOperation, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
-	// volume.FileOperatorVar = util.RealFileOperator{}
-	// volume.UnixSockVar = util.RealUnixSock{}
-	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Spec.VolumeName)
+	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Name)
 	switch operation {
 	case common.QOpAdd:
 		// CheckValidVolume is to check if volume attributes are correct.
@@ -88,6 +109,7 @@ func (c *CStorVolumeController) enqueueCStorVolume(obj *apis.CStorVolume, q comm
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+		glog.Errorf("Failed to enqueue %v operation for CStorVolume resource %s", q.Operation, q.Key)
 		runtime.HandleError(err)
 		return
 	}
@@ -98,19 +120,23 @@ func (c *CStorVolumeController) enqueueCStorVolume(obj *apis.CStorVolume, q comm
 // getVolumeResource returns object corresponding to the resource key
 func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume, error) {
 	// Convert the key(namespace/name) string into a distinct name
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s, err: %v", key, err))
-		return nil, nil
+		runtime.HandleError(fmt.Errorf("Invalid resource key: %s, err: %v", key, err))
+		return nil, err
 	}
 
-	cStorVolumeGot, err := c.clientset.OpenebsV1alpha1().CStorVolumes().Get(name, metav1.GetOptions{})
+	if len(namespace) == 0 {
+		namespace = string(common.DefaultNameSpace)
+	}
+
+	cStorVolumeGot, err := c.clientset.OpenebsV1alpha1().CStorVolumes(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The cStorVolume resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("cStorVolumeGot '%s' in work queue no longer exists", key))
-			return nil, nil
+			return nil, err
 		}
 
 		return nil, err
@@ -120,21 +146,21 @@ func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume
 
 // IsValidCStorVolumeMgmt is to check if the volume request is for particular pod/application.
 func IsValidCStorVolumeMgmt(cStorVolume *apis.CStorVolume) bool {
-	if os.Getenv("OPENEBS_IO_CSTOR_VOLUME_ID") == string(cStorVolume.ObjectMeta.UID) {
-		glog.V(2).Infof("right watcher for the cstor volume resource with id : %s", cStorVolume.ObjectMeta.UID)
+	if os.Getenv(string(common.OpenEBSIOCStorVolumeID)) == string(cStorVolume.UID) {
+		glog.V(2).Infof("Right watcher for the cstor volume resource with id : %s", cStorVolume.UID)
 		return true
 	}
-	glog.V(2).Infof("wrong watcher for the cstor volume resource with id : %s", cStorVolume.ObjectMeta.UID)
+	glog.V(2).Infof("Wrong watcher for the cstor volume resource with id : %s", cStorVolume.UID)
 	return false
 }
 
 // IsDestroyEvent is to check if the call is for cStorVolume destroy.
 func IsDestroyEvent(cStorVolume *apis.CStorVolume) bool {
 	if cStorVolume.ObjectMeta.DeletionTimestamp != nil {
-		glog.V(2).Infof("cstor volume destroy event for volume : %s", cStorVolume.Spec.VolumeName)
+		glog.Infof("CStor volume destroy event for volume : %s", cStorVolume.Name)
 		return true
 	}
-	glog.V(2).Infof("cstor volume modify event for volume : %s", cStorVolume.Spec.VolumeName)
+	glog.Infof("CStor volume modify event for volume : %s", cStorVolume.Name)
 	return false
 }
 
@@ -142,9 +168,9 @@ func IsDestroyEvent(cStorVolume *apis.CStorVolume) bool {
 func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	if reflect.DeepEqual(oldCStorVolume.Spec, newCStorVolume.Spec) &&
 		!reflect.DeepEqual(oldCStorVolume.Status, newCStorVolume.Status) {
-		glog.V(2).Infof("only status changed for cstor volume : %s", newCStorVolume.Spec.VolumeName)
+		glog.Infof("Only status changed for cstor volume : %s", newCStorVolume.Name)
 		return true
 	}
-	glog.V(2).Infof("no status changed for cstor volume : %s", newCStorVolume.Spec.VolumeName)
+	glog.Infof("No status changed for cstor volume : %s", newCStorVolume.Name)
 	return false
 }

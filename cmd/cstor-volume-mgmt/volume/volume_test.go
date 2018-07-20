@@ -21,14 +21,13 @@ func TestCreateVolume(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("abc"),
+					Name: "testvol1",
+					UID:  types.UID("abc"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
 			},
 		},
@@ -52,30 +51,28 @@ func TestCheckValidVolume(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID(""),
+					Name: "testvol1",
+					UID:  types.UID(""),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
 			},
 		},
 		"Invalid-cstorControllerIPEmpty": {
-			expectedError: fmt.Errorf("cstorControllerIP cannot be empty"),
+			expectedError: fmt.Errorf("targetIP cannot be empty"),
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("123"),
+					Name: "testvol1",
+					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "",
+					Capacity: "5G",
+					Status:   "init",
 				},
 			},
 		},
@@ -85,30 +82,13 @@ func TestCheckValidVolume(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("123"),
+					Name: "",
+					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
-				},
-			},
-		},
-		"Invalid-volumeIDEmpty": {
-			expectedError: fmt.Errorf("volumeID cannot be empty"),
-			test: &apis.CStorVolume{
-				TypeMeta: v1.TypeMeta{},
-				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("123"),
-				},
-				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
 			},
 		},
@@ -117,14 +97,13 @@ func TestCheckValidVolume(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("123"),
+					Name: "testvol1",
+					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "",
+					Status:   "init",
 				},
 			},
 		},

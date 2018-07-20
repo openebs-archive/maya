@@ -39,13 +39,11 @@ func TestGetVolumeResource(t *testing.T) {
 					UID:  types.UID("abc"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 		"img2VolumeResource": {
@@ -57,19 +55,17 @@ func TestGetVolumeResource(t *testing.T) {
 					UID:  types.UID("abcd"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abcd",
-					VolumeID:          "abcd",
-					Capacity:          "15G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "15G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 	}
 	for desc, ut := range testVolumeResource {
 		// Create Volume resource
-		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes().Create(ut.test)
+		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes("default").Create(ut.test)
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}
@@ -98,13 +94,11 @@ func TestIsValidCStorVolumeMgmt(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abcd",
-					VolumeID:          "abcd",
-					Capacity:          "15G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "15G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 	}
@@ -135,13 +129,11 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abcd",
-					VolumeID:          "abcd",
-					Capacity:          "15G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "15G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 	}

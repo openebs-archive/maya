@@ -71,17 +71,15 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{Phase: "init"},
+				Status: apis.CStorVolumeStatus{Phase: "init"},
 			},
 		},
 	}
-	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes().Create(testVolumeResource["img2VolumeResource"].test)
+	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes("default").Create(testVolumeResource["img2VolumeResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testVolumeResource["img2VolumeResource"].test.ObjectMeta.Name)
 	}
@@ -125,18 +123,16 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 	}
 
-	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes().Create(testVolumeResource["img2VolumeResource"].test)
+	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes("default").Create(testVolumeResource["img2VolumeResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testVolumeResource["img2VolumeResource"].test.ObjectMeta.Name)
 	}
@@ -179,18 +175,16 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					CStorControllerIP: "0.0.0.0",
-					VolumeName:        "abc",
-					VolumeID:          "abc",
-					Capacity:          "5G",
-					Status:            "init",
+					TargetIP: "0.0.0.0",
+					Capacity: "5G",
+					Status:   "init",
 				},
-				Status: apis.CStorVolumePhase{},
+				Status: apis.CStorVolumeStatus{},
 			},
 		},
 	}
 
-	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes().Create(testVolumeResource["img2VolumeResource"].test)
+	_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes("default").Create(testVolumeResource["img2VolumeResource"].test)
 	if err != nil {
 		t.Fatalf("Unable to create resource : %v", testVolumeResource["img2VolumeResource"].test.ObjectMeta.Name)
 	}

@@ -33,18 +33,56 @@ const (
 type EventReason string
 
 const (
-	// SuccessSyncedER is used as part of the Event 'reason' when a resource is synced
-	SuccessSyncedER EventReason = "Synced"
-	// ErrResourceExistsER is used as part of the Event 'reason' when a resource fails
-	// to sync due to a resource of the same name already existing.
-	ErrResourceExistsER EventReason = "ErrResourceExists"
+	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
+	SuccessSynced EventReason = "Synced"
+	// MessageCreateSynced holds message for corresponding create request sync.
+	MessageCreateSynced EventReason = "Received Resource create event"
+	// MessageModifySynced holds message for corresponding modify request sync.
+	MessageModifySynced EventReason = "Received Resource modify event"
+	// MessageDestroySynced holds message for corresponding destroy request sync.
+	MessageDestroySynced EventReason = "Received Resource destroy event"
 
-	// MessageResourceExistsER is the message used for Events which
-	// fails to sync due to a resource already existing
-	MessageResourceExistsER EventReason = "Resource %q already exists and cannot be handled"
-	// MessageResourceSyncedER is the message used for an Event fired when a resource
-	// is synced successfully
-	MessageResourceSyncedER EventReason = "Resource synced successfully"
+	// SuccessCreated holds status for corresponding created resource.
+	SuccessCreated EventReason = "Created"
+	// MessageResourceCreated holds message for corresponding created resource.
+	MessageResourceCreated EventReason = "Resource created successfully"
+
+	// FailureCreate holds status for corresponding failed create resource.
+	FailureCreate EventReason = "FailCreate"
+	// MessageResourceFailCreate holds message for corresponding failed create resource.
+	MessageResourceFailCreate EventReason = "Resource creation failed"
+
+	// SuccessImported holds status for corresponding imported resource.
+	SuccessImported EventReason = "Imported"
+	// MessageResourceImported holds message for corresponding imported resource.
+	MessageResourceImported EventReason = "Resource imported successfully"
+
+	// FailureImport holds status for corresponding failed import resource.
+	FailureImport EventReason = "FailImport"
+	// MessageResourceFailImport holds message for corresponding failed import resource.
+	MessageResourceFailImport EventReason = "Resource import failed"
+
+	// FailureDestroy holds status for corresponding failed destroy resource.
+	FailureDestroy EventReason = "FailDestroy"
+	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
+	MessageResourceFailDestroy EventReason = "Resource Destroy failed"
+
+	// FailureValidate holds status for corresponding failed validate resource.
+	FailureValidate EventReason = "FailValidate"
+	// MessageResourceFailValidate holds message for corresponding failed validate resource.
+	MessageResourceFailValidate EventReason = "Resource validation failed"
+
+	// AlreadyPresent holds status for corresponding already present resource.
+	AlreadyPresent EventReason = "AlreadyPresent"
+	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
+	MessageResourceAlreadyPresent EventReason = "Resource already present"
+)
+
+const (
+	// CRDRetryInterval is used if CRD is not present.
+	CRDRetryInterval = 10 * time.Second
+	// ResourceWorkerInterval is used for resource sync.
+	ResourceWorkerInterval = time.Second
 )
 
 //CStorVolumeStatus represents the status of a CStorVolume object
@@ -53,27 +91,17 @@ type CStorVolumeStatus string
 // Status written onto CStorVolume objects.
 const (
 	// volume is getting initialized
-	CVStatusInit CStorVolumeStatus = "init"
+	CVStatusInit CStorVolumeStatus = "Init"
 	// volume is up and running
-	CVStatusOnline CStorVolumeStatus = "online"
+	CVStatusOnline CStorVolumeStatus = "Online"
 	// initial volume controller config generation did not happen and the volume is offline
-	CVStatusOffline CStorVolumeStatus = "offline"
+	CVStatusOffline CStorVolumeStatus = "Offline"
 	// volume controller config generation failed due to invalid parameters
-	CVStatusInvalid CStorVolumeStatus = "invalid"
+	CVStatusInvalid CStorVolumeStatus = "Invalid"
 	// volume controller config generation failed
-	CVStatusFailed CStorVolumeStatus = "failed"
+	CVStatusFailed CStorVolumeStatus = "Failed"
 	// CR event ignored
-	CVStatusIgnore CStorVolumeStatus = "ignore"
-)
-
-//QueueOperation represents the type of operation on the controller work queue
-type QueueOperation string
-
-//Different type of operations on the controller work queue
-const (
-	QOpAdd     QueueOperation = "add"
-	QOpDestroy QueueOperation = "destroy"
-	QOpModify  QueueOperation = "modify"
+	CVStatusIgnore CStorVolumeStatus = "Ignore"
 )
 
 // QueueLoad is for storing the key and type of operation before entering workqueue
@@ -82,16 +110,46 @@ type QueueLoad struct {
 	Operation QueueOperation
 }
 
-// CheckForCStorVolumeCR is Blocking call for checking status of CStorVolume CR.
-func CheckForCStorVolumeCR(clientset clientset.Interface) {
+// Environment is for environment variables passed for cstor-volume-mgmt.
+type Environment string
+
+const (
+	// OpenEBSIOCStorVolumeID is the environment variable specified in pod.
+	OpenEBSIOCStorVolumeID Environment = "OPENEBS_IO_CSTOR_VOLUME_ID"
+)
+
+//QueueOperation represents the type of operation on resource
+type QueueOperation string
+
+//Different type of operations on the controller
+const (
+	QOpAdd     QueueOperation = "add"
+	QOpDestroy QueueOperation = "destroy"
+	QOpModify  QueueOperation = "modify"
+)
+
+// namespace defines kubernetes namespace specified for cvr.
+type namespace string
+
+// Different types of k8s namespaces.
+const (
+	DefaultNameSpace namespace = "default"
+)
+
+// CheckForCStorVolumeCRD is Blocking call for checking status of CStorVolume CRD.
+func CheckForCStorVolumeCRD(clientset clientset.Interface) {
 	for {
-		_, err := clientset.OpenebsV1alpha1().CStorVolumes().List(metav1.ListOptions{})
+		// Since this blocking function is restricted to check if CVR CRD is present
+        // or not, we are trying to handle only the error of CVR CR List api indirectly.
+        // CRD has only two types of scope, cluster and namespaced. If CR list api
+        // for default namespace works fine, then CR list api works for all namespaces.
+		_, err := clientset.OpenebsV1alpha1().CStorVolumes(string(DefaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolume CR not found...")
-			time.Sleep(10 * time.Second)
+			glog.Errorf("CStorVolume CRD not found. Retrying after %v", CRDRetryInterval)
+			time.Sleep(CRDRetryInterval)
 			continue
 		}
-		glog.Info("CStorVolume CR found")
+		glog.Info("CStorVolume CRD found")
 		break
 	}
 }

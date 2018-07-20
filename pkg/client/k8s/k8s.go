@@ -61,6 +61,12 @@ const (
 	StroagePoolCRKK K8sKind = "StoragePool"
 	// PersistentVolumeClaimKK is a K8s PersistentVolumeClaim Kind
 	PersistentVolumeClaimKK K8sKind = "PersistentVolumeClaim"
+	// CstorPoolCRKK is a K8s CR of kind CStorPool
+	CStorPoolCRKK K8sKind = "CStorPool"
+	// CstorVolumeCRKK is a K8s CR of kind CStorVolume
+	CStorVolumeCRKK K8sKind = "CStorVolume"
+	// CstorVolumeReplicaCRKK is a K8s CR of kind CStorVolumeReplica
+	CStorVolumeReplicaCRKK K8sKind = "CStorVolumeReplica"
 )
 
 //
@@ -121,6 +127,21 @@ type K8sClient struct {
 	// during unit testing
 	StoragePool *api_oe_v1alpha1.StoragePool
 
+	// CStorPool refers to a K8s CStorPool CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	CStorPool *api_oe_v1alpha1.CStorPool
+
+	// CStorVolume refers to a K8s CStorVolume CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	CStorVolume *api_oe_v1alpha1.CStorVolume
+
+	// CStorVolumeReplica refers to a K8s CStorVolumeReplica CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	CStorVolumeReplica *api_oe_v1alpha1.CStorVolumeReplica
+
 	// CASTemplate refers to a K8s CASTemplate custom resource
 	// NOTE: This property is useful to mock
 	// during unit testing
@@ -177,6 +198,23 @@ func (k *K8sClient) oeV1alpha1SPOps() typed_oe_v1alpha1.StoragePoolInterface {
 	return k.oecs.OpenebsV1alpha1().StoragePools()
 }
 
+// oeV1alpha1CSPOps is a utility function that provides a instance capable of
+// executing various OpenEBS CStorPool related operations
+func (k *K8sClient) oeV1alpha1CSPOps() typed_oe_v1alpha1.CStorPoolInterface {
+	return k.oecs.OpenebsV1alpha1().CStorPools()
+}
+
+// GetOEV1alpha1CSP fetches the OpenEBS CStorPool specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, error) {
+	if k.CStorPool != nil {
+		return k.CStorPool, nil
+	}
+
+	cspOps := k.oeV1alpha1CSPOps()
+	return cspOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
 // GetOEV1alpha1SP fetches the OpenEBS StoragePool specs based on
 // the provided name
 func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, error) {
@@ -186,6 +224,72 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 
 	spOps := k.oeV1alpha1SPOps()
 	return spOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// CreateOEV1alpha1CV creates a CStorVolume
+func (k *K8sClient) CreateOEV1alpha1CV(cv *api_oe_v1alpha1.CStorVolume) (*api_oe_v1alpha1.CStorVolume, error) {
+	cvops := k.oeV1alpha1CVOps()
+	return cvops.Create(cv)
+}
+
+// oeV1alpha1CVOps is a utility function that provides a instance capable of
+// executing various OpenEBS CStorVolume related operations
+func (k *K8sClient) oeV1alpha1CVOps() typed_oe_v1alpha1.CStorVolumeInterface {
+	return k.oecs.OpenebsV1alpha1().CStorVolumes(k.ns)
+}
+
+// GetOEV1alpha1CV fetches the OpenEBS CStorVolume specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1CV(name string) (*api_oe_v1alpha1.CStorVolume, error) {
+	if k.CStorVolume != nil {
+		return k.CStorVolume, nil
+	}
+
+	cvOps := k.oeV1alpha1CVOps()
+	return cvOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// CreateOEV1alpha1CVAsRaw creates a CStorVolume
+func (k *K8sClient) CreateOEV1alpha1CVAsRaw(v *api_oe_v1alpha1.CStorVolume) (result []byte, err error) {
+	csv, err := k.CreateOEV1alpha1CV(v)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(csv)
+}
+
+// CreateOEV1alpha1CVR creates a CStorVolumeReplica
+func (k *K8sClient) CreateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
+	cvrops := k.oeV1alpha1CVROps()
+	return cvrops.Create(cvr)
+}
+
+// oeV1alpha1CVROps is a utility function that provides a instance capable of
+// executing various OpenEBS CStorVolumeReplica related operations
+func (k *K8sClient) oeV1alpha1CVROps() typed_oe_v1alpha1.CStorVolumeReplicaInterface {
+	return k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(k.ns)
+}
+
+// GetOEV1alpha1CVR fetches the OpenEBS CStorVolumeReplica specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1CVR(name string) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
+	if k.CStorVolume != nil {
+		return k.CStorVolumeReplica, nil
+	}
+
+	cvrOps := k.oeV1alpha1CVROps()
+	return cvrOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// CreateOEV1alpha1CVRAsRaw creates a CStorVolumeReplica
+func (k *K8sClient) CreateOEV1alpha1CVRAsRaw(vr *api_oe_v1alpha1.CStorVolumeReplica) (result []byte, err error) {
+	csvr, err := k.CreateOEV1alpha1CVR(vr)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(csvr)
 }
 
 // oeV1alpha1CASTOps is a utility function that provides a instance capable of
@@ -317,6 +421,27 @@ func (k *K8sClient) GetPod(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
+// GetPods fetches the K8s Pods
+func (k *K8sClient) GetPods() ([]api_core_v1.Pod, error) {
+	podLists, err := k.cs.Core().Pods(k.ns).List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return podLists.Items, nil
+}
+
+// ListCoreV1PVCAsRaw fetches a list of K8s PVCs with the provided options
+func (k *K8sClient) ListCoreV1PVCAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("persistentvolumeclaims").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
 // ListCoreV1PodAsRaw fetches a list of K8s Pods as per the provided options
 func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Get().
@@ -360,6 +485,42 @@ func (k *K8sClient) ListAppsV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
 
+	return
+}
+
+// ListOEV1alpha1CSPRaw fetches a list of CStorPool as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cspOps := k.oeV1alpha1CSPOps()
+	cspList, err := cspOps.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(cspList)
+	return
+}
+
+// ListOEV1alpha1CVRRaw fetches a list of CStorVolumeReplica as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1CVRRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cvrOps := k.oeV1alpha1CVROps()
+	cvrList, err := cvrOps.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(cvrList)
+	return
+}
+
+// ListOEV1alpha1CVRaw fetches a list of CStorVolume as per the
+// provided options
+func (k *K8sClient) ListOEV1alpha1CVRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	cvOps := k.oeV1alpha1CVOps()
+	cvrList, err := cvOps.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(cvrList)
 	return
 }
 
@@ -554,6 +715,26 @@ func (k *K8sClient) DeleteAppsV1B1Deployment(name string) error {
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteOEV1alpha1CSV deletes the CStorVolume with the provided name
+func (k *K8sClient) DeleteOEV1alpha1CSV(name string) error {
+	cvops := k.oeV1alpha1CVOps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return cvops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteOEV1alpha1CSV deletes the CStorVolumeReplica with the provided name
+func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
+	cvrops := k.oeV1alpha1CVROps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return cvrops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
 }

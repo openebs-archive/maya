@@ -36,9 +36,10 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
-// constants
 const (
-	NumThreads            = 2
+	// NumThreads defines number of worker threads for resource watcher.
+	NumThreads = 1
+	// NumRoutinesThatFollow is for handling golang waitgroups.
 	NumRoutinesThatFollow = 1
 )
 
@@ -71,7 +72,7 @@ func StartControllers(kubeconfig string) {
 	volume.CheckForIscsi()
 
 	// Blocking call for checking status of CStorVolume CR.
-	common.CheckForCStorVolumeCR(openebsClient)
+	common.CheckForCStorVolumeCRD(openebsClient)
 
 	//NewInformer returns a cache.Store and a controller for populating the store
 	// while also providing event notifications. It’s basically a controller with some
@@ -79,7 +80,6 @@ func StartControllers(kubeconfig string) {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 
-	// Instantiate the cStor Volume controllers.
 	cStorVolumeController := volumecontroller.NewCStorVolumeController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
@@ -105,9 +105,9 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	var masterURL string
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		glog.Warningf("failed to get k8s Incluster config. %+v", err)
+		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if len(kubeconfig) == 0 {
-			return nil, fmt.Errorf("kubeconfig is empty")
+			return nil, fmt.Errorf("kubeconfig is empty: %v", err.Error())
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {

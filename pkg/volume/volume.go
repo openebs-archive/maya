@@ -22,14 +22,13 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
+	"github.com/openebs/maya/pkg/engine"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // volumeOperationOptions contains the options with respect to
 // volume related operations
 type volumeOperationOptions struct {
-	// runNamespace is the namespace where volume operation will happen
-	//runNamespace string
 	// k8sClient will make K8s API calls
 	k8sClient *m_k8s_client.K8sClient
 }
@@ -63,7 +62,6 @@ func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
 		volume: volume,
 		volumeOperationOptions: volumeOperationOptions{
 			k8sClient: kc,
-			//runNamespace: volume.Namespace,
 		},
 	}, nil
 }
@@ -76,7 +74,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 
 	capacity := v.volume.Spec.Capacity
 	if len(capacity) == 0 {
-		capacity = v.volume.Labels[string(v1alpha1.CapacityCVDK)]
+		capacity = v.volume.Labels[string(v1alpha1.CapacityDeprecatedKey)]
 	}
 
 	if len(capacity) == 0 {
@@ -88,7 +86,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	// UnComment below once provisioner is able to send name of PVC
 	//
 	// pvc name corresponding to this volume
-	//pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimCVK)]
+	//pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
 	//if len(pvcName) == 0 {
 	//	return nil, fmt.Errorf("unable to create volume: missing persistent volume claim")
 	//}
@@ -100,7 +98,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	//}
 
 	// extract the cas volume config from pvc
-	//casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigCVK)]
+	//casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// TODO
 	//
@@ -109,7 +107,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	casConfigPVC := ""
 
 	// get the storage class name corresponding to this volume
-	scName := v.volume.Labels[string(v1alpha1.StorageClassCVK)]
+	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing storage class")
 	}
@@ -121,12 +119,12 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	// extract the cas volume config from storage class
-	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigCVK)]
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// cas template to create a cas volume
-	castName := sc.Annotations[string(v1alpha1.CASTemplateCVK)]
+	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)]
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateCVK)
+		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
 	}
 
 	// fetch CASTemplate specifications
@@ -135,12 +133,13 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// provision cas volume via cas template engine
-	cc, err := NewCASCreate(
+	// provision CAS volume via CAS volume specific CAS template engine
+	cc, err := NewCASVolumeEngine(
 		casConfigPVC,
 		casConfigSC,
 		cast,
-		map[string]string{
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):                 v.volume.Name,
 			string(v1alpha1.CapacityVTP):              capacity,
 			string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
@@ -152,7 +151,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	// create the volume
-	data, err := cc.create()
+	data, err := cc.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -172,11 +171,18 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
 
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for delete
+	//
 	// cas template to delete a cas volume
-	castName := v.volume.Annotations[string(v1alpha1.CASTemplateForDeleteCVK)]
+	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	if len(castName) == 0 {
 		// use the default delete cas template otherwise
-		castName = string(v1alpha1.CASTemplateForDeleteCVD)
+		// TODO
+		//  Remove the use of defaults & make volume annotations mandatory
+		// for delete operation
+		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeDelete)
 	}
 
 	// fetch delete cas template specifications
@@ -186,9 +192,10 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// delete cas volume via cas template engine
-	engine, err := NewCASEngine(
+	engine, err := engine.NewCASEngine(
 		cast,
-		map[string]string{
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):        v.volume.Name,
 			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
 		},
@@ -198,7 +205,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// delete the cas volume
-	data, err := engine.delete()
+	data, err := engine.Delete()
 	if err != nil {
 		return nil, err
 	}
@@ -219,11 +226,18 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for read
+	//
 	// cas template to read a cas volume
-	castName := v.volume.Annotations[string(v1alpha1.CASTemplateForReadCVK)]
+	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	if len(castName) == 0 {
-		// use the default read cas template otherwise
-		castName = string(v1alpha1.CASTemplateForReadCVD)
+		// use the DEFAULT read cas template otherwise
+		// TODO
+		//  Remove the use of defaults & make volume annotations mandatory
+		// for read operation
+		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeRead)
 	}
 
 	// fetch read cas template specifications
@@ -233,9 +247,10 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := NewCASEngine(
+	engine, err := engine.NewCASEngine(
 		cast,
-		map[string]string{
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):        v.volume.Name,
 			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
 		},
@@ -245,7 +260,7 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// read the volume details
-	data, err := engine.read()
+	data, err := engine.Read()
 	if err != nil {
 		return nil, err
 	}
@@ -262,9 +277,6 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 
 // VolumeListOperation exposes methods to execute volume list operation
 type VolumeListOperation struct {
-	// namespaces is the list of comma separated namespaces where list operation
-	// will be executed
-	//namespaces string
 	// volumeOperationOptions has the options to various volume related
 	// operations
 	volumeOperationOptions
@@ -285,7 +297,6 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 	}
 
 	return &VolumeListOperation{
-		//namespaces: namespaces,
 		volumes: volumes,
 		volumeOperationOptions: volumeOperationOptions{
 			k8sClient: kc,
@@ -294,11 +305,18 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 }
 
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
+	// TODO
+	// Get the PV details & extract the SC & then SC details
+	//  Get the CAS Template name for list
+	//
 	// cas template to list cas volumes
-	castName := v.volumes.Annotations[string(v1alpha1.CASTemplateForListCVK)]
+	castName := v.volumes.Annotations[string(v1alpha1.CASTemplateKeyForVolumeList)]
 	if len(castName) == 0 {
 		// use the default list cas template otherwise
-		castName = string(v1alpha1.CASTemplateForListCVD)
+		// TODO
+		//  Remove the use of defaults & make volume annotations mandatory
+		// for list operation
+		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeList)
 	}
 
 	// fetch read cas template specifications
@@ -308,9 +326,10 @@ func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := NewCASEngine(
+	engine, err := engine.NewCASEngine(
 		cast,
-		map[string]string{
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
 			string(v1alpha1.RunNamespaceVTP): v.volumes.Namespace,
 		},
 	)
@@ -319,7 +338,7 @@ func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	}
 
 	// read the volume details
-	data, err := engine.list()
+	data, err := engine.List()
 	if err != nil {
 		return nil, err
 	}
