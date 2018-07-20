@@ -94,7 +94,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 # UnitControl section
 [UnitControl]
   AuthMethod None
-  AuthGroup None	
+  AuthGroup None
 `)
 	buffer.WriteString("  Portal UC1 " + cStorVolume.Spec.TargetIP + ":3261\n")
 	buffer.WriteString("  Netmask " + cStorVolume.Spec.TargetIP + "/8\n")
@@ -166,11 +166,14 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	if len(string(cStorVolume.Spec.Capacity)) == 0 {
 		return fmt.Errorf("capacity cannot be empty")
 	}
-	if len(string(cStorVolume.Spec.ReplicationFactor)) == 0 {
-		return fmt.Errorf("replicationFactor cannot be empty")
+	if cStorVolume.Spec.ReplicationFactor == 0 {
+		return fmt.Errorf("replicationFactor cannot be zero")
 	}
-	if len(string(cStorVolume.Spec.ConsistencyFactor)) == 0 {
-		return fmt.Errorf("consistencyFactor cannot be empty")
+	if cStorVolume.Spec.ConsistencyFactor == 0 {
+		return fmt.Errorf("consistencyFactor cannot be zero")
+	}
+	if cStorVolume.Spec.ReplicationFactor < cStorVolume.Spec.ConsistencyFactor {
+		return fmt.Errorf("replicationFactor cannot be less than consistencyFactor")
 	}
 
 	return nil
