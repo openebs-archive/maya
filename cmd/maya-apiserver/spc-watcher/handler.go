@@ -51,11 +51,11 @@ func (c *Controller) syncHandler(key, operation string) error {
 func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolClaim, key string) (string, error) {
 	switch operation {
 	case addEvent:
-		// CreateCstorpool function will create the storage pool
-		err := cstorpool.CreateCstorpool(spcGot)
+		// CreateStoragePool function will create the storage pool
+		err := storagepoolactions.CreateStoragePool(spcGot)
 
 		if err !=nil{
-			glog.Error("Cstorpool could not be created:",err)
+			glog.Error("Storagepool could not be created:",err)
 			// To-Do
 			// If Some error occur patch the spc object with appropriate reason
 		}
@@ -70,10 +70,10 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		break
 
 	case deleteEvent:
-		err := cstorpool.DeleteCstorpool(key)
+		err := storagepoolactions.DeleteStoragePool(key)
 
 		if err !=nil{
-			glog.Error("Cstorpool could not be deleted:",err)
+			glog.Error("Storagepool could not be deleted:",err)
 		}
 
 		return deleteEvent, err
@@ -105,7 +105,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Invalid resource key: %s", key))
-		return nil, nil
+		return nil, err
 	}
 	spcGot, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(name,metav1.GetOptions{})
 	if err != nil {
@@ -113,7 +113,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		// processing.
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("spcGot '%s' in work queue no longer exists", key))
-			return nil, nil
+			return nil, err
 		}
 
 		return nil, err

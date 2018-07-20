@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cstorpool
+package storagepoolactions
 
 import (
 	"errors"
@@ -31,49 +31,46 @@ const(
 // Cas template is a custom resource which has a list of runTasks.
 
 // runTasks are configmaps which has defined yaml templates for resources that needs
-// to be created or deleted for a cstorpool creation or deletion respectively.
+// to be created or deleted for a storagepool creation or deletion respectively.
 
-// CreateCstorpool is a function that does following:
+// CreateStoragePool is a function that does following:
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
 
-// 2. There are three sources of information for creation of a cstorpool i.e.
-//    storagepoolclaim object,default values in cas template and hardcoded
-//    values in run tasks.
-//    The function will validate the contained information in storagepoolcalim object.
+// 2. After successful validation, it will call a worker function for actual storage creation
+//    via the cas template specified in storagepoolclaim.
 
-// 3. After successful validation, it will call a worker function for actual cstorpool creation.
-func CreateCstorpool(spcGot *apis.StoragePoolClaim) (error) {
+func CreateStoragePool(spcGot *apis.StoragePoolClaim) (error) {
 
-	glog.Infof("Cstorpool create event received for storagepoolclaim %s",spcGot.ObjectMeta.Name)
+	glog.Infof("Storagepool create event received for storagepoolclaim %s",spcGot.ObjectMeta.Name)
 
-	// Check wether the spc object has been processed for cstor pool creation
+	// Check wether the spc object has been processed for storagepool creation
 	if(spcGot.Status.Phase==onlineStatus){
-		return errors.New("Cstorpool already exists since the status on storagepoolclaim object is Online")
+		return errors.New("Storagepool already exists since the status on storagepoolclaim object is Online")
 	}
 
 	// Check for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if(poolType==""){
-		return errors.New("Aborting cstorpool create operation as no poolType is specified")
+		return errors.New("Aborting storagepool create operation as no poolType is specified")
 	}
 
 	// Check for disks
 	diskList := spcGot.Spec.Disks.DiskList
 	if(len(diskList)==0){
-		return errors.New("Aborting cstorpool create operation as no disk is specified")
+		return errors.New("Aborting storagepool create operation as no disk is specified")
 	}
 
 	// The name of cas template should be provided as annotation in storagepoolclaim yaml
 	// so that it can be used.
 
 	// Check for cas template
-	castTemplateName := spcGot.Annotations[string(v1alpha1.SPCASTemplateCK)]
-	if(castTemplateName==""){
-		return errors.New("Aborting cstorpool create operation as no cas template is specified")
+	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCASTemplateCK)]
+	if(casTemplateName==""){
+		return errors.New("Aborting storagepool create operation as no cas template is specified")
 	}
 
-	// Calling worker function to create cstorpool
-	err:=poolCreateWorker(spcGot,castTemplateName)
+	// Calling worker function to create storagepool
+	err:=poolCreateWorker(spcGot,casTemplateName)
 
 	if err!=nil{
 		return err
@@ -82,60 +79,29 @@ func CreateCstorpool(spcGot *apis.StoragePoolClaim) (error) {
 	return nil
 }
 
-// poolCreateWorker is a worker function which will create a cstorpool
-// successful creation of a cstorpool should involve following successful resource creation:
-// 1. cstorpool ( A custom resource).
-// 2. cstorpool deployment
-// 3. storagepool (A custom resource)
+// poolCreateWorker is a worker function which will create a storagepool
 
-func poolCreateWorker(spcGot *apis.StoragePoolClaim, castTemplateName string) (error) {
+func poolCreateWorker(spcGot *apis.StoragePoolClaim, casTemplateName string) (error) {
 
-	glog.Infof("Creating cstorpool for storagepoolclaim %s via CASTemplate", spcGot.ObjectMeta.Name)
+	glog.Infof("Creating storagepool for storagepoolclaim %s via CASTemplate", spcGot.ObjectMeta.Name)
+	// Create an empty CasPool object
+	pool := &v1alpha1.CasPool{}
+	// Fill the object with storagepoolclaim object name
+	pool.StoragePoolClaim = spcGot.Name
+	// Fill the object with casTemplateName
+	pool.CasCreateTemplate = casTemplateName
 
-	// Create an empty cstorpool object.
-
-	// This object will be filled in with some of the details present in storagepoolclaim object
-	// that will be required by CAS Engine to create actual cstorpool cr object in kubernetes.
-
-	// As part of building the cstor pool object, some of the details that are getting filled in,
-	// may not be present in actual cstorpool object that lives in kubernetes. These kind of
-	// details are specific to CAS Engine usage only.
-	cstorPool := &v1alpha1.CStorPool{}
-
-	//Generate name using the prefix of StoragePoolClaim name
-	cstorPool.ObjectMeta.Name = spcGot.Name
-
-	// Add Pooltype specification
-	cstorPool.Spec.PoolSpec.PoolType = spcGot.Spec.PoolSpec.PoolType
-
-	// Add overProvisioning which is a bool (e.g. true or false)
-	cstorPool.Spec.PoolSpec.OverProvisioning = spcGot.Spec.PoolSpec.OverProvisioning
-
-
-	// make a map that should contain the castemplate name
-	mapcastTemplateName := make(map[string]string)
-
-	// Fill the map with castemplate name
-	// e.g.
-	// openebs.io/create-template : cast-standard-cstorpool-0.6.0
-	mapcastTemplateName[string(v1alpha1.SPCASTemplateCK)] = castTemplateName
-
-	// Push the map to cstorpool cr object
-	// This Annotation will however not be present in actual object
-	// This information is reuired by CAS engine
-	cstorPool.Annotations = mapcastTemplateName
-
-	cstorOps, err := storagepool.NewCstorPoolOperation(cstorPool)
+	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
-		return fmt.Errorf("NewCstorPoolOPeration Failed error '%s'", err.Error())
+		return fmt.Errorf("NewCasPoolOperation failed error '%s'", err.Error())
 
 	}
-	_, err = cstorOps.Create()
+	_, err = storagepoolOps.Create()
 	if err != nil {
-		return fmt.Errorf("Failed to create cas template based cstorpool: error '%s'", err.Error())
+		return fmt.Errorf("Failed to create cas template based storagepool: error '%s'", err.Error())
 
 	}
 
-	glog.Infof("Cas template based cstorpool created successfully: name '%s'",spcGot.Name )
+	glog.Infof("Cas template based storagepool created successfully: name '%s'",spcGot.Name )
 	return nil
 }

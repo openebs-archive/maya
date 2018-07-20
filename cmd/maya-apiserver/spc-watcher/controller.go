@@ -64,7 +64,7 @@ type Controller struct {
 	recorder record.EventRecorder
 }
 
-// NewController returns a new sample controller
+// NewController returns a new controller
 func NewController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
@@ -73,8 +73,8 @@ func NewController(
 	// obtain references to shared index informers for the SPC resources
 	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
 	// Create event broadcaster
-	// Add sample-controller types to the default Kubernetes Scheme so Events can be
-	// logged for sample-controller types.
+	// Add new-controller types to the default Kubernetes Scheme so Events can be
+	// logged for new-controller types.
 	openebsScheme.AddToScheme(scheme.Scheme)
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
@@ -112,20 +112,19 @@ func NewController(
 		UpdateFunc: func(old, new interface{}) {
 			newSpc := new.(*apis.StoragePoolClaim)
 			oldSpc := old.(*apis.StoragePoolClaim)
-
-			if(IsDeleteEvent(newSpc)){
-				q.Operation = deleteEvent
-			} else {
 			if(newSpc.ObjectMeta.ResourceVersion==oldSpc.ObjectMeta.ResourceVersion){
 				// If Resource Version is same it means the object has not got updated.
 				q.Operation = ignoreEvent
-			} else {
-				// To-DO
-				// Implement Logic for Update of SPC object
-				q.Operation = updateEvent
+			}else{
+				if(IsDeleteEvent(newSpc)){
+					q.Operation = deleteEvent
+				}else{
+					// To-DO
+					// Implement Logic for Update of SPC object
+					q.Operation = updateEvent
+				}
+				controller.enqueueSpc(new, q)
 			}
-			}
-			controller.enqueueSpc(new, q)
 		},
 		DeleteFunc: func(obj interface{}) {
 			// obj is the object to be deleted

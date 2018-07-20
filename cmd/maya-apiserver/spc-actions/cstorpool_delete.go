@@ -14,37 +14,37 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cstorpool
+package storagepoolactions
 
 import (
 	"github.com/golang/glog"
 	"fmt"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 
-func DeleteCstorpool(key string) (error) {
-	// Business logic for deletion of cstor pool cr
-	glog.Infof("Cstorpool delete event received for storagepoolclaim %s",key)
+func DeleteStoragePool(key string) (error) {
+	// Business logic for deletion of storagepool cr
+	glog.Infof("Storagepool delete event received for storagepoolclaim %s",key)
 
-	// Create an empty cstor pool object
-	cstorPool := &v1alpha1.CStorPool{}
+	// Create an empty  CasPool object
+	pool := &v1alpha1.CasPool{}
 
-	// Fill the name in cstor pool object
-	// This object contains pool information for performing cstor pool deletion
+	// Fill the name in CasPool object
+	// This object contains pool information for performing storagepool deletion
 	// The information used here is the storagepoolclaim name
-	cstorPool.ObjectMeta.Name = key
+	pool.StoragePoolClaim = key
 
-	spcOps, err := storagepool.NewCstorPoolOperation(cstorPool)
+	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
-		return fmt.Errorf("NewCstorPoolOPeration Failed error '%s'", err.Error())
+		return fmt.Errorf("NewCasPoolOperation failed error '%s'", err.Error())
 	}
-	_, err = spcOps.Delete()
+	_, err = storagepoolOps.Delete()
 	if err != nil {
-		return fmt.Errorf("Failed to delete cas template based cstorpool: error '%s'", err.Error())
+		return fmt.Errorf("Failed to delete cas template based storagepool: error '%s'", err.Error())
 	}
 
-	glog.Infof("Cas template based cstorpool delete successfully: name '%s'", key)
+	glog.Infof("Cas template based storagepool delete successfully: name '%s'", key)
 	return nil
 }
