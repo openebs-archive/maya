@@ -337,10 +337,10 @@ type CStorPoolList struct {
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec   `json:"spec"`
-	Status            CStorVolumeReplicaStatus `json:"status"`
+	metav1.TypeMeta                 `json:",inline"`
+	metav1.ObjectMeta               `json:"metadata,omitempty"`
+	Spec   CStorVolumeReplicaSpec   `json:"spec"`
+	Status CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
@@ -393,28 +393,39 @@ type CStorVolumeReplicaList struct {
 
 // CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeSpec `json:"spec"`
+	metav1.TypeMeta          `json:",inline"`
+	metav1.ObjectMeta        `json:"metadata,omitempty"`
+	Spec   CStorVolumeSpec   `json:"spec"`
+	Status CStorVolumeStatus `json:"status"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	Capacity     string `json:"capacity"`
-	TargetIP     string `json:"targetIP"`
-	TargetPort   string `json:"targetPort"`
-	Iqn          string `json:"iqn"`
-	TargetPortal string `json:"targetPortal"`
-	Status       string `json:"status"`
+	Capacity          string `json:"capacity"`
+	TargetIP          string `json:"targetIP"`
+	TargetPort        string `json:"targetPort"`
+	Iqn               string `json:"iqn"`
+	TargetPortal      string `json:"targetPortal"`
+	Status            string `json:"status"`
+	ReplicationFactor int    `json:"replicationFactor"`
+	ConsistencyFactor int    `json:"consistencyFactor"`
+}
+
+// CStorVolumePhase is to hold result of action.
+type CStorVolumePhase string
+
+// CStorVolumeStatus is for handling status of cvr.
+type CStorVolumeStatus struct {
+	Phase CStorVolumePhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolume
 
-// CStorVolumeReplicaList is a list of CStorVolume resources
+// CStorVolumeList is a list of CStorVolume resources
 type CStorVolumeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []CStorVolumeReplica `json:"items"`
+	Items []CStorVolume `json:"items"`
 }
