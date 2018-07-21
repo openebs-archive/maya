@@ -26,20 +26,30 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=storagepoolclaim
 
-// StoragePoolClaim describes a StoragePoolClaim.
+// StoragePoolClaim describes a StoragePoolClaim custom resource.
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
 	Spec StoragePoolClaimSpec `json:"spec"`
-}
+	Status StoragePoolClaimStatus `json:"status"`
 
+}
 // StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Name       string `json:"name"`
-	Format     string `json:"format"`
-	Mountpoint string `json:"mountpoint"`
-	Path       string `json:"path"`
+	Name         string `json:"name"`
+	Format       string `json:"format"`
+	Mountpoint	 string `json:"mountpoint"`
+	Path       	 string `json:"path"`
+	Type       	 string `json:"type"`
+	NodeSelector []string `json:"nodeSelector"`
+	Capacity     string `json:"capacity"`
+	MaxPools     int16 `json:"maxPools"`
+	Disks DiskAttr `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+// StoragePoolClaim is for handling status of pool.
+type StoragePoolClaimStatus struct {
+	Phase string `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -75,6 +85,9 @@ type StoragePoolSpec struct {
 	Nodename   string `json:"nodename"`
 	Message    string `json:"message"`
 	Path       string `json:"path"`
+	Disks    DiskAttr      `json:"disks"`
+	PoolSpec CStorPoolAttr `json:"poolSpec"`
+
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -86,6 +99,61 @@ type StoragePoolList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []StoragePool `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=disk
+
+// Disk describes disk resource.
+type Disk struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata, omitempty"`
+
+	Spec   DiskSpec   `json:"spec"`
+	Status DiskStatus `json:"status"`
+}
+
+// DiskSpec is the specification for the disk stored as CRD
+type DiskSpec struct {
+	Path     string        `json:"path"`               //Path contain devpath (e.g. /dev/sdb)
+	Capacity DiskCapacity  `json:"capacity"`           //Capacity
+	Details  DiskDetails   `json:"details"`            //Details contains static attributes (model, serial ..)
+	DevLinks []DiskDevLink `json:"devlinks,omitempty"` //DevLinks contains soft links of one disk
+}
+
+type DiskStatus struct {
+	State string `json:"state"` //current state of the disk (Active/Inactive)
+}
+
+type DiskCapacity struct {
+	Storage uint64 `json:"storage"` //disk size in byte
+}
+
+// DiskDetails contains basic and static info of a disk
+type DiskDetails struct {
+	Model  string `json:"model"`  // Model is model of disk
+	Serial string `json:"serial"` // Serial is serial no of disk
+	Vendor string `json:"vendor"` // Vendor is vendor of disk
+}
+
+// DiskDevlink holds the maping between type and links like by-id type or by-path type link
+type DiskDevLink struct {
+	Kind  string   `json:"kind,omitempty"`  // Kind is the type of link like by-id or by-path.
+	Links []string `json:"links,omitempty"` // Links are the soft links of Type type
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=disks
+
+// DiskList is a list of Disk object resources
+type DiskList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []Disk `json:"items"`
 }
 
 // +genclient

@@ -16,6 +16,14 @@ limitations under the License.
 
 package v1alpha1
 
+type CasKey string
+
+const(
+	// This the cas template annotation whose value is the name of
+	// cas template that will be used to provision a storagepool
+	SPCASTemplateCK CasKey = "openebs.io/create-template"
+)
+
 // TopLevelProperty represents the top level property that
 // is a starting point to represent a hierarchical chain of
 // properties.
@@ -46,6 +54,16 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
+	// StoragePoolTLP is a top level property supported by CAS template engine
+	//
+	// The properties provided by the caller are placed with StoragePoolTLP
+	// as the top level property
+	//
+	// NOTE:
+	//  CAS template engine cannot modify these properties. These are the
+	// runtime properties that are provided as inputs to CAS template
+	// engine.
+	StoragePoolTLP TopLevelProperty = "Storagepool"
 	// TaskResultTLP is a top level property supported by CAS template engine
 	//
 	// The specific results after the execution of a task are placed with
@@ -75,7 +93,20 @@ const (
 	// {{- .ListItems.volumes.openebs.mypv.status -}}
 	ListItemsTLP TopLevelProperty = "ListItems"
 )
+// StoragePoolTLPProperty is used to define properties that comes
+// after StoragePoolTLP
+type StoragePoolTLPProperty string
 
+const (
+	// OwnerCTP indicates the owner of this pool; the one who
+	// is executing this policy
+	//
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .Storagepool.owner }}
+	OwnerCTP StoragePoolTLPProperty = "owner"
+
+)
 // VolumeTLPProperty is used to define properties that comes
 // after VolumeTLP
 type VolumeTLPProperty string

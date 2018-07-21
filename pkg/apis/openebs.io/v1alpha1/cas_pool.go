@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2017 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package v1alpha1
+// CasPool is a type which will be utilised by CAS engine to perform
+// storagepool related operation
 
-type CASTemplateExpansion interface{}
+type CasPool struct{
+	// StoragePoolClaim is the name of the storagepoolclaim object
+	StoragePoolClaim string
 
-type CStorPoolExpansion interface{}
+	// CasCreateTemplate is the cas template that will be used for storagepool
+	// operations
+	CasCreateTemplate string
 
-type CStorVolumeExpansion interface{}
-
-type CStorVolumeReplicaExpansion interface{}
-
-type DiskExpansion interface{}
-
-type StoragePoolExpansion interface{}
-
-type StoragePoolClaimExpansion interface{}
+	// Namespace can be passed via storagepoolclaim as labels to decide on the
+	// execution of namespaced resources with respect to storagepool
+	Namespace string
+}

@@ -130,6 +130,7 @@ func newTaskExecutor(runtask RunTask, values map[string]interface{}) (*taskExecu
 	// client to make K8s API calls using the namespace on
 	// which this task is supposed to be executed
 	kc, err := newK8sClient(mte.getRunNamespace())
+
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +260,6 @@ func (m *taskExecutor) repeatWith() (err error) {
 // between each attempt is specified in the task's meta specification.
 func (m *taskExecutor) retryOnVerificationError() (err error) {
 	retryAttempts, interval := m.metaTaskExec.getRetry()
-
 	// original invocation as well as all retry attempts
 	// i == 0 implies original task execute invocation
 	// i > 0 implies a retry operation
@@ -362,6 +362,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchExtnV1B1Deploy()
 	} else if m.metaTaskExec.isPatchAppsV1B1Deploy() {
 		err = m.patchAppsV1B1Deploy()
+	} else if m.metaTaskExec.isPatchOEV1alpha1SPC() {
+		err = m.patchOEV1alpha1SPC()
 	} else if m.metaTaskExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
 	} else if m.metaTaskExec.isDeleteExtnV1B1Deploy() {
@@ -370,14 +372,26 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteCoreV1Service() {
 		err = m.deleteCoreV1Service()
+	} else if m.metaTaskExec.isGetOEV1alpha1Disk() {
+		err = m.getOEV1alpha1Disk()
+	} else if m.metaTaskExec.isGetOEV1alpha1SPC() {
+		err = m.getOEV1alpha1SPC()
 	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
+	} else if m.metaTaskExec.isPutOEV1alpha1CSP() {
+		err = m.putCStorPool()
+	} else if m.metaTaskExec.isPutOEV1alpha1SP() {
+		err = m.putStoragePool()
 	} else if m.metaTaskExec.isPutOEV1alpha1CSV() {
 		err = m.putCStorVolume()
 	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
 		err = m.putCStorVolumeReplica()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1SP() {
+		err = m.deleteOEV1alpha1SP()
+	} else if m.metaTaskExec.isDeleteOEV1alpha1CSP() {
+		err = m.deleteOEV1alpha1CSP()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CSV() {
 		err = m.deleteOEV1alpha1CSV()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CVR() {
@@ -445,6 +459,28 @@ func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) 
 	return d.AsExtnV1B1Deployment()
 }
 
+// asCStorPool generates a CstorPool object
+// out of the embedded yaml
+func (m *taskExecutor) asCStorPool() (*v1alpha1.CStorPool, error) {
+	d, err := m_k8s.NewCStorPoolYml("CStorPool", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsCStorPoolYml()
+}
+
+// asStoragePool generates a StoragePool object
+// out of the embedded yaml
+func (m *taskExecutor) asStoragePool() (*v1alpha1.StoragePool, error) {
+	d, err := m_k8s.NewStoragePoolYml("StoragePool", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return d.AsStoragePoolYml()
+}
+
 // asCStorVolume generates a CstorVolume object
 // out of the embedded yaml
 func (m *taskExecutor) asCStorVolume() (*v1alpha1.CStorVolume, error) {
@@ -509,6 +545,34 @@ func (m *taskExecutor) putExtnV1B1Deploy() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// patchSPC will patch a SPC object in a kubernetes cluster.
+// The patch specifications as configured in the RunTask
+func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
+	patch, err := asTaskPatch("patchSPC", m.runtask.TaskYml, m.templateValues)
+	if err != nil {
+		return
+	}
+
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+
+	// patch the SPC
+	spc, err := m.k8sClient.PatchOEV1alpha1SPCAsRaw(m.objectName, pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJsonResultTLP))
 	return
 }
 
@@ -623,6 +687,28 @@ func (m *taskExecutor) deleteCoreV1Service() (err error) {
 	return
 }
 
+// getOEV1alpha1Disk() will get the Disk as specified in the RunTask
+func (m *taskExecutor) getOEV1alpha1Disk() (err error) {
+	disk, err := m.k8sClient.GetOEV1alpha1DiskAsRaw(m.objectName)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, disk, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// getOEV1alpha1SPC() will get the StoragePoolClaim as specified in the RunTask
+func (m *taskExecutor) getOEV1alpha1SPC() (err error) {
+	spc, err := m.k8sClient.GetOEV1alpha1SPCAsRaw(m.objectName)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
 // getOEV1alpha1SP will get the StoragePool as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 	sp, err := m.k8sClient.GetOEV1alpha1SPAsRaw(m.objectName)
@@ -667,6 +753,38 @@ func (m *taskExecutor) getCoreV1PVC() (err error) {
 	return
 }
 
+// putStoragePool will put a CStorPool as defined in the task
+func (m *taskExecutor) putStoragePool() (err error) {
+	c, err := m.asStoragePool()
+	if err != nil {
+		return
+	}
+
+	storagePool, err := m.k8sClient.CreateOEV1alpha1SPAsRaw(c)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, storagePool, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// putCStorVolume will put a CStorVolume as defined in the task
+func (m *taskExecutor) putCStorPool() (err error) {
+	c, err := m.asCStorPool()
+	if err != nil {
+		return
+	}
+
+	cstorPool, err := m.k8sClient.CreateOEV1alpha1CSPAsRaw(c)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cstorPool, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
 // putCStorVolume will put a CStorVolume as defined in the task
 func (m *taskExecutor) putCStorVolume() (err error) {
 	c, err := m.asCStorVolume()
@@ -696,6 +814,36 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// deleteOEV1alpha1SP will delete one or more StoragePool as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1SP() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1SP(name)
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+// deleteOEV1alpha1CSP will delete one or more CStorPool as specified in
+// the RunTask
+func (m *taskExecutor) deleteOEV1alpha1CSP() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+
+	for _, name := range objectNames {
+		err = m.k8sClient.DeleteOEV1alpha1CSP(name)
+		if err != nil {
+			return
+		}
+	}
+
 	return
 }
 
@@ -733,6 +881,10 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1PVC() {
 		op, err = m.k8sClient.ListCoreV1PVCAsRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1Disk() {
+		op, err = m.k8sClient.ListOEV1alpha1DiskRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1SP() {
+		op, err = m.k8sClient.ListOEV1alpha1SPRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
 		op, err = m.k8sClient.ListOEV1alpha1CSPRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CVR() {
