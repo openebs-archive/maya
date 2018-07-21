@@ -269,10 +269,10 @@ type CStorPoolList struct {
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec   `json:"spec"`
-	Status            CStorVolumeReplicaStatus `json:"status"`
+	metav1.TypeMeta                 `json:",inline"`
+	metav1.ObjectMeta               `json:"metadata,omitempty"`
+	Spec   CStorVolumeReplicaSpec   `json:"spec"`
+	Status CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
@@ -325,10 +325,10 @@ type CStorVolumeReplicaList struct {
 
 // CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeSpec   `json:"spec"`
-	Status            CStorVolumeStatus `json:"status"`
+	metav1.TypeMeta          `json:",inline"`
+	metav1.ObjectMeta        `json:"metadata,omitempty"`
+	Spec   CStorVolumeSpec   `json:"spec"`
+	Status CStorVolumeStatus `json:"status"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource

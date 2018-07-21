@@ -166,7 +166,17 @@ type CASVolume struct {
 // CASVolumeSpec has the properties of a cas volume
 type CASVolumeSpec struct {
 	// Capacity will hold the capacity of this Volume
-	Capacity string `json:"capacity,omitempty" protobuf:"bytes,1,opt,name=capacity"`
+	Capacity string `json:"capacity"`
+	// Iqn will hold the iqn value of this Volume
+	Iqn string `json:"iqn"`
+	// TargetPortal will hold the target portal for this volume
+	TargetPortal string `json:"targetPortal"`
+	// TargetIP will hold the targetIP for this Volume
+	TargetIP string `json:"targetIP"`
+	// TargetPort will hold the targetIP for this Volume
+	TargetPort string `json:"targetPort"`
+	// Replicas will hold the replica count for this volume
+	Replicas string `json:"replicas"`
 }
 
 // CASVolumeStatus provides status of a cas volume

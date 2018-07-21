@@ -19,6 +19,7 @@ package util
 import (
 	"os"
 	"strings"
+	"strconv"
 )
 
 // ENVKey is a typed variable that holds all environment
@@ -33,12 +34,21 @@ const (
 
 // CASTemplateFeatureGate returns true if cas template feature gate is
 // enabled
-func CASTemplateFeatureGate() bool {
-	val := getEnv(CASTemplateFeatureGateENVK)
-	return CheckTruthy(val)
+func CASTemplateFeatureGate() (bool, error) {
+	return strconv.ParseBool(lookEnv(CASTemplateFeatureGateENVK))
 }
 
 // getEnv fetches the environment variable value from the runtime's environment
 func getEnv(envKey ENVKey) string {
 	return strings.TrimSpace(os.Getenv(string(envKey)))
+}
+
+// lookEnv fetches the environment variable value from the runtime's environment
+// if not present it returns "false", value otherwise
+func lookEnv(envKey ENVKey) string {
+	val, present := os.LookupEnv(string(envKey))
+	if !present {
+		return "false"
+	}
+	return strings.TrimSpace(val)
 }
