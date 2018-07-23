@@ -112,14 +112,15 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		// The SPC resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			
+
 			runtime.HandleError(fmt.Errorf("spcGot '%s' in work queue no longer exists", key))
+			// No need to return error to caller as we still want to fire the delete handler
+			// using the spc key(name)
+			// If error is returned the caller function will return without calling the spcEventHandler
+			// function that invokes business logic for pool deletion
+			return nil,nil
 		}
-		// No need to return error to caller as we still want to fire the delete handler
-		// using the spc key(name)
-		// If error is returned the caller function will return without calling the spcEventHandler
-		// function that invokes business logic for pool deletion
-		return nil,nil
+		return nil,err
 	}
 	return spcGot, nil
 }
