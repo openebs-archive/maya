@@ -144,13 +144,13 @@ const (
 
 	// DefaultCASTemplateForJivaVolumeRead is the default cas template to read
 	// a Jiva based CAS Volume
-	DefaultCASTemplateForJivaVolumeRead CASJivaVolumeDefault = "read-jiva-cas-volume-tpl"
+	DefaultCASTemplateForJivaVolumeRead CASJivaVolumeDefault = "read-cstor-cas-volume-tpl"
 	// DefaultCASTemplateForJivaVolumeList is the default cas template to list
 	// Jiva based CAS Volumes
-	DefaultCASTemplateForJivaVolumeList CASJivaVolumeDefault = "list-jiva-cas-volume-tpl"
+	DefaultCASTemplateForJivaVolumeList CASJivaVolumeDefault = "list-cstor-cas-volume-tpl"
 	// DefaultCASTemplateForJivaVolumeDelete is the default cas template to
 	// delete a Jiva based CAS Volume
-	DefaultCASTemplateForJivaVolumeDelete CASJivaVolumeDefault = "delete-jiva-cas-volume-tpl"
+	DefaultCASTemplateForJivaVolumeDelete CASJivaVolumeDefault = "delete-cstor-cas-volume-tpl"
 )
 
 // CASVolume represents a cas volume
