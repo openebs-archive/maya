@@ -133,19 +133,19 @@ type namespace string
 
 // Different types of k8s namespaces.
 const (
-	DefaultNameSpace namespace = "default"
+	DefaultNameSpace namespace = "openebs"
 )
 
 // CheckForCStorVolumeCRD is Blocking call for checking status of CStorVolume CRD.
 func CheckForCStorVolumeCRD(clientset clientset.Interface) {
 	for {
 		// Since this blocking function is restricted to check if CVR CRD is present
-        // or not, we are trying to handle only the error of CVR CR List api indirectly.
-        // CRD has only two types of scope, cluster and namespaced. If CR list api
-        // for default namespace works fine, then CR list api works for all namespaces.
+		// or not, we are trying to handle only the error of CVR CR List api indirectly.
+		// CRD has only two types of scope, cluster and namespaced. If CR list api
+		// for default namespace works fine, then CR list api works for all namespaces.
 		_, err := clientset.OpenebsV1alpha1().CStorVolumes(string(DefaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolume CRD not found. Retrying after %v", CRDRetryInterval)
+			glog.Errorf("CStorVolume CRD not found. Retrying after %v, err : %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
 			continue
 		}
