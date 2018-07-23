@@ -81,30 +81,19 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to create volume: missing volume capacity")
 	}
 
-	// TODO
-	//
-	// UnComment below once provisioner is able to send name of PVC
-	//
-	// pvc name corresponding to this volume
-	//pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
-	//if len(pvcName) == 0 {
-	//	return nil, fmt.Errorf("unable to create volume: missing persistent volume claim")
-	//}
+	pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
+	if len(pvcName) == 0 {
+		return nil, fmt.Errorf("unable to create volume: missing persistent volume claim")
+	}
 
 	// fetch the pvc specifications
-	//pvc, err := v.k8sClient.GetPVC(pvcName, mach_apis_meta_v1.GetOptions{})
-	//if err != nil {
-	//	return nil, err
-	//}
+	pvc, err := v.k8sClient.GetPVC(pvcName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
 
 	// extract the cas volume config from pvc
-	//casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigKey)]
-
-	// TODO
-	//
-	// Remove below two lines once provisioner is able to send name of PVC
-	pvcName := ""
-	casConfigPVC := ""
+	casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// get the storage class name corresponding to this volume
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
