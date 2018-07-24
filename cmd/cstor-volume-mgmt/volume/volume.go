@@ -116,8 +116,8 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 # LogicalUnit section
 [LogicalUnit2]
 `)
-	buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
-	buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
+	buffer.WriteString("  TargetName " + string(cStorVolume.UID) + "\n")
+	buffer.WriteString("  TargetAlias nicknamefor-" + string(cStorVolume.UID))
 	buffer.WriteString(`
   Mapping PortalGroup1 InitiatorGroup1
   AuthMethod None
