@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }"
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }"
 	NilCstorResponse             = "OK IOSTATS\r\n"
-	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
-	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }"
-	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }\r\nOK IOSTATS\r\n`
+	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }\r\nOK IOSTATS\r\n"
+	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }"
+	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }\r\nOK IOSTATS\r\n`
 )
 
 func TestNewResponse(t *testing.T) {
@@ -34,12 +34,14 @@ func TestNewResponse(t *testing.T) {
 		"[Success]Unmarshal Response into Metrics struct": {
 			response: JSONFormatedResponse,
 			output: v1.VolumeStats{
-				Size:            "10737418240",
-				Iqn:             "iqn.2017-08.OpenEBS.cstor:vol1",
-				Writes:          "0",
-				Reads:           "0",
-				TotalReadBytes:  "0",
-				TotalWriteBytes: "0",
+				Size:              "10737418240",
+				Iqn:               "iqn.2017-08.OpenEBS.cstor:vol1",
+				Writes:            "0",
+				Reads:             "0",
+				TotalReadBytes:    "0",
+				TotalWriteBytes:   "0",
+				UsedLogicalBlocks: "19",
+				SectorSize:        "512",
 			},
 		},
 		"[Failure]Unmarshal Response returns empty Metrics": {
