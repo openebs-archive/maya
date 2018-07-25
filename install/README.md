@@ -25,6 +25,7 @@ spec:
     overProvisioning: false
   disks:
     diskList:
+      # list of disks obtained from kubectl get disks
       - disk-4268137899842721d2d4fc0c16c3b138
       - disk-49c3f6bfe9906e8db04adda12815375c
       - disk-552af787ba458a22fa0cf355d17da885
@@ -48,4 +49,4 @@ provisioner: openebs.io/provisioner-iscsi
 ```
 
 ## Step 5 - Deploy mysql application
-`kubectl apply -f mysql.yaml`
+`kubectl apply -f percona-deploy.yaml`

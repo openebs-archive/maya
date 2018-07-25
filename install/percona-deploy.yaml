@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: percona
+  namespace: openebs
+  labels:
+    name: percona
+spec:
+  replicas: 1
+  selector: 
+    matchLabels:
+      name: percona 
+  template: 
+    metadata:
+      labels: 
+        name: percona
+    spec:
+      containers:
+        - name: percona
+          image: percona
+          args:
+            - "--ignore-db-dir"
+            - "lost+found"
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: test
+          ports:
+            - containerPort: 3306
+              name: percona
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: demo-vol1
+      volumes:
+        - name: demo-vol1
+          persistentVolumeClaim:
+            claimName: demo-cstor-deploy
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: demo-cstor-deploy
+  namespace: openebs
+spec:
+  storageClassName: openebs-standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5G
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: percona-mysql
+  namespace: openebs
+  labels:
+    name: percona-mysql
+spec:
+  ports:
+    - port: 3306
+      targetPort: 3306
+  selector:
+      name: percona
