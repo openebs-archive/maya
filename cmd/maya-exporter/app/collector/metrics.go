@@ -143,114 +143,100 @@ func MetricsInitializer(casType string) *Metrics {
 	return &Metrics{
 		actualUsed: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "actual_used",
 				Help:      "Actual volume size used",
 			}),
 
 		logicalSize: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "logical_size",
 				Help:      "Logical size of volume",
 			}),
 
 		sizeOfVolume: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "size_of_volume",
 				Help:      "Size of the volume requested",
 			}),
 
 		sectorSize: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "sector_size",
 				Help:      "sector size of volume",
 			}),
 
 		totalReadBytes: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "total_read_bytes",
 				Help:      "Total read bytes",
 			}),
 
 		reads: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "reads",
 				Help:      "Read Input/Outputs on Volume",
 			}),
 
 		totalReadTime: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "read_time",
 				Help:      "Read time on volume",
 			}),
 
 		totalReadBlockCount: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "read_block_count",
 				Help:      "Read Block count of volume",
 			}),
 
 		totalWriteBytes: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "total_write_bytes",
 				Help:      "Total write bytes",
 			}),
 
 		writes: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "writes",
 				Help:      "Write Input/Outputs on Volume",
 			}),
 
 		totalWriteTime: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "write_time",
 				Help:      "Write time on volume",
 			}),
 
 		totalWriteBlockCount: prometheus.NewGauge(
 			prometheus.GaugeOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "write_block_count",
 				Help:      "Write Block count of volume",
 			}),
 
 		volumeUpTime: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "volume_uptime",
 				Help:      "Time since volume has registered",
 			},
-			[]string{"volName", "iqn", "portal"},
+			[]string{"volName", "iqn", "portal", "castype"},
 		),
 
 		connectionRetryCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "connection_retry_total",
 				Help:      "Total no of connection retry requests",
 			},
@@ -259,8 +245,7 @@ func MetricsInitializer(casType string) *Metrics {
 
 		connectionErrorCounter: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
-				Namespace: "OpenEBS",
-				Subsystem: casType,
+				Namespace: "openebs",
 				Name:      "connection_error_total",
 				Help:      "Total no of connection errors",
 			},
