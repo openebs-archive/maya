@@ -159,7 +159,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
-	// fetch the pvc specifications
+	// fetch the pv specifications
 	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	// get the storage class name corresponding to this volume
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, fmt.Errorf("unable to create volume: missing storage class")
+		return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
 	}
 
 	// fetch the storage class specifications
@@ -179,7 +179,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to delete volume: missing delete cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeDelete)
+		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
 	}
 
 	// fetch delete cas template specifications
