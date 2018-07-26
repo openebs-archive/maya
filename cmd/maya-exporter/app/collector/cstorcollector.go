@@ -165,7 +165,7 @@ func (c *Cstor) set(m *Metrics) error {
 	// TODO : Update the volumeUpTime from 0 to the exact value
 	// and add portal address and remove hardcoded value.
 	now := time.Now()
-	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost").Set(float64(now.Second()))
+	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost", "cstor").Set(float64(now.Second()))
 	return nil
 }
 
