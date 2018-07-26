@@ -115,7 +115,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 
 	// cas template to delete a storagepool
 	// Need to decide on correct way of passing it.
-	castName := "cstor-pool-delete-cast"
+	castName := "cstor-pool-delete-default-0.7.0"
 	if len(castName) == 0 {
 		// use the default delete cas template otherwise
 		//castName = string(v1alpha1.CASTemplateForDeleteCVD)
