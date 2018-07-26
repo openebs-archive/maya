@@ -64,7 +64,7 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim) (error) {
 	// so that it can be used.
 
 	// Check for cas template
-	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCASTemplateCK)]
+	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCreateCASTemplateCK)]
 	if(casTemplateName==""){
 		return errors.New("Aborting storagepool create operation as no cas template is specified")
 	}
