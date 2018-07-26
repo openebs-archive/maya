@@ -18,9 +18,6 @@ spec:
   # nothing exists at the given path i.e. an empty directory will be created.
   - name: HostPathType
     value: DirectoryOrCreate
-  # TODO
-  # This needs to be fetched from StorageClass
-  #
   # RunNamespace is the namespace where namespaced resources related to pool 
   # will be placed
   - name: RunNamespace
@@ -43,9 +40,6 @@ metadata:
   name: cstor-pool-delete-default-0.7.0
 spec:
   defaultConfig:
-    # TODO
-    # This needs to be fetched from StorageClass
-    #
     # RunNamespace is the namespace to use to delete pool resources
   - name: RunNamespace
     value: openebs
