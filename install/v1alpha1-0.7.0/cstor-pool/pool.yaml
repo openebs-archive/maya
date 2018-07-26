@@ -2,7 +2,7 @@
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cast-standard-cstorpool-0.6.0
+  name: cstor-pool-create-default-0.7.0
 spec:
   defaultConfig:
   # CstorPoolImage is the container image that executes zpool replication and 
@@ -13,57 +13,57 @@ spec:
   # operations
   - name: CstorPoolMgmtImage
     value: openebs/cstor-pool-mgmt:cstor-feature-integration-ci
-  # hostPathType is a hostPath volume i.e. mounts a file or directory from the 
+  # HostPathType is a hostPath volume i.e. mounts a file or directory from the 
   # host node’s filesystem into a Pod. 'DirectoryOrCreate' value  ensures 
   # nothing exists at the given path i.e. an empty directory will be created.
-  - name: hostPathType
+  - name: HostPathType
     value: DirectoryOrCreate
   # TODO
   # This needs to be fetched from StorageClass
   #
-  # runNamespace is the namespace where namespaced resources related to pool 
+  # RunNamespace is the namespace where namespaced resources related to pool 
   # will be placed
-  - name: runNamespace
+  - name: RunNamespace
     value: openebs
   taskNamespace: openebs
   run:
     tasks:
     # Following are the list of run tasks executed in this order to 
     # create a cstor storage pool
-    - cstor-pool-create-list-disk-0.6.0
-    - cstor-pool-create-list-node-0.6.0
-    - cstor-pool-create-put-cr-0.6.0
-    - cstor-pool-create-put-deployment-0.6.0
-    - cstor-pool-create-put-storagepool-0.6.0
-    - cstor-pool-create-patch-spc-0.6.0
+    - cstor-pool-create-listdisk-default-0.7.0
+    - cstor-pool-create-listnode-default-0.7.0
+    - cstor-pool-create-putcstorpoolcr-default-0.7.0
+    - cstor-pool-create-putcstorpooldeployment-default-0.7.0
+    - cstor-pool-create-putstoragepoolcr-default-0.7.0
+    - cstor-pool-create-patchstoragepoolclaim-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-pool-delete-cast
+  name: cstor-pool-delete-default-0.7.0
 spec:
   defaultConfig:
     # TODO
     # This needs to be fetched from StorageClass
     #
-    # runNamespace is the namespace to use to delete pool resources
-  - name: runNamespace
+    # RunNamespace is the namespace to use to delete pool resources
+  - name: RunNamespace
     value: openebs
   taskNamespace: openebs
   run:
     tasks:
     # Following are run tasks executed in this order to delete a storage pool
-    - cstor-pool-delete-listcsp-0.6.0
-    - cstor-pool-delete-delete-csp-0.6.0
-    - cstor-pool-delete-list-deploy-0.6.0
-    - cstor-pool-delete-delete-deploy-0.6.0
-    - cstor-pool-delete-listsp-0.6.0
-    - cstor-pool-delete-delete-storagepool-0.6.0
+    - cstor-pool-delete-listcstorpoolcr-default-0.7.0
+    - cstor-pool-delete-deletecstorpoolcr-default-0.7.0
+    - cstor-pool-delete-listcstorpooldeployment-default-0.7.0
+    - cstor-pool-delete-deletecstorpooldeployment-default-0.7.0
+    - cstor-pool-delete-liststoragepoolcr-default-0.7.0
+    - cstor-pool-delete-deletestoragepoolcr-default-0.7.0
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-list-disk-0.6.0
+  name: cstor-pool-create-listdisk-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -82,7 +82,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-list-node-0.6.0
+  name: cstor-pool-create-listnode-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -104,7 +104,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-put-cr-0.6.0
+  name: cstor-pool-create-putcstorpoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -142,11 +142,11 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-put-deployment-0.6.0
+  name: cstor-pool-create-putcstorpooldeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
-    runNamespace: {{.Config.runNamespace.value}}
+    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -236,7 +236,7 @@ data:
             hostPath:
               # From host, dir called /var/openebs/shared-<uid> is created to avoid clash if two replicas run on same node.
               path: /var/openebs/shared-a2b
-              type: {{ .Config.hostPathType.value }}
+              type: {{ .Config.HostPathType.value }}
           - name: udev
             hostPath:
               path: /run/udev
@@ -245,7 +245,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-put-storagepool-0.6.0
+  name: cstor-pool-create-putstoragepoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -281,7 +281,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-create-patch-spc-0.6.0
+  name: cstor-pool-create-patchstoragepoolclaim-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -300,7 +300,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-listcsp-0.6.0
+  name: cstor-pool-delete-listcstorpoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -319,7 +319,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-delete-csp-0.6.0
+  name: cstor-pool-delete-deletecstorpoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -333,7 +333,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-list-deploy-0.6.0
+  name: cstor-pool-delete-listcstorpooldeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -353,7 +353,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-delete-deploy-0.6.0
+  name: cstor-pool-delete-deletecstorpooldeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -368,7 +368,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-listsp-0.6.0
+  name: cstor-pool-delete-liststoragepoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -387,7 +387,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-pool-delete-delete-storagepool-0.6.0
+  name: cstor-pool-delete-deletestoragepoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |

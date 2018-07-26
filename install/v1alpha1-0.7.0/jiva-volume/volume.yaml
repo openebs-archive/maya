@@ -2,20 +2,20 @@
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: read-jiva-cas-volume-tpl
+  name: jiva-volume-read-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - volume-read-list-controller-service-0.6.0
-    - volume-read-list-controller-pods-0.6.0
-    - volume-read-list-replica-pods-0.6.0
-  output: volume-read-output-0.6.0
+    - jiva-volume-read-listtargetservice-default-0.7.0
+    - jiva-volume-read-listtargetpod-default-0.7.0
+    - jiva-volume-read-listreplicapod-default-0.7.0
+  output: jiva-volume-read-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cast-standard-0.6.0
+  name: jiva-volume-create-default-0.7.0
 spec:
   defaultConfig:
   - name: VolumeMonitor
@@ -67,47 +67,47 @@ spec:
   taskNamespace: openebs
   run:
     tasks:
-    - volume-create-put-service-0.6.0
-    - volume-create-get-path-0.6.0
-    - volume-create-put-controller-0.6.0
-    - volume-create-put-replica-0.6.0
-    - volume-create-list-replica-pod-0.6.0
-    - volume-create-patch-replica-0.6.0
-  output: volume-create-output-0.6.0
+    - jiva-volume-create-puttargetservice-default-0.7.0
+    - jiva-volume-create-getstoragepoolcr-default-0.7.0
+    - jiva-volume-create-puttargetdeployment-default-0.7.0
+    - jiva-volume-create-putreplicadeployment-default-0.7.0
+    - jiva-volume-create-listreplicapod-default-0.7.0
+    - jiva-volume-create-patchreplicadeployment-default-0.7.0
+  output: jiva-volume-create-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: delete-jiva-cas-volume-tpl
+  name: jiva-volume-delete-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - volume-delete-list-controller-service-0.6.0
-    - volume-delete-list-controller-deployment-0.6.0
-    - volume-delete-list-replica-deployment-0.6.0
-    - volume-delete-delete-controller-service-0.6.0
-    - volume-delete-delete-controller-deployment-0.6.0
-    - volume-delete-delete-replica-deployment-0.6.0
-  output: volume-delete-output-0.6.0
+    - jiva-volume-delete-listtargetservice-default-0.7.0
+    - jiva-volume-delete-listtargetdeployment-default-0.7.0
+    - jiva-volume-delete-listreplicadeployment-default-0.7.0
+    - jiva-volume-delete-deletetargetservice-default-0.7.0
+    - jiva-volume-delete-deletetargetdeployment-default-0.7.0
+    - jiva-volume-delete-deletereplicadeployment-default-0.7.0
+  output: jiva-volume-delete-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: list-jiva-cas-volume-tpl
+  name: jiva-volume-list-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - volume-list-list-controller-service-0.6.0
-    - volume-list-list-controller-pods-0.6.0
-    - volume-list-list-replica-pods-0.6.0
-  output: volume-list-output-0.6.0
+    - jiva-volume-list-listtargetservice-default-0.7.0
+    - jiva-volume-list-listtargetpod-default-0.7.0
+    - jiva-volume-list-listreplicapod-default-0.7.0
+  output: jiva-volume-list-output-default-0.7.0
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-list-list-controller-service-0.6.0
+  name: jiva-volume-list-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -130,7 +130,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-list-list-controller-pods-0.6.0
+  name: jiva-volume-list-listtargetpod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -153,7 +153,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-list-list-replica-pods-0.6.0
+  name: jiva-volume-list-listreplicapod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -176,7 +176,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-list-output-0.6.0
+  name: jiva-volume-list-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -218,7 +218,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-read-list-controller-service-0.6.0
+  name: jiva-volume-read-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -237,7 +237,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-read-list-controller-pods-0.6.0
+  name: jiva-volume-read-listtargetpod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -257,7 +257,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-read-list-replica-pods-0.6.0
+  name: jiva-volume-read-listreplicapod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -278,7 +278,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-read-output-0.6.0
+  name: jiva-volume-read-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -308,7 +308,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-put-service-0.6.0
+  name: jiva-volume-create-puttargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -351,7 +351,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-get-path-0.6.0
+  name: jiva-volume-create-getstoragepoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -384,7 +384,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-list-replica-pod-0.6.0
+  name: jiva-volume-create-listreplicapod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -406,7 +406,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-patch-replica-0.6.0
+  name: jiva-volume-create-patchreplicadeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -464,7 +464,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-put-controller-0.6.0
+  name: jiva-volume-create-puttargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -557,7 +557,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-put-replica-0.6.0
+  name: jiva-volume-create-putreplicadeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -687,7 +687,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-output-0.6.0
+  name: jiva-volume-create-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -711,7 +711,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-list-controller-service-0.6.0
+  name: jiva-volume-delete-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -730,7 +730,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-list-controller-deployment-0.6.0
+  name: jiva-volume-delete-listtargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -749,7 +749,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-list-replica-deployment-0.6.0
+  name: jiva-volume-delete-listreplicadeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -768,7 +768,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-delete-controller-service-0.6.0
+  name: jiva-volume-delete-deletetargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -782,7 +782,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-delete-controller-deployment-0.6.0
+  name: jiva-volume-delete-deletetargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -796,7 +796,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-delete-replica-deployment-0.6.0
+  name: jiva-volume-delete-deletereplicadeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -810,7 +810,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-output-0.6.0
+  name: jiva-volume-delete-output-default-0.7.0
   namespace: openebs
 data:
   meta: |

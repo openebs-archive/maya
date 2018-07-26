@@ -2,7 +2,7 @@
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cast-standard-cstor-create-0.7.0
+  name: cstor-volume-create-default-0.7.0
 spec:
   defaultConfig:
   - name: VolumeControllerImage
@@ -17,62 +17,62 @@ spec:
   taskNamespace: openebs
   run:
     tasks:
-    - cstor-volume-create-list-pool-0.7.0
-    - cstor-volume-create-put-service-0.7.0
-    - cstor-volume-create-put-csv-0.7.0
-    - cstor-volume-create-put-controller-0.7.0
-    - cstor-volume-create-put-replica-0.7.0
-  output: volume-create-output-0.7.0
+    - cstor-volume-create-listcstorpoolcr-default-0.7.0
+    - cstor-volume-create-puttargetservice-default-0.7.0
+    - cstor-volume-create-putcstorvolumecr-default-0.7.0
+    - cstor-volume-create-puttargetdeployment-default-0.7.0
+    - cstor-volume-create-putcstorvolumereplicacr-default-0.7.0
+  output: cstor-volume-create-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: delete-cstor-cas-volume-tpl
+  name: cstor-volume-delete-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - cstor-volume-delete-list-cstorvolume-0.7.0
-    - cstor-volume-delete-list-controller-service-0.7.0
-    - cstor-volume-delete-list-controller-deployment-0.7.0
-    - cstor-volume-delete-list-cstorvolumereplica-0.7.0
-    - cstor-volume-delete-delete-controller-service-0.7.0
-    - cstor-volume-delete-delete-controller-deployment-0.7.0
-    - cstor-volume-delete-delete-cstorvolumereplica-0.7.0
-    - cstor-volume-delete-delete-cstorvolume-0.7.0
-  output: volume-delete-output-0.7.0
+    - cstor-volume-delete-listcstorvolumecr-default-0.7.0
+    - cstor-volume-delete-listtargetservice-default-0.7.0
+    - cstor-volume-delete-listtargetdeployment-default-0.7.0
+    - cstor-volume-delete-listcstorvolumereplicacr-default-0.7.0
+    - cstor-volume-delete-deletetargetservice-default-0.7.0
+    - cstor-volume-delete-deletetargetdeployment-default-0.7.0
+    - cstor-volume-delete-deletecstorvolumereplicacr-default-0.7.0
+    - cstor-volume-delete-deletecstorvolumecr-default-0.7.0
+  output: cstor-volume-delete-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: read-cstor-cas-volume-tpl
+  name: cstor-volume-read-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - cstor-volume-read-list-controller-service-0.7.0
-    - cstor-volume-read-list-replica-0.7.0
-    - cstor-volume-read-list-controller-pods-0.7.0
-  output: volume-read-output-0.7.0
+    - cstor-volume-read-listtargetservice-default-0.7.0
+    - cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
+    - cstor-volume-read-listtargetpod-default-0.7.0
+  output: cstor-volume-read-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: list-cstor-cas-volume-tpl
+  name: cstor-volume-list-default-0.7.0
 spec:
   taskNamespace: openebs
   run:
     tasks:
-    - cstor-volume-list-list-controller-service-0.7.0
-    - cstor-volume-list-list-controller-pods-0.7.0
-    - cstor-volume-list-list-replicas-0.7.0
-  output: volume-list-output-0.7.0
+    - cstor-volume-list-listtargetservice-default-0.7.0
+    - cstor-volume-list-listtargetpod-default-0.7.0
+    - cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
+  output: cstor-volume-list-output-default-0.7.0
 ---
 # runTask to list cstor pools
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-create-list-pool-0.7.0
+  name: cstor-volume-create-listcstorpoolcr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -99,7 +99,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-create-put-service-0.7.0
+  name: cstor-volume-create-puttargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -139,7 +139,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-create-put-csv-0.7.0
+  name: cstor-volume-create-putcstorvolumecr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -173,7 +173,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-create-put-controller-0.7.0
+  name: cstor-volume-create-puttargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -282,7 +282,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-create-put-replica-0.7.0
+  name: cstor-volume-create-putcstorvolumereplicacr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -339,7 +339,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-create-output-0.7.0
+  name: cstor-volume-create-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -369,7 +369,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-list-list-controller-service-0.7.0
+  name: cstor-volume-list-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -402,7 +402,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-list-list-controller-pods-0.7.0
+  name: cstor-volume-list-listtargetpod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -430,7 +430,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-list-list-replicas-0.7.0
+  name: cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -447,7 +447,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-list-output-0.7.0
+  name: cstor-volume-list-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -493,7 +493,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-read-list-controller-service-0.7.0
+  name: cstor-volume-read-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -513,7 +513,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-read-list-replica-0.7.0
+  name: cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -533,7 +533,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-read-list-controller-pods-0.7.0
+  name: cstor-volume-read-listtargetpod-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -554,7 +554,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-read-output-0.7.0
+  name: cstor-volume-read-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -590,7 +590,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-list-cstorvolume-0.7.0
+  name: cstor-volume-delete-listcstorvolumecr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -610,7 +610,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-list-controller-service-0.7.0
+  name: cstor-volume-delete-listtargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -634,7 +634,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-list-controller-deployment-0.7.0
+  name: cstor-volume-delete-listtargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -654,7 +654,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-list-cstorvolumereplica-0.7.0
+  name: cstor-volume-delete-listcstorvolumereplicacr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -678,7 +678,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-delete-controller-service-0.7.0
+  name: cstor-volume-delete-deletetargetservice-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -693,7 +693,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-delete-controller-deployment-0.7.0
+  name: cstor-volume-delete-deletetargetdeployment-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -708,7 +708,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-delete-cstorvolumereplica-0.7.0
+  name: cstor-volume-delete-deletecstorvolumereplicacr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -723,7 +723,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cstor-volume-delete-delete-cstorvolume-0.7.0
+  name: cstor-volume-delete-deletecstorvolumecr-default-0.7.0
   namespace: openebs
 data:
   meta: |
@@ -739,7 +739,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: volume-delete-output-0.7.0
+  name: cstor-volume-delete-output-default-0.7.0
   namespace: openebs
 data:
   meta: |
