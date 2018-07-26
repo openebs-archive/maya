@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
@@ -35,8 +36,9 @@ func TestGetVolumeResource(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "volume1",
-					UID:  types.UID("abc"),
+					Name:      "volume1",
+					UID:       types.UID("abc"),
+					Namespace: string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
@@ -51,8 +53,9 @@ func TestGetVolumeResource(t *testing.T) {
 			test: &apis.CStorVolume{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "volume2",
-					UID:  types.UID("abcd"),
+					Name:      "volume2",
+					UID:       types.UID("abcd"),
+					Namespace: string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
@@ -65,7 +68,7 @@ func TestGetVolumeResource(t *testing.T) {
 	}
 	for desc, ut := range testVolumeResource {
 		// Create Volume resource
-		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes("default").Create(ut.test)
+		_, err := volumeController.clientset.OpenebsV1alpha1().CStorVolumes(string(common.DefaultNameSpace)).Create(ut.test)
 		if err != nil {
 			t.Fatalf("Desc:%v, Unable to create resource : %v", desc, ut.test.ObjectMeta.Name)
 		}
@@ -92,6 +95,7 @@ func TestIsValidCStorVolumeMgmt(t *testing.T) {
 					Name:       "volume2",
 					UID:        types.UID("abcd"),
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
+					Namespace:  string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
@@ -127,6 +131,7 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 					Name:       "volume2",
 					UID:        types.UID("abcd"),
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
+					Namespace:  string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
 					TargetIP: "0.0.0.0",
