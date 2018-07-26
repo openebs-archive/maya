@@ -139,6 +139,12 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 		vol.Namespace = hdrNS
 	}
 
+	// use sc name from header if present
+	scName := v.req.Header.Get(string(v1alpha1.StorageClassKey))
+	if scName != "" {
+		vol.Annotations[string(v1alpha1.StorageClassKey)] = scName
+	}
+
 	vOps, err := volume.NewVolumeOperation(vol)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
