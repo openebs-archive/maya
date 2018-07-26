@@ -27,6 +27,7 @@ MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
+VOLUME_GRPC=cstor-volume-grpc
 AGENT=maya-agent
 EXPORTER=maya-exporter
 
@@ -51,10 +52,12 @@ deps:
 
 clean:
 	rm -rf bin
+	rm -rf cmd/cstor-volume-grpc/api/*.pb.go
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
+	rm -rf ${GOPATH}/bin/${VOLUME_GRPC}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -141,13 +144,25 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
 
+#Use this to build cstor-volume-grpc
+cstor-volume-grpc:
+	@echo "----------------------------"
+	@echo "--> cstor-volume-grpc           "            
+	@echo "----------------------------"
+	@protoc -I $(PWD)/cmd/cstor-volume-grpc/api/ \
+    -I${GOPATH}/src \
+    --go_out=plugins=grpc:$(PWD)/cmd/cstor-volume-grpc/api \
+    $(PWD)/cmd/cstor-volume-grpc/api/api.proto
+
 volume-mgmt-image: cstor-volume-mgmt
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
+	@cp bin/cstor-volume-mgmt/${VOLUME_GRPC} buildscripts/cstor-volume-mgmt/
 	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
+	@rm buildscripts/cstor-volume-mgmt/${VOLUME_GRPC}
 	@sh buildscripts/cstor-volume-mgmt/push
 
 # Use this to build only the maya-agent.
