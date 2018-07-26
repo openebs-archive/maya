@@ -230,7 +230,7 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	if len(scName) == 0 {
-		return nil, fmt.Errorf("unable to read volume %s: missing storage class in PV object", v.volume.Name)
+		return nil, fmt.Errorf("unable to read volume '%s': missing storage class name", v.volume.Name)
 	}
 
 	// fetch the sc specification
@@ -242,7 +242,7 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	// extract read cas template name from sc annotation
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to read volume %s: missing cas template for read '%s'", v1alpha1.CASTemplateKeyForVolumeRead)
+		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
 
 	// fetch read cas template specifications
