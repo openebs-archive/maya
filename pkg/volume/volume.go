@@ -238,7 +238,10 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// extract read cas template name from sc annotation
-	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
+	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
+	if len(castName) == 0 {
+		return nil, fmt.Errorf("unable to read volume %s: missing cas template for read '%s'", v1alpha1.CASTemplateKeyForVolumeRead)
+	}
 
 	// fetch read cas template specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
