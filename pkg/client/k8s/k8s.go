@@ -102,7 +102,6 @@ type K8sClient struct {
 	oecs *openebs.Clientset
 
 	// PV refers to a K8s PersistentVolume object
-	// NOTE: This property enables unit testing
 	PV *api_core_v1.PersistentVolume
 
 	// PVC refers to a K8s PersistentVolumeClaim object
@@ -423,7 +422,7 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
-// coreV1PVOps is a utility function that provides a instance capable of
+// coreV1PVOps is a utility function that provides an instance capable of
 // executing various K8s PV related operations.
 func (k *K8sClient) coreV1PVOps() typed_core_v1.PersistentVolumeInterface {
 	return k.cs.CoreV1().PersistentVolumes()

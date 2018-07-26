@@ -140,8 +140,8 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	}
 
 	// use sc name from header if present
-	scName := v.req.Header.Get(string(v1alpha1.StorageClassKey))
-	if scName != "" {
+	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassKey)))
+	if len(scName) == 0 {
 		vol.Annotations[string(v1alpha1.StorageClassKey)] = scName
 	}
 

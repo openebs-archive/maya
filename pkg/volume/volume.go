@@ -24,6 +24,7 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // volumeOperationOptions contains the options with respect to
@@ -217,7 +218,7 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 
 	// check if sc name is already present, if not then extract it
 	scName := v.volume.Annotations[string(v1alpha1.StorageClassKey)]
-	if scName == "" {
+	if len(scName) == 0 {
 		// fetch the pv specification
 		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
@@ -225,10 +226,11 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 		}
 
 		// extract the sc name
-		scName := pv.Spec.StorageClassName
-		if len(scName) == 0 {
-			return nil, fmt.Errorf("unable to read volume %s: missing storage class in PV object", v.volume.Name)
-		}
+		scName = strings.TrimSpace(pv.Spec.StorageClassName)
+	}
+
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("unable to read volume %s: missing storage class in PV object", v.volume.Name)
 	}
 
 	// fetch the sc specification
