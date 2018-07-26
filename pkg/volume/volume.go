@@ -160,19 +160,27 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
+	// fetch the pv specifications
+	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
 
-	// TODO
-	// Get the PV details & extract the SC & then SC details
-	//  Get the CAS Template name for delete
-	//
-	// cas template to delete a cas volume
-	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
+	// get the storage class name corresponding to this volume
+	scName := pv.Spec.StorageClassName
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
+	}
+
+	// fetch the storage class specifications
+	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	if len(castName) == 0 {
-		// use the default delete cas template otherwise
-		// TODO
-		//  Remove the use of defaults & make volume annotations mandatory
-		// for delete operation
-		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeDelete)
+		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
 	}
 
 	// fetch delete cas template specifications
