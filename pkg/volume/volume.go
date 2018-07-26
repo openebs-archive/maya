@@ -24,6 +24,7 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // volumeOperationOptions contains the options with respect to
@@ -215,18 +216,33 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
-	// TODO
-	// Get the PV details & extract the SC & then SC details
-	//  Get the CAS Template name for read
-	//
-	// cas template to read a cas volume
-	castName := v.volume.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
+	// check if sc name is already present, if not then extract it
+	scName := v.volume.Annotations[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		// fetch the pv specification
+		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		// extract the sc name
+		scName = strings.TrimSpace(pv.Spec.StorageClassName)
+	}
+
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("unable to read volume '%s': missing storage class name", v.volume.Name)
+	}
+
+	// fetch the sc specification
+	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// extract read cas template name from sc annotation
+	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	if len(castName) == 0 {
-		// use the DEFAULT read cas template otherwise
-		// TODO
-		//  Remove the use of defaults & make volume annotations mandatory
-		// for read operation
-		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeRead)
+		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
 
 	// fetch read cas template specifications
