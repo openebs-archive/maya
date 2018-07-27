@@ -407,6 +407,9 @@ type CStorVolumeSpec struct {
 	Iqn               string `json:"iqn"`
 	TargetPortal      string `json:"targetPortal"`
 	Status            string `json:"status"`
+	// NodeBase contains the year and naming authority
+	// e.g. iqn.2016-09.com.openebs.cstor
+	NodeBase          string `json:"nodeBase"`
 	ReplicationFactor int    `json:"replicationFactor"`
 	ConsistencyFactor int    `json:"consistencyFactor"`
 }
