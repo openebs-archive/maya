@@ -81,7 +81,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 		return string(apis.CVRStatusOffline), fmt.Errorf("Pool not present")
 	}
 
-	fullVolName := string(pool.PoolPrefix) + cVR.Labels["cstorpool.openebs.io/uid"] + "/" + cVR.Labels["cstorvolume.openebs.io/uid"]
+	fullVolName := string(pool.PoolPrefix) + cVR.Labels["cstorpool.openebs.io/uid"] + "/" + cVR.Labels["cstorvolume.openebs.io/name"]
 	glog.Infof("fullVolName: %v", fullVolName)
 
 	switch operation {
@@ -144,7 +144,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeR
 		glog.Infof("cVR creation successful: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
 		return string(apis.CVRStatusOnline), nil
 	}
-	return string(apis.CVRStatusOffline), fmt.Errorf("VolumeReplica offline: %v, %v", cVR.Name, cVR.Labels["cstorvolume.openebs.io/uid"])
+	return string(apis.CVRStatusOffline), fmt.Errorf("VolumeReplica offline: %v, %v", cVR.Name, cVR.Labels["cstorvolume.openebs.io/name"])
 }
 
 // getVolumeReplicaResource returns object corresponding to the resource key
