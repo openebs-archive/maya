@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This namespace will have artifacts related to installation of maya api 
+// This namespace will have artifacts related to installation of maya api
 // server specific components:
 //  - jiva volume based artifacts
 //  - cstor volume based artifacts
 //  - cstor pool based artifacts
 //
 // NOTE:
-//  These artifacts are typically CAS Templates & RunTasks which in turn are 
-// Kubernetes Custom Resources.
-package v1alpha1-0.7.0
+//  These artifacts are typically CAS Templates & RunTasks which in turn are
+// Kubernetes Custom Resources
+package v1alpha1_0_7_0
