@@ -247,7 +247,7 @@ func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, e
 // GetOEV1alpha1Disk fetches the disk specs based on
 // the provided name
 func (k *K8sClient) GetOEV1alpha1Disk(name string) (*api_oe_v1alpha1.Disk, error) {
-	if k.Disk!= nil {
+	if k.Disk != nil {
 		return k.Disk, nil
 	}
 
@@ -526,6 +526,7 @@ func (k *K8sClient) GetOEV1alpha1SPCAsRaw(name string) (result []byte, err error
 
 	//return
 }
+
 // GetOEV1alpha1SPAsRaw fetches the OpenEBS SP with the provided name
 func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error) {
 	sp, err := k.GetOEV1alpha1SP(name)
@@ -841,7 +842,7 @@ func (k *K8sClient) PatchExtnV1B1Deployment(name string, patchType types.PatchTy
 
 // PatchOEV1alpha1SPCAsRaw patches the SPC object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.StoragePoolClaim, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name,patchType,patches)
+	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name, patchType, patches)
 	return
 }
 

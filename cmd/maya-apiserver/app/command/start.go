@@ -35,8 +35,8 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 
-	"github.com/spf13/cobra"
 	"github.com/openebs/maya/cmd/maya-apiserver/spc-watcher"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -127,9 +127,9 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	if mconfig == nil {
 		return errors.New("Unable to load the configuration.")
 	}
-	go func(){
+	go func() {
 		err := spc.Start()
-		if err != nil{
+		if err != nil {
 			glog.Errorf("Could not start controller: %s", err.Error())
 		}
 	}()

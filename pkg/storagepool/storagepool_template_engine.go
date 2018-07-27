@@ -72,7 +72,6 @@ func NewCASStoragePoolEngine(
 	return
 }
 
-
 // addConfigToConfigTLP will add final cas storagepool configurations to ConfigTLP.
 //
 // NOTE:

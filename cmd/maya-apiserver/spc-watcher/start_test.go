@@ -20,20 +20,20 @@ import (
 	"time"
 )
 
-func TestStart(t *testing.T){
+func TestStart(t *testing.T) {
 	var err error
-	var errchannel=make(chan error)
+	var errchannel = make(chan error)
 	go func() {
-		err:=Start()
-		errchannel<-err
+		err := Start()
+		errchannel <- err
 	}()
 	select {
 	case err1 := <-errchannel:
 		err = err1
-	case <-time.After(5*time.Second):
-		err=nil
+	case <-time.After(5 * time.Second):
+		err = nil
 	}
-	if err==nil{
+	if err == nil {
 		t.Fatal("Error should not be nil as no incluster config is present")
 	}
 }

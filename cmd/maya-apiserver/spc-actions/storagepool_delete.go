@@ -17,16 +17,15 @@ limitations under the License.
 package storagepoolactions
 
 import (
-	"github.com/golang/glog"
 	"fmt"
-	"github.com/openebs/maya/pkg/storagepool"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/storagepool"
 )
 
-
-func DeleteStoragePool(key string) (error) {
+func DeleteStoragePool(key string) error {
 	// Business logic for deletion of storagepool cr
-	glog.Infof("Storagepool delete event received for storagepoolclaim %s",key)
+	glog.Infof("Storagepool delete event received for storagepoolclaim %s", key)
 
 	// Create an empty  CasPool object
 	pool := &v1alpha1.CasPool{}
