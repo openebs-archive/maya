@@ -30,23 +30,24 @@ import (
 type StoragePoolClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec StoragePoolClaimSpec `json:"spec"`
-	Status StoragePoolClaimStatus `json:"status"`
-
+	Spec              StoragePoolClaimSpec   `json:"spec"`
+	Status            StoragePoolClaimStatus `json:"status"`
 }
+
 // StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Name         string `json:"name"`
-	Format       string `json:"format"`
-	Mountpoint	 string `json:"mountpoint"`
-	Path       	 string `json:"path"`
-	Type       	 string `json:"type"`
-	NodeSelector []string `json:"nodeSelector"`
-	Capacity     string `json:"capacity"`
-	MaxPools     int16 `json:"maxPools"`
-	Disks DiskAttr `json:"disks"`
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
+	Name         string        `json:"name"`
+	Format       string        `json:"format"`
+	Mountpoint   string        `json:"mountpoint"`
+	Path         string        `json:"path"`
+	Type         string        `json:"type"`
+	NodeSelector []string      `json:"nodeSelector"`
+	Capacity     string        `json:"capacity"`
+	MaxPools     int16         `json:"maxPools"`
+	Disks        DiskAttr      `json:"disks"`
+	PoolSpec     CStorPoolAttr `json:"poolSpec"`
 }
+
 // StoragePoolClaim is for handling status of pool.
 type StoragePoolClaimStatus struct {
 	Phase string `json:"phase"`
@@ -79,15 +80,14 @@ type StoragePool struct {
 
 // StoragePoolSpec is the spec for a StoragePool resource
 type StoragePoolSpec struct {
-	Name       string `json:"name"`
-	Format     string `json:"format"`
-	Mountpoint string `json:"mountpoint"`
-	Nodename   string `json:"nodename"`
-	Message    string `json:"message"`
-	Path       string `json:"path"`
-	Disks    DiskAttr      `json:"disks"`
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
-
+	Name       string        `json:"name"`
+	Format     string        `json:"format"`
+	Mountpoint string        `json:"mountpoint"`
+	Nodename   string        `json:"nodename"`
+	Message    string        `json:"message"`
+	Path       string        `json:"path"`
+	Disks      DiskAttr      `json:"disks"`
+	PoolSpec   CStorPoolAttr `json:"poolSpec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -337,10 +337,10 @@ type CStorPoolList struct {
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta                 `json:",inline"`
-	metav1.ObjectMeta               `json:"metadata,omitempty"`
-	Spec   CStorVolumeReplicaSpec   `json:"spec"`
-	Status CStorVolumeReplicaStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              CStorVolumeReplicaSpec   `json:"spec"`
+	Status            CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
@@ -393,10 +393,10 @@ type CStorVolumeReplicaList struct {
 
 // CStorVolume describes a cstor volume resource created as custom resource
 type CStorVolume struct {
-	metav1.TypeMeta          `json:",inline"`
-	metav1.ObjectMeta        `json:"metadata,omitempty"`
-	Spec   CStorVolumeSpec   `json:"spec"`
-	Status CStorVolumeStatus `json:"status"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              CStorVolumeSpec   `json:"spec"`
+	Status            CStorVolumeStatus `json:"status"`
 }
 
 // CStorVolumeSpec is the spec for a CStorVolume resource

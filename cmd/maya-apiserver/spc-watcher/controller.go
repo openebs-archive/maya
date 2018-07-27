@@ -15,8 +15,13 @@ limitations under the License.
 */
 
 package spc
+
 import (
 	"github.com/golang/glog"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -24,10 +29,6 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
-	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"k8s.io/client-go/util/workqueue"
 )
 
@@ -112,13 +113,13 @@ func NewController(
 		UpdateFunc: func(old, new interface{}) {
 			newSpc := new.(*apis.StoragePoolClaim)
 			oldSpc := old.(*apis.StoragePoolClaim)
-			if(newSpc.ObjectMeta.ResourceVersion==oldSpc.ObjectMeta.ResourceVersion){
+			if newSpc.ObjectMeta.ResourceVersion == oldSpc.ObjectMeta.ResourceVersion {
 				// If Resource Version is same it means the object has not got updated.
 				q.Operation = ignoreEvent
-			}else{
-				if(IsDeleteEvent(newSpc)){
+			} else {
+				if IsDeleteEvent(newSpc) {
 					q.Operation = deleteEvent
-				}else{
+				} else {
 					// To-DO
 					// Implement Logic for Update of SPC object
 					q.Operation = updateEvent

@@ -18,16 +18,17 @@ package storagepoolactions
 
 import (
 	"errors"
-	"github.com/golang/glog"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/storagepool"
 	"fmt"
+	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/storagepool"
 )
 
-const(
+const (
 	onlineStatus = "Online"
 )
+
 // Cas template is a custom resource which has a list of runTasks.
 
 // runTasks are configmaps which has defined yaml templates for resources that needs
@@ -39,24 +40,24 @@ const(
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
 
-func CreateStoragePool(spcGot *apis.StoragePoolClaim) (error) {
+func CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
 
-	glog.Infof("Storagepool create event received for storagepoolclaim %s",spcGot.ObjectMeta.Name)
+	glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
 
 	// Check wether the spc object has been processed for storagepool creation
-	if(spcGot.Status.Phase==onlineStatus){
+	if spcGot.Status.Phase == onlineStatus {
 		return errors.New("Storagepool already exists since the status on storagepoolclaim object is Online")
 	}
 
 	// Check for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
-	if(poolType==""){
+	if poolType == "" {
 		return errors.New("Aborting storagepool create operation as no poolType is specified")
 	}
 
 	// Check for disks
 	diskList := spcGot.Spec.Disks.DiskList
-	if(len(diskList)==0){
+	if len(diskList) == 0 {
 		return errors.New("Aborting storagepool create operation as no disk is specified")
 	}
 
@@ -65,14 +66,14 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim) (error) {
 
 	// Check for cas template
 	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCreateCASTemplateCK)]
-	if(casTemplateName==""){
+	if casTemplateName == "" {
 		return errors.New("Aborting storagepool create operation as no cas template is specified")
 	}
 
 	// Calling worker function to create storagepool
-	err:=poolCreateWorker(spcGot,casTemplateName)
+	err := poolCreateWorker(spcGot, casTemplateName)
 
-	if err!=nil{
+	if err != nil {
 		return err
 	}
 
@@ -81,7 +82,7 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim) (error) {
 
 // poolCreateWorker is a worker function which will create a storagepool
 
-func poolCreateWorker(spcGot *apis.StoragePoolClaim, casTemplateName string) (error) {
+func poolCreateWorker(spcGot *apis.StoragePoolClaim, casTemplateName string) error {
 
 	glog.Infof("Creating storagepool for storagepoolclaim %s via CASTemplate", spcGot.ObjectMeta.Name)
 	// Create an empty CasPool object
@@ -102,6 +103,6 @@ func poolCreateWorker(spcGot *apis.StoragePoolClaim, casTemplateName string) (er
 
 	}
 
-	glog.Infof("Cas template based storagepool created successfully: name '%s'",spcGot.Name )
+	glog.Infof("Cas template based storagepool created successfully: name '%s'", spcGot.Name)
 	return nil
 }

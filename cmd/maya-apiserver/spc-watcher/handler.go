@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package spc
+
 import (
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -54,26 +55,26 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		err := storagepoolactions.CreateStoragePool(spcGot)
 
-		if err !=nil{
-			glog.Error("Storagepool could not be created:",err)
+		if err != nil {
+			glog.Error("Storagepool could not be created:", err)
 			// To-Do
 			// If Some error occur patch the spc object with appropriate reason
 		}
 
-		return addEvent,err
+		return addEvent, err
 		break
 
 	case updateEvent:
 		// TO-DO : Handle Business Logic
 		// Hook Update Business Logic Here
-		return updateEvent,nil
+		return updateEvent, nil
 		break
 
 	case deleteEvent:
 		err := storagepoolactions.DeleteStoragePool(key)
 
-		if err !=nil{
-			glog.Error("Storagepool could not be deleted:",err)
+		if err != nil {
+			glog.Error("Storagepool could not be deleted:", err)
 		}
 
 		return deleteEvent, err
@@ -107,7 +108,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		runtime.HandleError(fmt.Errorf("Invalid resource key: %s", key))
 		return nil, err
 	}
-	spcGot, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(name,metav1.GetOptions{})
+	spcGot, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Get(name, metav1.GetOptions{})
 	if err != nil {
 		// The SPC resource may no longer exist, in which case we stop
 		// processing.
@@ -118,9 +119,9 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 			// using the spc key(name)
 			// If error is returned the caller function will return without calling the spcEventHandler
 			// function that invokes business logic for pool deletion
-			return nil,nil
+			return nil, nil
 		}
-		return nil,err
+		return nil, err
 	}
 	return spcGot, nil
 }

@@ -18,8 +18,8 @@ package util
 
 import (
 	"os"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // ENVKey is a typed variable that holds all environment
