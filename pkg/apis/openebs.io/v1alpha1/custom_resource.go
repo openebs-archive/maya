@@ -407,6 +407,7 @@ type CStorVolumeSpec struct {
 	Iqn               string `json:"iqn"`
 	TargetPortal      string `json:"targetPortal"`
 	Status            string `json:"status"`
+	NodeBase          string `json:"nodeBase"`
 	ReplicationFactor int    `json:"replicationFactor"`
 	ConsistencyFactor int    `json:"consistencyFactor"`
 }
