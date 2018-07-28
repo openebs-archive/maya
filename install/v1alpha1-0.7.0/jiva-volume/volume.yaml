@@ -395,7 +395,7 @@ data:
     action: list
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/pv={{ .Volume.owner }}
-    retry: "10,30s"
+    retry: "12,10s"
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}

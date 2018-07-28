@@ -9,7 +9,16 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/volume"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
+
+func isNotFound(err error) bool {
+	if _, ok := err.(*template.NotFoundError); ok {
+		return ok
+	}
+
+	return errors.IsNotFound(err)
+}
 
 type volumeAPIOpsV1alpha1 struct {
 	req  *http.Request
@@ -84,11 +93,6 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create volume: missing volume name '%v'", vol))
 	}
 
-	// use run namespace from labels if volume's namespace is not set
-	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
-	}
-
 	// use run namespace from http request header if volume's namespace is still not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = v.req.Header.Get(NamespaceKey)
@@ -129,20 +133,17 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 		return nil, CodedError(400, fmt.Sprintf("failed to read volume: missing volume name '%v'", vol))
 	}
 
-	// use namespace from labels if volume ns is not set
-	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
-	}
-
 	// use namespace from req headers if volume ns is still not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = hdrNS
 	}
 
-	// use sc name from header if present
+	// use StorageClass name from header if present
 	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassKey)))
-	// add the sc name to vol's annotation
-	vol.Annotations[string(v1alpha1.StorageClassKey)] = scName
+	// add the StorageClass name to volume's labels
+	vol.Labels = map[string]string{
+		string(v1alpha1.StorageClassKey): scName,
+	}
 
 	vOps, err := volume.NewVolumeOperation(vol)
 	if err != nil {
@@ -152,7 +153,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	cvol, err := vOps.Read()
 	if err != nil {
 		glog.Errorf("failed to read cas template based volume: error '%s'", err.Error())
-		if _, ok := err.(*template.NotFoundError); ok {
+		if isNotFound(err) {
 			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
 		}
 		return nil, CodedError(500, err.Error())
@@ -182,11 +183,6 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 		return nil, CodedError(400, fmt.Sprintf("failed to delete volume: missing volume name '%v'", vol))
 	}
 
-	// use namespace from labels if volume ns is not set
-	if len(vol.Namespace) == 0 {
-		vol.Namespace = vol.Labels[string(v1alpha1.NamespaceKey)]
-	}
-
 	// use namespace from req headers if volume ns is still not set
 	if len(vol.Namespace) == 0 {
 		vol.Namespace = hdrNS
@@ -200,7 +196,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	cvol, err := vOps.Delete()
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
-		if _, ok := err.(*template.NotFoundError); ok {
+		if isNotFound(err) {
 			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
 		}
 		return nil, CodedError(500, err.Error())
@@ -221,11 +217,6 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 	if v.req != nil {
 		decodeBody(v.req, vols)
 		hdrNS = v.req.Header.Get(NamespaceKey)
-	}
-
-	// use namespace from labels if volume ns is not set
-	if len(vols.Namespace) == 0 {
-		vols.Namespace = vols.Labels[string(v1alpha1.NamespaceKey)]
 	}
 
 	// use namespace from req headers if volume ns is still not set

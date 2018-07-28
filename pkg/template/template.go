@@ -62,6 +62,8 @@ func empty(given interface{}) bool {
 }
 
 // NotFoundError represents an error due to a missing object
+//
+// NOTE: This is meant to be used as a template function
 type NotFoundError struct {
 	err string
 }
@@ -71,6 +73,8 @@ func (e *NotFoundError) Error() string {
 }
 
 // VerifyError represents an error due to a failure in verification
+//
+// NOTE: This is meant to be used as a template function
 type VerifyError struct {
 	err string
 }

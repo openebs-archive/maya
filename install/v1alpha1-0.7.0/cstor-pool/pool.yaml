@@ -85,12 +85,11 @@ data:
     kind: Disk
     action: get
     repeatWith:
-      kind: name
-      resources:
-        {{- $diskList := .TaskResult.getspcinfo.disk | replace "," " "| trim | split " "}}
-        {{ range $k,$v := $diskList }}
-        - {{$v}}
-        {{ end }}
+      metas:
+      {{- $diskList := .TaskResult.getspcinfo.disk | replace "," " "| trim | split " "}}
+      {{ range $k,$v := $diskList }}
+      - objectName: {{$v}}
+      {{ end }}
   post: |
     {{- $nodesList := jsonpath .JsonResult `pkey=nodes,{@.metadata.labels.kubernetes\.io/hostname}={@.spec.devlinks[0].links[1]};` | trim | default "" | splitList ";" -}}
     {{- $nodesList | keyMap "cstorNodePoolList" .ListItems | noop -}}
@@ -108,9 +107,9 @@ data:
     id: createputcstorpool
     repeatWith:
       resources:
-        {{- range $k, $v := .ListItems.cstorNodePoolList.nodes}}
-        - {{ $k }}
-        {{- end }}
+      {{- range $k, $v := .ListItems.cstorNodePoolList.nodes}}
+      - {{ $k }}
+      {{- end }}
   post: |
     {{- jsonpath .JsonResult `{.metadata.name}` | trim | addTo "createputcstorpool.objectName" .TaskResult | noop -}}
     {{- $nodeUidMap := jsonpath .JsonResult `pkey=nodesUid,{.metadata.labels.kubernetes\.io/hostname}={.metadata.uid} {.metadata.name};` | trim | default "" | splitList ";" -}}
@@ -249,9 +248,9 @@ data:
     id: createputstoragepool
     repeatWith:
       resources:
-        {{- range $k, $v := .ListItems.cstorNodePoolList.nodes}}
-        - {{ $k }}
-        {{- end }}
+      {{- range $k, $v := .ListItems.cstorNodePoolList.nodes}}
+      - {{ $k }}
+      {{- end }}
   post: |
     {{- jsonpath .JsonResult `{.metadata.name}` | trim | addTo "createputstoragepool.objectName" .TaskResult | noop -}}
   task: |

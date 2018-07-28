@@ -158,111 +158,6 @@ type DiskList struct {
 
 // +genclient
 // +genclient:noStatus
-// +genclient:nonNamespaced
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=castemplate
-
-// CASTemplate describes a Container Attached Storage template that is used
-// to provision a CAS volume
-type CASTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec CASTemplateSpec `json:"spec"`
-}
-
-// CASTemplateSpec is the specifications for a CASTemplate resource
-type CASTemplateSpec struct {
-	// Update specifications to update a CAS volume
-	Update CASUpdateSpec `json:"update"`
-	// Defaults are a list of default configurations that may be applied
-	// during provisioning of a CAS volume
-	Defaults []Config `json:"defaultConfig"`
-	// TaskNamespace is the namespace where the tasks
-	// are expected to be found
-	TaskNamespace string `json:"taskNamespace"`
-	// RunTasks refers to a set of tasks to be run
-	RunTasks RunTasks `json:"run"`
-	// OutputTask is the task that has the CAS template result's output
-	// format
-	OutputTask string `json:"output"`
-}
-
-// CASUpdateSpec is the specification to update a CAS volume
-// One or more CAS volumes may be updated at a time based on PVC or SC
-// respectively.
-type CASUpdateSpec struct {
-	// Kind refers to a Kubernetes kind. In this case it can be a
-	// StorageClass or a PVC
-	Kind string `json:"kind"`
-	// Name refers to the Kubernetes resource. In this case it can
-	// be the name of StorageClass or PVC.
-	Name string `json:"name"`
-	// Selector filters the relevant CAS volumes to be updated
-	Selector string `json:"selector"`
-	// CurrentVersion is the expected current version of a CAS volume
-	// that is eligible for update
-	CurrentVersion string `json:"currentVersion"`
-	// DesiredVersion is the desired version of a CAS volume after a
-	// successful update
-	DesiredVersion string `json:"desiredVersion"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=castemplates
-
-// CASTemplateList is a list of CASTemplate resources
-type CASTemplateList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata"`
-
-	Items []CASTemplate `json:"items"`
-}
-
-// Config holds a configuration element
-//
-// For example, it can represent a config property of a CAS volume
-type Config struct {
-	// Name of the config
-	Name string `json:"name"`
-	// Enabled flags if this config is enabled or disabled;
-	// true indicates enabled while false indicates disabled
-	Enabled string `json:"enabled"`
-	// Value represents any specific value that is applicable
-	// to this config
-	Value string `json:"value"`
-	// Data represents an arbitrary map of key value pairs
-	Data map[string]string `json:"data"`
-}
-
-// RunTasks contains fields to run a set of
-// tasks
-type RunTasks struct {
-	// Items is a set of order-ed tasks
-	Tasks []string `json:"tasks"`
-}
-
-// Task has information about an action and a resource where the action
-// is performed against the resource.
-//
-// For example a resource can be a kubernetes resource and the corresponding
-// action can be to apply this resource to kubernetes cluster.
-//type Task struct {
-// TaskName is the name of the task.
-//
-// NOTE: A task refers to a K8s ConfigMap.
-//TaskName string `json:"task"`
-// Identity is the unique identity that can differentiate
-// two tasks even when using the same template
-//Identity string `json:"id"`
-// APIVersion is the version related to the task's resource
-//APIVersion string `json:"apiVersion"`
-// Kind is the kind corresponding to the task's resource
-//Kind string `json:"kind"`
-//}
-
-// +genclient
-// +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +genclient:nonNamespaced
 // +resource:path=cstorpool
@@ -401,12 +296,12 @@ type CStorVolume struct {
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	Capacity          string `json:"capacity"`
-	TargetIP          string `json:"targetIP"`
-	TargetPort        string `json:"targetPort"`
-	Iqn               string `json:"iqn"`
-	TargetPortal      string `json:"targetPortal"`
-	Status            string `json:"status"`
+	Capacity     string `json:"capacity"`
+	TargetIP     string `json:"targetIP"`
+	TargetPort   string `json:"targetPort"`
+	Iqn          string `json:"iqn"`
+	TargetPortal string `json:"targetPortal"`
+	Status       string `json:"status"`
 	// NodeBase contains the year and naming authority
 	// e.g. iqn.2016-09.com.openebs.cstor
 	NodeBase          string `json:"nodeBase"`

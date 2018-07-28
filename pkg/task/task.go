@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	"github.com/openebs/maya/pkg/template"
@@ -45,122 +46,60 @@ type TaskOutputExecutor interface {
 	Output() (output []byte, err error)
 }
 
-// TODO
-//  Refactor this to a Kubernetes Custom Resource
-//
-// RunTask composes various specifications of a task
-type RunTask struct {
-	// Name of this task
-	Name string
-	// MetaYml is the specifications about meta information of this run task
-	MetaYml string
-	// TaskYml is the specifications about this run task
-	TaskYml string
-	// PostRunTemplateFuncs is a set of go template functions that is run
-	// against the result of this task's execution. In other words, this
-	// template is run post the task execution.
-	PostRunTemplateFuncs string
-}
-
 type taskExecutor struct {
-	// identity is the id of the task
-	identity string
 	// templateValues will hold the values that will be applied against
 	// the task's specification (which is a go template) before this task gets
 	// executed
 	templateValues map[string]interface{}
-	// objectName is the name of the object
-	//
-	// NOTE:
-	//  object refers to the result of task execution
-	objectName string
-	// taskResultQueries is a set of queries that are run
-	// against the object after successful execution of the task
-	taskResultQueries []TaskResultQuery
-	// taskPatch is a set of patches that get applied against
-	// the task object
-	taskPatch TaskPatch
+
 	// metaTaskExec is the instance to be used to execute meta
 	// operations on this task
 	metaTaskExec *metaTaskExecutor
+
 	// runtask is the specifications that determine a task & operations associated
 	// with it
-	runtask RunTask
-	// k8sClient will be used to make K8s API calls
-	k8sClient *m_k8s_client.K8sClient
-}
-
-// newK8sClient returns a new instance of K8sClient based on the provided run
-// namespace.
-//
-// NOTE:
-//  Providing a run namespace can be optional. It is optional for cluster wide
-// operations.
-//
-// NOTE:
-//  In cases where more than one namespaces are involved, **repeatWith**
-// metatask property is used.
-func newK8sClient(runNamespace string) (kc *m_k8s_client.K8sClient, err error) {
-	ns := strings.TrimSpace(runNamespace)
-	kc, err = m_k8s_client.NewK8sClient(ns)
-	return
-}
-
-// resetK8sClient returns a new instance of taskExecutor pointing to a new
-// namespace
-func (m *taskExecutor) resetK8sClient(namespace string) (*taskExecutor, error) {
-	// client to make K8s API calls using the provided namespace
-	kc, err := newK8sClient(namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	// reset the k8s client
-	m.k8sClient = kc
-	return m, nil
+	runtask v1alpha1.RunTask
 }
 
 // newTaskExecutor returns a new instance of taskExecutor
-func newTaskExecutor(runtask RunTask, values map[string]interface{}) (*taskExecutor, error) {
-	mte, err := newMetaTaskExecutor(runtask.MetaYml, values)
-	if err != nil {
-		return nil, err
-	}
-
-	// client to make K8s API calls using the namespace on
-	// which this task is supposed to be executed
-	kc, err := newK8sClient(mte.getRunNamespace())
-
+func newTaskExecutor(runtask v1alpha1.RunTask, values map[string]interface{}) (*taskExecutor, error) {
+	mte, err := newMetaTaskExecutor(runtask.Spec.Meta, values)
 	if err != nil {
 		return nil, err
 	}
 
 	return &taskExecutor{
-		templateValues:    values,
-		identity:          mte.getIdentity(),
-		objectName:        mte.getObjectName(),
-		taskResultQueries: mte.getTaskResultQueries(),
-		metaTaskExec:      mte,
-		runtask:           runtask,
-		k8sClient:         kc,
+		templateValues: values,
+		metaTaskExec:   mte,
+		runtask:        runtask,
 	}, nil
 }
 
 // String provides the essential task executor details
 func (m *taskExecutor) String() string {
-	return fmt.Sprintf("task with identity '%s' and with objectname '%s'", m.identity, m.objectName)
+	return fmt.Sprintf("task with identity '%s' and with objectname '%s'", m.getTaskIdentity(), m.getTaskObjectName())
 }
 
-// getTaskIdentity gets the meta task executor value
+// getTaskIdentity gets the task identity
 func (m *taskExecutor) getTaskIdentity() string {
-	return m.identity
+	return m.metaTaskExec.getIdentity()
+}
+
+// getTaskObjectName gets the task's object name
+func (m *taskExecutor) getTaskObjectName() string {
+	return m.metaTaskExec.getObjectName()
+}
+
+// getK8sClient gets the kubernetes client to execute this task
+func (m *taskExecutor) getK8sClient() *m_k8s_client.K8sClient {
+	return m.metaTaskExec.getK8sClient()
 }
 
 // Output returns the result of templating this task's yaml
 //
 // This implements TaskOutputExecutor interface
 func (m *taskExecutor) Output() (output []byte, err error) {
-	output, err = template.AsTemplatedBytes("Output", m.runtask.TaskYml, m.templateValues)
+	output, err = template.AsTemplatedBytes("Output", m.runtask.Spec.Task, m.templateValues)
 	return
 }
 
@@ -177,7 +116,7 @@ func (m *taskExecutor) Output() (output []byte, err error) {
 //  Below property is set with verification error if any:
 //  .TaskResult.<taskID>.notFoundErr
 func (m *taskExecutor) getTaskResultNotFoundError() interface{} {
-	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.identity, string(v1alpha1.TaskResultNotFoundErrTRTP))
+	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.getTaskIdentity(), string(v1alpha1.TaskResultNotFoundErrTRTP))
 }
 
 // getTaskResultVerifyError fetches the verification error if any from this
@@ -192,7 +131,7 @@ func (m *taskExecutor) getTaskResultNotFoundError() interface{} {
 //  Below property is set with verification error if any:
 //  .TaskResult.<taskID>.verifyErr
 func (m *taskExecutor) getTaskResultVerifyError() interface{} {
-	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.identity, string(v1alpha1.TaskResultVerifyErrTRTP))
+	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.getTaskIdentity(), string(v1alpha1.TaskResultVerifyErrTRTP))
 }
 
 // resetTaskResultVerifyError resets the verification error from this runtask's
@@ -208,7 +147,7 @@ func (m *taskExecutor) getTaskResultVerifyError() interface{} {
 //  Verification error is set during the post task execution phase if there are
 // any verification error. This error is set in the runtask's template values.
 func (m *taskExecutor) resetTaskResultVerifyError() {
-	util.SetNestedField(m.templateValues, nil, string(v1alpha1.TaskResultTLP), m.identity, string(v1alpha1.TaskResultVerifyErrTRTP))
+	util.SetNestedField(m.templateValues, nil, string(v1alpha1.TaskResultTLP), m.getTaskIdentity(), string(v1alpha1.TaskResultVerifyErrTRTP))
 }
 
 // repeatWith repeats execution of the task based on the repeatWith property
@@ -218,7 +157,7 @@ func (m *taskExecutor) resetTaskResultVerifyError() {
 // NOTE:
 //  Each task execution depends on the currently active repeat resource.
 func (m *taskExecutor) repeatWith() (err error) {
-	rwExec := m.metaTaskExec.getRepeatWithResourceExecutor()
+	rwExec := m.metaTaskExec.getRepeatExecutor()
 	if !rwExec.isRepeat() {
 		// no need to repeat if this task is not meant to be repeated;
 		// so execute once & return
@@ -226,25 +165,32 @@ func (m *taskExecutor) repeatWith() (err error) {
 		return
 	}
 
-	// execute the task function based on the repeat resources
-	for _, resource := range rwExec.getResources() {
-		if rwExec.isNamespaceRepeat() {
-			// if repetition is based on namespace, then the k8s client needs to
-			// point to proper namespace before executing the task
-			m.resetK8sClient(resource)
+	// execute the task based on each repeat
+	repeats := rwExec.len()
+	var (
+		rptMetaTaskExec *metaTaskExecutor
+		current         string
+	)
+
+	for idx := 0; idx < repeats; idx++ {
+		// fetch a new repeat meta task instance
+		rptMetaTaskExec, err = m.metaTaskExec.asRepeatInstance(idx)
+		if err != nil {
+			// stop repetition on unhandled runtime errors & return
+			return
 		}
+		// mutate the original meta task executor to this repeater instance
+		m.metaTaskExec = rptMetaTaskExec
 
-		if rwExec.isTaskObjectNameRepeat() {
-			// if repetition is based on task object name itself, then the task's
-			// object name needs to be set
-			m.metaTaskExec.setObjectName(resource)
-			m.objectName = resource
+		// set the currently active repeat item
+		current, err = m.metaTaskExec.repeater.getItem(idx)
+		if err != nil {
+			// stop repetition on unhandled runtime error & return
+			return
 		}
+		util.SetNestedField(m.templateValues, current, string(v1alpha1.ListItemsTLP), string(v1alpha1.CurrentRepeatResourceLITP))
 
-		// set the currently active repeat resource
-		util.SetNestedField(m.templateValues, resource, string(v1alpha1.ListItemsTLP), string(v1alpha1.CurrentRepeatResourceLITP))
-
-		// execute the task function
+		// execute the task function... finally
 		err = m.retryOnVerificationError()
 		if err != nil {
 			// stop repetition on unhandled runtime error & return
@@ -293,7 +239,7 @@ func (m *taskExecutor) retryOnVerificationError() (err error) {
 		err, _ = verifyErr.(*template.VerifyError)
 
 		if i != retryAttempts {
-			glog.Warningf("verify error was found during post runtask operations '%s': error '%#v': will retry task execution'%d'", m.identity, err, i+1)
+			glog.Warningf("verify error was found during post runtask operations '%s': error '%+v': will retry task execution'%d'", m.getTaskIdentity(), err, i+1)
 
 			// will retry after the specified interval
 			time.Sleep(interval)
@@ -321,13 +267,13 @@ func (m *taskExecutor) Execute() (err error) {
 // extracted values while executing later runtasks by providing these runtasks
 // with the updated **template values**.
 func (m *taskExecutor) postExecuteIt() (err error) {
-	if len(m.runtask.PostRunTemplateFuncs) == 0 {
+	if len(m.runtask.Spec.PostRun) == 0 {
 		// nothing needs to be done
 		return
 	}
 
 	// post runtask operation
-	_, err = template.AsTemplatedBytes("PostRunTemplateFuncs", m.runtask.PostRunTemplateFuncs, m.templateValues)
+	_, err = template.AsTemplatedBytes("PostRun", m.runtask.Spec.PostRun, m.templateValues)
 	if err != nil {
 		return
 	}
@@ -337,8 +283,7 @@ func (m *taskExecutor) postExecuteIt() (err error) {
 	// as an error.
 	notFoundErr := m.getTaskResultNotFoundError()
 	if notFoundErr != nil {
-		glog.Warningf("notfound error during post runtask operations '%s': error '%#v'", m.identity, notFoundErr)
-
+		glog.Warningf("notfound error during post runtask operations '%s': error '%+v'", m.getTaskIdentity(), notFoundErr)
 		err, _ = notFoundErr.(*template.NotFoundError)
 	}
 
@@ -347,9 +292,9 @@ func (m *taskExecutor) postExecuteIt() (err error) {
 
 // ExecuteIt will execute the runtask based on its meta specs & task specs
 func (m *taskExecutor) ExecuteIt() (err error) {
-	if m.k8sClient == nil {
+	if m.getK8sClient() == nil {
 		emsg := "failed to execute task: nil k8s client: verify if run namespace was available"
-		glog.Errorf(fmt.Sprintf("%s: metatask '%#v'", emsg, m.metaTaskExec.getMetaInfo()))
+		glog.Errorf(fmt.Sprintf("%s: metatask '%+v'", emsg, m.metaTaskExec.getMetaInfo()))
 		err = fmt.Errorf("%s: task '%s'", emsg, m.getTaskIdentity())
 		return
 	}
@@ -399,7 +344,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else {
-		err = fmt.Errorf("failed to execute task: not a supported operation: meta info '%#v'", m.metaTaskExec.getMetaInfo())
+		err = fmt.Errorf("failed to execute task: not a supported operation: meta info '%+v'", m.metaTaskExec.getMetaInfo())
 	}
 
 	if err != nil {
@@ -422,25 +367,17 @@ func (m *taskExecutor) asRollbackInstance(objectName string) (*taskExecutor, err
 		return nil, nil
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(mte.getRunNamespace())
-	if err != nil {
-		return nil, err
-	}
-
 	// Only the meta info is required for a rollback. In
 	// other words no need of task yaml template & values
 	return &taskExecutor{
-		identity:     m.identity,
-		objectName:   mte.getObjectName(),
 		metaTaskExec: mte,
-		k8sClient:    kc,
 	}, nil
 }
 
 // asAppsV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *taskExecutor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) {
-	d, err := m_k8s.NewDeploymentYml("AppsV1B1Deploy", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewDeploymentYml("AppsV1B1Deploy", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +388,7 @@ func (m *taskExecutor) asAppsV1B1Deploy() (*api_apps_v1beta1.Deployment, error) 
 // asExtnV1B1Deploy generates a K8s Deployment object
 // out of the embedded yaml
 func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) {
-	d, err := m_k8s.NewDeploymentYml("ExtnV1B11Deploy", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewDeploymentYml("ExtnV1B11Deploy", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +399,7 @@ func (m *taskExecutor) asExtnV1B1Deploy() (*api_extn_v1beta1.Deployment, error) 
 // asCStorPool generates a CstorPool object
 // out of the embedded yaml
 func (m *taskExecutor) asCStorPool() (*v1alpha1.CStorPool, error) {
-	d, err := m_k8s.NewCStorPoolYml("CStorPool", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewCStorPoolYml("CStorPool", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +410,7 @@ func (m *taskExecutor) asCStorPool() (*v1alpha1.CStorPool, error) {
 // asStoragePool generates a StoragePool object
 // out of the embedded yaml
 func (m *taskExecutor) asStoragePool() (*v1alpha1.StoragePool, error) {
-	d, err := m_k8s.NewStoragePoolYml("StoragePool", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewStoragePoolYml("StoragePool", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -484,7 +421,7 @@ func (m *taskExecutor) asStoragePool() (*v1alpha1.StoragePool, error) {
 // asCStorVolume generates a CstorVolume object
 // out of the embedded yaml
 func (m *taskExecutor) asCStorVolume() (*v1alpha1.CStorVolume, error) {
-	d, err := m_k8s.NewCStorVolumeYml("CstorVolume", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewCStorVolumeYml("CstorVolume", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +432,7 @@ func (m *taskExecutor) asCStorVolume() (*v1alpha1.CStorVolume, error) {
 // asCstorVolumeReplica generates a CStorVolumeReplica object
 // out of the embedded yaml
 func (m *taskExecutor) asCstorVolumeReplica() (*v1alpha1.CStorVolumeReplica, error) {
-	d, err := m_k8s.NewCStorVolumeReplicaYml("CstorVolumeReplica", m.runtask.TaskYml, m.templateValues)
+	d, err := m_k8s.NewCStorVolumeReplicaYml("CstorVolumeReplica", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -506,7 +443,7 @@ func (m *taskExecutor) asCstorVolumeReplica() (*v1alpha1.CStorVolumeReplica, err
 // asCoreV1Svc generates a K8s Service object
 // out of the embedded yaml
 func (m *taskExecutor) asCoreV1Svc() (*api_core_v1.Service, error) {
-	s, err := m_k8s.NewServiceYml("CoreV1Svc", m.runtask.TaskYml, m.templateValues)
+	s, err := m_k8s.NewServiceYml("CoreV1Svc", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +459,7 @@ func (m *taskExecutor) putAppsV1B1Deploy() (err error) {
 		return
 	}
 
-	deploy, err := m.k8sClient.CreateAppsV1B1DeploymentAsRaw(d)
+	deploy, err := m.getK8sClient().CreateAppsV1B1DeploymentAsRaw(d)
 	if err != nil {
 		return
 	}
@@ -539,7 +476,7 @@ func (m *taskExecutor) putExtnV1B1Deploy() (err error) {
 		return
 	}
 
-	deploy, err := m.k8sClient.CreateExtnV1B1DeploymentAsRaw(d)
+	deploy, err := m.getK8sClient().CreateExtnV1B1DeploymentAsRaw(d)
 	if err != nil {
 		return
 	}
@@ -551,7 +488,7 @@ func (m *taskExecutor) putExtnV1B1Deploy() (err error) {
 // patchSPC will patch a SPC object in a kubernetes cluster.
 // The patch specifications as configured in the RunTask
 func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
-	patch, err := asTaskPatch("patchSPC", m.runtask.TaskYml, m.templateValues)
+	patch, err := asTaskPatch("patchSPC", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return
 	}
@@ -567,7 +504,7 @@ func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
 	}
 
 	// patch the SPC
-	spc, err := m.k8sClient.PatchOEV1alpha1SPCAsRaw(m.objectName, pe.patchType(), raw)
+	spc, err := m.getK8sClient().PatchOEV1alpha1SPCAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
 	if err != nil {
 		return
 	}
@@ -586,7 +523,7 @@ func (m *taskExecutor) patchAppsV1B1Deploy() (err error) {
 // patchExtnV1B1Deploy will patch a Deployment where the patch specifications
 // are configured in the RunTask
 func (m *taskExecutor) patchExtnV1B1Deploy() (err error) {
-	patch, err := asTaskPatch("ExtnV1B1DeployPatch", m.runtask.TaskYml, m.templateValues)
+	patch, err := asTaskPatch("ExtnV1B1DeployPatch", m.runtask.Spec.Task, m.templateValues)
 	if err != nil {
 		return
 	}
@@ -602,7 +539,7 @@ func (m *taskExecutor) patchExtnV1B1Deploy() (err error) {
 	}
 
 	// patch the deployment
-	deploy, err := m.k8sClient.PatchExtnV1B1DeploymentAsRaw(m.objectName, pe.patchType(), raw)
+	deploy, err := m.getK8sClient().PatchExtnV1B1DeploymentAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
 	if err != nil {
 		return
 	}
@@ -614,10 +551,10 @@ func (m *taskExecutor) patchExtnV1B1Deploy() (err error) {
 // deleteAppsV1B1Deployment will delete one or more Deployments as specified in
 // the RunTask
 func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteAppsV1B1Deployment(strings.TrimSpace(name))
+		err = m.getK8sClient().DeleteAppsV1B1Deployment(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
@@ -629,10 +566,10 @@ func (m *taskExecutor) deleteAppsV1B1Deployment() (err error) {
 // deleteOEV1alpha1CVR will delete one or more CStorVolumeReplica as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1CVR() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteOEV1alpha1CVR(name)
+		err = m.getK8sClient().DeleteOEV1alpha1CVR(name)
 		if err != nil {
 			return
 		}
@@ -644,10 +581,10 @@ func (m *taskExecutor) deleteOEV1alpha1CVR() (err error) {
 // deleteExtnV1B1Deployment will delete one or more Deployments as specified in
 // the RunTask
 func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteExtnV1B1Deployment(strings.TrimSpace(name))
+		err = m.getK8sClient().DeleteExtnV1B1Deployment(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
@@ -663,7 +600,7 @@ func (m *taskExecutor) putCoreV1Service() (err error) {
 		return
 	}
 
-	svc, err := m.k8sClient.CreateCoreV1ServiceAsRaw(s)
+	svc, err := m.getK8sClient().CreateCoreV1ServiceAsRaw(s)
 	if err != nil {
 		return
 	}
@@ -675,10 +612,10 @@ func (m *taskExecutor) putCoreV1Service() (err error) {
 // deleteCoreV1Service will delete one or more services as specified in
 // the RunTask
 func (m *taskExecutor) deleteCoreV1Service() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteCoreV1Service(strings.TrimSpace(name))
+		err = m.getK8sClient().DeleteCoreV1Service(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
@@ -689,7 +626,7 @@ func (m *taskExecutor) deleteCoreV1Service() (err error) {
 
 // getOEV1alpha1Disk() will get the Disk as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1Disk() (err error) {
-	disk, err := m.k8sClient.GetOEV1alpha1DiskAsRaw(m.objectName)
+	disk, err := m.getK8sClient().GetOEV1alpha1DiskAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -700,7 +637,7 @@ func (m *taskExecutor) getOEV1alpha1Disk() (err error) {
 
 // getOEV1alpha1SPC() will get the StoragePoolClaim as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1SPC() (err error) {
-	spc, err := m.k8sClient.GetOEV1alpha1SPCAsRaw(m.objectName)
+	spc, err := m.getK8sClient().GetOEV1alpha1SPCAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -711,7 +648,7 @@ func (m *taskExecutor) getOEV1alpha1SPC() (err error) {
 
 // getOEV1alpha1SP will get the StoragePool as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1SP() (err error) {
-	sp, err := m.k8sClient.GetOEV1alpha1SPAsRaw(m.objectName)
+	sp, err := m.getK8sClient().GetOEV1alpha1SPAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -722,7 +659,7 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 
 // getExtnV1B1Deployment will get the Deployment as specified in the RunTask
 func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
-	deploy, err := m.k8sClient.GetExtnV1B1DeploymentAsRaw(m.objectName)
+	deploy, err := m.getK8sClient().GetExtnV1B1DeploymentAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -733,7 +670,7 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 
 // getAppsV1B1Deployment will get the Deployment as specified in the RunTask
 func (m *taskExecutor) getAppsV1B1Deployment() (err error) {
-	deploy, err := m.k8sClient.GetAppsV1B1DeploymentAsRaw(m.objectName)
+	deploy, err := m.getK8sClient().GetAppsV1B1DeploymentAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -744,7 +681,7 @@ func (m *taskExecutor) getAppsV1B1Deployment() (err error) {
 
 // getCoreV1PVC will get the PVC as specified in the RunTask
 func (m *taskExecutor) getCoreV1PVC() (err error) {
-	pvc, err := m.k8sClient.GetCoreV1PVCAsRaw(m.objectName)
+	pvc, err := m.getK8sClient().GetCoreV1PVCAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -760,7 +697,7 @@ func (m *taskExecutor) putStoragePool() (err error) {
 		return
 	}
 
-	storagePool, err := m.k8sClient.CreateOEV1alpha1SPAsRaw(c)
+	storagePool, err := m.getK8sClient().CreateOEV1alpha1SPAsRaw(c)
 	if err != nil {
 		return
 	}
@@ -776,7 +713,7 @@ func (m *taskExecutor) putCStorPool() (err error) {
 		return
 	}
 
-	cstorPool, err := m.k8sClient.CreateOEV1alpha1CSPAsRaw(c)
+	cstorPool, err := m.getK8sClient().CreateOEV1alpha1CSPAsRaw(c)
 	if err != nil {
 		return
 	}
@@ -792,7 +729,7 @@ func (m *taskExecutor) putCStorVolume() (err error) {
 		return
 	}
 
-	cstorVolume, err := m.k8sClient.CreateOEV1alpha1CVAsRaw(c)
+	cstorVolume, err := m.getK8sClient().CreateOEV1alpha1CVAsRaw(c)
 	if err != nil {
 		return
 	}
@@ -808,7 +745,7 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 		return
 	}
 
-	cstorVolumeReplica, err := m.k8sClient.CreateOEV1alpha1CVRAsRaw(d)
+	cstorVolumeReplica, err := m.getK8sClient().CreateOEV1alpha1CVRAsRaw(d)
 	if err != nil {
 		return
 	}
@@ -820,10 +757,10 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 // deleteOEV1alpha1SP will delete one or more StoragePool as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1SP() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteOEV1alpha1SP(name)
+		err = m.getK8sClient().DeleteOEV1alpha1SP(name)
 		if err != nil {
 			return
 		}
@@ -835,10 +772,10 @@ func (m *taskExecutor) deleteOEV1alpha1SP() (err error) {
 // deleteOEV1alpha1CSP will delete one or more CStorPool as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1CSP() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteOEV1alpha1CSP(name)
+		err = m.getK8sClient().DeleteOEV1alpha1CSP(name)
 		if err != nil {
 			return
 		}
@@ -850,10 +787,10 @@ func (m *taskExecutor) deleteOEV1alpha1CSP() (err error) {
 // deleteOEV1alpha1CSV will delete one or more CStorVolume as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
-	objectNames := strings.Split(strings.TrimSpace(m.objectName), ",")
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 
 	for _, name := range objectNames {
-		err = m.k8sClient.DeleteOEV1alpha1CSV(name)
+		err = m.getK8sClient().DeleteOEV1alpha1CSV(name)
 		if err != nil {
 			return
 		}
@@ -870,29 +807,30 @@ func (m *taskExecutor) listK8sResources() (err error) {
 	}
 
 	var op []byte
+	kc := m.getK8sClient()
 
 	if m.metaTaskExec.isListCoreV1Pod() {
-		op, err = m.k8sClient.ListCoreV1PodAsRaw(opts)
+		op, err = kc.ListCoreV1PodAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1Service() {
-		op, err = m.k8sClient.ListCoreV1ServiceAsRaw(opts)
+		op, err = kc.ListCoreV1ServiceAsRaw(opts)
 	} else if m.metaTaskExec.isListExtnV1B1Deploy() {
-		op, err = m.k8sClient.ListExtnV1B1DeploymentAsRaw(opts)
+		op, err = kc.ListExtnV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListAppsV1B1Deploy() {
-		op, err = m.k8sClient.ListAppsV1B1DeploymentAsRaw(opts)
+		op, err = kc.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1PVC() {
-		op, err = m.k8sClient.ListCoreV1PVCAsRaw(opts)
+		op, err = kc.ListCoreV1PVCAsRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1Disk() {
-		op, err = m.k8sClient.ListOEV1alpha1DiskRaw(opts)
+		op, err = kc.ListOEV1alpha1DiskRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1SP() {
-		op, err = m.k8sClient.ListOEV1alpha1SPRaw(opts)
+		op, err = kc.ListOEV1alpha1SPRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CSP() {
-		op, err = m.k8sClient.ListOEV1alpha1CSPRaw(opts)
+		op, err = kc.ListOEV1alpha1CSPRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CVR() {
-		op, err = m.k8sClient.ListOEV1alpha1CVRRaw(opts)
+		op, err = kc.ListOEV1alpha1CVRRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CV() {
-		op, err = m.k8sClient.ListOEV1alpha1CVRaw(opts)
+		op, err = kc.ListOEV1alpha1CVRaw(opts)
 	} else {
-		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%#v'", m.metaTaskExec.getTaskIdentity())
+		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
 	}
 
 	if err != nil {

@@ -60,9 +60,14 @@ func GetNestedFieldInto(out interface{}, obj map[string]interface{}, fields ...s
 }
 
 func GetNestedString(obj map[string]interface{}, fields ...string) string {
+	if obj == nil {
+		return ""
+	}
+
 	if str, ok := GetNestedField(obj, fields...).(string); ok {
 		return str
 	}
+
 	return ""
 }
 

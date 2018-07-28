@@ -30,7 +30,17 @@ const (
 	// CASTemplateFeatureGateENVK is the ENV key to fetch cas template feature gate
 	// i.e. if cas template based provisioning is enabled or disabled
 	CASTemplateFeatureGateENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_FEATURE_GATE"
+
+	// CASTemplateToListVolumeENVK is the ENV key that specifies the CAS Template
+	// to list cas volumes
+	CASTemplateToListVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_VOLUME"
 )
+
+// CASTemplateFeatureGate returns true if cas template feature gate is
+// enabled
+func CASTemplateToListVolume() string {
+	return getEnv(CASTemplateToListVolumeENVK)
+}
 
 // CASTemplateFeatureGate returns true if cas template feature gate is
 // enabled

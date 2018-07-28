@@ -19,6 +19,7 @@ package task
 import (
 	"fmt"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,7 +27,7 @@ import (
 // TaskSpecFetcher is the contract to fetch task
 // specification that includes the task's meta specification
 type TaskSpecFetcher interface {
-	Fetch(taskName string) (runtask RunTask, err error)
+	Fetch(taskName string) (runtask v1alpha1.RunTask, err error)
 }
 
 // K8sTaskSpecFetcher deals with fetching a task specifications
@@ -64,7 +65,7 @@ func NewK8sTaskSpecFetcher(searchNamespace string) (*K8sTaskSpecFetcher, error) 
 //
 // NOTE:
 //  This is an implementation of TaskSpecFetcher interface
-func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask RunTask, err error) {
+func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask v1alpha1.RunTask, err error) {
 	if len(taskName) == 0 {
 		err = fmt.Errorf("failed to fetch runtask: nil task name was provided")
 		return
@@ -75,12 +76,11 @@ func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask RunTask, err error)
 		return
 	}
 
-	runtask = RunTask{
-		Name:                 taskName,
-		MetaYml:              cm.Data["meta"],
-		TaskYml:              cm.Data["task"],
-		PostRunTemplateFuncs: cm.Data["post"],
-	}
+	runtask = v1alpha1.RunTask{}
+	runtask.Name = taskName
+	runtask.Spec.Meta = cm.Data["meta"]
+	runtask.Spec.Task = cm.Data["task"]
+	runtask.Spec.PostRun = cm.Data["post"]
 
 	return
 }
