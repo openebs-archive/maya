@@ -102,7 +102,7 @@
   branch = "master"
   name = "github.com/golang/protobuf"
   packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
-  revision = "130e6b02ab059e7b717a096f397c5b60111cae74"
+  revision = "11bd559057bb9c65e24d1bd7f436d375323a8565"
 
 [[projects]]
   branch = "master"
@@ -391,10 +391,10 @@
   revision = "53feefa2559fb8dfa8d81baad31be332c97d6c77"
 
 [[projects]]
-  branch = "release-1.8"
   name = "k8s.io/api"
   packages = ["admissionregistration/v1alpha1","apps/v1beta1","apps/v1beta2","authentication/v1","authentication/v1beta1","authorization/v1","authorization/v1beta1","autoscaling/v1","autoscaling/v2beta1","batch/v1","batch/v1beta1","batch/v2alpha1","certificates/v1beta1","core/v1","extensions/v1beta1","networking/v1","policy/v1beta1","rbac/v1","rbac/v1alpha1","rbac/v1beta1","scheduling/v1alpha1","settings/v1alpha1","storage/v1","storage/v1beta1"]
-  revision = "4df58c811fe2e65feb879227b2b245e4dc26e7ad"
+  revision = "a315a049e7a93e5455f7fefce1ba136d85054687"
+  version = "kubernetes-1.8.14"
 
 [[projects]]
   branch = "release-1.8"
@@ -428,6 +428,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "51200fe793443896b7178bee49dfeb2e4671d91b593e4c0a2095c53d21122ab4"
+  inputs-digest = "5c91958d81436f9811ba0c5a6262a83839d0278a402c0d251a7819b042387c17"
   solver-name = "gps-cdcl"
   solver-version = 1
