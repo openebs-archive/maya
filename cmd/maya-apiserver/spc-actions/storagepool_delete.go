@@ -17,15 +17,22 @@ limitations under the License.
 package storagepoolactions
 
 import (
-	"fmt"
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"fmt"
 	"github.com/openebs/maya/pkg/storagepool"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"errors"
 )
 
-func DeleteStoragePool(key string) error {
-	// Business logic for deletion of storagepool cr
-	glog.Infof("Storagepool delete event received for storagepoolclaim %s", key)
+
+func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) (error) {
+	// Business logic for deletion of storagepool
+	glog.Infof("Storagepool delete event received for storagepoolclaim %s",spcGot.Name)
+
+	casTemplateName := spcGot.Annotations[string(v1alpha1.SPDeleteCASTemplateCK)]
+	if(casTemplateName==""){
+		return errors.New("Aborting storagepool delete operation as no cas template is specified")
+	}
 
 	// Create an empty  CasPool object
 	pool := &v1alpha1.CasPool{}
@@ -33,7 +40,10 @@ func DeleteStoragePool(key string) error {
 	// Fill the name in CasPool object
 	// This object contains pool information for performing storagepool deletion
 	// The information used here is the storagepoolclaim name
-	pool.StoragePoolClaim = key
+	pool.StoragePoolClaim = spcGot.Name
+
+	// Fill the cas template name that will be used for deletion
+	pool.CasDeleteTemplate = casTemplateName
 
 	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
@@ -44,6 +54,6 @@ func DeleteStoragePool(key string) error {
 		return fmt.Errorf("Failed to delete cas template based storagepool: error '%s'", err.Error())
 	}
 
-	glog.Infof("Cas template based storagepool delete successfully: name '%s'", key)
+	glog.Infof("Cas template based storagepool delete successfully: name '%s'", spcGot.Name)
 	return nil
 }
