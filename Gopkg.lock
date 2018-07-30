@@ -365,7 +365,7 @@
 [[projects]]
   name = "golang.org/x/text"
   packages = ["cases","internal/gen","internal/tag","internal/triegen","internal/ucd","language","runes","secure/bidirule","secure/precis","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
-  revision = "2910a502d2bf9e43193af9d68ca516529614eed3"
+  revision = "0605a8320aceb4207a5fb3521281e17ec2075476"
 
 [[projects]]
   branch = "master"
