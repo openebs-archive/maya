@@ -97,7 +97,7 @@ func (j *Jiva) set(m *Metrics) error {
 	url := j.VolumeControllerURL
 	url = strings.TrimSuffix(url, ":9501/v1/stats")
 	url = strings.TrimPrefix(url, "http://")
-	m.volumeUpTime.WithLabelValues(volStatsJSON.Name, "iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name, url).Set(volStatsJSON.UpTime)
+	m.volumeUpTime.WithLabelValues(volStatsJSON.Name, "iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name, url, "jiva").Set(volStatsJSON.UpTime)
 	return nil
 }
 
