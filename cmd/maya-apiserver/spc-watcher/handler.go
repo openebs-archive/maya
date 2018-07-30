@@ -29,16 +29,25 @@ import (
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
-func (c *Controller) syncHandler(key, operation string) error {
-	// getSpcResource will take a key as argument which conatins the namespace/name or simply name
+func (c *Controller) syncHandler(key, operation string, object interface{}) error {
+	// getSpcResource will take a key as argument which contains the namespace/name or simply name
 	// of the object and will fetch the object.
 	spcGot, err := c.getSpcResource(key)
 	if err != nil {
 		return err
 	}
+	// Check if the event is for delete and use the spc object that was pushed in the queue
+	// for utilising details from it e.g. delete cas template name for storagepool deletion.
+	if operation == deleteEvent {
+		if object == nil {
+			glog.Error("Nil storagepoolclaim object found for storage pool deletion")
+		}
+		spcGot = object.(*apis.StoragePoolClaim)
+	}
+
 	// Call the spcEventHandler which will take spc object , key(namespace/name of object) and type of operation we need to to for storage pool
 	// Type of operation for storage pool e.g. create, delete etc.
-	events, err := c.spcEventHandler(operation, spcGot, key)
+	events, err := c.spcEventHandler(operation, spcGot)
 	if events == ignoreEvent {
 		glog.Warning("None of the SPC handler was executed")
 		return nil
@@ -49,7 +58,7 @@ func (c *Controller) syncHandler(key, operation string) error {
 }
 
 // spcPoolEventHandler is to handle SPC related events.
-func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolClaim, key string) (string, error) {
+func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolClaim) (string, error) {
 	switch operation {
 	case addEvent:
 		// CreateStoragePool function will create the storage pool
@@ -71,7 +80,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		break
 
 	case deleteEvent:
-		err := storagepoolactions.DeleteStoragePool(key)
+		err := storagepoolactions.DeleteStoragePool(spcGot)
 
 		if err != nil {
 			glog.Error("Storagepool could not be deleted:", err)

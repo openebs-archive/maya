@@ -98,7 +98,7 @@ func (c *Controller) processNextWorkItem() bool {
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
 		//SPC resource to be synced.
-		if err := c.syncHandler(q.Key, q.Operation); err != nil {
+		if err := c.syncHandler(q.Key, q.Operation, q.Object); err != nil {
 			return fmt.Errorf("Error syncing '%s': %s", q.Key, err.Error())
 		}
 		// Finally, if no error occurs we Forget this item so it does not

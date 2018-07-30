@@ -22,9 +22,13 @@ type CasPool struct {
 	// StoragePoolClaim is the name of the storagepoolclaim object
 	StoragePoolClaim string
 
-	// CasCreateTemplate is the cas template that will be used for storagepool
-	// operations
+	// CasCreateTemplate is the cas template that will be used for storagepool create
+	// operation
 	CasCreateTemplate string
+
+	// CasDeleteTemplate is the cas template that will be used for storagepool delete
+	// operation
+	CasDeleteTemplate string
 
 	// Namespace can be passed via storagepoolclaim as labels to decide on the
 	// execution of namespaced resources with respect to storagepool
