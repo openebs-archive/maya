@@ -101,6 +101,9 @@ type K8sClient struct {
 	// within the current K8s cluster for OpenEBS objects
 	oecs *openebs.Clientset
 
+	// PV refers to a K8s PersistentVolume object
+	PV *api_core_v1.PersistentVolume
+
 	// PVC refers to a K8s PersistentVolumeClaim object
 	// NOTE: This property enables unit testing
 	PVC *api_core_v1.PersistentVolumeClaim
@@ -244,7 +247,7 @@ func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, e
 // GetOEV1alpha1Disk fetches the disk specs based on
 // the provided name
 func (k *K8sClient) GetOEV1alpha1Disk(name string) (*api_oe_v1alpha1.Disk, error) {
-	if k.Disk!= nil {
+	if k.Disk != nil {
 		return k.Disk, nil
 	}
 
@@ -419,6 +422,22 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 	return pops.Get(name, opts)
 }
 
+// coreV1PVOps is a utility function that provides an instance capable of
+// executing various K8s PV related operations.
+func (k *K8sClient) coreV1PVOps() typed_core_v1.PersistentVolumeInterface {
+	return k.cs.CoreV1().PersistentVolumes()
+}
+
+// GetPV fetches the K8s PV with the provided name
+func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_core_v1.PersistentVolume, error) {
+	if k.PV != nil {
+		return k.PV, nil
+	}
+
+	pops := k.coreV1PVOps()
+	return pops.Get(name, opts)
+}
+
 // GetCoreV1PVCAsRaw fetches the K8s PVC with the provided name
 func (k *K8sClient) GetCoreV1PVCAsRaw(name string) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().
@@ -507,6 +526,7 @@ func (k *K8sClient) GetOEV1alpha1SPCAsRaw(name string) (result []byte, err error
 
 	//return
 }
+
 // GetOEV1alpha1SPAsRaw fetches the OpenEBS SP with the provided name
 func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error) {
 	sp, err := k.GetOEV1alpha1SP(name)
@@ -822,7 +842,7 @@ func (k *K8sClient) PatchExtnV1B1Deployment(name string, patchType types.PatchTy
 
 // PatchOEV1alpha1SPCAsRaw patches the SPC object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.StoragePoolClaim, err error) {
-	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name,patchType,patches)
+	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name, patchType, patches)
 	return
 }
 

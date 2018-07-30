@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package v1alpha1
+
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation
 
-type CasPool struct{
+type CasPool struct {
 	// StoragePoolClaim is the name of the storagepoolclaim object
 	StoragePoolClaim string
 

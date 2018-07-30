@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,27 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package spc
 
-import (
-	"testing"
-	"time"
-)
-
-func TestStart(t *testing.T) {
-	var err error
-	var errchannel = make(chan error)
-	go func() {
-		err := Start()
-		errchannel <- err
-	}()
-	select {
-	case err1 := <-errchannel:
-		err = err1
-	case <-time.After(5 * time.Second):
-		err = nil
-	}
-	if err == nil {
-		t.Fatal("Error should not be nil as no incluster config is present")
-	}
-}
+// This namespace will have artifacts related to installation of maya api
+// server specific components:
+//  - jiva volume based artifacts
+//  - cstor volume based artifacts
+//  - cstor pool based artifacts
+//
+// NOTE:
+//  These artifacts are typically CAS Templates & RunTasks which in turn are
+// Kubernetes Custom Resources
+package v1alpha1_0_7_0

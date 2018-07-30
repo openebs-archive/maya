@@ -22,8 +22,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/openebs/maya/pkg/engine"
+	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // casPoolOperationOptions contains the options with respect to
@@ -86,7 +86,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 		cast,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP):    v.pool.StoragePoolClaim,
+			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
 		},
 	)
 	if err != nil {
@@ -130,7 +130,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 		cast,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP):    v.pool.StoragePoolClaim,
+			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
 		},
 	)
 	if err != nil {

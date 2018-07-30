@@ -97,6 +97,7 @@ const (
 	// {{- .ListItems.volumes.openebs.mypv.status -}}
 	ListItemsTLP TopLevelProperty = "ListItems"
 )
+
 // StoragePoolTLPProperty is used to define properties that comes
 // after StoragePoolTLP
 type StoragePoolTLPProperty string
@@ -109,8 +110,8 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
 	OwnerCTP StoragePoolTLPProperty = "owner"
-
 )
+
 // VolumeTLPProperty is used to define properties that comes
 // after VolumeTLP
 type VolumeTLPProperty string

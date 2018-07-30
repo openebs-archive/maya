@@ -1,11 +1,11 @@
 package util
 
 import (
-	"testing"
+	"errors"
 	"os"
 	"reflect"
 	"strconv"
-	"errors"
+	"testing"
 )
 
 func TestLookEnv(t *testing.T) {

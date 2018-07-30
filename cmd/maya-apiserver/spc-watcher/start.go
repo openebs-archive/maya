@@ -17,29 +17,30 @@ limitations under the License.
 package spc
 
 import (
-	"time"
+	"fmt"
 	"github.com/golang/glog"
-	"k8s.io/client-go/rest"
-	kubeinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
-	"fmt"
+	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"time"
 )
 
 var (
 	masterURL  string
 	kubeconfig string
 )
+
 type QueueLoad struct {
 	Key       string
 	Operation string
 	Object interface{}
 }
 
-func Start() (error) {
+func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
 
@@ -70,7 +71,7 @@ func Start() (error) {
 	go spcInformerFactory.Start(stopCh)
 
 	// Threadiness defines the nubmer of workers to be launched in Run function
-    return controller.Run(2, stopCh)
+	return controller.Run(2, stopCh)
 }
 
 // Cannot be unit tested
