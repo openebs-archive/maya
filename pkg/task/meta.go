@@ -46,7 +46,7 @@ func newK8sClient(namespace string) (kc *m_k8s_client.K8sClient, err error) {
 	return
 }
 
-// MetaTaskAction represents the type of action of the RunTask
+// MetaTaskAction represents the action type of RunTask
 type MetaTaskAction string
 
 const (
@@ -85,9 +85,9 @@ type MetaTaskProps struct {
 	// Options is a set of selectors that can be used for
 	// tasks that are get or list based actions
 	Options string `json:"options"`
-	// Retry specifies the no. of times this same task (i.e. all proeprties
+	// Retry specifies the no. of times this particular task (i.e. all properties
 	// remains same) can be re-tried. This is typically used along with task
-	// result verify options for get or list related actions
+	// result verify options for get or list related actions.
 	//
 	// A sample retry option:
 	//

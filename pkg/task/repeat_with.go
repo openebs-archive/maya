@@ -108,7 +108,7 @@ func (r repeatExecutor) getMeta(index int) (MetaTaskProps, error) {
 	return r.repeatResource.Metas[index], nil
 }
 
-// getMeta returns the repeat meta task item based on the provided index
+// getMetaAsString returns the repeat meta task item based on the provided index
 func (r repeatExecutor) getMetaAsString(index int) (string, error) {
 	m, err := r.getMeta(index)
 	if err != nil {
@@ -118,7 +118,7 @@ func (r repeatExecutor) getMetaAsString(index int) (string, error) {
 	return m.toString(), nil
 }
 
-// getMeta returns the repeat item based on the provided index
+// getItem returns the repeat item based on the provided index
 func (r repeatExecutor) getItem(index int) (string, error) {
 	if r.isMetaRepeat() {
 		return r.getMetaAsString(index)
