@@ -138,7 +138,7 @@ pool-mgmt-image: cstor-pool-mgmt
 	@sh buildscripts/cstor-pool-mgmt/push
 
 #Use this to build cstor-volume-mgmt
-cstor-volume-mgmt:
+cstor-volume-mgmt: cstor-volume-grpc
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt           "            
 	@echo "----------------------------"
