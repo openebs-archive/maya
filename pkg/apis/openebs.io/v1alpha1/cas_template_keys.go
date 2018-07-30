@@ -19,9 +19,13 @@ package v1alpha1
 type CasKey string
 
 const(
-	// This the cas template annotation whose value is the name of
+	// This is the cas template annotation whose value is the name of
 	// cas template that will be used to provision a storagepool
 	SPCreateCASTemplateCK CasKey = "cas.openebs.io/create-pool-template"
+
+	// This is the cas template annotation whose value is the name of
+	// cas template that will be used to delete a storagepool
+	SPDeleteCASTemplateCK CasKey = "cas.openebs.io/delete-pool-template"
 )
 
 // TopLevelProperty represents the top level property that
