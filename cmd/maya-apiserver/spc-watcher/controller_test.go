@@ -28,14 +28,14 @@ func TestIsDeleteEvent(t *testing.T) {
 		fakestoragepoolclaim *apis.StoragePoolClaim
 		expectedResult       bool
 	}{
-		"Setting DeletionTimestamp to nil and it should return false": {
+		"DeletionTimestamp is nil": {
 			fakestoragepoolclaim: &apis.StoragePoolClaim{
 				ObjectMeta: api_meta.ObjectMeta{
 					DeletionTimestamp: nil,
 				},
 			},
 			expectedResult: false},
-		"Setting DeletionTimestamp not nil and it should return true": {
+		"DeletionTimestamp is not nil": {
 			fakestoragepoolclaim: &apis.StoragePoolClaim{
 				ObjectMeta: api_meta.ObjectMeta{
 					DeletionTimestamp: &api_meta.Time{time.Now(),
