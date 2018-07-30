@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/openebs/maya/pkg/util"
 	"golang.org/x/net/context"
@@ -52,13 +53,13 @@ func (s *Server) RunVolumeCommand(ctx context.Context, in *VolumeCommand) (*Volu
 
 // SendVolumeSnapCommand sends snapcreate or snapdelete command to istgt
 func SendVolumeSnapCommand(ctx context.Context, in *VolumeCommand) (*VolumeCommand, error) {
-	sockresp, err := ApiUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v\r\n",
+	sockresp, err := ApiUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
 		in.Command, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
 	resp := &VolumeCommand{
 		Command:  in.Command,
 		Volume:   in.Volume,
 		Snapname: in.Snapname,
-		Status:   string(sockresp),
+		Status:   strings.Join(sockresp, ""),
 	}
 	return resp, err
 }
