@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
+	"strings"
 )
 
 func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
@@ -29,8 +30,8 @@ func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
 	glog.Infof("Storagepool delete event received for storagepoolclaim %s", spcGot.Name)
 
 	casTemplateName := spcGot.Annotations[string(v1alpha1.SPDeleteCASTemplateCK)]
-	if casTemplateName == "" {
-		return errors.New("Aborting storagepool delete operation as no cas template is specified")
+	if strings.TrimSpace(casTemplateName) == "" {
+		return errors.New("aborting storagepool delete: missing cas template name for delete operation in storagepoolclaim annotations")
 	}
 
 	// Create an empty  CasPool object
@@ -53,6 +54,6 @@ func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
 		return fmt.Errorf("Failed to delete cas template based storagepool: error '%s'", err.Error())
 	}
 
-	glog.Infof("Cas template based storagepool delete successfully: name '%s'", spcGot.Name)
+	glog.Infof("Cas template based storagepool deleted successfully: name '%s'", spcGot.Name)
 	return nil
 }

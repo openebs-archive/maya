@@ -37,7 +37,7 @@ var (
 type QueueLoad struct {
 	Key       string
 	Operation string
-	Object interface{}
+	Object    interface{}
 }
 
 func Start() error {

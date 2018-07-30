@@ -116,7 +116,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 	// cas template to delete a storagepool
 	castName := v.pool.CasDeleteTemplate
 	if len(castName) == 0 {
-		fmt.Println("No CAS template for storagepool deletion found")
+		return nil, fmt.Errorf("unable to delete storagepool: no cas template for delete found")
 	}
 
 	// fetch delete cas template specifications

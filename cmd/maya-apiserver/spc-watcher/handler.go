@@ -30,7 +30,7 @@ import (
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key, operation string, object interface{}) error {
-	// getSpcResource will take a key as argument which conatins the namespace/name or simply name
+	// getSpcResource will take a key as argument which contains the namespace/name or simply name
 	// of the object and will fetch the object.
 	spcGot, err := c.getSpcResource(key)
 	if err != nil {
@@ -38,8 +38,8 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	}
 	// Check if the event is for delete and use the spc object that was pushed in the queue
 	// for utilising details from it e.g. delete cas template name for storagepool deletion.
-	if operation==deleteEvent{
-		if(object==nil){
+	if operation == deleteEvent {
+		if object == nil {
 			glog.Error("Nil storagepoolclaim object found for storage pool deletion")
 		}
 		spcGot = object.(*apis.StoragePoolClaim)
