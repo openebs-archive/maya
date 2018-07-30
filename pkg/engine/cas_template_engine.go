@@ -68,13 +68,6 @@ type CASEngine struct {
 	// runtimeKey represents the top level property to be set in the template
 	// values
 	runtimeKey string
-	// runtimeValues represent the top level property value to be set against the
-	// runtimeKey in the template values
-	//
-	// NOTE:
-	//  runtimeKey along with runtimeValues represents those values that are not
-	// set in the CASTemplate's config
-	//runtimeValues map[string]interface{}
 	// taskSpecFetcher will fetch a task specification
 	taskSpecFetcher task.TaskSpecFetcher
 	// taskGroupRunner will run the tasks in the sequence specified in the cas

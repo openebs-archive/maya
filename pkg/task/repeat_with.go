@@ -17,92 +17,112 @@ limitations under the License.
 package task
 
 import (
-	"strings"
+	"fmt"
 )
 
-// RepeatWithKind is a typed string that determines the kind of a repeat
-// resource
-type RepeatWithKind string
-
-const (
-	// NamespaceRWK indicates that the repeat resource is of kind Kubernetes
-	// namespace
-	NamespaceRWK RepeatWithKind = "namespace"
-	// TaskObjectNameRWK indicates that the repeat resource is of type task object
-	// name
-	TaskObjectNameRWK RepeatWithKind = "name"
-)
-
-// RepeatWithResource enables repetitive execution of a task based on this
-// resource. There can be one or more resources defined in this object.
-//
-// The task that has its property set with this object automatically sets itself
-// to be executed multiple times where the number of times depends on the number
-// of resources set in this object.
+// RepeatWithResource provides properties that influence task execution's
+// repetition behaviour
 type RepeatWithResource struct {
-	// Kind represent the type of resource that determines the repetition of a
-	// task execution
-	Kind RepeatWithKind `json:"kind"`
-	// Resources lists the names of resources that determine the repetition of
-	// a task execution
+	// resources is a list of resources that will drive the repetition logic
+	// of task execution
 	//
 	// NOTE:
-	//  All resources should belong to one kind
+	//  This is typically a set of items which does not belong to MetaTask
+	// category. Any random list of items that influences the repetition logic
+	// should be set here.
 	Resources []string `json:"resources"`
+	// metas is a list of meta task info that will drive the repetition logic
+	// of task execution
+	Metas []MetaTaskProps `json:"metas"`
 }
 
-// repeatWithResourceExecutor exposes operations with respect to
-// RepeatWithResource
-type repeatWithResourceExecutor struct {
-	repeatWith RepeatWithResource
+// repeatExecutor exposes operations with respect to repeat resources
+type repeatExecutor struct {
+	repeatResource RepeatWithResource
 }
 
-// newRepeatWithResourceExecutor returns a new instance of
-// repeatWithResourceExecutor
-func newRepeatWithResourceExecutor(repeatWith RepeatWithResource) repeatWithResourceExecutor {
-	return repeatWithResourceExecutor{
-		repeatWith: repeatWith,
+// newRepeatExecutor returns a new instance of repeatExecutor
+func newRepeatExecutor(repeat RepeatWithResource) (repeatExecutor, error) {
+	if len(repeat.Resources) > 0 && len(repeat.Metas) > 0 {
+		return repeatExecutor{}, fmt.Errorf("failed to create repeat executor instance: either 'resources' or 'metas' can be used with 'repeatWith': '%+v'", repeat)
 	}
-}
 
-// newRepeatWithResourceExecByObjectNames returns a new instance of
-// newRepeatWithResourceExecutor based on the object names
-//
-// NOTE:
-//  The repeat resource can be different than object resource. In this function
-// a repeat instance is being created out of the name of objects due to the
-// result of repetitive task executions.
-//
-// NOTE:
-//  ObjectName refers to the name of the object i.e. result of a task execution
-func newRepeatWithResourceExecByObjectNames(objectNames string) repeatWithResourceExecutor {
-	return repeatWithResourceExecutor{
-		repeatWith: RepeatWithResource{
-			Kind:      TaskObjectNameRWK,
-			Resources: strings.Split(strings.TrimSpace(objectNames), ","),
+	return repeatExecutor{
+		repeatResource: RepeatWithResource{
+			Resources: repeat.Resources,
+			Metas:     repeat.Metas,
 		},
-	}
-}
-
-// isNamespaceRepeat flags if the repeat resource is of kind kubernetes
-// namespace
-func (r repeatWithResourceExecutor) isNamespaceRepeat() bool {
-	return r.repeatWith.Kind == NamespaceRWK
-}
-
-// isTaskObjectNameRepeat flags if the repeat resource is of kind task object
-// name
-func (r repeatWithResourceExecutor) isTaskObjectNameRepeat() bool {
-	return r.repeatWith.Kind == TaskObjectNameRWK
+	}, nil
 }
 
 // isRepeat flags if there is any requirement to repeat the task execution
-func (r repeatWithResourceExecutor) isRepeat() bool {
-	return len(r.repeatWith.Resources) > 0
+func (r repeatExecutor) isRepeat() bool {
+	return len(r.repeatResource.Resources) > 0 || len(r.repeatResource.Metas) > 0
+}
+
+// isMetaRepeat flags if there is any requirement to repeat the task execution
+// based on multiple meta tasks
+func (r repeatExecutor) isMetaRepeat() bool {
+	return len(r.repeatResource.Metas) > 0
 }
 
 // getResources returns the list of resources based on which a task will get
 // executed multiple times, each time depending on exactly one resource.
-func (r repeatWithResourceExecutor) getResources() []string {
-	return r.repeatWith.Resources
+func (r repeatExecutor) getResources() []string {
+	return r.repeatResource.Resources
+}
+
+// getMetas returns the list of meta tasks based on which a task will get
+// executed multiple times, each time depending on exactly one meta task.
+func (r repeatExecutor) getMetas() []MetaTaskProps {
+	return r.repeatResource.Metas
+}
+
+// len returns the count of repeats i.e. either length of resources or length
+// of metas
+func (r repeatExecutor) len() int {
+	if r.isMetaRepeat() {
+		return len(r.getMetas())
+	}
+
+	return len(r.getResources())
+}
+
+// getResource returns the repeat item based on the provided index
+func (r repeatExecutor) getResource(index int) (string, error) {
+	count := len(r.repeatResource.Resources)
+	if index >= count {
+		return "", fmt.Errorf("failed to fetch repeat resource: invalid index '%d' w.r.t count '%d'", index, count)
+	}
+
+	return r.repeatResource.Resources[index], nil
+}
+
+// getMeta returns the repeat meta task item based on the provided index
+func (r repeatExecutor) getMeta(index int) (MetaTaskProps, error) {
+	count := len(r.repeatResource.Metas)
+	if index >= count {
+		return MetaTaskProps{}, fmt.Errorf("failed to fetch repeat meta task: invalid index '%d' w.r.t count '%d'", index, count)
+	}
+
+	return r.repeatResource.Metas[index], nil
+}
+
+// getMetaAsString returns the repeat meta task item based on the provided index
+func (r repeatExecutor) getMetaAsString(index int) (string, error) {
+	m, err := r.getMeta(index)
+	if err != nil {
+		return "", err
+	}
+
+	return m.toString(), nil
+}
+
+// getItem returns the repeat item based on the provided index
+func (r repeatExecutor) getItem(index int) (string, error) {
+	if r.isMetaRepeat() {
+		return r.getMetaAsString(index)
+	}
+
+	return r.getResource(index)
 }

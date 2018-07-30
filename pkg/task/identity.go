@@ -22,11 +22,14 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 )
 
-// TaskIdentity will provide the required identity to a task
-type TaskIdentity struct {
-	// Identifier provides a unique identification of this
-	// task. There should not be two tasks with same identity
-	// in a workflow.
+// MetaTaskIdentity will provide the required identity to a task
+type MetaTaskIdentity struct {
+	// Identity provides a unique identification to this
+	// task.
+	//
+	// NOTE:
+	//  Usage: There should not be two tasks with same identity
+	// in a cas template engine run.
 	Identity string `json:"id"`
 	// Kind of the task
 	Kind string `json:"kind"`
@@ -37,10 +40,10 @@ type TaskIdentity struct {
 // taskIdentifier enables operations w.r.t a task's identity
 type taskIdentifier struct {
 	// identity identifies a task
-	identity TaskIdentity
+	identity MetaTaskIdentity
 }
 
-func newTaskIdentifier(identity TaskIdentity) (taskIdentifier, error) {
+func newTaskIdentifier(identity MetaTaskIdentity) (taskIdentifier, error) {
 	if len(identity.Identity) == 0 {
 		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task id is missing")
 	}

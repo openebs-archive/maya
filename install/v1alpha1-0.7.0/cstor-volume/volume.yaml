@@ -380,10 +380,9 @@ data:
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
     repeatWith:
-      kind: namespace
-      resources:
+      metas:
       {{- range $k, $ns := $nss }}
-      - {{ $ns }}
+      - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
     kind: Service
@@ -409,10 +408,9 @@ data:
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
     repeatWith:
-      kind: namespace
-      resources:
+      metas:
       {{- range $k, $ns := $nss }}
-      - {{ $ns }}
+      - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
     kind: Pod

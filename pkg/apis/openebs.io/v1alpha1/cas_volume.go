@@ -58,10 +58,10 @@ const (
 	NamespaceKey CASKey = "openebs.io/namespace"
 
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
-	PersistentVolumeClaimKey CASKey = "openebs.io/pvc"
+	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
 
 	// StorageClassKey is the key to fetch name of StorageClass
-	StorageClassKey CASKey = "openebs.io/storage-class"
+	StorageClassKey CASKey = "openebs.io/storageclass"
 )
 
 // DeprecatedKey is a typed string to represent deprecated annotations' or
@@ -134,23 +134,23 @@ const (
 type CASJivaVolumeDefault string
 
 const (
-	// NOTE:
-	//  As per the current design there is no default CAS template to create a
-	// CAS Volume. It is expected that the StorageClass will explicitly set the
-	// cas template name required to create a CAS Volume. However reading,
-	// deleting & listing of cas volume(s) have corresponding cas templates that
-	// are used implicitly i.e. read, delete & list have their own default cas
-	// templates.
+// NOTE:
+//  As per the current design there is no default CAS template to create a
+// CAS Volume. It is expected that the StorageClass will explicitly set the
+// cas template name required to create a CAS Volume. However reading,
+// deleting & listing of cas volume(s) have corresponding cas templates that
+// are used implicitly i.e. read, delete & list have their own default cas
+// templates.
 
-	// DefaultCASTemplateForJivaVolumeRead is the default cas template to read
-	// a Jiva based CAS Volume
-	DefaultCASTemplateForJivaVolumeRead CASJivaVolumeDefault = "read-cstor-cas-volume-tpl"
-	// DefaultCASTemplateForJivaVolumeList is the default cas template to list
-	// Jiva based CAS Volumes
-	DefaultCASTemplateForJivaVolumeList CASJivaVolumeDefault = "list-cstor-cas-volume-tpl"
-	// DefaultCASTemplateForJivaVolumeDelete is the default cas template to
-	// delete a Jiva based CAS Volume
-	DefaultCASTemplateForJivaVolumeDelete CASJivaVolumeDefault = "delete-cstor-cas-volume-tpl"
+// DefaultCASTemplateForJivaVolumeRead is the default cas template to read
+// a Jiva based CAS Volume
+//DefaultCASTemplateForJivaVolumeRead CASJivaVolumeDefault = "read-cstor-cas-volume-tpl"
+// DefaultCASTemplateForJivaVolumeList is the default cas template to list
+// Jiva based CAS Volumes
+//DefaultCASTemplateForJivaVolumeList CASJivaVolumeDefault = "list-cstor-cas-volume-tpl"
+// DefaultCASTemplateForJivaVolumeDelete is the default cas template to
+// delete a Jiva based CAS Volume
+//DefaultCASTemplateForJivaVolumeDelete CASJivaVolumeDefault = "delete-cstor-cas-volume-tpl"
 )
 
 // CASVolume represents a cas volume

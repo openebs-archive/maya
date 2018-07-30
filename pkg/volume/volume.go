@@ -23,6 +23,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
+	"github.com/openebs/maya/pkg/util"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
@@ -74,9 +75,6 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	capacity := v.volume.Spec.Capacity
-	if len(capacity) == 0 {
-		capacity = v.volume.Labels[string(v1alpha1.CapacityDeprecatedKey)]
-	}
 
 	if len(capacity) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing volume capacity")
@@ -225,7 +223,7 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// check if sc name is already present, if not then extract it
-	scName := v.volume.Annotations[string(v1alpha1.StorageClassKey)]
+	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		// fetch the pv specification
 		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
@@ -318,18 +316,10 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 }
 
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
-	// TODO
-	// Get the PV details & extract the SC & then SC details
-	//  Get the CAS Template name for list
-	//
 	// cas template to list cas volumes
-	castName := v.volumes.Annotations[string(v1alpha1.CASTemplateKeyForVolumeList)]
+	castName := util.CASTemplateToListVolume()
 	if len(castName) == 0 {
-		// use the default list cas template otherwise
-		// TODO
-		//  Remove the use of defaults & make volume annotations mandatory
-		// for list operation
-		castName = string(v1alpha1.DefaultCASTemplateForJivaVolumeList)
+		return nil, fmt.Errorf("failed to list volume: cas template to list volume is not set as environment variable")
 	}
 
 	// fetch read cas template specifications
