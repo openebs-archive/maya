@@ -81,6 +81,8 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 		return string(apis.CVRStatusOffline), fmt.Errorf("Pool not present")
 	}
 
+	// cStorVolumeReplica is created with command which requires fullVolName which is in
+	// the form of poolname/volname.
 	fullVolName := string(pool.PoolPrefix) + cVR.Labels["cstorpool.openebs.io/uid"] + "/" + cVR.Labels["cstorvolume.openebs.io/name"]
 	glog.Infof("fullVolName: %v", fullVolName)
 
