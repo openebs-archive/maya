@@ -139,7 +139,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	}
 
 	// use StorageClass name from header if present
-	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassKey)))
+	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassHeaderKey)))
 	// add the StorageClass name to volume's labels
 	vol.Labels = map[string]string{
 		string(v1alpha1.StorageClassKey): scName,
