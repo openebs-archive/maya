@@ -162,7 +162,8 @@ data:
     spec:
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
       capacity: {{ .Volume.capacity }}
-      iqn: iqn.2016-09.com.openebs.cstor
+      nodeBase: iqn.2016-09.com.openebs.cstor
+      iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
       targetPortal: {{ .TaskResult.cvolcreateputsvc.clusterIP }}:3260
       targetPort: 3260
       status: ""
