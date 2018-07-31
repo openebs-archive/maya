@@ -20,25 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Task has information about an action and a resource where the action
-// is performed against the resource.
-//
-// For example a resource can be a kubernetes resource and the corresponding
-// action can be to apply this resource to kubernetes cluster.
-//type Task struct {
-// TaskName is the name of the task.
-//
-// NOTE: A task refers to a K8s ConfigMap.
-//TaskName string `json:"task"`
-// Identity is the unique identity that can differentiate
-// two tasks even when using the same template
-//Identity string `json:"id"`
-// APIVersion is the version related to the task's resource
-//APIVersion string `json:"apiVersion"`
-// Kind is the kind corresponding to the task's resource
-//Kind string `json:"kind"`
-//}
-
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
