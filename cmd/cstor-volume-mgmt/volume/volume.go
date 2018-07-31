@@ -114,7 +114,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   Netmask "None"
 
 # LogicalUnit section
-[LogicalUnit2]
+[LogicalUnit1]
 `)
 	buffer.WriteString("  TargetName " + cStorVolume.Name + "\n")
 	buffer.WriteString("  TargetAlias nicknamefor-" + cStorVolume.Name)
