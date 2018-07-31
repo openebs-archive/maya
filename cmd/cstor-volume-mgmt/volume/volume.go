@@ -69,7 +69,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
 	buffer.WriteString(`# Global section
 [Global]
 `)
-	buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.Iqn + "\"")
+	buffer.WriteString("  NodeBase \"" + cStorVolume.Spec.NodeBase + "\"")
 	buffer.WriteString(`
   PidFile "/var/run/istgt.pid"
   AuthFile "/usr/local/etc/istgt/auth.conf"
