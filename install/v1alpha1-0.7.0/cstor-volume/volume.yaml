@@ -77,7 +77,7 @@ metadata:
 data:
   meta: |
     id: cvolcreatelistpool
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     action: list
@@ -107,7 +107,7 @@ data:
     kind: Service
     action: put
     id: cvolcreateputsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
   post: |
     {{- jsonpath .JsonResult `{.metadata.name}` | trim | saveAs "cvolcreateputsvc.objectName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult `{.spec.clusterIP}` | trim | saveAs "cvolcreateputsvc.clusterIP" .TaskResult | noop -}}
@@ -178,7 +178,7 @@ metadata:
   namespace: openebs
 data:
   meta: |
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: apps/v1beta1
     kind: Deployment
     action: put
@@ -496,7 +496,7 @@ metadata:
   namespace: openebs
 data:
   meta: |
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: v1
     id: readlistsvc
     kind: Service
@@ -536,7 +536,7 @@ metadata:
   namespace: openebs
 data:
   meta: |
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: v1
     kind: Pod
     action: list
@@ -614,7 +614,7 @@ metadata:
 data:
   meta: |
     id: deletelistsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: v1
     kind: Service
     action: list
@@ -638,7 +638,7 @@ metadata:
 data:
   meta: |
     id: deletelistctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: apps/v1beta1
     kind: Deployment
     action: list
@@ -682,7 +682,7 @@ metadata:
 data:
   meta: |
     id: deletedeletesvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: v1
     kind: Service
     action: delete
@@ -697,7 +697,7 @@ metadata:
 data:
   meta: |
     id: deletedeletectrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: openebs
     apiVersion: apps/v1beta1
     kind: Deployment
     action: delete
