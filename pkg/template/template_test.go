@@ -37,6 +37,7 @@ import (
 	"text/template"
 
 	"encoding/json"
+
 	"github.com/ghodss/yaml"
 )
 
@@ -1180,20 +1181,20 @@ value: Pod Deployment`,
 			expectedYaml:           ``,
 			expectedTemplateValues: map[string]interface{}{},
 		},
-		//
-		// start of test scenario
-		//
-		`Negative Test - Verify if 'nestedKeyMap' works with empty byte`: {
-			templateInYaml: `
-{{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-{{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}`,
-			templateValues: map[string]interface{}{
-				"JsonDoc": []byte{},
-				"Values":  map[string]interface{}{},
-			},
-			expectedYaml:           ``,
-			expectedTemplateValues: map[string]interface{}{},
-		},
+		/* //
+				// start of test scenario
+				//
+				`Negative Test - Verify if 'nestedKeyMap' works with empty byte`: {
+					templateInYaml: `
+		{{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
+		{{- $kindArr | nestedKeyMap "se5jrhdgshdr5hft" .Values | noop -}}`,
+					templateValues: map[string]interface{}{
+						"JsonDoc": []byte{},
+						"Values":  map[string]interface{}{},
+					},
+					expectedYaml:           ``,
+					expectedTemplateValues: map[string]interface{}{},
+				}, */
 		//
 		// start of test scenario
 		//

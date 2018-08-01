@@ -125,7 +125,7 @@ func jsonPath(json []byte, path string) string {
 	jq := NewJsonQuery("templated-jsonpath", json, path)
 	output, err := jq.Query()
 	if err != nil {
-		return err.Error()
+		return fmt.Sprintf("jsonpath failed: path '%s': error '%+v'", path, err)
 	}
 	return output
 }

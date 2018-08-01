@@ -331,8 +331,8 @@ data:
       # phase would be update by appropriate controller
       phase: ""
   post: |
-    {{- jsonpath .JsonResult `{metadata.name}` | trim | addTo "cstorvolumecreatereplica.objectName" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult `{metadata.spec.capacity}` | trim | saveAs "cstorvolumecreatereplica.capacity" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult `{.metadata.name}` | trim | addTo "cstorvolumecreatereplica.objectName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult `{.metadata.spec.capacity}` | trim | saveAs "cstorvolumecreatereplica.capacity" .TaskResult | noop -}}
     {{- $replicaPair := jsonpath .JsonResult `pkey=replicas,{@.metadata.name}={@.spec.capacity};` | trim | default "" | splitList ";" -}}
     {{- $replicaPair | keyMap "replicaList" .ListItems | noop -}}
 ---

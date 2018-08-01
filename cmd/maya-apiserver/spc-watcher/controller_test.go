@@ -16,14 +16,14 @@ limitations under the License.
 package spc
 
 import (
-	"testing"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	api_meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"testing"
+	"time"
 )
 
 // TestIsDeleteEvent function tests IsDeleteEvent function
@@ -48,8 +48,7 @@ func TestIsDeleteEvent(t *testing.T) {
 		"DeletionTimestamp is not nil": {
 			fakestoragepoolclaim: &apis.StoragePoolClaim{
 				ObjectMeta: api_meta.ObjectMeta{
-					DeletionTimestamp: &api_meta.Time{time.Now(),
-					},
+					DeletionTimestamp: &api_meta.Time{time.Now()},
 				},
 			},
 			expectedResult: true},
@@ -77,14 +76,14 @@ func TestNewCStorPoolController(t *testing.T) {
 	controller := NewController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
-	if controller.spcSynced == nil{
+	if controller.spcSynced == nil {
 		t.Errorf("No spc cache sync in controller object")
 	}
 
-	if controller.workqueue == nil{
+	if controller.workqueue == nil {
 		t.Errorf("No workqueue in controller object")
 	}
-	if controller.recorder == nil{
+	if controller.recorder == nil {
 		t.Errorf("No recorder in controller object")
 	}
 	if controller.kubeclientset != fakeKubeClient {
