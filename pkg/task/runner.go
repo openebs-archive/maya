@@ -169,21 +169,31 @@ func (m *TaskGroupRunner) runATask(runtask v1alpha1.RunTask, values map[string]i
 		return fmt.Errorf("failed to execute the run task: multiple tasks having same identity is not allowed in a group run: duplicate id '%s'", te.getTaskIdentity())
 	}
 
-	err = te.Execute()
+	errExecute := te.Execute()
 
 	// remove the json doc (i.e. []byte) from template values since it will not
 	// be used anymore and if these template values are logged will not clutter
 	// the logs
 	redactJsonResult(values)
 
-	if err != nil {
-		// log with verbose details
+	if errExecute != nil {
 		glog.Errorf("failed to execute runtask: name '%s': meta yaml '%s': task yaml '%s': template values in yaml '%s': template values '%+v'", runtask.Name, runtask.Spec.Meta, runtask.Spec.Task, template.ToYaml(values), values)
-		return
 	}
 
 	// this is planning & not the actual rollback
-	err = m.planForRollback(te, util.GetNestedString(values, string(v1alpha1.TaskResultTLP), te.getTaskIdentity(), string(v1alpha1.ObjectNameTRTP)))
+	errRollback := m.planForRollback(te, util.GetNestedString(values, string(v1alpha1.TaskResultTLP), te.getTaskIdentity(), string(v1alpha1.ObjectNameTRTP)))
+	if errRollback != nil {
+		glog.Errorf("failed to plan for rollback: '%+v'", errRollback)
+	}
+
+	// err will always contain the higher priority error
+	// here errExecute > errRollback.
+	if errRollback != nil {
+		err = errRollback
+	}
+	if errExecute != nil {
+		err = errExecute
+	}
 	return
 }
 
