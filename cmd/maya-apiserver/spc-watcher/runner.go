@@ -70,7 +70,6 @@ func (c *Controller) processNextWorkItem() bool {
 	if shutdown {
 		return false
 	}
-
 	// We wrap this block in a func so we can defer c.workqueue.Done.
 	err := func(obj interface{}) error {
 		// We call Done here so the workqueue knows we have finished
@@ -80,20 +79,19 @@ func (c *Controller) processNextWorkItem() bool {
 		// put back on the workqueue and attempted again after a back-off
 		// period.
 		defer c.workqueue.Done(obj)
-		var q QueueLoad
+		var q *QueueLoad
 		var ok bool
-
 		// We expect strings to come off the workqueue. These are of the
 		// form namespace/name. We do this as the delayed nature of the
 		// workqueue means the items in the informer cache may actually be
 		// more up to date that when the item was initially put onto the
 		// workqueue.
-		if q, ok = obj.(QueueLoad); !ok {
+		if q, ok = obj.(*QueueLoad); !ok {
 			// As the item in the workqueue is actually invalid, we call
 			// Forget here else we'd go into a loop of attempting to
 			// process a work item that is invalid.
 			c.workqueue.Forget(obj)
-			runtime.HandleError(fmt.Errorf("Expected string in workqueue but got %#v", obj))
+			runtime.HandleError(fmt.Errorf("Expected queueload object in workqueue but got %#v", obj))
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
