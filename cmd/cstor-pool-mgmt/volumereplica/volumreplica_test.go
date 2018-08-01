@@ -212,7 +212,7 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "VolumeReplicaResource1",
 					Labels: map[string]string{
-						"cstorvolume.openebs.io/uid": "cstor-ab12",
+						"cstorvolume.openebs.io/name": "cstor-ab12",
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
@@ -227,7 +227,7 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "VolumeReplicaResource2",
 					Labels: map[string]string{
-						"cstorvolume.openebs.io/uid": "cstor-ab12",
+						"cstorvolume.openebs.io/name": "cstor-ab12",
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
@@ -242,7 +242,7 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "VolumeReplicaResource2",
 					Labels: map[string]string{
-						"cstorvolume.openebs.io/uid": "cstor-ab12",
+						"cstorvolume.openebs.io/name": "cstor-ab12",
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{

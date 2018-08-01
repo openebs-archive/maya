@@ -172,7 +172,7 @@ func CheckForCStorPoolCRD(clientset clientset.Interface) {
 	for {
 		_, err := clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorPool CRD not found. Retrying after %v", CRDRetryInterval)
+			glog.Errorf("CStorPool CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
 			continue
 		}
@@ -190,7 +190,7 @@ func CheckForCStorVolumeReplicaCRD(clientset clientset.Interface) {
 		// for default namespace works fine, then CR list api works for all namespaces.
 		_, err := clientset.OpenebsV1alpha1().CStorVolumeReplicas(string(defaultNameSpace)).List(metav1.ListOptions{})
 		if err != nil {
-			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v", CRDRetryInterval)
+			glog.Errorf("CStorVolumeReplica CRD not found. Retrying after %v, error: %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
 			continue
 		}
