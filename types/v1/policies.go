@@ -43,7 +43,6 @@ type OldVolumeLabels struct {
 
 	// ReplicaTopologyKeyTypeOld contains the type that needs to be specified for Replica Deployment PodAntiAffinity Topology Key
 	ReplicaTopologyKeyTypeOld string `json:"volumeprovisioner.mapi.openebs.io/replica-topology-key-type,omitempty" protobuf:"bytes,1,opt,name=volumeprovisioner.mapi.openebs.io/replica-topology-key-type"`
-
 }
 
 // K8sVolumeLabels is a typed structure that consists of

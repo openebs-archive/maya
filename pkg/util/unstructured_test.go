@@ -117,7 +117,7 @@ func TestSetNestedField(t *testing.T) {
 		value  interface{}
 		fields []string
 	}{
-		"set nested field - +ve test case - set nested key value pair to empty original": {
+		"Negative test - set nested key value pair to empty original": {
 			// this is empty
 			obj: map[string]interface{}{},
 			// value to be set in above obj
@@ -125,7 +125,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set at path obj[k1][k1.1]
 			fields: []string{"k1", "k1.1"},
 		},
-		"set nested field - +ve test case - set nested key with complex value to empty original": {
+		"Negative test - set nested key with complex value to empty original": {
 			// this is empty
 			obj: map[string]interface{}{},
 			// value to be set in above obj
@@ -137,7 +137,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set at path obj[k1][k1.1]
 			fields: []string{"k1", "k1.1"},
 		},
-		"set nested field - +ve test case - set a new nested key value pair": {
+		"Positive test - set a new value at new nested key": {
 			obj: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -150,7 +150,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set at path obj[k2][k2.3]
 			fields: []string{"k2", "k2.3"},
 		},
-		"set nested field - +ve test case - set a new value to an existing nested key": {
+		"Positive test - override an existing value of a nested key": {
 			obj: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -163,7 +163,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set at path obj[k2][k2.2]
 			fields: []string{"k2", "k2.2"},
 		},
-		"set nested field - +ve test case - set a new value to an existing parent key": {
+		"Positive test - override an existing nested value of a parent key": {
 			obj: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -176,7 +176,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set against the obj[k2]
 			fields: []string{"k2"},
 		},
-		"set nested field - +ve test case - add a new parent key value pair": {
+		"Positive test - add a new parent key value pair": {
 			obj: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -189,7 +189,7 @@ func TestSetNestedField(t *testing.T) {
 			// above value will be set against the obj[k3]
 			fields: []string{"k3"},
 		},
-		"set nested field - +ve test case - no changes to obj": {
+		"Negative test - no changes to original obj due to empty fields": {
 			obj: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -197,7 +197,7 @@ func TestSetNestedField(t *testing.T) {
 					"k2.2": "v2.2",
 				},
 			},
-			// value to be set in above obj
+			// resulting obj
 			value: map[string]interface{}{
 				"k1": "v1",
 				"k2": map[string]string{
@@ -207,6 +207,13 @@ func TestSetNestedField(t *testing.T) {
 			},
 			// there will be no changes to obj since there are no fields
 			fields: []string{},
+		},
+		"Negative test - no changes to original obj due to nil object": {
+			obj: nil,
+			// resulting obj
+			value: nil,
+			// there will be no changes to obj even with provided fields
+			fields: []string{"k1", "k2"},
 		},
 	}
 

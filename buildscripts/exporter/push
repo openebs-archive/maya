@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-IMAGEID=$( sudo docker images -q openebs/m-exporter:ci )
+IMAGEID=$( sudo docker images -q openebs/m-exporter:${IMAGE_TAG} )
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ];
 then
   sudo docker login -u "${DNAME}" -p "${DPASS}";
   # Push image to docker hub
-  sudo docker push openebs/m-exporter:ci ;
+  sudo docker push openebs/m-exporter:${IMAGE_TAG} ;
   if [ ! -z "${TRAVIS_TAG}" ] ;
   then
     # Push with different tags if tagged as a release
@@ -19,5 +19,5 @@ then
     sudo docker push openebs/m-exporter:latest;
   fi;
 else
-  echo "No docker credentials provided. Skip uploading openebs/m-exporter:ci to docker hub";
+  echo "No docker credentials provided. Skip uploading openebs/m-exporter:${IMAGE_TAG} to docker hub";
 fi;
