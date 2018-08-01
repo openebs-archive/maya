@@ -107,6 +107,20 @@ const (
 	// <CTX>__REPLICA_NODE_TAINT_TOLERATION = <some value>
 	PVPReplicaNodeTaintTolerationEnvVarKey EnvironmentVariableKey = "_REPLICA_NODE_TAINT_TOLERATION"
 
+	// PVPControllerNodeSelectorEnvVarKey is the environment variable key for
+	// persistent volume provisioner's node selector for controllers
+	//
+	// Usage:
+	// <CTX>__CONTROLLER_NODE_SELECTOR = <some value>
+	PVPControllerNodeSelectorEnvVarKey EnvironmentVariableKey = "_CONTROLLER_NODE_SELECTOR"
+
+	// PVPReplicaNodeSelectorEnvVarKey is the environment variable key for
+	// persistent volume provisioner's node selector for replicas
+	//
+	// Usage:
+	// <CTX>__REPLICA_NODE_SELECTOR = <some value>
+	PVPReplicaNodeSelectorEnvVarKey EnvironmentVariableKey = "_REPLICA_NODE_SELECTOR"
+
 	// OrchestratorNameEnvVarKey is the environment variable key for
 	// orchestration provider's name
 	//
@@ -252,6 +266,12 @@ const (
 	PVPControllerNodeTaintTolerationLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/controller-node-taint-toleration"
 	// Label / Tag for a persistent volume provisioner's replica node taint toleration
 	PVPReplicaNodeTaintTolerationLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/replica-node-taint-toleration"
+
+	// Label / Tag for a persistent volume provisioner's controller node selector
+	PVPControllerNodeSelectorLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/controller-node-selector"
+
+	// Label / Tag for a persistent volume provisioner's replica node selector
+	PVPReplicaNodeSelectorLbl VolumeProvisionerProfileLabel = "volumeprovisioner.mapi.openebs.io/replica-node-selector"
 
 	// PVPReplicaTopologyKeyLbl is the label for a persistent volume provisioner's
 	// VSM replica topology key
@@ -485,6 +505,12 @@ const (
 	// VSMSelectorKey is used to filter vsm
 	VSMSelectorKey GenericAnnotations = "vsm"
 
+	//PVCSelectorKey is used to get pvc label
+	PVCSelectorKey GenericAnnotations = "pvc"
+
+	//ApplicationSelectorKey is used to get application label
+	ApplicationSelectorKey GenericAnnotations = "application"
+
 	// VSMSelectorKeyEquals is used to filter vsm when selector logic is used
 	VSMSelectorKeyEquals GenericAnnotations = VSMSelectorKey + "="
 
@@ -532,6 +558,9 @@ const (
 
 	// PortNameAPI is the name given to api ports
 	PortNameAPI JivaAnnotations = "api"
+
+	// ReplicationFactorEnvKey is the name used to pass replica count as env
+	ReplicationFactorEnvKey JivaAnnotations = "REPLICATION_FACTOR"
 
 	// JivaCtrlIPHolder is used as a placeholder for persistent volume controller's
 	// IP address

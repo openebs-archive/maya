@@ -17,6 +17,8 @@ const (
 	diskSuffix         = ".img"
 	diskName           = diskPrefix + "%s" + diskSuffix
 	maximumChainLength = 250
+	snapPrefix         = "volume-snap-"
+	snapSuffix         = ".img"
 )
 
 type Volumes struct {
@@ -164,9 +166,36 @@ func Contains(arr []string, val string) bool {
 	return false
 }
 
+// IsHeadDisk checks if Disk is a Head
 func IsHeadDisk(diskName string) bool {
 	if strings.HasPrefix(diskName, headPrefix) && strings.HasSuffix(diskName, headSuffix) {
 		return true
 	}
 	return false
+}
+
+// TrimSnapshotName trims the snapshot name from diskName string
+func TrimSnapshotName(diskName string) string {
+	if diskName == "" {
+		return "NA"
+	} else if strings.HasPrefix(diskName, headPrefix) && strings.HasSuffix(diskName, headSuffix) {
+		return strings.TrimSuffix(strings.TrimPrefix(diskName, "volume-"), ".img")
+	} else if strings.HasPrefix(diskName, snapPrefix) && strings.HasSuffix(diskName, snapSuffix) {
+		return strings.TrimSuffix(strings.TrimPrefix(diskName, "volume-snap-"), ".img")
+	}
+
+	return "NA"
+}
+
+// TrimSnapshotNamesOfSlice trims the each snapshot name in diskNames Slice
+func TrimSnapshotNamesOfSlice(diskNames []string) []string {
+	if len(diskNames) == 0 {
+		return []string{"NA"}
+	}
+
+	snapChildren := make([]string, len(diskNames))
+	for index, diskName := range diskNames {
+		snapChildren[index] = TrimSnapshotName(diskName)
+	}
+	return snapChildren
 }

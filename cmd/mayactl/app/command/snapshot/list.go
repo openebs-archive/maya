@@ -25,38 +25,46 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	snapshotListCommandHelpText = `
+This command displays available snapshots on a volume.
+
+Usage: mayactl snapshot list [options]
+
+$ mayactl snapshot list --volname <vol>
+`
+)
+
 // NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
 func NewCmdSnapshotList() *cobra.Command {
-	options := CmdSnaphotCreateOptions{}
-
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lists all the snapshots of a Volume",
-		//Long:  SnapshotCreateCommandHelpText,
+		Long:  snapshotListCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.ValidateList(cmd), util.Fatal)
 			util.CheckErr(options.RunSnapshotList(cmd), util.Fatal)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 	return cmd
 }
 
 // ValidateList validates the flag values
-func (c *CmdSnaphotCreateOptions) ValidateList(cmd *cobra.Command) error {
-	if c.volName == "" {
+func (c *CmdSnaphotOptions) ValidateList(cmd *cobra.Command) error {
+	if len(c.volName) == 0 {
 		return errors.New("--volname is missing. Please specify an unique name")
 	}
 	return nil
 }
 
-// RunSnapshotList does tasks related to mayaserver.
-func (c *CmdSnaphotCreateOptions) RunSnapshotList(cmd *cobra.Command) error {
+// RunSnapshotList makes snapshot-list API request to maya-apiserver
+func (c *CmdSnaphotOptions) RunSnapshotList(cmd *cobra.Command) error {
 
-	resp := mapiserver.ListSnapshot(c.volName)
+	resp := mapiserver.ListSnapshot(c.volName, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Error list available snapshot: %v", resp)
 	}

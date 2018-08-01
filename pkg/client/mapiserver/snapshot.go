@@ -19,13 +19,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
-	"strings"
+	"os"
+	"strconv"
+	"text/tabwriter"
 	"time"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -34,9 +36,19 @@ const (
 	http_timeout = 5 * time.Second
 )
 
-// CreateSnapshot creates a snapshot of volume by invoking the API call to m-apiserver
-func CreateSnapshot(volName string, snapName string) error {
+// SnapshotInfo stores the details of snapshot
+type SnapshotInfo struct {
+	Name    string
+	Created string
+	Size    string
+	// Parent keeps most recently saved version of current state of volume
+	Parent string
+	// Child keeps latest saved version of volume
+	Children []string
+}
 
+// CreateSnapshot creates a snapshot of volume by API request to m-apiserver
+func CreateSnapshot(volName string, snapName string, namespace string) error {
 	_, err := GetStatus()
 	if err != nil {
 		return err
@@ -59,6 +71,7 @@ func CreateSnapshot(volName string, snapName string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/yaml")
+	req.Header.Set("namespace", namespace)
 
 	c := &http.Client{
 		Timeout: http_timeout,
@@ -84,8 +97,8 @@ func CreateSnapshot(volName string, snapName string) error {
 	return nil
 }
 
-// RevertSnapshot revert a snapshot of volume by invoking the API call to m-apiserver
-func RevertSnapshot(volName string, snapName string) error {
+// RevertSnapshot reverts a snapshot of volume by API request to m-apiserver
+func RevertSnapshot(volName string, snapName string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -109,7 +122,7 @@ func RevertSnapshot(volName string, snapName string) error {
 	}
 
 	req.Header.Add("Content-Type", "application/yaml")
-
+	req.Header.Set("namespace", namespace)
 	c := &http.Client{
 		Timeout: http_timeout,
 	}
@@ -131,8 +144,8 @@ func RevertSnapshot(volName string, snapName string) error {
 	return nil
 }
 
-// ListSnapshot list snapshots of volume by invoking the API call to m-apiserver
-func ListSnapshot(volName string) error {
+// ListSnapshot lists snapshots of volume by API request to m-apiserver
+func ListSnapshot(volName string, namespace string) error {
 
 	_, err := GetStatus()
 	if err != nil {
@@ -145,6 +158,8 @@ func ListSnapshot(volName string) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("namespace", namespace)
+
 	c := &http.Client{
 		Timeout: timeoutVolumeDelete,
 	}
@@ -158,28 +173,50 @@ func ListSnapshot(volName string) error {
 	if err != nil {
 		return err
 	}
+
 	code := resp.StatusCode
 	if code != http.StatusOK {
 		return fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 	snapdisk, err := getInfo(body)
 	if err != nil {
-		fmt.Println("Failed to get the snapshot info", err)
+		return fmt.Errorf("Failed to get the snapshot info, found error - %v", err)
 	}
-	out := make([]string, len(snapdisk)+1)
 
-	out[0] = "Name|Created At|Size"
-	var i int
+	if len(snapdisk) == 1 || len(snapdisk) == 0 {
+		fmt.Println("No snapshots available. \nUse `mayactl snapshot create --volname <vol-name> --snapname <snap-name>` to create snapshot")
+		return nil
+	}
+
+	snapshotList := make([]SnapshotInfo, len(snapdisk)-1)
+	i := 0
 
 	for _, disk := range snapdisk {
-		//	if !util.IsHeadDisk(disk.Name) {
-		out[i+1] = fmt.Sprintf("%s|%s|%s",
-			strings.TrimSuffix(strings.TrimPrefix(disk.Name, "volume-snap-"), ".img"),
-			disk.Created,
-			disk.Size)
-		i = i + 1
+		if !client.IsHeadDisk(disk.Name) {
+			size, _ := strconv.ParseFloat(disk.Size, 64)
+			size = size / v1.BytesToMB
+			snapshotList[i] = SnapshotInfo{
+				Name:     client.TrimSnapshotName(disk.Name),
+				Created:  disk.Created,
+				Size:     fmt.Sprintf("%.4f", size),
+				Parent:   client.TrimSnapshotName(disk.Parent),
+				Children: client.TrimSnapshotNamesOfSlice(disk.Children),
+			}
+			i++
+		}
 	}
-	fmt.Println(util.FormatList(out))
+	SortSnapshotDisksByDateTime(snapshotList)
+	err = ChangeDateFormatToUnixDate(snapshotList)
+	if err != nil {
+		return fmt.Errorf("Error changing date format to UnixDate, found error - %v", err)
+	}
+
+	err = displayVolumeSnapshot(snapshotList)
+	if err != nil {
+		fmt.Println("Error displaying snapshot list, found error - ", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -192,4 +229,28 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 		return nil, err
 	}
 	return s, err
+}
+
+func displayVolumeSnapshot(snapshotList []SnapshotInfo) error {
+	const (
+		snapshotTemplate = `
+Snapshot Details: 
+------------------
+{{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
+{{ printf "-----\t -----------\t ------------\t -------\t ---------" }} {{ range $key, $value := . }}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ range $value.Children -}} {{printf "%s\n\t \t \t \t" . }} {{ end }} {{ end }}
+`
+	)
+
+	tmpl := template.New("SnapshotList")
+	tmpl = template.Must(tmpl.Parse(snapshotTemplate))
+
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+	err := tmpl.Execute(w, snapshotList)
+	if err != nil {
+		return err
+	}
+	w.Flush()
+
+	return nil
 }

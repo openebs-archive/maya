@@ -595,6 +595,82 @@ func DefaultReplicaNodeTaintTolerations() (string, error) {
 	return "", nil
 }
 
+// GetControllerNodeSelectors gets the node selectors for controller if
+// available
+func GetControllerNodeSelectors(profileMap map[string]string) (string, error) {
+	val, err := ControllerNodeSelectors(profileMap)
+	if err != nil {
+		return "", err
+	}
+
+	if val == "" {
+		val, err = DefaultControllerNodeSelectors()
+	}
+
+	return val, err
+}
+
+// ControllerNodeSelectors extracts the node selectors for controller
+func ControllerNodeSelectors(profileMap map[string]string) (string, error) {
+	val := ""
+	if profileMap != nil {
+		val = strings.TrimSpace(profileMap[string(PVPControllerNodeSelectorLbl)])
+	}
+
+	if val != "" {
+		return val, nil
+	}
+
+	// else get from environment variable
+	return OSGetEnv(string(PVPControllerNodeSelectorEnvVarKey), profileMap), nil
+}
+
+// DefaultControllerNodeSelectors will fetch the default value for node
+// selectors for controller
+func DefaultControllerNodeSelectors() (string, error) {
+	// Controller node selector property is optional. Hence returns blank
+	// (i.e. not required) as default.
+	return "", nil
+}
+
+// GetReplicaNodeSelectors gets the node selectors for replica if
+// available
+func GetReplicaNodeSelectors(profileMap map[string]string) (string, error) {
+	val, err := ReplicaNodeSelectors(profileMap)
+	if err != nil {
+		return "", err
+	}
+
+	if val == "" {
+		val, err = DefaultReplicaNodeSelectors()
+	}
+
+	return val, err
+}
+
+// ReplicaNodeSelectors extracts the node selectors for replica
+func ReplicaNodeSelectors(profileMap map[string]string) (string, error) {
+	val := ""
+	if profileMap != nil {
+		val = strings.TrimSpace(profileMap[string(PVPReplicaNodeSelectorLbl)])
+	}
+
+	if val != "" {
+		return val, nil
+	}
+
+	// else get from environment variable
+	return OSGetEnv(string(PVPReplicaNodeSelectorEnvVarKey), profileMap), nil
+}
+
+// DefaultReplicaNodeSelectors will fetch the default value for node
+// selectors for replicas
+func DefaultReplicaNodeSelectors() (string, error) {
+	// Replica node selector property is optional. Hence returns blank
+	// (i.e. not required) as default.
+	return "", nil
+}
+
 // GetOrchestratorNetworkType gets the not nil orchestration provider's network
 // type
 func GetOrchestratorNetworkType(profileMap map[string]string) string {

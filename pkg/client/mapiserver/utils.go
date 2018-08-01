@@ -3,6 +3,8 @@ package mapiserver
 import (
 	"net"
 	"os"
+	"sort"
+	"time"
 )
 
 func Initialize() {
@@ -38,4 +40,25 @@ func getDefaultAddr() string {
 		}
 	}
 	return "http://" + env + ":5656"
+}
+
+// SortSnapshotDisksByDateTime orders the snapshot disks with respect to date and time
+func SortSnapshotDisksByDateTime(snapshotDisks []SnapshotInfo) {
+	sort.SliceStable(snapshotDisks, func(i, j int) bool {
+		t1, _ := time.Parse(time.RFC3339, snapshotDisks[i].Created)
+		t2, _ := time.Parse(time.RFC3339, snapshotDisks[j].Created)
+		return t1.Before(t2)
+	})
+}
+
+// ChangeDateFormatToUnixDate changes the created date from RFC3339 format to UnixDate format
+func ChangeDateFormatToUnixDate(snapshotDisks []SnapshotInfo) error {
+	for index := range snapshotDisks {
+		created, err := time.Parse(time.RFC3339, snapshotDisks[index].Created)
+		if err != nil {
+			return err
+		}
+		snapshotDisks[index].Created = created.Format(time.UnixDate)
+	}
+	return nil
 }
