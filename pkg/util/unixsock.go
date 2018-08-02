@@ -24,13 +24,13 @@ func Reader(r io.Reader, cmd string) []string {
 		buf := make([]byte, 1024)
 		n, err := r.Read(buf[:])
 		if n > 0 {
-			glog.Infof("Client got:", string(buf[0:n]))
+			glog.Infof("Client got: %v", string(buf[0:n]))
 			fulllines = append(fulllines, buf[0:n]...)
 			if strings.HasSuffix(string(fulllines), EndOfLine) {
 				lines := strings.Split(string(fulllines), EndOfLine)
 				for _, line := range lines {
 					if len(line) != 0 {
-						glog.Infof("Appending line to resp : ", line)
+						glog.Infof("Appending line to resp : %v", line)
 						resp = append(resp, line+EndOfLine)
 					}
 				}
@@ -40,7 +40,7 @@ func Reader(r io.Reader, cmd string) []string {
 
 			if !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
 				!strings.HasPrefix(resp[len(resp)-1], cmd) {
-				glog.Infof("Breaking out of loop for line :", resp[len(resp)-1])
+				glog.Infof("Breaking out of loop for line : %v", resp[len(resp)-1])
 				break
 			}
 		}
@@ -60,7 +60,7 @@ func Writer(w io.Writer, msg string) error {
 	if err != nil {
 		glog.Fatal("Write error: ", err)
 	} else {
-		glog.Infof("Client sent:", msg)
+		glog.Infof("Client sent: %v", msg)
 	}
 	return err
 }

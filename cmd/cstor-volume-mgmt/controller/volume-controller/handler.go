@@ -127,7 +127,7 @@ func (c *CStorVolumeController) getVolumeResource(key string) (*apis.CStorVolume
 	}
 
 	if len(namespace) == 0 {
-		namespace = string(common.DefaultNameSpace)
+		namespace = common.GetDefaultNamespaceFromEnv()
 	}
 
 	cStorVolumeGot, err := c.clientset.OpenebsV1alpha1().CStorVolumes(namespace).Get(name, metav1.GetOptions{})
