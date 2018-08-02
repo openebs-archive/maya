@@ -7,11 +7,11 @@ spec:
   defaultConfig:
   - name: VolumeControllerImage
     #value: openebs/cstor-volume-mgmt:cstor-feature-integration-ci
-    value: moteesh/cstor-volume-mgmt:local
+    value: openebs/cstor-volume-mgmt:ci
   - name: VolumeTargetImage
     value: openebs/cstor-istgt:ci
   - name: VolumeExporterImage
-    value: openebs/m-exporter:cstor-feature-integration-ci
+    value: openebs/m-exporter:ci
   - name: ReplicaCount
     value: "3"
   taskNamespace: openebs
@@ -320,7 +320,7 @@ data:
       labels:
         cstorpool.openebs.io/name: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolList.pools | first }}
         cstorpool.openebs.io/uid: {{ .ListItems.currentRepeatResource }}
-        cstorvolume.openebs.io/uid: {{ .Volume.owner }}
+        cstorvolume.openebs.io/name: {{ .Volume.owner }}
         cstorvolumereplica.openebs.io/pvc-name: {{ .Volume.pvc }}
         openebs.io/pv: {{ .Volume.owner }}
       finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
