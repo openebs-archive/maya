@@ -359,6 +359,11 @@ func (c *Client) init() error {
 			return fmt.Errorf("failed to find temporary directory for the AllocDir: %v", err)
 		}
 
+		// Change the permissions to have the execute bit
+		if err := os.Chmod(p, 0755); err != nil {
+			return fmt.Errorf("failed to change directory permissions for the AllocDir: %v", err)
+		}
+
 		c.config.AllocDir = p
 	}
 
@@ -526,9 +531,19 @@ func (c *Client) GetAllocFS(allocID string) (allocdir.AllocDirFS, error) {
 
 	ar, ok := c.allocs[allocID]
 	if !ok {
-		return nil, fmt.Errorf("alloc not found")
+		return nil, fmt.Errorf("unknown allocation ID %q", allocID)
 	}
 	return ar.GetAllocDir(), nil
+}
+
+// GetClientAlloc returns the allocation from the client
+func (c *Client) GetClientAlloc(allocID string) (*structs.Allocation, error) {
+	all := c.allAllocs()
+	alloc, ok := all[allocID]
+	if !ok {
+		return nil, fmt.Errorf("unknown allocation ID %q", allocID)
+	}
+	return alloc, nil
 }
 
 // GetServers returns the list of nomad servers this client is aware of.
@@ -857,7 +872,7 @@ func (c *Client) setupDrivers() error {
 
 	var avail []string
 	var skipped []string
-	driverCtx := driver.NewDriverContext("", c.config, c.config.Node, c.logger, nil, nil)
+	driverCtx := driver.NewDriverContext("", "", c.config, c.config.Node, c.logger, nil, nil)
 	for name := range driver.BuiltinDrivers {
 		// Skip fingerprinting drivers that are not in the whitelist if it is
 		// enabled.
@@ -2344,20 +2359,21 @@ func (c *Client) getAllocatedResources(selfNode *structs.Node) *structs.Resource
 }
 
 // allAllocs returns all the allocations managed by the client
-func (c *Client) allAllocs() []*structs.Allocation {
-	var allocs []*structs.Allocation
+func (c *Client) allAllocs() map[string]*structs.Allocation {
+	allocs := make(map[string]*structs.Allocation, 16)
 	for _, ar := range c.getAllocRunners() {
-		allocs = append(allocs, ar.Alloc())
+		a := ar.Alloc()
+		allocs[a.ID] = a
 	}
 	c.blockedAllocsLock.Lock()
 	for _, alloc := range c.blockedAllocations {
-		allocs = append(allocs, alloc)
+		allocs[alloc.ID] = alloc
 	}
 	c.blockedAllocsLock.Unlock()
 
 	c.migratingAllocsLock.Lock()
 	for _, ctrl := range c.migratingAllocs {
-		allocs = append(allocs, ctrl.alloc)
+		allocs[ctrl.alloc.ID] = ctrl.alloc
 	}
 	c.migratingAllocsLock.Unlock()
 	return allocs

@@ -280,7 +280,7 @@ func (r *TaskRunner) RestoreState() error {
 			return err
 		}
 
-		ctx := driver.NewExecContext(r.taskDir, r.alloc.ID)
+		ctx := driver.NewExecContext(r.taskDir)
 		handle, err := d.Open(ctx, snap.HandleID)
 
 		// In the case it fails, we relaunch the task in the Run() method.
@@ -378,7 +378,7 @@ func (r *TaskRunner) createDriver() (driver.Driver, error) {
 		r.setState(structs.TaskStatePending, structs.NewTaskEvent(structs.TaskDriverMessage).SetDriverMessage(msg))
 	}
 
-	driverCtx := driver.NewDriverContext(r.task.Name, r.config, r.config.Node, r.logger, env, eventEmitter)
+	driverCtx := driver.NewDriverContext(r.task.Name, r.alloc.ID, r.config, r.config.Node, r.logger, env, eventEmitter)
 	driver, err := driver.NewDriver(r.task.Driver, driverCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create driver '%s' for alloc %s: %v",
@@ -553,6 +553,13 @@ func (f *tokenFuture) Get() string {
 // allows setting the initial Vault token. This is useful when the Vault token
 // is recovered off disk.
 func (r *TaskRunner) vaultManager(token string) {
+	// Helper for stopping token renewal
+	stopRenewal := func() {
+		if err := r.vaultClient.StopRenewToken(r.vaultFuture.Get()); err != nil {
+			r.logger.Printf("[WARN] client: failed to stop token renewal for task %v in alloc %q: %v", r.task.Name, r.alloc.ID, err)
+		}
+	}
+
 	// updatedToken lets us store state between loops. If true, a new token
 	// has been retrieved and we need to apply the Vault change mode
 	var updatedToken bool
@@ -562,6 +569,7 @@ OUTER:
 		// Check if we should exit
 		select {
 		case <-r.waitCh:
+			stopRenewal()
 			return
 		default:
 		}
@@ -639,12 +647,14 @@ OUTER:
 			// Clear the token
 			token = ""
 			r.logger.Printf("[ERR] client: failed to renew Vault token for task %v on alloc %q: %v", r.task.Name, r.alloc.ID, err)
+			stopRenewal()
 
 			// Check if we have to do anything
 			if r.task.Vault.ChangeMode != structs.VaultChangeModeNoop {
 				updatedToken = true
 			}
 		case <-r.waitCh:
+			stopRenewal()
 			return
 		}
 	}
@@ -661,7 +671,7 @@ func (r *TaskRunner) deriveVaultToken() (token string, exit bool) {
 		}
 
 		// Check if we can't recover from the error
-		if rerr, ok := err.(*structs.RecoverableError); !ok || !rerr.Recoverable {
+		if !structs.IsRecoverable(err) {
 			r.logger.Printf("[ERR] client: failed to derive Vault token for task %v on alloc %q: %v",
 				r.task.Name, r.alloc.ID, err)
 			r.Kill("vault", fmt.Sprintf("failed to derive token: %v", err), true)
@@ -796,7 +806,7 @@ func (r *TaskRunner) prestart(resultCh chan bool) {
 					r.logger.Printf("[DEBUG] client: %v", wrapped)
 					r.setState(structs.TaskStatePending,
 						structs.NewTaskEvent(structs.TaskArtifactDownloadFailed).SetDownloadError(wrapped))
-					r.restartTracker.SetStartError(structs.NewRecoverableError(wrapped, structs.IsRecoverable(err)))
+					r.restartTracker.SetStartError(structs.WrapRecoverable(wrapped.Error(), err))
 					goto RESTART
 				}
 			}
@@ -958,14 +968,34 @@ func (r *TaskRunner) run() {
 				}
 
 			case se := <-r.signalCh:
-				r.logger.Printf("[DEBUG] client: task being signalled with %v: %s", se.s, se.e.TaskSignalReason)
+				r.runningLock.Lock()
+				running := r.running
+				r.runningLock.Unlock()
+				common := fmt.Sprintf("signal %v to task %v for alloc %q", se.s, r.task.Name, r.alloc.ID)
+				if !running {
+					// Send no error
+					r.logger.Printf("[DEBUG] client: skipping %s", common)
+					se.result <- nil
+					continue
+				}
+
+				r.logger.Printf("[DEBUG] client: sending %s", common)
 				r.setState(structs.TaskStateRunning, se.e)
 
 				res := r.handle.Signal(se.s)
 				se.result <- res
 
 			case event := <-r.restartCh:
-				r.logger.Printf("[DEBUG] client: task being restarted: %s", event.RestartReason)
+				r.runningLock.Lock()
+				running := r.running
+				r.runningLock.Unlock()
+				common := fmt.Sprintf("task %v for alloc %q", r.task.Name, r.alloc.ID)
+				if !running {
+					r.logger.Printf("[DEBUG] client: skipping restart of %v: task isn't running", common)
+					continue
+				}
+
+				r.logger.Printf("[DEBUG] client: restarting %s: %v", common, event.RestartReason)
 				r.setState(structs.TaskStateRunning, event)
 				r.killTask(nil)
 
@@ -1041,7 +1071,7 @@ func (r *TaskRunner) cleanup() {
 
 	res := r.getCreatedResources()
 
-	ctx := driver.NewExecContext(r.taskDir, r.alloc.ID)
+	ctx := driver.NewExecContext(r.taskDir)
 	attempts := 1
 	var cleanupErr error
 	for retry := true; retry; attempts++ {
@@ -1162,7 +1192,7 @@ func (r *TaskRunner) startTask() error {
 	}
 
 	// Run prestart
-	ctx := driver.NewExecContext(r.taskDir, r.alloc.ID)
+	ctx := driver.NewExecContext(r.taskDir)
 	res, err := drv.Prestart(ctx, r.task)
 
 	// Merge newly created resources into previously created resources
@@ -1171,31 +1201,19 @@ func (r *TaskRunner) startTask() error {
 	r.createdResourcesLock.Unlock()
 
 	if err != nil {
-		wrapped := fmt.Errorf("failed to initialize task %q for alloc %q: %v",
+		wrapped := fmt.Sprintf("failed to initialize task %q for alloc %q: %v",
 			r.task.Name, r.alloc.ID, err)
-
-		r.logger.Printf("[WARN] client: error from prestart: %v", wrapped)
-
-		if rerr, ok := err.(*structs.RecoverableError); ok {
-			return structs.NewRecoverableError(wrapped, rerr.Recoverable)
-		}
-
-		return wrapped
+		r.logger.Printf("[WARN] client: error from prestart: %s", wrapped)
+		return structs.WrapRecoverable(wrapped, err)
 	}
 
 	// Start the job
 	handle, err := drv.Start(ctx, r.task)
 	if err != nil {
-		wrapped := fmt.Errorf("failed to start task %q for alloc %q: %v",
+		wrapped := fmt.Sprintf("failed to start task %q for alloc %q: %v",
 			r.task.Name, r.alloc.ID, err)
-
-		r.logger.Printf("[WARN] client: %v", wrapped)
-
-		if rerr, ok := err.(*structs.RecoverableError); ok {
-			return structs.NewRecoverableError(wrapped, rerr.Recoverable)
-		}
-
-		return wrapped
+		r.logger.Printf("[WARN] client: %s", wrapped)
+		return structs.WrapRecoverable(wrapped, err)
 
 	}
 
@@ -1365,22 +1383,8 @@ func (r *TaskRunner) handleDestroy() (destroyed bool, err error) {
 
 // Restart will restart the task
 func (r *TaskRunner) Restart(source, reason string) {
-
 	reasonStr := fmt.Sprintf("%s: %s", source, reason)
 	event := structs.NewTaskEvent(structs.TaskRestartSignal).SetRestartReason(reasonStr)
-
-	r.logger.Printf("[DEBUG] client: restarting task %v for alloc %q: %v",
-		r.task.Name, r.alloc.ID, reasonStr)
-
-	r.runningLock.Lock()
-	running := r.running
-	r.runningLock.Unlock()
-
-	// Drop the restart event
-	if !running {
-		r.logger.Printf("[DEBUG] client: skipping restart since task isn't running")
-		return
-	}
 
 	select {
 	case r.restartCh <- event:
@@ -1394,24 +1398,13 @@ func (r *TaskRunner) Signal(source, reason string, s os.Signal) error {
 	reasonStr := fmt.Sprintf("%s: %s", source, reason)
 	event := structs.NewTaskEvent(structs.TaskSignaling).SetTaskSignal(s).SetTaskSignalReason(reasonStr)
 
-	r.logger.Printf("[DEBUG] client: sending signal %v to task %v for alloc %q", s, r.task.Name, r.alloc.ID)
-
-	r.runningLock.Lock()
-	running := r.running
-	r.runningLock.Unlock()
-
-	// Drop the restart event
-	if !running {
-		r.logger.Printf("[DEBUG] client: skipping signal since task isn't running")
-		return nil
-	}
-
 	resCh := make(chan error)
 	se := SignalEvent{
 		s:      s,
 		e:      event,
 		result: resCh,
 	}
+
 	select {
 	case r.signalCh <- se:
 	case <-r.waitCh:

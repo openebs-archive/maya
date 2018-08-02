@@ -110,7 +110,7 @@ func testDriverContexts(t *testing.T, task *structs.Task) *testContext {
 		return nil
 	}
 
-	execCtx := NewExecContext(td, alloc.ID)
+	execCtx := NewExecContext(td)
 
 	taskEnv, err := GetTaskEnv(td, cfg.Node, task, alloc, cfg, "")
 	if err != nil {
@@ -123,7 +123,7 @@ func testDriverContexts(t *testing.T, task *structs.Task) *testContext {
 	emitter := func(m string, args ...interface{}) {
 		logger.Printf("[EVENT] "+m, args...)
 	}
-	driverCtx := NewDriverContext(task.Name, cfg, cfg.Node, logger, taskEnv, emitter)
+	driverCtx := NewDriverContext(task.Name, alloc.ID, cfg, cfg.Node, logger, taskEnv, emitter)
 
 	return &testContext{allocDir, driverCtx, execCtx}
 }
@@ -180,6 +180,10 @@ func setupTaskEnv(t *testing.T, driver string) (*allocdir.TaskDir, map[string]st
 		"NOMAD_ADDR_admin":              "1.2.3.4:8081",
 		"NOMAD_ADDR_web_main":           "192.168.0.100:5000",
 		"NOMAD_ADDR_web_http":           "192.168.0.100:2000",
+		"NOMAD_IP_web_main":             "192.168.0.100",
+		"NOMAD_IP_web_http":             "192.168.0.100",
+		"NOMAD_PORT_web_http":           "2000",
+		"NOMAD_PORT_web_main":           "5000",
 		"NOMAD_IP_admin":                "1.2.3.4",
 		"NOMAD_PORT_admin":              "8081",
 		"NOMAD_HOST_PORT_admin":         "8081",

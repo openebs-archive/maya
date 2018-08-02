@@ -4,7 +4,7 @@ Nomad [![Build Status](https://travis-ci.org/hashicorp/nomad.svg)](https://travi
 -	Mailing list: [Google Groups](https://groups.google.com/group/nomad-tool)
 
 <p align="center" style="text-align:center;">
-  <img src="https://cdn.rawgit.com/hashicorp/nomad/master/website/source/assets/images/logo-header.svg" width="500" />
+  <img src="https://cdn.rawgit.com/hashicorp/nomad/master/website/source/assets/images/logo-text.svg" width="500" />
 </p>
 
 Nomad is a cluster manager, designed for both long lived services and short
@@ -17,8 +17,8 @@ The key features of Nomad are:
 
 * **Docker Support**: Jobs can specify tasks which are Docker containers.
   Nomad will automatically run the containers on clients which have Docker
-  installed, scale up and down based on the number of instances requested,
-  and automatically recover from failures.
+  installed, scale up and down based on the number of instances requested, and
+  automatically recover from failures.
 
 * **Multi-Datacenter and Multi-Region Aware**: Nomad is designed to be
   a global-scale scheduler. Multiple datacenters can be managed as part
@@ -57,7 +57,7 @@ Developing Nomad
 
 If you wish to work on Nomad itself or any of its built-in systems,
 you will first need [Go](https://www.golang.org) installed on your
-machine (version 1.7+ is *required*).
+machine (version 1.8+ is *required*).
 
 **Developing with Vagrant**
 There is an included Vagrantfile that can help bootstrap the process. The

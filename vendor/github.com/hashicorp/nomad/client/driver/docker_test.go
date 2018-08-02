@@ -364,7 +364,7 @@ func TestDockerDriver_Start_BadPull_Recoverable(t *testing.T) {
 
 	if rerr, ok := err.(*structs.RecoverableError); !ok {
 		t.Fatalf("want recoverable error: %+v", err)
-	} else if !rerr.Recoverable {
+	} else if !rerr.IsRecoverable() {
 		t.Fatalf("error not recoverable: %+v", err)
 	}
 }
@@ -1177,7 +1177,7 @@ func setupDockerVolumes(t *testing.T, cfg *config.Config, hostpath string) (*str
 	}
 
 	alloc := mock.Alloc()
-	execCtx := NewExecContext(taskDir, alloc.ID)
+	execCtx := NewExecContext(taskDir)
 	cleanup := func() {
 		allocDir.Destroy()
 		if filepath.IsAbs(hostpath) {
@@ -1195,7 +1195,7 @@ func setupDockerVolumes(t *testing.T, cfg *config.Config, hostpath string) (*str
 	emitter := func(m string, args ...interface{}) {
 		logger.Printf("[EVENT] "+m, args...)
 	}
-	driverCtx := NewDriverContext(task.Name, cfg, cfg.Node, testLogger(), taskEnv, emitter)
+	driverCtx := NewDriverContext(task.Name, alloc.ID, cfg, cfg.Node, testLogger(), taskEnv, emitter)
 	driver := NewDockerDriver(driverCtx)
 	copyImage(t, taskDir, "busybox.tar")
 
