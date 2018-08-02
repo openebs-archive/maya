@@ -6,7 +6,6 @@ metadata:
 spec:
   defaultConfig:
   - name: VolumeControllerImage
-    #value: openebs/cstor-volume-mgmt:cstor-feature-integration-ci
     value: openebs/cstor-volume-mgmt:ci
   - name: VolumeTargetImage
     value: openebs/cstor-istgt:ci
