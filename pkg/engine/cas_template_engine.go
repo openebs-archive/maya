@@ -138,7 +138,7 @@ func NewCASEngine(casTemplate *v1alpha1.CASTemplate, runtimeKey string, runtimeV
 	return
 }
 
-// addConfigToConfigTLP will add final cas volume configurations to ConfigTLP.
+// AddConfigToConfigTLP will add final cas volume configurations to ConfigTLP.
 //
 // NOTE:
 //  This will enable templating a run task template as follows:
@@ -149,15 +149,14 @@ func NewCASEngine(casTemplate *v1alpha1.CASTemplate, runtimeKey string, runtimeV
 // NOTE:
 //  Above parsing scheme is translated by running `go template` against the run
 // task template
-func (c *CASEngine) addConfigToConfigTLP() error {
+func (c *CASEngine) AddConfigToConfigTLP(allConfigs []v1alpha1.Config) error {
 	var configName string
 	allConfigsHierarchy := map[string]interface{}{}
-	allConfigs := c.casTemplate.Spec.Defaults
 
 	for _, config := range allConfigs {
 		configName = strings.TrimSpace(config.Name)
 		if len(configName) == 0 {
-			return fmt.Errorf("failed to merge config '%#v': missing config name", config)
+			return fmt.Errorf("failed to add config as a top level property: missing config name: config '%+v'", config)
 		}
 
 		configHierarchy := map[string]interface{}{
@@ -261,20 +260,36 @@ func (c *CASEngine) Run() (output []byte, err error) {
 
 // create creates a CAS entity
 func (c *CASEngine) Create() (output []byte, err error) {
+	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+	if err != nil {
+		return nil, err
+	}
 	return c.Run()
 }
 
 // read gets the details of a CAS entity
 func (c *CASEngine) Read() (output []byte, err error) {
+	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+	if err != nil {
+		return nil, err
+	}
 	return c.Run()
 }
 
 // delete deletes a CAS entity
 func (c *CASEngine) Delete() (output []byte, err error) {
+	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+	if err != nil {
+		return nil, err
+	}
 	return c.Run()
 }
 
 // list gets the details of one or more CAS entities
 func (c *CASEngine) List() (output []byte, err error) {
+	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+	if err != nil {
+		return nil, err
+	}
 	return c.Run()
 }

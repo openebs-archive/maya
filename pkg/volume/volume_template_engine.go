@@ -138,50 +138,10 @@ func (c *casVolumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	return
 }
 
-// addConfigToConfigTLP will add final cas volume configurations to ConfigTLP.
-//
-// NOTE:
-//  This will enable templating a run task template as follows:
-//
-// {{ .Config.<ConfigName>.enabled }}
-// {{ .Config.<ConfigName>.value }}
-//
-// NOTE:
-//  Above parsing scheme is translated by running `go template` against the run
-// task template
-func (c *casVolumeEngine) addConfigToConfigTLP() error {
-	var configName string
-	allConfigsHierarchy := map[string]interface{}{}
-	allConfigs := c.prepareFinalConfig()
-
-	for _, config := range allConfigs {
-		configName = strings.TrimSpace(config.Name)
-		if len(configName) == 0 {
-			return fmt.Errorf("failed to merge config '%#v': missing config name", config)
-		}
-
-		configHierarchy := map[string]interface{}{
-			configName: map[string]string{
-				string(v1alpha1.EnabledPTP): config.Enabled,
-				string(v1alpha1.ValuePTP):   config.Value,
-			},
-		}
-
-		isMerged := util.MergeMapOfObjects(allConfigsHierarchy, configHierarchy)
-		if !isMerged {
-			return fmt.Errorf("failed to merge config: unable to add config '%s' to config hierarchy", configName)
-		}
-	}
-
-	// update merged config as the top level property
-	c.casEngine.SetConfig(allConfigsHierarchy)
-	return nil
-}
-
 // Create creates a CAS volume
 func (c *casVolumeEngine) Create() ([]byte, error) {
 	// set customized CAS config as a top level property
-	err := c.addConfigToConfigTLP()
+	err := c.casEngine.AddConfigToConfigTLP(c.prepareFinalConfig())
 	if err != nil {
 		return nil, err
 	}
