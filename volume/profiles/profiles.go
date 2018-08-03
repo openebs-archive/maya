@@ -343,21 +343,35 @@ func (pp *defVolProProfile) IsControllerNodeSelectors() ([]string, bool, error) 
 // Since node selectors for replica is an optional feature, it
 // can return false.
 func (pp *defVolProProfile) IsReplicaNodeSelectors() ([]string, bool, error) {
-	// Extract the node selectors for replica
-	nodeSelectors, err := v1.GetReplicaNodeSelectors(nil)
-	if err != nil {
-		return nil, false, err
+	// Extract the replica node selectors from SC
+	specs := pp.vol.Specs
+	rNodeSelector := ""
+
+	for _, spec := range specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			rNodeSelector = spec.NodeSelector
+			break
+		}
 	}
 
-	if strings.TrimSpace(nodeSelectors) == "" {
-		return nil, false, nil
+	if strings.TrimSpace(rNodeSelector) == "" {
+		var err error;
+		// Extract the node selectors for replica from ENV
+		rNodeSelector, err = v1.GetReplicaNodeSelectors(nil)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if strings.TrimSpace(rNodeSelector) == "" {
+			return nil, false, nil
+		}
 	}
 
 	// nodeSelectors is expected of below form
 	// key1=value1, key2=value2
 	// __or__
 	// key=value
-	return strings.Split(nodeSelectors, ","), true, nil
+	return strings.Split(rNodeSelector, ","), true, nil
 }
 
 // StorageSize gets the storage size for each persistent volume replica(s)

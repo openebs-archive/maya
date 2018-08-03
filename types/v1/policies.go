@@ -134,6 +134,9 @@ const (
 	// JivaReplicasVK is the key to fetch jiva replica count
 	JivaReplicasVK VolumeKey = "openebs.io/jiva-replica-count"
 
+	// JivaReplicasNodeSelectorVK is the key to fetch jiva replica node selector
+	JivaReplicasNodeSelectorVK VolumeKey = "openebs.io/jiva-replica-ns"
+
 	// JivaControllersVK is the key to fetch jiva controller count
 	JivaControllersVK VolumeKey = "openebs.io/jiva-controller-count"
 

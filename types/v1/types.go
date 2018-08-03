@@ -99,6 +99,9 @@ type VolumeSpec struct {
 	// Image represents the container image of this volume
 	Image string `json:"image,omitempty" protobuf:"bytes,1,opt,name=image"`
 
+	// NodeSelector represents the node selector for launching this pod
+	NodeSelector string `json:"nodeselector,omitempty" protobuf:"bytes,1,opt,name=nodeselector"`
+
 	// Resources represents the actual resources of the volume
 	//Capacity ResourceList
 	// Source represents the location and type of a volume to mount.

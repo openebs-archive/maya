@@ -136,6 +136,7 @@ func (p *JivaK8sPolicies) getPropertyEnforcers() []enforcePropertyFn {
 		enforceControllerImage,
 		enforceControllerCount,
 		enforceMonitoring,
+		enforceReplicaNodeSelector,
 	}
 }
 
@@ -435,6 +436,24 @@ func enforceControllerCount(p *JivaK8sPolicies) error {
 
 	if p.volume.Specs[cIndex].Replicas == nil {
 		return fmt.Errorf("Nil or invalid controller count")
+	}
+
+	return nil
+}
+
+// enforceReplicaNodeSelector enforces setting node selector for replicas
+func enforceReplicaNodeSelector(p *JivaK8sPolicies) error {
+	var rIndex int
+	for i, spec := range p.volume.Specs {
+		if spec.Context == v1.ReplicaVolumeContext {
+			rIndex = i
+			break
+		}
+	}
+
+	// merge from sc policy
+	if len(p.volume.Specs[rIndex].NodeSelector) == 0 {
+		p.volume.Specs[rIndex].NodeSelector = p.scPolicies[string(v1.JivaReplicasNodeSelectorVK)]
 	}
 
 	return nil
