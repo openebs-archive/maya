@@ -25,8 +25,19 @@ EXPORTER=maya-exporter
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
+RELEASE_TAG=$(shell cat VERSION)
+COMMIT_TAG=$(shell git rev-parse --short HEAD)
+CIIMAGETAG=$(shell echo ${RELEASE_TAG}-${COMMIT_TAG})
 
 all: mayactl apiserver-image exporter-image maya-agent
+
+help:
+	@echo "----------------------------"
+	@echo "--> Build Date ${BUILD_DATE}"
+	@echo "--> Release Tag ${RELEASE_TAG}"
+	@echo "--> Commit Tag ${COMMIT_TAG}"
+	@echo "--> Building for ${CIIMAGETAG}"
+	@echo "----------------------------"
 
 dev: format
 	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
@@ -101,7 +112,7 @@ bootstrap:
 
 maya-image:
 	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
-	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/mayactl/${MAYACTL}
 	@sh buildscripts/mayactl/push
 
@@ -122,7 +133,7 @@ agent-image: maya-agent
 	@echo "--> m-agent image         "
 	@echo "----------------------------"
 	@cp bin/agent/${AGENT} buildscripts/agent/
-	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/agent/${AGENT}
 	@sh buildscripts/agent/push
 
@@ -139,7 +150,7 @@ exporter-image: exporter
 	@echo "--> m-exporter image         "
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/exporter/${EXPORTER}
 	@sh buildscripts/exporter/push
 
@@ -158,7 +169,7 @@ apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
 	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
-	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:ci --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 	@sh buildscripts/apiserver/push
