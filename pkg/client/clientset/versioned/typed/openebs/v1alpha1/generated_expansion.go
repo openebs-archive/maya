@@ -19,7 +19,11 @@ type CASTemplateExpansion interface{}
 
 type CStorPoolExpansion interface{}
 
+type CStorVolumeExpansion interface{}
+
 type CStorVolumeReplicaExpansion interface{}
+
+type DiskExpansion interface{}
 
 type StoragePoolExpansion interface{}
 

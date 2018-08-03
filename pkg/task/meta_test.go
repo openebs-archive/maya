@@ -20,7 +20,103 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/pkg/template"
 )
+
+func TestMetaTaskPropsSelectOverride(t *testing.T) {
+	tests := map[string]struct {
+		origMetaTaskProps   MetaTaskProps
+		targetMetaTaskProps MetaTaskProps
+	}{
+		//
+		// start of test case
+		//
+		"Negative test: orig & target meta props are empty": {
+			origMetaTaskProps:   MetaTaskProps{},
+			targetMetaTaskProps: MetaTaskProps{},
+		},
+		//
+		// start of test case
+		//
+		"Negative test: target meta props is empty": {
+			origMetaTaskProps: MetaTaskProps{
+				RunNamespace: "openebs",
+				Options:      "app=storage",
+			},
+			targetMetaTaskProps: MetaTaskProps{},
+		},
+		//
+		// start of test case
+		//
+		"Negative test: orig meta props is empty": {
+			origMetaTaskProps: MetaTaskProps{},
+			targetMetaTaskProps: MetaTaskProps{
+				RunNamespace: "openebs",
+				Options:      "app=storage",
+			},
+		},
+		//
+		// start of test case
+		//
+		"Positive test: override orig meta props with target": {
+			origMetaTaskProps: MetaTaskProps{
+				RunNamespace: "default",
+				Owner:        "maya",
+			},
+			targetMetaTaskProps: MetaTaskProps{
+				RunNamespace: "openebs",
+				Options:      "app=storage",
+			},
+		},
+		//
+		// start of test case
+		//
+		"Positive test: override orig meta props with target entirely": {
+			origMetaTaskProps: MetaTaskProps{
+				RunNamespace: "default",
+				Owner:        "maya",
+				Options:      "app=pv",
+				ObjectName:   "abc-123",
+				Retry:        "5,10s",
+			},
+			targetMetaTaskProps: MetaTaskProps{
+				RunNamespace: "openebs",
+				Owner:        "user",
+				Options:      "app=storage",
+				ObjectName:   "def-223",
+				Retry:        "5,20s",
+			},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mock.origMetaTaskProps = mock.origMetaTaskProps.selectOverride(mock.targetMetaTaskProps)
+
+			if len(mock.targetMetaTaskProps.Owner) != 0 && mock.targetMetaTaskProps.Owner != mock.origMetaTaskProps.Owner {
+				t.Fatalf("failed to test meta task props select override: expected owner '%s': actual owner '%s'", mock.targetMetaTaskProps.Owner, mock.origMetaTaskProps.Owner)
+			}
+
+			if len(mock.targetMetaTaskProps.Options) != 0 && mock.targetMetaTaskProps.Options != mock.origMetaTaskProps.Options {
+				t.Fatalf("failed to test meta task props select override: expected options '%s': actual options '%s'", mock.targetMetaTaskProps.Options, mock.origMetaTaskProps.Options)
+			}
+
+			if len(mock.targetMetaTaskProps.ObjectName) != 0 && mock.targetMetaTaskProps.ObjectName != mock.origMetaTaskProps.ObjectName {
+				t.Fatalf("failed to test meta task props select override: expected ObjectName '%s': actual ObjectName '%s'", mock.targetMetaTaskProps.ObjectName, mock.origMetaTaskProps.ObjectName)
+			}
+
+			if len(mock.targetMetaTaskProps.RunNamespace) != 0 && mock.targetMetaTaskProps.RunNamespace != mock.origMetaTaskProps.RunNamespace {
+				t.Fatalf("failed to test meta task props select override: expected RunNamespace '%s': actual RunNamespace '%s'", mock.targetMetaTaskProps.RunNamespace, mock.origMetaTaskProps.RunNamespace)
+			}
+
+			if len(mock.targetMetaTaskProps.Retry) != 0 && mock.targetMetaTaskProps.Retry != mock.origMetaTaskProps.Retry {
+				t.Fatalf("failed to test meta task props select override: expected Retry '%s': actual Retry '%s'", mock.targetMetaTaskProps.Retry, mock.origMetaTaskProps.Retry)
+			}
+		})
+	}
+}
 
 func TestNewMetaTaskExecutor(t *testing.T) {
 	tests := map[string]struct {
@@ -38,18 +134,11 @@ func TestNewMetaTaskExecutor(t *testing.T) {
 			},
 			isErr: true,
 		},
-		"new meta task - +ve test case - minimal meta task yaml & empty values": {
-			id: "121",
-			// valid yaml that can unmarshall into MetaTask
-			yaml:   "kind: Pod\napiVersion: v1",
-			values: map[string]interface{}{},
-			isErr:  false,
-		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
+			mte, err := newMetaTaskExecutor(mock.yaml, mock.values)
 
 			if err != nil && !mock.isErr {
 				t.Fatalf("failed to test new meta executor: expected 'no error': actual '%s'", err.Error())
@@ -64,17 +153,15 @@ func TestNewMetaTaskExecutor(t *testing.T) {
 
 func TestGetRunNamespace(t *testing.T) {
 	tests := map[string]struct {
-		id           string
 		yaml         string
 		values       map[string]interface{}
 		runNamespace string
-		isErr        bool
 	}{
-		"get run namespace - +ve test case - valid id, yaml & values": {
-			id: "121",
+		"get run namespace - +ve test case - valid yaml & values": {
 			// valid yaml that can unmarshall into MetaTask
 			yaml: `
 runNamespace: {{ .volume.runNamespace }}
+id: validid
 apiVersion: v1
 kind: Service
 action: put
@@ -85,13 +172,12 @@ action: put
 				},
 			},
 			runNamespace: "xyz",
-			isErr:        false,
 		},
 		"get run namespace - -ve test case - valid meta task yaml with invalid templating": {
-			id: "121",
 			// valid meta task yaml with invalid templating
 			yaml: `
 runNamespace: {{ .volume.namespace }}
+id: valididd
 apiVersion: v1
 kind: Service
 action: put
@@ -102,19 +188,23 @@ action: put
 				},
 			},
 			runNamespace: "<no value>",
-			isErr:        false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
 
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to test get run namespace: expected 'no error': actual '%s'", err.Error())
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			if mte != nil && mte.getRunNamespace() != mock.runNamespace {
+			if mte.getRunNamespace() != mock.runNamespace {
 				t.Fatalf("failed to test get run namespace: expected namespace '%s': actual namespace '%s'", mock.runNamespace, mte.getRunNamespace())
 			}
 		})
@@ -123,16 +213,14 @@ action: put
 
 func TestGetRetry(t *testing.T) {
 	tests := map[string]struct {
-		id               string
 		yaml             string
 		values           map[string]interface{}
 		expectedAttempts int
 		expectedInterval string
-		isErr            bool
 	}{
 		"get retry - +ve test case - valid meta task yaml with valid retry value": {
-			id: "121",
 			yaml: `
+id: okid
 apiVersion: v1
 kind: Service
 retry: "10,2s"
@@ -140,11 +228,10 @@ retry: "10,2s"
 			values:           map[string]interface{}{},
 			expectedAttempts: 10,
 			expectedInterval: "2s",
-			isErr:            false,
 		},
 		"get retry - -ve test case - valid meta task yaml with invalid retry interval": {
-			id: "121",
 			yaml: `
+id: hiid
 apiVersion: v1
 kind: Service
 retry: "5,2z"
@@ -152,98 +239,53 @@ retry: "5,2z"
 			values:           map[string]interface{}{},
 			expectedAttempts: 5,
 			expectedInterval: "0s",
-			isErr:            false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
 
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to test get retry: expected 'no error': actual '%s'", err.Error())
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			if mte != nil {
-				// actuals
-				a, i := mte.getRetry()
-				// expected
-				expectedInterval, _ := time.ParseDuration(mock.expectedInterval)
-				if a != mock.expectedAttempts && !reflect.DeepEqual(i, expectedInterval) {
-					t.Fatalf("failed to test get retry: expected attempts '%d' interval '%#v': actual attempts '%d' interval '%#v'", mock.expectedAttempts, expectedInterval, a, i)
-				}
-			}
-		})
-	}
-}
-
-func TestGetTaskResultQueries(t *testing.T) {
-	tests := map[string]struct {
-		id                   string
-		yaml                 string
-		values               map[string]interface{}
-		isErr                bool
-		taskResultQueryCount int
-	}{
-		"get task result queries - +ve test case - valid meta task yaml with valid queries": {
-			id: "test",
-			yaml: `
-apiVersion: v1
-kind: PersistentVolumeClaim
-queries:
-- alias: objectName
-- alias: affinity
-  path: |-
-    {.metadata.annotations.controller\.openebs\.io/affinity}
-- alias: affinityTopology
-  path: |-
-    {.metadata.annotations.controller\.openebs\.io/affinity-topology}
-- alias: affinityType
-  path: |-
-    {.metadata.annotations.controller\.openebs\.io/affinity-type}
-`,
-			values:               map[string]interface{}{},
-			isErr:                false,
-			taskResultQueryCount: 4,
-		},
-	}
-
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to get task result queries: expected 'no error': actual '%s'", err.Error())
+			// actuals
+			a, i := mte.getRetry()
+			// expected
+			expectedInterval, _ := time.ParseDuration(mock.expectedInterval)
+			if a != mock.expectedAttempts && !reflect.DeepEqual(i, expectedInterval) {
+				t.Fatalf("failed to test get retry: expected attempts '%d' interval '%#v': actual attempts '%d' interval '%#v'", mock.expectedAttempts, expectedInterval, a, i)
 			}
 
-			if len(mte.getTaskResultQueries()) != mock.taskResultQueryCount {
-				t.Fatalf("failed to get task result queries: expected task result query count '%d': actual task result query count '%d'", mock.taskResultQueryCount, len(mte.getTaskResultQueries()))
-			}
 		})
 	}
 }
 
 func TestGetObjectName(t *testing.T) {
 	tests := map[string]struct {
-		id         string
 		yaml       string
 		values     map[string]interface{}
 		objectName string
-		isErr      bool
 	}{
 		"get object name - +ve test case - valid meta task yaml with valid object name": {
-			id: "test",
 			yaml: `
+id: okid
 apiVersion: v1
 kind: Deployment
 objectName: vol-ctrl
 `,
 			values:     map[string]interface{}{},
 			objectName: "vol-ctrl",
-			isErr:      false,
 		},
 		"get object name - +ve test case - valid meta task yaml with valid templated object name": {
-			id: "test",
 			yaml: `
+id: okid
 apiVersion: v1
 kind: Deployment
 objectName: {{ .objectName }}
@@ -252,18 +294,23 @@ objectName: {{ .objectName }}
 				"objectName": "vol-rep",
 			},
 			objectName: "vol-rep",
-			isErr:      false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Errorf("failed to get object name: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			if mte.getObjectName() != mock.objectName && !mock.isErr {
+			if mte.getObjectName() != mock.objectName {
 				t.Errorf("failed to get object name: expected object name '%s': actual object name '%s'", mock.objectName, mte.getObjectName())
 			}
 		})
@@ -272,14 +319,15 @@ objectName: {{ .objectName }}
 
 func TestGetListOptions(t *testing.T) {
 	tests := map[string]struct {
-		id            string
 		yaml          string
 		values        map[string]interface{}
 		isErr         bool
 		labelSelector string
 	}{
-		"get list options - +ve test case - valid meta task yaml with valid list options": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with valid list options": {
 			yaml: `
 apiVersion: v1
 kind: Pod
@@ -299,14 +347,20 @@ options: |-
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Errorf("failed to get list options: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
 			lo, err := mte.getListOptions()
 			if err != nil && !mock.isErr {
-				t.Errorf("failed to get list options: expected list options: actual '%s'", err.Error())
+				t.Errorf("failed to get list options: expected 'no error': actual '%s'", err.Error())
 			}
 
 			if !mock.isErr && lo.LabelSelector != mock.labelSelector {
@@ -318,15 +372,16 @@ options: |-
 
 func TestIsList(t *testing.T) {
 	tests := map[string]struct {
-		id     string
 		yaml   string
 		values map[string]interface{}
 		isList bool
-		isErr  bool
 	}{
-		"is list - +vs test case - valid meta task yaml with list action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with list action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
@@ -335,35 +390,39 @@ action: {{ .action }}
 				"action": "list",
 			},
 			isList: true,
-			isErr:  false,
 		},
-		"is list - -ve test case - valid meta task yaml with get action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non list action": {
 			yaml: `
+id: okid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// action is not list
 				"action": "get",
 			},
-			// false as action is not list
 			isList: false,
-			isErr:  false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is list: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			is := mte.isList()
-			if !mock.isErr && is != mock.isList {
-				t.Fatalf("failed to is list: expected is list '%t': actual is list '%t'", mock.isList, is)
+			if mte.isList() != mock.isList {
+				t.Fatalf("failed to is list: expected is list '%t': actual is list '%t'", mock.isList, mte.isList())
 			}
 		})
 	}
@@ -371,15 +430,16 @@ action: {{ .action }}
 
 func TestIsGet(t *testing.T) {
 	tests := map[string]struct {
-		id     string
 		yaml   string
 		values map[string]interface{}
-		isErr  bool
 		isGet  bool
 	}{
-		"is get - +ve test case - valid meta task yaml with get action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with get action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
@@ -388,35 +448,39 @@ action: {{ .action }}
 				"action": "get",
 			},
 			isGet: true,
-			isErr: false,
 		},
-		"is get - -ve test case - valid meta task yaml with patch action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non get action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// action is not get
 				"action": "patch",
 			},
-			// false as action is not get
 			isGet: false,
-			isErr: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is get: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			is := mte.isGet()
-			if !mock.isErr && is != mock.isGet {
-				t.Fatalf("failed to is get: expected is get '%t': actual is get '%t'", mock.isGet, is)
+			if mte.isGet() != mock.isGet {
+				t.Fatalf("failed to is get: expected is get '%t': actual is get '%t'", mock.isGet, mte.isGet())
 			}
 		})
 	}
@@ -424,15 +488,16 @@ action: {{ .action }}
 
 func TestIsPut(t *testing.T) {
 	tests := map[string]struct {
-		id     string
 		yaml   string
 		values map[string]interface{}
-		isErr  bool
 		isPut  bool
 	}{
-		"is put - +ve test case - valid meta task yaml with put action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with put action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
@@ -441,35 +506,39 @@ action: {{ .action }}
 				"action": "put",
 			},
 			isPut: true,
-			isErr: false,
 		},
-		"is put - -ve test case - valid meta task yaml with list action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non put action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// action is not put
 				"action": "list",
 			},
-			// false as action is not put
 			isPut: false,
-			isErr: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is put: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			is := mte.isPut()
-			if !mock.isErr && is != mock.isPut {
-				t.Fatalf("failed to is put: expected is put '%t': actual is put '%t'", mock.isPut, is)
+			if mte.isPut() != mock.isPut {
+				t.Fatalf("failed to is put: expected is put '%t': actual is put '%t'", mock.isPut, mte.isPut())
 			}
 		})
 	}
@@ -477,15 +546,16 @@ action: {{ .action }}
 
 func TestIsDelete(t *testing.T) {
 	tests := map[string]struct {
-		id       string
 		yaml     string
 		values   map[string]interface{}
-		isErr    bool
 		isDelete bool
 	}{
-		"is delete - +ve test case - valid meta task yaml with delete action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with delete action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
@@ -494,35 +564,39 @@ action: {{ .action }}
 				"action": "delete",
 			},
 			isDelete: true,
-			isErr:    false,
 		},
-		"is delete - -ve test case - valid meta task yaml with list action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test  - valid meta task yaml with non delete action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// action is not delete
 				"action": "list",
 			},
-			// false as action is not delete
 			isDelete: false,
-			isErr:    false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is delete: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			is := mte.isDelete()
-			if !mock.isErr && is != mock.isDelete {
-				t.Fatalf("failed to is delete: expected is delete '%t': actual is delete '%t'", mock.isDelete, is)
+			if mte.isDelete() != mock.isDelete {
+				t.Fatalf("failed to is delete: expected is delete '%t': actual is delete '%t'", mock.isDelete, mte.isDelete())
 			}
 		})
 	}
@@ -530,15 +604,16 @@ action: {{ .action }}
 
 func TestIsPatch(t *testing.T) {
 	tests := map[string]struct {
-		id      string
 		yaml    string
 		values  map[string]interface{}
-		isErr   bool
 		isPatch bool
 	}{
-		"is patch - +ve test case - valid meta task yaml with patch action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with patch action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
@@ -547,35 +622,39 @@ action: {{ .action }}
 				"action": "patch",
 			},
 			isPatch: true,
-			isErr:   false,
 		},
-		"is patch - -ve test case - valid meta task yaml with list action": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test case - valid meta task yaml with non patch action": {
 			yaml: `
+id: validid
 apiVersion: v1
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// action is not patch
 				"action": "list",
 			},
-			// false as action is not patch
 			isPatch: false,
-			isErr:   false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is patch: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			mte := &metaTaskExecutor{
+				metaTask: m,
 			}
 
-			is := mte.isPatch()
-			if !mock.isErr && is != mock.isPatch {
-				t.Fatalf("failed to is patch: expected is patch '%t': actual is patch '%t'", mock.isPatch, is)
+			if mte.isPatch() != mock.isPatch {
+				t.Fatalf("failed to is patch: expected is patch '%t': actual is patch '%t'", mock.isPatch, mte.isPatch())
 			}
 		})
 	}
@@ -583,15 +662,16 @@ action: {{ .action }}
 
 func TestIsPutExtnV1B1Deploy(t *testing.T) {
 	tests := map[string]struct {
-		id                  string
 		yaml                string
 		values              map[string]interface{}
-		isErr               bool
 		isPutExtnV1B1Deploy bool
 	}{
-		"is put extn v1beta1 deploy - +ve test case - valid meta task yaml with put action & extn/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with put extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -600,28 +680,30 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "put",
 			},
-			isErr:               false,
 			isPutExtnV1B1Deploy: true,
 		},
-		"is put extn v1beta1 deploy - -ve test case - valid meta task yaml with put action & apps/v1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put apps/v1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not extensions/v1beta1
 				"apiVersion": "apps/v1",
 				"action":     "put",
 			},
-			isErr: false,
-			// false as wrong api version is provided
 			isPutExtnV1B1Deploy: false,
 		},
-		"is put extn v1beta1 deploy - -ve test case - valid meta task yaml with put action & extn/v1beta1 api version & pod resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put extensions/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -630,13 +712,14 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "put",
 			},
-			isErr: false,
-			// false as the kind is not a Deployment
 			isPutExtnV1B1Deploy: false,
 		},
-		"is put extn v1beta1 deploy - -ve test case - valid meta task yaml with get action & extn/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non put extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -645,22 +728,28 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not put
 			isPutExtnV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is put extn v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isPutExtnV1B1Deploy()
-			if !mock.isErr && is != mock.isPutExtnV1B1Deploy {
-				t.Fatalf("failed to is put extn v1beta1 deploy: expected '%t': actual '%t'", mock.isPutExtnV1B1Deploy, is)
+			if mte.isPutExtnV1B1Deploy() != mock.isPutExtnV1B1Deploy {
+				t.Fatalf("failed to is put extn v1beta1 deploy: expected '%t': actual '%t': actual meta task '%+v'", mock.isPutExtnV1B1Deploy, mte.isPutExtnV1B1Deploy(), mte.metaTask)
 			}
 		})
 	}
@@ -668,15 +757,16 @@ action: {{ .action }}
 
 func TestIsPatchExtnV1B1Deploy(t *testing.T) {
 	tests := map[string]struct {
-		id                    string
 		yaml                  string
 		values                map[string]interface{}
-		isErr                 bool
 		isPatchExtnV1B1Deploy bool
 	}{
-		"is patch extn v1beta1 deploy - +ve test case - valid meta task yaml with patch action & extn/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with patch extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -685,28 +775,30 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "patch",
 			},
-			isErr: false,
 			isPatchExtnV1B1Deploy: true,
 		},
-		"is patch extn v1beta1 deploy - -ve test case - valid meta task yaml with patch action & apps/v1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with patch apps/v1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not extensions/v1beta1
 				"apiVersion": "apps/v1",
 				"action":     "patch",
 			},
-			isErr: false,
-			// false as wrong api version is provided
 			isPatchExtnV1B1Deploy: false,
 		},
-		"is patch extn v1beta1 deploy - -ve test case - valid meta task yaml with patch action & extn/v1beta1 api version & pod resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with patch extensions/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -715,13 +807,14 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "patch",
 			},
-			isErr: false,
-			// false as the kind is not a Deployment
 			isPatchExtnV1B1Deploy: false,
 		},
-		"is patch extn v1beta1 deploy - -ve test case - valid meta task yaml with get action & extn/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non patch extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -730,22 +823,28 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not put
 			isPatchExtnV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is patch extn v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isPatchExtnV1B1Deploy()
-			if !mock.isErr && is != mock.isPatchExtnV1B1Deploy {
-				t.Fatalf("failed to is patch extn v1beta1 deploy: expected '%t': actual '%t'", mock.isPatchExtnV1B1Deploy, is)
+			if mte.isPatchExtnV1B1Deploy() != mock.isPatchExtnV1B1Deploy {
+				t.Fatalf("failed to is patch extn v1beta1 deploy: expected '%t': actual '%t'", mock.isPatchExtnV1B1Deploy, mte.isPatchExtnV1B1Deploy())
 			}
 		})
 	}
@@ -753,15 +852,16 @@ action: {{ .action }}
 
 func TestIsPutAppsV1B1Deploy(t *testing.T) {
 	tests := map[string]struct {
-		id                  string
 		yaml                string
 		values              map[string]interface{}
-		isErr               bool
 		isPutAppsV1B1Deploy bool
 	}{
-		"is put apps v1beta1 deploy - +ve test case - valid meta task yaml with put action & apps/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with put apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -770,28 +870,30 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "put",
 			},
-			isErr:               false,
 			isPutAppsV1B1Deploy: true,
 		},
-		"is put apps v1beta1 deploy - -ve test case - valid meta task yaml with put action & apps/v1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put apps/v1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not extensions/v1beta1
 				"apiVersion": "apps/v1",
 				"action":     "put",
 			},
-			isErr: false,
-			// false as wrong api version is provided
 			isPutAppsV1B1Deploy: false,
 		},
-		"is put apps v1beta1 deploy - -ve test case - valid meta task yaml with put action & apps/v1beta1 api version & pod resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put apps/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -800,13 +902,14 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "put",
 			},
-			isErr: false,
-			// false as the kind is not a Deployment
 			isPutAppsV1B1Deploy: false,
 		},
-		"is put apps v1beta1 deploy - -ve test case - valid meta task yaml with get action & apps/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non put apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -815,22 +918,28 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not put
 			isPutAppsV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is put apps v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isPutAppsV1B1Deploy()
-			if !mock.isErr && is != mock.isPutAppsV1B1Deploy {
-				t.Fatalf("failed to is put apps v1beta1 deploy: expected '%t': actual '%t'", mock.isPutAppsV1B1Deploy, is)
+			if mte.isPutAppsV1B1Deploy() != mock.isPutAppsV1B1Deploy {
+				t.Fatalf("failed to is put apps v1beta1 deploy: expected '%t': actual '%t'", mock.isPutAppsV1B1Deploy, mte.isPutAppsV1B1Deploy())
 			}
 		})
 	}
@@ -844,9 +953,12 @@ func TestIsPatchAppsV1B1Deploy(t *testing.T) {
 		isErr                 bool
 		isPatchAppsV1B1Deploy bool
 	}{
-		"is patch apps v1beta1 deploy - +ve test case - valid meta task yaml with patch action & apps/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with patch apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -855,28 +967,30 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "patch",
 			},
-			isErr: false,
 			isPatchAppsV1B1Deploy: true,
 		},
-		"is patch apps v1beta1 deploy - -ve test case - valid meta task yaml with patch action & apps/v1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with patch apps/v1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not extensions/v1beta1
 				"apiVersion": "apps/v1",
 				"action":     "patch",
 			},
-			isErr: false,
-			// false as wrong api version is provided
 			isPatchAppsV1B1Deploy: false,
 		},
-		"is patch apps v1beta1 deploy - -ve test case - valid meta task yaml with patch action & apps/v1beta1 api version & pod resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with patch apps/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -885,38 +999,44 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "patch",
 			},
-			isErr: false,
-			// false as the kind is not a Deployment
 			isPatchAppsV1B1Deploy: false,
 		},
-		"is patch apps v1beta1 deploy - -ve test case - valid meta task yaml with get action & apps/v1beta1 api version & deploy resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non patch apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "apps/v1beta1",
-				// wrong action
-				"action": "get",
+				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not patch
 			isPatchAppsV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is patch apps v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isPatchAppsV1B1Deploy()
-			if !mock.isErr && is != mock.isPatchAppsV1B1Deploy {
-				t.Fatalf("failed to is patch apps v1beta1 deploy: expected '%t': actual '%t'", mock.isPatchAppsV1B1Deploy, is)
+			if mte.isPatchAppsV1B1Deploy() != mock.isPatchAppsV1B1Deploy {
+				t.Fatalf("failed to is patch apps v1beta1 deploy: expected '%t': actual '%t'", mock.isPatchAppsV1B1Deploy, mte.isPatchAppsV1B1Deploy())
 			}
 		})
 	}
@@ -930,9 +1050,12 @@ func TestIsPutCoreV1Service(t *testing.T) {
 		isErr              bool
 		isPutCoreV1Service bool
 	}{
-		"is put core v1 service - +ve test case - valid meta task yaml with 'put' action & 'v1' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with put v1 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
@@ -941,28 +1064,30 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "put",
 			},
-			isErr:              false,
 			isPutCoreV1Service: true,
 		},
-		"is put core v1 service - -ve test case - valid meta task yaml with 'put' action & 'v2' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put v2 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not right in this context
 				"apiVersion": "v2",
 				"action":     "put",
 			},
-			isErr: false,
-			// false due to api version
 			isPutCoreV1Service: false,
 		},
-		"is put v1 service - -ve test case - valid meta task yaml with 'put' action & 'v1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with put v1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -971,38 +1096,44 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "put",
 			},
-			isErr: false,
-			// false as the kind is not correct in this context
 			isPutCoreV1Service: false,
 		},
-		"is put v1 service - -ve test case - valid meta task yaml with 'get' action & 'v1' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non put v1 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "v1",
-				// action is not correct in this context
-				"action": "get",
+				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not correct in this context
 			isPutCoreV1Service: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is put v1 service: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isPutCoreV1Service()
-			if !mock.isErr && is != mock.isPutCoreV1Service {
-				t.Fatalf("failed to is put v1 service: expected '%t': actual '%t'", mock.isPutCoreV1Service, is)
+			if mte.isPutCoreV1Service() != mock.isPutCoreV1Service {
+				t.Fatalf("failed to is put v1 service: expected '%t': actual '%t'", mock.isPutCoreV1Service, mte.isPutCoreV1Service())
 			}
 		})
 	}
@@ -1016,9 +1147,12 @@ func TestIsDeleteExtnV1B1Deploy(t *testing.T) {
 		isErr                  bool
 		isDeleteExtnV1B1Deploy bool
 	}{
-		"is delete extensions v1beta1 deploy - +ve test case - valid meta task yaml with 'delete' action & 'extensions/v1beta1' api version & 'Deploy' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with delete extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -1027,28 +1161,30 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "delete",
 			},
-			isErr: false,
 			isDeleteExtnV1B1Deploy: true,
 		},
-		"is delete extensions v1beta1 deploy - -ve test case - valid meta task yaml with 'delete' action & 'v2' api version & 'Deployment' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non delete extensions/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not right in this context
-				"apiVersion": "v2",
-				"action":     "delete",
+				"apiVersion": "extensions/v1beta1",
+				"action":     "put",
 			},
-			isErr: false,
-			// false due to api version
 			isDeleteExtnV1B1Deploy: false,
 		},
-		"is delete extensions v1beta1 deploy - -ve test case - valid meta task yaml with 'delete' action & 'extensions/v1beta1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete extensions/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -1057,38 +1193,44 @@ action: {{ .action }}
 				"apiVersion": "extensions/v1beta1",
 				"action":     "delete",
 			},
-			isErr: false,
-			// false as the kind is not correct in this context
 			isDeleteExtnV1B1Deploy: false,
 		},
-		"is delete extensions v1beta1 deploy - -ve test case - valid meta task yaml with 'delete' action & 'v1beta1' api version & 'Deployment' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "v1beta1",
-				// action is not correct in this context
-				"action": "delete",
+				"action":     "delete",
 			},
-			isErr: false,
-			// false as action is not correct in this context
 			isDeleteExtnV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is delete extensions v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isDeleteExtnV1B1Deploy()
-			if !mock.isErr && is != mock.isDeleteExtnV1B1Deploy {
-				t.Fatalf("failed to is delete extensions v1beta1 deploy: expected '%t': actual '%t'", mock.isDeleteExtnV1B1Deploy, is)
+			if mte.isDeleteExtnV1B1Deploy() != mock.isDeleteExtnV1B1Deploy {
+				t.Fatalf("failed to is delete extensions v1beta1 deploy: expected '%t': actual '%t'", mock.isDeleteExtnV1B1Deploy, mte.isDeleteExtnV1B1Deploy())
 			}
 		})
 	}
@@ -1102,9 +1244,12 @@ func TestIsDeleteAppsV1B1Deploy(t *testing.T) {
 		isErr                  bool
 		isDeleteAppsV1B1Deploy bool
 	}{
-		"is delete apps v1beta1 deploy - +ve test case - valid meta task yaml with 'delete' action & 'apps/v1beta1' api version & 'Deployment' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with delete apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
@@ -1113,28 +1258,30 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "delete",
 			},
-			isErr: false,
 			isDeleteAppsV1B1Deploy: true,
 		},
-		"is delete apps v1beta1 deploy - -ve test case - valid meta task yaml with 'delete' action & 'v2' api version & 'Deployment' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete v2 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not right in this context
 				"apiVersion": "v2",
 				"action":     "delete",
 			},
-			isErr: false,
-			// false due to api version
 			isDeleteAppsV1B1Deploy: false,
 		},
-		"is delete apps v1beta1 deploy - -ve test case - valid meta task yaml with 'delete' action & 'apps/v1beta1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete apps/v1beta1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -1143,38 +1290,44 @@ action: {{ .action }}
 				"apiVersion": "apps/v1beta1",
 				"action":     "delete",
 			},
-			isErr: false,
-			// false as the kind is not correct in this context
 			isDeleteAppsV1B1Deploy: false,
 		},
-		"is delete apps v1beta1 deploy - -ve test case - valid meta task yaml with 'get' action & 'apps/v1beta1' api version & 'Deployment' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non delete apps/v1beta1 deploy": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "apps/v1beta1",
-				// action is not correct in this context
-				"action": "get",
+				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not correct in this context
 			isDeleteAppsV1B1Deploy: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is delete apps v1beta1 deploy: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isDeleteAppsV1B1Deploy()
-			if !mock.isErr && is != mock.isDeleteAppsV1B1Deploy {
-				t.Fatalf("failed to is delete apps v1beta1 deploy: expected '%t': actual '%t'", mock.isDeleteAppsV1B1Deploy, is)
+			if mte.isDeleteAppsV1B1Deploy() != mock.isDeleteAppsV1B1Deploy {
+				t.Fatalf("failed to is delete apps v1beta1 deploy: expected '%t': actual '%t'", mock.isDeleteAppsV1B1Deploy, mte.isDeleteAppsV1B1Deploy())
 			}
 		})
 	}
@@ -1188,9 +1341,12 @@ func TestIsDeleteCoreV1Service(t *testing.T) {
 		isErr                 bool
 		isDeleteCoreV1Service bool
 	}{
-		"is delete core v1 service - +ve test case - valid meta task yaml with 'delete' action & 'v1' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with delete v1 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
@@ -1199,28 +1355,30 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "delete",
 			},
-			isErr: false,
 			isDeleteCoreV1Service: true,
 		},
-		"is delete v1 service - -ve test case - valid meta task yaml with 'delete' action & 'v2' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete v2 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not right in this context
 				"apiVersion": "v2",
 				"action":     "delete",
 			},
-			isErr: false,
-			// false due to api version
 			isDeleteCoreV1Service: false,
 		},
-		"is delete v1 service - -ve test case - valid meta task yaml with 'delete' action & 'v1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with delete v1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -1229,38 +1387,44 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "delete",
 			},
-			isErr: false,
-			// false as the kind is not correct in this context
 			isDeleteCoreV1Service: false,
 		},
-		"is delete v1 service - -ve test case - valid meta task yaml with 'get' action & 'v1' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non delete v1 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Deployment
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "v1",
-				// action is not correct in this context
-				"action": "get",
+				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not correct in this context
 			isDeleteCoreV1Service: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is delete core v1 service: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isDeleteCoreV1Service()
-			if !mock.isErr && is != mock.isDeleteCoreV1Service {
-				t.Fatalf("failed to is delete core v1 service: expected '%t': actual '%t'", mock.isDeleteCoreV1Service, is)
+			if mte.isDeleteCoreV1Service() != mock.isDeleteCoreV1Service {
+				t.Fatalf("failed to is delete core v1 service: expected '%t': actual '%t'", mock.isDeleteCoreV1Service, mte.isDeleteCoreV1Service())
 			}
 		})
 	}
@@ -1274,9 +1438,12 @@ func TestIsListCoreV1Pod(t *testing.T) {
 		isErr           bool
 		isListCoreV1Pod bool
 	}{
-		"is list core v1 pod - +ve test case - valid meta task yaml with 'list' action & 'v1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Positive test - valid meta task yaml with list v1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
@@ -1285,28 +1452,30 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "list",
 			},
-			isErr:           false,
 			isListCoreV1Pod: true,
 		},
-		"is list core v1 pod - -ve test case - valid meta task yaml with 'list' action & 'v2' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with list v2 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
-				// api version is not right in this context
 				"apiVersion": "v2",
 				"action":     "list",
 			},
-			isErr: false,
-			// false due to api version
 			isListCoreV1Pod: false,
 		},
-		"is list core v1 pod - -ve test case - valid meta task yaml with 'list' action & 'v1' api version & 'Service' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with list v1 service": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Service
 action: {{ .action }}
@@ -1315,103 +1484,44 @@ action: {{ .action }}
 				"apiVersion": "v1",
 				"action":     "list",
 			},
-			isErr: false,
-			// false as the kind is not correct in this context
 			isListCoreV1Pod: false,
 		},
-		"is list core v1 pod - -ve test case - valid meta task yaml with 'get' action & 'v1' api version & 'Pod' resource": {
-			id: "test",
+		//
+		// start of test
+		//
+		"Negative test - valid meta task yaml with non list v1 pod": {
 			yaml: `
+id: validid
 apiVersion: {{ .apiVersion }}
 kind: Pod
 action: {{ .action }}
 `,
 			values: map[string]interface{}{
 				"apiVersion": "v1",
-				// action is not correct in this context
-				"action": "get",
+				"action":     "get",
 			},
-			isErr: false,
-			// false as action is not correct in this context
 			isListCoreV1Pod: false,
 		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to is list core v1 pod: expected 'no error': actual '%s'", err.Error())
+			// transform the yaml with provided values
+			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
+
+			// unmarshall the yaml bytes into this instance
+			var m MetaTaskSpec
+			yaml.Unmarshal(b, &m)
+
+			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
+
+			mte := &metaTaskExecutor{
+				metaTask:   m,
+				identifier: i,
 			}
 
-			is := mte.isListCoreV1Pod()
-			if !mock.isErr && is != mock.isListCoreV1Pod {
-				t.Fatalf("failed to is list core v1 pod: expected '%t': actual '%t'", mock.isListCoreV1Pod, is)
-			}
-		})
-	}
-}
-
-// TODO
-func TestIsGetOEV1alpha1SP(t *testing.T) {}
-
-// TODO
-func TestIsGetCoreV1PVC(t *testing.T) {}
-
-func TestAsRollbackInstance(t *testing.T) {
-	tests := map[string]struct {
-		id             string
-		yaml           string
-		values         map[string]interface{}
-		isErr          bool
-		isRollback     bool
-		rollbackAction TaskAction
-	}{
-		"as rollback instance - +ve test case - valid meta task with put action": {
-			id: "testid",
-			yaml: `
-apiVersion: v1
-kind: Pod
-action: put
-`,
-			values:     map[string]interface{}{},
-			isErr:      false,
-			isRollback: true,
-			// when original action is put its rollback is delete
-			rollbackAction: DeleteTA,
-		},
-		"as rollback instance - -ve test case - valid meta task with delete action": {
-			id: "testid",
-			yaml: `
-apiVersion: v1
-kind: Pod
-action: delete
-`,
-			values: map[string]interface{}{},
-			isErr:  false,
-			// delete action cannot be rolled back
-			isRollback: false,
-		},
-	}
-
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.id, mock.yaml, mock.values)
-			if err != nil && !mock.isErr {
-				t.Fatalf("failed to rollback task instance: expected 'no error': actual '%s'", err.Error())
-			}
-
-			rmte, isRollback, err := mte.asRollbackInstance("testing")
-			if !mock.isErr && err != nil {
-				t.Fatalf("failed to rollback task instance: expected 'no rollback error': actual '%s'", err.Error())
-			}
-
-			if !mock.isErr && mock.isRollback != isRollback {
-				t.Fatalf("failed to rollback task instance: expected rollback '%t': actual rollback '%t'", mock.isRollback, isRollback)
-			}
-
-			if !mock.isErr && isRollback && mock.rollbackAction != rmte.getMetaInfo().Action {
-				t.Fatalf("failed to rollback task instance: expected rollback action '%s': actual rollback action '%s'", mock.rollbackAction, rmte.getMetaInfo().Action)
+			if mte.isListCoreV1Pod() != mock.isListCoreV1Pod {
+				t.Fatalf("failed to is list core v1 pod: expected '%t': actual '%t'", mock.isListCoreV1Pod, mte.isListCoreV1Pod())
 			}
 		})
 	}

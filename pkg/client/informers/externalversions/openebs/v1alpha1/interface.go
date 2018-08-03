@@ -28,8 +28,12 @@ type Interface interface {
 	CASTemplates() CASTemplateInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
+	// CStorVolumes returns a CStorVolumeInformer.
+	CStorVolumes() CStorVolumeInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
+	// Disks returns a DiskInformer.
+	Disks() DiskInformer
 	// StoragePools returns a StoragePoolInformer.
 	StoragePools() StoragePoolInformer
 	// StoragePoolClaims returns a StoragePoolClaimInformer.
@@ -55,9 +59,19 @@ func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.SharedInformerFactory}
 }
 
+// CStorVolumes returns a CStorVolumeInformer.
+func (v *version) CStorVolumes() CStorVolumeInformer {
+	return &cStorVolumeInformer{factory: v.SharedInformerFactory}
+}
+
 // CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
 func (v *version) CStorVolumeReplicas() CStorVolumeReplicaInformer {
 	return &cStorVolumeReplicaInformer{factory: v.SharedInformerFactory}
+}
+
+// Disks returns a DiskInformer.
+func (v *version) Disks() DiskInformer {
+	return &diskInformer{factory: v.SharedInformerFactory}
 }
 
 // StoragePools returns a StoragePoolInformer.

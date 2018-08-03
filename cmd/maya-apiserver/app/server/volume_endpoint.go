@@ -21,18 +21,21 @@ const (
 // VolumeSpecificRequest is a http handler implementation. It deals with HTTP
 // requests w.r.t a single Volume.
 func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// check the feature gate & switch if enabled
+	feature, err := util.CASTemplateFeatureGate()
+	if err != nil {
+		// log and return http error 500
+		glog.Errorf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
+		return nil, CodedError(500, http.StatusText(500))
+	}
+	if feature {
+		return s.volumeV1alpha1SpecificRequest(resp, req)
+	}
+
 	glog.Infof("received volume request: method '%s'", req.Method)
 
 	switch req.Method {
 	case "PUT", "POST":
-		// check the feature gate & switch if enabled
-		//
-		// NOTE:
-		//  feature gate is enabled/disabled for volume create request only
-		if util.CASTemplateFeatureGate() {
-			return s.volumeV1alpha1SpecificRequest(resp, req)
-		}
-
 		return s.volumeAdd(resp, req)
 	case "GET":
 		return s.volumeSpecificGetRequest(resp, req)

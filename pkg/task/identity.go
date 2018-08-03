@@ -22,15 +22,15 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 )
 
-// TaskIdentity will provide the required identity to a task
-type TaskIdentity struct {
-	// Identifier provides a unique identification of this
-	// task. There should not be two tasks with same identity
-	// in a workflow.
+// MetaTaskIdentity will provide the required identity to a task
+type MetaTaskIdentity struct {
+	// Identity provides a unique identification to this
+	// task.
 	//
 	// NOTE:
-	//  Identity will be provided by the workflow
-	Identity string
+	//  Usage: There should not be two tasks with same identity
+	// in a cas template engine run.
+	Identity string `json:"id"`
 	// Kind of the task
 	Kind string `json:"kind"`
 	// APIVersion of the task
@@ -40,20 +40,20 @@ type TaskIdentity struct {
 // taskIdentifier enables operations w.r.t a task's identity
 type taskIdentifier struct {
 	// identity identifies a task
-	identity TaskIdentity
+	identity MetaTaskIdentity
 }
 
-func newTaskIdentifier(identity TaskIdentity) (taskIdentifier, error) {
+func newTaskIdentifier(identity MetaTaskIdentity) (taskIdentifier, error) {
 	if len(identity.Identity) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task identity: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task id is missing")
 	}
 
 	if len(identity.Kind) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task kind: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task kind is missing")
 	}
 
 	if len(identity.APIVersion) == 0 {
-		return taskIdentifier{}, fmt.Errorf("missing task apiVersion: can not create task identifier instance")
+		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task apiVersion is missing")
 	}
 
 	return taskIdentifier{
@@ -71,6 +71,10 @@ func (i taskIdentifier) isDeployment() bool {
 
 func (i taskIdentifier) isService() bool {
 	return i.identity.Kind == string(m_k8s_client.ServiceKK)
+}
+
+func (i taskIdentifier) isStoragePoolClaim() bool {
+	return i.identity.Kind == string(m_k8s_client.StroagePoolClaimCRKK)
 }
 
 func (i taskIdentifier) isStoragePool() bool {
@@ -101,6 +105,30 @@ func (i taskIdentifier) isOEV1alpha1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.OEV1alpha1KA)
 }
 
+func (i taskIdentifier) isDisk() bool {
+	return i.identity.Kind == string(m_k8s_client.DiskCRKK)
+}
+
+func (i taskIdentifier) isCstorPool() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorPoolCRKK)
+}
+
+func (i taskIdentifier) isCstorVolume() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorVolumeCRKK)
+}
+
+func (i taskIdentifier) isCstorVolumeReplica() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorVolumeReplicaCRKK)
+}
+
+func (i taskIdentifier) isOEV1alpha1Disk() bool {
+	return i.isOEV1alpha1() && i.isDisk()
+}
+
+func (i taskIdentifier) isOEV1alpha1CSP() bool {
+	return i.isOEV1alpha1() && i.isCstorPool()
+}
+
 func (i taskIdentifier) isExtnV1B1Deploy() bool {
 	return i.isExtnV1B1() && i.isDeployment()
 }
@@ -120,7 +148,18 @@ func (i taskIdentifier) isCoreV1Service() bool {
 func (i taskIdentifier) isCoreV1PVC() bool {
 	return i.isCoreV1() && i.isPVC()
 }
+func (i taskIdentifier) isOEV1alpha1SPC() bool {
+	return i.isOEV1alpha1() && i.isStoragePoolClaim()
+}
 
 func (i taskIdentifier) isOEV1alpha1SP() bool {
 	return i.isOEV1alpha1() && i.isStoragePool()
+}
+
+func (i taskIdentifier) isOEV1alpha1CV() bool {
+	return i.isOEV1alpha1() && i.isCstorVolume()
+}
+
+func (i taskIdentifier) isOEV1alpha1CVR() bool {
+	return i.isOEV1alpha1() && i.isCstorVolumeReplica()
 }

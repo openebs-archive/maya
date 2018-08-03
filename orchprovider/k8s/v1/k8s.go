@@ -5,6 +5,7 @@ package v1
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -859,16 +860,38 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
+	ctrlLabelSpec := map[string]string{
+		string(v1.VSMSelectorKey):               vsm,
+		string(v1.PVCSelectorKey):               pvc,
+		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
+		string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
+		string(v1.VolumeStorageClassVK):         string(vol.Labels.K8sStorageClass),
+	}
+
+	//Add the application label to the controller deployment if it exists.
+	appLV := vol.Labels.ApplicationOld
+	if appLV != "" {
+		ctrlLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+	}
+
+	//The replication count will be specified as REPLICATION_FACTOR
+	//  ENV for jiva controller. The controller will use this value
+	//  to determine if quorum is available for making volume as read-write.
+	//  For example,
+	//   - if replication factor is 1, volume will be marked as RW when one replica connects
+	//   - if replication factor is 3, volume will be marked as RW when when atleast 2 replica connect
+	//  Similar logic will be applied to turn the volume into RO, when qorum is lost.
+	//Note: When kubectl scale up/down is done for replica deployment,
+	// this ENV on controller deployment needs to be patched.
+	rCount, err := volProProfile.ReplicaCount()
+	if err != nil {
+		return nil, err
+	}
+
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: vsm + string(v1.ControllerSuffix),
-			Labels: map[string]string{
-				string(v1.VSMSelectorKey):               vsm,
-				string(v1.PVCSelectorKey):               pvc,
-				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
-				string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
-				string(v1.VolumeStorageClassVK):         string(vol.Labels.K8sStorageClass),
-			},
+			Name:   vsm + string(v1.ControllerSuffix),
+			Labels: ctrlLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(v1.K8sKindDeployment),
@@ -877,14 +900,12 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		Spec: k8sApisExtnsBeta1.DeploymentSpec{
 			Template: k8sApiV1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						string(v1.VSMSelectorKey):        vsm,
-						string(v1.PVCSelectorKey):        pvc,
-						string(v1.ControllerSelectorKey): string(v1.JivaControllerSelectorValue),
-					},
+					Labels: ctrlLabelSpec,
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the controller gets EVICTED as soon as possible
+					// If we don't specify the following explicitly, then k8s will
+					// add a toleration of 300 seconds.
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
@@ -898,11 +919,29 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 							Operator:          k8sApiV1.TolerationOpExists,
 							TolerationSeconds: &tolerationSeconds,
 						},
+						k8sApiV1.Toleration{
+							Effect:            k8sApiV1.TaintEffectNoExecute,
+							Key:               "node.kubernetes.io/not-ready",
+							Operator:          k8sApiV1.TolerationOpExists,
+							TolerationSeconds: &tolerationSeconds,
+						},
+						k8sApiV1.Toleration{
+							Effect:            k8sApiV1.TaintEffectNoExecute,
+							Key:               "node.kubernetes.io/unreachable",
+							Operator:          k8sApiV1.TolerationOpExists,
+							TolerationSeconds: &tolerationSeconds,
+						},
 					},
 					Containers: []k8sApiV1.Container{
 						k8sApiV1.Container{
-							Name:    vsm + string(v1.ControllerSuffix) + string(v1.ContainerSuffix),
-							Image:   cImg,
+							Name:  vsm + string(v1.ControllerSuffix) + string(v1.ContainerSuffix),
+							Image: cImg,
+							Env: []k8sApiV1.EnvVar{
+								k8sApiV1.EnvVar{
+									Name:  string(v1.ReplicationFactorEnvKey),
+									Value: strconv.Itoa(int(*rCount)),
+								},
+							},
 							Command: v1.JivaCtrlCmd,
 							Args:    v1.MakeOrDefJivaControllerArgs(vsm, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
@@ -1048,20 +1087,67 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 
 	glog.Infof("Adding replica(s) for Volume '%s'", vsm)
 
+	repLabelSpec := map[string]string{
+		string(v1.VSMSelectorKey):               vsm,
+		string(v1.PVCSelectorKey):               pvc,
+		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
+		string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
+		string(v1.VolumeStorageClassVK):         string(vol.Labels.K8sStorageClass),
+		// -- if manual replica addition
+		//string(v1.ReplicaCountSelectorKey):      strconv.Itoa(rCount),
+	}
+
+	//Add the application label to the replica deployment if it exists.
+	appLV := vol.Labels.ApplicationOld
+	if appLV != "" {
+		repLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+	}
+
+	//Set the Default Replica Topology Key ( kubernetes.io/hostname )
+	replicaTopoKey := v1.GetPVPReplicaTopologyKey(nil)
+
+	//One of the labels to match will always be a constant, which is
+	// specific to OpenEBS. This is to avoid collision with application pods.
+	repAntiAffinityLabelSpec := map[string]string{
+		string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
+	}
+
+	//Check if a custom topology key has been provided for this volume.
+	// Note: The custom topology keys have to be passed via the PVCs as labels.
+	// And since these labels don't allow special characters like '/' in the value,
+	// the topology key has been divided into domain and type.
+	// Examples:
+	//   kubernetes.io/hostname
+	//   failure-domain.beta.kubernetes.io/zone
+	//   failure-domain.beta.kubernetes.io/region
+	replicaTopoKeyDomainLV := vol.Labels.ReplicaTopologyKeyDomainOld
+	replicaTopoKeyTypeLV := vol.Labels.ReplicaTopologyKeyTypeOld
+
+	//Depending on the topology key, additional label selectors may be required.
+	if replicaTopoKeyDomainLV != "" && replicaTopoKeyTypeLV != "" {
+		replicaTopoKey = replicaTopoKeyDomainLV + "/" + replicaTopoKeyTypeLV
+		//There are two scenarios for specifying custom topology keys:
+		//(a) Deploy the application using a statefulset where application has single replica
+		//    In this case, an application label to use as key is specified.
+		//(b) Deploy the replicas of a single application need to be spread out.
+		//    In this case, there is no need to specify a seperate the application label.
+		//    Use the auto generated id.
+		if appLV != "" {
+			repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV
+		} else {
+			repAntiAffinityLabelSpec[string(v1.VSMSelectorKey)] = vsm
+		}
+	} else {
+		//For host based anti-affinity, use the vsm name additional label
+		repAntiAffinityLabelSpec[string(v1.VSMSelectorKey)] = vsm
+	}
+
 	deploy := &k8sApisExtnsBeta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			// -- if manual replica addition
 			//Name: vsm + string(v1.ReplicaSuffix) + strconv.Itoa(rcIndex),
-			Name: vsm + string(v1.ReplicaSuffix),
-			Labels: map[string]string{
-				string(v1.VSMSelectorKey):               vsm,
-				string(v1.PVCSelectorKey):               pvc,
-				string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
-				string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
-				// -- if manual replica addition
-				//string(v1.ReplicaCountSelectorKey):      strconv.Itoa(rCount),
-				string(v1.VolumeStorageClassVK): string(vol.Labels.K8sStorageClass),
-			},
+			Name:   vsm + string(v1.ReplicaSuffix),
+			Labels: repLabelSpec,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       string(v1.K8sKindDeployment),
@@ -1072,15 +1158,14 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 			Replicas: rCount,
 			Template: k8sApiV1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						string(v1.VSMSelectorKey):     vsm,
-						string(v1.PVCSelectorKey):     pvc,
-						string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
-					},
+					Labels: repLabelSpec,
 				},
 				Spec: k8sApiV1.PodSpec{
 					// Ensure the replicas stick to its placement node even if the node dies
 					// In other words DO NOT EVICT these replicas
+					// The list of taints have been updated with the list available from 1.11
+					// Note: this will be replaced by CAS templates, which provide the
+					//   flexibility of using either Statefulset or DaemonSet in future.
 					Tolerations: []k8sApiV1.Toleration{
 						k8sApiV1.Toleration{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
@@ -1092,6 +1177,46 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Key:      "node.alpha.kubernetes.io/unreachable",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/not-ready",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/unreachable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/out-of-disk",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/memory-pressure",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/disk-pressure",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/network-unavailable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.kubernetes.io/unschedulable",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
+						k8sApiV1.Toleration{
+							Effect:   k8sApiV1.TaintEffectNoExecute,
+							Key:      "node.cloudprovider.kubernetes.io/uninitialized",
+							Operator: k8sApiV1.TolerationOpExists,
+						},
 					},
 					Affinity: &k8sApiV1.Affinity{
 						// Inter-pod anti-affinity rule to spread the replicas across K8s minions
@@ -1099,10 +1224,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							RequiredDuringSchedulingIgnoredDuringExecution: []k8sApiV1.PodAffinityTerm{
 								k8sApiV1.PodAffinityTerm{
 									LabelSelector: &metav1.LabelSelector{
-										MatchLabels: map[string]string{
-											string(v1.VSMSelectorKey):     vsm,
-											string(v1.ReplicaSelectorKey): string(v1.JivaReplicaSelectorValue),
-										},
+										MatchLabels: repAntiAffinityLabelSpec,
 									},
 									// TODO
 									// This is host based inter-pod anti-affinity
@@ -1124,7 +1246,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 									// Considering above scenarios, it might make more sense to have
 									// separate K8s Deployment for each replica. However,
 									// there are dis-advantages in diverging from K8s replica set.
-									TopologyKey: v1.GetPVPReplicaTopologyKey(nil),
+									TopologyKey: replicaTopoKey,
 								},
 							},
 						},
