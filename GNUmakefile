@@ -114,7 +114,7 @@ maya-image:
 	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
 	@cd buildscripts/mayactl && sudo docker build -t openebs/maya:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/mayactl/${MAYACTL}
-	@sh buildscripts/mayactl/push
+	@CIIMAGETAG=${CIIMAGETAG} sh buildscripts/mayactl/push
 
 # You might need to use sudo
 install: bin/maya/${MAYACTL}
@@ -135,7 +135,7 @@ agent-image: maya-agent
 	@cp bin/agent/${AGENT} buildscripts/agent/
 	@cd buildscripts/agent && sudo docker build -t openebs/m-agent:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/agent/${AGENT}
-	@sh buildscripts/agent/push
+	@CIIMAGETAG=${CIIMAGETAG} sh buildscripts/agent/push
 
 # Use this to build only the maya-exporter.
 exporter:
@@ -152,7 +152,7 @@ exporter-image: exporter
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
 	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/exporter/${EXPORTER}
-	@sh buildscripts/exporter/push
+	@CIIMAGETAG=${CIIMAGETAG} sh buildscripts/exporter/push
 
 # Use this to build only the maya apiserver.
 apiserver:
@@ -172,6 +172,6 @@ apiserver-image: mayactl apiserver
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${CIIMAGETAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
-	@sh buildscripts/apiserver/push
+	@CIIMAGETAG=${CIIMAGETAG} sh buildscripts/apiserver/push
 
 .PHONY: all bin cov integ test vet maya-agent test-nodep apiserver image apiserver-image maya-image golint
