@@ -189,7 +189,7 @@ data:
     apiVersion: apps/v1beta1
     Kind: Deployment
     metadata:
-      name: {{ .Volume.owner }}
+      name: {{ .Volume.owner }}-target
       labels:
         app: cstor-volume-manager
         openebs.io/storage-engine-type: cstor
