@@ -19,7 +19,9 @@ package k8s
 import (
 	"encoding/json"
 
-	openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
+	//openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -33,7 +35,9 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
+	//typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
+	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/typed/openebs.io/v1alpha1"
+
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	typed_ext_v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
