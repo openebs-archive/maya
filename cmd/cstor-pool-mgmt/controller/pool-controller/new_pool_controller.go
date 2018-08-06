@@ -31,9 +31,12 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
-	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	//openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/scheme"
+	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 )
 
 const poolControllerName = "CStorPool"

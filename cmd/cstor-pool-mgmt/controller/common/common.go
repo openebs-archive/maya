@@ -25,7 +25,8 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

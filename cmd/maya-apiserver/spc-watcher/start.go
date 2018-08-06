@@ -19,8 +19,12 @@ package spc
 import (
 	"fmt"
 	"github.com/golang/glog"
-	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+
+	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+
 	"github.com/openebs/maya/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"

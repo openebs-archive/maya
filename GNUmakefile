@@ -5,6 +5,15 @@ PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/clients
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 
+# API_PKG sets namespace where the API resources are defined
+API_PKG := github.com/openebs/maya/pkg
+
+# API_GROUPS sets api version of the resources exposed by maya
+ifeq (${API_GROUPS}, )
+  API_GROUPS = openebs.io/v1alpha1
+  export API_GROUPS
+endif
+
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
 	github.com/golang/dep/cmd/dep \
@@ -107,6 +116,49 @@ bootstrap:
 		echo "Installing $$tool" ; \
 		go get -u $$tool; \
 	done
+
+# code generation for custom resources
+generated_files: deepcopy clientset lister informer
+
+# builds vendored version of deepcopy-gen tool
+deepcopy:
+	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	@echo "+ Generating deepcopy funcs for $(API_GROUPS)"
+	@deepcopy-gen \
+		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+		--output-file-base zz_generated.deepcopy \
+		--go-header-file ./buildscripts/custom-boilerplate.go.txt
+
+# also builds vendored version of client-gen tool
+clientset:
+	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
+	@echo "+ Generating clientsets for $(API_GROUPS)"
+	@client-gen \
+		--fake-clientset=true \
+		--input $(API_GROUPS) \
+		--input-base $(API_PKG)/apis \
+		--clientset-path $(API_PKG)/client/generated/clientset \
+		--go-header-file ./buildscripts/custom-boilerplate.go.txt
+
+# also builds vendored version of lister-gen tool
+lister:
+	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@echo "+ Generating lister for $(API_GROUPS)"
+	@lister-gen \
+		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+		--output-package $(API_PKG)/client/generated/lister \
+		--go-header-file ./buildscripts/custom-boilerplate.go.txt
+
+# also builds vendored version of informer-gen tool
+informer:
+	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
+	@echo "+ Generating informer for $(API_GROUPS)"
+	@informer-gen \
+		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+		--output-package $(API_PKG)/client/generated/informer \
+		--versioned-clientset-package $(API_PKG)/client/generated/clientset/internalclientset \
+		--listers-package $(API_PKG)/client/generated/lister \
+		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 maya-image:
 	@cp bin/maya/${MAYACTL} buildscripts/mayactl/
