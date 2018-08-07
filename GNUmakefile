@@ -12,7 +12,8 @@ EXTERNAL_TOOLS=\
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
 	github.com/ugorji/go/codec/codecgen \
-	gopkg.in/alecthomas/gometalinter.v1
+	gopkg.in/alecthomas/gometalinter.v1 \
+	github.com/golang/protobuf/protoc-gen-go
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")

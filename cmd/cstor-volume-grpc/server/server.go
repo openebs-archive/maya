@@ -31,11 +31,6 @@ import (
 // and watches for snapshot requests.
 func StartServer(kubeconfig string) {
 
-	// Making RunnerVar to use RealRunner
-	// volume.RunnerVar = util.RealRunner{}
-
-	// volume.FileOperatorVar = util.RealFileOperator{}
-
 	api.ApiUnixSockVar = util.RealUnixSock{}
 	volume.UnixSockVar = util.RealUnixSock{}
 
