@@ -8,8 +8,9 @@ import (
 type TestUnixSock struct{}
 
 //SendCommand for the dummy unix sock for the test program,
-func (r TestUnixSock) SendCommand(cmd string) ([]byte, error) {
-	return []byte("OK " + cmd), nil
+func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
+	ret := []string{"OK " + cmd}
+	return ret, nil
 }
 
 func TestRunVolumeCommand(t *testing.T) {
