@@ -68,7 +68,7 @@ type Controller struct {
 	workqueue workqueue.RateLimitingInterface
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
-	recorder record.EventRecorder
+	recorder  record.EventRecorder
 	queueLoad QueueLoad
 }
 
