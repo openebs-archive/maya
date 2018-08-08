@@ -39,10 +39,11 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	// Check if the event is for delete and use the spc object that was pushed in the queue
 	// for utilising details from it e.g. delete cas template name for storagepool deletion.
 	if operation == deleteEvent {
+		object := object.(*apis.StoragePoolClaim)
 		if object == nil {
-			glog.Error("Nil storagepoolclaim object found for storage pool deletion")
+			return fmt.Errorf("storagepoolclaim object not found for storage pool deletion")
 		}
-		spcGot = object.(*apis.StoragePoolClaim)
+		spcGot = object
 	}
 
 	// Call the spcEventHandler which will take spc object , key(namespace/name of object) and type of operation we need to to for storage pool
@@ -51,6 +52,9 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	if events == ignoreEvent {
 		glog.Warning("None of the SPC handler was executed")
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 	// If this function returns a error then the object will be requeued.
 	// No need to error out even if it occurs,
@@ -98,15 +102,15 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 // enqueueSpc takes a SPC resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than SPC.
-func (c *Controller) enqueueSpc(obj interface{}, q QueueLoad) {
+func (c *Controller) enqueueSpc(queueLoad *QueueLoad) {
 	var key string
 	var err error
-	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
+	if key, err = cache.MetaNamespaceKeyFunc(queueLoad.Object); err != nil {
 		runtime.HandleError(err)
 		return
 	}
-	q.Key = key
-	c.workqueue.AddRateLimited(q)
+	queueLoad.Key = key
+	c.workqueue.AddRateLimited(queueLoad)
 }
 
 // getSpcResource returns object corresponding to the resource key
@@ -122,8 +126,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		// The SPC resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-
-			runtime.HandleError(fmt.Errorf("spcGot '%s' in work queue no longer exists", key))
+			runtime.HandleError(fmt.Errorf("spcGot '%s' in work queue no longer exists:'%v'", key, err))
 			// No need to return error to caller as we still want to fire the delete handler
 			// using the spc key(name)
 			// If error is returned the caller function will return without calling the spcEventHandler
