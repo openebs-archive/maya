@@ -1,8 +1,11 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -42,11 +45,19 @@ type PortalInfo struct {
 
 // ReplicaInfo keep info about the replicas.
 type ReplicaInfo struct {
-	IP         string
-	AccessMode string
-	Status     string
-	Name       string
-	NodeName   string
+	IP          string
+	AccessMode  string
+	Status      string
+	Name        string
+	NodeName    string
+	CloneStatus string
+}
+
+type cloneData struct {
+	Clonestatus string `json:"clonestatus"`
+}
+type clone struct {
+	Data []cloneData `json:"data"`
 }
 
 // NewCmdVolumeInfo displays OpenEBS Volume information.
@@ -118,6 +129,24 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 	return nil
 }
 
+func getCloneStatus(ip string) (string, error) {
+	url := "http://" + ip + ":9502/v1/replicas"
+	res, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	var data clone
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return "", err
+	}
+	return data.Data[0].Clonestatus, nil
+}
+
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently it displays volume access modes and target portal details only.
 func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
@@ -133,9 +162,9 @@ func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.R
 		
 Replica Details : 
 ---------------- 
-{{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE" }}
-{{ printf "-----\t -----------\t -------\t ---\t -----" }} {{range $key, $value := .}}
-{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+{{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE\t CLONE STATUS" }}
+{{ printf "-----\t -----------\t -------\t ---\t -----\t -------------" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{$value.CloneStatus}} {{end}}
 `
 		portalTemplate = `
 Portal Details :
@@ -201,9 +230,15 @@ Status  :   {{.Status}}
 	for k, v := range replicaIPStatus {
 		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
 		if k[0:3] != "nil" {
-			replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
+			cloneStatus, err := getCloneStatus(k)
+			if err != nil || len(cloneStatus) == 0 {
+				replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA", "NA"}
+			} else {
+				replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA", cloneStatus}
+			}
+
 		} else {
-			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
+			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA", "NA"}
 		}
 	}
 
@@ -221,6 +256,5 @@ Status  :   {{.Status}}
 		fmt.Println("Unable to display volume info, found error : ", err)
 	}
 	w.Flush()
-
 	return nil
 }
