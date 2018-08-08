@@ -18,8 +18,11 @@ package spc
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
-	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+
+	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -145,7 +148,7 @@ func TestProcessNextWorkItem(t *testing.T) {
 				t.Fatalf("Unable to create resource : %v", test.spcObject.ObjectMeta.Name)
 			}
 			// Forming the queueload object
-			q:=&QueueLoad{}
+			q := &QueueLoad{}
 			q.Key = test.spcObject.Name
 			q.Operation = test.operation
 			q.Object = test.spcObject
