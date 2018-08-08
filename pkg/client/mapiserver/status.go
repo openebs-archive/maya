@@ -6,20 +6,17 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/openebs/maya/pkg/util"
+const (
+	getStatusPath = "/latest/meta-data/instance-id"
 )
 
-// Get the status of maya-apiserver via http
+const (
+	getStatusPath = "/latest/meta-data/instance-id"
+)
+
+// GetStatus returns the status of maya-apiserver via http
 func GetStatus() (string, error) {
-
-	var url bytes.Buffer
-	addr := GetURL()
-	if addr == "" {
-		return "", util.MAPIADDRNotSet
-	}
-	url.WriteString(addr + "/latest/meta-data/instance-id")
-	resp, err := http.Get(url.String())
-
+	body, err := getRequest(GetURL()+getStatusPath, "", false)
 	if err != nil {
 		return "", err
 	}

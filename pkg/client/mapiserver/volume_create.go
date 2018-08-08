@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	volume_create_timeout = 5 * time.Second
+	volumeCreateTimeout = 5 * time.Second
+	volumePath          = "/latest/volumes/"
 )
 
 // Create a volume by invoking the API call to m-apiserver
@@ -23,26 +24,12 @@ func CreateVolume(vname string, size string) error {
 	if err != nil {
 		return util.MAPIADDRNotSet
 	}
+	// Marshal serializes the value of vs structure
+	jsonValue, _ := json.Marshal(vs)
 
-	var vs v1.VolumeAPISpec
-
-	vs.Kind = "Volume"
-	vs.APIVersion = "v1"
-	vs.Metadata.Name = vname
-	vs.Metadata.Labels.Storage = size
-
-	//Marshal serializes the value provided into a YAML document
-	yamlValue, _ := yaml.Marshal(vs)
-
-	//fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
-
-	url := GetURL() + "/latest/volumes/"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Content-Type", "application/yaml")
+	_, err := postRequest(GetURL()+volumePath, jsonValue, "", false)
+	return err
+}
 
 	c := &http.Client{
 		Timeout: volume_create_timeout,
@@ -59,8 +46,6 @@ func CreateVolume(vname string, size string) error {
 	}
 	code := resp.StatusCode
 
-	if code != http.StatusOK {
-		return fmt.Errorf("Status error: %v", http.StatusText(code))
-	}
-	return nil
+	_, err := postRequest(GetURL()+volumePath, jsonValue, "", false)
+	return err
 }

@@ -16,7 +16,6 @@ limitations under the License.
 package mapiserver
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -29,11 +28,20 @@ import (
 
 	client "github.com/openebs/maya/pkg/client/jiva"
 	"github.com/openebs/maya/types/v1"
-	yaml "gopkg.in/yaml.v2"
 )
 
 const (
-	http_timeout = 5 * time.Second
+	httpTimeout        = 5 * time.Second
+	snapshotCreatePath = "/latest/snapshots/create/"
+	snapshotRevertPath = "/latest/snapshots/revert/"
+	snapshotListPath   = "/latest/snapshots/list/"
+	snapshotTemplate   = `
+Snapshot Details: 
+------------------
+{{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
+{{ printf "-----\t -----------\t ------------\t -------\t ---------" }} {{ range $key, $value := . }}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ range $value.Children -}} {{printf "%s\n\t \t \t \t" . }} {{ end }} {{ end }}
+`
 )
 
 // SnapshotInfo stores the details of snapshot
@@ -49,112 +57,50 @@ type SnapshotInfo struct {
 
 // CreateSnapshot creates a snapshot of volume by API request to m-apiserver
 func CreateSnapshot(volName string, snapName string, namespace string) error {
-	_, err := GetStatus()
-	if err != nil {
-		return err
+	snap := v1.VolumeSnapshot{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "VolumeSnapshot",
+			APIVersion: "v1",
+		},
+		Metadata: v1.ObjectMeta{
+			Name: snapName,
+		},
+		Spec: v1.VolumeSnapshotSpec{
+			VolumeName: volName,
+		},
 	}
 
-	var snap v1.SnapshotAPISpec
-
-	snap.Kind = "VolumeSnapshot"
-	snap.APIVersion = "v1"
-	snap.Metadata.Name = snapName
-	snap.Spec.VolumeName = volName
-
-	//Marshal serializes the value provided into a YAML document
-	yamlValue, _ := yaml.Marshal(snap)
-
-	url := GetURL() + "/latest/snapshots/create/"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Content-Type", "application/yaml")
-	req.Header.Set("namespace", namespace)
-
-	c := &http.Client{
-		Timeout: http_timeout,
-	}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return err
-	}
-
-	code := resp.StatusCode
-	if err == nil && code != http.StatusOK {
-		return fmt.Errorf(string(body))
-	}
-	if code != http.StatusOK {
-		return fmt.Errorf("Server status error: %v ", http.StatusText(code))
-	}
-	return nil
+	// Marshal serializes the values
+	jsonValue, _ := json.Marshal(snap)
+	_, err := postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
+	return err
 }
 
 // RevertSnapshot reverts a snapshot of volume by API request to m-apiserver
 func RevertSnapshot(volName string, snapName string, namespace string) error {
-
-	_, err := GetStatus()
-	if err != nil {
-		return err
+	snap := v1.VolumeSnapshot{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "VolumeSnapshot",
+			APIVersion: "v1",
+		},
+		Metadata: v1.ObjectMeta{
+			Name: snapName,
+		},
+		Spec: v1.VolumeSnapshotSpec{
+			VolumeName: volName,
+		},
 	}
 
-	var snap v1.SnapshotAPISpec
-
-	snap.Kind = "VolumeSnapshot"
-	snap.APIVersion = "v1"
-	snap.Metadata.Name = snapName
-	snap.Spec.VolumeName = volName
-
-	//Marshal serializes the value provided into a YAML document
-	yamlValue, _ := yaml.Marshal(snap)
-
-	url := GetURL() + "/latest/snapshots/revert/"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Content-Type", "application/yaml")
-	req.Header.Set("namespace", namespace)
-	c := &http.Client{
-		Timeout: http_timeout,
-	}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	code := resp.StatusCode
-
-	if code != http.StatusOK {
-		return fmt.Errorf("Server status error: %v", http.StatusText(code))
-	}
-	return nil
+	// Marshal serializes the values
+	jsonValue, _ := json.Marshal(snap)
+	_, err := postRequest(GetURL()+snapshotRevertPath, jsonValue, namespace, false)
+	return err
 }
 
 // ListSnapshot lists snapshots of volume by API request to m-apiserver
 func ListSnapshot(volName string, namespace string) error {
 
-	_, err := GetStatus()
-	if err != nil {
-		return err
-	}
-
-	url := GetURL() + "/latest/snapshots/list/" + volName
-
-	req, err := http.NewRequest("GET", url, nil)
+	body, err := getRequest(GetURL()+snapshotListPath+volName, namespace, false)
 	if err != nil {
 		return err
 	}
@@ -231,16 +177,8 @@ func getInfo(body []byte) (map[string]client.DiskInfo, error) {
 	return s, err
 }
 
+// displayVolumeSnapshot displays the snapshot information in the snapshot template
 func displayVolumeSnapshot(snapshotList []SnapshotInfo) error {
-	const (
-		snapshotTemplate = `
-Snapshot Details: 
-------------------
-{{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
-{{ printf "-----\t -----------\t ------------\t -------\t ---------" }} {{ range $key, $value := . }}
-{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Created }} {{ printf "%s\t" $value.Size }} {{ printf "%s\t" $value.Parent }} {{ range $value.Children -}} {{printf "%s\n\t \t \t \t" . }} {{ end }} {{ end }}
-`
-	)
 
 	tmpl := template.New("SnapshotList")
 	tmpl = template.Must(tmpl.Parse(snapshotTemplate))
