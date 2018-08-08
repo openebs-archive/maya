@@ -53,19 +53,30 @@ type Volume struct {
 	//  - `true` indicates monitoring is required & should use the defaults
 	Monitor string `json:"monitor,omitempty" protobuf:"bytes,1,opt,name=monitor"`
 
-	// CloneIP is the source controller IP which will be used to make a sync and rebuild
-	// request from the new clone replica.
-	CloneIP string `json:"cloneIP,omitempty" protobuf:"bytes,1,opt,name=cloneIP"`
+	// VolumeClone is the specifications for vlone volume request.
+	VolumeClone `json:"volumeClone,omitempty" protobuf:"bytes,4,opt,name=volumeClone"`
 
-	// SnapshotName name of snapshot which is getting promoted as persistent
-	// volume(this snapshot will be cloned to new volume).
-	SnapshotName string `json:"snapshotName,omitempty" protobuf:"bytes,1,opt,name=snapshotName"`
 	// Specs contains the desired specifications the volume should have.
 	// +optional
 	Specs []VolumeSpec `json:"specs,omitempty" protobuf:"bytes,2,rep,name=specs"`
 
 	// Status represents the current information/status of a volume
 	Status VolumeStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+}
+
+// VolumeClone is the specifications for clone volume request.
+type VolumeClone struct {
+	// Defaults to false, true will enable the volume to be created as a clone
+	Clone bool `json:"clone,omitempty"`
+	// SourceVolume is snapshotted volume, required for extracting the clone
+	// specific information, like storageclass, source-controller IP.
+	SourceVolume string `json:"sourceVolume,omitempty"`
+	// CloneIP is the source controller IP which will be used to make a sync and rebuild
+	// request from the new clone replica.
+	CloneIP string `json:"cloneIP,omitempty"`
+	// SnapshotName is name of snapshot which is getting promoted as persistent
+	// volume. Snapshot will be sync and rebuild to new replica volume.
+	SnapshotName string `json:"snapshotName,omitempty"`
 }
 
 // VolumeList is a list of OpenEBS Volume items.

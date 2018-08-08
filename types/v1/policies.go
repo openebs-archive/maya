@@ -170,6 +170,9 @@ const (
 	// ReplicaContainerStatusVK is the key to fetch the status of
 	// replica containers in a pod
 	ReplicaContainerStatusVK VolumeKey = "openebs.io/replica-container-status"
+	// VolumeStorageClassVK is the key to fetch the storage class of openebs
+	// volume
+	VolumeStorageClassVK VolumeKey = "openebs.io/storage-class"
 )
 
 // VolumeValue is a typed string used to represent openebs

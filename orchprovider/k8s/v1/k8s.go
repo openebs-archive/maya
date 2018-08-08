@@ -479,7 +479,6 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if err != nil {
 		return nil, err
 	}
-
 	glog.Infof("Fetching info on volume '%s: %s'", ns, vsm)
 
 	//annotations := map[string]string{}
@@ -577,16 +576,13 @@ func (k *k8sOrchestrator) readVSM(vsm string, volProProfile volProfile.VolumePro
 	if !doesExist {
 		return nil, nil
 	}
-
 	mb.AddIQN(vsm)
-
 	// TODO
 	// This is a temporary type that is used
 	// Will move to VSM type
 	pv := &v1.Volume{}
 	pv.Name = vsm
 	pv.Annotations = mb.AsAnnotations()
-
 	if mb.IsVolumeRunning(pv) {
 		pv.Status.Phase = v1.VolumePhase(v1.VolumeRunningVV)
 	} else {
@@ -861,7 +857,6 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	if err != nil {
 		return nil, err
 	}
-
 	glog.Infof("Adding controller for volume 'name: %s'", vsm)
 	var tolerationSeconds int64 = 0
 
@@ -870,6 +865,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		string(v1.PVCSelectorKey):               pvc,
 		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
 		string(v1.ControllerSelectorKey):        string(v1.JivaControllerSelectorValue),
+		string(v1.VolumeStorageClassVK):         string(vol.Labels.K8sStorageClass),
 	}
 
 	//Add the application label to the controller deployment if it exists.
@@ -1017,6 +1013,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	// values. Labels may be considered for setting values.
 	mg := NewVolumeMarkerBuilder()
 	mg.AddMonitoringPolicy(vol.Monitor)
+	mg.AddStorageClass(vol.Labels.K8sStorageClass)
 	mg.AddVolumeType(string(vol.VolumeType))
 
 	deploy.Annotations = mg.AsAnnotations()
@@ -1095,6 +1092,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		string(v1.PVCSelectorKey):               pvc,
 		string(v1.VolumeProvisionerSelectorKey): string(v1.JivaVolumeProvisionerSelectorValue),
 		string(v1.ReplicaSelectorKey):           string(v1.JivaReplicaSelectorValue),
+		string(v1.VolumeStorageClassVK):         string(vol.Labels.K8sStorageClass),
 		// -- if manual replica addition
 		//string(v1.ReplicaCountSelectorKey):      strconv.Itoa(rCount),
 	}

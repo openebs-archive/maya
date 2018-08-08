@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/openebs/maya/types/v1"
@@ -239,5 +240,29 @@ func TestIsInCluster(t *testing.T) {
 		if err != val.expectedError {
 			t.Errorf("TestCase: '%d' ExpectedError %v but got :%v", i, val.expectedError, err)
 		}
+	}
+}
+
+func TestAdd(t *testing.T) {
+	cases := map[string]struct {
+		key   string
+		value string
+		err   error
+	}{
+		"Storage Class with value":     {key: "k8s.io/storage-class", value: "openebs-percona", err: nil},
+		"Storage Class without value ": {key: "k8s.io/storage-class", value: "", err: nil},
+		"No marker key":                {key: "", value: "", err: fmt.Errorf("Marker key is missing")},
+		"Sungle key multi value":       {key: "openebs.io/controller-status", value: "Running,Running,Running", err: nil},
+		"Jiva replica ip with value":   {key: "openebs.io/jiva-replica-ips, k8s.io/storage-class", value: "1.2.3.4, openebs-percona", err: nil},
+		"volume monitor with value":    {key: "openebs.io/volume-monitor", value: "", err: nil},
+	}
+	for name, v := range cases {
+		t.Run(name, func(t *testing.T) {
+			mg := NewVolumeMarkerBuilder()
+			got := mg.Add(v.key, v.value)
+			if !reflect.DeepEqual(got, v.err) {
+				t.Errorf("Expected Error : %v but got : %v", v.err, got)
+			}
+		})
 	}
 }
