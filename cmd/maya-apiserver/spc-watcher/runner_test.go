@@ -145,7 +145,7 @@ func TestProcessNextWorkItem(t *testing.T) {
 				t.Fatalf("Unable to create resource : %v", test.spcObject.ObjectMeta.Name)
 			}
 			// Forming the queueload object
-			q:=&QueueLoad{}
+			q := &QueueLoad{}
 			q.Key = test.spcObject.Name
 			q.Operation = test.operation
 			q.Object = test.spcObject

@@ -39,11 +39,11 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	// Check if the event is for delete and use the spc object that was pushed in the queue
 	// for utilising details from it e.g. delete cas template name for storagepool deletion.
 	if operation == deleteEvent {
-		object := object.(*apis.StoragePoolClaim)
-		if object == nil {
+		spcObject := object.(*apis.StoragePoolClaim)
+		if spcObject == nil {
 			return fmt.Errorf("storagepoolclaim object not found for storage pool deletion")
 		}
-		spcGot = object
+		spcGot = spcObject
 	}
 
 	// Call the spcEventHandler which will take spc object , key(namespace/name of object) and type of operation we need to to for storage pool
