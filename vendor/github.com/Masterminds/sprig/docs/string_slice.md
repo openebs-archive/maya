@@ -1,50 +1,50 @@
 # String Slice Functions
 
-These function operate on or generate slices of strings. In Go, a slice is a
-growable array. In Sprig, it's a special case of a `list`.
+These function operate on, or generate slices of strings. In `Go`, a slice is a
+growable array. In `Sprig`, it's a special case of a `list`.
 
 ## join
 
-Join a list of strings into a single string, with the given separator.
+Joins a list of strings into a single string, with the given separator.
 
 ```
 list "hello" "world" | join "_"
 ```
 
-The above will produce `hello_world`
+The above will produce `hello_world`.
 
-`join` will try to convert non-strings to a string value:
+`join` will try to convert non-strings to a string value.
 
 ```
 list 1 2 3 | join "+"
 ```
 
-The above will produce `1+2+3`
+The above will produce `1+2+3`.
 
 ## splitList and split
 
-Split a string into a list of strings:
+Splits a string into a list of strings.
 
 ```
 splitList "$" "foo$bar$baz"
 ```
 
-The above will return `[foo bar baz]`
+The above will return `[foo bar baz]`.
 
 The older `split` function splits a string into a `dict`. It is designed to make
-it easy to use template dot notation for accessing members:
+it easy to use template dot notation for accessing members.
 
 ```
 $a := split "$" "foo$bar$baz"
 ```
 
-The above produces a map with index keys. `{_0: foo, _1: bar, _2: baz}`
+The above produces a map with index keys. `{_0: foo, _1: bar, _2: baz}`.
 
 ```
 $a._0
 ```
 
-The above produces `foo`
+The above produces `foo`.
 
 ## sortAlpha
 

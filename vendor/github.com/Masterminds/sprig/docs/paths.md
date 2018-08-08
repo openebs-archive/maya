@@ -5,32 +5,37 @@ for working with strings that follow file path conventions.
 
 # base
 
-Return the last element of a path.
+Returns the last element of a path.
 
 ```
 base "foo/bar/baz"
 ```
 
-The above prints "baz"
+The above prints `baz`.
 
 # dir
 
-Return the directory, stripping the last part of the path. So `dir "foo/bar/baz"`
-returns `foo/bar`
+Returns the directory, stripping the last part of the path.
+
+```
+dir "foo/bar/baz"
+```
+
+The above returns `foo/bar`.
 
 # clean
 
-Clean up a path.
+Cleans up the path.
 
 ```
 clean "foo/bar/../baz"
 ```
 
-The above resolves the `..` and returns `foo/baz`
+The above resolves the `..` and returns `foo/baz`.
 
 # ext
 
-Return the file extension.
+Returns the file extension.
 
 ```
 ext "foo.bar"
@@ -40,4 +45,4 @@ The above returns `.bar`.
 
 # isAbs
 
-To check whether a file path is absolute, use `isAbs`.
+To check whether a file path is absolute or not, use `isAbs`.

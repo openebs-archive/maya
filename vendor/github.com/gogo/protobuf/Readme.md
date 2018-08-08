@@ -2,19 +2,19 @@
 
 [![Build Status](https://travis-ci.org/gogo/protobuf.svg?branch=master)](https://travis-ci.org/gogo/protobuf)
 
-gogoprotobuf is a fork of <a href="https://github.com/golang/protobuf">golang/protobuf</a> with extra code generation features.
+`gogoprotobuf` is a fork of <a href="https://github.com/golang/protobuf">golang/protobuf</a> with extra code generation features.
 
 This code generation is used to achieve:
 
-  - fast marshalling and unmarshalling
-  - more canonical Go structures
-  - goprotobuf compatibility
-  - less typing by optionally generating extra helper code
-  - peace of mind by optionally generating test and benchmark code
-  - other serialization formats
+  - fast marshalling and unmarshalling.
+  - more canonical Go structures.
+  - goprotobuf compatibility.
+  - less typing by optionally generating extra helper code.
+  - peace of mind by optionally generating test and benchmark code.
+  - other serialization formats.
 
 Keeping track of how up to date gogoprotobuf is relative to golang/protobuf is done in this
-<a href="https://github.com/gogo/protobuf/issues/191">issue</a>
+<a href="https://github.com/gogo/protobuf/issues/191">issue</a>.
 
 ## Users
 
@@ -53,9 +53,9 @@ Please lets us know if you are using gogoprotobuf by posting on our <a href="htt
 There are several ways to use gogoprotobuf, but for all you need to install go and protoc.
 After that you can choose:
 
-  - Speed
-  - More Speed and more generated code
-  - Most Speed and most customization
+  - Speed.
+  - More Speed and more generated code.
+  - Most Speed and most customization.
 
 ### Installation
 
@@ -66,7 +66,7 @@ Most versions from 2.3.1 should not give any problems, but 2.6.1, 3.0.2 and 3.2.
 
 ### Speed
 
-Install the protoc-gen-gofast binary
+Install the protoc-gen-gofast binary.
 
     go get github.com/gogo/protobuf/protoc-gen-gofast
 

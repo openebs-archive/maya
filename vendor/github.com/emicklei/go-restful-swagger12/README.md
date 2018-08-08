@@ -6,7 +6,7 @@
 How to use Swagger UI with go-restful
 =
 
-Get the Swagger UI sources (version 1.2 only)
+Get the Swagger UI sources (version 1.2 only):
 
 	git clone https://github.com/wordnik/swagger-ui.git
 	
@@ -32,7 +32,7 @@ Documenting Structs
 Currently there are 2 ways to document your structs in the go-restful Swagger.
 
 ###### By using struct tags
-- Use tag "description" to annotate a struct field with a description to show in the UI
+- Use tag "description" to annotate a struct field with a description to show in the UI.
 - Use tag "modelDescription" to annotate the struct itself with a description to show in the UI. The tag can be added in an field of the struct and in case that there are multiple definition, they will be appended with an empty line.
 
 ###### By using the SwaggerDoc method
@@ -51,7 +51,7 @@ Here is an example with an `Address` struct and the documentation for each of th
 		}
 	}
 
-This example will generate a JSON like this
+This example will generate a JSON like this:
 
 	{
 		"Address": {
@@ -72,12 +72,12 @@ This example will generate a JSON like this
 	}
 
 **Very Important Notes:**
-- `SwaggerDoc()` is using a **NON-Pointer** receiver (e.g. func (Address) and not func (*Address))
-- The returned map should use as key the name of the field as defined in the JSON parameter (e.g. `"postcode"` and not `"PostCode"`)
+- `SwaggerDoc()` is using a **NON-Pointer** receiver (e.g. func (Address) and not func (*Address)).
+- The returned map should use as key the name of the field as defined in the JSON parameter (e.g. `"postcode"` and not `"PostCode"`).
 
 Notes
 --
-- The Nickname of an Operation is automatically set by finding the name of the function. You can override it using RouteBuilder.Operation(..) 
+- The Nickname of an Operation is automatically set by finding the name of the function. You can override it using RouteBuilder.Operation(..).
 - The WebServices field of swagger.Config can be used to control which service you want to expose and document ; you can have multiple configs and therefore multiple endpoints.
 
 © 2017, ernestmicklei.com.  MIT License. Contributions welcome.

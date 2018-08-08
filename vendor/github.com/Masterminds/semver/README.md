@@ -1,11 +1,11 @@
 # SemVer
 
-The `semver` package provides the ability to work with [Semantic Versions](http://semver.org) in Go. Specifically it provides the ability to:
+The `semver` package provides the ability to work with [Semantic Versions](http://semver.org) in `Go`. Specifically it provides the ability to:
 
-* Parse semantic versions
-* Sort semantic versions
-* Check if a semantic version fits within a set of constraints
-* Optionally work with a `v` prefix
+* Parse semantic versions.
+* Sort semantic versions.
+* Check if a semantic version fits within a set of constraints.
+* Optionally work with a `v` prefix.
 
 [![Stability:
 Active](https://masterminds.github.io/stability/active.svg)](https://masterminds.github.io/stability/active.html)
@@ -19,9 +19,9 @@ To parse a semantic version use the `NewVersion` function. For example,
     v, err := semver.NewVersion("1.2.3-beta.1+build345")
 ```
 
-If there is an error the version wasn't parseable. The version object has methods
+If there is an error, the version wasn't parseable. The version object has methods
 to get the parts of the version, compare it to other versions, convert the
-version back into a string, and get the original string. For more details
+version back into a string, and get the original string. For more details,
 please see the [documentation](https://godoc.org/github.com/Masterminds/semver).
 
 ## Sorting Semantic Versions
@@ -73,40 +73,40 @@ greater than or equal to 4.2.3.
 
 The basic comparisons are:
 
-* `=`: equal (aliased to no operator)
-* `!=`: not equal
-* `>`: greater than
-* `<`: less than
-* `>=`: greater than or equal to
-* `<=`: less than or equal to
+* `=`: equal (aliased to no operator).
+* `!=`: not equal.
+* `>`: greater than.
+* `<`: less than.
+* `>=`: greater than or equal to.
+* `<=`: less than or equal to.
 
-_Note, according to the Semantic Version specification pre-releases may not be
-API compliant with their release counterpart. It says,_
+**Note**: _According to the Semantic Version specification, pre-releases may not be
+API compliant with their release counterpart. It says:_
 
 > _A pre-release version indicates that the version is unstable and might not satisfy the intended compatibility requirements as denoted by its associated normal version._
 
 _SemVer comparisons without a pre-release value will skip pre-release versions.
-For example, `>1.2.3` will skip pre-releases when looking at a list of values
+For example, `>1.2.3` will skip pre-releases when looking at a list of values,
 while `>1.2.3-alpha.1` will evaluate pre-releases._
 
 ## Hyphen Range Comparisons
 
-There are multiple methods to handle ranges and the first is hyphens ranges.
+There are multiple methods to handle ranges and the first is `hyphens ranges`.
 These look like:
 
-* `1.2 - 1.4.5` which is equivalent to `>= 1.2, <= 1.4.5`
-* `2.3.4 - 4.5` which is equivalent to `>= 2.3.4, <= 4.5`
+* `1.2 - 1.4.5` which is equivalent to `>= 1.2, <= 1.4.5`.
+* `2.3.4 - 4.5` which is equivalent to `>= 2.3.4, <= 4.5`.
 
-## Wildcards In Comparisons
+## Wildcards in Comparisons
 
 The `x`, `X`, and `*` characters can be used as a wildcard character. This works
-for all comparison operators. When used on the `=` operator it falls
-back to the pack level comparison (see tilde below). For example,
+for all comparison operators. When used on the `=` operator, it falls
+back to the pack level comparison (see [tilde](https://github.com/openebs/maya/tree/master/vendor/github.com/Masterminds/semver#tilde-range-comparisons-patch)). For example,
 
-* `1.2.x` is equivalent to `>= 1.2.0, < 1.3.0`
-* `>= 1.2.x` is equivalent to `>= 1.2.0`
-* `<= 2.x` is equivalent to `<= 3`
-* `*` is equivalent to `>= 0.0.0`
+* `1.2.x` is equivalent to `>= 1.2.0, < 1.3.0`.
+* `>= 1.2.x` is equivalent to `>= 1.2.0`.
+* `<= 2.x` is equivalent to `<= 3`.
+* `*` is equivalent to `>= 0.0.0`.
 
 ## Tilde Range Comparisons (Patch)
 
@@ -114,26 +114,26 @@ The tilde (`~`) comparison operator is for patch level ranges when a minor
 version is specified and major level changes when the minor number is missing.
 For example,
 
-* `~1.2.3` is equivalent to `>= 1.2.3, < 1.3.0`
-* `~1` is equivalent to `>= 1, < 2`
-* `~2.3` is equivalent to `>= 2.3, < 2.4`
-* `~1.2.x` is equivalent to `>= 1.2.0, < 1.3.0`
-* `~1.x` is equivalent to `>= 1, < 2`
+* `~1.2.3` is equivalent to `>= 1.2.3, < 1.3.0`.
+* `~1` is equivalent to `>= 1, < 2`.
+* `~2.3` is equivalent to `>= 2.3, < 2.4`.
+* `~1.2.x` is equivalent to `>= 1.2.0, < 1.3.0`.
+* `~1.x` is equivalent to `>= 1, < 2`.
 
 ## Caret Range Comparisons (Major)
 
 The caret (`^`) comparison operator is for major level changes. This is useful
 when comparisons of API versions as a major change is API breaking. For example,
 
-* `^1.2.3` is equivalent to `>= 1.2.3, < 2.0.0`
-* `^1.2.x` is equivalent to `>= 1.2.0, < 2.0.0`
-* `^2.3` is equivalent to `>= 2.3, < 3`
-* `^2.x` is equivalent to `>= 2.0.0, < 3`
+* `^1.2.3` is equivalent to `>= 1.2.3, < 2.0.0`.
+* `^1.2.x` is equivalent to `>= 1.2.0, < 2.0.0`.
+* `^2.3` is equivalent to `>= 2.3, < 3`.
+* `^2.x` is equivalent to `>= 2.0.0, < 3`.
 
 # Validation
 
 In addition to testing a version against a constraint, a version can be validated
-against a constraint. When validation fails a slice of errors containing why a
+against a constraint. When validation fails, a slice of errors containing why a
 version didn't meet the constraint is returned. For example,
 
 ```go
@@ -162,4 +162,4 @@ version didn't meet the constraint is returned. For example,
 # Contribute
 
 If you find an issue or want to contribute please file an [issue](https://github.com/Masterminds/semver/issues)
-or [create a pull request](https://github.com/Masterminds/semver/pulls).
+or create a [pull request](https://github.com/Masterminds/semver/pulls).

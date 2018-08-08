@@ -1,7 +1,7 @@
 Columnize
 =========
 
-Easy column-formatted output for golang
+Easy column-formatted output for golang.
 
 [![Build Status](https://travis-ci.org/ryanuber/columnize.svg)](https://travis-ci.org/ryanuber/columnize)
 
@@ -57,10 +57,10 @@ config.Prefix = ""
 config.Empty = ""
 ```
 
-* `Delim` is the string by which columns of **input** are delimited
-* `Glue` is the string by which columns of **output** are delimited
-* `Prefix` is a string by which each line of **output** is prefixed
-* `Empty` is a string used to replace blank values found in output
+* `Delim` is the string by which columns of **input** are delimited.
+* `Glue` is the string by which columns of **output** are delimited.
+* `Prefix` is a string by which each line of **output** is prefixed.
+* `Empty` is a string used to replace blank values found in output.
 
 You can then pass the `Config` in using the `Format` method (signature below) to
 have text formatted to your liking.

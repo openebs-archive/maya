@@ -1,110 +1,110 @@
 Change history of go-restful
 =
 2017-02-16
-- solved issue #304, make operation names unique
+- solved issue #304, make operation names unique.
 
 2017-01-30
  
 	[IMPORTANT] For swagger users, change your import statement to:	
 	swagger "github.com/emicklei/go-restful-swagger12"
 
-- moved swagger 1.2 code to go-restful-swagger12
-- created TAG 2.0.0
+- moved swagger 1.2 code to go-restful-swagger12.
+- created TAG 2.0.0.
 
 2017-01-27
 
-- remove defer request body close
-- expose Dispatch for testing filters and Routefunctions
-- swagger response model cannot be array 
-- created TAG 1.0.0
+- remove defer request body close.
+- expose Dispatch for testing filters and Routefunctions.
+- swagger response model cannot be array.
+- created TAG 1.0.0.
 
 2016-12-22
 
-- (API change) Remove code related to caching request content. Removes SetCacheReadEntity(doCache bool)
+- (API change) Remove code related to caching request content. Removes SetCacheReadEntity (doCache bool).
 
 2016-11-26
 
-- Default change! now use CurlyRouter (was RouterJSR311)
-- Default change! no more caching of request content
-- Default change! do not recover from panics
+- Default change! now use CurlyRouter (was RouterJSR311).
+- Default change! no more caching of request content.
+- Default change! do not recover from panics.
 
 2016-09-22
 
-- fix the DefaultRequestContentType feature
+- fix the DefaultRequestContentType feature.
 
 2016-02-14
 
-- take the qualify factor of the Accept header mediatype into account when deciding the contentype of the response
-- add constructors for custom entity accessors for xml and json 
+- take the qualify factor of the Accept header mediatype into account when deciding the contentype of the response.
+- add constructors for custom entity accessors for xml and json.
 
 2015-09-27
 
-- rename new WriteStatusAnd... to WriteHeaderAnd... for consistency
+- rename new WriteStatusAnd... to WriteHeaderAnd... for consistency.
 
 2015-09-25
 
-- fixed problem with changing Header after WriteHeader (issue 235)
+- fixed problem with changing Header after WriteHeader (issue 235).
 
 2015-09-14
 
-- changed behavior of WriteHeader (immediate write) and WriteEntity (no status write)
+- changed behavior of WriteHeader (immediate write) and WriteEntity (no status write).
 - added support for custom EntityReaderWriters.
 
 2015-08-06
 
-- add support for reading entities from compressed request content
-- use sync.Pool for compressors of http response and request body
-- add Description to Parameter for documentation in Swagger UI
+- add support for reading entities from compressed request content.
+- use sync.Pool for compressors of http response and request body.
+- add Description to Parameter for documentation in Swagger UI.
 
 2015-03-20
 
-- add configurable logging
+- add configurable logging.
 
 2015-03-18
 
-- if not specified, the Operation is derived from the Route function
+- if not specified, the Operation is derived from the Route function.
 
 2015-03-17
 
-- expose Parameter creation functions
-- make trace logger an interface
-- fix OPTIONSFilter
-- customize rendering of ServiceError
-- JSR311 router now handles wildcards
-- add Notes to Route
+- expose Parameter creation functions.
+- make trace logger an interface.
+- fix OPTIONSFilter.
+- customize rendering of ServiceError.
+- JSR311 router now handles wildcards.
+- add Notes to Route.
 
 2014-11-27
 
-- (api add) PrettyPrint per response. (as proposed in #167)
+- (api add) PrettyPrint per response. (as proposed in #167).
 
 2014-11-12
 
-- (api add) ApiVersion(.) for documentation in Swagger UI
+- (api add) ApiVersion(.) for documentation in Swagger UI.
 
 2014-11-10
 
-- (api change) struct fields tagged with "description" show up in Swagger UI
+- (api change) struct fields tagged with "description" show up in Swagger UI.
 
 2014-10-31
 
-- (api change) ReturnsError -> Returns
-- (api add)    RouteBuilder.Do(aBuilder) for DRY use of RouteBuilder
-- fix swagger nested structs
-- sort Swagger response messages by code
+- (api change) ReturnsError -> Returns.
+- (api add)    RouteBuilder.Do(aBuilder) for DRY use of RouteBuilder.
+- fix swagger nested structs.
+- sort Swagger response messages by code.
 
 2014-10-23
 
-- (api add) ReturnsError allows you to document Http codes in swagger
-- fixed problem with greedy CurlyRouter
-- (api add) Access-Control-Max-Age in CORS
-- add tracing functionality (injectable) for debugging purposes
-- support JSON parse 64bit int 
-- fix empty parameters for swagger
-- WebServicesUrl is now optional for swagger
-- fixed duplicate AccessControlAllowOrigin in CORS
-- (api change) expose ServeMux in container
-- (api add) added AllowedDomains in CORS
-- (api add) ParameterNamed for detailed documentation
+- (api add) ReturnsError allows you to document Http codes in swagger.
+- fixed problem with greedy CurlyRouter.
+- (api add) Access-Control-Max-Age in CORS.
+- add tracing functionality (injectable) for debugging purposes.
+- support JSON parse 64bit int.
+- fix empty parameters for swagger.
+- WebServicesUrl is now optional for swagger.
+- fixed duplicate AccessControlAllowOrigin in CORS.
+- (api change) expose ServeMux in container.
+- (api add) added AllowedDomains in CORS.
+- (api add) ParameterNamed for detailed documentation.
 
 2014-04-16
 
@@ -117,29 +117,29 @@ Change history of go-restful
 
 2014-07-03
 
-- (api add) CORS can be configured with a list of allowed domains
+- (api add) CORS can be configured with a list of allowed domains.
 
 2014-03-12
 
-- (api add) Route path parameters can use wildcard or regular expressions. (requires CurlyRouter)
+- (api add) Route path parameters can use wildcard or regular expressions (requires CurlyRouter).
 
 2014-02-26
 
-- (api add) Request now provides information about the matched Route, see method SelectedRoutePath 
+- (api add) Request now provides information about the matched Route, see method SelectedRoutePath.
 
 2014-02-17
 
-- (api change) renamed parameter constants (go-lint checks)
+- (api change) renamed parameter constants (go-lint checks).
 
 2014-01-10
 
-- (api add) support for CloseNotify, see http://golang.org/pkg/net/http/#CloseNotifier
+- (api add) support for CloseNotify, see http://golang.org/pkg/net/http/#CloseNotifier.
 
 2014-01-07
 
 - (api change) Write* methods in Response now return the error or nil.
 - added example of serving HTML from a Go template.
-- fixed comparing Allowed headers in CORS (is now case-insensitive)
+- fixed comparing Allowed headers in CORS (is now case-insensitive).
 
 2013-11-13
 
@@ -151,33 +151,33 @@ Change history of go-restful
 
 2013-10-04
 
-- (api add) Response knows what HTTP status has been written
-- (api add) Request can have attributes (map of string->interface, also called request-scoped variables
+- (api add) Response knows what HTTP status has been written.
+- (api add) Request can have attributes (map of string->interface, also called request-scoped variables.
 
 2013-09-12
 
-- (api change) Router interface simplified
-- Implemented CurlyRouter, a Router that does not use|allow regular expressions in paths
+- (api change) Router interface simplified.
+- Implemented CurlyRouter, a Router that does not use|allow regular expressions in paths.
 
 2013-08-05
- - add OPTIONS support
- - add CORS support
+ - add OPTIONS support.
+ - add CORS support.
 
 2013-08-27
 
-- fixed some reported issues (see github)
-- (api change) deprecated use of WriteError; use WriteErrorString instead
+- fixed some reported issues (see github).
+- (api change) deprecated use of WriteError; use WriteErrorString instead.
 
 2014-04-15
 
-- (fix) v1.0.1 tag: fix Issue 111: WriteErrorString
+- (fix) v1.0.1 tag: fix Issue 111: WriteErrorString.
 
 2013-08-08
 
 - (api add) Added implementation Container: a WebServices collection with its own http.ServeMux allowing multiple endpoints per program. Existing uses of go-restful will register their services to the DefaultContainer.
 - (api add) the swagger package has be extended to have a UI per container.
-- if panic is detected then a small stack trace is printed (thanks to runner-mei)
-- (api add) WriteErrorString to Response
+- if panic is detected then a small stack trace is printed (thanks to runner-mei).
+- (api add) WriteErrorString to Response.
 
 Important API changes:
 
@@ -191,12 +191,12 @@ Important API changes:
 
 2013-06-19
 
-- (improve) DoNotRecover option, moved request body closer, improved ReadEntity
+- (improve) DoNotRecover option, moved request body closer, improved ReadEntity.
 
 2013-06-03
 
-- (api change) removed Dispatcher interface, hide PathExpression
-- changed receiver names of type functions to be more idiomatic Go
+- (api change) removed Dispatcher interface, hide PathExpression.
+- changed receiver names of type functions to be more idiomatic Go.
 
 2013-06-02
 
@@ -204,20 +204,18 @@ Important API changes:
 
 2013-05-22
 	
-- (api add) Added support for request/response filter functions
+- (api add) Added support for request/response filter functions.
 
 2013-05-18
 
 
-- (api add) Added feature to change the default Http Request Dispatch function (travis cline)
-- (api change) Moved Swagger Webservice to swagger package (see example restful-user)
+- (api add) Added feature to change the default Http Request Dispatch function (travis cline).
+- (api change) Moved Swagger Webservice to swagger package (see example restful-user).
 
-[2012-11-14 .. 2013-05-18>
+2012-11-14 - 2013-05-18
  
-- See https://github.com/emicklei/go-restful/commits
+- See https://github.com/emicklei/go-restful/commits.
 
 2012-11-14
 
-- Initial commit
-
-
+- Initial commit.

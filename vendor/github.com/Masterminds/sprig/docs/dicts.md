@@ -104,7 +104,7 @@ new `dict`.
 $new := pick $myDict "name1" "name3"
 ```
 
-The above returns `{name1: value1, name2: value2}`
+The above returns `{name1: value1, name2: value2}`.
 
 ## omit
 
@@ -115,10 +115,10 @@ the keys that _do not_ match the given keys.
 $new := omit $myDict "name1" "name3"
 ```
 
-The above returns `{name2: value2}`
+The above returns `{name2: value2}`.
 
 ## A Note on Dict Internals
 
-A `dict` is implemented in Go as a `map[string]interface{}`. Go developers can
+A `dict` is implemented in `Go` as a `map[string]interface{}`. `Go` developers can
 pass `map[string]interface{}` values into the context to make them available
 to templates as `dict`s.

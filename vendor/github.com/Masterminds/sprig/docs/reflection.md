@@ -3,9 +3,9 @@
 Sprig provides rudimentary reflection tools. These help advanced template
 developers understand the underlying Go type information for a particular value.
 
-Go has several primitive _kinds_, like `string`, `slice`, `int64`, and `bool`.
+`Go` has several primitive _kinds_, like `string`, `slice`, `int64`, and `bool`.
 
-Go has an open _type_ system that allows developers to create their own types.
+`Go` has an open _type_ system that allows developers to create their own types.
 
 Sprig provides a set of functions for each.
 
@@ -24,14 +24,14 @@ The above would return `string`. For simple tests (like in `if` blocks), the
 kindIs "int" 123
 ```
 
-The above will return `true`
+The above will return `true`.
 
 ## Type Functions
 
 Types are slightly harder to work with, so there are three different functions:
 
-- `typeOf` returns the underlying type of a value: `typeOf $foo`
-- `typeIs` is like `kindIs`, but for types: `typeIs "*io.Buffer" $myVal`
+- `typeOf` returns the underlying type of a value: `typeOf $foo`.
+- `typeIs` is like `kindIs`, but for types: `typeIs "*io.Buffer" $myVal`.
 - `typeIsLike` works as `kindIs`, except that it also dereferences pointers.
 
 **Note:** None of these can test whether or not something implements a given

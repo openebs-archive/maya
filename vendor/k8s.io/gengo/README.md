@@ -44,8 +44,8 @@ Package parser parses go source files.
 ## namer/
 
 Package namer defines a naming system, for:
-* helping you reference go objects in a syntactically correct way
-* keeping track of what you reference, for importing the right packages
+* helping you reference go objects in a syntactically correct way.
+* keeping track of what you reference, for importing the right packages.
 * and defining parallel tracks of names, for making public interfaces and
   private implementations.
 
