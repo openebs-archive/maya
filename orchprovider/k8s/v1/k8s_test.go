@@ -3,6 +3,7 @@ package v1
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/openebs/maya/orchprovider"
@@ -15,6 +16,7 @@ import (
 	k8sCoreV1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sExtnsV1Beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
+
 	//k8sApiv1 "k8s.io/client-go/pkg/api/v1"
 	//k8sApisExtnsV1Beta1 "k8s.io/client-go/pkg/apis/extensions/v1beta1"
 	//policy "k8s.io/client-go/pkg/apis/policy/v1beta1"
@@ -128,6 +130,10 @@ func TestAddStorage(t *testing.T) {
 		volP, _ := volProfile.GetDefaultVolProProfile(vol)
 
 		sOps, _ := o.StorageOps()
+
+		if _, val := os.LookupEnv("KUBECONFIG"); val {
+			os.Unsetenv("KUBECONFIG")
+		}
 
 		_, err := sOps.AddStorage(volP)
 		if err != nil && c.err != err.Error() {

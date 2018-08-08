@@ -8,12 +8,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openebs/maya/pkg/util"
 	utiltesting "k8s.io/client-go/util/testing"
 )
 
 func TestCreateVolume(t *testing.T) {
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		volumeName  string
 		size        string
 		fakeHandler utiltesting.FakeHandler
@@ -40,18 +39,8 @@ func TestCreateVolume(t *testing.T) {
 
 				T: t,
 			},
-			err:  fmt.Errorf("Status error: %v", http.StatusText(404)),
+			err:  fmt.Errorf("Server status error: %v", http.StatusText(404)),
 			addr: "MAPI_ADDR",
-		},
-		"MAPI_ADDRNotSet": {
-			volumeName: "234t5rgfgt-ht4",
-			size:       "1G",
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: "Volume '12324rty653423' deleted Successfully",
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 		"VolumeNameMissing": {
 			volumeName: "",
@@ -61,7 +50,7 @@ func TestCreateVolume(t *testing.T) {
 				ResponseBody: "Volume name is missing",
 				T:            t,
 			},
-			err:  fmt.Errorf("Status error: %v", http.StatusText(400)),
+			err:  fmt.Errorf("Server status error: %v", http.StatusText(400)),
 			addr: "MAPI_ADDR",
 		},
 	}
@@ -73,6 +62,7 @@ func TestCreateVolume(t *testing.T) {
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
 			got := CreateVolume(tt.volumeName, tt.size)
+
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("CreateVolume(%v, %v) => got %v, want %v ", tt.volumeName, tt.size, got, tt.err)
 			}

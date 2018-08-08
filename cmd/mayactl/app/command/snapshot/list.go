@@ -35,7 +35,7 @@ $ mayactl snapshot list --volname <vol>
 `
 )
 
-// NewCmdSnapshotCreate creates a snapshot of OpenEBS Volume
+// NewCmdSnapshotList displays list of volumes
 func NewCmdSnapshotList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",

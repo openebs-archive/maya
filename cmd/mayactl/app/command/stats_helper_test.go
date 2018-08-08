@@ -19,7 +19,7 @@ func TestGetVolDetails(t *testing.T) {
 		server     *httptest.Server
 		annotation = Annotations{}
 	)
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		volumeName string
 		namespace  string
 
@@ -62,16 +62,6 @@ func TestGetVolDetails(t *testing.T) {
 			},
 			err:  nil,
 			addr: "MAPI_ADDR",
-		},
-		"MAPIADDRNotSet": {
-			volumeName: "vol",
-			fakeHandler: utiltesting.FakeHandler{
-				ResponseBody: string(response),
-				StatusCode:   200,
-				T:            t,
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 		"404NotFound": {
 			volumeName: "vol",

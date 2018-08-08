@@ -1,35 +1,19 @@
 package mapiserver
 
-import (
-	"bytes"
-	"io/ioutil"
-	"log"
-	"net/http"
+import "github.com/openebs/maya/pkg/util"
 
-	"github.com/openebs/maya/pkg/util"
+const (
+	getStatusPath = "/latest/meta-data/instance-id"
 )
 
-// Get the status of maya-apiserver via http
+// GetStatus returns the status of maya-apiserver via http
 func GetStatus() (string, error) {
-
-	var url bytes.Buffer
-	addr := GetURL()
-	if addr == "" {
-		return "", util.MAPIADDRNotSet
-	}
-	url.WriteString(addr + "/latest/meta-data/instance-id")
-	resp, err := http.Get(url.String())
-
+	body, err := getRequest(GetURL()+getStatusPath, "", false)
 	if err != nil {
-		return "", err
+		return "Connection failed", err
 	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		log.Fatal(err)
+	if string(body) != `"any-compute"` {
+		err = util.ServerUnavailable
 	}
-
-	return string(body[:]), err
+	return string(body), err
 }
