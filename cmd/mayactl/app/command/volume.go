@@ -17,6 +17,7 @@ limitations under the License.
 package command
 
 import (
+	"errors"
 	"flag"
 
 	"github.com/spf13/cobra"
@@ -59,11 +60,14 @@ Examples:
 	}
 )
 
+// CmdVolumeOptions stores information of volume being operated
 type CmdVolumeOptions struct {
-	volName   string
-	size      string
-	namespace string
-	json      string
+	volName          string
+	sourceVolumeName string
+	snapshotName     string
+	size             string
+	namespace        string
+	json             string
 }
 
 // NewCmdVolume provides options for managing OpenEBS Volume
@@ -87,4 +91,26 @@ func NewCmdVolume() *cobra.Command {
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	flag.CommandLine.Parse([]string{})
 	return cmd
+}
+
+// Validate verifies whether a volume name,source name or snapshot name is provided or not followed by
+// stats command. It returns nil and proceeds to execute the command if there is
+// no error and returns an error if it is missing.
+func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sourcenameverify, volnameverify bool) error {
+	if snapshotnameverify {
+		if len(c.snapshotName) == 0 {
+			return errors.New("--snapname is missing. Please provide a snapshotname")
+		}
+	}
+	if sourcenameverify {
+		if len(c.sourceVolumeName) == 0 {
+			return errors.New("--sourcevol is missing. Please specify a sourcevolumename")
+		}
+	}
+	if volnameverify {
+		if len(c.volName) == 0 {
+			return errors.New("--volname is missing. Please specify a unique volumename")
+		}
+	}
+	return nil
 }

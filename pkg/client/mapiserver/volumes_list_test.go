@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	utiltesting "k8s.io/client-go/util/testing"
 )
@@ -21,7 +20,7 @@ func TestListVolumes(t *testing.T) {
 	var (
 		vsm v1.VolumeList
 	)
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		fakeHandler utiltesting.FakeHandler
 		err         error
 		addr        string
@@ -41,7 +40,7 @@ func TestListVolumes(t *testing.T) {
 				ResponseBody: string(response),
 				T:            t,
 			},
-			err:  fmt.Errorf("Status Error: %v", http.StatusText(404)),
+			err:  fmt.Errorf("Server status error: %v", http.StatusText(404)),
 			addr: "MAPI_ADDR",
 		},
 		"EmptyResponse": {
@@ -49,17 +48,8 @@ func TestListVolumes(t *testing.T) {
 				StatusCode: 204,
 				T:          t,
 			},
-			err:  fmt.Errorf("Status Error: %v", http.StatusText(204)),
+			err:  fmt.Errorf("Server status error: %v", http.StatusText(204)),
 			addr: "MAPI_ADDR",
-		},
-		"MAPI_ADDRNotSet": {
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(response),
-				T:            t,
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 	}
 
@@ -70,11 +60,10 @@ func TestListVolumes(t *testing.T) {
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
 			got := ListVolumes(&vsm)
+
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("ListVolumes(%v) => got %v, want %v ", vsm, got, tt.err)
 			}
-			defer os.Unsetenv(tt.addr)
-			defer server.Close()
 		})
 	}
 }

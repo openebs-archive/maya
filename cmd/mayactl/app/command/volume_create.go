@@ -17,7 +17,6 @@ limitations under the License.
 package command
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
@@ -41,7 +40,7 @@ func NewCmdVolumeCreate() *cobra.Command {
 		Short: "Creates a new Volume",
 		Long:  volumeCreateCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeCreate(cmd), util.Fatal)
 		},
 	}
@@ -53,16 +52,6 @@ func NewCmdVolumeCreate() *cobra.Command {
 	cmd.Flags().StringVarP(&options.size, "size", "", options.size,
 		"volume capacity in GB (example: 10G) (default: 5G")
 	return cmd
-}
-
-// Validate verifies whether a volume name is provided or not followed by
-// stats command. It returns nil and proceeds to execute the command if there is
-// no error and returns an error if it is missing.
-func (c *CmdVolumeOptions) Validate(cmd *cobra.Command) error {
-	if len(c.volName) == 0 {
-		return errors.New("--volname is missing. Please specify a unique name")
-	}
-	return nil
 }
 
 // RunVolumeCreate makes create volume request to maya-apiserver after verifying whether the volume already exists or not. In case if the volume already exists it returns the error and come out of execution.
@@ -87,9 +76,10 @@ func IsVolumeExist(volname string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, items := range vols.Items {
 		if volname == items.ObjectMeta.Name {
-			return fmt.Errorf("Error: Volume %v already exist ", volname)
+			return fmt.Errorf("Volume creation failed : Volume %v already exist ", volname)
 		}
 	}
 	return nil

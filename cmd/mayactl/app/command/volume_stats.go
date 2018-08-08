@@ -47,7 +47,7 @@ type ReplicaStats struct {
 	DataUpdateIndex string
 }
 
-// NewCmdVolumeCreate creates a new OpenEBS Volume
+// NewCmdVolumeStats displays the runtime statistics of volume
 func NewCmdVolumeStats() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "stats",
@@ -55,7 +55,7 @@ func NewCmdVolumeStats() *cobra.Command {
 		Long:    volumeStatsCommandHelpText,
 		Example: ` mayactl volume stats --volname=vol -j=json`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeStats(cmd), util.Fatal)
 		},
 	}

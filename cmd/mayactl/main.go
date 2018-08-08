@@ -16,12 +16,7 @@ package main
 
 import (
 	"github.com/openebs/maya/cmd/mayactl/app/command"
-	"github.com/openebs/maya/pkg/client/mapiserver"
 )
-
-func init() {
-	mapiserver.Initialize()
-}
 
 func main() {
 	err := command.NewMayaCommand().Execute()
