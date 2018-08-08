@@ -7,7 +7,7 @@ package collate
 import (
 	"sort"
 
-	"golang.org/x/text/collate/colltab"
+	"golang.org/x/text/internal/colltab"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 )
@@ -165,7 +165,7 @@ var (
 	IgnoreWidth Option = ignoreWidth
 	ignoreWidth        = Option{2, ignoreWidthF}
 
-	// Loose sets the collator to ignore diacritics, case and weight.
+	// Loose sets the collator to ignore diacritics, case and width.
 	Loose Option = loose
 	loose        = Option{4, looseF}
 
