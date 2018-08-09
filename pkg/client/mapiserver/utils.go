@@ -29,9 +29,7 @@ func Initialize() {
 
 // GetURL returns the mapi server address
 func GetURL() string {
-	if MAPIAddr != "" && MAPIAddrPort == "" {
-		return "http://" + MAPIAddr + ":5656"
-	} else if MAPIAddr != "" && MAPIAddrPort != "" {
+	if len(MAPIAddr) > 0 {
 		return "http://" + MAPIAddr + ":" + MAPIAddrPort
 	}
 	return os.Getenv("MAPI_ADDR")

@@ -55,7 +55,7 @@ func NewMayaCommand() *cobra.Command {
 
 	// add the api addr flag
 	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddr, "mapiserver", "m", "", "Maya API Service IP address. You can obtain the IP address using kubectl get svc -n < namespace where openebs is installed >")
-	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddrPort, "mapiserverport", "p", "", "Maya API Service Port.")
+	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddrPort, "mapiserverport", "p", "5656", "Maya API Service Port.")
 	// TODO: switch to a different logging library.
 	flag.CommandLine.Parse([]string{})
 
