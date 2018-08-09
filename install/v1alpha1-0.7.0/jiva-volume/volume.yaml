@@ -27,7 +27,7 @@ spec:
   - name: ReplicaCount
     value: "1"
   - name: StoragePool
-    value: ssd
+    value: jiva-pool-path-default-0.7.0
   - name: TaintTolerations
     value: |-
       t1:
