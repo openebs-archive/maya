@@ -39,6 +39,8 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	// Check if the event is for delete and use the spc object that was pushed in the queue
 	// for utilising details from it e.g. delete cas template name for storagepool deletion.
 	if operation == deleteEvent {
+		// Need to typecast the interface object to storagepoolclaim object because
+		// interface type of nil is different from nil but all other type of nil has the same type as that of nil.
 		spcObject := object.(*apis.StoragePoolClaim)
 		if spcObject == nil {
 			return fmt.Errorf("storagepoolclaim object not found for storage pool deletion")

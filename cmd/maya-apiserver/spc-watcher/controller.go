@@ -149,6 +149,7 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		// deleteSpc hook.
 		if IsDeleteEvent(spcObjectNew) {
 			c.queueLoad.Operation = ignoreEvent
+			glog.Warning("Delete event suppressed in update hook as it is already handled in delete hook")
 		} else {
 			// To-DO
 			// Implement Logic for Update of SPC object
