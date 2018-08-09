@@ -48,6 +48,10 @@ func (c *FakeOpenebsV1alpha1) Disks() v1alpha1.DiskInterface {
 	return &FakeDisks{c}
 }
 
+func (c *FakeOpenebsV1alpha1) RunTasks(namespace string) v1alpha1.RunTaskInterface {
+	return &FakeRunTasks{c, namespace}
+}
+
 func (c *FakeOpenebsV1alpha1) StoragePools() v1alpha1.StoragePoolInterface {
 	return &FakeStoragePools{c}
 }

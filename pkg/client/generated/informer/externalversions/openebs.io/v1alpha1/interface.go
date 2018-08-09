@@ -34,6 +34,8 @@ type Interface interface {
 	CStorVolumeReplicas() CStorVolumeReplicaInformer
 	// Disks returns a DiskInformer.
 	Disks() DiskInformer
+	// RunTasks returns a RunTaskInformer.
+	RunTasks() RunTaskInformer
 	// StoragePools returns a StoragePoolInformer.
 	StoragePools() StoragePoolInformer
 	// StoragePoolClaims returns a StoragePoolClaimInformer.
@@ -74,6 +76,11 @@ func (v *version) CStorVolumeReplicas() CStorVolumeReplicaInformer {
 // Disks returns a DiskInformer.
 func (v *version) Disks() DiskInformer {
 	return &diskInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// RunTasks returns a RunTaskInformer.
+func (v *version) RunTasks() RunTaskInformer {
+	return &runTaskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // StoragePools returns a StoragePoolInformer.

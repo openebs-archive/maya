@@ -84,6 +84,11 @@ type RunTasks struct {
 	Tasks []string `json:"tasks"`
 }
 
+// +genclient
+// +genclient:noStatus
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=runtask
+
 // RunTask forms the specifications that deal with running a CAS template
 // engine based task
 type RunTask struct {
@@ -103,4 +108,15 @@ type RunTaskSpec struct {
 	// against the result of this task's execution. In other words, this
 	// is run post the task execution.
 	PostRun string `json:"post"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +resource:path=runtasks
+
+// RunTaskList is a list of RunTask resources
+type RunTaskList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []RunTask `json:"items"`
 }
