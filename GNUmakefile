@@ -1,5 +1,5 @@
 # list only our namespaced directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/clientset\|pkg/client/listers\|pkg/client/informers')
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated/clientset\|pkg/client/generated/listers\|pkg/client/generated/informers')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -173,7 +173,7 @@ install: bin/maya/${MAYACTL}
 #Use this to build cstor-pool-mgmt
 cstor-pool-mgmt:
 	@echo "----------------------------"
-	@echo "--> cstor-pool-mgmt           "            
+	@echo "--> cstor-pool-mgmt           "
 	@echo "----------------------------"
 	@CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/cstor-pool-mgmt/build.sh'"
 
@@ -189,7 +189,7 @@ pool-mgmt-image: cstor-pool-mgmt
 #Use this to build cstor-volume-mgmt
 cstor-volume-mgmt:
 	@echo "----------------------------"
-	@echo "--> cstor-volume-mgmt           "            
+	@echo "--> cstor-volume-mgmt           "
 	@echo "----------------------------"
 	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
 
