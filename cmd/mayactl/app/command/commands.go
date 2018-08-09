@@ -28,7 +28,7 @@ import (
 func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mayactl",
-		Short: "Maya means 'Magic'a tool for storage orchestration",
+		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			if len(mapiserver.MAPIAddr) == 0 {
@@ -54,8 +54,8 @@ func NewMayaCommand() *cobra.Command {
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
 	// add the api addr flag
-	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddr, "mapiserver", "m", "", "Address of Maya-Apiserver")
-
+	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddr, "mapiserver", "m", "", "Maya API Service IP address. You can obtain the IP address using kubectl get svc -n < namespace where openebs is installed >")
+	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddrPort, "mapiserverport", "p", "", "Maya API Service Port.")
 	// TODO: switch to a different logging library.
 	flag.CommandLine.Parse([]string{})
 

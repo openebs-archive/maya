@@ -15,6 +15,9 @@ import (
 // MAPIAddr stores address of mapi server if passed through flag
 var MAPIAddr string
 
+// MAPIAddrPort stores port number of mapi server if passed through flag
+var MAPIAddrPort string
+
 // Initialize func sets the env variable with local ip address
 func Initialize() {
 	mapiaddr := os.Getenv("MAPI_ADDR")
@@ -26,8 +29,10 @@ func Initialize() {
 
 // GetURL returns the mapi server address
 func GetURL() string {
-	if MAPIAddr != "" {
+	if MAPIAddr != "" && MAPIAddrPort == "" {
 		return "http://" + MAPIAddr + ":5656"
+	} else if MAPIAddr != "" && MAPIAddrPort != "" {
+		return "http://" + MAPIAddr + ":" + MAPIAddrPort
 	}
 	return os.Getenv("MAPI_ADDR")
 }
