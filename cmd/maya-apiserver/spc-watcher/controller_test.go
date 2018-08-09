@@ -286,14 +286,7 @@ func TestUpdateSpc(t *testing.T) {
 					DeletionTimestamp: &metav1.Time{sampleTimestamp},
 				},
 			},
-			expectedQueueLoad: QueueLoad{"pool1", deleteEvent, &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:              "pool1",
-					ResourceVersion:   "111935",
-					DeletionTimestamp: &metav1.Time{sampleTimestamp},
-				},
-			},
-			},
+			expectedQueueLoad: QueueLoad{"", ignoreEvent, nil},
 		},
 	}
 
@@ -308,6 +301,65 @@ func TestUpdateSpc(t *testing.T) {
 			// If the controller instance queueload does not matches expectedQueueLoad, test case fails.
 			if !reflect.DeepEqual(test.expectedQueueLoad, controller.queueLoad) {
 				t.Errorf("Test case failed: expected '%+v' but got '%+v:object ' ", test.expectedQueueLoad, controller.queueLoad)
+			}
+		})
+	}
+}
+
+// TestDeleteSpc function tests if deleteSpc function is properly forming the queueload that
+// is pushed into the workqueue, as according to delete event of storagepoolclaim object.
+func TestDeleteSpc(t *testing.T) {
+	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
+	// are arguments that is expected by the NewController function.
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+
+	// Take a timestamp that will be used in test cases
+	sampleTimestamp := time.Now()
+
+	// Make a map of string(key) to struct(value).
+	// Key of map describes test case behaviour.
+	// Value of map is the test object.
+	tests := map[string]struct {
+		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
+		fakestoragepoolclaim *apis.StoragePoolClaim
+		// expectedQueueLoad holds the expected queueLoad for the test case under run.
+		expectedQueueLoad QueueLoad
+	}{
+		// TestCase#1
+		// Make a storagepoolcalim object
+		// Its creation should from the queueload as in the expectedQueueLoad
+		"Delete event of spc object": {
+			fakestoragepoolclaim: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "pool1",
+					DeletionTimestamp: &metav1.Time{sampleTimestamp},
+				},
+			},
+			expectedQueueLoad: QueueLoad{"pool1", deleteEvent, &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "pool1",
+					DeletionTimestamp: &metav1.Time{sampleTimestamp},
+				},
+			},
+			},
+		},
+	}
+
+	// Iterate over whole map to run the test cases.
+	for name, test := range tests {
+		// Instantiate the controller by passing the valid arguments.
+		controller := NewController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+			openebsInformerFactory)
+		t.Run(name, func(t *testing.T) {
+			// deleteSpc is the function under test.
+			controller.deleteSpc(test.fakestoragepoolclaim)
+			// If the controller instance queueload does not matches expectedQueueLoad, test case fails.
+			if !reflect.DeepEqual(test.expectedQueueLoad, controller.queueLoad) {
+				t.Errorf("Test case failed: expected '%+v' but got '%+v' ", test.expectedQueueLoad, controller.queueLoad)
+				t.Errorf("Object difference: expected '%v' but got '%v' ", test.expectedQueueLoad.Object.(*apis.StoragePoolClaim), controller.queueLoad.Object.(*apis.StoragePoolClaim))
 			}
 		})
 	}

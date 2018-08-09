@@ -66,9 +66,13 @@ type Controller struct {
 	// time, and makes it easy to ensure we are never processing the same item
 	// simultaneously in two different workers.
 	workqueue workqueue.RateLimitingInterface
-	// recorder is an event recorder for recording Event resources to the
+	
+  // recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
-	recorder  record.EventRecorder
+	recorder record.EventRecorder
+
+	// queueLoad is the object or load that will be pushed into the
+	// workqueue for later retrieval and processing.
 	queueLoad QueueLoad
 }
 
@@ -108,11 +112,25 @@ func NewController(
 		AddFunc: controller.addSpc,
 
 		// Informer will send update event along with object in following cases:
-		// 1. In case the object is update ( Change of Resource Version)
-		// 2. In case the object is deleted
+		// 1. In case the object is updated ( Change of Resource Version)
+
+		// 2. In case the object is deleted by using a finalizer.
+		//    Some of the kubectl version e.g. v1.11.0 will make use of a finalizer beforehand deletion.
+		//    Hence in this case the delete of an object will cause a invoke of UpdateFunc
+		//    as the finalizer addition will cause Resource Version to change.
+		//
+		//    But some of the kubectl version will not make use of finalizer for
+		//    object deletion.
+		//    Whatever be the case, delete of the resource will always invoke DeleteFunc
+		//    and hence the delete event will be captured by it and the delete event
+		//    that will be delivered in UpdateFunc due to specific kubectl versions will
+		//    be suppressed.(see in updateSpc function, where delete event is marked as ignoreEvent)
+
 		// 3. After every fixed amount of time which is know as reSync Period.
 		//    ReSync period can be set to values we want. It can help in reconiciliation.
 		UpdateFunc: controller.updateSpc,
+
+		DeleteFunc: controller.deleteSpc,
 	})
 
 	return controller
@@ -122,7 +140,7 @@ func (c *Controller) addSpc(obj interface{}) {
 	spcObject := obj.(*apis.StoragePoolClaim)
 	c.queueLoad.Operation = addEvent
 	c.queueLoad.Object = spcObject
-	glog.V(4).Infof("Adding SPC %s", spcObject.Name)
+	glog.V(4).Infof("Queuing SPC %s for add event", spcObject.Name)
 	c.enqueueSpc(&c.queueLoad)
 }
 
@@ -134,17 +152,30 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		// If Resource Version is same it means the object has not got updated.
 		c.queueLoad.Operation = ignoreEvent
 	} else {
+		// Suppressing delete event here as the event is already captured in
+		// deleteSpc hook.
 		if IsDeleteEvent(spcObjectNew) {
-			c.queueLoad.Operation = deleteEvent
+			c.queueLoad.Operation = ignoreEvent
+			glog.Warning("Delete event suppressed in update hook as it is already handled in delete hook")
 		} else {
 			// To-DO
 			// Implement Logic for Update of SPC object
 			c.queueLoad.Operation = updateEvent
+			c.queueLoad.Object = spcObjectNew
+			glog.V(4).Infof("Queuing SPC %s for update event", spcObjectNew.Name)
+			c.enqueueSpc(&c.queueLoad)
 		}
-		c.queueLoad.Object = spcObjectNew
-		c.enqueueSpc(&c.queueLoad)
+
 	}
 
+}
+
+func (c *Controller) deleteSpc(obj interface{}) {
+	spcObject := obj.(*apis.StoragePoolClaim)
+	c.queueLoad.Operation = deleteEvent
+	c.queueLoad.Object = spcObject
+	glog.V(4).Infof("Queuing SPC %s for delete event", spcObject.Name)
+	c.enqueueSpc(&c.queueLoad)
 }
 
 // IsDeleteEvent is to check if the call is for SPC delete.
