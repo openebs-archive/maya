@@ -47,7 +47,7 @@ if [[ "${MAYA_DEV}" ]]; then
 fi
 
 # Build!
-echo "==> Building..."
+echo "==> Building mayactl using `go version`... "
 for GOOS in "${XC_OSS[@]}"
 do
     for GOARCH in "${XC_ARCHS[@]}"

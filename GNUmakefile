@@ -1,5 +1,5 @@
 # list only our namespaced directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated/clientset\|pkg/client/generated/listers\|pkg/client/generated/informers')
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
