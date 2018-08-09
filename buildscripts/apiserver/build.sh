@@ -47,7 +47,7 @@ if [[ "${M_APISERVER_DEV}" ]]; then
 fi
 
 # Build!
-echo "==> Building ${CTLNAME} ..."
+echo "==> Building ${CTLNAME} using `go version`..."
 
 for GOOS in "${XC_OSS[@]}"
 do
