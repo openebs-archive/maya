@@ -19,9 +19,15 @@ package spc
 import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
-	informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+
+	//openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/scheme"
+
+	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+
 	corev1 "k8s.io/api/core/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -60,7 +66,8 @@ type Controller struct {
 	// time, and makes it easy to ensure we are never processing the same item
 	// simultaneously in two different workers.
 	workqueue workqueue.RateLimitingInterface
-	// recorder is an event recorder for recording Event resources to the
+	
+  // recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
 

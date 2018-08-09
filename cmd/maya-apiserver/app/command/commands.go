@@ -15,6 +15,7 @@
 package command
 
 import (
+	"flag"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +31,9 @@ func NewCommand() *cobra.Command {
 		NewCmdVersion(),
 		NewCmdStart(),
 	)
+
+	// fix glog parse error
+	flag.CommandLine.Parse([]string{})
 
 	return cmd
 }

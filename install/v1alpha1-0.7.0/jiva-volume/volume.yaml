@@ -21,13 +21,13 @@ spec:
   - name: VolumeMonitor
     enabled: "true"
   - name: ControllerImage
-    value: openebs/jiva:0.5.0
+    value: openebs/jiva:0.6.0
   - name: ReplicaImage
-    value: openebs/jiva:0.5.0
+    value: openebs/jiva:0.6.0
   - name: ReplicaCount
     value: "1"
   - name: StoragePool
-    value: ssd
+    value: jiva-pool-path-default-0.7.0
   - name: TaintTolerations
     value: |-
       t1:
@@ -113,9 +113,9 @@ data:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
-    repeatWith: 
+    repeatWith:
       metas:
-      {{- range $k, $ns := $nss }} 
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -136,9 +136,9 @@ data:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
-    repeatWith: 
-      metas: 
-      {{- range $k, $ns := $nss }} 
+    repeatWith:
+      metas:
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -159,9 +159,9 @@ data:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistrep
-    repeatWith: 
-      metas: 
-      {{- range $k, $ns := $nss }} 
+    repeatWith:
+      metas:
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -304,6 +304,9 @@ data:
         vsm.openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
     spec:
       capacity: {{ $capacity }}
+      targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
+      iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
+      replicas: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -414,7 +417,7 @@ data:
                     nodeSelectorTerms:
                     - matchExpressions:
                       {{- range $k, $v := $nodeAffinityRSIEVal }}
-                      - 
+                      -
                       {{- range $kk, $vv := $v }}
                         {{ $kk }}: {{ $vv }}
                       {{- end }}
@@ -604,7 +607,7 @@ data:
                 nodeSelectorTerms:
                 - matchExpressions:
                   {{- range $k, $v := $nodeAffinityRSIEVal }}
-                  - 
+                  -
                   {{- range $kk, $vv := $v }}
                     {{ $kk }}: {{ $vv }}
                   {{- end }}
@@ -616,7 +619,7 @@ data:
                 preference:
                   matchExpressions:
                   {{- range $k, $v := $nodeAffinityPSIEVal }}
-                  - 
+                  -
                   {{- range $kk, $vv := $v }}
                     {{ $kk }}: {{ $vv }}
                   {{- end }}
@@ -647,7 +650,7 @@ data:
           tolerations:
           {{- if ne $isTaintTolerations "false" }}
           {{- range $k, $v := $taintTolerationsVal }}
-          - 
+          -
           {{- range $kk, $vv := $v }}
             {{ $kk }}: {{ $vv }}
           {{- end }}
@@ -655,7 +658,7 @@ data:
           {{- end }}
           {{- if ne $isEvictionTolerations "false" }}
           {{- range $k, $v := $evictionTolerationsVal }}
-          - 
+          -
           {{- range $kk, $vv := $v }}
             {{ $kk }}: {{ $vv }}
           {{- end }}
