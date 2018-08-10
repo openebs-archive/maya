@@ -39,7 +39,7 @@ func NewCmdVolumeDelete() *cobra.Command {
 		Short: "Deletes a Volume",
 		Long:  volumeDeleteCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeDelete(cmd), util.Fatal)
 		},
 	}

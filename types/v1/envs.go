@@ -169,6 +169,9 @@ func MonitorENV() string {
 
 func KubeConfigENV() string {
 	val := GetEnv(KubeConfigENVK)
+	if val == "" {
+		val = os.Getenv("KUBECONFIG")
+	}
 	return val
 }
 

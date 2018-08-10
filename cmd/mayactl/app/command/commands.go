@@ -16,17 +16,32 @@ package command
 
 import (
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/spf13/cobra"
 )
 
-// NewCommand creates the `maya` command and its nested children.
+// NewMayaCommand creates the `maya` command and its nested children.
 func NewMayaCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mayactl",
 		Short: "Maya means 'Magic' a tool for storage orchestration",
 		Long:  `Maya means 'Magic' a tool for storage orchestration`,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			if len(mapiserver.MAPIAddr) == 0 {
+				mapiserver.Initialize()
+				if mapiserver.GetConnectionStatus() != "running" {
+					fmt.Println("Unable to connect to mapi server address")
+					os.Exit(1)
+				}
+			} else if mapiserver.GetConnectionStatus() != "running" {
+				fmt.Println("Invalid m-apiserver address")
+				os.Exit(1)
+			}
+		},
 	}
 
 	cmd.AddCommand(
@@ -38,6 +53,9 @@ func NewMayaCommand() *cobra.Command {
 	// add the glog flags
 	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 
+	// add the api addr flag
+	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddr, "mapiserver", "m", "", "Maya API Service IP address. You can obtain the IP address using kubectl get svc -n < namespace where openebs is installed >")
+	cmd.PersistentFlags().StringVarP(&mapiserver.MAPIAddrPort, "mapiserverport", "p", "5656", "Maya API Service Port.")
 	// TODO: switch to a different logging library.
 	flag.CommandLine.Parse([]string{})
 

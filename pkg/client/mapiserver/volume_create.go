@@ -1,66 +1,36 @@
 package mapiserver
 
 import (
-	"bytes"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"encoding/json"
 	"time"
 
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
-	yaml "gopkg.in/yaml.v2"
 )
 
 const (
-	volume_create_timeout = 5 * time.Second
+	volumeCreateTimeout = 5 * time.Second
+	volumePath          = "/latest/volumes/"
 )
 
-// Create a volume by invoking the API call to m-apiserver
-func CreateVolume(vname string, size string) error {
-
-	_, err := GetStatus()
-	if err != nil {
-		return util.MAPIADDRNotSet
+// CreateVolume creates a volume by invoking the API call to m-apiserver
+func CreateVolume(vname, size string) error {
+	// Filling structure with values
+	vs := v1.Volume{
+		TypeMeta: v1.TypeMeta{
+			Kind:       "Volume",
+			APIVersion: "v1",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name: vname,
+		},
+		Capacity: size,
 	}
 
-	var vs v1.VolumeAPISpec
-
-	vs.Kind = "Volume"
-	vs.APIVersion = "v1"
-	vs.Metadata.Name = vname
-	vs.Metadata.Labels.Storage = size
-
-	//Marshal serializes the value provided into a YAML document
-	yamlValue, _ := yaml.Marshal(vs)
-
-	//fmt.Printf("Volume Spec Created:\n%v\n", string(yamlValue))
-
-	url := GetURL() + "/latest/volumes/"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(yamlValue))
+	// Marshal serializes the value of vs structure
+	jsonValue, err := json.Marshal(vs)
 	if err != nil {
 		return err
 	}
-
-	req.Header.Add("Content-Type", "application/yaml")
-
-	c := &http.Client{
-		Timeout: volume_create_timeout,
-	}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	_, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	code := resp.StatusCode
-
-	if code != http.StatusOK {
-		return fmt.Errorf("Status error: %v", http.StatusText(code))
-	}
-	return nil
+	_, err = postRequest(GetURL()+volumePath, jsonValue, "", false)
+	return err
 }

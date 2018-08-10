@@ -1,12 +1,24 @@
 package mapiserver
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"sort"
 	"time"
 )
 
+// MAPIAddr stores address of mapi server if passed through flag
+var MAPIAddr string
+
+// MAPIAddrPort stores port number of mapi server if passed through flag
+var MAPIAddrPort string
+
+// Initialize func sets the env variable with local ip address
 func Initialize() {
 	mapiaddr := os.Getenv("MAPI_ADDR")
 	if mapiaddr == "" {
@@ -15,10 +27,15 @@ func Initialize() {
 	}
 }
 
+// GetURL returns the mapi server address
 func GetURL() string {
+	if len(MAPIAddr) > 0 {
+		return "http://" + MAPIAddr + ":" + MAPIAddrPort
+	}
 	return os.Getenv("MAPI_ADDR")
 }
 
+// GetConnectionStatus return the status of the connecion
 func GetConnectionStatus() string {
 	_, err := GetStatus()
 	if err != nil {
@@ -27,6 +44,7 @@ func GetConnectionStatus() string {
 	return "running"
 }
 
+// getDefaultAddr returns the local ip address
 func getDefaultAddr() string {
 	env := "127.0.0.1"
 	host, _ := os.Hostname()
@@ -61,4 +79,97 @@ func ChangeDateFormatToUnixDate(snapshotDisks []SnapshotInfo) error {
 		snapshotDisks[index].Created = created.Format(time.UnixDate)
 	}
 	return nil
+}
+
+// postRequest sends request to a url with payload of values
+func postRequest(url string, values []byte, namespace string, chkbody bool) ([]byte, error) {
+	if len(url) == 0 {
+		return nil, errors.New("Invalid URL")
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(values))
+
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	if len(namespace) > 0 {
+		req.Header.Set("namespace", namespace)
+	}
+
+	c := &http.Client{
+		Timeout: volumeCreateTimeout,
+	}
+
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
+
+	code := resp.StatusCode
+
+	if chkbody && err == nil && code != http.StatusOK {
+		return nil, fmt.Errorf(string(body))
+	}
+
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Server status error: %v", http.StatusText(code))
+	}
+
+	return nil, nil
+}
+
+// getRequest GETS a request to a url and returns the response
+func getRequest(url string, namespace string, chkbody bool) ([]byte, error) {
+
+	if len(url) == 0 {
+		return nil, errors.New("Invalid URL")
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(namespace) > 0 {
+		req.Header.Set("namespace", namespace)
+	}
+
+	c := &http.Client{
+		Timeout: timeoutVolumeDelete,
+	}
+
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	code := resp.StatusCode
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if chkbody && err == nil && code != http.StatusOK {
+		return nil, fmt.Errorf(string(body))
+	}
+
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Server status error: %v", http.StatusText(code))
+	}
+
+	return body, nil
 }

@@ -9,24 +9,23 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openebs/maya/pkg/util"
 	utiltesting "k8s.io/client-go/util/testing"
 )
 
 var (
 	snapshotResponse        = `{"actions":{},"id":"snapdemo1","links":{"self":"http://10.36.0.1:9501/v1/snapshotoutputs/snapdemo1"},"type":"snapshotOutput"}`
-	volumeNameIsMissing     = errors.New("Volume name is missing")
-	badReqErr               = errors.New(snapshotResponse)
-	volNotFound             = errors.New("Volume not found")
+	errVolumeNameIsMissing  = errors.New("Volume name is missing")
+	errBadReqErr            = errors.New(snapshotResponse)
+	errVolNotFound          = errors.New("Volume not found")
 	SnapshotListResponse    = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-snap-snap3.img": {"name": "volume-snap-snap3.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-head-01.img": {"name": "volume-head-01.img", "parent": "", "children":[ ], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}}`
 	ZeroSnapshotResponse    = `{"volume-head-001.img": {"name": "volume-head-001.img", "parent": "", "children":[], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:34Z", "size": "0"}}`
 	WrongDateFormatResponse = `{"volume-snap-snap1.img": {"name": "volume-snap-snap1.img", "parent": "", "children":[ "volume-snap-snap2.img", "volume-head-001.img"], "usercreated":true, "removed":false, "created": "2018-06-10T19:33:", "size": "0"}, "volume-snap-snap2.img": {"name": "volume-snap-snap2.img", "parent": "volume-snap-snap1.img", "children":[ "volume-snap-snap3.img"], "created": "2018-06-10T19:33:34Z", "size": "0"}, "volume-head-01.img": {"name": "volume-head-01.img", "parent": "", "children":[ ], "usercreated":true, "removed":false, "created": "2018-06-12T19:33:34Z", "size": "0"}}`
-	jsonError               = errors.New("unexpected end of JSON input")
+	errJSONError            = errors.New("unexpected end of JSON input")
 	errdateParse            = errors.New("parsing time \"2018-06-10T19:33:\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"\" as \"05\"")
 )
 
 func TestCreateSnapshot(t *testing.T) {
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		volumeName  string
 		snapName    string
 		namespace   string
@@ -53,18 +52,8 @@ func TestCreateSnapshot(t *testing.T) {
 				ResponseBody: string(snapshotResponse),
 				T:            t,
 			},
-			err:  badReqErr,
+			err:  errBadReqErr,
 			addr: "MAPI_ADDR",
-		},
-		"MAPI_ADDRNotSet": {
-			volumeName: "234t5rgfgt-ht4",
-			snapName:   "-09uhbvvbfghj",
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(snapshotResponse),
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 		"VolumeNameMissing": {
 			volumeName: "",
@@ -74,7 +63,7 @@ func TestCreateSnapshot(t *testing.T) {
 				ResponseBody: "Volume name is missing",
 				T:            t,
 			},
-			err:  volumeNameIsMissing,
+			err:  errVolumeNameIsMissing,
 			addr: "MAPI_ADDR",
 		},
 		"VolumeNotFound": {
@@ -85,7 +74,7 @@ func TestCreateSnapshot(t *testing.T) {
 				ResponseBody: "Volume not found",
 				T:            t,
 			},
-			err:  volNotFound,
+			err:  errVolNotFound,
 			addr: "MAPI_ADDR",
 		},
 		"AppNameSpaceVolume": {
@@ -129,7 +118,7 @@ func TestCreateSnapshot(t *testing.T) {
 }
 
 func TestRevertSnapshot(t *testing.T) {
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		volumeName  string
 		snapName    string
 		namespace   string
@@ -158,16 +147,6 @@ func TestRevertSnapshot(t *testing.T) {
 			},
 			err:  fmt.Errorf("Server status error: %v", http.StatusText(400)),
 			addr: "MAPI_ADDR",
-		},
-		"MAPI_ADDRNotSet": {
-			volumeName: "234t5rgfgt-ht4",
-			snapName:   "-09uhbvvbfghj",
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(snapshotResponse),
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 		"VolumeNameMissing": {
 			volumeName: "",
@@ -222,6 +201,7 @@ func TestRevertSnapshot(t *testing.T) {
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
 			got := RevertSnapshot(tt.volumeName, tt.snapName, tt.namespace)
+
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("RevertSnapshot(%v, %v) => got %v, want %v ", tt.volumeName, tt.snapName, got, tt.err)
 			}
@@ -230,7 +210,7 @@ func TestRevertSnapshot(t *testing.T) {
 }
 
 func TestListSnapshot(t *testing.T) {
-	tests := map[string]struct {
+	tests := map[string]*struct {
 		volumeName  string
 		namespace   string
 		fakeHandler utiltesting.FakeHandler
@@ -266,15 +246,6 @@ func TestListSnapshot(t *testing.T) {
 			},
 			err:  fmt.Errorf("Server status error: %v", http.StatusText(400)),
 			addr: "MAPI_ADDR",
-		},
-		"MAPI_ADDRNotSet": {
-			volumeName: "234t5rgfgt-ht4",
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(SnapshotListResponse),
-			},
-			err:  util.MAPIADDRNotSet,
-			addr: "",
 		},
 		"VolumeNameMissing": {
 			volumeName: "",
@@ -325,7 +296,7 @@ func TestListSnapshot(t *testing.T) {
 				ResponseBody: string(""),
 				T:            t,
 			},
-			err:  fmt.Errorf("Failed to get the snapshot info, found error - %v", jsonError),
+			err:  fmt.Errorf("Failed to get the snapshot info, found error - %v", errJSONError),
 			addr: "MAPI_ADDR",
 		},
 		"ZeroSnapshots": {
