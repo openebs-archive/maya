@@ -29,7 +29,7 @@ func TestInitialize(t *testing.T) {
 
 func TestGetURL(t *testing.T) {
 	cases := map[string]*struct {
-		addr           string
+		addr, port     string
 		envaddr        string
 		expectedoutput string
 	}{
@@ -39,6 +39,7 @@ func TestGetURL(t *testing.T) {
 		},
 		"Environment vaiable not set": {
 			addr:           "192.168.0.1",
+			port:           "5656",
 			expectedoutput: "http://192.168.0.1:5656",
 		},
 	}
@@ -50,6 +51,7 @@ func TestGetURL(t *testing.T) {
 
 			} else {
 				MAPIAddr = tt.addr
+				MAPIAddrPort = tt.port
 			}
 
 			got := GetURL()
