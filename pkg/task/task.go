@@ -58,11 +58,11 @@ type taskExecutor struct {
 
 	// runtask is the specifications that determine a task & operations associated
 	// with it
-	runtask v1alpha1.RunTask
+	runtask *v1alpha1.RunTask
 }
 
 // newTaskExecutor returns a new instance of taskExecutor
-func newTaskExecutor(runtask v1alpha1.RunTask, values map[string]interface{}) (*taskExecutor, error) {
+func newTaskExecutor(runtask *v1alpha1.RunTask, values map[string]interface{}) (*taskExecutor, error) {
 	mte, err := newMetaTaskExecutor(runtask.Spec.Meta, values)
 	if err != nil {
 		return nil, err
@@ -267,7 +267,7 @@ func (m *taskExecutor) Execute() (err error) {
 // extracted values while executing later runtasks by providing these runtasks
 // with the updated **template values**.
 func (m *taskExecutor) postExecuteIt() (err error) {
-	if len(m.runtask.Spec.PostRun) == 0 {
+	if m.runtask == nil || len(m.runtask.Spec.PostRun) == 0 {
 		// nothing needs to be done
 		return
 	}

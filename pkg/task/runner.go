@@ -47,10 +47,10 @@ type TaskGroupRunner struct {
 	// group runner
 	allTaskIDs []string
 	// allTasks is an array of run tasks
-	allTasks []v1alpha1.RunTask
+	allTasks []*v1alpha1.RunTask
 	// outputTask holds the specs to return this group runner's
 	// output in the format (i.e. specs) defined in this output run task
-	outputTask v1alpha1.RunTask
+	outputTask *v1alpha1.RunTask
 	// rollbacks is an array of task executor that need to be run in
 	// sequence in the event of any error
 	rollbacks []*taskExecutor
@@ -60,7 +60,12 @@ func NewTaskGroupRunner() *TaskGroupRunner {
 	return &TaskGroupRunner{}
 }
 
-func (m *TaskGroupRunner) AddRunTask(runtask v1alpha1.RunTask) (err error) {
+func (m *TaskGroupRunner) AddRunTask(runtask *v1alpha1.RunTask) (err error) {
+	if runtask == nil {
+		err = fmt.Errorf("nil runtask: failed to add run task")
+		return
+	}
+
 	if len(runtask.Spec.Meta) == 0 {
 		err = fmt.Errorf("failed to add run task: nil meta task specs found: task name '%s'", runtask.Name)
 		return
@@ -75,7 +80,7 @@ func (m *TaskGroupRunner) AddRunTask(runtask v1alpha1.RunTask) (err error) {
 //
 // NOTE:
 //  This output format is specified in the provided run task.
-func (m *TaskGroupRunner) SetOutputTask(runtask v1alpha1.RunTask) (err error) {
+func (m *TaskGroupRunner) SetOutputTask(runtask *v1alpha1.RunTask) (err error) {
 	if len(runtask.Spec.Meta) == 0 {
 		err = fmt.Errorf("failed to set output task: nil meta task specs found: task name '%s'", runtask.Name)
 		return
@@ -156,7 +161,7 @@ func (m *TaskGroupRunner) rollback() {
 }
 
 // runATask will run a task based on the task specs & template values
-func (m *TaskGroupRunner) runATask(runtask v1alpha1.RunTask, values map[string]interface{}) (err error) {
+func (m *TaskGroupRunner) runATask(runtask *v1alpha1.RunTask, values map[string]interface{}) (err error) {
 	te, err := newTaskExecutor(runtask, values)
 	if err != nil {
 		// log with verbose details
