@@ -37,7 +37,7 @@ const (
 // GetVolDetails gets response in json format of a volume from m-apiserver
 func GetVolDetails(volName string, namespace string, obj interface{}) error {
 
-	url := mapiserver.GetURL() + "/latest/volumes/info/" + volName
+	url := mapiserver.GetURL() + "/latest/volumes/" + volName
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
