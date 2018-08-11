@@ -243,7 +243,8 @@ func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byt
 func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err error) {
 	err = m.runAllTasks(values)
 	if err != nil {
-		glog.Errorf("failed to execute runtasks: will rollback previously executed runtask(s): runtask error '%s'", err.Error())
+		glog.Errorf("%+v: failed to execute runtasks", err)
+		glog.Warningf("will rollback previously executed runtask(s)")
 		m.rollback()
 	} else {
 		// return this runner's output if there were no errors

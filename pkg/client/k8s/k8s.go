@@ -51,6 +51,8 @@ import (
 type K8sKind string
 
 const (
+	// StorageClassKK is a K8s StorageClass Kind
+	StorageClassKK K8sKind = "StorageClass"
 	// PodKK is a K8s Pod Kind
 	PodKK K8sKind = "Pod"
 	// DeploymentKK is a K8s Deployment Kind
@@ -65,6 +67,8 @@ const (
 	StroagePoolCRKK K8sKind = "StoragePool"
 	// StroagePoolClaimCRKK is a K8s CR of kind StoragePool
 	StroagePoolClaimCRKK K8sKind = "StoragePoolClaim"
+	// PersistentVolumeKK is K8s PersistentVolume Kind
+	PersistentVolumeKK K8sKind = "PersistentVolume"
 	// PersistentVolumeClaimKK is a K8s PersistentVolumeClaim Kind
 	PersistentVolumeClaimKK K8sKind = "PersistentVolumeClaim"
 	// CstorPoolCRKK is a K8s CR of kind CStorPool
@@ -88,6 +92,8 @@ const (
 	CoreV1KA K8sAPIVersion = "v1"
 
 	OEV1alpha1KA K8sAPIVersion = "openebs.io/v1alpha1"
+
+	StorageV1KA K8sAPIVersion = "storage.k8s.io/v1"
 )
 
 // K8sClient provides the necessary utility to operate over
@@ -211,6 +217,18 @@ func (k *K8sClient) GetStorageV1SC(name string, opts mach_apis_meta_v1.GetOption
 
 	scops := k.storageV1SCOps()
 	return scops.Get(name, opts)
+}
+
+// GetStorageV1SCAsRaw returns a StorageClass instance
+func (k *K8sClient) GetStorageV1SCAsRaw(name string) (result []byte, err error) {
+	result, err = k.cs.StorageV1().RESTClient().
+		Get().
+		Resource("storageclasses").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+
+	return
 }
 
 // oeV1alpha1SPCOps is a utility function that provides a instance capable of
@@ -453,6 +471,20 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 
 	pops := k.coreV1PVOps()
 	return pops.Get(name, opts)
+}
+
+// GetCoreV1PersistentVolumeAsRaw fetches the K8s PersistentVolume with the
+// provided name
+func (k *K8sClient) GetCoreV1PersistentVolumeAsRaw(name string) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().
+		Get().
+		Namespace(k.ns).
+		Resource("persistentvolumes").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+
+	return
 }
 
 // GetCoreV1PVCAsRaw fetches the K8s PVC with the provided name

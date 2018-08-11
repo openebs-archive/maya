@@ -132,6 +132,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 			string(v1alpha1.CapacityVTP):              capacity,
 			string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
 			string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
+			string(v1alpha1.StorageClassVTP):          scName,
 		},
 	)
 	if err != nil {

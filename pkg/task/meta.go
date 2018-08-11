@@ -350,6 +350,10 @@ func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
 
+func (m *metaTaskExecutor) isGetStorageV1SC() bool {
+	return m.identifier.isStorageV1SC() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isGetOEV1alpha1Disk() bool {
 	return m.identifier.isOEV1alpha1Disk() && m.isGet()
 }
@@ -363,6 +367,10 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 
 func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isGetCoreV1PV() bool {
+	return m.identifier.isCoreV1PV() && m.isGet()
 }
 
 func (m *metaTaskExecutor) isPutOEV1alpha1SP() bool {
