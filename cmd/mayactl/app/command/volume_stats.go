@@ -79,9 +79,13 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	if err != nil {
 		return nil
 	}
-	if annotation.ControllerStatus != "Running" {
-		fmt.Println("Volume not reachable, found controller's status", annotation.ControllerStatus)
-		return nil
+
+	ctrlstatus := strings.Split(annotation.ControllerStatus, ",")
+	for i := range ctrlstatus {
+		if ctrlstatus[i] != "running" {
+			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
+			return nil
+		}
 	}
 
 	replicas := strings.Split(annotation.Replicas, ",")
@@ -150,8 +154,8 @@ Size    :   {{.Size}}
 
 `
 		replicaTemplate = `
-Replica Stats : 
----------------- 
+Replica Stats :
+----------------
 {{ printf "REPLICA\t STATUS\t DATAUPDATEINDEX" }}
 {{ printf "--------\t -------\t ----------------" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Replica }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.DataUpdateIndex }} {{end}}
@@ -162,7 +166,7 @@ Performance Stats :
 --------------------
 {{ printf "r/s\t w/s\t r(MB/s)\t w(MB/s)\t rLat(ms)\t wLat(ms)" }}
 {{ printf "----\t ----\t --------\t --------\t ---------\t ---------" }}
-{{ printf "%d\t" .ReadIOPS }} {{ printf "%d\t" .WriteIOPS }} {{ printf "%.3f\t" .ReadThroughput }} {{ printf "%.3f\t" .WriteThroughput }} {{ printf "%.3f\t" .ReadLatency }} {{printf "%.3f\t" .WriteLatency }} 
+{{ printf "%d\t" .ReadIOPS }} {{ printf "%d\t" .WriteIOPS }} {{ printf "%.3f\t" .ReadThroughput }} {{ printf "%.3f\t" .WriteThroughput }} {{ printf "%.3f\t" .ReadLatency }} {{printf "%.3f\t" .WriteLatency }}
 
 `
 		capicityTemplate = `

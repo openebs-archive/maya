@@ -173,3 +173,39 @@ func getRequest(url string, namespace string, chkbody bool) ([]byte, error) {
 
 	return body, nil
 }
+
+// getRequest GETS a request to a url and returns the response
+func deleteRequest(url string, namespace string) error {
+
+	if len(url) == 0 {
+		return errors.New("Invalid URL")
+	}
+
+	req, err := http.NewRequest("DELETE", url, nil)
+
+	if err != nil {
+		return err
+	}
+
+	if len(namespace) > 0 {
+		req.Header.Set("namespace", namespace)
+	}
+
+	c := &http.Client{
+		Timeout: timeoutVolumeDelete,
+	}
+
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	code := resp.StatusCode
+
+	if code != http.StatusOK {
+		return fmt.Errorf("Server status error: %v", http.StatusText(code))
+	}
+
+	return nil
+}

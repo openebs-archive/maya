@@ -14,8 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-./ci/helm_install_openebs.sh
+#./ci/helm_install_openebs.sh
+./ci/install_openebs.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
-./ci/test_mayactl.sh
+#./ci/test_mayactl.sh
+./ci/setup_env.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi

@@ -3,8 +3,6 @@ package mapiserver
 import (
 	"encoding/json"
 	"time"
-
-	"github.com/openebs/maya/types/v1"
 )
 
 const (
@@ -15,7 +13,7 @@ const (
 // ListVolumes and return them as obj
 func ListVolumes(obj interface{}) error {
 
-	body, err := getRequest(GetURL()+listVolumePath, v1.DefaultNamespaceForListOps, false)
+	body, err := getRequest(GetURL()+listVolumePath, "", false)
 	if err != nil {
 		return err
 	}

@@ -75,11 +75,14 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	if err != nil {
 		return nil
 	}
-	if annotation.ControllerStatus != "Running" {
-		fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
-		return nil
-	}
 
+	ctrlstatus := strings.Split(annotation.ControllerStatus, ",")
+	for i := range ctrlstatus {
+		if ctrlstatus[i] != "running" {
+			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
+			return nil
+		}
+	}
 	// Initiallize an instance of ReplicaCollection, json response recieved from the
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
@@ -129,9 +132,9 @@ func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.R
 	)
 	const (
 		replicaTemplate = `
-		
-Replica Details : 
----------------- 
+
+Replica Details :
+----------------
 {{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE" }}
 {{ printf "-----\t -----------\t -------\t ---\t -----" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
