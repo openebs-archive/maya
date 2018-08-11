@@ -46,6 +46,14 @@ type CStorVolumeReplicaNamespaceListerExpansion interface{}
 // DiskLister.
 type DiskListerExpansion interface{}
 
+// RunTaskListerExpansion allows custom methods to be added to
+// RunTaskLister.
+type RunTaskListerExpansion interface{}
+
+// RunTaskNamespaceListerExpansion allows custom methods to be added to
+// RunTaskNamespaceLister.
+type RunTaskNamespaceListerExpansion interface{}
+
 // StoragePoolListerExpansion allows custom methods to be added to
 // StoragePoolLister.
 type StoragePoolListerExpansion interface{}

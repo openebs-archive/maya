@@ -394,6 +394,19 @@ func (k *K8sClient) GetOEV1alpha1CAST(name string, opts mach_apis_meta_v1.GetOpt
 	return castOps.Get(name, opts)
 }
 
+// oeV1alpha1RunTaskOps is a utility function that provides a instance capable
+// of executing operations on RunTask custom resource
+func (k *K8sClient) oeV1alpha1RunTaskOps() typed_oe_v1alpha1.RunTaskInterface {
+	return k.oecs.OpenebsV1alpha1().RunTasks(k.ns)
+}
+
+// GetOEV1alpha1RunTask fetches the OpenEBS CASTemplate specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1RunTask(name string, opts mach_apis_meta_v1.GetOptions) (*api_oe_v1alpha1.RunTask, error) {
+	rtOps := k.oeV1alpha1RunTaskOps()
+	return rtOps.Get(name, opts)
+}
+
 // cmOps is a utility function that provides a instance capable of
 // executing various K8s ConfigMap related operations.
 func (k *K8sClient) cmOps() typed_core_v1.ConfigMapInterface {

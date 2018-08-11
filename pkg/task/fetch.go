@@ -18,6 +18,10 @@ package task
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -27,7 +31,7 @@ import (
 // TaskSpecFetcher is the contract to fetch task
 // specification that includes the task's meta specification
 type TaskSpecFetcher interface {
-	Fetch(taskName string) (runtask v1alpha1.RunTask, err error)
+	Fetch(taskName string) (runtask *v1alpha1.RunTask, err error)
 }
 
 // K8sTaskSpecFetcher deals with fetching a task specifications
@@ -41,6 +45,20 @@ type K8sTaskSpecFetcher struct {
 	// NOTE:
 	//  This is also helpful for mocking during UT
 	k8sClient *m_k8s_client.K8sClient
+}
+
+// FetchSpec returns specifications of a provided task in yaml
+// string format
+//
+// NOTE:
+//  This is an implementation of TaskSpecFetcher interface
+func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask *v1alpha1.RunTask, err error) {
+	rtGetter := defaultRunTaskGetter(getRunTaskSpec{
+		taskName:  taskName,
+		k8sClient: f.k8sClient,
+	})
+
+	return rtGetter.Get()
 }
 
 // NewK8sTaskSpecFetcher returns a new instance of K8sTaskSpecFetcher based on the
@@ -60,27 +78,124 @@ func NewK8sTaskSpecFetcher(searchNamespace string) (*K8sTaskSpecFetcher, error) 
 	}, nil
 }
 
-// FetchSpec returns specifications of a provided task in yaml
-// string format
-//
-// NOTE:
-//  This is an implementation of TaskSpecFetcher interface
-func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask v1alpha1.RunTask, err error) {
-	if len(taskName) == 0 {
-		err = fmt.Errorf("failed to fetch runtask: nil task name was provided")
+// runTaskGetter abstracts fetching of runtask instance
+type runTaskGetter interface {
+	Get() (runtask *v1alpha1.RunTask, err error)
+}
+
+// getRunTaskSpec composes common properties required to get a run task
+// instance
+type getRunTaskSpec struct {
+	taskName  string
+	k8sClient *m_k8s_client.K8sClient
+}
+
+// runTaskGetterFn abstracts fetching of runtask instance based on the provided
+// runtask specifications
+type runTaskGetterFn func(getSpec getRunTaskSpec) (runtask *v1alpha1.RunTask, err error)
+
+// getRunTaskFromConfigMap fetches runtask instance from a config map instance
+func getRunTaskFromConfigMap(g getRunTaskSpec) (runtask *v1alpha1.RunTask, err error) {
+	if len(strings.TrimSpace(g.taskName)) == 0 {
+		err = fmt.Errorf("missing run task name: failed to get runtask from config map")
 		return
 	}
 
-	cm, err := f.k8sClient.GetConfigMap(taskName, mach_apis_meta_v1.GetOptions{})
+	if g.k8sClient == nil {
+		err = fmt.Errorf("nil kubernetes client found: failed to get runtask '%s' from config map", g.taskName)
+		return
+	}
+
+	cm, err := g.k8sClient.GetConfigMap(g.taskName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
+		err = errors.Wrap(err, fmt.Sprintf("failed to get run task '%s' from config map", g.taskName))
 		return
 	}
 
-	runtask = v1alpha1.RunTask{}
-	runtask.Name = taskName
+	runtask = &v1alpha1.RunTask{}
+	runtask.Name = g.taskName
 	runtask.Spec.Meta = cm.Data["meta"]
 	runtask.Spec.Task = cm.Data["task"]
 	runtask.Spec.PostRun = cm.Data["post"]
 
 	return
+}
+
+// getRunTaskFromCustomResource fetches runtask instance from its custom
+// resource instance
+func getRunTaskFromCustomResource(g getRunTaskSpec) (runtask *v1alpha1.RunTask, err error) {
+	if len(strings.TrimSpace(g.taskName)) == 0 {
+		err = fmt.Errorf("missing run task name: failed to get runtask from custom resource")
+		return
+	}
+
+	if g.k8sClient == nil {
+		err = fmt.Errorf("nil kubernetes client: failed to get runtask '%s' from custom resource", g.taskName)
+		return
+	}
+
+	runtask, err = g.k8sClient.GetOEV1alpha1RunTask(g.taskName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		err = errors.Wrap(err, fmt.Sprintf("failed to get runtask '%s' from custom resource", g.taskName))
+	}
+
+	return
+}
+
+// getRunTask enables fetching a run task instance based on various run task
+// getter strategies
+//
+// NOTE:
+//  This is an implementation of runTaskGetter
+type getRunTask struct {
+	// getRunTaskSpec is the specifications required to fetch runtask instance
+	getRunTaskSpec
+	// currentStrategy is the latest strategy to fetch runtask instance
+	currentStrategy runTaskGetterFn
+	// oldStrategies are the older strategies to fetch runtask instance
+	oldStrategies []runTaskGetterFn
+}
+
+// Get returns an instance of runtask
+func (g *getRunTask) Get() (runtask *v1alpha1.RunTask, err error) {
+	var allStrategies []runTaskGetterFn
+	if g.currentStrategy != nil {
+		allStrategies = append(allStrategies, g.currentStrategy)
+	}
+
+	if len(g.oldStrategies) != 0 {
+		allStrategies = append(allStrategies, g.oldStrategies...)
+	}
+
+	if len(allStrategies) == 0 {
+		err = fmt.Errorf("no strategies to get runtask: failed to get runtask '%s'", g.taskName)
+		return
+	}
+
+	for _, s := range allStrategies {
+		runtask, err = s(g.getRunTaskSpec)
+		if err == nil {
+			return
+		}
+
+		err = errors.Wrap(err, fmt.Sprintf("failed to get runtask '%s'", g.taskName))
+		glog.Warningf("%s", err)
+	}
+
+	// at this point, we have a real error we can not recover from
+	err = fmt.Errorf("exhausted all strategies to get runtask: failed to get runtask '%s'", g.taskName)
+	return
+}
+
+func defaultRunTaskGetter(getSpec getRunTaskSpec) *getRunTask {
+	// current strategy
+	current := getRunTaskFromCustomResource
+	// older strategies
+	old := []runTaskGetterFn{getRunTaskFromConfigMap}
+
+	return &getRunTask{
+		getRunTaskSpec:  getSpec,
+		currentStrategy: current,
+		oldStrategies:   old,
+	}
 }
