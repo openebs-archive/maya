@@ -343,8 +343,12 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.deleteOEV1alpha1CVR()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
+	} else if m.metaTaskExec.isGetStorageV1SC() {
+		err = m.getStorageV1SC()
+	} else if m.metaTaskExec.isGetCoreV1PV() {
+		err = m.getCoreV1PV()
 	} else {
-		err = fmt.Errorf("failed to execute task: not a supported operation: meta info '%+v'", m.metaTaskExec.getMetaInfo())
+		err = fmt.Errorf("un-supported task operation: failed to execute task: '%+v'", m.metaTaskExec.getMetaInfo())
 	}
 
 	if err != nil {
@@ -687,6 +691,28 @@ func (m *taskExecutor) getCoreV1PVC() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, pvc, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// getCoreV1PV will get the PersistentVolume as specified in the RunTask
+func (m *taskExecutor) getCoreV1PV() (err error) {
+	pv, err := m.getK8sClient().GetCoreV1PersistentVolumeAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, pv, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// getStorageV1SC will get the StorageClass as specified in the RunTask
+func (m *taskExecutor) getStorageV1SC() (err error) {
+	sc, err := m.getK8sClient().GetStorageV1SCAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, sc, string(v1alpha1.CurrentJsonResultTLP))
 	return
 }
 

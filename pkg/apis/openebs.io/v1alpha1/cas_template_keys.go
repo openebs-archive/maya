@@ -140,6 +140,12 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Volume.pvc }}
 	PersistentVolumeClaimVTP VolumeTLPProperty = "pvc"
+	// StorageClassVTP is the StorageClass of the volume
+	//
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .Volume.storageclass }}
+	StorageClassVTP VolumeTLPProperty = "storageclass"
 )
 
 // PolicyTLPProperty is the name of the property that is found

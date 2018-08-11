@@ -89,6 +89,10 @@ func (i taskIdentifier) isPVC() bool {
 	return i.identity.Kind == string(m_k8s_client.PersistentVolumeClaimKK)
 }
 
+func (i taskIdentifier) isPV() bool {
+	return i.identity.Kind == string(m_k8s_client.PersistentVolumeKK)
+}
+
 func (i taskIdentifier) isExtnV1B1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.ExtensionsV1Beta1KA)
 }
@@ -121,6 +125,18 @@ func (i taskIdentifier) isCstorVolumeReplica() bool {
 	return i.identity.Kind == string(m_k8s_client.CStorVolumeReplicaCRKK)
 }
 
+func (i taskIdentifier) isStorageClass() bool {
+	return i.identity.Kind == string(m_k8s_client.StorageClassKK)
+}
+
+func (i taskIdentifier) isStorageV1() bool {
+	return i.identity.APIVersion == string(m_k8s_client.StorageV1KA)
+}
+
+func (i taskIdentifier) isStorageV1SC() bool {
+	return i.isStorageV1() && i.isStorageClass()
+}
+
 func (i taskIdentifier) isOEV1alpha1Disk() bool {
 	return i.isOEV1alpha1() && i.isDisk()
 }
@@ -148,6 +164,11 @@ func (i taskIdentifier) isCoreV1Service() bool {
 func (i taskIdentifier) isCoreV1PVC() bool {
 	return i.isCoreV1() && i.isPVC()
 }
+
+func (i taskIdentifier) isCoreV1PV() bool {
+	return i.isCoreV1() && i.isPV()
+}
+
 func (i taskIdentifier) isOEV1alpha1SPC() bool {
 	return i.isOEV1alpha1() && i.isStoragePoolClaim()
 }
