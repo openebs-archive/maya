@@ -4,30 +4,29 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/openebs/maya/types/v1"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	volumeCreateTimeout = 5 * time.Second
+	volumeCreateTimeout = 60 * time.Second
 	volumePath          = "/latest/volumes/"
 )
 
 // CreateVolume creates a volume by invoking the API call to m-apiserver
-func CreateVolume(vname, size string) error {
+func CreateVolume(vname, size, namespace string) error {
 	// Filling structure with values
-	vs := v1.Volume{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "Volume",
-			APIVersion: "v1",
+	cVol := v1alpha1.CASVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vname,
+			Namespace: namespace,
 		},
-		ObjectMeta: v1.ObjectMeta{
-			Name: vname,
+		Spec: v1alpha1.CASVolumeSpec{
+			Capacity: size,
 		},
-		Capacity: size,
 	}
-
 	// Marshal serializes the value of vs structure
-	jsonValue, err := json.Marshal(vs)
+	jsonValue, err := json.Marshal(cVol)
 	if err != nil {
 		return err
 	}

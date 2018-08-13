@@ -19,9 +19,9 @@ package command
 import (
 	"fmt"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	mayav1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	resp := mapiserver.CreateVolume(c.volName, c.size)
+	resp := mapiserver.CreateVolume(c.volName, c.size, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Volume creation failed: %v", resp)
 	}
@@ -71,13 +71,13 @@ func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 // IsVolumeExist checks whether the volume already exists or not
 func IsVolumeExist(volname string) error {
-	var vols mayav1.VolumeList
-	err := mapiserver.ListVolumes(&vols)
+	var cvols v1alpha1.CASVolumeList
+	err := mapiserver.ListVolumes(&cvols)
 	if err != nil {
 		return err
 	}
 
-	for _, items := range vols.Items {
+	for _, items := range cvols.Items {
 		if volname == items.ObjectMeta.Name {
 			return fmt.Errorf("Volume creation failed : Volume %v already exist ", volname)
 		}

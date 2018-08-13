@@ -15,6 +15,7 @@ func TestCreateVolume(t *testing.T) {
 	tests := map[string]*struct {
 		volumeName  string
 		size        string
+		namespace   string
 		fakeHandler utiltesting.FakeHandler
 		err         error
 		addr        string
@@ -22,10 +23,11 @@ func TestCreateVolume(t *testing.T) {
 		"StatusOK": {
 			volumeName: "qwewretrytu",
 			size:       "1G",
+			namespace:  "appspace",
 			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: "Volume 'qwewretrytu' deleted Successfully",
-				T:            t,
+				StatusCode: 200,
+				//ResponseBody: "Volume 'qwewretrytu' deleted Successfully",
+				T: t,
 			},
 			err:  nil,
 			addr: "MAPI_ADDR",
@@ -34,8 +36,8 @@ func TestCreateVolume(t *testing.T) {
 			volumeName: "12324rty653423",
 			size:       "1G",
 			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   404,
-				ResponseBody: "Volume '12324rty653423' deleted Successfully",
+				StatusCode: 404,
+				//ResponseBody: "Volume '12324rty653423' deleted Successfully",
 
 				T: t,
 			},
@@ -46,9 +48,9 @@ func TestCreateVolume(t *testing.T) {
 			volumeName: "",
 			size:       "1G",
 			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   400,
-				ResponseBody: "Volume name is missing",
-				T:            t,
+				StatusCode: 400,
+				//ResponseBody: "Volume name is missing",
+				T: t,
 			},
 			err:  fmt.Errorf("Server status error: %v", http.StatusText(400)),
 			addr: "MAPI_ADDR",
@@ -61,7 +63,7 @@ func TestCreateVolume(t *testing.T) {
 			os.Setenv(tt.addr, server.URL)
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
-			got := CreateVolume(tt.volumeName, tt.size)
+			got := CreateVolume(tt.volumeName, tt.size, tt.namespace)
 
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("CreateVolume(%v, %v) => got %v, want %v ", tt.volumeName, tt.size, got, tt.err)

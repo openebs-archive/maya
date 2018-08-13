@@ -77,7 +77,6 @@ func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 		return fmt.Errorf("Snapshot creation failed: %v", resp)
 	}
 
-	fmt.Printf("Volume snapshot Successfully Created:%v\n", c.volName)
-
+	fmt.Printf("Volume snapshot created for volume %s : '%s'\n", c.volName, c.snapName)
 	return nil
 }

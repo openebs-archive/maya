@@ -19,9 +19,9 @@ package command
 import (
 	"fmt"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	mtypesv1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -56,15 +56,15 @@ func NewCmdVolumesList() *cobra.Command {
 func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	//fmt.Println("Executing volume list...")
 
-	var vsms mtypesv1.VolumeList
-	err := mapiserver.ListVolumes(&vsms)
+	var cvols v1alpha1.CASVolumeList
+	err := mapiserver.ListVolumes(&cvols)
 	if err != nil {
 		return err
 	}
 
-	out := make([]string, len(vsms.Items)+1)
+	out := make([]string, len(cvols.Items)+1)
 	out[0] = "Name|Status"
-	for i, items := range vsms.Items {
+	for i, items := range cvols.Items {
 		if items.Status.Reason == "" {
 			items.Status.Reason = "Running"
 		}
