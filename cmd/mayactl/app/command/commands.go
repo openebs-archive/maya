@@ -35,7 +35,13 @@ func NewMayaCommand() *cobra.Command {
 				mapiserver.Initialize()
 				if mapiserver.GetConnectionStatus() != "running" {
 					fmt.Println("Unable to connect to mapi server address")
-					os.Exit(1)
+					// Not exiting here to get the actual standard error in
+					// case.The error will contains the exact IP endpoint to
+					// its trying to send a http request which is more helpful
+					// 1. maya-apiserver not running
+					// 2. maya-apiserver not reachable
+					// 3. if mayactl ran outside of maya-apiserver POD
+					//os.Exit(1)
 				}
 			} else if mapiserver.GetConnectionStatus() != "running" {
 				fmt.Println("Invalid m-apiserver address")
