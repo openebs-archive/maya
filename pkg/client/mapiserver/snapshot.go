@@ -35,7 +35,7 @@ const (
 	snapshotRevertPath = "/latest/snapshots/revert/"
 	snapshotListPath   = "/latest/snapshots/list/"
 	snapshotTemplate   = `
-Snapshot Details: 
+Snapshot Details:
 ------------------
 {{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
 {{ printf "-----\t -----------\t ------------\t -------\t ---------" }} {{ range $key, $value := . }}
@@ -70,8 +70,11 @@ func CreateSnapshot(volName string, snapName string, namespace string) error {
 	}
 
 	// Marshal serializes the values
-	jsonValue, _ := json.Marshal(snap)
-	_, err := postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
+	jsonValue, err := json.Marshal(snap)
+	if err != nil {
+		return err
+	}
+	_, err = postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
 	return err
 }
 
