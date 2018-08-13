@@ -81,6 +81,11 @@ func (m *TaskGroupRunner) AddRunTask(runtask *v1alpha1.RunTask) (err error) {
 // NOTE:
 //  This output format is specified in the provided run task.
 func (m *TaskGroupRunner) SetOutputTask(runtask *v1alpha1.RunTask) (err error) {
+	if runtask == nil {
+		err = fmt.Errorf("failed to set output task: nil run task found")
+		return
+	}
+
 	if len(runtask.Spec.Meta) == 0 {
 		err = fmt.Errorf("failed to set output task: nil meta task specs found: task name '%s'", runtask.Name)
 		return
@@ -217,7 +222,8 @@ func (m *TaskGroupRunner) runAllTasks(values map[string]interface{}) (err error)
 // runOutput gets the output of this runner once all the tasks were executed
 // successfully
 func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byte, err error) {
-	if len(m.outputTask.Spec.Task) == 0 {
+
+	if m.outputTask == nil || len(m.outputTask.Spec.Task) == 0 {
 		// nothing needs to be done
 		return
 	}
