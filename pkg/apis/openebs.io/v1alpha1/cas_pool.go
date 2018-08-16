@@ -17,6 +17,21 @@ package v1alpha1
 
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation
+type CasPoolKey string
+type CasPoolVals int
+
+const (
+	// HostNameCPK is the kubernetes host name label
+	HostNameCPK CasPoolKey = "kubernetes.io/hostname"
+	// PoolTypeMirroredCPK is a key for mirrored for pool
+	PoolTypeMirroredCPK CasPoolKey = "mirrored"
+	// PoolTypeMirroredCPK is a key for striped for pool
+	PoolTypeStripedCPK CasPoolKey = "striped"
+	// StripedDiskCountCPK is the count for striped type pool
+	StripedDiskCountCPK CasPoolVals = 1
+	// MirroredDiskCountCPK is the count for mirrored type pool
+	MirroredDiskCountCPK CasPoolVals = 2
+)
 
 type CasPool struct {
 	// StoragePoolClaim is the name of the storagepoolclaim object
@@ -33,4 +48,16 @@ type CasPool struct {
 	// Namespace can be passed via storagepoolclaim as labels to decide on the
 	// execution of namespaced resources with respect to storagepool
 	Namespace string
+
+	// DiskList is the list of disks over which a storagepool will be provisioned
+	DiskList []string
+
+	// PoolType is the type of pool to be provisioned e.g. striped or mirrored
+	PoolType string
+
+	// MaxPool is the maximum number of pool that should be provisioned
+	MaxPools int16
+
+	// MinPool is the minimum number of pool that should be provisioned
+	MinPools int16
 }

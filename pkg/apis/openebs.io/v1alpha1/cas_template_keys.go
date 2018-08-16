@@ -109,7 +109,8 @@ const (
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
-	OwnerCTP StoragePoolTLPProperty = "owner"
+	OwnerCTP    StoragePoolTLPProperty = "owner"
+	DiskListCTP StoragePoolTLPProperty = "diskList"
 )
 
 // VolumeTLPProperty is used to define properties that comes
