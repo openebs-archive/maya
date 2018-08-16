@@ -86,7 +86,8 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 		cast,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
+			string(v1alpha1.OwnerCTP):    v.pool.StoragePoolClaim,
+			string(v1alpha1.DiskListCTP): v.pool.DiskList,
 		},
 	)
 	if err != nil {

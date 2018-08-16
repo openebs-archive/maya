@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	openebsio "github.com/openebs/maya/pkg/apis/openebs.io"
+	"github.com/openebs/maya/pkg/apis/openebs.io"
 )
 
 // SchemeGroupVersion is group version used to register these objects
@@ -45,6 +45,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CASTemplateList{},
 		&CStorVolume{},
 		&CStorVolumeList{},
+		&Disk{},
+		&DiskList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
