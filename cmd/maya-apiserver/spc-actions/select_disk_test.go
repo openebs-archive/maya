@@ -19,11 +19,11 @@ package storagepoolactions
 import (
 	"testing"
 	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
-	"github.com/golang/glog"
 )
 
 func TestNodeDiskAlloter(t *testing.T) {
@@ -45,7 +45,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 	for diskListIndex := 0; diskListIndex < 20; diskListIndex++ {
 		diskIdentifier := strconv.Itoa(diskListIndex)
 		if diskListIndex%4 == 0 {
-			nodeIdentifer ++
+			nodeIdentifer++
 		}
 		diskObjectList[diskListIndex] = &v1alpha1.Disk{
 			TypeMeta: metav1.TypeMeta{},
