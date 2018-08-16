@@ -19,11 +19,12 @@ package storagepoolactions
 import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
-	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	"github.com/golang/glog"
+	"errors"
 	"fmt"
-	"github.com/openebs/maya/pkg/client/k8s"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/openebs/maya/pkg/client/k8s"
 )
 
 // clientset struct holds the interface of internalclientset
@@ -107,10 +108,10 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 	// should not be returned.
 	listDisk, err := k.oecs.OpenebsV1alpha1().Disks().List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("error in getting the disk list:", err)
+		return nil, fmt.Errorf("error in getting the disk list:%v", err)
 	}
 	if listDisk == nil {
-		return nil, fmt.Errorf("no disk object found")
+		return nil, errors.New("no disk object found")
 	}
 	nodeDiskMap := nodeSelector(listDisk, cp.PoolType)
 	gotAllotment := cp.MaxPools - spareAllotment
@@ -131,7 +132,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 // Finally diskSelector function will vote for qualified nodes.
 
-func nodeSelector(listDisk *v1alpha1.DiskList, poolType string) (map[string]*nodeDisk) {
+func nodeSelector(listDisk *v1alpha1.DiskList, poolType string) map[string]*nodeDisk {
 
 	// nodeDiskMap is the data structure holding host name as key
 	// and nodeDisk struct as value
@@ -148,19 +149,19 @@ func nodeSelector(listDisk *v1alpha1.DiskList, poolType string) (map[string]*nod
 			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &nodeDisk{diskList: []string{value.Name}, diskCount: 1}
 			// If pool type is striped the node qualifies for pool creation hence spareAllotment decremented.
 			if poolType == string(v1alpha1.PoolTypeStripedCPK) {
-				spareAllotment --
+				spareAllotment--
 			}
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
 			nodeDisk := nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]]
 			// Increment the disk count
-			nodeDisk.diskCount ++
+			nodeDisk.diskCount++
 			// Add the current disk to the diskList for this node.
 			nodeDisk.diskList = append(nodeDisk.diskList, value.Name)
 			// If pool type is mirrored the node qualifies for pool creation hence spareAllotment decremented.
 			if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
 				if nodeDisk.diskCount == int(v1alpha1.MirroredDiskCountCPK) {
-					spareAllotment --
+					spareAllotment--
 				}
 			}
 		}
@@ -172,7 +173,7 @@ func nodeSelector(listDisk *v1alpha1.DiskList, poolType string) (map[string]*nod
 // diskSelector is the function that will select the required number of disks from qualified nodes
 // so as to provision storagepool
 
-func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) ([]string) {
+func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 
 	// selectedDisk will hold a list of disk that will be used to provision storage pool, after a
 	// minimum number of node qualifies
