@@ -116,7 +116,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 		return nil, errors.New("no disk object found")
 	}
 
-	nodeDiskMap,spareAllotment := nodeSelector(listDisk, cp.PoolType,spareAllotment)
+	nodeDiskMap, spareAllotment := nodeSelector(listDisk, cp.PoolType, spareAllotment)
 	gotAllotment := cp.MaxPools - spareAllotment
 	if spareAllotment > cp.MaxPools-cp.MinPools {
 		return nil, fmt.Errorf("no node qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
@@ -135,7 +135,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 // Finally diskSelector function will vote for qualified nodes.
 
-func nodeSelector(listDisk *v1alpha1.DiskList, poolType string,spareAllotment int16) (map[string]*nodeDisk,int16){
+func nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int16) (map[string]*nodeDisk, int16) {
 
 	// nodeDiskMap is the data structure holding host name as key
 	// and nodeDisk struct as value
@@ -170,7 +170,7 @@ func nodeSelector(listDisk *v1alpha1.DiskList, poolType string,spareAllotment in
 		}
 
 	}
-	return nodeDiskMap,spareAllotment
+	return nodeDiskMap, spareAllotment
 }
 
 // diskSelector is the function that will select the required number of disks from qualified nodes
@@ -211,7 +211,7 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 
 // diskFilterConstraint will form labels that will be used to filter disks
 
-func diskFilterConstraint(diskType string) (string) {
+func diskFilterConstraint(diskType string) string {
 	var label string
 	if diskType == string(v1alpha1.TypeSparseCPK) {
 		label = string(v1alpha1.DiskTypeCPK) + "=" + string(v1alpha1.TypeSparseCPK)

@@ -67,7 +67,6 @@ data:
     objectName: {{.Storagepool.owner}}
     action: get
   post: |
-    {{- jsonpath .JsonResult "{range .spec.disks.diskList[*]}{$},{end}" | trim | saveAs "getspcinfo.disk" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.poolSpec.poolType}" | trim | saveAs "getspcinfo.poolType" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.poolSpec.cacheFile}" | trim | saveAs "getspcinfo.cacheFile" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.poolSpec.overProvisioning}" | trim | saveAs "getspcinfo.overProvisioning" .TaskResult | noop -}}
@@ -86,13 +85,19 @@ data:
     action: get
     repeatWith:
       metas:
-      {{- $diskList := .TaskResult.getspcinfo.disk | replace "," " "| trim | split " "}}
+      {{- $diskList := .Storagepool.diskList}}
       {{ range $k,$v := $diskList }}
       - objectName: {{$v}}
       {{ end }}
   post: |
-    {{- $nodesList := jsonpath .JsonResult `pkey=nodes,{@.metadata.labels.kubernetes\.io/hostname}={@.spec.devlinks[0].links[1]};` | trim | default "" | splitList ";" -}}
+    {{if eq .TaskResult.getspcinfo.type "disk"}}
+    {{- $nodesList := jsonpath .JsonResult `pkey=nodes,{@.metadata.labels.kubernetes\.io/hostname}={@.spec.devlinks[0].links[0]};` | trim | default "" | splitList ";" -}}
     {{- $nodesList | keyMap "cstorNodePoolList" .ListItems | noop -}}
+    {{end}}
+    {{if eq .TaskResult.getspcinfo.type "sparse"}}
+    {{- $nodesList := jsonpath .JsonResult `pkey=nodes,{@.metadata.labels.kubernetes\.io/hostname}={@.spec.path};` | trim | default "" | splitList ";" -}}
+    {{- $nodesList | keyMap "cstorNodePoolList" .ListItems | noop -}}
+    {{end}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -120,7 +125,7 @@ data:
     metadata:
       name: {{.Storagepool.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storagepoolclaim: {{.Storagepool.owner}}
+        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
     spec:
       disks:
@@ -159,8 +164,8 @@ data:
     metadata:
       name: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last}}
       labels:
-        openebs.io/storagepoolclaim: {{.Storagepool.owner}}
-        openebs.io/cstorPool: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last}}
+        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+        openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last}}
         app: cstor-pool
     spec:
       replicas: 1
@@ -192,6 +197,8 @@ data:
               mountPath: /dev
             - name: tmp
               mountPath: /tmp
+            - name: sparse
+              mountPath: /var/openebs
             - name: udev
               mountPath: /run/udev
               # To avoid clash between terminating and restarting pod 
@@ -212,6 +219,8 @@ data:
               mountPath: /dev
             - name: tmp
               mountPath: /tmp
+            - name: sparse
+              mountPath: /var/openebs
             - name: udev
               mountPath: /run/udev
             env:
@@ -230,6 +239,10 @@ data:
               # From host, dir called /var/openebs/shared-<uid> is created to avoid clash if two replicas run on same node.
               path: /var/openebs/shared-a2b
               type: {{ .Config.HostPathType.value }}
+          - name: sparse
+            hostPath:
+              path: /var/openebs
+              type: Directory
           - name: udev
             hostPath:
               path: /run/udev
@@ -254,14 +267,13 @@ data:
   post: |
     {{- jsonpath .JsonResult `{.metadata.name}` | trim | addTo "createputstoragepool.objectName" .TaskResult | noop -}}
   task: |
-    {{- $diskList := .TaskResult.getspcinfo.disk | replace "," " "| trim | split " " }}
     apiVersion: openebs.io/v1alpha1
     kind: StoragePool
     metadata:
       name: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last }}
       labels:
-        openebs.io/storagepoolclaim: {{.Storagepool.owner}}
-        openebs.io/cstorpool: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last}}
+        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+        openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.cstorNodeUidList.nodesUid |first | splitList " " | last}}
         kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
     spec:
       disks:
@@ -302,7 +314,7 @@ data:
     kind: CStorPool
     action: list
     options: |-
-      labelSelector: openebs.io/storagepoolclaim={{.Storagepool.owner}}
+      labelSelector: openebs.io/storage-pool-claim={{.Storagepool.owner}}
   post: |
     {{- $csps := jsonpath .JsonResult `{range .items[*]}pkey=csps,{@.metadata.name}=;{end}` | trim | default "" | splitList ";" -}}
     {{- $csps | notFoundErr "cstor pool cr not found" | saveIf "deletelistcsp.notFoundErr" .TaskResult | noop -}}
@@ -336,7 +348,7 @@ data:
     kind: Deployment
     action: list
     options: |-
-      labelSelector: openebs.io/storagepoolclaim={{.Storagepool.owner}}
+      labelSelector: openebs.io/storage-pool-claim={{.Storagepool.owner}}
   post: |
     {{- $csds := jsonpath .JsonResult `{range .items[*]}pkey=csds,{@.metadata.name}=;{end}` | trim | default "" | splitList ";" -}}
     {{- $csds | notFoundErr "cstor pool deployment not found" | saveIf "cstorpoollistdeploy.notFoundErr" .TaskResult | noop -}}
@@ -370,7 +382,7 @@ data:
     kind: StoragePool
     action: list
     options: |-
-      labelSelector: openebs.io/storagepoolclaim={{.Storagepool.owner}}
+      labelSelector: openebs.io/storage-pool-claim={{.Storagepool.owner}}
   post: |
     {{- $sps := jsonpath .JsonResult `{range .items[*]}pkey=sps,{@.metadata.name}="";{end}` | trim | default "" | splitList ";" -}}
     {{- $sps | notFoundErr "storge pool cr not found" | saveIf "deletelistcsp.notFoundErr" .TaskResult | noop -}}
