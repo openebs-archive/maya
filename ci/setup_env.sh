@@ -6,7 +6,6 @@ export KUBERNETES_SERVICE_HOST="127.0.0.1"
 export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 export KUBECONFIG=$HOME/.kube/config
 POD=$(kubectl get pods -o=jsonpath='{.items[0].metadata.name}' -n openebs)
-SNAPNAME=$(printf "%s_%s" "testsnap" "$(date +%F%N)")
 
 echo "*************** Running mayactl volume list *******************************"
 ${MAYACTL} volume list
@@ -38,7 +37,7 @@ if [[ $rc != 0 ]]; then
 fi
 
 echo "************** Running mayactl snapshot create **************************"
-${MAYACTL} snapshot create --volname default-demo-vol1-claim --snapname $SNAPNAME
+${MAYACTL} snapshot create --volname default-demo-vol1-claim --snapname snap1
 rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $POD -n openebs
@@ -65,6 +64,21 @@ fi
 
 printf "\n\n"
 sleep 5
+echo "************** Running mayactl snapshot revert ****************************"
+${MAYACTL} snapshot revert --volname default-demo-vol1-claim --snapname snap1
+if [[ $rc != 0 ]]; then
+	kubectl logs --tail=10 $POD -n openebs
+	exit $rc;
+fi
+printf "\n\n"
+sleep 5
+
+echo "************** Running mayactl snapshot list after revert ****************"
+${MAYACTL} snapshot list --volname default-demo-vol1-claim
+if [[ $rc != 0 ]]; then
+	kubectl logs --tail=10 $POD -n openebs
+	exit $rc;
+fi
 echo "************** Running mayactl volume delete ******************************"
 ${MAYACTL} volume delete --volname default-demo-vol1-claim
 if [[ $rc != 0 ]]; then
