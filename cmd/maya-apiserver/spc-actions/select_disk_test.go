@@ -34,18 +34,28 @@ func TestNodeDiskAlloter(t *testing.T) {
 	}
 
 	// Create some fake disk objects over nodes.
-	// For example, create 4 disk for each of 5 nodes.
-	// That meant 4*5 i.e. 20 disk objects should be created
+	// For example, create 6 disk (out of 6 disks 2 disks are sparse disks)for each of 5 nodes.
+	// That meant 6*5 i.e. 30 disk objects should be created
 
 	// diskObjectList will hold the list of disk objects
-	var diskObjectList [20]*v1alpha1.Disk
+	var diskObjectList [30]*v1alpha1.Disk
+
+	sparseDiskCount := 2
+	var diskLabel string
 
 	// nodeIdentifer will help in naming a node and attaching multiple disks to a single node.
 	nodeIdentifer := 0
-	for diskListIndex := 0; diskListIndex < 20; diskListIndex++ {
+	for diskListIndex := 0; diskListIndex < 30; diskListIndex++ {
 		diskIdentifier := strconv.Itoa(diskListIndex)
-		if diskListIndex%4 == 0 {
+		if diskListIndex%6 == 0 {
 			nodeIdentifer++
+			sparseDiskCount = 0
+		}
+		if sparseDiskCount != 2 {
+			diskLabel = "sparse"
+			sparseDiskCount++
+		} else {
+			diskLabel = "disk"
 		}
 		diskObjectList[diskListIndex] = &v1alpha1.Disk{
 			TypeMeta: metav1.TypeMeta{},
@@ -53,6 +63,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 				Name: "disk" + diskIdentifier,
 				Labels: map[string]string{
 					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
+					"ndm.io/disk-type":       diskLabel,
 				},
 			},
 		}
@@ -74,6 +85,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 			PoolType: "striped",
 			MaxPools: 3,
 			MinPools: 3,
+			Type:     "disk",
 		},
 			3,
 			false,
@@ -82,6 +94,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 		"CasPool2": {&v1alpha1.CasPool{
 			PoolType: "striped",
 			MaxPools: 3,
+			Type:     "disk",
 		},
 			3,
 			false,
@@ -91,6 +104,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 			PoolType: "mirrored",
 			MaxPools: 3,
 			MinPools: 3,
+			Type:     "disk",
 		},
 			6,
 			false,
@@ -100,6 +114,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 			PoolType: "mirrored",
 			MaxPools: 6,
 			MinPools: 6,
+			Type:     "disk",
 		},
 			0,
 			true,
@@ -109,6 +124,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 			PoolType: "striped",
 			MaxPools: 6,
 			MinPools: 6,
+			Type:     "disk",
 		},
 			0,
 			true,
@@ -118,8 +134,29 @@ func TestNodeDiskAlloter(t *testing.T) {
 			PoolType: "striped",
 			MaxPools: 6,
 			MinPools: 2,
+			Type:     "disk",
 		},
 			5,
+			false,
+		},
+		// Test Case #7
+		"CasPool7 of sparse type": {&v1alpha1.CasPool{
+			PoolType: "striped",
+			MaxPools: 6,
+			MinPools: 2,
+			Type:     "sparse",
+		},
+			5,
+			false,
+		},
+		// Test Case #7
+		"CasPool8 of sparse type": {&v1alpha1.CasPool{
+			PoolType: "mirrored",
+			MaxPools: 6,
+			MinPools: 2,
+			Type:     "sparse",
+		},
+			10,
 			false,
 		},
 	}

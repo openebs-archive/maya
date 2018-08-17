@@ -23,10 +23,16 @@ type CasPoolVals int
 const (
 	// HostNameCPK is the kubernetes host name label
 	HostNameCPK CasPoolKey = "kubernetes.io/hostname"
+	// DiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
+	DiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// PoolTypeMirroredCPK is a key for mirrored for pool
 	PoolTypeMirroredCPK CasPoolKey = "mirrored"
 	// PoolTypeMirroredCPK is a key for striped for pool
 	PoolTypeStripedCPK CasPoolKey = "striped"
+	// TypeSparseCPK is a key for sparse disk pool
+	TypeSparseCPK CasPoolKey = "sparse"
+	// TypeDiskCPK is a key for physical disk pool
+	TypeDiskCPK CasPoolKey = "disk"
 	// StripedDiskCountCPK is the count for striped type pool
 	StripedDiskCountCPK CasPoolVals = 1
 	// MirroredDiskCountCPK is the count for mirrored type pool
@@ -60,4 +66,7 @@ type CasPool struct {
 
 	// MinPool is the minimum number of pool that should be provisioned
 	MinPools int16
+
+	// Type is the CasPool type e.g. sparse or openebs-cstor
+	Type string
 }
