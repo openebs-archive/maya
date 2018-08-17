@@ -71,7 +71,7 @@ func (v *volumeAPIOpsV1alpha1) snapshotCreate() (interface{}, error) {
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	var labelMap map[string]string
 	snapinfo, err := jiva.Snapshot(snap.Metadata.Name, ControllerIP, labelMap)
@@ -120,7 +120,7 @@ func (v *volumeAPIOpsV1alpha1) snapshotRevert() (interface{}, error) {
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	err = jiva.SnapshotRevert(snap.Metadata.Name, ControllerIP)
 	if err != nil {
@@ -156,7 +156,7 @@ func (v *volumeAPIOpsV1alpha1) snapshotList(volName string) (interface{}, error)
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	// list all created snapshot specific to particular volume
 	snapChain, err := jiva.SnapshotList(snap.Spec.VolumeName, ControllerIP)
