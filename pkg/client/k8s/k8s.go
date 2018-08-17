@@ -202,6 +202,8 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 	}, nil
 }
 
+// GetOECS() is a getter method for fetching openebs clientset as
+// the openebs clientset is not exported.
 func (k *K8sClient) GetOECS() *openebs.Clientset {
 	return k.oecs
 }
