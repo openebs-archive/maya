@@ -24,8 +24,8 @@ func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, r
 	case "PUT":
 		return volOp.snapshotRevertV1Alpha1(resp, req)
 	case "GET":
-		// TODO: Logic to reetrieve volume name from params
-		return volOp.snapshotListV1Alpha1(resp, req, strings.TrimPrefix(req.URL.Path, "/latest/snapshots/"))
+		volName := req.Header.Get("volume-name")
+		return volOp.snapshotListV1Alpha1(resp, req, volName)
 	case "DELETE":
 		return volOp.snapshotDeleteV1Alpha1(resp, req, strings.TrimPrefix(req.URL.Path, "/latest/snapshots/"))
 	default:
@@ -77,8 +77,6 @@ func (v *volumeAPIOpsV1alpha1) snapshotCreateV1Alpha1(resp http.ResponseWriter, 
 
 // List is http handler for listing all created snapshot specific to particular volume
 func (v *volumeAPIOpsV1alpha1) snapshotListV1Alpha1(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
-	glog.Infof("Processing Volume snapshot-list request")
-
 	snap := v1.VolumeSnapshot{}
 	snap.Spec.VolumeName = volName
 
@@ -251,7 +249,7 @@ func cStorRevert(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnap
 }
 
 func jivaDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot) (interface{}, error) {
-	return nil, fmt.Errorf("jiva snapshot delete not supported")
+	return "Not implemented", nil
 }
 
 func cStorDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot) (interface{}, error) {
