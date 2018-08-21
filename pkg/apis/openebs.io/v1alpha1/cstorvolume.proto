@@ -2,16 +2,13 @@ syntax = "proto3";
 
 package v1alpha1;
 
-message VolumeSnapRequest {
+message VolumeCommand {
 	string command = 1;
 	string volume = 2;
 	string snapname = 3;
+	bytes status = 4;
 }
 
-message VolumeSnapResponse {
-	bytes status = 1;
-}
-
-service RunSnapCommand {
-  rpc RunVolumeSnapCommand(VolumeSnapRequest) returns (VolumeSnapResponse) {}
+service RunCommand {
+  rpc RunVolumeCommand(VolumeCommand) returns (VolumeCommand) {}
 }

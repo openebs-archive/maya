@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
-	"github.com/openebs/maya/volume/provisioners/cstor"
+	cstor "github.com/openebs/maya/volume/provisioners/cstor"
 	"github.com/openebs/maya/volume/provisioners/jiva"
 )
 
@@ -68,7 +68,7 @@ func (v *volumeAPIOpsV1alpha1) snapshotCreateV1Alpha1(resp http.ResponseWriter, 
 
 	switch volType {
 	case string(v1.CStorVolumeType):
-		return cStorSnapshot(resp, req, snap)
+		return cStorSnapshot(resp, req, snap, &cstor.CStorOps{})
 	case string(v1.JivaVolumeType):
 		return jivaSnapshot(resp, req, snap)
 	}
@@ -124,7 +124,7 @@ func (v *volumeAPIOpsV1alpha1) snapshotDeleteV1Alpha1(resp http.ResponseWriter, 
 
 	switch volType {
 	case string(v1.CStorVolumeType):
-		return cStorDelete(resp, req, snap)
+		return cStorDelete(resp, req, snap, &cstor.CStorOps{})
 	case string(v1.JivaVolumeType):
 		return jivaDelete(resp, req, snap)
 	}
@@ -187,14 +187,14 @@ func jivaSnapshot(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSna
 	return snapinfo, nil
 }
 
-func cStorSnapshot(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot) (interface{}, error) {
+func cStorSnapshot(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot, engineOps cstor.EngineOps) (interface{}, error) {
 	glog.Infof("[DEBUG] cStorSnapshot called")
 	targetIP, err := getTargetIP(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
 
-	return cstor.CreateSnapshot(snap.Spec.VolumeName, snap.Metadata.Name, targetIP)
+	return engineOps.CreateSnapshot(snap.Spec.VolumeName, snap.Metadata.Name, targetIP)
 }
 
 func getTargetIP(resp http.ResponseWriter, req *http.Request, volName string) (string, error) {
@@ -252,12 +252,12 @@ func jivaDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnaps
 	return "Not implemented", nil
 }
 
-func cStorDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot) (interface{}, error) {
+func cStorDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot, engineOps cstor.EngineOps) (interface{}, error) {
 	glog.Infof("[DEBUG] cStorSnapshotDelete called. Header values : %v", req.Header)
 	targetIP, err := getTargetIP(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
 
-	return cstor.DeleteSnapshot(snap.Spec.VolumeName, snap.Metadata.Name, targetIP)
+	return engineOps.DeleteSnapshot(snap.Spec.VolumeName, snap.Metadata.Name, targetIP)
 }

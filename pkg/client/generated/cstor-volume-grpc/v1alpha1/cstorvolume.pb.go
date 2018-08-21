@@ -23,92 +23,62 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
-type VolumeSnapRequest struct {
+type VolumeCommand struct {
 	Command              string   `protobuf:"bytes,1,opt,name=command,proto3" json:"command,omitempty"`
 	Volume               string   `protobuf:"bytes,2,opt,name=volume,proto3" json:"volume,omitempty"`
 	Snapname             string   `protobuf:"bytes,3,opt,name=snapname,proto3" json:"snapname,omitempty"`
+	Status               []byte   `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *VolumeSnapRequest) Reset()         { *m = VolumeSnapRequest{} }
-func (m *VolumeSnapRequest) String() string { return proto.CompactTextString(m) }
-func (*VolumeSnapRequest) ProtoMessage()    {}
-func (*VolumeSnapRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cstorvolume_f75cbcda75ddaf04, []int{0}
+func (m *VolumeCommand) Reset()         { *m = VolumeCommand{} }
+func (m *VolumeCommand) String() string { return proto.CompactTextString(m) }
+func (*VolumeCommand) ProtoMessage()    {}
+func (*VolumeCommand) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cstorvolume_54a5cb973535de72, []int{0}
 }
-func (m *VolumeSnapRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_VolumeSnapRequest.Unmarshal(m, b)
+func (m *VolumeCommand) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_VolumeCommand.Unmarshal(m, b)
 }
-func (m *VolumeSnapRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_VolumeSnapRequest.Marshal(b, m, deterministic)
+func (m *VolumeCommand) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_VolumeCommand.Marshal(b, m, deterministic)
 }
-func (dst *VolumeSnapRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VolumeSnapRequest.Merge(dst, src)
+func (dst *VolumeCommand) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VolumeCommand.Merge(dst, src)
 }
-func (m *VolumeSnapRequest) XXX_Size() int {
-	return xxx_messageInfo_VolumeSnapRequest.Size(m)
+func (m *VolumeCommand) XXX_Size() int {
+	return xxx_messageInfo_VolumeCommand.Size(m)
 }
-func (m *VolumeSnapRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_VolumeSnapRequest.DiscardUnknown(m)
+func (m *VolumeCommand) XXX_DiscardUnknown() {
+	xxx_messageInfo_VolumeCommand.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_VolumeSnapRequest proto.InternalMessageInfo
+var xxx_messageInfo_VolumeCommand proto.InternalMessageInfo
 
-func (m *VolumeSnapRequest) GetCommand() string {
+func (m *VolumeCommand) GetCommand() string {
 	if m != nil {
 		return m.Command
 	}
 	return ""
 }
 
-func (m *VolumeSnapRequest) GetVolume() string {
+func (m *VolumeCommand) GetVolume() string {
 	if m != nil {
 		return m.Volume
 	}
 	return ""
 }
 
-func (m *VolumeSnapRequest) GetSnapname() string {
+func (m *VolumeCommand) GetSnapname() string {
 	if m != nil {
 		return m.Snapname
 	}
 	return ""
 }
 
-type VolumeSnapResponse struct {
-	Status               []byte   `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *VolumeSnapResponse) Reset()         { *m = VolumeSnapResponse{} }
-func (m *VolumeSnapResponse) String() string { return proto.CompactTextString(m) }
-func (*VolumeSnapResponse) ProtoMessage()    {}
-func (*VolumeSnapResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cstorvolume_f75cbcda75ddaf04, []int{1}
-}
-func (m *VolumeSnapResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_VolumeSnapResponse.Unmarshal(m, b)
-}
-func (m *VolumeSnapResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_VolumeSnapResponse.Marshal(b, m, deterministic)
-}
-func (dst *VolumeSnapResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_VolumeSnapResponse.Merge(dst, src)
-}
-func (m *VolumeSnapResponse) XXX_Size() int {
-	return xxx_messageInfo_VolumeSnapResponse.Size(m)
-}
-func (m *VolumeSnapResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_VolumeSnapResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_VolumeSnapResponse proto.InternalMessageInfo
-
-func (m *VolumeSnapResponse) GetStatus() []byte {
+func (m *VolumeCommand) GetStatus() []byte {
 	if m != nil {
 		return m.Status
 	}
@@ -116,8 +86,7 @@ func (m *VolumeSnapResponse) GetStatus() []byte {
 }
 
 func init() {
-	proto.RegisterType((*VolumeSnapRequest)(nil), "v1alpha1.VolumeSnapRequest")
-	proto.RegisterType((*VolumeSnapResponse)(nil), "v1alpha1.VolumeSnapResponse")
+	proto.RegisterType((*VolumeCommand)(nil), "v1alpha1.VolumeCommand")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -128,84 +97,83 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// RunSnapCommandClient is the client API for RunSnapCommand service.
+// RunCommandClient is the client API for RunCommand service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type RunSnapCommandClient interface {
-	RunVolumeSnapCommand(ctx context.Context, in *VolumeSnapRequest, opts ...grpc.CallOption) (*VolumeSnapResponse, error)
+type RunCommandClient interface {
+	RunVolumeCommand(ctx context.Context, in *VolumeCommand, opts ...grpc.CallOption) (*VolumeCommand, error)
 }
 
-type runSnapCommandClient struct {
+type runCommandClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewRunSnapCommandClient(cc *grpc.ClientConn) RunSnapCommandClient {
-	return &runSnapCommandClient{cc}
+func NewRunCommandClient(cc *grpc.ClientConn) RunCommandClient {
+	return &runCommandClient{cc}
 }
 
-func (c *runSnapCommandClient) RunVolumeSnapCommand(ctx context.Context, in *VolumeSnapRequest, opts ...grpc.CallOption) (*VolumeSnapResponse, error) {
-	out := new(VolumeSnapResponse)
-	err := c.cc.Invoke(ctx, "/v1alpha1.RunSnapCommand/RunVolumeSnapCommand", in, out, opts...)
+func (c *runCommandClient) RunVolumeCommand(ctx context.Context, in *VolumeCommand, opts ...grpc.CallOption) (*VolumeCommand, error) {
+	out := new(VolumeCommand)
+	err := c.cc.Invoke(ctx, "/v1alpha1.RunCommand/RunVolumeCommand", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// RunSnapCommandServer is the server API for RunSnapCommand service.
-type RunSnapCommandServer interface {
-	RunVolumeSnapCommand(context.Context, *VolumeSnapRequest) (*VolumeSnapResponse, error)
+// RunCommandServer is the server API for RunCommand service.
+type RunCommandServer interface {
+	RunVolumeCommand(context.Context, *VolumeCommand) (*VolumeCommand, error)
 }
 
-func RegisterRunSnapCommandServer(s *grpc.Server, srv RunSnapCommandServer) {
-	s.RegisterService(&_RunSnapCommand_serviceDesc, srv)
+func RegisterRunCommandServer(s *grpc.Server, srv RunCommandServer) {
+	s.RegisterService(&_RunCommand_serviceDesc, srv)
 }
 
-func _RunSnapCommand_RunVolumeSnapCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VolumeSnapRequest)
+func _RunCommand_RunVolumeCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VolumeCommand)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RunSnapCommandServer).RunVolumeSnapCommand(ctx, in)
+		return srv.(RunCommandServer).RunVolumeCommand(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/v1alpha1.RunSnapCommand/RunVolumeSnapCommand",
+		FullMethod: "/v1alpha1.RunCommand/RunVolumeCommand",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RunSnapCommandServer).RunVolumeSnapCommand(ctx, req.(*VolumeSnapRequest))
+		return srv.(RunCommandServer).RunVolumeCommand(ctx, req.(*VolumeCommand))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _RunSnapCommand_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "v1alpha1.RunSnapCommand",
-	HandlerType: (*RunSnapCommandServer)(nil),
+var _RunCommand_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "v1alpha1.RunCommand",
+	HandlerType: (*RunCommandServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "RunVolumeSnapCommand",
-			Handler:    _RunSnapCommand_RunVolumeSnapCommand_Handler,
+			MethodName: "RunVolumeCommand",
+			Handler:    _RunCommand_RunVolumeCommand_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "cstorvolume.proto",
 }
 
-func init() { proto.RegisterFile("cstorvolume.proto", fileDescriptor_cstorvolume_f75cbcda75ddaf04) }
+func init() { proto.RegisterFile("cstorvolume.proto", fileDescriptor_cstorvolume_54a5cb973535de72) }
 
-var fileDescriptor_cstorvolume_f75cbcda75ddaf04 = []byte{
-	// 190 bytes of a gzipped FileDescriptorProto
+var fileDescriptor_cstorvolume_54a5cb973535de72 = []byte{
+	// 164 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x4c, 0x2e, 0x2e, 0xc9,
 	0x2f, 0x2a, 0xcb, 0xcf, 0x29, 0xcd, 0x4d, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0x28,
-	0x33, 0x4c, 0xcc, 0x29, 0xc8, 0x48, 0x34, 0x54, 0x4a, 0xe4, 0x12, 0x0c, 0x03, 0xcb, 0x04, 0xe7,
-	0x25, 0x16, 0x04, 0xa5, 0x16, 0x96, 0xa6, 0x16, 0x97, 0x08, 0x49, 0x70, 0xb1, 0x27, 0xe7, 0xe7,
-	0xe6, 0x26, 0xe6, 0xa5, 0x48, 0x30, 0x2a, 0x30, 0x6a, 0x70, 0x06, 0xc1, 0xb8, 0x42, 0x62, 0x5c,
-	0x6c, 0x10, 0x83, 0x24, 0x98, 0xc0, 0x12, 0x50, 0x9e, 0x90, 0x14, 0x17, 0x47, 0x71, 0x5e, 0x62,
-	0x41, 0x5e, 0x62, 0x6e, 0xaa, 0x04, 0x33, 0x58, 0x06, 0xce, 0x57, 0xd2, 0xe1, 0x12, 0x42, 0xb6,
-	0xa2, 0xb8, 0x20, 0x3f, 0xaf, 0x38, 0x15, 0x64, 0x52, 0x71, 0x49, 0x62, 0x49, 0x69, 0x31, 0xd8,
-	0x0a, 0x9e, 0x20, 0x28, 0xcf, 0x28, 0x95, 0x8b, 0x2f, 0xa8, 0x34, 0x0f, 0xa4, 0xd4, 0x19, 0x6a,
-	0x67, 0x30, 0x97, 0x48, 0x50, 0x69, 0x1e, 0xc2, 0x08, 0x98, 0xb8, 0xb4, 0x1e, 0xcc, 0x17, 0x7a,
-	0x18, 0x5e, 0x90, 0x92, 0xc1, 0x2e, 0x09, 0xb1, 0x5c, 0x89, 0x21, 0x89, 0x0d, 0x1c, 0x10, 0xc6,
-	0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x69, 0x72, 0xa5, 0xd3, 0x1d, 0x01, 0x00, 0x00,
+	0x33, 0x4c, 0xcc, 0x29, 0xc8, 0x48, 0x34, 0x54, 0x2a, 0xe5, 0xe2, 0x0d, 0x03, 0xcb, 0x38, 0xe7,
+	0xe7, 0xe6, 0x26, 0xe6, 0xa5, 0x08, 0x49, 0x70, 0xb1, 0x27, 0x43, 0x98, 0x12, 0x8c, 0x0a, 0x8c,
+	0x1a, 0x9c, 0x41, 0x30, 0xae, 0x90, 0x18, 0x17, 0x1b, 0xc4, 0x10, 0x09, 0x26, 0xb0, 0x04, 0x94,
+	0x27, 0x24, 0xc5, 0xc5, 0x51, 0x9c, 0x97, 0x58, 0x90, 0x97, 0x98, 0x9b, 0x2a, 0xc1, 0x0c, 0x96,
+	0x81, 0xf3, 0x41, 0x7a, 0x8a, 0x4b, 0x12, 0x4b, 0x4a, 0x8b, 0x25, 0x58, 0x14, 0x18, 0x35, 0x78,
+	0x82, 0xa0, 0x3c, 0xa3, 0x10, 0x2e, 0xae, 0xa0, 0xd2, 0x3c, 0x98, 0x9d, 0x6e, 0x5c, 0x02, 0x41,
+	0xa5, 0x79, 0xa8, 0xee, 0x10, 0xd7, 0x83, 0xb9, 0x51, 0x0f, 0x45, 0x42, 0x0a, 0x97, 0x84, 0x12,
+	0x43, 0x12, 0x1b, 0xd8, 0x77, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x12, 0xe5, 0x14, 0x58,
+	0xf2, 0x00, 0x00, 0x00,
 }
