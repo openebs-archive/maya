@@ -29,62 +29,77 @@ import (
 )
 
 //createSnapshot creates snapshots
-func createSnapshot(volName, snapName, ip string) (*v1alpha1.VolumeCommand, error) {
+func createSnapshot(volName, snapName, ip string) (*v1alpha1.VolumeSnapResponse, error) {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort), grpc.WithInsecure())
+	target := fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort)
+	glog.V(3).Infof("Dialing server at %s", target)
+	conn, err := grpc.Dial(target, grpc.WithInsecure())
 	if err != nil {
 		glog.Fatalf("did not connect: %s", err)
 	}
 	defer conn.Close()
 
-	c := v1alpha1.NewRunCommandClient(conn)
-	response, err := c.RunVolumeCommand(context.Background(),
-		&v1alpha1.VolumeCommand{
+	c := v1alpha1.NewRunSnapCommandClient(conn)
+	response, err := c.RunVolumeSnapCommand(context.Background(),
+		&v1alpha1.VolumeSnapRequest{
 			Command:  api.CmdSnapCreate,
 			Volume:   volName,
 			Snapname: snapName,
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeCommand: %s", err)
+		glog.Errorf("Error when calling RunVolumeCommand: %s", err)
+		return nil, err
 	}
 
 	if response != nil {
 		var responseStatus api.CommandStatus
-		json.Unmarshal(response.Status, &responseStatus)
-		if strings.Contains(responseStatus.Response[0], "ERR") {
-			return response, fmt.Errorf("Snapshot create failed with error : %v", responseStatus.Response[0])
+		err = json.Unmarshal(response.Status, &responseStatus)
+		if err != nil {
+			glog.Errorf("Error reading response: %s", err)
+			return nil, err
+		}
+		if strings.Contains(responseStatus.Response, "ERR") {
+			return response, fmt.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
 		}
 
 	}
 	return response, err
 }
 
-//destroySnapshot destroys snapshots
-func destroySnapshot(volName, snapName, ip string) (*v1alpha1.VolumeCommand, error) {
+//DestroySnapshot destroys snapshots
+func destroySnapshot(volName, snapName, ip string) (*v1alpha1.VolumeSnapResponse, error) {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort), grpc.WithInsecure())
+	target := fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort)
+	glog.V(3).Infof("Dialing server at %s", target)
+	conn, err := grpc.Dial(target, grpc.WithInsecure())
 	if err != nil {
 		glog.Fatalf("did not connect: %s", err)
 	}
 	defer conn.Close()
 
-	c := v1alpha1.NewRunCommandClient(conn)
-	response, err := c.RunVolumeCommand(context.Background(),
-		&v1alpha1.VolumeCommand{
+	c := v1alpha1.NewRunSnapCommandClient(conn)
+	response, err := c.RunVolumeSnapCommand(context.Background(),
+		&v1alpha1.VolumeSnapRequest{
 			Command:  api.CmdSnapDestroy,
 			Volume:   volName,
 			Snapname: snapName,
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeCommand: %s", err)
+		glog.Errorf("Error when calling RunVolumeCommand: %s", err)
+		return nil, err
 	}
+
 	if response != nil {
 		var responseStatus api.CommandStatus
-		json.Unmarshal(response.Status, &responseStatus)
-		if strings.Contains(responseStatus.Response[0], "ERR") {
-			return response, fmt.Errorf("Snapshot deletion failed with error : %v", responseStatus.Response[0])
+		err = json.Unmarshal(response.Status, &responseStatus)
+		if err != nil {
+			glog.Errorf("Error reading response: %s", err)
+			return nil, err
+		}
+		if strings.Contains(responseStatus.Response, "ERR") {
+			return response, fmt.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
 		}
 
 	}

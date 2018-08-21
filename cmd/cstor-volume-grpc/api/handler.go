@@ -19,13 +19,15 @@ const (
 	VolumeGrpcListenPort = 7777
 	CmdSnapCreate        = "SNAPCREATE"
 	CmdSnapDestroy       = "SNAPDESTROY"
-	IoWaitTime           = 10
-	TotalWaitTime        = 60
+	//IoWaitTime is the time interval for which the IO has to be stopped before doing snapshot operation
+	IoWaitTime = 10
+	//TotalWaitTime is the max time duration to wait for doing snapshot operation on all the replicas
+	TotalWaitTime = 60
 )
 
 //CommandStatus is the response from istgt for control commands
 type CommandStatus struct {
-	Response []string `json:"response"`
+	Response string `json:"response"`
 }
 
 //APIUnixSockVar is unix socker variable
@@ -35,8 +37,8 @@ var APIUnixSockVar util.UnixSock
 type Server struct {
 }
 
-// RunVolumeCommand generates response to a RunCommand request
-func (s *Server) RunVolumeCommand(ctx context.Context, in *v1alpha1.VolumeCommand) (*v1alpha1.VolumeCommand, error) {
+// RunVolumeSnapCommand generates response to a RunCommand request
+func (s *Server) RunVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeSnapRequest) (*v1alpha1.VolumeSnapResponse, error) {
 	glog.Infof("Received command %s", in.Command)
 
 	switch in.Command {
@@ -50,31 +52,29 @@ func (s *Server) RunVolumeCommand(ctx context.Context, in *v1alpha1.VolumeComman
 	}
 
 	status := CommandStatus{
-		Response: []string{"INVALIDCOMMAND"},
+		Response: "INVALIDCOMMAND",
 	}
 	jsonresp, _ := json.Marshal(status)
-	return &v1alpha1.VolumeCommand{
-		Command:  in.Command,
-		Volume:   in.Volume,
-		Snapname: in.Snapname,
-		Status:   jsonresp,
+	return &v1alpha1.VolumeSnapResponse{
+		Status: jsonresp,
 	}, fmt.Errorf("Invalid VolumeCommand : %s", in.Command)
 
 }
 
 // SendVolumeSnapCommand sends snapcreate or snapdelete command to istgt
-func SendVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeCommand) (*v1alpha1.VolumeCommand, error) {
+func SendVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeSnapRequest) (*v1alpha1.VolumeSnapResponse, error) {
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
 		in.Command, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
+	respstr := "ERR"
+	if len(sockresp) > 1 {
+		respstr = sockresp[1]
+	}
 	status := CommandStatus{
-		Response: sockresp[1:],
+		Response: respstr,
 	}
 	jsonresp, _ := json.Marshal(status)
-	resp := &v1alpha1.VolumeCommand{
-		Command:  in.Command,
-		Volume:   in.Volume,
-		Snapname: in.Snapname,
-		Status:   jsonresp,
+	resp := &v1alpha1.VolumeSnapResponse{
+		Status: jsonresp,
 	}
 	return resp, err
 }

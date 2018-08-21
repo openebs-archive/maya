@@ -35,8 +35,6 @@ func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, r
 
 // Create is http handler which handles snaphsot-create request
 func (v *volumeAPIOpsV1alpha1) snapshotCreateV1Alpha1(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("Processing Volume create snapshot request")
-
 	snap := v1.VolumeSnapshot{}
 
 	// The yaml/json spec is decoded to VolumeSnapshot struct
@@ -132,8 +130,6 @@ func (v *volumeAPIOpsV1alpha1) snapshotDeleteV1Alpha1(resp http.ResponseWriter, 
 }
 
 func (v *volumeAPIOpsV1alpha1) snapshotRevertV1Alpha1(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("Processing Volume snapshot-revert request")
-
 	snap := v1.VolumeSnapshot{}
 
 	// The yaml/json spec is decoded to VolumeSnapshot struct
@@ -188,7 +184,7 @@ func jivaSnapshot(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSna
 }
 
 func cStorSnapshot(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot, engineOps cstor.EngineOps) (interface{}, error) {
-	glog.Infof("[DEBUG] cStorSnapshot called")
+	glog.Infof("Creating cStor snapshot %q for volume %q", snap.Metadata.Name, snap.Spec.VolumeName)
 	targetIP, err := getTargetIP(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
@@ -203,7 +199,6 @@ func getTargetIP(resp http.ResponseWriter, req *http.Request, volName string) (s
 	if err != nil {
 		return "", err
 	}
-	glog.Infof("[DEBUG] getTargetIP volDetails:%#v", volDetails)
 	return volDetails.Spec.TargetIP, nil
 }
 
@@ -253,7 +248,7 @@ func jivaDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnaps
 }
 
 func cStorDelete(resp http.ResponseWriter, req *http.Request, snap v1.VolumeSnapshot, engineOps cstor.EngineOps) (interface{}, error) {
-	glog.Infof("[DEBUG] cStorSnapshotDelete called. Header values : %v", req.Header)
+	glog.Infof("Deleting cStor snapshot %q of volume %q", snap.Metadata.Name, snap.Spec.VolumeName)
 	targetIP, err := getTargetIP(resp, req, snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
