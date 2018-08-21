@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package v1alpha1;
+
+message VolumeCommand {
+	string command = 1;
+	string volume = 2;
+	string snapname = 3;
+	bytes status = 4;
+}
+
+service RunCommand {
+  rpc RunVolumeCommand(VolumeCommand) returns (VolumeCommand) {}
+}
