@@ -90,7 +90,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 	// spareAllotment holds the value for the remaining node allotments
 	// for pool provisioning.
-	var spareAllotment int16
+	var spareAllotment int
 
 	// assign maxPools to spareAllotment as right now maxPool is the number of allotments
 	// that needs to be done.
@@ -109,7 +109,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 		return nil, errors.New("no disk object found")
 	}
 
-	nodeDiskMap, spareAllotment := k.nodeSelector(listDisk, cp.PoolType, spareAllotment, cp.StoragePoolClaim)
+	nodeDiskMap, spareAllotment := k.nodeSelector(listDisk, cp.PoolType, spareAllotment)
 	gotAllotment := cp.MaxPools - spareAllotment
 	if spareAllotment > cp.MaxPools-cp.MinPools {
 		return nil, fmt.Errorf("no node qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
@@ -128,18 +128,18 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 // Finally diskSelector function will vote for qualified nodes.
 
-func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int16, spc string) (map[string]*nodeDisk, int16) {
+func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int) (map[string]*nodeDisk, int) {
 
 	// Get the list of disk that has been used already for pool provisioning
-	splist, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
+	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
 		glog.Error("unable to get the list of used disks:", err)
 	}
 	// Form a map that will hold all the used disk
 	usedDiskMap := make(map[string]int)
-	for _, sp := range splist.Items {
-		for _, useddisk := range sp.Spec.Disks.DiskList {
-			usedDiskMap[useddisk]++
+	for _, sp := range spList.Items {
+		for _, usedDisk := range sp.Spec.Disks.DiskList {
+			usedDiskMap[usedDisk]++
 		}
 
 	}

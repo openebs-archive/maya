@@ -20,11 +20,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"github.com/openebs/maya/pkg/client/k8s"
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -149,7 +149,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 	return spcGot, nil
 }
 
-func syncSpc(spcGot *apis.StoragePoolClaim) (error) {
+func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	glog.Infof("Syncing storagepoolclaim %s", spcGot.Name)
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
@@ -166,7 +166,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) (error) {
 	currentPoolCount := len(cspList.Items)
 
 	// If current pool count is less than maxpool count, try to converge to maxpool
-	if (currentPoolCount < int(spcGot.Spec.MaxPools)) {
+	if currentPoolCount < int(spcGot.Spec.MaxPools) {
 		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
 		// sparePoolCount holds the spared pool that should be provisioned to get the desired state.
 		sparePoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
