@@ -158,10 +158,14 @@ func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 		cp.MinPools = 1
 	}
 	// If it is a resync event, MaxPool is the spared pool to be provisioned
-	// and min pool that should be provisioned is 1
 	if cp.ReSync {
-		cp.MaxPools = int16(cp.SparePoolCount)
-		cp.MinPools = 1
+		cp.MaxPools = cp.SparePoolCount
+		// if min pool was not provisioned try to provision again the minimum number of pool
+		// else set min pool to 1 as in this case min pool was provisioned.
+		if !(cp.MaxPools == cp.SparePoolCount) {
+			cp.MinPools = 1
+		}
+
 	}
 	// getDiskList will get the disks to be used for storagepool provisioning
 	newDisksList, err := getDiskList(cp)

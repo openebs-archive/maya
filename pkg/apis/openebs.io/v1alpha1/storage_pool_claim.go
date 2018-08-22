@@ -43,8 +43,8 @@ type StoragePoolClaimSpec struct {
 	Type         string        `json:"type"`
 	NodeSelector []string      `json:"nodeSelector"`
 	Capacity     string        `json:"capacity"`
-	MaxPools     int16         `json:"maxPools"`
-	MinPools     int16         `json:"minPools"`
+	MaxPools     int           `json:"maxPools"`
+	MinPools     int           `json:"minPools"`
 	Disks        DiskAttr      `json:"disks"`
 	PoolSpec     CStorPoolAttr `json:"poolSpec"`
 }

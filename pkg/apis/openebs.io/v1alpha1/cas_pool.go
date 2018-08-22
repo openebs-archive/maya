@@ -64,10 +64,10 @@ type CasPool struct {
 	PoolType string
 
 	// MaxPool is the maximum number of pool that should be provisioned
-	MaxPools int16
+	MaxPools int
 
 	// MinPool is the minimum number of pool that should be provisioned
-	MinPools int16
+	MinPools int
 
 	// Type is the CasPool type e.g. sparse or openebs-cstor
 	Type string
