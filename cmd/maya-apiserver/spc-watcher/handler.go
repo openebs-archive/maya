@@ -68,8 +68,8 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 	switch operation {
 	case addEvent:
 		// CreateStoragePool function will create the storage pool
-		// It is a create event so resync should be false and sparepoolcount is passed 0
-		// sparepoolcount is not used when resync is false.
+		// It is a create event so resync should be false and pendingPoolcount is passed 0
+		// pendingPoolcount is not used when resync is false.
 		err := CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
@@ -149,6 +149,10 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 }
 
 func syncSpc(spcGot *apis.StoragePoolClaim) error {
+	if len(spcGot.Spec.Disks.DiskList) > 0 {
+		// TODO : reconciliation for manaula storagepool provisioning
+		return fmt.Errorf("no reconciliation for manual provisioning for storagepoolclaim %s", spcGot.Name)
+	}
 	glog.Infof("Syncing storagepoolclaim %s", spcGot.Name)
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
@@ -162,18 +166,18 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 
 	// Get the current count of provisione pool for the storagepool claim
 	cspList, err := newOecsClient.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
-	if err!=nil{
-		return fmt.Errorf("unable to list csp:%v",err)
+	if err != nil {
+		return fmt.Errorf("unable to list csp:%v", err)
 	}
 	currentPoolCount := len(cspList.Items)
 
 	// If current pool count is less than maxpool count, try to converge to maxpool
 	if currentPoolCount < int(spcGot.Spec.MaxPools) {
 		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
-		// sparePoolCount holds the spared pool that should be provisioned to get the desired state.
-		sparePoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
-		// Call the storage pool create logic to proviison the spare pools.
-		err := CreateStoragePool(spcGot, true, sparePoolCount)
+		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
+		pendingPoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
+		// Call the storage pool create logic to proviison the pending pools.
+		err := CreateStoragePool(spcGot, true, pendingPoolCount)
 		if err != nil {
 			return err
 		}

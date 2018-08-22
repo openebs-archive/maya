@@ -40,7 +40,7 @@ const (
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
 
-func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) error {
+func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) error {
 
 	if reSync {
 		glog.Infof("Storagepool resync event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
@@ -54,7 +54,7 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCoun
 	}
 
 	// Get a CasPool object
-	err, pool := newCasPool(spcGot, reSync, sparePoolCount)
+	err, pool := newCasPool(spcGot, reSync, pendingPoolCount)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 }
 
 // newCasPool will return a CasPool object
-func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) (error, *apis.CasPool) {
+func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (error, *apis.CasPool) {
 	// Validations for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if poolType == "" {
@@ -122,7 +122,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) 
 	pool.MaxPools = spcGot.Spec.MaxPools
 	pool.Type = spcGot.Spec.Type
 	pool.ReSync = reSync
-	pool.SparePoolCount = sparePoolCount
+	pool.PendingPoolCount = pendingPoolCount
 
 	// Fill the object with the disks list
 	pool.DiskList = spcGot.Spec.Disks.DiskList
@@ -157,14 +157,14 @@ func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 	if cp.MaxPools < cp.MinPools {
 		return fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool"), nil
 	}
-	// If it is a resync event, MaxPool is the spared pool to be provisioned
+	// If it is a resync event, MaxPool is the pending pool to be provisioned
 	if cp.ReSync {
 		// if min pool was not provisioned try to provision again the minimum number of pool
 		// else set min pool to 1 as in this case min pool was provisioned.
-		if !(cp.MaxPools == cp.SparePoolCount) {
+		if !(cp.MaxPools == cp.PendingPoolCount) {
 			cp.MinPools = 1
 		}
-		cp.MaxPools = cp.SparePoolCount
+		cp.MaxPools = cp.PendingPoolCount
 	}
 	// getDiskList will get the disks to be used for storagepool provisioning
 	newDisksList, err := getDiskList(cp)

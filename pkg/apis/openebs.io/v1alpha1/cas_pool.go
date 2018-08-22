@@ -75,6 +75,6 @@ type CasPool struct {
 	// reSync will decide whether the event is a reconciliation event
 	ReSync bool
 
-	// SparePoolCount is the number of pools that will be tried for creation as a part of reconciliation.
-	SparePoolCount int
+	// PendingPoolCount is the number of pools that will be tried for creation as a part of reconciliation.
+	PendingPoolCount int
 }
