@@ -40,17 +40,21 @@ const (
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
 
-func CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
+func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) error {
 
-	glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
+	if reSync {
+		glog.Infof("Storagepool resync event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
+	} else {
+		glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
+	}
 
 	// Check wether the spc object has been processed for storagepool creation
-	if spcGot.Status.Phase == onlineStatus {
+	if spcGot.Status.Phase == onlineStatus && !reSync {
 		return errors.New("storagepool already exists since the status on storagepoolclaim object is Online")
 	}
 
 	// Get a CasPool object
-	err, pool := newCasPool(spcGot)
+	err, pool := newCasPool(spcGot, reSync, sparePoolCount)
 	if err != nil {
 		return err
 	}
@@ -86,7 +90,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 }
 
 // newCasPool will return a CasPool object
-func newCasPool(spcGot *apis.StoragePoolClaim) (error, *apis.CasPool) {
+func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) (error, *apis.CasPool) {
 	// Validations for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if poolType == "" {
@@ -107,7 +111,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim) (error, *apis.CasPool) {
 	// Check for cas template
 	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCreateCASTemplateCK)]
 	if casTemplateName == "" {
-		return errors.New("Aborting storagepool create operation as no cas template is specified"), nil
+		return errors.New("aborting storagepool create operation as no cas template is specified"), nil
 	}
 	// Create an empty CasPool object and fill storagepoolcalim details
 	pool := &v1alpha1.CasPool{}
@@ -117,6 +121,8 @@ func newCasPool(spcGot *apis.StoragePoolClaim) (error, *apis.CasPool) {
 	pool.MinPools = spcGot.Spec.MinPools
 	pool.MaxPools = spcGot.Spec.MaxPools
 	pool.Type = spcGot.Spec.Type
+	pool.ReSync = reSync
+	pool.SparePoolCount = sparePoolCount
 
 	// Fill the object with the disks list
 	pool.DiskList = spcGot.Spec.Disks.DiskList
@@ -145,6 +151,17 @@ func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 	}
 	if cp.MaxPools <= 0 {
 		return fmt.Errorf("aborting storagepool create operation as no maxPool field is specified"), nil
+	}
+	// if no minimum pools were specified it will default to 1.
+	if cp.MinPools <= 0 {
+		glog.Warning("invalid or 0 min pool specified, defaulting to 1")
+		cp.MinPools = 1
+	}
+	// If it is a resync event, MaxPool is the spared pool to be provisioned
+	// and min pool that should be provisioned is 1
+	if cp.ReSync {
+		cp.MaxPools = int16(cp.SparePoolCount)
+		cp.MinPools = 1
 	}
 	// getDiskList will get the disks to be used for storagepool provisioning
 	newDisksList, err := getDiskList(cp)

@@ -66,13 +66,6 @@ func getDiskList(cp *v1alpha1.CasPool) ([]string, error) {
 	newClientSet := clientSet{
 		oecs: newOecsClient,
 	}
-
-	// if no minimum pools were specified it will default to 1.
-	if cp.MinPools <= 0 {
-		glog.Warning("invalid or 0 min pool specified, defaulting to 1")
-		cp.MinPools = 1
-	}
-
 	// nodeDiskAlloter will try to return a list of disks so that maxpool number of storagepool
 	// is provisioned.
 	diskList, err := newClientSet.nodeDiskAlloter(cp)
@@ -90,18 +83,18 @@ func getDiskList(cp *v1alpha1.CasPool) ([]string, error) {
 // pool provisioning. At least 3 node should qualify else pool will not be provisioned and pool creation
 // will be aborted gracefully with proper log messages.
 
-// If no minPool field is present,at least one node must qalify for pool provisioning.
+// If no minPool field is present,at least one node must qualify for pool provisioning.
 
-// modeDiskAlloter can be made more intelligent as per the required pool constraints for alloting nodes.
+// nodeDiskAlloter can be made more intelligent as per the required pool constraints for alloting nodes.
 func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 	// spareAllotment holds the value for the remaining node allotments
 	// for pool provisioning.
 	var spareAllotment int16
+
 	// assign maxPools to spareAllotment as right now maxPool is the number of allotments
 	// that needs to be done.
 	spareAllotment = cp.MaxPools
-
 	// get the labels on the basis of which disk list will be filtered
 	diskFilterLabel := diskFilterConstraint(cp.Type)
 
@@ -116,7 +109,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 		return nil, errors.New("no disk object found")
 	}
 
-	nodeDiskMap, spareAllotment := nodeSelector(listDisk, cp.PoolType, spareAllotment)
+	nodeDiskMap, spareAllotment := k.nodeSelector(listDisk, cp.PoolType, spareAllotment, cp.StoragePoolClaim)
 	gotAllotment := cp.MaxPools - spareAllotment
 	if spareAllotment > cp.MaxPools-cp.MinPools {
 		return nil, fmt.Errorf("no node qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
@@ -135,12 +128,29 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 // Finally diskSelector function will vote for qualified nodes.
 
-func nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int16) (map[string]*nodeDisk, int16) {
+func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int16, spc string) (map[string]*nodeDisk, int16) {
 
+	// Get the list of disk that has been used already for pool provisioning
+	splist, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
+	if err != nil {
+		glog.Error("unable to get the list of used disks:", err)
+	}
+	// Form a map that will hold all the used disk
+	usedDiskMap := make(map[string]int)
+	for _, sp := range splist.Items {
+		for _, useddisk := range sp.Spec.Disks.DiskList {
+			usedDiskMap[useddisk]++
+		}
+
+	}
 	// nodeDiskMap is the data structure holding host name as key
 	// and nodeDisk struct as value
 	nodeDiskMap := make(map[string]*nodeDisk)
 	for _, value := range listDisk.Items {
+		// If the disk is already being used, do not consider this as a part for provisioning pool
+		if usedDiskMap[value.Name] == 1 {
+			continue
+		}
 		// if no more allotment is required, stop processing
 		if spareAllotment == 0 {
 			glog.Info("required pool allotment done")
