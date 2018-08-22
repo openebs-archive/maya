@@ -6,13 +6,12 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/openebs/maya/volume/provisioners/jiva"
 )
 
 // SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
-func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Extract info from path after trimming
 	path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
 
@@ -20,32 +19,27 @@ func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http
 	if path == req.URL.Path {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
-	feature, err := util.CASTemplateFeatureGate()
-	if err != nil {
-		// log and return http error 500
-		glog.Errorf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
-		return nil, CodedError(500, http.StatusText(500))
-	}
-	if feature {
-		return s.snapshotV1alpha1SpecificRequest(resp, req)
+	volOp := &volumeAPIOpsV1alpha1{
+		req:  req,
+		resp: resp,
 	}
 	switch {
 	case strings.Contains(path, "/create/"):
-		return s.snapshotCreate(resp, req)
+		return volOp.snapshotCreate()
 	case strings.Contains(path, "/revert/"):
-		return s.snapshotRevert(resp, req)
+		return volOp.snapshotRevert()
 	case strings.Contains(path, "/list"):
 		volName := strings.TrimPrefix(path, "/list/")
-		return s.snapshotList(resp, req, volName)
+		return volOp.snapshotList(volName)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 }
 
 // SnapshotCreate is http handler which handles snaphsot-create request
-func (s *HTTPServer) snapshotCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) snapshotCreate() (interface{}, error) {
 
-	if req.Method != "PUT" && req.Method != "POST" {
+	if v.req.Method != "PUT" && v.req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 
@@ -54,7 +48,7 @@ func (s *HTTPServer) snapshotCreate(resp http.ResponseWriter, req *http.Request)
 	snap := v1.VolumeSnapshot{}
 
 	// The yaml/json spec is decoded to VolumeSnapshot struct
-	if err := decodeBody(req, &snap); err != nil {
+	if err := decodeBody(v.req, &snap); err != nil {
 
 		return nil, CodedError(400, err.Error())
 	}
@@ -72,12 +66,12 @@ func (s *HTTPServer) snapshotCreate(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-create request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.volumeRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := v.read(snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	var labelMap map[string]string
 	snapinfo, err := jiva.Snapshot(snap.Metadata.Name, ControllerIP, labelMap)
@@ -94,8 +88,8 @@ func (s *HTTPServer) snapshotCreate(resp http.ResponseWriter, req *http.Request)
 // SnapshotRevert is http handler for handling snapshot-revert request.
 // Volume and existing snapshot name will be passed as struct fields to
 // revert to that particular snapshot
-func (s *HTTPServer) snapshotRevert(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" && req.Method != "POST" {
+func (v *volumeAPIOpsV1alpha1) snapshotRevert() (interface{}, error) {
+	if v.req.Method != "PUT" && v.req.Method != "POST" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 	glog.Infof("Processing Volume snapshot-revert request")
@@ -103,7 +97,7 @@ func (s *HTTPServer) snapshotRevert(resp http.ResponseWriter, req *http.Request)
 	snap := v1.VolumeSnapshot{}
 
 	// The yaml/json spec is decoded to VolumeSnapshot struct
-	if err := decodeBody(req, &snap); err != nil {
+	if err := decodeBody(v.req, &snap); err != nil {
 
 		return nil, CodedError(400, err.Error())
 	}
@@ -121,12 +115,12 @@ func (s *HTTPServer) snapshotRevert(resp http.ResponseWriter, req *http.Request)
 
 	glog.Infof("Processing snapshot-revert request of volume: %s", snap.Spec.VolumeName)
 
-	voldetails, err := s.volumeRead(resp, req, snap.Spec.VolumeName)
+	voldetails, err := v.read(snap.Spec.VolumeName)
 	if err != nil {
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	err = jiva.SnapshotRevert(snap.Metadata.Name, ControllerIP)
 	if err != nil {
@@ -141,9 +135,9 @@ func (s *HTTPServer) snapshotRevert(resp http.ResponseWriter, req *http.Request)
 }
 
 // SnapshotList is http handler for listing all created snapshot specific to particular volume
-func (s *HTTPServer) snapshotList(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) snapshotList(volName string) (interface{}, error) {
 
-	if req.Method != "GET" {
+	if v.req.Method != "GET" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
 	glog.Infof("Processing Volume snapshot-list request")
@@ -157,12 +151,12 @@ func (s *HTTPServer) snapshotList(resp http.ResponseWriter, req *http.Request, v
 		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", snap.Spec.VolumeName))
 	}
 
-	voldetails, err := s.volumeRead(resp, req, volName)
+	voldetails, err := v.read(volName)
 	if err != nil {
 		return nil, err
 	}
 
-	ControllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
+	ControllerIP := voldetails.Annotations["openebs.io/controller-ips"]
 
 	// list all created snapshot specific to particular volume
 	snapChain, err := jiva.SnapshotList(snap.Spec.VolumeName, ControllerIP)
@@ -175,13 +169,3 @@ func (s *HTTPServer) snapshotList(resp http.ResponseWriter, req *http.Request, v
 	return snapChain, nil
 
 }
-
-/*func (s *HTTPServer) getControllerIP(resp http.ResponseWriter, req *http.Request, snap.Spec.Volname string) (string, err) {
-	voldetails, err := s.vsmRead(resp, req, snap.Spec.VolumeName)
-	if err != nil {
-		return "", err
-	}
-
-	controllerIP := voldetails.Annotations["vsm.openebs.io/controller-ips"]
-	return controllerIP, nil
-}*/
