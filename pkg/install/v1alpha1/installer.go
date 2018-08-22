@@ -58,7 +58,7 @@ func (i *installErrors) addErrors(errs []error) []error {
 // NOTE:
 //  This is an implementation of Installer
 type simpleInstaller struct {
-	configGetter         ConfigGetterFunc
+	configGetter         ConfigGetter
 	artifactLister       VersionArtifactLister
 	transformer          ArtifactToUnstructuredListTransformer
 	unstructuredUpdaters []WithInstallUnstructuredUpdater

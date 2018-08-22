@@ -24,6 +24,11 @@ import (
 // as a string
 type MultiYamlFetcher func() string
 
+// ParseArtifactListFromMultipleYamls generates a list of Artifacts from the
+// yaml documents.
+//
+// NOTE:
+//  Each YAML document is assumed to be separated via "---"
 func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifacts []*Artifact) {
 	docs := strings.Split(multipleYamls(), "---")
 	for _, doc := range docs {
@@ -37,6 +42,8 @@ func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifac
 	return
 }
 
+// RegisteredArtifactsFor070 returns the list of 0.7.0 Artifacts that will get
+// installed
 func RegisteredArtifactsFor070() (finallist ArtifactList) {
 	finallist.Items = append(finallist.Items, JivaPoolArtifactsFor070().Items...)
 	finallist.Items = append(finallist.Items, CstorPoolArtifactsFor070().Items...)

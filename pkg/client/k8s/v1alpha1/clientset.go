@@ -22,27 +22,17 @@ import (
 )
 
 // ClientsetGetter abstracts fetching of kubernetes clientset
-type ClientsetGetter interface {
-	Get() (*kubernetes.Clientset, error)
-}
-
-// ClientsetGetterFunc is a functional implementation of ClientsetGetter
-type ClientsetGetterFunc func() (*kubernetes.Clientset, error)
-
-// Get is an implementation of ClientsetGetter
-func (fn ClientsetGetterFunc) Get() (*kubernetes.Clientset, error) {
-	return fn()
-}
+type ClientsetGetter func() (*kubernetes.Clientset, error)
 
 // NewClientsetGetter returns a ClientsetGetter instance that is capable of
 // invoking kubernetes API calls
 func NewClientsetGetter() ClientsetGetter {
-	return ClientsetGetterFunc(func() (*kubernetes.Clientset, error) {
+	return func() (*kubernetes.Clientset, error) {
 		config, err := NewClientConfigGetter()()
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get kubernetes clientset")
 		}
 
 		return kubernetes.NewForConfig(config)
-	})
+	}
 }

@@ -26,31 +26,26 @@ import (
 
 // ConfigMapGetter abstracts fetching of ConfigMap instance from kubernetes
 // cluster
-type ConfigMapGetter interface {
-	Get(name string, options metav1.GetOptions) (*corev1.ConfigMap, error)
-}
-
-// ConfigMapGetterFunc is a functional implementation of ConfigMapGetter
-type ConfigMapGetterFunc func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error)
-
-// Get is an implementation of ConfigMapGetter
-func (fn ConfigMapGetterFunc) Get(name string, options metav1.GetOptions) (*corev1.ConfigMap, error) {
-	return fn(name, options)
-}
+type ConfigMapGetter func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error)
 
 // NewConfigMapGetter returns a new instance of ConfigMapGetter that is capable
 // of fetching a ConfigMap from kubernetes cluster
 func NewConfigMapGetter(namespace string) ConfigMapGetter {
-	return ConfigMapGetterFunc(func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error) {
+	return func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error) {
 		if len(strings.TrimSpace(name)) == 0 {
-			return nil, fmt.Errorf("missing config map name: failed to get config map")
+			return nil, fmt.Errorf("missing config map name: failed to get config map from namespace '%s'", namespace)
 		}
 
-		cs, err := NewClientsetGetter().Get()
+		cs, err := NewClientsetGetter()()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get config map")
+			return nil, errors.Wrapf(err, "failed to get config map '%s' from namespace '%s'", name, namespace)
 		}
 
-		return cs.CoreV1().ConfigMaps(namespace).Get(name, options)
-	})
+		cm, err := cs.CoreV1().ConfigMaps(namespace).Get(name, options)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get config map '%s' from namespace '%s'", name, namespace)
+		}
+
+		return cm, nil
+	}
 }

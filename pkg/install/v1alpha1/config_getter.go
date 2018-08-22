@@ -25,8 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ConfigGetterFunc abstracts fetching an instance of install config
-type ConfigGetterFunc func(name string) (config *InstallConfig, err error)
+// ConfigGetter abstracts fetching an instance of install config
+type ConfigGetter func(name string) (config *InstallConfig, err error)
 
 // WithConfigMapConfigGetter returns an instance of ConfigGetterFunc that is
 // capable of fetching install config from a kubernetes ConfigMap
@@ -34,17 +34,17 @@ type ConfigGetterFunc func(name string) (config *InstallConfig, err error)
 // NOTE:
 //  The name of the install config is also the name of the ConfigMap that embeds
 // this install config specifications.
-func WithConfigMapConfigGetter(getter k8s.ConfigMapGetter) ConfigGetterFunc {
+func WithConfigMapConfigGetter(getter k8s.ConfigMapGetter) ConfigGetter {
 	return func(name string) (config *InstallConfig, err error) {
 		if len(strings.TrimSpace(name)) == 0 {
 			return nil, fmt.Errorf("missing config map name: failed to get install config from config map")
 		}
 
 		if getter == nil {
-			return nil, fmt.Errorf("nil config map getter: failed to get install config from config map")
+			return nil, fmt.Errorf("nil config map getter: failed to get install config from config map '%s'", name)
 		}
 
-		cm, err := getter.Get(name, metav1.GetOptions{})
+		cm, err := getter(name, metav1.GetOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get install config from config map '%s'", name)
 		}
