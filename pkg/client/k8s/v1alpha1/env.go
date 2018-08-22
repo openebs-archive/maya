@@ -16,23 +16,15 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	"github.com/pkg/errors"
-	"k8s.io/client-go/dynamic"
+// K8sAPIEnvironmentKey is a typed string to represent various environment
+// configurations used to invoke kubernetes APIs
+type K8sAPIEnvironmentKey string
+
+const (
+	// K8sMasterIPEnvironmentKey is the environment variable key used to
+	// determine the kubernetes master IP address
+	K8sMasterIPEnvironmentKey K8sAPIEnvironmentKey = "OPENEBS_IO_K8S_MASTER"
+	// KubeConfigEnvironmentKey is the environment variable key used to
+	// determine the kubernetes config
+	KubeConfigEnvironmentKey K8sAPIEnvironmentKey = "OPENEBS_IO_KUBE_CONFIG"
 )
-
-// DynamicGetter abstracts fetching of kubernetes dynamic interface
-type DynamicGetter func() (dynamic.Interface, error)
-
-// NewDynamicGetter returns a DynamicGetter instance that is capable of
-// invoking kubernetes API calls
-func NewDynamicGetter() DynamicGetter {
-	return func() (dynamic.Interface, error) {
-		config, err := NewClientConfigGetter()()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get dynamic client")
-		}
-
-		return dynamic.NewForConfig(config)
-	}
-}
