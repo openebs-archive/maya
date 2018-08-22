@@ -112,15 +112,20 @@ type ResourceCreator func(obj *unstructured.Unstructured, subresources ...string
 func NewResourceCreator(gvr schema.GroupVersionResource, namespace string) ResourceCreator {
 	return func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
 		if obj == nil {
-			return nil, fmt.Errorf("nil resource instance: failed to create resource")
+			return nil, fmt.Errorf("nil resource instance: failed to create '%s' at namespace '%s'", gvr, namespace)
 		}
 
 		dynamic, err := NewDynamicGetter()()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create resource")
+			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
 		}
 
-		return dynamic.Resource(gvr).Namespace(namespace).Create(obj, subresources...)
+		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Create(obj, subresources...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
+		}
+
+		return unstruct, nil
 	}
 }
 
@@ -133,15 +138,20 @@ type ResourceGetter func(name string, options metav1.GetOptions, subresources ..
 func NewResourceGetter(gvr schema.GroupVersionResource, namespace string) ResourceGetter {
 	return func(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
 		if len(strings.TrimSpace(name)) == 0 {
-			return nil, fmt.Errorf("missing resource name: failed to get resource")
+			return nil, fmt.Errorf("missing resource name: failed to get '%s' from namespace '%s'", gvr, namespace)
 		}
 
 		dynamic, err := NewDynamicGetter()()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get resource '%s'", name)
+			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
 		}
 
-		return dynamic.Resource(gvr).Namespace(namespace).Get(name, options, subresources...)
+		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Get(name, options, subresources...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
+		}
+
+		return unstruct, nil
 	}
 }
 
@@ -154,15 +164,20 @@ type ResourceUpdater func(obj *unstructured.Unstructured, subresources ...string
 func NewResourceUpdater(gvr schema.GroupVersionResource, namespace string) ResourceUpdater {
 	return func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
 		if obj == nil {
-			return nil, fmt.Errorf("nil resource instance: failed to update resource")
+			return nil, fmt.Errorf("nil resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
 		}
 
 		dynamic, err := NewDynamicGetter()()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update resource '%s'", obj.GetName())
+			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
 		}
 
-		return dynamic.Resource(gvr).Namespace(namespace).Update(obj, subresources...)
+		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Update(obj, subresources...)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
+		}
+
+		return unstruct, nil
 	}
 }
 
@@ -203,7 +218,7 @@ func newResourceApplier(options ResourceApplyOptions) ResourceApplier {
 		}
 
 		resource, err = options.Getter(obj.GetName(), metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(errors.Cause(err)) {
 			// create if not found
 			return options.Creator(obj, subresources...)
 		} else {

@@ -240,7 +240,8 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	// run maya installer
 	installErrs := install.SimpleInstaller().Install()
 	if len(installErrs) != 0 {
-		glog.Warningf("Maya install errors were found: %+v", installErrs)
+		glog.Errorf("Install errors were found: %+v", installErrs)
+		return fmt.Errorf("Failed to install resources")
 	}
 
 	// Setup maya service i.e. maya api server
