@@ -76,6 +76,7 @@ func createVolumeBuilder(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	createVolAttr = append(createVolAttr, "create",
+		"-b", "4K", "-s", "-o", "compression=on",
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName,
 		"-o", openebsTargetIP, "-o", openebsVolname)
 
