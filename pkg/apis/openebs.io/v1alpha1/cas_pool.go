@@ -23,6 +23,8 @@ type CasPoolVals int
 const (
 	// HostNameCPK is the kubernetes host name label
 	HostNameCPK CasPoolKey = "kubernetes.io/hostname"
+	// StoragePoolClaimCPK is the storage pool claim label
+	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
 	// DiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	DiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// PoolTypeMirroredCPK is a key for mirrored for pool
@@ -69,4 +71,10 @@ type CasPool struct {
 
 	// Type is the CasPool type e.g. sparse or openebs-cstor
 	Type string
+
+	// reSync will decide whether the event is a reconciliation event
+	ReSync bool
+
+	// SparePoolCount is the number of pools that will be tried for creation as a part of reconciliation.
+	SparePoolCount int
 }
