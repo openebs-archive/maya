@@ -30,8 +30,8 @@ done
 
 kubectl get pods --all-namespaces
 
-echo "------------Deploy CAS templates configuration for Maya-apiserver---------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
+#echo "------------Deploy CAS templates configuration for Maya-apiserver---------"
+#kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
 
 sleep 10
 echo "-----------Create Persistentvolumeclaim and PersistentVolume ------------"
