@@ -18,6 +18,12 @@ for i in $(seq 1 50) ; do
     fi
 done
 
+MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
+
+echo "--------------- Maya apiserver initial logs -----------------------------"
+kubectl logs $MAPIPOD -n openebs
+printf "\n\n"
+
 for i in $(seq 1 50) ; do
     replicas=$(kubectl get deployment -n openebs openebs-provisioner -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
@@ -32,6 +38,10 @@ kubectl get pods --all-namespaces
 
 #echo "------------Deploy CAS templates configuration for Maya-apiserver---------"
 #kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
+
+echo "--------------- Maya apiserver later logs -----------------------------"
+kubectl logs --tail=200 $MAPIPOD -n openebs
+printf "\n\n"
 
 sleep 10
 echo "-----------Create Persistentvolumeclaim and PersistentVolume ------------"
