@@ -19,13 +19,14 @@ package volume
 import (
 	"fmt"
 
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	"github.com/openebs/maya/pkg/util"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // volumeOperationOptions contains the options with respect to
@@ -318,41 +319,47 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	// cas template to list cas volumes
-	castName := util.CASTemplateToListVolume()
-	if len(castName) == 0 {
+	castNames := util.CASTemplateToListVolume()
+	if len(castNames) == 0 {
 		return nil, fmt.Errorf("failed to list volume: cas template to list volume is not set as environment variable")
 	}
-
-	// fetch read cas template specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
+	vols := &v1alpha1.CASVolumeList{
+		Items: []v1alpha1.CASVolume{},
 	}
 
-	// read cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
-		cast,
-		string(v1alpha1.VolumeTLP),
-		map[string]interface{}{
-			string(v1alpha1.RunNamespaceVTP): v.volumes.Namespace,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
+	for _, castName := range strings.Split(castNames, ",") {
+		// fetch read cas template specifications
+		cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
 
-	// read the volume details
-	data, err := engine.List()
-	if err != nil {
-		return nil, err
-	}
+		// read cas volume via cas template engine
+		engine, err := engine.NewCASEngine(
+			cast,
+			string(v1alpha1.VolumeTLP),
+			map[string]interface{}{
+				string(v1alpha1.RunNamespaceVTP): v.volumes.Namespace,
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	// unmarshall into openebs volume
-	vols := &v1alpha1.CASVolumeList{}
-	err = yaml.Unmarshal(data, vols)
-	if err != nil {
-		return nil, err
-	}
+		// read the volume details
+		data, err := engine.List()
+		if err != nil {
+			return nil, err
+		}
 
+		// unmarshall into openebs volume
+		tvols := &v1alpha1.CASVolumeList{}
+		err = yaml.Unmarshal(data, tvols)
+		if err != nil {
+			return nil, err
+		}
+
+		vols.Items = append(vols.Items, tvols.Items...)
+	}
 	return vols, nil
 }
