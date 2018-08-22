@@ -150,7 +150,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 
 func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	if len(spcGot.Spec.Disks.DiskList) > 0 {
-		// TODO : reconciliation for manaula storagepool provisioning
+		// TODO : reconciliation for manual storagepool provisioning
 		return fmt.Errorf("no reconciliation for manual provisioning for storagepoolclaim %s", spcGot.Name)
 	}
 	glog.Infof("Syncing storagepoolclaim %s", spcGot.Name)
