@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/util"
@@ -33,11 +34,12 @@ type Value struct {
 
 // PortalInfo keep info about the ISCSI Target Portal.
 type PortalInfo struct {
-	IQN        string
-	VolumeName string
-	Portal     string
-	Size       string
-	Status     string
+	IQN          string
+	VolumeName   string
+	Portal       string
+	Size         string
+	Status       string
+	ReplicaCount string
 }
 
 // ReplicaInfo keep info about the replicas.
@@ -71,29 +73,30 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	annotation := &Annotations{}
 	// GetVolumeAnnotation is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	err := annotation.GetVolAnnotations(c.volName, c.namespace)
+	volume, err := annotation.GetVolAnnotations(c.volName, c.namespace)
 	if err != nil {
 		return nil
-	}
-
-	ctrlstatus := strings.Split(annotation.ControllerStatus, ",")
-	for i := range ctrlstatus {
-		if ctrlstatus[i] != "running" {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
-			return nil
-		}
 	}
 	// Initiallize an instance of ReplicaCollection, json response recieved from the
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
 	collection := client.ReplicaCollection{}
 	controllerClient := client.ControllerClient{}
-	_, err = controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.InfoAPI, &collection)
-	if err != nil {
-		return err
-	}
 
-	c.DisplayVolumeInfo(annotation, collection)
+	if volume.Spec.CasType == "jiva" {
+		ctrlstatus := strings.Split(volume.ObjectMeta.Annotations["openebs.io/controller-status"], ",")
+		for i := range ctrlstatus {
+			if ctrlstatus[i] != "running" {
+				fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
+				return nil
+			}
+		}
+		_, err = controllerClient.GetVolumeStats(volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]+v1.ControllerPort, v1.InfoAPI, &collection)
+		if err != nil {
+			return err
+		}
+	}
+	c.DisplayVolumeInfo(volume, annotation, collection)
 	return nil
 }
 
@@ -122,7 +125,7 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently it displays volume access modes and target portal details only.
-func (c *CmdVolumeOptions) DisplayVolumeInfo(a *Annotations, collection client.ReplicaCollection) error {
+func (c *CmdVolumeOptions) DisplayVolumeInfo(v v1alpha1.CASVolume, a *Annotations, collection client.ReplicaCollection) error {
 	var (
 		// address and mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
@@ -142,19 +145,22 @@ Replica Details :
 		portalTemplate = `
 Portal Details :
 ---------------
-IQN     :   {{.IQN}}
-Volume  :   {{.VolumeName}}
-Portal  :   {{.Portal}}
-Size    :   {{.Size}}
-Status  :   {{.Status}}
+IQN           :   {{.IQN}}
+Volume        :   {{.VolumeName}}
+Portal        :   {{.Portal}}
+Size          :   {{.Size}}
+Status        :   {{.Status}}
+Replica Count :   {{.ReplicaCount}}
 `
 	)
+
 	portalInfo = PortalInfo{
-		a.Iqn,
+		v.Spec.Iqn,
 		c.volName,
-		a.TargetPortal,
-		a.VolSize,
-		a.ControllerStatus,
+		v.Spec.TargetPortal,
+		v.Spec.Capacity,
+		v.ObjectMeta.Annotations["openebs.io/controller-status"],
+		v.Spec.Replicas,
 	}
 	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
 	if err != nil {
@@ -166,63 +172,64 @@ Status  :   {{.Status}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	replicaCount, _ = strconv.Atoi(a.ReplicaCount)
-	// This case will occur only if user has manually specified zero replica.
-	if replicaCount == 0 || a.ReplicaStatus == "" || a.Replicas == "" {
-		fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
-		return nil
-	}
-	// Splitting strings with delimiter ','
-	replicaStatusStrings := strings.Split(a.ReplicaStatus, ",")
-	addressIPStrings := strings.Split(a.Replicas, ",")
-
-	// making a map of replica ip and their respective status,index and mode
-	replicaIPStatus := make(map[string]*Value)
-
-	for i, v := range addressIPStrings {
-		if v != "nil" {
-			replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
-		} else {
-			// appending address with index to avoid same key conflict
-			replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
+	if strings.Contains(v.Spec.Iqn, "com.openebs.jiva") {
+		replicaCount, _ = strconv.Atoi(v.Spec.Replicas)
+		// This case will occur only if user has manually specified zero replica.
+		if replicaCount == 0 || v.ObjectMeta.Annotations["openebs.io/replica-status"] == "" {
+			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
+			return nil
 		}
-	}
+		// Splitting strings with delimiter ','
+		replicaStatusStrings := strings.Split(v.ObjectMeta.Annotations["openebs.io/replica-status"], ",")
+		addressIPStrings := strings.Split(v.ObjectMeta.Annotations["openebs.io/replica-ips"], ",")
 
-	// We get the info of the running replicas from the collection.data.
-	// We are appending modes if available in collection.data to replicaIPStatus
+		// making a map of replica ip and their respective status,index and mode
+		replicaIPStatus := make(map[string]*Value)
 
-	replicaInfo := make(map[int]*ReplicaInfo)
-	for key := range collection.Data {
-		address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
-		mode = append(mode, collection.Data[key].Mode)
-		if _, ok := replicaIPStatus[address[key]]; ok {
-			replicaIPStatus[address[key]].mode = mode[key]
+		for i, v := range addressIPStrings {
+			if v != "nil" {
+				replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
+			} else {
+				// appending address with index to avoid same key conflict
+				replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
+			}
 		}
-	}
 
-	for k, v := range replicaIPStatus {
-		// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
-		if k[0:3] != "nil" {
-			replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
-		} else {
-			replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
+		// We get the info of the running replicas from the collection.data.
+		// We are appending modes if available in collection.data to replicaIPStatus
+
+		replicaInfo := make(map[int]*ReplicaInfo)
+		for key := range collection.Data {
+			address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
+			mode = append(mode, collection.Data[key].Mode)
+			if _, ok := replicaIPStatus[address[key]]; ok {
+				replicaIPStatus[address[key]].mode = mode[key]
+			}
 		}
+
+		for k, v := range replicaIPStatus {
+			// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
+			if k[0:3] != "nil" {
+				replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
+			} else {
+				replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
+			}
+		}
+
+		err = updateReplicasInfo(replicaInfo)
+		if err != nil {
+			fmt.Println("Error in getting specific information from K8s. Please try again.")
+		}
+
+		tmpl = template.New("ReplicaInfo")
+		tmpl = template.Must(tmpl.Parse(replicaTemplate))
+
+		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+		err = tmpl.Execute(w, replicaInfo)
+		if err != nil {
+			fmt.Println("Unable to display volume info, found error : ", err)
+		}
+		w.Flush()
 	}
-
-	err = updateReplicasInfo(replicaInfo)
-	if err != nil {
-		fmt.Println("Error in getting specific information from K8s. Please try again.")
-	}
-
-	tmpl = template.New("ReplicaInfo")
-	tmpl = template.Must(tmpl.Parse(replicaTemplate))
-
-	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-	err = tmpl.Execute(w, replicaInfo)
-	if err != nil {
-		fmt.Println("Unable to display volume info, found error : ", err)
-	}
-	w.Flush()
-
 	return nil
 }

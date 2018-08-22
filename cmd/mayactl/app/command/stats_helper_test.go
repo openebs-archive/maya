@@ -98,7 +98,7 @@ func TestGetVolDetails(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			server = httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
-			if got := annotation.GetVolAnnotations(tt.volumeName, tt.namespace); got != tt.err {
+			if _, got := annotation.GetVolAnnotations(tt.volumeName, tt.namespace); got != tt.err {
 				t.Fatalf("GetVolDetails(%v) => got %v, want %v ", tt.volumeName, got, tt.err)
 			}
 			defer os.Unsetenv(tt.addr)

@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
 )
 
 // Client interface defines the GetVolAnnotation method which can be used to get the details about the volumes from maya-apiserver.
@@ -36,14 +36,12 @@ const (
 
 // GetVolDetails gets response in json format of a volume from m-apiserver
 func GetVolDetails(volName string, namespace string, obj interface{}) error {
-
 	url := mapiserver.GetURL() + "/latest/volumes/" + volName
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
-
 	req.Header.Set("namespace", namespace)
 
 	c := &http.Client{
@@ -71,43 +69,42 @@ func GetVolDetails(volName string, namespace string, obj interface{}) error {
 		fmt.Println("M_API server not reachable")
 		return err
 	}
-
 	defer resp.Body.Close()
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
 // GetVolAnnotations maps annotations of volume to Annotations structure.
-func (annotations *Annotations) GetVolAnnotations(volName string, namespace string) error {
-	var volume v1.Volume
+func (annotations *Annotations) GetVolAnnotations(volName string, namespace string) (v1alpha1.CASVolume, error) {
+	var volume v1alpha1.CASVolume
+	// var volumeold v1.Volume
 	err := GetVolDetails(volName, namespace, &volume)
 	if err != nil || volume.ObjectMeta.Annotations == nil {
 		if volume.Status.Reason == "pending" {
 			fmt.Println("VOLUME status Unknown to M_API server")
 		}
-		return err
+		return volume, err
 	}
-
 	for key, value := range volume.ObjectMeta.Annotations {
 		switch key {
-		case "vsm.openebs.io/volume-size":
+		case "openebs.io/capacity":
 			annotations.VolSize = value
-		case "vsm.openebs.io/iqn":
+		case "openebs.io/jiva-iqn":
 			annotations.Iqn = value
-		case "vsm.openebs.io/replica-count":
+		case "openebs.io/jiva-replica-count":
 			annotations.ReplicaCount = value
-		case "vsm.openebs.io/cluster-ips":
+		case "openebs.io/jiva-controller-cluster-ip":
 			annotations.ClusterIP = value
-		case "vsm.openebs.io/replica-ips":
+		case "openebs.io/jiva-replica-ips":
 			annotations.Replicas = value
-		case "vsm.openebs.io/targetportals":
+		case "openebs.io/jiva-target-portal":
 			annotations.TargetPortal = value
-		case "vsm.openebs.io/controller-status":
+		case "openebs.io/jiva-controller-status":
 			annotations.ControllerStatus = value
-		case "vsm.openebs.io/replica-status":
+		case "openebs.io/jiva-replica-status":
 			annotations.ReplicaStatus = value
-		case "vsm.openebs.io/controller-ips":
+		case "openebs.io/jiva-controller-ips":
 			annotations.ControllerIP = value
 		}
 	}
-	return nil
+	return volume, nil
 }
