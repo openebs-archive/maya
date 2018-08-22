@@ -18,7 +18,6 @@ package spc
 import (
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -71,7 +70,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		// It is a create event so resync should be false and sparepoolcount is passed 0
 		// sparepoolcount is not used when resync is false.
-		err := storagepoolactions.CreateStoragePool(spcGot, false, 0)
+		err := CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
@@ -95,7 +94,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		return syncEvent, nil
 		break
 	case deleteEvent:
-		err := storagepoolactions.DeleteStoragePool(spcGot)
+		err := DeleteStoragePool(spcGot)
 
 		if err != nil {
 			glog.Error("Storagepool could not be deleted:", err)
@@ -171,7 +170,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 		// sparePoolCount holds the spared pool that should be provisioned to get the desired state.
 		sparePoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
 		// Call the storage pool create logic to proviison the spare pools.
-		err := storagepoolactions.CreateStoragePool(spcGot, true, sparePoolCount)
+		err := CreateStoragePool(spcGot, true, sparePoolCount)
 		if err != nil {
 			return err
 		}
