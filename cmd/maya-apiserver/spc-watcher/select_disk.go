@@ -109,7 +109,10 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 		return nil, errors.New("no disk object found")
 	}
 
-	nodeDiskMap, spareAllotment := k.nodeSelector(listDisk, cp.PoolType, spareAllotment)
+	err, nodeDiskMap, spareAllotment := k.nodeSelector(listDisk, cp.PoolType, cp.StoragePoolClaim, spareAllotment)
+	if err != nil {
+		return nil, err
+	}
 	gotAllotment := cp.MaxPools - spareAllotment
 	if spareAllotment > cp.MaxPools-cp.MinPools {
 		return nil, fmt.Errorf("no node qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
@@ -128,27 +131,26 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 // Finally diskSelector function will vote for qualified nodes.
 
-func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spareAllotment int) (map[string]*nodeDisk, int) {
+func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spc string, spareAllotment int) (error, map[string]*nodeDisk, int) {
 
-	// Get the list of disk that has been used already for pool provisioning
-	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
+	err, usedDiskMap := k.getUsedDiskMap()
 	if err != nil {
-		glog.Error("unable to get the list of used disks:", err)
+		return err, nil, spareAllotment
 	}
-	// Form a map that will hold all the used disk
-	usedDiskMap := make(map[string]int)
-	for _, sp := range spList.Items {
-		for _, usedDisk := range sp.Spec.Disks.DiskList {
-			usedDiskMap[usedDisk]++
-		}
-
+	err, usedNodeMap := k.getUsedNodeMap(spc)
+	if err != nil {
+		return err, nil, spareAllotment
 	}
 	// nodeDiskMap is the data structure holding host name as key
 	// and nodeDisk struct as value
 	nodeDiskMap := make(map[string]*nodeDisk)
 	for _, value := range listDisk.Items {
+
 		// If the disk is already being used, do not consider this as a part for provisioning pool
 		if usedDiskMap[value.Name] == 1 {
+			continue
+		}
+		if usedNodeMap[value.Labels[string(v1alpha1.HostNameCPK)]] == 1 {
 			continue
 		}
 		// if no more allotment is required, stop processing
@@ -180,7 +182,7 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		}
 
 	}
-	return nodeDiskMap, spareAllotment
+	return nil, nodeDiskMap, spareAllotment
 }
 
 // diskSelector is the function that will select the required number of disks from qualified nodes
@@ -202,7 +204,7 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 		if poolType == string(v1alpha1.PoolTypeStripedCPK) {
 			requiredDiskCount = int(v1alpha1.StripedDiskCountCPK)
 		}
-		// If pool type is striped, 2 disks should be selected
+		// If pool type is mirrored, 2 disks should be selected
 		if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
 			requiredDiskCount = int(v1alpha1.MirroredDiskCountCPK)
 			// If the current disk count on the node is less than the required disks
@@ -229,4 +231,40 @@ func diskFilterConstraint(diskType string) string {
 		label = string(v1alpha1.DiskTypeCPK) + "=" + string(v1alpha1.TypeDiskCPK)
 	}
 	return label
+}
+
+// form usedDisk map that will hold the list of all used disks
+
+func (k *clientSet) getUsedDiskMap() (error, map[string]int) {
+	// Get the list of disk that has been used already for pool provisioning
+	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("unable to get the list of used disks:%v", err), nil
+	}
+	// Form a map that will hold all the used disk
+	usedDiskMap := make(map[string]int)
+	for _, sp := range spList.Items {
+		for _, usedDisk := range sp.Spec.Disks.DiskList {
+			usedDiskMap[usedDisk]++
+		}
+
+	}
+	return nil, usedDiskMap
+}
+
+// form usedNode map to keep a track of nodes on the top of which storagepool cannot be provisioned for a
+// given storagepoolcalim
+
+func (k *clientSet) getUsedNodeMap(spc string) (error, map[string]int) {
+	// Get the list of disk that has been used already for pool provisioning
+	spcSpList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
+	if err != nil {
+		return fmt.Errorf("unable to get the list of storagepools for stragepoolclaim %s:%v", spc, err),nil
+	}
+	// Form a map that will hold all the nodes on the top of which pool cannot be provisioned
+	usedNodeMap := make(map[string]int)
+	for _, sp := range spcSpList.Items {
+		usedNodeMap[sp.Labels[string(v1alpha1.HostNameCPK)]]++
+	}
+	return nil,usedNodeMap
 }

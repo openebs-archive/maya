@@ -146,9 +146,6 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, sparePoolCount int) 
 
 func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 	// Performing valdations against CasPool fields
-	if cp.MaxPools < cp.MinPools {
-		return fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool"), nil
-	}
 	if cp.MaxPools <= 0 {
 		return fmt.Errorf("aborting storagepool create operation as no maxPool field is specified"), nil
 	}
@@ -157,15 +154,17 @@ func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 		glog.Warning("invalid or 0 min pool specified, defaulting to 1")
 		cp.MinPools = 1
 	}
+	if cp.MaxPools < cp.MinPools {
+		return fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool"), nil
+	}
 	// If it is a resync event, MaxPool is the spared pool to be provisioned
 	if cp.ReSync {
-		cp.MaxPools = cp.SparePoolCount
 		// if min pool was not provisioned try to provision again the minimum number of pool
 		// else set min pool to 1 as in this case min pool was provisioned.
 		if !(cp.MaxPools == cp.SparePoolCount) {
 			cp.MinPools = 1
 		}
-
+		cp.MaxPools = cp.SparePoolCount
 	}
 	// getDiskList will get the disks to be used for storagepool provisioning
 	newDisksList, err := getDiskList(cp)
