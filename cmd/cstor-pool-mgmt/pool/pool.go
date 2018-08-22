@@ -171,6 +171,7 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 			glog.Infof("Waiting for zpool replication container to start...")
 			continue
 		}
+		glog.Errorf("Error in CheckForZreplInitial : %v", err)
 		break
 	}
 }
@@ -183,6 +184,7 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			time.Sleep(ZreplRetryInterval)
 			continue
 		}
+		glog.Errorf("Error in CheckForZreplContinuous : %v", err)
 		break
 	}
 }
