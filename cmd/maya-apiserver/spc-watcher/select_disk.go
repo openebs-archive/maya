@@ -109,17 +109,25 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 		return nil, errors.New("no disk object found")
 	}
 
+	// pendingAllotment holds the number of pools that will be pending to be provisioned.
 	err, nodeDiskMap, pendingAllotment := k.nodeSelector(listDisk, cp.PoolType, cp.StoragePoolClaim, pendingAllotment)
 	if err != nil {
 		return nil, err
 	}
+	// gotAllotment is the count of nodes where storagepool can be provisioned
 	gotAllotment := cp.MaxPools - pendingAllotment
-	if pendingAllotment > cp.MaxPools-cp.MinPools {
-		return nil, fmt.Errorf("no node qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
+	if gotAllotment < cp.MinPools {
+		return nil, fmt.Errorf("not enough nodes qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
 	}
+	// if alloted node was less than the maxPool that means partial allotment is done and
+	// some allotment is still pending.
 	if gotAllotment < cp.MaxPools {
 		glog.Warning("partial node allotment done:pending node allotment:", pendingAllotment)
 	}
+
+	// diskSelector will get the list of disks from nodeDiskMap by selecting disks from
+	// qualified nodes only.
+	// diskSelector rejects a dirty node which will not qualify for pool creation.
 	selectedDisk := diskSelector(nodeDiskMap, cp.PoolType)
 	return selectedDisk, nil
 }
@@ -127,7 +135,13 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 // nodeSelector function will select candidate nodes that will qualify for storagepool provisioning in accordance
 // with the pool constraints.
 
-// NOTE: Not all the selected nodes may qualify.
+// nodeSelector will basically try to form a map by iterating over the list.
+// During the formation of map, if the pendingAllotment can be done with the current map data,
+// it will stop iterating over disks.
+// During this map formation some nodes can enter into map which is not capable of forming the pool
+// this node is dirty node and will be rejected by diskSelector while selecting disk.
+
+// NOTE: Not all the selected nodes may qualify. These nodes are dirty nodes
 
 // Finally diskSelector function will vote for qualified nodes.
 
@@ -155,7 +169,7 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		}
 		// if no more allotment is required, stop processing
 		if pendingAllotment == 0 {
-			glog.Info("required pool allotment done")
+			glog.Info("Required pool allotment done")
 			break
 		}
 		if nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] == nil {
@@ -197,21 +211,21 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 	// requiredDiskCount will hold the required number of disk that should be selcted from a qualified
 	// node for specific pool type
 	var requiredDiskCount int
-
+	// If pool type is striped, 1 disk should be selected
+	if poolType == string(v1alpha1.PoolTypeStripedCPK) {
+		requiredDiskCount = int(v1alpha1.StripedDiskCountCPK)
+	}
+	// If pool type is mirrored, 2 disks should be selected
+	if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
+		requiredDiskCount = int(v1alpha1.MirroredDiskCountCPK)
+	}
 	// Range over the nodeDiskMap map to get the list of disks
 	for _, val := range nodeDiskMap {
-		// If pool type is striped, 1 disk should be selected
-		if poolType == string(v1alpha1.PoolTypeStripedCPK) {
-			requiredDiskCount = int(v1alpha1.StripedDiskCountCPK)
-		}
-		// If pool type is mirrored, 2 disks should be selected
-		if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
-			requiredDiskCount = int(v1alpha1.MirroredDiskCountCPK)
-			// If the current disk count on the node is less than the required disks
-			// then this is a dirty node and it will not qualify.
-			if len(val.diskList) < requiredDiskCount {
-				continue
-			}
+
+		// If the current disk count on the node is less than the required disks
+		// then this is a dirty node and it will not qualify.
+		if len(val.diskList) < requiredDiskCount {
+			continue
 		}
 		// Select the required disk from qualified nodes.
 		for i := 0; i < requiredDiskCount; i++ {
@@ -258,12 +272,12 @@ func (k *clientSet) getUsedDiskMap() (error, map[string]int) {
 // given storagepoolcalim
 
 func (k *clientSet) getUsedNodeMap(spc string) (error, map[string]int) {
-	// Get the list of disk that has been used already for pool provisioning
+	// Get the list of storagepool
 	spcSpList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
 	if err != nil {
 		return fmt.Errorf("unable to get the list of storagepools for stragepoolclaim %s:%v", spc, err), nil
 	}
-	// Form a map that will hold all the nodes on the top of which pool cannot be provisioned
+	// Form a map that will hold all the nodes where storagepool for the spc has been already created.
 	usedNodeMap := make(map[string]int)
 	for _, sp := range spcSpList.Items {
 		usedNodeMap[sp.Labels[string(v1alpha1.HostNameCPK)]]++
