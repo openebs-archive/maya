@@ -196,7 +196,7 @@ func LabelClear(disks []string) error {
 		labelClearStr := []string{"labelclear", "-f", disk}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label: %v", string(stdoutStderr))
+			glog.Errorf("Unable to clear label: %v, err = %v", string(stdoutStderr), err)
 			failLabelClear = true
 		}
 	}
