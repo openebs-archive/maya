@@ -168,6 +168,7 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
+			glog.Errorf("zpool status returned error in zrepl startup : %v", err)
 			glog.Infof("Waiting for zpool replication container to start...")
 			continue
 		}
@@ -183,6 +184,7 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			time.Sleep(ZreplRetryInterval)
 			continue
 		}
+		glog.Errorf("zpool status returned error in zrepl healthcheck : %v", err)
 		break
 	}
 }
@@ -194,7 +196,7 @@ func LabelClear(disks []string) error {
 		labelClearStr := []string{"labelclear", "-f", disk}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label: %v", string(stdoutStderr))
+			glog.Errorf("Unable to clear label: %v, err = %v", string(stdoutStderr), err)
 			failLabelClear = true
 		}
 	}
