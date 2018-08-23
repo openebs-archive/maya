@@ -157,24 +157,31 @@ func NewResourceGetter(gvr schema.GroupVersionResource, namespace string) Resour
 
 // ResourceUpdater abstracts updating an unstructured instance found in
 // kubernetes cluster
-type ResourceUpdater func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
+type ResourceUpdater func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
 
 // NewResourceUpdater returns a new instance of ResourceUpdater that is capable
 // of updating an unstructured instance found in kubernetes cluster
 func NewResourceUpdater(gvr schema.GroupVersionResource, namespace string) ResourceUpdater {
-	return func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
-		if obj == nil {
-			return nil, fmt.Errorf("nil resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
+	return func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
+		if oldobj == nil {
+			return nil, fmt.Errorf("nil old resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
+		}
+
+		if newobj == nil {
+			return nil, fmt.Errorf("nil new resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
 		}
 
 		dynamic, err := NewDynamicGetter()()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
+			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
 		}
 
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Update(obj, subresources...)
+		resourceVersion := oldobj.GetResourceVersion()
+		newobj.SetResourceVersion(resourceVersion)
+
+		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Update(newobj, subresources...)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
+			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
 		}
 
 		return unstruct, nil
@@ -218,16 +225,15 @@ func newResourceApplier(options ResourceApplyOptions) ResourceApplier {
 		}
 
 		resource, err = options.Getter(obj.GetName(), metav1.GetOptions{})
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			// create if not found
+		if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
 			return options.Creator(obj, subresources...)
-		} else {
-			// some genuine error at kubernetes server
-			err = errors.Wrapf(err, "failed to apply resource '%s'", obj.GetName())
-			return
 		}
 
-		return options.Updater(obj, subresources...)
+		if resource != nil {
+			return options.Updater(resource, obj, subresources...)
+		}
+
+		return
 	}
 }
 
