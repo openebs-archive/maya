@@ -151,7 +151,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	if len(spcGot.Spec.Disks.DiskList) > 0 {
 		// TODO : reconciliation for manual storagepool provisioning
-		glog.V(1).Infof("no reconciliation for manual provisioning for storagepoolclaim %s", spcGot.Name)
+		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
 		return nil
 	}
 	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
@@ -168,7 +168,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	// Get the current count of provisioned pool for the storagepool claim
 	spList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
 	if err != nil {
-		return fmt.Errorf("unable to list storagepool:%v", err)
+		return fmt.Errorf("unable to list storagepools: %v", err)
 	}
 	currentPoolCount := len(spList.Items)
 
