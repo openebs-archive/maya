@@ -106,6 +106,11 @@ func DeleteVolume(fullVolName string) error {
 	deleteVolStr := []string{"destroy", fullVolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {
+		// If volume is missing then do not return error
+		if strings.Contains(err.Error(), "dataset does not exist") {
+			glog.Infof("Assuming volume deletion successful for error: %v", string(stdoutStderr))
+			return nil
+		}
 		glog.Errorf("Unable to delete volume : %v", string(stdoutStderr))
 		return err
 	}
