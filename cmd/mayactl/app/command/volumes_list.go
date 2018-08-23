@@ -65,21 +65,12 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	out := make([]string, len(cvols.Items)+1)
 	out[0] = "Name|Status|Type"
 	for i, items := range cvols.Items {
-		if items.Spec.CasType == "jiva" {
-			if items.Status.Reason == "" {
-				items.Status.Reason = "Running"
-			}
-			out[i+1] = fmt.Sprintf("%s|%s|%s",
-				items.ObjectMeta.Name,
-				items.Status.Reason, "JIVA")
-		} else if items.Spec.CasType == "cstor" {
-			if items.Status.Reason == "" {
-				items.Status.Reason = "Running"
-			}
-			out[i+1] = fmt.Sprintf("%s|%s|%s",
-				items.ObjectMeta.Name,
-				items.Status.Reason, "CSTOR")
+		if items.Status.Reason == "" {
+			items.Status.Reason = "Running"
 		}
+		out[i+1] = fmt.Sprintf("%s|%s|%s",
+			items.ObjectMeta.Name,
+			items.Status.Reason, items.GetField("CasType"))
 	}
 	if len(out) == 1 {
 		fmt.Println("No Volumes are running")

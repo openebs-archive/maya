@@ -28,6 +28,7 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
@@ -75,22 +76,22 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		status         v1.VolStatus
 		stats1, stats2 v1.VolumeMetrics
 	)
-	annotation := &Annotations{}
-	volume, err := annotation.GetVolAnnotations(c.volName, c.namespace)
+	volumeInfo := &v1alpha1.CASVolume{}
+	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
 
-	ctrlstatus := strings.Split(volume.ObjectMeta.Annotations["openebs.io/controller-status"], ",")
-	for i := range ctrlstatus {
-		if ctrlstatus[i] != "running" {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", volume.ObjectMeta.Annotations["openebs.io/controller-status"])
+	controllerStatus := strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	for i := range controllerStatus {
+		if controllerStatus[i] != "running" {
+			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
 			return nil
 		}
 	}
 
-	replicas := strings.Split(volume.ObjectMeta.Annotations["openebs.io/replica-ips"], ",")
-	replicaStatus := strings.Split(volume.ObjectMeta.Annotations["openebs.io/replica-status"], ",")
+	replicas := strings.Split(volumeInfo.GetField("ReplicaIP"), ",")
+	replicaStatus := strings.Split(volumeInfo.GetField("ReplicaStatus"), ",")
 	replicaStats := make(map[int]*ReplicaStats)
 	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
@@ -107,7 +108,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	}
 
 	controllerClient := client.ControllerClient{}
-	respStatus, err := controllerClient.GetVolumeStats(volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]+v1.ControllerPort, v1.StatsAPI, &stats1)
+	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err != nil {
 		if (respStatus == 500) || (respStatus == 503) || err != nil {
 			fmt.Println("Volume not Reachable\n", err)
@@ -115,14 +116,14 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		respStatus, err := controllerClient.GetVolumeStats(volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]+v1.ControllerPort, v1.StatsAPI, &stats2)
+		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err != nil {
 			if respStatus == 500 || respStatus == 503 || err != nil {
 				fmt.Println("Volume not Reachable\n", err)
 				return nil
 			}
 		} else {
-			err := annotation.DisplayStats(&volume, c, replicaStats, stats1, stats2)
+			err := displayStats(volumeInfo, c, replicaStats, stats1, stats2)
 			if err != nil {
 				fmt.Println("Can't display stats\n", err)
 				return nil
@@ -132,10 +133,10 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	return nil
 }
 
-// DisplayStats displays the volume stats as standard output and in json format.
+// displayStats displays the volume stats as standard output and in json format.
 // By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
-func (a *Annotations) DisplayStats(v *v1alpha1.CASVolume, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func displayStats(v *v1alpha1.CASVolume, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		ReadLatency          int64
@@ -239,10 +240,10 @@ Capacity Stats :
 
 	stat1 := v1.StatsJSON{
 
-		IQN:    a.Iqn,
-		Volume: c.volName,
-		Portal: a.TargetPortal,
-		Size:   a.VolSize,
+		IQN:    v.GetField("IQN"),
+		Volume: v.GetField("VolumeName"),
+		Portal: v.GetField("TargetPortal"),
+		Size:   v.GetField("VolumeSize"),
 
 		ReadIOPS:  readIOPS,
 		WriteIOPS: writeIOPS,

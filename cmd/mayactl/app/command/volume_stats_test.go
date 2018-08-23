@@ -10,7 +10,6 @@ import (
 
 func TestDisplayStats(t *testing.T) {
 	validStats := map[string]struct {
-		annotation   *Annotations
 		cmdOptions   *CmdVolumeOptions
 		replicaStats map[int]*ReplicaStats
 		initialStats v1.VolumeMetrics
@@ -23,17 +22,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "0",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10",
 			},
 			replicaStats: nil,
 			initialStats: v1.VolumeMetrics{
@@ -108,17 +96,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "1",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -198,17 +175,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "2",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -299,17 +265,6 @@ func TestDisplayStats(t *testing.T) {
 				json:    "json",
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
 					Replica:         "10.10.10.10",
@@ -398,17 +353,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -504,17 +448,6 @@ func TestDisplayStats(t *testing.T) {
 				json:    "",
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,ErrImagePull,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
-			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
 					Replica:         "10.10.10.10",
@@ -608,17 +541,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,CrashLoopBackOff,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -714,17 +636,6 @@ func TestDisplayStats(t *testing.T) {
 				json:    "",
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
 					Replica:         "10.10.10.10",
@@ -813,17 +724,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -914,17 +814,6 @@ func TestDisplayStats(t *testing.T) {
 				json:    "",
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
 					Replica:         "10.10.10.10",
@@ -1012,8 +901,8 @@ func TestDisplayStats(t *testing.T) {
 	}
 	for name, tt := range validStats {
 		t.Run(name, func(t *testing.T) {
-			if got := tt.annotation.DisplayStats(&tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
-				t.Fatalf("DisplayStats(%v,%v, %v, %v, %v) => %v, want %v", &tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
+			if got := displayStats(&tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
+				t.Fatalf("displayStats(%v,%v, %v, %v, %v) => %v, want %v", &tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
 			}
 		})
 	}

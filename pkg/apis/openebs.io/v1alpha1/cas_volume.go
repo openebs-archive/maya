@@ -17,7 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	timeout = 5 * time.Second
 )
 
 // CASKey is a typed string to represent CAS related annotations'
@@ -217,4 +228,98 @@ type CASVolumeList struct {
 
 	// Items are the list of volumes
 	Items []CASVolume `json:"items"`
+}
+
+// FetchVolumeInfo fetches and fills CASVolume structure from URL given to it
+func (volInfo *CASVolume) FetchVolumeInfo(URL string, volname string, namespace string) error {
+	url := URL
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("namespace", namespace)
+
+	c := &http.Client{
+		Timeout: timeout,
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		fmt.Printf("Can't get a response, error found: %v", err)
+		return err
+	}
+	if resp != nil {
+		if resp.StatusCode == 500 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			return util.InternalServerError
+		} else if resp.StatusCode == 503 {
+			fmt.Println("M_API server not reachable")
+			return util.ServerUnavailable
+		} else if resp.StatusCode == 404 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			return util.PageNotFound
+		}
+	} else {
+		fmt.Println("M_API server not reachable")
+		return err
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(volInfo)
+	if err != nil {
+		fmt.Println("Response decode failed")
+		return err
+	}
+	if volInfo.Status.Reason == "pending" {
+		fmt.Println("VOLUME status Unknown to M_API server")
+	}
+	return err
+}
+
+// GetField returns storage engine type in lowercase
+func (volInfo *CASVolume) GetField(fieldName string) string {
+	switch fieldName {
+	case "CasType":
+		if len(volInfo.Spec.CasType) == 0 {
+			return "jiva"
+		}
+		return strings.ToLower(volInfo.Spec.CasType)
+	case "ClusterIP":
+		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/cluster-ips"]; ok {
+			return val
+		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/cluster-ips"]; ok {
+			return val
+		}
+		return ""
+	case "ControllerStatus":
+		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/controller-status"]; ok {
+			return val
+		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/controller-status"]; ok {
+			return val
+		}
+		return ""
+	case "IQN":
+		return volInfo.Spec.Iqn
+	case "VolumeName":
+		return volInfo.ObjectMeta.Name
+	case "TargetPortal":
+		return volInfo.Spec.TargetPortal
+	case "VolumeSize":
+		return volInfo.Spec.Capacity
+	case "ReplicaCount":
+		return volInfo.Spec.Replicas
+	case "ReplicaStatus":
+		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-status"]; ok {
+			return val
+		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-status"]; ok {
+			return val
+		}
+		return ""
+	case "ReplicaIP":
+		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-ips"]; ok {
+			return val
+		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-ips"]; ok {
+			return val
+		}
+		return ""
+	}
+	return "N/A"
 }

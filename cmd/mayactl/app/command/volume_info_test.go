@@ -1,6 +1,7 @@
 package command
 
 import (
+	"io"
 	"testing"
 
 	"net/http/httptest"
@@ -51,7 +52,7 @@ func TestRunVolumeInfo(t *testing.T) {
 				T: t,
 			},
 			addr:   "MAPI_ADDR",
-			output: nil,
+			output: io.EOF,
 		},
 		"WhenControllerIsNotRunning": {
 			cmdOptions: &CmdVolumeOptions{
@@ -83,7 +84,6 @@ func TestRunVolumeInfo(t *testing.T) {
 func TestDisplayVolumeInfo(t *testing.T) {
 	validInfo := map[string]struct {
 		cmdOptions *CmdVolumeOptions
-		annotation *Annotations
 		replica    client.Replica
 		collection client.ReplicaCollection
 		volume     v1alpha1.CASVolume
@@ -92,17 +92,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsZero": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "0",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "",
 			},
 			volume: v1alpha1.CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
@@ -142,17 +131,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsOne": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "1",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10",
 			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
@@ -200,17 +178,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsTwo": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "2",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11",
 			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
@@ -263,17 +230,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Pending",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
 					{
@@ -325,17 +281,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Pending,Pending",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,nil,nil",
-			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
 					{
@@ -383,17 +328,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Pending,Pending,Pending",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "nil,nil,nil",
-			},
 			volume: v1alpha1.CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -432,17 +366,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsThree": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,10.10.10.12",
 			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
@@ -499,17 +422,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Pending,Running,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "nil,10.10.10.11,10.10.10.12",
-			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
 					{
@@ -560,17 +472,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsTwoAndOneCrashLoopBackOff": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,CrashLoopBackOff",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
@@ -623,17 +524,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,ErrImagePull",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
 					{
@@ -685,17 +575,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Pending,ErrImagePull,Running,CrashLoopBackOff",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "nil,nil,10.10.10.12,nil",
-			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
 					{
@@ -742,17 +621,6 @@ func TestDisplayVolumeInfo(t *testing.T) {
 		"InfoWhenReplicaIsFourAndOneErrPullBackAndOneCrashBackAndOneNil": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Pending,ErrImagePull,Running,CrashLoopBackOff",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "nil,nil,10.10.10.13,nil",
 			},
 			collection: client.ReplicaCollection{
 				Data: []client.Replica{
@@ -801,8 +669,8 @@ func TestDisplayVolumeInfo(t *testing.T) {
 
 	for name, tt := range validInfo {
 		t.Run(name, func(t *testing.T) {
-			if got := tt.cmdOptions.DisplayVolumeInfo(tt.volume, tt.annotation, tt.collection); got != tt.output {
-				t.Fatalf("DisplayInfo(%v) => %v, want %v", tt.annotation, got, tt.output)
+			if got := tt.cmdOptions.DisplayVolumeInfo(&tt.volume, tt.collection); got != tt.output {
+				t.Fatalf("DisplayInfo(%v, %v) => %v, want %v", tt.volume, tt.collection, got, tt.output)
 			}
 		})
 	}

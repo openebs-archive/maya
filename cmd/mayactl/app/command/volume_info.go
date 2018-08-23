@@ -1,6 +1,23 @@
+/*
+Copyright 2017 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package command
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -11,6 +28,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
@@ -23,6 +41,10 @@ aspects of a Volume such as ISCSI, Controller, and Replica.
 
 Usage: mayactl volume info --volname <vol>
 `
+)
+
+const (
+	listPath = "/latest/volumes/"
 )
 
 // Value keeps info of the values of a current address in replicaIPStatus map
@@ -70,34 +92,38 @@ func NewCmdVolumeInfo() *cobra.Command {
 
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
-	annotation := &Annotations{}
-	// GetVolumeAnnotation is called to get the volume controller's info such as
+	volumeInfo := &v1alpha1.CASVolume{}
+	// FetchVolumeInfo is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	volume, err := annotation.GetVolAnnotations(c.volName, c.namespace)
+	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listPath+c.volName, c.volName, c.namespace)
 	if err != nil {
-		return nil
+		return err
 	}
+
 	// Initiallize an instance of ReplicaCollection, json response recieved from the
+	collection := client.ReplicaCollection{}
+	if volumeInfo.GetField("CasType") == "jiva" {
+		collection, err = getReplicaInfo(volumeInfo)
+	}
+	c.DisplayVolumeInfo(volumeInfo, collection)
+	return nil
+}
+
+func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, error) {
+	controllerClient, collection, controllerStatuses := client.ControllerClient{}, client.ReplicaCollection{}, strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	for _, controllerStatus := range controllerStatuses {
+		if controllerStatus != "running" {
+			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
+			return collection, errors.New("Unable to fetch volume details")
+		}
+	}
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
-	collection := client.ReplicaCollection{}
-	controllerClient := client.ControllerClient{}
-
-	if volume.Spec.CasType == "jiva" {
-		ctrlstatus := strings.Split(volume.ObjectMeta.Annotations["openebs.io/controller-status"], ",")
-		for i := range ctrlstatus {
-			if ctrlstatus[i] != "running" {
-				fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
-				return nil
-			}
-		}
-		_, err = controllerClient.GetVolumeStats(volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]+v1.ControllerPort, v1.InfoAPI, &collection)
-		if err != nil {
-			return err
-		}
+	_, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.InfoAPI, &collection)
+	if err != nil {
+		fmt.Printf("Cannot get volume stats %v", err)
 	}
-	c.DisplayVolumeInfo(volume, annotation, collection)
-	return nil
+	return collection, err
 }
 
 func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
@@ -125,7 +151,7 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently it displays volume access modes and target portal details only.
-func (c *CmdVolumeOptions) DisplayVolumeInfo(v v1alpha1.CASVolume, a *Annotations, collection client.ReplicaCollection) error {
+func (c *CmdVolumeOptions) DisplayVolumeInfo(v *v1alpha1.CASVolume, collection client.ReplicaCollection) error {
 	var (
 		// address and mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
@@ -155,12 +181,12 @@ Replica Count :   {{.ReplicaCount}}
 	)
 
 	portalInfo = PortalInfo{
-		v.Spec.Iqn,
-		c.volName,
-		v.Spec.TargetPortal,
-		v.Spec.Capacity,
-		v.ObjectMeta.Annotations["openebs.io/controller-status"],
-		v.Spec.Replicas,
+		v.GetField("IQN"),
+		v.GetField("VolumeName"),
+		v.GetField("TargetPortal"),
+		v.GetField("VolumeSize"),
+		v.GetField("ControllerStatus"),
+		v.GetField("ReplicaCount"),
 	}
 	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
 	if err != nil {
@@ -172,33 +198,34 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if strings.Contains(v.Spec.Iqn, "com.openebs.jiva") {
-		replicaCount, _ = strconv.Atoi(v.Spec.Replicas)
+	if v.GetField("CasType") == "jiva" {
+		replicaCount, _ = strconv.Atoi(v.GetField("ReplicaCount"))
 		// This case will occur only if user has manually specified zero replica.
-		if replicaCount == 0 || v.ObjectMeta.Annotations["openebs.io/replica-status"] == "" {
+		if replicaCount == 0 || v.GetField("ReplicaStatus") == "" {
 			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 			return nil
 		}
 		// Splitting strings with delimiter ','
-		replicaStatusStrings := strings.Split(v.ObjectMeta.Annotations["openebs.io/replica-status"], ",")
-		addressIPStrings := strings.Split(v.ObjectMeta.Annotations["openebs.io/replica-ips"], ",")
+		replicaStatusStrings := strings.Split(v.GetField("ReplicaStatus"), ",")
+		addressIPStrings := strings.Split(v.GetField("ReplicaIP"), ",")
 
 		// making a map of replica ip and their respective status,index and mode
 		replicaIPStatus := make(map[string]*Value)
 
-		for i, v := range addressIPStrings {
-			if v != "nil" {
-				replicaIPStatus[v] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
+		// Creating a map of address and mode
+		for index, IP := range addressIPStrings {
+			if IP != "nil" {
+				replicaIPStatus[IP] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
 			} else {
 				// appending address with index to avoid same key conflict
-				replicaIPStatus[v+string(i)] = &Value{index: i, status: replicaStatusStrings[i], mode: "NA"}
+				replicaIPStatus[IP+string(index)] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
 			}
 		}
 
 		// We get the info of the running replicas from the collection.data.
 		// We are appending modes if available in collection.data to replicaIPStatus
-
 		replicaInfo := make(map[int]*ReplicaInfo)
+
 		for key := range collection.Data {
 			address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
 			mode = append(mode, collection.Data[key].Mode)
@@ -207,12 +234,12 @@ Replica Count :   {{.ReplicaCount}}
 			}
 		}
 
-		for k, v := range replicaIPStatus {
+		for IP, replicaStatus := range replicaIPStatus {
 			// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
-			if k[0:3] != "nil" {
-				replicaInfo[v.index] = &ReplicaInfo{k, v.mode, v.status, "NA", "NA"}
+			if IP[0:3] != "nil" {
+				replicaInfo[replicaStatus.index] = &ReplicaInfo{IP, replicaStatus.mode, replicaStatus.status, "NA", "NA"}
 			} else {
-				replicaInfo[v.index] = &ReplicaInfo{"NA", v.mode, v.status, "NA", "NA"}
+				replicaInfo[replicaStatus.index] = &ReplicaInfo{"NA", replicaStatus.mode, replicaStatus.status, "NA", "NA"}
 			}
 		}
 
