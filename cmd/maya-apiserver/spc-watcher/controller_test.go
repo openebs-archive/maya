@@ -237,7 +237,13 @@ func TestUpdateSpc(t *testing.T) {
 					ResourceVersion: "111232",
 				},
 			},
-			expectedQueueLoad: QueueLoad{"", ignoreEvent, nil},
+			expectedQueueLoad: QueueLoad{"pool1", syncEvent, &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "pool1",
+					ResourceVersion: "111232",
+				},
+			},
+			},
 		},
 
 		// TestCase#2

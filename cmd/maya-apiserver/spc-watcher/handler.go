@@ -20,6 +20,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -68,7 +69,9 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 	switch operation {
 	case addEvent:
 		// CreateStoragePool function will create the storage pool
-		err := storagepoolactions.CreateStoragePool(spcGot)
+		// It is a create event so resync should be false and sparepoolcount is passed 0
+		// sparepoolcount is not used when resync is false.
+		err := storagepoolactions.CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
@@ -84,7 +87,13 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// Hook Update Business Logic Here
 		return updateEvent, nil
 		break
-
+	case syncEvent:
+		err := syncSpc(spcGot)
+		if err != nil {
+			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
+		}
+		return syncEvent, nil
+		break
 	case deleteEvent:
 		err := storagepoolactions.DeleteStoragePool(spcGot)
 
@@ -138,4 +147,34 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		return nil, err
 	}
 	return spcGot, nil
+}
+
+func syncSpc(spcGot *apis.StoragePoolClaim) error {
+	glog.Infof("Syncing storagepoolclaim %s", spcGot.Name)
+	// Get kubernetes clientset
+	// namespaces is not required, hence passed empty.
+	newK8sClient, err := k8s.NewK8sClient("")
+	if err != nil {
+		return err
+	}
+	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
+	// the openebs clientset is not exported.
+	newOecsClient := newK8sClient.GetOECS()
+
+	// Get the current count of provisione pool for the storagepool claim
+	cspList, err := newOecsClient.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
+	currentPoolCount := len(cspList.Items)
+
+	// If current pool count is less than maxpool count, try to converge to maxpool
+	if currentPoolCount < int(spcGot.Spec.MaxPools) {
+		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
+		// sparePoolCount holds the spared pool that should be provisioned to get the desired state.
+		sparePoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
+		// Call the storage pool create logic to proviison the spare pools.
+		err := storagepoolactions.CreateStoragePool(spcGot, true, sparePoolCount)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

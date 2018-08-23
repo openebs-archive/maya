@@ -202,6 +202,12 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 	}, nil
 }
 
+// GetOECS() is a getter method for fetching openebs clientset as
+// the openebs clientset is not exported.
+func (k *K8sClient) GetOECS() *openebs.Clientset {
+	return k.oecs
+}
+
 // scOps is a utility function that provides a instance capable of
 // executing various K8s StorageClass related operations
 func (k *K8sClient) storageV1SCOps() typed_storage_v1.StorageClassInterface {
