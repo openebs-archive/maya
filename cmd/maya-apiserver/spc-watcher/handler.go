@@ -153,7 +153,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 		// TODO : reconciliation for manual storagepool provisioning
 		return fmt.Errorf("no reconciliation for manual provisioning for storagepoolclaim %s", spcGot.Name)
 	}
-	glog.Infof("Syncing storagepoolclaim %s", spcGot.Name)
+	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
 	newK8sClient, err := k8s.NewK8sClient("")
@@ -164,8 +164,8 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	// the openebs clientset is not exported.
 	newOecsClient := newK8sClient.GetOECS()
 
-	// Get the current count of provisione pool for the storagepool claim
-	cspList, err := newOecsClient.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
+	// Get the current count of provisioned pool for the storagepool claim
+	cspList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
 	if err != nil {
 		return fmt.Errorf("unable to list csp:%v", err)
 	}
@@ -176,7 +176,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
 		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
 		pendingPoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
-		// Call the storage pool create logic to proviison the pending pools.
+		// Call the storage pool create logic to provision the pending pools.
 		err := CreateStoragePool(spcGot, true, pendingPoolCount)
 		if err != nil {
 			return err

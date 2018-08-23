@@ -105,7 +105,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error in getting the disk list:%v", err)
 	}
-	if listDisk == nil {
+	if len(listDisk.Items) == 0 {
 		return nil, errors.New("no disk object found")
 	}
 
@@ -222,7 +222,9 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 }
 
 // diskFilterConstraint will form labels that will be used to filter disks
-
+// It will return the labels in which filtering can be done.
+// e.g.
+// "ndm.io/disk-type=disk" , "ndm.io/disk-type=sparse"
 func diskFilterConstraint(diskType string) string {
 	var label string
 	if diskType == string(v1alpha1.TypeSparseCPK) {
@@ -239,7 +241,7 @@ func (k *clientSet) getUsedDiskMap() (error, map[string]int) {
 	// Get the list of disk that has been used already for pool provisioning
 	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("unable to get the list of used disks:%v", err), nil
+		return fmt.Errorf("unable to get the list of storagepools:%v", err), nil
 	}
 	// Form a map that will hold all the used disk
 	usedDiskMap := make(map[string]int)

@@ -33,7 +33,7 @@ const (
 	PoolTypeStripedCPK CasPoolKey = "striped"
 	// TypeSparseCPK is a key for sparse disk pool
 	TypeSparseCPK CasPoolKey = "sparse"
-	// TypeDiskCPK is a key for physical disk pool
+	// TypeDiskCPK is a key for physical,iscsi,virtual etc disk pool
 	TypeDiskCPK CasPoolKey = "disk"
 	// StripedDiskCountCPK is the count for striped type pool
 	StripedDiskCountCPK CasPoolVals = 1

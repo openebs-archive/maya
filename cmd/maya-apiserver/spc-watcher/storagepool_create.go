@@ -113,7 +113,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 	if casTemplateName == "" {
 		return errors.New("aborting storagepool create operation as no cas template is specified"), nil
 	}
-	// Create an empty CasPool object and fill storagepoolcalim details
+	// Create an empty CasPool object and fill storagepoolclaim details
 	pool := &v1alpha1.CasPool{}
 	pool.StoragePoolClaim = spcGot.Name
 	pool.CasCreateTemplate = casTemplateName
