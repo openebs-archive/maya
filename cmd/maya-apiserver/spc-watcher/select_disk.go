@@ -77,7 +77,8 @@ func getDiskList(cp *v1alpha1.CasPool) ([]string, error) {
 }
 
 // nodeDiskAlloter will try to allot nodes for pool creation as specified in
-// maxPool field of the storagepoolclaim.
+// maxPool field of the storagepoolclaim and return a list of selected disks from
+// those selected nodes.
 
 // For exapmle, if maxPool=5 and minPool=3, it will try to search for 5 nodes that will qualify for
 // pool provisioning. At least 3 node should qualify else pool will not be provisioned and pool creation

@@ -50,7 +50,8 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCo
 
 	// Check wether the spc object has been processed for storagepool creation
 	if spcGot.Status.Phase == onlineStatus && !reSync {
-		return errors.New("storagepool already exists since the status on storagepoolclaim object is Online")
+		glog.Infof("Storagepool already exists since the status on storagepoolclaim object %s is Online", spcGot.Name)
+		return nil
 	}
 
 	// Get a CasPool object
@@ -81,7 +82,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 	}
 	_, err = storagepoolOps.Create()
 	if err != nil {
-		return fmt.Errorf("Failed to create cas template based storagepool: error '%s'", err.Error())
+		return fmt.Errorf("failed to create cas template based storagepool: error '%s'", err.Error())
 
 	}
 
