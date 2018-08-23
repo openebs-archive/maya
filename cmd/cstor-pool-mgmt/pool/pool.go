@@ -168,10 +168,9 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
-			glog.Infof("Waiting for zpool replication container to start...")
+			glog.Infof("Waiting for zpool replication container to start. err = %v", err)
 			continue
 		}
-		glog.Errorf("Error in CheckForZreplInitial : %v", err)
 		break
 	}
 }
@@ -183,8 +182,9 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 		if err == nil {
 			time.Sleep(ZreplRetryInterval)
 			continue
+		} else {
+			glog.Errorf("Error in CheckForZreplContinuous : %v", err)
 		}
-		glog.Errorf("Error in CheckForZreplContinuous : %v", err)
 		break
 	}
 }
