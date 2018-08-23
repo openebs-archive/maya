@@ -17,7 +17,9 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"time"
@@ -31,6 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -48,17 +51,36 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return nil
 	}
 	cStorPoolGot.Status.Phase = apis.CStorPoolPhase(status)
+
+	statusBytes, err := json.Marshal(cStorPoolGot.Status)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	finalizerBytes, err := json.Marshal(cStorPoolGot.Finalizers)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	if err != nil {
 		glog.Errorf(err.Error())
-		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
+		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Patch(cStorPoolGot.Name, types.JSONPatchType, statusBytes, "status")
 		if err != nil {
 			return err
 		}
 		glog.Infof("cStorPool:%v, %v; Status: %v", cStorPoolGot.Name,
 			string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
+		_, err = c.clientset.OpenebsV1alpha1().CStorPools().Patch(cStorPoolGot.Name, types.JSONPatchType, finalizerBytes, "finalizers")
+		if err != nil {
+			return err
+		}
 		return err
 	}
-	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
+	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Patch(cStorPoolGot.Name, types.JSONPatchType, statusBytes, "status")
+	if err != nil {
+		return err
+	}
+	glog.Infof("cStorPool:%v, %v; Status: %v", cStorPoolGot.Name,
+		string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
+	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Patch(cStorPoolGot.Name, types.JSONPatchType, finalizerBytes, "finalizers")
 	if err != nil {
 		return err
 	}
