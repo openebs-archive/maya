@@ -42,6 +42,10 @@ Usage: mayactl volume stats --volname <vol> [-size <size>]
 `
 )
 
+const (
+	controllerStatusOk = "running"
+)
+
 // ReplicaStats keep info about the replicas.
 type ReplicaStats struct {
 	Replica         string
@@ -77,6 +81,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		stats1, stats2 v1.VolumeMetrics
 	)
 	volumeInfo := &v1alpha1.CASVolume{}
+	// Filling the volumeInfo structure with response from mayapi server
 	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return nil
@@ -84,7 +89,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 
 	controllerStatus := strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
 	for i := range controllerStatus {
-		if controllerStatus[i] != "running" {
+		if controllerStatus[i] != controllerStatusOk {
 			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
 			return nil
 		}
@@ -108,6 +113,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	}
 
 	controllerClient := client.ControllerClient{}
+	// Fetching volume stats from replica controller
 	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err != nil {
 		if (respStatus == 500) || (respStatus == 503) || err != nil {
@@ -284,7 +290,7 @@ Capacity Stats :
 			return nil
 		}
 
-		replicaCount, err := strconv.Atoi(v.ObjectMeta.Annotations["openebs.io/replica-count"])
+		replicaCount, err := strconv.Atoi(v.GetField("ReplicaCount"))
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
 			return nil
@@ -296,7 +302,7 @@ Capacity Stats :
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-
+		// Updating the templates
 		tmpl, err = template.New("ReplicaStats").Parse(replicaTemplate)
 		if err != nil {
 			fmt.Println("Error in parsing replica template, found error : ", err)

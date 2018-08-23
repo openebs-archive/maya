@@ -44,7 +44,8 @@ Usage: mayactl volume info --volname <vol>
 )
 
 const (
-	listPath = "/latest/volumes/"
+	listPath             = "/latest/volumes/"
+	displayReplicaStatus = "jiva"
 )
 
 // Value keeps info of the values of a current address in replicaIPStatus map
@@ -90,7 +91,7 @@ func NewCmdVolumeInfo() *cobra.Command {
 	return cmd
 }
 
-// RunVolumeInfo runs info command and make call to DisplayVolumeInfo
+// RunVolumeInfo runs info command and make call to displayVolumeInfo to display the results
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	volumeInfo := &v1alpha1.CASVolume{}
 	// FetchVolumeInfo is called to get the volume controller's info such as
@@ -100,17 +101,21 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 		return err
 	}
 
-	// Initiallize an instance of ReplicaCollection, json response recieved from the
+	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
-	if volumeInfo.GetField("CasType") == "jiva" {
+	if volumeInfo.GetField("CasType") == displayReplicaStatus {
 		collection, err = getReplicaInfo(volumeInfo)
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
 	return nil
 }
 
+// getReplicaInfo returns the collection of replicas available for jiva volumes
 func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, error) {
-	controllerClient, collection, controllerStatuses := client.ControllerClient{}, client.ReplicaCollection{}, strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	controllerClient := client.ControllerClient{}
+	collection := client.ReplicaCollection{}
+	controllerStatuses := strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	// Iterating over controllerStatus
 	for _, controllerStatus := range controllerStatuses {
 		if controllerStatus != "running" {
 			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
@@ -126,6 +131,7 @@ func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, e
 	return collection, err
 }
 
+// updateReplicaInfo parses replica information to replicaInfo structure
 func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 	K8sClient, err := k8sclient.NewK8sClient("")
 	if err != nil {
@@ -198,10 +204,10 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if v.GetField("CasType") == "jiva" {
+	if v.GetField("CasType") == displayReplicaStatus {
 		replicaCount, _ = strconv.Atoi(v.GetField("ReplicaCount"))
 		// This case will occur only if user has manually specified zero replica.
-		if replicaCount == 0 || v.GetField("ReplicaStatus") == "" {
+		if replicaCount == 0 || len(v.GetField("ReplicaStatus")) == 0 {
 			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 			return nil
 		}
@@ -212,12 +218,12 @@ Replica Count :   {{.ReplicaCount}}
 		// making a map of replica ip and their respective status,index and mode
 		replicaIPStatus := make(map[string]*Value)
 
-		// Creating a map of address and mode
+		// Creating a map of address and mode. The IP is chosed as key so that the status of that corresponding replica can be merged in linear time complexity
 		for index, IP := range addressIPStrings {
 			if IP != "nil" {
 				replicaIPStatus[IP] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
 			} else {
-				// appending address with index to avoid same key conflict
+				// appending address with index to avoid same key conflict as the IP is returned as `nil` in case of error
 				replicaIPStatus[IP+string(index)] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
 			}
 		}
@@ -242,12 +248,13 @@ Replica Count :   {{.ReplicaCount}}
 				replicaInfo[replicaStatus.index] = &ReplicaInfo{"NA", replicaStatus.mode, replicaStatus.status, "NA", "NA"}
 			}
 		}
-
+		// updating the replica info to replica structure
 		err = updateReplicasInfo(replicaInfo)
 		if err != nil {
 			fmt.Println("Error in getting specific information from K8s. Please try again.")
 		}
 
+		// parsing the information to replicastatus template
 		tmpl = template.New("ReplicaInfo")
 		tmpl = template.Must(tmpl.Parse(replicaTemplate))
 

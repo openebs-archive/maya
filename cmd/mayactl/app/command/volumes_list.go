@@ -34,6 +34,10 @@ Usage: mayactl volume list [options]
 	`
 )
 
+const (
+	volumeStatus = "Running"
+)
+
 // NewCmdVolumesList displays status of OpenEBS Volume(s)
 func NewCmdVolumesList() *cobra.Command {
 	cmd := &cobra.Command{
@@ -65,8 +69,8 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	out := make([]string, len(cvols.Items)+1)
 	out[0] = "Name|Status|Type"
 	for i, items := range cvols.Items {
-		if items.Status.Reason == "" {
-			items.Status.Reason = "Running"
+		if len(items.Status.Reason) == 0 {
+			items.Status.Reason = volumeStatus
 		}
 		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			items.ObjectMeta.Name,
