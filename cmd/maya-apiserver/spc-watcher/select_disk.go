@@ -178,7 +178,7 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
 			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &nodeDisk{diskList: []string{value.Name}, diskCount: 1}
 			// If pool type is striped the node qualifies for pool creation hence pendingAllotment decremented.
-			if poolType == string(v1alpha1.PoolTypeStripedCPK) {
+			if poolType == string(v1alpha1.PoolTypeStripedCPV) {
 				pendingAllotment--
 			}
 		} else {
@@ -189,8 +189,8 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 			// Add the current disk to the diskList for this node.
 			nodeDisk.diskList = append(nodeDisk.diskList, value.Name)
 			// If pool type is mirrored the node qualifies for pool creation hence pendingAllotment decremented.
-			if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
-				if nodeDisk.diskCount == int(v1alpha1.MirroredDiskCountCPK) {
+			if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
+				if nodeDisk.diskCount == int(v1alpha1.MirroredDiskCountCPV) {
 					pendingAllotment--
 				}
 			}
@@ -213,12 +213,12 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 	// node for specific pool type
 	var requiredDiskCount int
 	// If pool type is striped, 1 disk should be selected
-	if poolType == string(v1alpha1.PoolTypeStripedCPK) {
-		requiredDiskCount = int(v1alpha1.StripedDiskCountCPK)
+	if poolType == string(v1alpha1.PoolTypeStripedCPV) {
+		requiredDiskCount = int(v1alpha1.StripedDiskCountCPV)
 	}
 	// If pool type is mirrored, 2 disks should be selected
-	if poolType == string(v1alpha1.PoolTypeMirroredCPK) {
-		requiredDiskCount = int(v1alpha1.MirroredDiskCountCPK)
+	if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
+		requiredDiskCount = int(v1alpha1.MirroredDiskCountCPV)
 	}
 	// Range over the nodeDiskMap map to get the list of disks
 	for _, val := range nodeDiskMap {
@@ -242,10 +242,10 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 // "ndm.io/disk-type=disk" , "ndm.io/disk-type=sparse"
 func diskFilterConstraint(diskType string) string {
 	var label string
-	if diskType == string(v1alpha1.TypeSparseCPK) {
-		label = string(v1alpha1.DiskTypeCPK) + "=" + string(v1alpha1.TypeSparseCPK)
+	if diskType == string(v1alpha1.TypeSparseCPV) {
+		label = string(v1alpha1.NdmDiskTypeCPK) + "=" + string(v1alpha1.TypeSparseCPV)
 	} else {
-		label = string(v1alpha1.DiskTypeCPK) + "=" + string(v1alpha1.TypeDiskCPK)
+		label = string(v1alpha1.NdmDiskTypeCPK) + "=" + string(v1alpha1.TypeDiskCPV)
 	}
 	return label
 }

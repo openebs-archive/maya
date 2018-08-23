@@ -98,12 +98,12 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 		return errors.New("aborting storagepool create operation as no poolType is specified"), nil
 	}
 
-	if !(poolType == string(v1alpha1.PoolTypeStripedCPK) || poolType == string(v1alpha1.PoolTypeMirroredCPK)) {
+	if !(poolType == string(v1alpha1.PoolTypeStripedCPV) || poolType == string(v1alpha1.PoolTypeMirroredCPV)) {
 		return fmt.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType), nil
 	}
 
 	diskType := spcGot.Spec.Type
-	if !(diskType == string(v1alpha1.TypeSparseCPK) || diskType == string(v1alpha1.TypeDiskCPK)) {
+	if !(diskType == string(v1alpha1.TypeSparseCPV) || diskType == string(v1alpha1.TypeDiskCPV)) {
 		return fmt.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType), nil
 	}
 	// The name of cas template should be provided as annotation in storagepoolclaim yaml

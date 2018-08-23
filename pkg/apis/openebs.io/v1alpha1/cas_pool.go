@@ -18,7 +18,8 @@ package v1alpha1
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation
 type CasPoolKey string
-type CasPoolVals int
+type CasPoolValString string
+type CasPoolValInt int
 
 const (
 	// HostNameCPK is the kubernetes host name label
@@ -26,19 +27,19 @@ const (
 	// StoragePoolClaimCPK is the storage pool claim label
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
 	// DiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
-	DiskTypeCPK CasPoolKey = "ndm.io/disk-type"
+	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// PoolTypeMirroredCPK is a key for mirrored for pool
-	PoolTypeMirroredCPK CasPoolKey = "mirrored"
+	PoolTypeMirroredCPV CasPoolValString = "mirrored"
 	// PoolTypeMirroredCPK is a key for striped for pool
-	PoolTypeStripedCPK CasPoolKey = "striped"
+	PoolTypeStripedCPV CasPoolValString = "striped"
 	// TypeSparseCPK is a key for sparse disk pool
-	TypeSparseCPK CasPoolKey = "sparse"
+	TypeSparseCPV CasPoolValString = "sparse"
 	// TypeDiskCPK is a key for physical,iscsi,virtual etc disk pool
-	TypeDiskCPK CasPoolKey = "disk"
+	TypeDiskCPV CasPoolValString = "disk"
 	// StripedDiskCountCPK is the count for striped type pool
-	StripedDiskCountCPK CasPoolVals = 1
+	StripedDiskCountCPV CasPoolValInt = 1
 	// MirroredDiskCountCPK is the count for mirrored type pool
-	MirroredDiskCountCPK CasPoolVals = 2
+	MirroredDiskCountCPV CasPoolValInt = 2
 )
 
 type CasPool struct {
