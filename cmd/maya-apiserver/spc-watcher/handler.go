@@ -165,11 +165,11 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 	newOecsClient := newK8sClient.GetOECS()
 
 	// Get the current count of provisioned pool for the storagepool claim
-	cspList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
+	spList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
 	if err != nil {
 		return fmt.Errorf("unable to list csp:%v", err)
 	}
-	currentPoolCount := len(cspList.Items)
+	currentPoolCount := len(spList.Items)
 
 	// If current pool count is less than maxpool count, try to converge to maxpool
 	if currentPoolCount < int(spcGot.Spec.MaxPools) {

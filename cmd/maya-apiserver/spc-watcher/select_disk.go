@@ -273,13 +273,13 @@ func (k *clientSet) getUsedDiskMap() (error, map[string]int) {
 
 func (k *clientSet) getUsedNodeMap(spc string) (error, map[string]int) {
 	// Get the list of storagepool
-	spcSpList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
+	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
 	if err != nil {
 		return fmt.Errorf("unable to get the list of storagepools for stragepoolclaim %s:%v", spc, err), nil
 	}
 	// Form a map that will hold all the nodes where storagepool for the spc has been already created.
 	usedNodeMap := make(map[string]int)
-	for _, sp := range spcSpList.Items {
+	for _, sp := range spList.Items {
 		usedNodeMap[sp.Labels[string(v1alpha1.HostNameCPK)]]++
 	}
 	return nil, usedNodeMap
