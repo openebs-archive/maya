@@ -163,6 +163,8 @@ type CASVolume struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec i.e. specifications of this cas volume
 	Spec CASVolumeSpec `json:"spec"`
+	// CloneSpec contains the required information related to volume clone
+	CloneSpec *VolumeCloneSpec `json:"cloneSpec,omitempty"`
 	// Status of this cas volume
 	Status CASVolumeStatus `json:"status"`
 }
@@ -193,6 +195,20 @@ type CASVolumeStatus struct {
 	// Reason is a brief CamelCase string that describes any failure and is meant
 	// for machine parsing and tidy display in the CLI
 	Reason string
+}
+
+// VolumeCloneSpec contains the required information which enable volume to cloned
+type VolumeCloneSpec struct {
+	// Defaults to false, true will enable the volume to be created as a clone
+	IsClone bool `json:"isClone,omitempty"`
+	// SourceVolume is snapshotted volume
+	SourceVolume string `json:"sourceVolume,omitempty"`
+	// CloneIP is the source controller IP which will be used to make a sync and rebuild
+	// request from the new clone replica.
+	SourceVolumeTargetIP string `json:"targetIP,omitempty"`
+	// SnapshotName name of snapshot which is getting promoted as persistent
+	// volume(this snapshot will be cloned to new volume).
+	SnapshotName string `json:"snapshotName,omitempty"`
 }
 
 // VolumePhase defines phase of a volume

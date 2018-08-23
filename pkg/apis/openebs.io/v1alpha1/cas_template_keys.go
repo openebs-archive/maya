@@ -148,6 +148,21 @@ const (
 	StorageClassVTP VolumeTLPProperty = "storageclass"
 )
 
+// CloneTLPProperty is used to define properties for clone operations
+type CloneTLPProperty string
+
+const (
+	// SnapshotNameVTP is the snapshot name
+	SnapshotNameVTP CloneTLPProperty = "snapshotName"
+	// SourceVolumeTargetIPVTP is source volume target IP
+	SourceVolumeTargetIPVTP CloneTLPProperty = "sourceVolumeTargetIP"
+	// IsCloneVTP is a bool value for clone operations
+	// for a volume
+	IsCloneEnableVTP CloneTLPProperty = "isCloneEnable"
+	// Name of the source volume
+	SourceVolumeVTP CloneTLPProperty = "sourceVolume"
+)
+
 // PolicyTLPProperty is the name of the property that is found
 // under PolicyTLP
 type PolicyTLPProperty string
