@@ -91,7 +91,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		if err != nil {
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
-		return syncEvent, nil
+		return syncEvent, err
 		break
 	case deleteEvent:
 		err := DeleteStoragePool(spcGot)
