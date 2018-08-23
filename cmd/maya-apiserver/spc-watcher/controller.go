@@ -152,7 +152,7 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 	if spcObjectNew.ObjectMeta.ResourceVersion == spcObjectOld.ObjectMeta.ResourceVersion {
 		// If Resource Version is same it means the object has not got updated.
 		// Enqueue the object as part of sync event to achieve the reconciliation loop for storagepool
-		// Reconciliation will try to converge the pool to itse desired state
+		// Reconciliation will try to converge the pool to its desired state
 		// If the storagepool is already in the desired state, it will do nothing.
 		c.queueLoad.Operation = syncEvent
 		c.queueLoad.Object = spcObjectNew
