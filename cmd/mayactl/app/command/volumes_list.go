@@ -73,7 +73,7 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 		}
 		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			items.ObjectMeta.Name,
-			items.Status.Reason, items.GetField("CasType"))
+			items.Status.Reason, items.GetCASType())
 	}
 	if len(out) == 1 {
 		fmt.Println("No Volumes are running")

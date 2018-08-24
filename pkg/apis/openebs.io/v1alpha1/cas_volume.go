@@ -274,52 +274,75 @@ func (volInfo *CASVolume) FetchVolumeInfo(URL string, volname string, namespace 
 	return err
 }
 
-// GetField returns storage engine type in lowercase
-func (volInfo *CASVolume) GetField(fieldName string) string {
-	switch fieldName {
-	case "CasType":
-		if len(volInfo.Spec.CasType) == 0 {
-			return "jiva"
-		}
-		return strings.ToLower(volInfo.Spec.CasType)
-	case "ClusterIP":
-		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/cluster-ips"]; ok {
-			return val
-		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/cluster-ips"]; ok {
-			return val
-		}
-		return ""
-	case "ControllerStatus":
-		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/controller-status"]; ok {
-			return val
-		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/controller-status"]; ok {
-			return val
-		}
-		return ""
-	case "IQN":
-		return volInfo.Spec.Iqn
-	case "VolumeName":
-		return volInfo.ObjectMeta.Name
-	case "TargetPortal":
-		return volInfo.Spec.TargetPortal
-	case "VolumeSize":
-		return volInfo.Spec.Capacity
-	case "ReplicaCount":
-		return volInfo.Spec.Replicas
-	case "ReplicaStatus":
-		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-status"]; ok {
-			return val
-		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-status"]; ok {
-			return val
-		}
-		return ""
-	case "ReplicaIP":
-		if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-ips"]; ok {
-			return val
-		} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-ips"]; ok {
-			return val
-		}
-		return ""
+// GetCASType returns the CASType of the volume in lowercase
+func (volInfo *CASVolume) GetCASType() string {
+	if len(volInfo.Spec.CasType) == 0 {
+		return "jiva"
 	}
-	return "N/A"
+	return strings.ToLower(volInfo.Spec.CasType)
+}
+
+// GetClusterIP returns the ClusterIP of the cluster
+func (volInfo *CASVolume) GetClusterIP() string {
+	if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/cluster-ips"]; ok {
+		return val
+	} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/cluster-ips"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetControllerStatus returns the status of the volume controller
+func (volInfo *CASVolume) GetControllerStatus() string {
+	if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/controller-status"]; ok {
+		return val
+	} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/controller-status"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetIQN returns the IQN of the volume
+func (volInfo *CASVolume) GetIQN() string {
+	return volInfo.Spec.Iqn
+}
+
+// GetVolumeName returns the volume name
+func (volInfo *CASVolume) GetVolumeName() string {
+	return volInfo.ObjectMeta.Name
+}
+
+// GetTargetPortal returns the TargetPortal of the volume
+func (volInfo *CASVolume) GetTargetPortal() string {
+	return volInfo.Spec.TargetPortal
+}
+
+// GetVolumeSize returns the capacity of the volume
+func (volInfo *CASVolume) GetVolumeSize() string {
+	return volInfo.Spec.Capacity
+}
+
+// GetReplicaCount returns the volume replica count
+func (volInfo *CASVolume) GetReplicaCount() string {
+	return volInfo.Spec.Replicas
+}
+
+// GetReplicaStatus returns the replica status of the volume replica
+func (volInfo *CASVolume) GetReplicaStatus() string {
+	if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-status"]; ok {
+		return val
+	} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-status"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetReplicaIP returns the IP of volume replica
+func (volInfo *CASVolume) GetReplicaIP() string {
+	if val, ok := volInfo.ObjectMeta.Annotations["openebs.io/replica-ips"]; ok {
+		return val
+	} else if val, ok := volInfo.ObjectMeta.Annotations["vsm.openebs.io/replica-ips"]; ok {
+		return val
+	}
+	return ""
 }

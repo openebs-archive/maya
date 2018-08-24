@@ -6,14 +6,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestGetField(t *testing.T) {
+func TestGetCASType(t *testing.T) {
 	tests := map[string]struct {
-		fieldName      string
 		expectedOutput string
 		Volume         CASVolume
 	}{
 		"Fetching CasType when CasType is Jiva": {
-			fieldName: "CasType",
 			Volume: CASVolume{
 				Spec: CASVolumeSpec{
 					CasType: "jiva",
@@ -22,7 +20,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "jiva",
 		},
 		"Fetching CasType when CasType is cstor": {
-			fieldName: "CasType",
 			Volume: CASVolume{
 				Spec: CASVolumeSpec{
 					CasType: "cstor",
@@ -31,7 +28,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "cstor",
 		},
 		"Fetching CasType when CasType is none": {
-			fieldName: "CasType",
 			Volume: CASVolume{
 				Spec: CASVolumeSpec{
 					CasType: "",
@@ -39,8 +35,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "jiva",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetCASType()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetClusterIP(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching ClusterIP from openebs.io/cluster-ips": {
-			fieldName: "ClusterIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -51,7 +62,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "192.168.100.1",
 		},
 		"Fetching ClusterIP from vsm.openebs.io/cluster-ips": {
-			fieldName: "ClusterIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -62,7 +72,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "192.168.100.1",
 		},
 		"Fetching ClusterIP when both keys are not present": {
-			fieldName: "ClusterIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -70,8 +79,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetClusterIP()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetControllerStatus(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching Controller status from openebs.io/controller-status": {
-			fieldName: "ControllerStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -82,7 +106,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "running",
 		},
 		"Fetching Controller status from vsm.openebs.io/controller-status": {
-			fieldName: "ControllerStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -93,7 +116,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "running",
 		},
 		"Fetching Controller status when both keys are not present": {
-			fieldName: "ControllerStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -101,8 +123,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetControllerStatus()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetIQN(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching IQN": {
-			fieldName: "IQN",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -113,8 +150,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "iqn.2016-09.com.openebs.cstor:default-testclaim7",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetIQN()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetVolumeName(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching VolumeInfo": {
-			fieldName: "VolumeName",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -123,8 +175,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "default-testclaim",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetVolumeName()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetTargetPortal(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching TargetPortal": {
-			fieldName: "TargetPortal",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -135,8 +202,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "10.63.247.173:3260",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetTargetPortal()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetVolumeSize(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching VolumeSize": {
-			fieldName: "VolumeSize",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -147,8 +229,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "5G",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetVolumeSize()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetReplicaCount(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching ReplicaCount": {
-			fieldName: "ReplicaCount",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -159,8 +256,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "3",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetReplicaCount()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetReplicaStatus(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching ReplicaStatus from openebs.io/replica-status": {
-			fieldName: "ReplicaStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -171,7 +283,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "running, running, running",
 		},
 		"Fetching ReplicaStatus from vsm.openebs.io/replica-status": {
-			fieldName: "ReplicaStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -182,7 +293,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "running, running, running",
 		},
 		"Fetching ReplicaStatus when no key is present": {
-			fieldName: "ReplicaStatus",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -190,8 +300,23 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "",
 		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetReplicaStatus()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetReplicaIP(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         CASVolume
+	}{
 		"Fetching ReplicaIP from openebs.io/replica-ips": {
-			fieldName: "ReplicaIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -202,7 +327,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "10.60.0.11, 10.60.1.16, 10.60.2.10",
 		},
 		"Fetching ReplicaIP from vsm.openebs.io/replica-ips": {
-			fieldName: "ReplicaIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -213,7 +337,6 @@ func TestGetField(t *testing.T) {
 			expectedOutput: "10.60.0.11, 10.60.1.16, 10.60.2.10",
 		},
 		"Fetching ReplicaIP when no key is present": {
-			fieldName: "ReplicaIP",
 			Volume: CASVolume{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -221,20 +344,10 @@ func TestGetField(t *testing.T) {
 			},
 			expectedOutput: "",
 		},
-		"Fetching Invalid key": {
-			fieldName: "test",
-			Volume: CASVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Annotations: map[string]string{},
-				},
-			},
-			expectedOutput: "N/A",
-		},
 	}
-
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := tt.Volume.GetField(tt.fieldName)
+			got := tt.Volume.GetReplicaIP()
 			if got != tt.expectedOutput {
 				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
 			}

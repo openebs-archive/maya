@@ -86,7 +86,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		return nil
 	}
 
-	controllerStatus := strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	controllerStatus := strings.Split(volumeInfo.GetControllerStatus(), ",")
 	for i := range controllerStatus {
 		if controllerStatus[i] != controllerStatusOk {
 			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
@@ -94,8 +94,8 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	}
 
-	replicas := strings.Split(volumeInfo.GetField("ReplicaIP"), ",")
-	replicaStatus := strings.Split(volumeInfo.GetField("ReplicaStatus"), ",")
+	replicas := strings.Split(volumeInfo.GetReplicaIP(), ",")
+	replicaStatus := strings.Split(volumeInfo.GetReplicaStatus(), ",")
 	replicaStats := make(map[int]*ReplicaStats)
 	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
@@ -113,7 +113,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 
 	controllerClient := client.ControllerClient{}
 	// Fetching volume stats from replica controller
-	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.StatsAPI, &stats1)
+	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err != nil {
 		if (respStatus == 500) || (respStatus == 503) || err != nil {
 			fmt.Println("Volume not Reachable\n", err)
@@ -121,7 +121,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.StatsAPI, &stats2)
+		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err != nil {
 			if respStatus == 500 || respStatus == 503 || err != nil {
 				fmt.Println("Volume not Reachable\n", err)
@@ -245,10 +245,10 @@ Capacity Stats :
 
 	stat1 := v1.StatsJSON{
 
-		IQN:    v.GetField("IQN"),
-		Volume: v.GetField("VolumeName"),
-		Portal: v.GetField("TargetPortal"),
-		Size:   v.GetField("VolumeSize"),
+		IQN:    v.GetIQN(),
+		Volume: v.GetVolumeName(),
+		Portal: v.GetTargetPortal(),
+		Size:   v.GetVolumeSize(),
 
 		ReadIOPS:  readIOPS,
 		WriteIOPS: writeIOPS,
@@ -289,7 +289,7 @@ Capacity Stats :
 			return nil
 		}
 
-		replicaCount, err := strconv.Atoi(v.GetField("ReplicaCount"))
+		replicaCount, err := strconv.Atoi(v.GetReplicaCount())
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
 			return nil

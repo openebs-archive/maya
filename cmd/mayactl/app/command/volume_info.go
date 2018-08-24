@@ -102,7 +102,7 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 
 	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
-	if volumeInfo.GetField("CasType") == displayReplicaStatusForCasType {
+	if volumeInfo.GetCASType() == displayReplicaStatusForCasType {
 		collection, err = getReplicaInfo(volumeInfo)
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
@@ -113,7 +113,7 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, error) {
 	controllerClient := client.ControllerClient{}
 	collection := client.ReplicaCollection{}
-	controllerStatuses := strings.Split(volumeInfo.GetField("ControllerStatus"), ",")
+	controllerStatuses := strings.Split(volumeInfo.GetControllerStatus(), ",")
 	// Iterating over controllerStatus
 	for _, controllerStatus := range controllerStatuses {
 		if controllerStatus != "running" {
@@ -123,7 +123,7 @@ func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, e
 	}
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
 	// An API needs to be passed as argument.
-	_, err := controllerClient.GetVolumeStats(volumeInfo.GetField("ClusterIP")+v1.ControllerPort, v1.InfoAPI, &collection)
+	_, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.InfoAPI, &collection)
 	if err != nil {
 		fmt.Printf("Cannot get volume stats %v", err)
 	}
@@ -186,12 +186,12 @@ Replica Count :   {{.ReplicaCount}}
 	)
 
 	portalInfo = PortalInfo{
-		v.GetField("IQN"),
-		v.GetField("VolumeName"),
-		v.GetField("TargetPortal"),
-		v.GetField("VolumeSize"),
-		v.GetField("ControllerStatus"),
-		v.GetField("ReplicaCount"),
+		v.GetIQN(),
+		v.GetVolumeName(),
+		v.GetTargetPortal(),
+		v.GetVolumeSize(),
+		v.GetControllerStatus(),
+		v.GetReplicaCount(),
 	}
 	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
 	if err != nil {
@@ -203,16 +203,16 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if v.GetField("CasType") == displayReplicaStatusForCasType {
-		replicaCount, _ = strconv.Atoi(v.GetField("ReplicaCount"))
+	if v.GetCASType() == displayReplicaStatusForCasType {
+		replicaCount, _ = strconv.Atoi(v.GetReplicaCount())
 		// This case will occur only if user has manually specified zero replica.
-		if replicaCount == 0 || len(v.GetField("ReplicaStatus")) == 0 {
+		if replicaCount == 0 || len(v.GetReplicaStatus()) == 0 {
 			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
 			return nil
 		}
 		// Splitting strings with delimiter ','
-		replicaStatusStrings := strings.Split(v.GetField("ReplicaStatus"), ",")
-		addressIPStrings := strings.Split(v.GetField("ReplicaIP"), ",")
+		replicaStatusStrings := strings.Split(v.GetReplicaStatus(), ",")
+		addressIPStrings := strings.Split(v.GetReplicaIP(), ",")
 
 		// making a map of replica ip and their respective status,index and mode
 		replicaIPStatus := make(map[string]*Value)
