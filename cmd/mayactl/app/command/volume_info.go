@@ -44,8 +44,8 @@ Usage: mayactl volume info --volname <vol>
 )
 
 const (
-	listPath             = "/latest/volumes/"
-	displayReplicaStatus = "jiva"
+	listVolumeAPIPath              = "/latest/volumes/"
+	displayReplicaStatusForCasType = "jiva"
 )
 
 // Value keeps info of the values of a current address in replicaIPStatus map
@@ -91,19 +91,19 @@ func NewCmdVolumeInfo() *cobra.Command {
 	return cmd
 }
 
-// RunVolumeInfo runs info command and make call to displayVolumeInfo to display the results
+// RunVolumeInfo runs info command and make call to DisplayVolumeInfo to display the results
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	volumeInfo := &v1alpha1.CASVolume{}
 	// FetchVolumeInfo is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listPath+c.volName, c.volName, c.namespace)
+	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listVolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return err
 	}
 
 	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
-	if volumeInfo.GetField("CasType") == displayReplicaStatus {
+	if volumeInfo.GetField("CasType") == displayReplicaStatusForCasType {
 		collection, err = getReplicaInfo(volumeInfo)
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
@@ -204,7 +204,7 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if v.GetField("CasType") == displayReplicaStatus {
+	if v.GetField("CasType") == displayReplicaStatusForCasType {
 		replicaCount, _ = strconv.Atoi(v.GetField("ReplicaCount"))
 		// This case will occur only if user has manually specified zero replica.
 		if replicaCount == 0 || len(v.GetField("ReplicaStatus")) == 0 {

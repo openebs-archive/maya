@@ -82,7 +82,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	)
 	volumeInfo := &v1alpha1.CASVolume{}
 	// Filling the volumeInfo structure with response from mayapi server
-	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listPath+c.volName, c.volName, c.namespace)
+	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listVolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
