@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -34,6 +35,19 @@ import (
 type VolumeInfo struct {
 	Volume v1alpha1.CASVolume
 }
+
+// CmdVolumeOptions stores information of volume being operated
+type CmdVolumeOptions struct {
+	volName          string
+	sourceVolumeName string
+	snapshotName     string
+	size             string
+	namespace        string
+	json             string
+}
+
+// CASType is engine type
+type CASType string
 
 const (
 	// VolumeAPIPath is the api path to get volume information
@@ -47,8 +61,87 @@ const (
 	timeout                    = 5 * time.Second
 )
 
-// CASType is engine type
-type CASType string
+var (
+	volumeCommandHelpText = `
+The following commands helps in operating a Volume such as create, list, and so on.
+
+Usage: mayactl volume <subcommand> [options] [args]
+
+Examples:
+
+ # Create a Volume:
+   $ mayactl volume create --volname <vol> --size <size>
+
+ # List Volumes:
+   $ mayactl volume list
+
+ # Delete a Volume:
+   $ mayactl volume delete --volname <vol>
+
+ # Delete a Volume created in 'test' namespace:
+   $ mayactl volume delete --volname <vol> --namespace test
+
+ # Statistics of a Volume:
+   $ mayactl volume stats --volname <vol>
+
+ # Statistics of a Volume created in 'test' namespace:
+   $ mayactl volume stats --volname <vol> --namespace test
+
+ # Info of a Volume:
+   $ mayactl volume info --volname <vol>
+
+ # Info of a Volume created in 'test' namespace:
+   $ mayactl volume info --volname <vol> --namespace test
+`
+	options = &CmdVolumeOptions{
+		namespace: "default",
+	}
+)
+
+// NewCmdVolume provides options for managing OpenEBS Volume
+func NewCmdVolume() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "volume",
+		Short: "Provides operations related to a Volume",
+		Long:  volumeCommandHelpText,
+	}
+
+	cmd.AddCommand(
+		NewCmdVolumeCreate(),
+		NewCmdVolumesList(),
+		NewCmdVolumeDelete(),
+		NewCmdVolumeStats(),
+		NewCmdVolumeInfo(),
+	)
+	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
+		"namespace name, required if volume is not in the default namespace")
+
+	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
+	flag.CommandLine.Parse([]string{})
+	return cmd
+}
+
+// Validate verifies whether a volume name,source name or snapshot name is provided or not followed by
+// stats command. It returns nil and proceeds to execute the command if there is
+// no error and returns an error if it is missing.
+func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sourcenameverify, volnameverify bool) error {
+	if snapshotnameverify {
+		if len(c.snapshotName) == 0 {
+			return errors.New("--snapname is missing. Please provide a snapshotname")
+		}
+	}
+	if sourcenameverify {
+		if len(c.sourceVolumeName) == 0 {
+			return errors.New("--sourcevol is missing. Please specify a sourcevolumename")
+		}
+	}
+	if volnameverify {
+		if len(c.volName) == 0 {
+			return errors.New("--volname is missing. Please specify a unique volumename")
+		}
+	}
+	return nil
+}
 
 // NewVolumeInfo fetches and fills CASVolume structure from URL given to it
 func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *VolumeInfo, err error) {
@@ -72,14 +165,14 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 			fmt.Printf("Volume: %s not found at namespace: %q\n", volname, namespace)
 			err = util.InternalServerError
 		} else if resp.StatusCode == 503 {
-			fmt.Println("M_API server not reachable")
+			fmt.Printf("maya apiservice not reachable at %q\n", mapiserver.GetURL())
 			err = util.ServerUnavailable
 		} else if resp.StatusCode == 404 {
 			fmt.Printf("Volume: %s not found at namespace: %q error: %s\n", volname, namespace, http.StatusText(resp.StatusCode))
 			err = util.PageNotFound
 		}
-		fmt.Printf("Received an error from M_API server: statuscode: %d", resp.StatusCode)
-		err = fmt.Errorf("Received an error from M_API server: statuscode: %d", resp.StatusCode)
+		fmt.Printf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
+		err = fmt.Errorf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
 		return
 	}
 	defer resp.Body.Close()
@@ -90,8 +183,8 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 		return
 	}
 	if casVol.Status.Reason == "pending" {
-		fmt.Println("VOLUME status Unknown to M_API server")
-		err = fmt.Errorf("VOLUME status Unknown to M_API server")
+		fmt.Println("VOLUME status Unknown to maya apiservice")
+		err = fmt.Errorf("VOLUME status Unknown to maya apiservice")
 		return
 	}
 	volInfo = &VolumeInfo{
@@ -171,96 +264,4 @@ func (volInfo *VolumeInfo) GetReplicaIP() string {
 		return val
 	}
 	return ""
-}
-
-var (
-	volumeCommandHelpText = `
-The following commands helps in operating a Volume such as create, list, and so on.
-
-Usage: mayactl volume <subcommand> [options] [args]
-
-Examples:
-
- # Create a Volume:
-   $ mayactl volume create --volname <vol> --size <size>
-
- # List Volumes:
-   $ mayactl volume list
-
- # Delete a Volume:
-   $ mayactl volume delete --volname <vol>
-
- # Delete a Volume created in 'test' namespace:
-   $ mayactl volume delete --volname <vol> --namespace test
-
- # Statistics of a Volume:
-   $ mayactl volume stats --volname <vol>
-
- # Statistics of a Volume created in 'test' namespace:
-   $ mayactl volume stats --volname <vol> --namespace test
-
- # Info of a Volume:
-   $ mayactl volume info --volname <vol>
-
- # Info of a Volume created in 'test' namespace:
-   $ mayactl volume info --volname <vol> --namespace test
-`
-	options = &CmdVolumeOptions{
-		namespace: "default",
-	}
-)
-
-// CmdVolumeOptions stores information of volume being operated
-type CmdVolumeOptions struct {
-	volName          string
-	sourceVolumeName string
-	snapshotName     string
-	size             string
-	namespace        string
-	json             string
-}
-
-// NewCmdVolume provides options for managing OpenEBS Volume
-func NewCmdVolume() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "volume",
-		Short: "Provides operations related to a Volume",
-		Long:  volumeCommandHelpText,
-	}
-
-	cmd.AddCommand(
-		NewCmdVolumeCreate(),
-		NewCmdVolumesList(),
-		NewCmdVolumeDelete(),
-		NewCmdVolumeStats(),
-		NewCmdVolumeInfo(),
-	)
-	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
-		"namespace name, required if volume is not in the default namespace")
-
-	cmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-	flag.CommandLine.Parse([]string{})
-	return cmd
-}
-
-// Validate verifies whether a volume name,source name or snapshot name is provided or not followed by
-// stats command. It returns nil and proceeds to execute the command if there is
-// no error and returns an error if it is missing.
-func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sourcenameverify, volnameverify bool) error {
-	if snapshotnameverify {
-		if len(c.snapshotName) == 0 {
-			return errors.New("--snapname is missing. Please provide a snapshotname")
-		}
-	}
-	if sourcenameverify {
-		if len(c.sourceVolumeName) == 0 {
-			return errors.New("--sourcevol is missing. Please specify a sourcevolumename")
-		}
-	}
-	if volnameverify {
-		if len(c.volName) == 0 {
-			return errors.New("--volname is missing. Please specify a unique volumename")
-		}
-	}
-	return nil
 }
