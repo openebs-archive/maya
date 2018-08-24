@@ -69,6 +69,36 @@ func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
 	}, nil
 }
 
+// getCloneLabels returns a map of clone specific configuration
+func (v *VolumeOperation) getCloneLabels() (map[string]interface{}, error) {
+	// Initially all the values are set to their defaults
+	cloneLabels := map[string]interface{}{
+		string(v1alpha1.SnapshotNameVTP):         "",
+		string(v1alpha1.SourceVolumeTargetIPVTP): "",
+		string(v1alpha1.IsCloneEnableVTP):        "false",
+		string(v1alpha1.StorageClassVTP):         "",
+		string(v1alpha1.SourceVolumeVTP):         "",
+	}
+
+	// if volume is clone enabled then update cloneLabels map
+	if v.volume.CloneSpec.IsClone {
+		// fetch source PV using client go
+		pv, err := v.k8sClient.GetPV(v.volume.CloneSpec.SourceVolume, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("source volume %q for clone volume %q could not be retrieved", v.volume.CloneSpec.SourceVolume, v.volume.Name)
+		}
+		// Set isCloneEnable to true
+		cloneLabels[string(v1alpha1.IsCloneEnableVTP)] = "true"
+
+		// extract and assign relevant clone spec fields to cloneLabels
+		cloneLabels[string(v1alpha1.SnapshotNameVTP)] = v.volume.CloneSpec.SnapshotName
+		cloneLabels[string(v1alpha1.SourceVolumeTargetIPVTP)] = strings.TrimSpace(strings.Split(pv.Spec.ISCSI.TargetPortal, ":")[0])
+		cloneLabels[string(v1alpha1.StorageClassVTP)] = pv.Spec.StorageClassName
+		cloneLabels[string(v1alpha1.SourceVolumeVTP)] = v.volume.CloneSpec.SourceVolume
+	}
+	return cloneLabels, nil
+}
+
 // Create provisions an OpenEBS volume
 func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	if v.k8sClient == nil {
@@ -95,11 +125,22 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	// extract the cas volume config from pvc
 	casConfigPVC := pvc.Annotations[string(v1alpha1.CASConfigKey)]
 
-	// get the storage class name corresponding to this volume
+	cloneLabels, err := v.getCloneLabels()
+	if err != nil {
+		return nil, err
+	}
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
+
+	if cloneLabels[string(v1alpha1.StorageClassVTP)] != "" {
+		// get the storage class name corresponding to this volume
+		scName = cloneLabels[string(v1alpha1.StorageClassVTP)].(string)
+	}
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing storage class")
 	}
+	// scName might not be initialized in getCloneLabels
+	// assign the latest available scName
+	cloneLabels[string(v1alpha1.StorageClassVTP)] = scName
 
 	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
@@ -121,6 +162,14 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+	volumeLables := map[string]interface{}{
+		string(v1alpha1.OwnerVTP):                 v.volume.Name,
+		string(v1alpha1.CapacityVTP):              capacity,
+		string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
+		string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
+	}
+
+	runtimeVolumeValues := util.MergeMaps(volumeLables, cloneLabels)
 
 	// provision CAS volume via CAS volume specific CAS template engine
 	cc, err := NewCASVolumeEngine(
@@ -128,13 +177,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),
-		map[string]interface{}{
-			string(v1alpha1.OwnerVTP):                 v.volume.Name,
-			string(v1alpha1.CapacityVTP):              capacity,
-			string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
-			string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
-			string(v1alpha1.StorageClassVTP):          scName,
-		},
+		runtimeVolumeValues,
 	)
 	if err != nil {
 		return nil, err

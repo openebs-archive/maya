@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -151,5 +152,95 @@ func TestContainKeys(t *testing.T) {
 				t.Fatalf("failed to test contains key: expected key '%s': actual 'not found'", mock.searchKeys)
 			}
 		})
+	}
+}
+
+func TestMergeMap(t *testing.T) {
+	tests := map[string]struct {
+		Map1        map[string]interface{}
+		Map2        map[string]interface{}
+		expectedMap map[string]interface{}
+	}{
+		"merge map of 2 objects": {
+			Map1: map[string]interface{}{
+				"k1": "v1",
+			},
+			Map2: map[string]interface{}{
+				"k2": "v2",
+			},
+			expectedMap: map[string]interface{}{
+				"k1": "v1",
+				"k2": "v2",
+			},
+		},
+		"merge map of 2 similar key objects": {
+			Map1: map[string]interface{}{
+				"k1": "v1",
+			},
+			Map2: map[string]interface{}{
+				"k1": "v2",
+			},
+			expectedMap: map[string]interface{}{
+				"k1": "v2",
+			},
+		},
+		"merge map of different k/v objects": {
+			Map1: map[string]interface{}{
+				"k1": "v1",
+				"k2": "v1",
+				"k4": "v4",
+			},
+			Map2: map[string]interface{}{
+				"k1": "v2",
+				"k3": "v3",
+			},
+			expectedMap: map[string]interface{}{
+				"k1": "v2",
+				"k2": "v1",
+				"k4": "v4",
+				"k3": "v3",
+			},
+		},
+		"merge map of 1 nil objects": {
+			Map1: map[string]interface{}{
+				"k1": "v1",
+				"k2": "v1",
+				"k4": "v4",
+			},
+			Map2: nil,
+			expectedMap: map[string]interface{}{
+				"k1": "v1",
+				"k2": "v1",
+				"k4": "v4",
+			},
+		},
+		"merge map of nil values objects": {
+			Map1: map[string]interface{}{
+				"k1": "v1",
+				"k2": "v1",
+				"k4": "v4",
+			},
+			Map2: map[string]interface{}{
+				"k1": "",
+				"k3": "",
+			},
+
+			expectedMap: map[string]interface{}{
+				"k1": "",
+				"k2": "v1",
+				"k4": "v4",
+				"k3": "",
+			},
+		},
+	}
+
+	for name, maps := range tests {
+		t.Run(name, func(t *testing.T) {
+			MergedMap := MergeMaps(maps.Map1, maps.Map2)
+			if !reflect.DeepEqual(MergedMap, maps.expectedMap) {
+				t.Fatalf(" failed to test MergeMaps: expected Map '%v': actual Map '%v'", maps.expectedMap, MergedMap)
+			}
+		})
+
 	}
 }
