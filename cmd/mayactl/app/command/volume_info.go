@@ -42,11 +42,6 @@ Usage: mayactl volume info --volname <vol>
 `
 )
 
-const (
-	listVolumeAPIPath              = "/latest/volumes/"
-	displayReplicaStatusForCasType = "jiva"
-)
-
 // Value keeps info of the values of a current address in replicaIPStatus map
 type Value struct {
 	index  int
@@ -95,14 +90,14 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	volumeInfo := &v1alpha1.CASVolume{}
 	// FetchVolumeInfo is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+listVolumeAPIPath+c.volName, c.volName, c.namespace)
+	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return err
 	}
 
 	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
-	if volumeInfo.GetCASType() == displayReplicaStatusForCasType {
+	if volumeInfo.GetCASType() == v1alpha1.JivaStorageEngine {
 		collection, err = getReplicaInfo(volumeInfo)
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
@@ -116,7 +111,7 @@ func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, e
 	controllerStatuses := strings.Split(volumeInfo.GetControllerStatus(), ",")
 	// Iterating over controllerStatus
 	for _, controllerStatus := range controllerStatuses {
-		if controllerStatus != "running" {
+		if controllerStatus != controllerStatusOk {
 			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
 			return collection, errors.New("Unable to fetch volume details")
 		}
@@ -203,7 +198,7 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if v.GetCASType() == displayReplicaStatusForCasType {
+	if v.GetCASType() == v1alpha1.JivaStorageEngine {
 		replicaCount, _ = strconv.Atoi(v.GetReplicaCount())
 		// This case will occur only if user has manually specified zero replica.
 		if replicaCount == 0 || len(v.GetReplicaStatus()) == 0 {
@@ -219,7 +214,7 @@ Replica Count :   {{.ReplicaCount}}
 
 		// Creating a map of address and mode. The IP is chosed as key so that the status of that corresponding replica can be merged in linear time complexity
 		for index, IP := range addressIPStrings {
-			if IP != "nil" {
+			if strings.Contains(IP, "nil") {
 				replicaIPStatus[IP] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
 			} else {
 				// appending address with index to avoid same key conflict as the IP is returned as `nil` in case of error
@@ -241,7 +236,7 @@ Replica Count :   {{.ReplicaCount}}
 
 		for IP, replicaStatus := range replicaIPStatus {
 			// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
-			if IP[0:3] != "nil" {
+			if strings.Contains(IP, "nil") {
 				replicaInfo[replicaStatus.index] = &ReplicaInfo{IP, replicaStatus.mode, replicaStatus.status, "NA", "NA"}
 			} else {
 				replicaInfo[replicaStatus.index] = &ReplicaInfo{"NA", replicaStatus.mode, replicaStatus.status, "NA", "NA"}

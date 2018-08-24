@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -230,6 +229,16 @@ type CASVolumeList struct {
 	Items []CASVolume `json:"items"`
 }
 
+// CASType is engine type
+type CASType string
+
+const (
+	// JivaStorageEngine is constant for jiva engine
+	JivaStorageEngine CASType = "jiva"
+	// CstorStorageEngine is constant for cstor engine
+	CstorStorageEngine CASType = "cstor"
+)
+
 // FetchVolumeInfo fetches and fills CASVolume structure from URL given to it
 func (volInfo *CASVolume) FetchVolumeInfo(URL string, volname string, namespace string) error {
 	url := URL
@@ -275,11 +284,14 @@ func (volInfo *CASVolume) FetchVolumeInfo(URL string, volname string, namespace 
 }
 
 // GetCASType returns the CASType of the volume in lowercase
-func (volInfo *CASVolume) GetCASType() string {
+func (volInfo *CASVolume) GetCASType() CASType {
 	if len(volInfo.Spec.CasType) == 0 {
-		return "jiva"
+		return JivaStorageEngine
 	}
-	return strings.ToLower(volInfo.Spec.CasType)
+	if strings.ToLower(volInfo.Spec.CasType) == "jiva" {
+		return JivaStorageEngine
+	}
+	return CstorStorageEngine
 }
 
 // GetClusterIP returns the ClusterIP of the cluster

@@ -22,6 +22,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// VolumeAPIPath is the api path to get volume information
+	VolumeAPIPath      = "/latest/volumes/"
+	controllerStatusOk = "running"
+	volumeStatusOK     = "Running"
+)
+
 var (
 	volumeCommandHelpText = `
 The following commands helps in operating a Volume such as create, list, and so on.
