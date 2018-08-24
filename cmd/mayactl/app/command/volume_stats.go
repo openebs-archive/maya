@@ -27,6 +27,7 @@ import (
 	"time"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
+	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
@@ -74,22 +75,22 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		status         v1.VolStatus
 		stats1, stats2 v1.VolumeMetrics
 	)
-	annotation := &Annotations{}
-	err := annotation.GetVolAnnotations(c.volName, c.namespace)
+	// Filling the volumeInfo structure with response from mayapi server
+	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
 
-	ctrlstatus := strings.Split(annotation.ControllerStatus, ",")
-	for i := range ctrlstatus {
-		if ctrlstatus[i] != "running" {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", annotation.ControllerStatus)
+	controllerStatus := strings.Split(volumeInfo.GetControllerStatus(), ",")
+	for i := range controllerStatus {
+		if controllerStatus[i] != controllerStatusOk {
+			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
 			return nil
 		}
 	}
 
-	replicas := strings.Split(annotation.Replicas, ",")
-	replicaStatus := strings.Split(annotation.ReplicaStatus, ",")
+	replicas := strings.Split(volumeInfo.GetReplicaIP(), ",")
+	replicaStatus := strings.Split(volumeInfo.GetReplicaStatus(), ",")
 	replicaStats := make(map[int]*ReplicaStats)
 	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
@@ -106,7 +107,8 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	}
 
 	controllerClient := client.ControllerClient{}
-	respStatus, err := controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats1)
+	// Fetching volume stats from replica controller
+	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err != nil {
 		if (respStatus == 500) || (respStatus == 503) || err != nil {
 			fmt.Println("Volume not Reachable\n", err)
@@ -114,14 +116,14 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		respStatus, err := controllerClient.GetVolumeStats(annotation.ClusterIP+v1.ControllerPort, v1.StatsAPI, &stats2)
+		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err != nil {
 			if respStatus == 500 || respStatus == 503 || err != nil {
 				fmt.Println("Volume not Reachable\n", err)
 				return nil
 			}
 		} else {
-			err := annotation.DisplayStats(c, replicaStats, stats1, stats2)
+			err := displayStats(volumeInfo, c, replicaStats, stats1, stats2)
 			if err != nil {
 				fmt.Println("Can't display stats\n", err)
 				return nil
@@ -131,10 +133,10 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 	return nil
 }
 
-// DisplayStats displays the volume stats as standard output and in json format.
+// displayStats displays the volume stats as standard output and in json format.
 // By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
-func (a *Annotations) DisplayStats(c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func displayStats(v *VolumeInfo, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		ReadLatency          int64
@@ -230,18 +232,18 @@ Capacity Stats :
 	actualUsed = actualUsed * sectorSize
 
 	annotation := v1.Annotation{
-		IQN:    a.Iqn,
-		Volume: c.volName,
-		Portal: a.TargetPortal,
-		Size:   a.VolSize,
+		IQN:    v.GetIQN(),
+		Volume: v.GetVolumeName(),
+		Portal: v.GetTargetPortal(),
+		Size:   v.GetVolumeSize(),
 	}
 
 	stat1 := v1.StatsJSON{
 
-		IQN:    a.Iqn,
-		Volume: c.volName,
-		Portal: a.TargetPortal,
-		Size:   a.VolSize,
+		IQN:    v.GetIQN(),
+		Volume: v.GetVolumeName(),
+		Portal: v.GetTargetPortal(),
+		Size:   v.GetVolumeSize(),
 
 		ReadIOPS:  readIOPS,
 		WriteIOPS: writeIOPS,
@@ -282,7 +284,7 @@ Capacity Stats :
 			return nil
 		}
 
-		replicaCount, err := strconv.Atoi(a.ReplicaCount)
+		replicaCount, err := strconv.Atoi(v.GetReplicaCount())
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
 			return nil
@@ -294,7 +296,7 @@ Capacity Stats :
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-
+		// Updating the templates
 		tmpl, err = template.New("ReplicaStats").Parse(replicaTemplate)
 		if err != nil {
 			fmt.Println("Error in parsing replica template, found error : ", err)
