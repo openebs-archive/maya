@@ -79,6 +79,10 @@ func (c *Controller) processNextWorkItem() bool {
 		// put back on the workqueue and attempted again after a back-off
 		// period.
 		defer c.workqueue.Done(obj)
+
+		// Forget the object even it is not processed successfully
+		// the next reconcile will take care of it.
+		defer c.workqueue.Forget(obj)
 		var q *QueueLoad
 		var ok bool
 		// We expect strings to come off the workqueue. These are of the
@@ -99,9 +103,6 @@ func (c *Controller) processNextWorkItem() bool {
 		if err := c.syncHandler(q.Key, q.Operation, q.Object); err != nil {
 			return fmt.Errorf("Error syncing '%s': %s", q.Key, err.Error())
 		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
-		c.workqueue.Forget(obj)
 		glog.V(1).Infof("Successfully synced '%s'", q.Key)
 		return nil
 	}(obj)
