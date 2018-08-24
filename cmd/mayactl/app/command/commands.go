@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-
 	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/spf13/cobra"

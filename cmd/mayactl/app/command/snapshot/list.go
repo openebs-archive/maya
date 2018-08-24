@@ -19,7 +19,6 @@ package snapshot
 import (
 	"errors"
 	"fmt"
-
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"

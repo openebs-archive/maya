@@ -3,10 +3,8 @@ package command
 import (
 	"io"
 	"testing"
-
 	"net/http/httptest"
 	"os"
-
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	"github.com/openebs/maya/pkg/util"

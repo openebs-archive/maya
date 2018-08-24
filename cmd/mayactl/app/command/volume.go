@@ -19,7 +19,6 @@ package command
 import (
 	"errors"
 	"flag"
-
 	"github.com/spf13/cobra"
 )
 
