@@ -13,7 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1alpha1
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation
@@ -42,7 +46,10 @@ const (
 	MirroredDiskCountCPV CasPoolValInt = 2
 )
 
+// TODO : Restructure the CasPool struct
 type CasPool struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// StoragePoolClaim is the name of the storagepoolclaim object
 	StoragePoolClaim string
 

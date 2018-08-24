@@ -124,6 +124,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 	pool.Type = spcGot.Spec.Type
 	pool.ReSync = reSync
 	pool.PendingPoolCount = pendingPoolCount
+	pool.Annotations = spcGot.Annotations
 
 	// Fill the object with the disks list
 	pool.DiskList = spcGot.Spec.Disks.DiskList

@@ -74,9 +74,9 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("Unable to create storagepool: missing create cas template")
 	}
-
+	// extract the cas openebs config from storagepoolclaim
+	openebsConfig := v.pool.Annotations[string(v1alpha1.CASConfigKey)]
 	// fetch CASTemplate specifications
-	//cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -84,6 +84,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 	// provision cas storagepool via cas template engine
 	cc, err := NewCASStoragePoolEngine(
 		cast,
+		openebsConfig,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
 			string(v1alpha1.OwnerCTP):    v.pool.StoragePoolClaim,

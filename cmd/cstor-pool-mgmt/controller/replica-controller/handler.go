@@ -123,7 +123,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 
 		err := volumereplica.DeleteVolume(fullVolName)
 		if err != nil {
-			glog.Errorf("Error in deleting volume %q: %s", cVR.ObjectMeta.Name,err)
+			glog.Errorf("Error in deleting volume %q: %s", cVR.ObjectMeta.Name, err)
 			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
 			return string(apis.CVRStatusDeletionFailed), err
 		}

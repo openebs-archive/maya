@@ -19,11 +19,11 @@ package storagepool
 
 import (
 	"fmt"
-	"strings"
-
+	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
 	"github.com/openebs/maya/pkg/util"
+	"strings"
 )
 
 // casStoragePoolEngine is capable of creating a storagepool via CAS template
@@ -39,12 +39,20 @@ type casStoragePoolEngine struct {
 	// defaultConfig is the default cas storagepool configurations found
 	// in the CASTemplate
 	defaultConfig []v1alpha1.Config
+	// openebsConfig is the configurations that can be passes
+	openebsConfig []v1alpha1.Config
+}
+
+func unMarshallToConfig(config string) (configs []v1alpha1.Config, err error) {
+	err = yaml.Unmarshal([]byte(config), &configs)
+	return
 }
 
 // NewCASStoragePoolEngine returns a new instance of casStoragePoolEngine based on
 // the provided cas configs & runtime storagepool values
 func NewCASStoragePoolEngine(
 	casTemplate *v1alpha1.CASTemplate,
+	openebsConfig string,
 	runtimeKey string,
 	runtimeStoragePoolValues map[string]interface{}) (storagePoolEngine *casStoragePoolEngine, err error) {
 
@@ -57,7 +65,11 @@ func NewCASStoragePoolEngine(
 		err = fmt.Errorf("Failed to create cas template engine: nil runtime storagepool values was provided")
 		return
 	}
-
+	// CAS config from  storagepoolclaim
+	openebsConf, err := unMarshallToConfig(openebsConfig)
+	if err != nil {
+		return
+	}
 	// make use of the generic CAS template engine
 	cEngine, err := engine.NewCASEngine(casTemplate, runtimeKey, runtimeStoragePoolValues)
 	if err != nil {
@@ -67,8 +79,33 @@ func NewCASStoragePoolEngine(
 	storagePoolEngine = &casStoragePoolEngine{
 		casEngine:     cEngine,
 		defaultConfig: casTemplate.Spec.Defaults,
+		openebsConfig: openebsConf,
 	}
 
+	return
+}
+
+// mergeConfig will merge the unique configuration elements of lowPriorityConfig
+// into highPriorityConfig and return the result
+func mergeConfig(highPriorityConfig, lowPriorityConfig []v1alpha1.Config) (final []v1alpha1.Config) {
+	var prioritized []string
+
+	for _, pc := range highPriorityConfig {
+		final = append(final, pc)
+		prioritized = append(prioritized, strings.TrimSpace(pc.Name))
+	}
+
+	for _, lc := range lowPriorityConfig {
+		if !util.ContainsString(prioritized, strings.TrimSpace(lc.Name)) {
+			final = append(final, lc)
+		}
+	}
+
+	return
+}
+func (c *casStoragePoolEngine) prepareFinalConfig() (final []v1alpha1.Config) {
+	// merge unique config elements from SC with config from PVC
+	final = mergeConfig(c.openebsConfig, c.defaultConfig)
 	return
 }
 
@@ -86,7 +123,7 @@ func NewCASStoragePoolEngine(
 func (c *casStoragePoolEngine) addConfigToConfigTLP() error {
 	var configName string
 	allConfigsHierarchy := map[string]interface{}{}
-	allConfigs := c.defaultConfig
+	allConfigs := c.prepareFinalConfig()
 
 	for _, config := range allConfigs {
 		configName = strings.TrimSpace(config.Name)
