@@ -82,6 +82,19 @@ func TestGetClusterIP(t *testing.T) {
 			},
 			expectedOutput: "192.168.100.1",
 		},
+		"Fetching ClusterIP when both keys are present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/cluster-ips": "192.168.100.1",
+							"openebs.io/cluster-ips":     "192.168.100.2",
+						},
+					},
+				},
+			},
+			expectedOutput: "192.168.100.2",
+		},
 		"Fetching ClusterIP when both keys are not present": {
 			Volume: VolumeInfo{
 				Volume: v1alpha1.CASVolume{
@@ -132,6 +145,19 @@ func TestGetControllerStatus(t *testing.T) {
 			},
 			expectedOutput: "running",
 		},
+		"Fetching Controller status when both keys are present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-status": "running",
+							"openebs.io/controller-status":     "evicted",
+						},
+					},
+				},
+			},
+			expectedOutput: "evicted",
+		},
 		"Fetching Controller status when both keys are not present": {
 			Volume: VolumeInfo{
 				Volume: v1alpha1.CASVolume{
@@ -170,6 +196,38 @@ func TestGetIQN(t *testing.T) {
 				},
 			},
 			expectedOutput: "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+		},
+		"Fetching Controller when iqn is present in openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/iqn": "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+						},
+					},
+				},
+			},
+			expectedOutput: "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+		},
+		"Fetching Controller when iqn is present in vsm.openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/iqn": "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+						},
+					},
+				},
+			},
+			expectedOutput: "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+		},
+		"Fetching Controller when iqn is not present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedOutput: "",
 		},
 	}
 	for name, tt := range tests {
@@ -227,6 +285,38 @@ func TestGetTargetPortal(t *testing.T) {
 			},
 			expectedOutput: "10.63.247.173:3260",
 		},
+		"Fetching TargetPortal when it is present in openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/targetportals": "10.35.244.116:3260",
+						},
+					},
+				},
+			},
+			expectedOutput: "10.35.244.116:3260",
+		},
+		"Fetching TargetPortal when it is present in vsm.openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/targetportals": "10.35.244.116:3260",
+						},
+					},
+				},
+			},
+			expectedOutput: "10.35.244.116:3260",
+		},
+		"Fetching TargetPortal when it is not present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedOutput: "",
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -256,6 +346,38 @@ func TestGetVolumeSize(t *testing.T) {
 			},
 			expectedOutput: "5G",
 		},
+		"Fetching VolumeSize when it is present in openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/volume-size": "5G",
+						},
+					},
+				},
+			},
+			expectedOutput: "5G",
+		},
+		"Fetching Volume Size it is present in vsm.openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/volume-size": "5G",
+						},
+					},
+				},
+			},
+			expectedOutput: "5G",
+		},
+		"Fetching Volume Size it is not present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedOutput: "",
+		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -284,6 +406,38 @@ func TestGetReplicaCount(t *testing.T) {
 				},
 			},
 			expectedOutput: "3",
+		},
+		"Fetching ReplicaCount  when it is present in openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/replica-count": "3",
+						},
+					},
+				},
+			},
+			expectedOutput: "3",
+		},
+		"Fetching ReplicaCount when it is present in vsm.openebs.io annotations": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/replica-count": "3",
+						},
+					},
+				},
+			},
+			expectedOutput: "3",
+		},
+		"Fetching ReplicaCount when it is not present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedOutput: "",
 		},
 	}
 	for name, tt := range tests {
@@ -318,6 +472,19 @@ func TestGetReplicaStatus(t *testing.T) {
 				Volume: v1alpha1.CASVolume{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
+							"vsm.openebs.io/replica-status": "running, running, running",
+						},
+					},
+				},
+			},
+			expectedOutput: "running, running, running",
+		},
+		"Fetching Replica status when both keys are present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/replica-status":     "running, running, running",
 							"vsm.openebs.io/replica-status": "running, running, running",
 						},
 					},
@@ -369,6 +536,20 @@ func TestGetReplicaIP(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
 							"vsm.openebs.io/replica-ips": "10.60.0.11, 10.60.1.16, 10.60.2.10",
+						},
+					},
+				},
+			},
+			expectedOutput: "10.60.0.11, 10.60.1.16, 10.60.2.10",
+		},
+
+		"Fetching ReplicaIP when both keys are present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/replica-ips": "10.60.0.11, 10.60.1.16, 10.60.2.10",
+							"openebs.io/replica-ips":     "10.60.0.11, 10.60.1.16, 10.60.2.10",
 						},
 					},
 				},

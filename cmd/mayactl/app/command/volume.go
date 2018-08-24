@@ -223,7 +223,15 @@ func (volInfo *VolumeInfo) GetControllerStatus() string {
 
 // GetIQN returns the IQN of the volume
 func (volInfo *VolumeInfo) GetIQN() string {
-	return volInfo.Volume.Spec.Iqn
+	if len(volInfo.Volume.Spec.Iqn) > 0 {
+		return volInfo.Volume.Spec.Iqn
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/iqn"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/iqn"]; ok {
+		return val
+	}
+	return ""
+
 }
 
 // GetVolumeName returns the volume name
@@ -233,17 +241,38 @@ func (volInfo *VolumeInfo) GetVolumeName() string {
 
 // GetTargetPortal returns the TargetPortal of the volume
 func (volInfo *VolumeInfo) GetTargetPortal() string {
-	return volInfo.Volume.Spec.TargetPortal
+	if len(volInfo.Volume.Spec.TargetPortal) > 0 {
+		return volInfo.Volume.Spec.TargetPortal
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/targetportals"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/targetportals"]; ok {
+		return val
+	}
+	return ""
 }
 
 // GetVolumeSize returns the capacity of the volume
 func (volInfo *VolumeInfo) GetVolumeSize() string {
-	return volInfo.Volume.Spec.Capacity
+	if len(volInfo.Volume.Spec.Capacity) > 0 {
+		return volInfo.Volume.Spec.Capacity
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/volume-size"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/volume-size"]; ok {
+		return val
+	}
+	return ""
 }
 
 // GetReplicaCount returns the volume replica count
 func (volInfo *VolumeInfo) GetReplicaCount() string {
-	return volInfo.Volume.Spec.Replicas
+	if len(volInfo.Volume.Spec.Replicas) > 0 {
+		return volInfo.Volume.Spec.Replicas
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-count"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-count"]; ok {
+		return val
+	}
+	return ""
 }
 
 // GetReplicaStatus returns the replica status of the volume replica
