@@ -16,10 +16,6 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	commonenv "github.com/openebs/maya/pkg/env/v1alpha1"
-)
-
 // InstallENVKey is a typed string to represent various environment keys
 // used for install
 type InstallENVKey string
@@ -28,7 +24,4 @@ const (
 	// EnvKeyForInstallConfigName is the environment variable to get the
 	// the install config's name
 	EnvKeyForInstallConfigName InstallENVKey = "OPENEBS_IO_INSTALL_CONFIG_NAME"
-	// EnvKeyForInstallConfigNamespace is the environment variable to get
-	// the install config's namespace
-	EnvKeyForInstallConfigNamespace InstallENVKey = InstallENVKey(string(commonenv.EnvKeyForOpenEBSNamespace))
 )

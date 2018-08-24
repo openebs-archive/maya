@@ -92,6 +92,36 @@ func CreateUnstructuredFromJson(document string) (*unstructured.Unstructured, er
 // UnstructuredMiddleware abstracts updating given unstructured instance
 type UnstructuredMiddleware func(given *unstructured.Unstructured) (updated *unstructured.Unstructured)
 
+// UnstructuredOptions provides a set of properties that can be used as a
+// utility for various operations related to unstructured instance
+type UnstructuredOptions struct {
+	Namespace string
+}
+
+// WithOptionsUnstructuredUpdater abstracts updating Unstructured instance based
+// on provided options
+type WithOptionsUnstructuredUpdater func(options UnstructuredOptions) UnstructuredMiddleware
+
+// UpdateUnstructuredNamespace updates the unstructured's namespace
+//
+// NOTE:
+//  This is an implementation of WithOptionsUnstructuredUpdater
+func UpdateUnstructuredNamespace(options UnstructuredOptions) UnstructuredMiddleware {
+	return func(unstructured *unstructured.Unstructured) *unstructured.Unstructured {
+		if unstructured == nil {
+			return unstructured
+		}
+
+		namespace := strings.TrimSpace(options.Namespace)
+		if len(namespace) == 0 {
+			return unstructured
+		}
+
+		unstructured.SetNamespace(namespace)
+		return unstructured
+	}
+}
+
 // UnstructuredUpdater updates an unstructured instance by executing all the
 // provided updaters
 func UnstructuredUpdater(updaters []UnstructuredMiddleware) UnstructuredMiddleware {

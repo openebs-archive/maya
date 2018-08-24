@@ -161,7 +161,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-list-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -184,7 +183,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-list-listtargetpod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -207,7 +205,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-list-listreplicapod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -230,7 +227,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-list-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id : listoutput
@@ -273,7 +269,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-read-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: readlistsvc
@@ -292,7 +287,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-read-listtargetpod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: readlistctrl
@@ -312,7 +306,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-read-listreplicapod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: readlistrep
@@ -333,7 +326,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-read-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id : readoutput
@@ -367,7 +359,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-puttargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createputsvc
@@ -412,7 +403,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-getstoragepoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: creategetpath
@@ -427,7 +417,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-getstorageclass-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: creategetsc
@@ -443,7 +432,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-listreplicapod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createlistrep
@@ -465,7 +453,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-patchreplicadeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createpatchrep
@@ -523,7 +510,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-puttargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createputctrl
@@ -636,7 +622,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-putreplicadeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createputrep
@@ -739,7 +724,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createoutput
@@ -764,7 +748,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistsvc
@@ -783,7 +766,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-listtargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistctrl
@@ -802,7 +784,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-listreplicadeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistrep
@@ -821,7 +802,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-deletetargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletedeletesvc
@@ -835,7 +815,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-deletetargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletedeletectrl
@@ -849,7 +828,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-deletereplicadeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletedeleterep
@@ -863,7 +841,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-delete-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deleteoutput

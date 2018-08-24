@@ -20,7 +20,6 @@ import (
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"strings"
 )
 
 // ArtifactToUnstructuredListTransformer abstracts transforming a list of
@@ -60,13 +59,11 @@ func updateUnstructuredNamespace(install Install) k8s.UnstructuredMiddleware {
 			return unstructured
 		}
 
-		namespace := strings.TrimSpace(install.SetOptions.Namespace)
-		if len(namespace) == 0 {
-			return unstructured
+		options := k8s.UnstructuredOptions{
+			Namespace: install.SetOptions.Namespace,
 		}
 
-		unstructured.SetNamespace(namespace)
-		return unstructured
+		return k8s.UpdateUnstructuredNamespace(options)(unstructured)
 	}
 }
 

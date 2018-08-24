@@ -90,7 +90,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-listdisk-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: getspcinfo
@@ -109,7 +108,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-listnode-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: cstorpoollistnode
@@ -130,7 +128,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-putcstorpoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -168,7 +165,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-putcstorpooldeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -271,7 +267,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-putstoragepoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -307,7 +302,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-create-patchstoragepoolclaim-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createpatchspc
@@ -326,7 +320,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-listcstorpoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistcsp
@@ -345,7 +338,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-deletecstorpoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -359,7 +351,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-listcstorpooldeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: cstorpoollistdeploy
@@ -379,7 +370,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-deletecstorpooldeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: cstorpooldeletedeploy
@@ -394,7 +384,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-liststoragepoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistsp
@@ -413,7 +402,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-pool-delete-deletestoragepoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: cstorpooldeletestoragepool

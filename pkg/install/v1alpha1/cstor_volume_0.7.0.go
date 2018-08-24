@@ -104,7 +104,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-listcstorpoolcr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: cvolcreatelistpool
@@ -131,7 +130,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-puttargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: v1
@@ -171,7 +169,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-putcstorvolumecr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -206,7 +203,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-puttargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -313,7 +309,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-putcstorvolumereplicacr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -369,7 +364,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-create-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     action: output
@@ -395,7 +389,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-list-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     {{- /*
@@ -427,7 +420,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-list-listtargetpod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -454,7 +446,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -471,7 +462,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-list-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id : listoutput
@@ -515,7 +505,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-read-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -535,7 +524,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: readlistrep
@@ -555,7 +543,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-read-listtargetpod-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -576,7 +563,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-read-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id : readoutput
@@ -608,7 +594,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-listcstorvolumecr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -628,7 +613,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistsvc
@@ -652,7 +636,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-listtargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistctrl
@@ -672,7 +655,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-listcstorvolumereplicacr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletelistcvr
@@ -696,7 +678,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-deletetargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletedeletesvc
@@ -711,7 +692,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-deletetargetdeployment-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deletedeletectrl
@@ -726,7 +706,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-deletecstorvolumereplicacr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -741,7 +720,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-deletecstorvolumecr-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     runNamespace: openebs
@@ -757,7 +735,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-volume-delete-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: deleteoutput
