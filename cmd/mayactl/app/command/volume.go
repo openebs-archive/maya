@@ -17,11 +17,161 @@ limitations under the License.
 package command
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
+
+// VolumeInfo stores the volume information
+type VolumeInfo struct {
+	Volume v1alpha1.CASVolume
+}
+
+const (
+	// VolumeAPIPath is the api path to get volume information
+	VolumeAPIPath      = "/latest/volumes/"
+	controllerStatusOk = "running"
+	volumeStatusOK     = "Running"
+	// JivaStorageEngine is constant for jiva engine
+	JivaStorageEngine CASType = "jiva"
+	// CstorStorageEngine is constant for cstor engine
+	CstorStorageEngine CASType = "cstor"
+	timeout                    = 5 * time.Second
+)
+
+// CASType is engine type
+type CASType string
+
+// NewVolumeInfo fetches and fills CASVolume structure from URL given to it
+func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *VolumeInfo, err error) {
+	url := URL
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("namespace", namespace)
+
+	c := &http.Client{
+		Timeout: timeout,
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		fmt.Printf("Can't get a response, error found: %v", err)
+		return
+	}
+	if resp != nil && resp.StatusCode != 200 {
+		if resp.StatusCode == 500 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			err = util.InternalServerError
+		} else if resp.StatusCode == 503 {
+			fmt.Println("M_API server not reachable")
+			err = util.ServerUnavailable
+		} else if resp.StatusCode == 404 {
+			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			err = util.PageNotFound
+		}
+		fmt.Printf("Received an error from M_API server: statuscode: %d", resp.StatusCode)
+		err = fmt.Errorf("Received an error from M_API server: statuscode: %d", resp.StatusCode)
+		return
+	}
+	defer resp.Body.Close()
+	casVol := v1alpha1.CASVolume{}
+	err = json.NewDecoder(resp.Body).Decode(&casVol)
+	if err != nil {
+		fmt.Printf("Response decode failed: error '%+v'", err)
+		return
+	}
+	if casVol.Status.Reason == "pending" {
+		fmt.Println("VOLUME status Unknown to M_API server")
+		err = fmt.Errorf("VOLUME status Unknown to M_API server")
+		return
+	}
+	volInfo = &VolumeInfo{
+		Volume: casVol,
+	}
+	return
+}
+
+// GetCASType returns the CASType of the volume in lowercase
+func (volInfo *VolumeInfo) GetCASType() string {
+	if len(volInfo.Volume.Spec.CasType) == 0 {
+		return string(JivaStorageEngine)
+	}
+	return strings.ToLower(volInfo.Volume.Spec.CasType)
+}
+
+// GetClusterIP returns the ClusterIP of the cluster
+func (volInfo *VolumeInfo) GetClusterIP() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/cluster-ips"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetControllerStatus returns the status of the volume controller
+func (volInfo *VolumeInfo) GetControllerStatus() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/controller-status"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/controller-status"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetIQN returns the IQN of the volume
+func (volInfo *VolumeInfo) GetIQN() string {
+	return volInfo.Volume.Spec.Iqn
+}
+
+// GetVolumeName returns the volume name
+func (volInfo *VolumeInfo) GetVolumeName() string {
+	return volInfo.Volume.ObjectMeta.Name
+}
+
+// GetTargetPortal returns the TargetPortal of the volume
+func (volInfo *VolumeInfo) GetTargetPortal() string {
+	return volInfo.Volume.Spec.TargetPortal
+}
+
+// GetVolumeSize returns the capacity of the volume
+func (volInfo *VolumeInfo) GetVolumeSize() string {
+	return volInfo.Volume.Spec.Capacity
+}
+
+// GetReplicaCount returns the volume replica count
+func (volInfo *VolumeInfo) GetReplicaCount() string {
+	return volInfo.Volume.Spec.Replicas
+}
+
+// GetReplicaStatus returns the replica status of the volume replica
+func (volInfo *VolumeInfo) GetReplicaStatus() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-status"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-status"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetReplicaIP returns the IP of volume replica
+func (volInfo *VolumeInfo) GetReplicaIP() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-ips"]; ok {
+		return val
+	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-ips"]; ok {
+		return val
+	}
+	return ""
+}
 
 var (
 	volumeCommandHelpText = `

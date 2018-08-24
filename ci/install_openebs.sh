@@ -43,8 +43,9 @@ kubectl get pvc,pv
 
 kubectl get pods --all-namespaces
 
+JIVACTRL=$(kubectl get deploy -l openebs.io/controller=jiva-controller --no-headers | awk {'print $1'})
 for i in $(seq 1 50) ; do
-    replicas=$(kubectl get deployment default-demo-vol1-claim-ctrl -o json | jq ".status.readyReplicas")
+    replicas=$(kubectl get deployment $JIVACTRL -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
         break
 			else
@@ -53,8 +54,9 @@ for i in $(seq 1 50) ; do
     fi
 done
 
+JIVAREP=$(kubectl get deploy -l openebs.io/replica=jiva-replica --no-headers | awk {'print $1'})
 for i in $(seq 1 50) ; do
-    replicas=$(kubectl get deployment default-demo-vol1-claim-rep -o json | jq ".status.readyReplicas")
+    replicas=$(kubectl get deployment $JIVAREP -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
         break
 			else
