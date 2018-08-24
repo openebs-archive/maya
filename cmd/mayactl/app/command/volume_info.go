@@ -24,7 +24,6 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/client/mapiserver"
@@ -87,17 +86,17 @@ func NewCmdVolumeInfo() *cobra.Command {
 
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo to display the results
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
-	volumeInfo := &v1alpha1.CASVolume{}
+	volumeInfo := &VolumeInfo{}
 	// FetchVolumeInfo is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
+	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return err
 	}
 
 	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
-	if volumeInfo.GetCASType() == v1alpha1.JivaStorageEngine {
+	if volumeInfo.GetCASType() == string(JivaStorageEngine) {
 		collection, err = getReplicaInfo(volumeInfo)
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
@@ -105,7 +104,7 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 }
 
 // getReplicaInfo returns the collection of replicas available for jiva volumes
-func getReplicaInfo(volumeInfo *v1alpha1.CASVolume) (client.ReplicaCollection, error) {
+func getReplicaInfo(volumeInfo *VolumeInfo) (client.ReplicaCollection, error) {
 	controllerClient := client.ControllerClient{}
 	collection := client.ReplicaCollection{}
 	controllerStatuses := strings.Split(volumeInfo.GetControllerStatus(), ",")
@@ -151,7 +150,7 @@ func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
 
 // DisplayVolumeInfo displays the outputs in standard I/O.
 // Currently it displays volume access modes and target portal details only.
-func (c *CmdVolumeOptions) DisplayVolumeInfo(v *v1alpha1.CASVolume, collection client.ReplicaCollection) error {
+func (c *CmdVolumeOptions) DisplayVolumeInfo(v *VolumeInfo, collection client.ReplicaCollection) error {
 	var (
 		// address and mode are used here as blackbox for the replica info
 		// address keeps the ip and access mode details respectively.
@@ -198,7 +197,7 @@ Replica Count :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
-	if v.GetCASType() == v1alpha1.JivaStorageEngine {
+	if v.GetCASType() == string(JivaStorageEngine) {
 		replicaCount, _ = strconv.Atoi(v.GetReplicaCount())
 		// This case will occur only if user has manually specified zero replica.
 		if replicaCount == 0 || len(v.GetReplicaStatus()) == 0 {

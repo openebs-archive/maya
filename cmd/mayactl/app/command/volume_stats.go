@@ -25,7 +25,6 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
@@ -75,9 +74,8 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		status         v1.VolStatus
 		stats1, stats2 v1.VolumeMetrics
 	)
-	volumeInfo := &v1alpha1.CASVolume{}
 	// Filling the volumeInfo structure with response from mayapi server
-	err := volumeInfo.FetchVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
+	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
 		return nil
 	}
@@ -137,7 +135,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 // displayStats displays the volume stats as standard output and in json format.
 // By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
-func displayStats(v *v1alpha1.CASVolume, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func displayStats(v *VolumeInfo, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		ReadLatency          int64
@@ -233,10 +231,10 @@ Capacity Stats :
 	actualUsed = actualUsed * sectorSize
 
 	annotation := v1.Annotation{
-		IQN:    v.Spec.Iqn,
-		Volume: c.volName,
-		Portal: v.Spec.TargetPortal,
-		Size:   v.Spec.Capacity,
+		IQN:    v.GetIQN(),
+		Volume: v.GetVolumeName(),
+		Portal: v.GetTargetPortal(),
+		Size:   v.GetVolumeSize(),
 	}
 
 	stat1 := v1.StatsJSON{
