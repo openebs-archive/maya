@@ -81,7 +81,7 @@ func (v *VolumeOperation) getCloneLabels() (map[string]interface{}, error) {
 	}
 
 	// if volume is clone enabled then update cloneLabels map
-	if v.volume.CloneSpec != nil {
+	if v.volume.CloneSpec.IsClone {
 		// fetch source PV using client go
 		pv, err := v.k8sClient.GetPV(v.volume.CloneSpec.SourceVolume, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
@@ -96,7 +96,6 @@ func (v *VolumeOperation) getCloneLabels() (map[string]interface{}, error) {
 		cloneLabels[string(v1alpha1.StorageClassVTP)] = pv.Spec.StorageClassName
 		cloneLabels[string(v1alpha1.SourceVolumeVTP)] = v.volume.CloneSpec.SourceVolume
 	}
-	fmt.Println("Clone Labels are :", cloneLabels)
 	return cloneLabels, nil
 }
 

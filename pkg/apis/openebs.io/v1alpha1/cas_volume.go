@@ -164,7 +164,7 @@ type CASVolume struct {
 	// Spec i.e. specifications of this cas volume
 	Spec CASVolumeSpec `json:"spec"`
 	// CloneSpec contains the required information related to volume clone
-	CloneSpec *VolumeCloneSpec `json:"cloneSpec,omitempty"`
+	CloneSpec VolumeCloneSpec `json:"cloneSpec,omitempty"`
 	// Status of this cas volume
 	Status CASVolumeStatus `json:"status"`
 }
@@ -205,7 +205,7 @@ type VolumeCloneSpec struct {
 	SourceVolume string `json:"sourceVolume,omitempty"`
 	// CloneIP is the source controller IP which will be used to make a sync and rebuild
 	// request from the new clone replica.
-	SourceVolumeTargetIP string `json:"targetIP,omitempty"`
+	SourceVolumeTargetIP string `json:"sourceTargetIP,omitempty"`
 	// SnapshotName name of snapshot which is getting promoted as persistent
 	// volume(this snapshot will be cloned to new volume).
 	SnapshotName string `json:"snapshotName,omitempty"`
