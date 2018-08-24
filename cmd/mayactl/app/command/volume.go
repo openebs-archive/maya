@@ -69,13 +69,13 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 	}
 	if resp != nil && resp.StatusCode != 200 {
 		if resp.StatusCode == 500 {
-			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			fmt.Printf("Volume: %s not found at namespace: %q\n", volname, namespace)
 			err = util.InternalServerError
 		} else if resp.StatusCode == 503 {
 			fmt.Println("M_API server not reachable")
 			err = util.ServerUnavailable
 		} else if resp.StatusCode == 404 {
-			fmt.Printf("Volume: %s not found at M_API server\n", volname)
+			fmt.Printf("Volume: %s not found at namespace: %q error: %s\n", volname, namespace, http.StatusText(resp.StatusCode))
 			err = util.PageNotFound
 		}
 		fmt.Printf("Received an error from M_API server: statuscode: %d", resp.StatusCode)
