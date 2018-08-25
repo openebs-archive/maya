@@ -484,7 +484,6 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 func (k *K8sClient) GetCoreV1PersistentVolumeAsRaw(name string) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().
 		Get().
-		Namespace(k.ns).
 		Resource("persistentvolumes").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
