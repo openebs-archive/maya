@@ -138,6 +138,45 @@ func NewCASEngine(casTemplate *v1alpha1.CASTemplate, runtimeKey string, runtimeV
 	return
 }
 
+// AddConfigToConfigTLP will add final cas volume configurations to ConfigTLP.
+//
+// NOTE:
+//  This will enable templating a run task template as follows:
+//
+// {{ .Config.<ConfigName>.enabled }}
+// {{ .Config.<ConfigName>.value }}
+//
+// NOTE:
+//  Above parsing scheme is translated by running `go template` against the run
+// task template
+func (c *CASEngine) AddConfigToConfigTLP(allConfigs []v1alpha1.Config) error {
+	var configName string
+	allConfigsHierarchy := map[string]interface{}{}
+
+	for _, config := range allConfigs {
+		configName = strings.TrimSpace(config.Name)
+		if len(configName) == 0 {
+			return fmt.Errorf("failed to add config as a top level property: missing config name: config '%+v'", config)
+		}
+
+		configHierarchy := map[string]interface{}{
+			configName: map[string]string{
+				string(v1alpha1.EnabledPTP): config.Enabled,
+				string(v1alpha1.ValuePTP):   config.Value,
+			},
+		}
+
+		isMerged := util.MergeMapOfObjects(allConfigsHierarchy, configHierarchy)
+		if !isMerged {
+			return fmt.Errorf("failed to merge config: unable to add config '%s' to config hierarchy", configName)
+		}
+	}
+
+	// update merged config as the top level property
+	c.SetConfig(allConfigsHierarchy)
+	return nil
+}
+
 // SetConfig sets (or resets if already existing) the CAS template related
 // config elements
 //
@@ -206,6 +245,13 @@ func (c *CASEngine) prepareOutputTask() (err error) {
 
 // Run executes the cas engine based on the tasks set in the cas template
 func (c *CASEngine) Run() (output []byte, err error) {
+	// Set default config if config tlp is not set
+	if c.templateValues[string(v1alpha1.ConfigTLP)] == nil {
+		err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+		if err != nil {
+			return nil, err
+		}
+	}
 	err = c.prepareTasksForExec()
 	if err != nil {
 		return
