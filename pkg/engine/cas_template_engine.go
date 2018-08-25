@@ -245,6 +245,10 @@ func (c *CASEngine) prepareOutputTask() (err error) {
 
 // Run executes the cas engine based on the tasks set in the cas template
 func (c *CASEngine) Run() (output []byte, err error) {
+	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+	if err != nil {
+		return nil, err
+	}
 	err = c.prepareTasksForExec()
 	if err != nil {
 		return
@@ -260,36 +264,20 @@ func (c *CASEngine) Run() (output []byte, err error) {
 
 // create creates a CAS entity
 func (c *CASEngine) Create() (output []byte, err error) {
-	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
-	if err != nil {
-		return nil, err
-	}
 	return c.Run()
 }
 
 // read gets the details of a CAS entity
 func (c *CASEngine) Read() (output []byte, err error) {
-	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
-	if err != nil {
-		return nil, err
-	}
 	return c.Run()
 }
 
 // delete deletes a CAS entity
 func (c *CASEngine) Delete() (output []byte, err error) {
-	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
-	if err != nil {
-		return nil, err
-	}
 	return c.Run()
 }
 
 // list gets the details of one or more CAS entities
 func (c *CASEngine) List() (output []byte, err error) {
-	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
-	if err != nil {
-		return nil, err
-	}
 	return c.Run()
 }
