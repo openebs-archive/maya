@@ -60,6 +60,27 @@ func GroupVersionResourceFromGVK(unstructured *unstructured.Unstructured) (gvr s
 	return
 }
 
+// WithBytesUnstructuredCreator abstracts creation of unstructured instance
+// from the provided bytes
+type WithBytesUnstructuredCreator func(raw []byte) (*unstructured.Unstructured, error)
+
+// CreateUnstructuredFromYamlBytes creates an unstructured instance from the
+// provided YAML document in bytes
+//
+// NOTE:
+//  This is an implementation of WithBytesUnstructuredCreator
+func CreateUnstructuredFromYamlBytes(raw []byte) (*unstructured.Unstructured, error) {
+	m := map[string]interface{}{}
+	err := yaml.Unmarshal(raw, &m)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create unstructured instance from yaml bytes")
+	}
+
+	return &unstructured.Unstructured{
+		Object: m,
+	}, nil
+}
+
 // UnstructuredCreator abstracts creation of unstructured instance from the
 // provided document
 type UnstructuredCreator func(document string) (*unstructured.Unstructured, error)
@@ -67,15 +88,7 @@ type UnstructuredCreator func(document string) (*unstructured.Unstructured, erro
 // CreateUnstructuredFromYaml creates an unstructured instance from the
 // provided YAML document
 func CreateUnstructuredFromYaml(document string) (*unstructured.Unstructured, error) {
-	m := map[string]interface{}{}
-	err := yaml.Unmarshal([]byte(document), &m)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create unstructured instance from yaml document")
-	}
-
-	return &unstructured.Unstructured{
-		Object: m,
-	}, nil
+	return CreateUnstructuredFromYamlBytes([]byte(document))
 }
 
 // CreateUnstructuredFromJson creates an unstructured instance from the
@@ -98,15 +111,15 @@ type UnstructuredOptions struct {
 	Namespace string
 }
 
-// WithOptionsUnstructuredUpdater abstracts updating Unstructured instance based
-// on provided options
-type WithOptionsUnstructuredUpdater func(options UnstructuredOptions) UnstructuredMiddleware
+// WithOptionsUpdater abstracts updating Unstructured instance based on
+// provided options
+type WithOptionsUpdater func(options UnstructuredOptions) UnstructuredMiddleware
 
-// UpdateUnstructuredNamespace updates the unstructured's namespace
+// UpdateNamespace updates the unstructured's namespace
 //
 // NOTE:
-//  This is an implementation of WithOptionsUnstructuredUpdater
-func UpdateUnstructuredNamespace(options UnstructuredOptions) UnstructuredMiddleware {
+//  This is an implementation of WithOptionsUpdater
+func UpdateNamespace(options UnstructuredOptions) UnstructuredMiddleware {
 	return func(unstructured *unstructured.Unstructured) *unstructured.Unstructured {
 		if unstructured == nil {
 			return unstructured
@@ -131,6 +144,43 @@ func UnstructuredUpdater(updaters []UnstructuredMiddleware) UnstructuredMiddlewa
 		}
 		return given
 	}
+}
+
+// UnstructuredPredicate abstracts evaluating a condition against the provided
+// unstructured instance
+type UnstructuredPredicate func(given *unstructured.Unstructured) bool
+
+// UnstructList represents a list of unstructured instances
+type UnstructList struct {
+	Items []*unstructured.Unstructured
+}
+
+// MapAll will execute the all UnstructuredMiddlewares on each unstructured
+// instance
+func (u UnstructList) MapAll(ml []UnstructuredMiddleware) (ul UnstructList) {
+	for _, unstruct := range u.Items {
+		for _, m := range ml {
+			unstruct = m(unstruct)
+			if unstruct != nil {
+				ul.Items = append(ul.Items, unstruct)
+			}
+		}
+	}
+	return
+}
+
+// MapIf will execute the UnstructuredMiddleware conditionally based on
+// UnstructuredPredicate
+func (u UnstructList) MapIf(m UnstructuredMiddleware, p UnstructuredPredicate) (ul UnstructList) {
+	for _, unstruct := range u.Items {
+		if p(unstruct) {
+			unstruct = m(unstruct)
+		}
+		if unstruct != nil {
+			ul.Items = append(ul.Items, unstruct)
+		}
+	}
+	return
 }
 
 // ResourceCreator abstracts creating an unstructured instance in kubernetes

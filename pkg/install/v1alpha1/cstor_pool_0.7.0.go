@@ -53,8 +53,8 @@ spec:
   # RunNamespace is the namespace where namespaced resources related to pool 
   # will be placed
   - name: RunNamespace
-    value: openebs
-  taskNamespace: openebs
+    value: {{.installer.namespace}}
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     # Following are the list of run tasks executed in this order to 
@@ -74,8 +74,8 @@ spec:
   defaultConfig:
     # RunNamespace is the namespace to use to delete pool resources
   - name: RunNamespace
-    value: openebs
-  taskNamespace: openebs
+    value: {{.installer.namespace}}
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     # Following are run tasks executed in this order to delete a storage pool

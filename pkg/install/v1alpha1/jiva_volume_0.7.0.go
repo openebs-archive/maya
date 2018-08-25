@@ -36,7 +36,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default-0.7.0
 spec:
-  taskNamespace: openebs
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     - jiva-volume-read-listtargetservice-default-0.7.0
@@ -118,7 +118,7 @@ spec:
         operator: In
         values:
         - some-node-label-value
-  taskNamespace: openebs
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     - jiva-volume-create-getstorageclass-default-0.7.0
@@ -133,7 +133,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-delete-default-0.7.0
 spec:
-  taskNamespace: openebs
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     - jiva-volume-delete-listtargetservice-default-0.7.0
@@ -149,7 +149,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-list-default-0.7.0
 spec:
-  taskNamespace: openebs
+  taskNamespace: {{.installer.namespace}}
   run:
     tasks:
     - jiva-volume-list-listtargetservice-default-0.7.0

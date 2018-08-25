@@ -22,6 +22,7 @@ import (
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	commonenv "github.com/openebs/maya/pkg/env/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	template "github.com/openebs/maya/pkg/template/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -59,12 +60,10 @@ func (i *installErrors) addErrors(errs []error) []error {
 // NOTE:
 //  This is an implementation of Installer
 type simpleInstaller struct {
-	openebsNamespace     string
-	configGetter         ConfigGetter
-	artifactLister       VersionArtifactLister
-	transformer          ArtifactToUnstructuredListTransformer
-	unstructuredUpdaters []WithInstallUnstructuredUpdater
-	namespaceUpdater     k8s.WithOptionsUnstructuredUpdater
+	configGetter      ConfigGetter
+	artifactLister    VersionArtifactLister
+	artifactTemplater ArtifactMiddleware
+	namespaceUpdater  k8s.UnstructuredMiddleware
 	installErrors
 }
 
@@ -93,22 +92,23 @@ func (i *simpleInstaller) Install() []error {
 			continue
 		}
 
-		// transform list of artifacts to list of unstructured instances
-		unstructs, errs := i.transformer(list)
+		// run the list of artifacts through templating if it is a CASTemplate
+		list, errs := list.MapIf(i.artifactTemplater, IsCASTemplate)
 		if len(errs) != 0 {
 			i.addErrors(errs)
 		}
 
-		// override the unstructured instances from install set options
-		for _, unstruct := range unstructs {
-			// try updating the install artifact with namespace configured for openebs
-			unstruct = i.namespaceUpdater(k8s.UnstructuredOptions{Namespace: i.openebsNamespace})(unstruct)
-
-			// run the install artifact through install config based updaters
-			installUpdaters := WithInstallUnstructuredUpdaterList(install, i.unstructuredUpdaters)
-			finalUpdater := k8s.UnstructuredUpdater(installUpdaters)
-			allUnstructured = append(allUnstructured, finalUpdater(unstruct))
+		// get list of unstructured instances from list of artifacts
+		ulist, errs := list.UnstructuredList()
+		if len(errs) != 0 {
+			i.addErrors(errs)
 		}
+
+		ulist = ulist.MapAll([]k8s.UnstructuredMiddleware{
+			i.namespaceUpdater,
+		})
+
+		allUnstructured = append(allUnstructured, ulist.Items...)
 	}
 
 	for _, unstruct := range allUnstructured {
@@ -129,18 +129,17 @@ func SimpleInstaller() Installer {
 	// this is the namespace of the pod where this binary is running i.e.
 	// namespace that is configured for this openebs component
 	openebsNS := env.Get(string(commonenv.EnvKeyForOpenEBSNamespace))
+	// this is the serviceaccount of the pod where this binary is running i.e.
+	// serviceaccount that is configured for this openebs component
+	openebsSA := env.Get(string(commonenv.EnvKeyForOpenEBSServiceAccount))
+
 	cmGetter := k8s.NewConfigMapGetter(openebsNS)
+	v := NewTemplateKeyValueList().AddNamespace(openebsNS).AddServiceAccount(openebsSA)
 
 	return &simpleInstaller{
-		openebsNamespace: openebsNS,
-		configGetter:     WithConfigMapConfigGetter(cmGetter),
-		artifactLister:   ListArtifactsByVersion,
-		transformer:      TransformArtifactToUnstructuredList,
-		unstructuredUpdaters: []WithInstallUnstructuredUpdater{
-			updateUnstructuredNamespace,
-			updateUnstructuredLabels,
-			updateUnstructuredAnnotations,
-		},
-		namespaceUpdater: k8s.UpdateUnstructuredNamespace,
+		configGetter:      WithConfigMapConfigGetter(cmGetter),
+		artifactLister:    ListArtifactsByVersion,
+		artifactTemplater: ArtifactTemplater(v.Values(), template.TemplateIt),
+		namespaceUpdater:  k8s.UpdateNamespace(k8s.UnstructuredOptions{Namespace: openebsNS}),
 	}
 }

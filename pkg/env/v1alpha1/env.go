@@ -28,6 +28,9 @@ const (
 	// EnvKeyForOpenEBSNamespace is the environment variable to get
 	// openebs namespace
 	EnvKeyForOpenEBSNamespace ENVKey = "OPENEBS_NAMESPACE"
+	// EnvKeyForOpenEBSServiceAccount is the environment variable to get
+	// openebs serviceaccount
+	EnvKeyForOpenEBSServiceAccount ENVKey = "OPENEBS_SERVICE_ACCOUNT"
 )
 
 // EnvironmentGetter abstracts fetching value from an environment variable
