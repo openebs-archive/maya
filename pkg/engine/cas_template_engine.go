@@ -245,9 +245,12 @@ func (c *CASEngine) prepareOutputTask() (err error) {
 
 // Run executes the cas engine based on the tasks set in the cas template
 func (c *CASEngine) Run() (output []byte, err error) {
-	err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
-	if err != nil {
-		return nil, err
+	// Set default config if config tlp is not set
+	if c.templateValues[string(v1alpha1.ConfigTLP)] == nil {
+		err = c.AddConfigToConfigTLP(c.casTemplate.Spec.Defaults)
+		if err != nil {
+			return nil, err
+		}
 	}
 	err = c.prepareTasksForExec()
 	if err != nil {
