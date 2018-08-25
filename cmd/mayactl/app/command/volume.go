@@ -61,6 +61,9 @@ const (
 	timeout                    = 5 * time.Second
 )
 
+// # Create a Volume:
+// $ mayactl volume create --volname <vol> --size <size>
+
 var (
 	volumeCommandHelpText = `
 The following commands helps in operating a Volume such as create, list, and so on.
@@ -68,18 +71,8 @@ The following commands helps in operating a Volume such as create, list, and so 
 Usage: mayactl volume <subcommand> [options] [args]
 
 Examples:
-
- # Create a Volume:
-   $ mayactl volume create --volname <vol> --size <size>
-
  # List Volumes:
    $ mayactl volume list
-
- # Delete a Volume:
-   $ mayactl volume delete --volname <vol>
-
- # Delete a Volume created in 'test' namespace:
-   $ mayactl volume delete --volname <vol> --namespace test
 
  # Statistics of a Volume:
    $ mayactl volume stats --volname <vol>
@@ -92,6 +85,12 @@ Examples:
 
  # Info of a Volume created in 'test' namespace:
    $ mayactl volume info --volname <vol> --namespace test
+
+ # Delete a Volume:
+   $ mayactl volume delete --volname <vol>
+
+ # Delete a Volume created in 'test' namespace:
+   $ mayactl volume delete --volname <vol> --namespace test
 `
 	options = &CmdVolumeOptions{
 		namespace: "default",
@@ -107,7 +106,7 @@ func NewCmdVolume() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		NewCmdVolumeCreate(),
+		// NewCmdVolumeCreate(),
 		NewCmdVolumesList(),
 		NewCmdVolumeDelete(),
 		NewCmdVolumeStats(),
