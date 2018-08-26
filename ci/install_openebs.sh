@@ -36,8 +36,8 @@ done
 
 kubectl get pods --all-namespaces
 
-#echo "------------Deploy CAS templates configuration for Maya-apiserver---------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
+#echo "----------Deploy CAS templates configuration for Maya-apiserver---------"
+kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
 
 echo "--------------- Maya apiserver later logs -----------------------------"
 kubectl logs --tail=200 $MAPIPOD -n openebs
