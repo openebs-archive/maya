@@ -24,6 +24,21 @@ import (
 // as a string
 type MultiYamlFetcher func() string
 
+// ArtifactListPredicate abstracts evaluating a condition against the provided
+// artifact
+type ArtifactListPredicate func() bool
+
+// ParseArtifactListFromMultipleYamlConditional will help in adding a list of yamls that should be installed
+// by the installer
+// ParseArtifactListFromMultipleYamlConditional acts on ArtifactListPredicate return value, if true the yaml
+// gets added to installation list else it is not added.
+func ParseArtifactListFromMultipleYamlConditional(multipleYamls MultiYamlFetcher, p ArtifactListPredicate) (artifacts []*Artifact) {
+	if p() {
+		return ParseArtifactListFromMultipleYamls(multipleYamls)
+	}
+	return
+}
+
 // ParseArtifactListFromMultipleYamls generates a list of Artifacts from the
 // yaml documents.
 //
@@ -46,6 +61,7 @@ func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifac
 // installed
 func RegisteredArtifactsFor070() (finallist ArtifactList) {
 	finallist.Items = append(finallist.Items, JivaPoolArtifactsFor070().Items...)
+	finallist.Items = append(finallist.Items, CstorPoolSpc070().Items...)
 	// TODO
 	// Below commented code will uncommented selectively
 	//finallist.Items = append(finallist.Items, CstorPoolArtifactsFor070().Items...)
