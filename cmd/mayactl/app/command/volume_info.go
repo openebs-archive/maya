@@ -68,6 +68,16 @@ type ReplicaInfo struct {
 	NodeName   string
 }
 
+// cstorReplicaInfo holds information about the cstor replicas
+type cstorReplicaInfo struct {
+	Name       string
+	PoolName   string
+	AccessMode string
+	Status     string
+	NodeName   string
+	IP         string
+}
+
 // NewCmdVolumeInfo displays OpenEBS Volume information.
 func NewCmdVolumeInfo() *cobra.Command {
 	cmd := &cobra.Command{
@@ -160,17 +170,25 @@ func (c *CmdVolumeOptions) DisplayVolumeInfo(v *VolumeInfo, collection client.Re
 		portalInfo    PortalInfo
 	)
 	const (
-		replicaTemplate = `
-
+		jivaReplicaTemplate = `
 Replica Details :
-----------------
+-----------------
 {{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE" }}
 {{ printf "-----\t -----------\t -------\t ---\t -----" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
 `
+
+		cstorReplicaTemplate = `
+Replica Details :
+-----------------
+{{ printf "%s\t" "NAME"}} {{ printf "%s\t" "ACCESS MODE"}} {{ printf "%s\t" "STATUS"}} {{ printf "%s\t" "POOL NAME"}} {{ printf "%s\t" "POOL IP"}} {{ printf "%s\t" "NODE"}}
+{{ printf "----\t -----------\t ------\t ---------\t -------\t -----" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.PoolName }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+`
+
 		portalTemplate = `
 Portal Details :
----------------
+----------------
 IQN           :   {{.IQN}}
 Volume        :   {{.VolumeName}}
 Portal        :   {{.Portal}}
@@ -250,10 +268,56 @@ Replica Count :   {{.ReplicaCount}}
 
 		// parsing the information to replicastatus template
 		tmpl = template.New("ReplicaInfo")
-		tmpl = template.Must(tmpl.Parse(replicaTemplate))
+		tmpl = template.Must(tmpl.Parse(jivaReplicaTemplate))
 
 		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
 		err = tmpl.Execute(w, replicaInfo)
+		if err != nil {
+			fmt.Println("Unable to display volume info, found error : ", err)
+		}
+		w.Flush()
+	} else {
+
+		// Converting replica count character to int
+		replicaCount, err = strconv.Atoi(v.GetReplicaCount())
+		if err != nil {
+			fmt.Println("Invalid replica count")
+			return fmt.Errorf("%s", "Invalid replica count")
+		}
+
+		// Spitting the replica status
+		replicaStatus := strings.Split(v.GetControllerStatus(), ",")
+		poolName := strings.Split(v.GetStoragePool(), ",")
+		cvrName := strings.Split(v.GetCVRName(), ",")
+		nodeName := strings.Split(v.GetNodeName(), ",")
+
+		// Confirming replica status, poolname , cvrName, nodeName are equal to replica count
+		if replicaCount != len(replicaStatus) || replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
+			fmt.Println("Invalid response received from maya-api service")
+			return fmt.Errorf("%s", "Invalid response received from maya-api service")
+		}
+
+		replicaInfo := []cstorReplicaInfo{}
+
+		// Iteratin over the values replica values and appending to the structure
+		for i := 0; i < replicaCount; i++ {
+			replicaInfo = append(replicaInfo, cstorReplicaInfo{
+				Name:       cvrName[i],
+				PoolName:   poolName[i],
+				AccessMode: "N/A",
+				Status:     strings.Title(replicaStatus[i]),
+				NodeName:   nodeName[i],
+				IP:         "N/A",
+			})
+		}
+
+		// Parsing the information to cstorReplicaInfo template
+		cstorTemplate := template.New("CstorReplicaInfo")
+		cstorTemplate = template.Must(cstorTemplate.Parse(cstorReplicaTemplate))
+
+		//	Executing tabwriter on above template
+		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+		err = cstorTemplate.Execute(w, replicaInfo)
 		if err != nil {
 			fmt.Println("Unable to display volume info, found error : ", err)
 		}
