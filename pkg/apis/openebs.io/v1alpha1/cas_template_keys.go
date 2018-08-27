@@ -244,6 +244,15 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.notFoundErr }}
 	TaskResultNotFoundErrTRTP TaskResultTLPProperty = "notFoundErr"
+	// TaskResultVersionMismatchErrTRTP is a property of TaskResultTLP
+	//
+	// First error found after **version mismatch** checks done against the 
+	// result of the task's execution is stored in this property.
+	//
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .TaskResult.<TaskIdentity>.versionMismatchErr }}
+	TaskResultVersionMismatchErrTRTP TaskResultTLPProperty = "versionMismatchErr"
 )
 
 // ListItemsTLPProperty is the name of the property that is found
