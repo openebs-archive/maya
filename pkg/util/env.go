@@ -34,13 +34,23 @@ const (
 	// CASTemplateToListVolumeENVK is the ENV key that specifies the CAS Template
 	// to list cas volumes
 	CASTemplateToListVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_VOLUME"
-)
 
-// CASTemplateFeatureGate returns true if cas template feature gate is
-// enabled
-func CASTemplateToListVolume() string {
-	return getEnv(CASTemplateToListVolumeENVK)
-}
+	// CASTemplateToCreateVolumeENVK is the ENV key that specifies the CAS Template
+	// to create cas volumes
+	CASTemplateToCreateVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_VOLUME"
+	// CASTemplateToReadVolumeENVK is the ENV key that specifies the CAS Template
+	// to read cas volumes
+	CASTemplateToReadVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_VOLUME"
+	// CASTemplateToDeleteVolumeENVK is the ENV key that specifies the CAS Template
+	// to delete cas volumes
+	CASTemplateToDeleteVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_VOLUME"
+	// CASTemplateToCreatePoolENVK is the ENV key that specifies the CAS Template
+	// to create storage pool
+	CASTemplateToCreatePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_POOL"
+	// CASTemplateToDeletePoolENVK is the ENV key that specifies the CAS Template
+	// to delete storage pool
+	CASTemplateToDeletePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_POOL"
+)
 
 // CASTemplateFeatureGate returns true if cas template feature gate is
 // enabled
@@ -48,8 +58,15 @@ func CASTemplateFeatureGate() (bool, error) {
 	return strconv.ParseBool(lookEnv(CASTemplateFeatureGateENVK))
 }
 
+// Get fetches value from the provided environment variable
+// NOTE:
+//  This is an implementation of EnvironmentGetter
+func Get(envKey string) (value string) {
+	return getEnv(envKey)
+}
+
 // getEnv fetches the environment variable value from the runtime's environment
-func getEnv(envKey ENVKey) string {
+func getEnv(envKey string) string {
 	return strings.TrimSpace(os.Getenv(string(envKey)))
 }
 

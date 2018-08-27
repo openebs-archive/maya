@@ -93,3 +93,37 @@ func TestCASTemplateFeatureGate(t *testing.T) {
 		})
 	}
 }
+
+func TestgetEnv(t *testing.T) {
+	testCases := map[string]struct {
+		key         string
+		value       string
+		expectValue string
+	}{
+		"Missing env variable": {
+			key:         "",
+			value:       "",
+			expectValue: "",
+		},
+		"Present env variable with value": {
+			key:         "_MY_PRESENT_TEST_KEY_",
+			value:       "value1",
+			expectValue: "value1",
+		},
+		"Present env variable with empty value": {
+			key:         "_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
+			value:       "",
+			expectValue: "",
+		},
+	}
+	for k, v := range testCases {
+		t.Run(k, func(t *testing.T) {
+			os.Setenv(string(v.key), v.value)
+			actualValue := Get(v.key)
+			if !reflect.DeepEqual(actualValue, v.expectValue) {
+				t.Errorf("expected %s got %s", v.expectValue, actualValue)
+			}
+			os.Unsetenv(string(v.key))
+		})
+	}
+}

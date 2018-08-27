@@ -154,6 +154,11 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	// cas template to create a cas volume
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)]
 	if len(castName) == 0 {
+		// get default create-volume CAS template for create volume operations
+		// from ENV variable
+		castName = util.Get(string(util.CASTemplateToCreateVolumeENVK))
+	}
+	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
 	}
 
@@ -220,8 +225,13 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
+	if len(castName) == 0 {
+		// get default delete-volume CAS template for delete volume operations
+		// from ENV variable
+		castName = util.Get(string(util.CASTemplateToDeleteVolumeENVK))
+
+	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
 	}
@@ -293,6 +303,11 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	// extract read cas template name from sc annotation
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	if len(castName) == 0 {
+		// get default read-volume CAS template for read volume operations
+		// from ENV variable
+		castName = util.Get(string(util.CASTemplateToReadVolumeENVK))
+	}
+	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
 
@@ -362,7 +377,7 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	// cas template to list cas volumes
-	castNames := util.CASTemplateToListVolume()
+	castNames := util.Get(string(util.CASTemplateToListVolumeENVK))
 	if len(castNames) == 0 {
 		return nil, fmt.Errorf("failed to list volume: cas template to list volume is not set as environment variable")
 	}
