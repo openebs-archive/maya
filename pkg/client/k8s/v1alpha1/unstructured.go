@@ -41,6 +41,29 @@ import (
 	"strings"
 )
 
+// kind represents the name of the kubernetes kind
+type kind string
+
+// resource converts the name of the kubernetes kind to corresponding kubernetes
+// resource's name
+//
+// NOTE:
+//  This may not be the best of approaches to get name of a resource. However,
+// this fits the current requirement. This might need a revisit depending on
+// future requirements.
+func (k kind) resource() (resource string) {
+	resource = strings.ToLower(string(k))
+	switch resource {
+	case "":
+		return
+	case "storageclass":
+		return "storageclasses"
+	default:
+		return resource + "s"
+	}
+	return
+}
+
 // GroupVersionResourceFromGVK returns the GroupVersionResource of the provided
 // unstructured instance by making use of this instance's GroupVersionKind info
 //
@@ -55,7 +78,7 @@ func GroupVersionResourceFromGVK(unstructured *unstructured.Unstructured) (gvr s
 
 	gvr.Group = strings.ToLower(gvk.Group)
 	gvr.Version = strings.ToLower(gvk.Version)
-	gvr.Resource = strings.ToLower(gvk.Kind) + "s"
+	gvr.Resource = kind(gvk.Kind).resource()
 
 	return
 }
