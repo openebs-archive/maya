@@ -322,7 +322,8 @@ Replica Count :   {{.ReplicaCount}}
 			fmt.Println("Unable to display volume info, found error : ", err)
 		}
 		w.Flush()
+	} else {
+		fmt.Println("Unsupported Volume Type")
 	}
-	fmt.Println("Unsupported Volume Type")
 	return nil
 }
