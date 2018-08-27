@@ -103,7 +103,7 @@ func GetVolumes() ([]string, error) {
 
 // DeleteVolume deletes the specified volume.
 func DeleteVolume(fullVolName string) error {
-	deleteVolStr := []string{"destroy", fullVolName}
+	deleteVolStr := []string{"destroy", "-r", fullVolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {
 		// If volume is missing then do not return error
