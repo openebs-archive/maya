@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"os"
 	"time"
 
 	"github.com/golang/glog"
@@ -115,8 +116,11 @@ type QueueLoad struct {
 type Environment string
 
 const (
-	// OpenEBSIOCStorVolumeID is the environment variable specified in pod.
+	// OpenEBSIOCStorVolumeID is the environment variable for deciding which CR to watch.
 	OpenEBSIOCStorVolumeID Environment = "OPENEBS_IO_CSTOR_VOLUME_ID"
+	// OpenEBSIOCStorDefaultNamespace is the environment variable for deciding
+	// the default namespace to look in for CRs
+	OpenEBSIOCStorDefaultNamespace Environment = "OPENEBS_IO_CSTOR_DEFAULT_NAMESPACE"
 )
 
 //QueueOperation represents the type of operation on resource
@@ -132,10 +136,16 @@ const (
 // namespace defines kubernetes namespace specified for cvr.
 type namespace string
 
-// Different types of k8s namespaces.
-const (
-	DefaultNameSpace namespace = "openebs"
-)
+//GetDefaultNamespaceFromEnv gets the default namespace from the environment variable
+func GetDefaultNamespaceFromEnv() string {
+	namespace := os.Getenv(string(OpenEBSIOCStorDefaultNamespace))
+	if len(namespace) != 0 {
+		glog.Info("Got cstor namespace from env as ", namespace)
+		return namespace
+	}
+	glog.Info("Using cstor namespace as openebs")
+	return "openebs"
+}
 
 // CheckForCStorVolumeCRD is Blocking call for checking status of CStorVolume CRD.
 func CheckForCStorVolumeCRD(clientset clientset.Interface) {
@@ -144,7 +154,7 @@ func CheckForCStorVolumeCRD(clientset clientset.Interface) {
 		// or not, we are trying to handle only the error of CVR CR List api indirectly.
 		// CRD has only two types of scope, cluster and namespaced. If CR list api
 		// for default namespace works fine, then CR list api works for all namespaces.
-		_, err := clientset.OpenebsV1alpha1().CStorVolumes(string(DefaultNameSpace)).List(metav1.ListOptions{})
+		_, err := clientset.OpenebsV1alpha1().CStorVolumes(GetDefaultNamespaceFromEnv()).List(metav1.ListOptions{})
 		if err != nil {
 			glog.Errorf("CStorVolume CRD not found. Retrying after %v, err : %v", CRDRetryInterval, err)
 			time.Sleep(CRDRetryInterval)
