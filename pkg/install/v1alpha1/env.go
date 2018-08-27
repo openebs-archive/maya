@@ -24,4 +24,9 @@ const (
 	// EnvKeyForInstallConfigName is the environment variable to get the
 	// the install config's name
 	EnvKeyForInstallConfigName InstallENVKey = "OPENEBS_IO_INSTALL_CONFIG_NAME"
+	// CASDefaultCstorPoolENVK is the ENV key that specifies wether default cstor pool
+	// should be configured or not
+	// If value is "true", default cstor pool will be configured else for "false"
+	// it will not be configured.
+	CASDefaultCstorSparsePool InstallENVKey = "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL"
 )
