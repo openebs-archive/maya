@@ -18,16 +18,14 @@ package v1alpha1
 
 import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
-)
-
-const (
-	CstorSparsePoolEnabled = "true"
+	"strconv"
 )
 
 // IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
 // should be created by default or not.
-func IsCstorSparsePoolEnabled() bool {
-	return env.Get(string(CASDefaultCstorPool)) == CstorSparsePoolEnabled
+func IsCstorSparsePoolEnabled() (enabled bool) {
+	enabled, _ = strconv.ParseBool(env.Get(string(CASDefaultCstorPool)))
+	return
 }
 
 // CstorPoolSpc070 returns the default storagepoolclaim yaml
