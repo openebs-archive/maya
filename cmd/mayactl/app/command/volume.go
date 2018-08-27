@@ -293,3 +293,27 @@ func (volInfo *VolumeInfo) GetReplicaIP() string {
 	}
 	return ""
 }
+
+// GetStoragePool returns the name of the storage pool
+func (volInfo *VolumeInfo) GetStoragePool() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/pool-names"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetCVRName returns the name of the CVR
+func (volInfo *VolumeInfo) GetCVRName() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/cvr-names"]; ok {
+		return val
+	}
+	return ""
+}
+
+// GetNodeName returns the name of the node
+func (volInfo *VolumeInfo) GetNodeName() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/node-names"]; ok {
+		return val
+	}
+	return ""
+}

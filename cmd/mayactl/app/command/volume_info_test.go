@@ -688,12 +688,156 @@ func TestDisplayVolumeInfo(t *testing.T) {
 			},
 			output: nil,
 		},
+		"Cstor Volume": {
+			cmdOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.13",
+						Mode:    "RW",
+					},
+				},
+			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/controller-ips":    "10.32.2.13",
+							"openebs.io/controller-status": "running,running,running",
+							"openebs.io/cvr-names":         "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+							"openebs.io/node-names":        "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+							"openebs.io/pool-names":        "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "cstor",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "3",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
+			output: nil,
+		},
+		"Cstor Volume when invalid replica": {
+			cmdOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.13",
+						Mode:    "RW",
+					},
+				},
+			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/controller-ips":    "10.32.2.13",
+							"openebs.io/controller-status": "running,running,running",
+							"openebs.io/cvr-names":         "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+							"openebs.io/node-names":        "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+							"openebs.io/pool-names":        "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "cstor",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "as",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
+			output: nil,
+		},
+		"Cstor Volume when replica count is not equal to status": {
+			cmdOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.13",
+						Mode:    "RW",
+					},
+				},
+			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/controller-ips":    "10.32.2.13",
+							"openebs.io/controller-status": "running,running,running",
+							"openebs.io/cvr-names":         "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+							"openebs.io/node-names":        "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+							"openebs.io/pool-names":        "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "cstor",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "4",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
+			output: nil,
+		},
+		"Unsupported volume type": {
+			cmdOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			collection: client.ReplicaCollection{
+				Data: []client.Replica{
+					{
+						Address: "10.10.10.13",
+						Mode:    "RW",
+					},
+				},
+			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/controller-ips":    "10.32.2.13",
+							"openebs.io/controller-status": "running,running,running",
+							"openebs.io/cvr-names":         "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+							"openebs.io/node-names":        "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+							"openebs.io/pool-names":        "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "alienVolume",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "4",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
+			output: nil,
+		},
 	}
 
 	for name, tt := range validInfo {
 		t.Run(name, func(t *testing.T) {
 			if got := tt.cmdOptions.DisplayVolumeInfo(&tt.volume, tt.collection); got != tt.output {
-				t.Fatalf("DisplayInfo(%v, %v) => %v, want %v", tt.volume, tt.collection, got, tt.output)
+				t.Fatalf("Test %v DisplayInfo(%v, %v) => %v, want %v", name, tt.volume, tt.collection, got, tt.output)
 			}
 		})
 	}
