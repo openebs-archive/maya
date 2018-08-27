@@ -24,7 +24,7 @@ import (
 // IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
 // should be created by default or not.
 func IsCstorSparsePoolEnabled() (enabled bool) {
-	enabled, _ = strconv.ParseBool(env.Get(string(CASDefaultCstorPool)))
+	enabled, _ = strconv.ParseBool(env.Get(string(CASDefaultCstorSparsePool)))
 	return
 }
 
@@ -49,15 +49,22 @@ kind: StoragePoolClaim
 metadata:
   name: cstor-sparse-pool
   annotations:
-    cas.openebs.io/create-pool-template: cstor-pool-create-default-0.7.0
-    cas.openebs.io/delete-pool-template: cstor-pool-delete-default-0.7.0
     cas.openebs.io/config: |
+      #For default sparse pool set the limit at 2Gi to safegaurd 
+      # cstor pool from consuming more memory and causing the node 
+      # to get into memory pressure condition. By default K8s will set the 
+      # Requests to the same value as Limits. For example, when Limit is
+      # set to 2Gi, the pool could get stuck in pending schedule state,
+      # if node doesn't have Requested (2Gi) memory. 
+      # Hence setting the Requests to a minimum (0.5Gi). 
+      - name: PoolResourceRequests
+        value: |-
+            memory: 0.5Gi
+            cpu: 100m
       - name: PoolResourceLimits
-        value: false
-      #- name: PoolResourceLimits
-      #  value: |-
-      #      memory: 2Gi
-      #      cpu: 500m
+        value: |-
+            memory: 2Gi
+            cpu: 500m
       #- name: AuxResourceLimits
       #  value: |-
       #      memory: 1Gi

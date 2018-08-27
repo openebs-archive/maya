@@ -21,11 +21,11 @@ import (
 )
 
 func setEnv() {
-	os.Setenv(string(CASDefaultCstorPool), "true")
+	os.Setenv(string(CASDefaultCstorSparsePool), "true")
 }
 
 func unsetEnv() {
-	os.Unsetenv(string(CASDefaultCstorPool))
+	os.Unsetenv(string(CASDefaultCstorSparsePool))
 }
 
 func TestIsCstorSparsePoolEnabled(t *testing.T) {
