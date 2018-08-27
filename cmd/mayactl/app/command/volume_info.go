@@ -181,9 +181,9 @@ Replica Details :
 		cstorReplicaTemplate = `
 Replica Details :
 -----------------
-{{ printf "%s\t" "NAME"}} {{ printf "%s\t" "ACCESS MODE"}} {{ printf "%s\t" "STATUS"}} {{ printf "%s\t" "POOL NAME"}} {{ printf "%s\t" "POOL IP"}} {{ printf "%s\t" "NODE"}}
-{{ printf "----\t -----------\t ------\t ---------\t -------\t -----" }} {{range $key, $value := .}}
-{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.PoolName }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+{{ printf "%s\t" "NAME"}} {{ printf "%s\t" "STATUS"}} {{ printf "%s\t" "POOL NAME"}} {{ printf "%s\t" "NODE"}}
+{{ printf "----\t ------\t ---------\t -----" }} {{range $key, $value := .}}
+{{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.PoolName }} {{ $value.NodeName }} {{end}}
 `
 
 		portalTemplate = `
@@ -299,7 +299,7 @@ Replica Count :   {{.ReplicaCount}}
 
 		replicaInfo := []cstorReplicaInfo{}
 
-		// Iteratin over the values replica values and appending to the structure
+		// Iterating over the values replica values and appending to the structure
 		for i := 0; i < replicaCount; i++ {
 			replicaInfo = append(replicaInfo, cstorReplicaInfo{
 				Name:       cvrName[i],
