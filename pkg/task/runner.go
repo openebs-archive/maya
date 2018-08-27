@@ -51,6 +51,8 @@ type TaskGroupRunner struct {
 	// outputTask holds the specs to return this group runner's
 	// output in the format (i.e. specs) defined in this output run task
 	outputTask *v1alpha1.RunTask
+	// fallbackTemplate is the CAS Template to fallback to; is optional
+	fallbackTemplate string
 	// rollbacks is an array of task executor that need to be run in
 	// sequence in the event of any error
 	rollbacks []*taskExecutor
@@ -98,6 +100,12 @@ func (m *TaskGroupRunner) SetOutputTask(runtask *v1alpha1.RunTask) (err error) {
 
 	m.outputTask = runtask
 	return
+}
+
+// SetFallback sets this runner with a fallback option in case this runner gets
+// into some specific errors e.g. version mismatch error
+func (m *TaskGroupRunner) SetFallback(castemplate string) {
+	m.fallbackTemplate = strings.TrimSpace(castemplate)
 }
 
 // isTaskIDUnique verifies if the tasks present in this group runner
@@ -151,9 +159,11 @@ func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) e
 func (m *TaskGroupRunner) rollback() {
 	count := len(m.rollbacks)
 	if count == 0 {
-		glog.Warningf("did not rollback: no rollback run tasks were found")
+		glog.Warningf("nothing to rollback: no rollback tasks were found")
 		return
 	}
+
+	glog.Warningf("will rollback previously executed runtask(s)")
 
 	// execute the rollback tasks in **reverse order**
 	for i := count - 1; i >= 0; i-- {
@@ -163,6 +173,17 @@ func (m *TaskGroupRunner) rollback() {
 			glog.Warningf("failed to rollback run task: '%s': error '%s'", m.rollbacks[i], err.Error())
 		}
 	}
+}
+
+// rollback will rollback the previously run operation(s)
+func (m *TaskGroupRunner) fallback(values map[string]interface{}) (output []byte, err error) {
+	glog.Warningf("task group runner will fallback to '%s'", m.fallbackTemplate)
+	f, err := NewFallbackRunner(m.fallbackTemplate, values)
+	if err != nil {
+		return
+	}
+
+	return RunFallback(f)
 }
 
 // runATask will run a task based on the task specs & template values
@@ -248,14 +269,17 @@ func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byt
 // of this next task
 func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err error) {
 	err = m.runAllTasks(values)
-	if err != nil {
-		glog.Errorf("%+v: failed to execute runtasks", err)
-		glog.Warningf("will rollback previously executed runtask(s)")
-		m.rollback()
-	} else {
-		// return this runner's output if there were no errors
+	if err == nil {
 		return m.runOutput(values)
 	}
 
-	return
+	glog.Warningf("%+v: failed to execute runtasks", err)
+	m.rollback()
+
+	if template.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
+		newvalues := values
+		return m.fallback(newvalues)
+	}
+
+	return nil, err
 }

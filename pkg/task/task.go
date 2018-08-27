@@ -119,6 +119,22 @@ func (m *taskExecutor) getTaskResultNotFoundError() interface{} {
 	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.getTaskIdentity(), string(v1alpha1.TaskResultNotFoundErrTRTP))
 }
 
+// getTaskResultVersionMismatchError fetches the VersionMismatch error if any
+// from this runtask's template values
+//
+// NOTE:
+//  Logic to determine VersionMismatch error is set at PostRunTemplateFuncs & is
+// executed during post task execution phase. VersionMismatch error is set if
+// task is executed for invalid version of the resource. This error is set in
+// the runtask's template values.
+//
+// NOTE:
+//  Below property is set with VersionMismatch error if any:
+//  .TaskResult.<taskID>.versionMismatchErr
+func (m *taskExecutor) getTaskResultVersionMismatchError() interface{} {
+	return util.GetNestedField(m.templateValues, string(v1alpha1.TaskResultTLP), m.getTaskIdentity(), string(v1alpha1.TaskResultVersionMismatchErrTRTP))
+}
+
 // getTaskResultVerifyError fetches the verification error if any from this
 // runtask's template values
 //
@@ -275,19 +291,31 @@ func (m *taskExecutor) postExecuteIt() (err error) {
 	// post runtask operation
 	_, err = template.AsTemplatedBytes("PostRun", m.runtask.Spec.PostRun, m.templateValues)
 	if err != nil {
+		// return any un-handled runtime error
 		return
 	}
 
-	// NotFound error is a handled runtime error. It is thrown during go template
-	// execution & set is in the template values. This needs to checked and thrown
-	// as an error.
+	// verMismatchErr is a handled runtime error. It is thrown & handled during go
+	// template execution & set is in the template values. This needs to be
+	// extracted from template values and thrown as VersionMismatchError
+	verMismatchErr := m.getTaskResultVersionMismatchError()
+	if verMismatchErr != nil {
+		glog.Warningf("version mismatch error during post runtask operations '%s': error '%+v'", m.getTaskIdentity(), verMismatchErr)
+		err, _ = verMismatchErr.(*template.VersionMismatchError)
+		return
+	}
+
+	// notFoundErr is a handled runtime error. It is thrown & handled during go
+	// template execution & set is in the template values. This needs to be
+	// extracted and thrown as NotFoundError
 	notFoundErr := m.getTaskResultNotFoundError()
 	if notFoundErr != nil {
 		glog.Warningf("notfound error during post runtask operations '%s': error '%+v'", m.getTaskIdentity(), notFoundErr)
 		err, _ = notFoundErr.(*template.NotFoundError)
+		return
 	}
 
-	return
+	return nil
 }
 
 // ExecuteIt will execute the runtask based on its meta specs & task specs

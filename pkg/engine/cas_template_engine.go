@@ -244,6 +244,14 @@ func (c *CASEngine) prepareOutputTask() (err error) {
 	return
 }
 
+// prepareFallback prepares the taskGroupRunner instance with the
+// fallback template which is used incase of specific errors e.g. version
+// mismatch error
+func (c *CASEngine) prepareFallback() {
+	f := c.casTemplate.Spec.Fallback
+	c.taskGroupRunner.SetFallback(f)
+}
+
 // Run executes the cas engine based on the tasks set in the cas template
 func (c *CASEngine) Run() (output []byte, err error) {
 	// Set default config if config tlp is not set
@@ -262,6 +270,8 @@ func (c *CASEngine) Run() (output []byte, err error) {
 	if err != nil {
 		return
 	}
+
+	c.prepareFallback()
 
 	return c.taskGroupRunner.Run(c.templateValues)
 }
