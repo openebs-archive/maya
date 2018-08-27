@@ -109,12 +109,9 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 	// The name of cas template should be provided as annotation in storagepoolclaim yaml
 	// so that it can be used.
 
-	// Check for cas template
+	// Fill spc annotations to CasPool
 	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCreateCASTemplateCK)]
-	if casTemplateName == "" {
-		return errors.New("aborting storagepool create operation as no cas template is specified"), nil
-	}
-	// Create an empty CasPool object and fill storagepoolclaim details
+
 	pool := &v1alpha1.CasPool{}
 	pool.StoragePoolClaim = spcGot.Name
 	pool.CasCreateTemplate = casTemplateName
