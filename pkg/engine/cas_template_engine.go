@@ -85,8 +85,9 @@ func buildCASEngine(
 	grpRunner *task.TaskGroupRunner) *CASEngine {
 
 	templateValues := map[string]interface{}{
-		// cas template's default config is set as a top level property
-		string(v1alpha1.ConfigTLP): casTemplate.Spec.Defaults,
+		// configTLP is set to nil, this would be reset to cas template defaults
+		// if the action methods i.e. create/read/list/delete do not set it
+		string(v1alpha1.ConfigTLP): nil,
 		// list items is set as a top level property
 		string(v1alpha1.ListItemsTLP): map[string]interface{}{},
 		// task result is set as a top level property
