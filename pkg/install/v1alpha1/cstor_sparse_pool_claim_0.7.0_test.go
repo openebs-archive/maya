@@ -43,16 +43,16 @@ func TestIsCstorSparsePoolEnabled(t *testing.T) {
 	}
 }
 
-func TestCstorPoolSpc070(t *testing.T) {
+func TestCstorSparsePoolSpc070(t *testing.T) {
 	// Set Env variable to enable sparse pool creation
 	setEnv()
-	listItems := CstorPoolSpc070()
+	listItems := CstorSparsePoolSpc070()
 	if len(listItems.Items) == 0 {
 		t.Errorf("Expected non empty string list")
 	}
 	// Unset env variable to disable sparse pool creation
 	unsetEnv()
-	listItems = CstorPoolSpc070()
+	listItems = CstorSparsePoolSpc070()
 	if len(listItems.Items) != 0 {
 		t.Errorf("Expected empty string list")
 	}
