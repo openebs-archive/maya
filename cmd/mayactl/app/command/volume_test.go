@@ -576,3 +576,117 @@ func TestGetReplicaIP(t *testing.T) {
 		})
 	}
 }
+
+func TestGetStoragePool(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching StoragePool from openebs.io/openebs.io/pool-names": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/pool-names": "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+						},
+					},
+				},
+			},
+			expectedOutput: "cstor-sparse-pool-g7e8,cstor-sparse-pool-l9dp,cstor-sparse-pool-yq8t",
+		},
+		"Fetching StoragePool when no key is present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{},
+					},
+				},
+			},
+			expectedOutput: "",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetStoragePool()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetCVRName(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching CVRName from openebs.io/cvr-names": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/cvr-names": "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+						},
+					},
+				},
+			},
+			expectedOutput: "default-cstor-volume-3227802448-cstor-sparse-pool-g7e8,default-cstor-volume-3227802448-cstor-sparse-pool-l9dp,default-cstor-volume-3227802448-cstor-sparse-pool-yq8t",
+		},
+		"Fetching CVRName when no key is present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{},
+					},
+				},
+			},
+			expectedOutput: "",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetCVRName()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetNodeName(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching Node Name from openebs.io/node-names": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/node-names": "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+						},
+					},
+				},
+			},
+			expectedOutput: "gke-ashish-dev-default-pool-1fe155b7-rvqd,gke-ashish-dev-default-pool-1fe155b7-qv7v,gke-ashish-dev-default-pool-1fe155b7-w75t",
+		},
+		"Fetching Node Name when no key is present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{},
+					},
+				},
+			},
+			expectedOutput: "",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetNodeName()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}

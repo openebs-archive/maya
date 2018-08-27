@@ -276,13 +276,13 @@ Replica Count :   {{.ReplicaCount}}
 			fmt.Println("Unable to display volume info, found error : ", err)
 		}
 		w.Flush()
-	} else {
+	} else if v.GetCASType() == string(CstorStorageEngine) {
 
 		// Converting replica count character to int
 		replicaCount, err = strconv.Atoi(v.GetReplicaCount())
 		if err != nil {
 			fmt.Println("Invalid replica count")
-			return fmt.Errorf("%s", "Invalid replica count")
+			return nil
 		}
 
 		// Spitting the replica status
@@ -294,7 +294,7 @@ Replica Count :   {{.ReplicaCount}}
 		// Confirming replica status, poolname , cvrName, nodeName are equal to replica count
 		if replicaCount != len(replicaStatus) || replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
 			fmt.Println("Invalid response received from maya-api service")
-			return fmt.Errorf("%s", "Invalid response received from maya-api service")
+			return nil
 		}
 
 		replicaInfo := []cstorReplicaInfo{}
