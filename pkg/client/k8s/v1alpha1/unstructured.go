@@ -62,18 +62,25 @@ func (k kind) resource() (resource string) {
 }
 
 // isNamespaced flags if the kind is namespaced or not
+//
+// NOTE:
+//  This may not be the best of approaches to flag a resource as namespaced or 
+// not. However, this fits the current requirement. This might need a revisit 
+// depending on future requirements.
 func (k kind) isNamespaced() (no bool) {
 	ks := strings.ToLower(string(k))
 	switch ks {
 	case "storageclass":
 		return no
-	case "persistentvolumes":
+	case "persistentvolume":
 		return no
-	case "castemplates":
+	case "castemplate":
 		return no
-	case "cstorpools":
+	case "storagepoolclaim":
 		return no
-	case "storagepools":
+	case "cstorpool":
+		return no
+	case "storagepool":
 		return no
 	default:
 		return !no
