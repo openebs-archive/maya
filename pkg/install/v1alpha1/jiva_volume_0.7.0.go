@@ -39,10 +39,12 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - jiva-volume-isvalidversion-default-0.7.0
     - jiva-volume-read-listtargetservice-default-0.7.0
     - jiva-volume-read-listtargetpod-default-0.7.0
     - jiva-volume-read-listreplicapod-default-0.7.0
   output: jiva-volume-read-output-default-0.7.0
+  fallback: jiva-volume-read-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -51,17 +53,15 @@ metadata:
 spec:
   defaultConfig:
   - name: ControllerImage
-    value: openebs/jiva:0.6.0
+    value: {{env "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" | default "openebs/jiva:latest"}}
   - name: ReplicaImage
-    value: openebs/jiva:0.6.0
+    value: {{env "OPENEBS_IO_JIVA_REPLICA_IMAGE" | default "openebs/jiva:latest"}}
   - name: VolumeMonitorImage
-    value: openebs/m-exporter:ci
+    value: {{env "OPENEBS_IO_VOLUME_MONITOR_IMAGE" | default "openebs/m-exporter:latest"}}
   - name: ReplicaCount
-    value: "3"
-  - name: ReplicaNodeSelector
-    value: {{env "DEFAULT_REPLICA_NODE_SELECTOR" | default "false"}}
+    value: {{env "OPENEBS_IO_JIVA_REPLICA_COUNT" | default "3" | quote }}
   - name: StoragePool
-    value: default
+    value: "default"
   - name: VolumeMonitor
     enabled: "true"
   - name: EvictionTolerations
@@ -120,14 +120,80 @@ spec:
         operator: In
         values:
         - some-node-label-value
+  # TargetResourceRequests allow you to specify resource requests that need to be available
+  # before scheduling the containers. If not specified, the default is to use the limits
+  # from TargetResourceLimits or the default requests set in the cluster. 
+  - name: TargetResourceRequests
+    value: "none"
+  # TargetResourceLimits allow you to set the limits on memory and cpu for jiva 
+  # target pods. The resource and limit value should be in the same format as 
+  # expected by Kubernetes. Example:
+  #- name: TargetResourceLimits
+  #  value: |-
+  #      memory: 1Gi
+  #      cpu: 200m
+  # By default, the resource limits are disabled. 
+  - name: TargetResourceLimits
+    value: "none"
+  # ReplicaResourceRequests allow you to specify resource requests that need to be available
+  # before scheduling the containers. If not specified, the default is to use the limits
+  # from ReplicaResourceLimits or the default requests set in the cluster. 
+  - name: ReplicaResourceRequests
+    value: "none"
+  # ReplicaResourceLimits allow you to set the limits on memory and cpu for jiva 
+  # replica pods. The resource and limit value should be in the same format as
+  # expected by Kubernetes. Example:
+  - name: ReplicaResourceLimits
+    value: "none"
+  # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceLimits
+    value: "none"
+  # ReplicaAntiAffinityTopoKey is used to schedule replica pods 
+  # of a given volume/application, such that they are:
+  # - not co-located on the same node. (kubernetes.io/hostname)
+  # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone) 
+  # The value for toplogy key can be anythign supported by Kubernetes
+  # clusters. It is possible that some cluster might support topology schemes
+  # like the rack or floor.
+  #
+  # Examples:
+  #   kubernetes.io/hostname (default)
+  #   failure-domain.beta.kubernetes.io/zone
+  #   failure-domain.beta.kubernetes.io/region
+  - name: ReplicaAntiAffinityTopoKey
+    value: "kubernetes.io/hostname"
+  # TargetNodeSelector allows you to specify the nodes where
+  # openebs targets have to be scheduled. To use this feature,
+  # the nodes should already be labeled with the key=value. For example:
+  # "kubectl label nodes <node-name> nodetype=storage"
+  # Note: It is recommended that node selector for replica specify
+  # nodes that have disks/ssds attached to them. Example:
+  #- name: TargetNodeSelector
+  #  value: |-
+  #      nodetype: storage
+  - name: TargetNodeSelector
+    value: "none"
+  # ReplicaNodeSelector allows you to specify the nodes where
+  # openebs replicas have to be scheduled. To use this feature,
+  # the nodes should already be labeled with the key=value. For example:
+  # "kubectl label nodes <node-name> nodetype=storage"
+  # Note: It is recommended that node selector for replica specify
+  # nodes that have disks/ssds attached to them. Example:
+  #- name: ReplicaNodeSelector
+  #  value: |-
+  #      nodetype: storage
+  - name: ReplicaNodeSelector
+    value: "none"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-create-getstorageclass-default-0.7.0
+    - jiva-volume-create-getpvc-default-0.7.0
     - jiva-volume-create-puttargetservice-default-0.7.0
     - jiva-volume-create-getstoragepoolcr-default-0.7.0
-    - jiva-volume-create-puttargetdeployment-default-0.7.0
     - jiva-volume-create-putreplicadeployment-default-0.7.0
+    - jiva-volume-create-puttargetdeployment-default-0.7.0
   output: jiva-volume-create-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
@@ -138,6 +204,7 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - jiva-volume-isvalidversion-default-0.7.0
     - jiva-volume-delete-listtargetservice-default-0.7.0
     - jiva-volume-delete-listtargetdeployment-default-0.7.0
     - jiva-volume-delete-listreplicadeployment-default-0.7.0
@@ -145,6 +212,7 @@ spec:
     - jiva-volume-delete-deletetargetdeployment-default-0.7.0
     - jiva-volume-delete-deletereplicadeployment-default-0.7.0
   output: jiva-volume-delete-output-default-0.7.0
+  fallback: jiva-volume-delete-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -162,14 +230,31 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-isvalidversion-default-0.7.0
+spec:
+  meta: |
+    id: is070jivavolume
+    runNamespace: {{.Volume.runNamespace}}
+    apiVersion: v1
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: vsm={{ .Volume.owner }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is070jivavolume.name" .TaskResult | noop -}}
+    {{- .TaskResult.is070jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.7.0 version" | saveIf "is070jivavolume.versionMismatchErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-list-listtargetservice-default-0.7.0
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
-    repeatWith: 
+    repeatWith:
       metas:
-      {{- range $k, $ns := $nss }} 
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -189,9 +274,9 @@ spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
-    repeatWith: 
-      metas: 
-      {{- range $k, $ns := $nss }} 
+    repeatWith:
+      metas:
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -211,9 +296,9 @@ spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistrep
-    repeatWith: 
-      metas: 
-      {{- range $k, $ns := $nss }} 
+    repeatWith:
+      metas:
+      {{- range $k, $ns := $nss }}
       - runNamespace: {{ $ns }}
       {{- end }}
     apiVersion: v1
@@ -262,9 +347,23 @@ spec:
             vsm.openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
             vsm.openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
             vsm.openebs.io/targetportals: {{ $clusterIP }}:3260
+            openebs.io/controller-ips: {{ $controllerIP }}
+            openebs.io/cluster-ips: {{ $clusterIP }}
+            openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
+            openebs.io/replica-count: {{ $replicaIP | default "" | splitList ", " | len }}
+            openebs.io/volume-size: {{ $capacity }}
+            openebs.io/replica-ips: {{ $replicaIP }}
+            openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
+            openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
+            openebs.io/targetportals: {{ $clusterIP }}:3260
         spec:
           capacity: {{ $capacity }}
+          iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
+          targetPortal: {{ $clusterIP }}:3260
+          replicas: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
           casType: jiva
+          targetIP: {{ $clusterIP }}
+          targetPort: 3260
     {{- end -}}
 ---
 apiVersion: openebs.io/v1alpha1
@@ -350,11 +449,22 @@ spec:
         vsm.openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         vsm.openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         vsm.openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
+        openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
+        openebs.io/cluster-ips: {{ .TaskResult.readlistsvc.clusterIP }}
+        openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
+        openebs.io/replica-count: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
+        openebs.io/volume-size: {{ $capacity }}
+        openebs.io/replica-ips: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | join "," }}
+        openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
+        openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
+        openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
     spec:
       capacity: {{ $capacity }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
       iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
       replicas: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
+      targetIP: {{ .TaskResult.readlistsvc.clusterIP }}
+      targetPort: 3260
       casType: jiva
 ---
 apiVersion: openebs.io/v1alpha1
@@ -376,14 +486,12 @@ spec:
     Kind: Service
     metadata:
       labels:
-        openebs/controller-service: jiva-controller-service
-        openebs/volume-provisioner: jiva
-        vsm: {{ .Volume.owner }}
-        pvc: {{ .Volume.pvc }}
         openebs.io/storage-engine-type: jiva
+        openebs.io/cas-type: jiva
         openebs.io/controller-service: jiva-controller-svc
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        pvc: {{ .Volume.pvc }}
       name: {{ .Volume.owner }}-ctrl-svc
     spec:
       ports:
@@ -396,8 +504,6 @@ spec:
         protocol: TCP
         targetPort: 9501
       selector:
-        openebs/controller: jiva-controller
-        vsm: {{ .Volume.owner }}
         openebs.io/controller: jiva-controller
         openebs.io/persistent-volume: {{ .Volume.owner }}
 ---
@@ -433,6 +539,22 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-create-getpvc-default-0.7.0
+spec:
+  meta: |
+    id: creategetpvc
+    apiVersion: v1
+    runNamespace: {{ .Volume.runNamespace }}
+    kind: PersistentVolumeClaim
+    objectName: {{ .Volume.pvc }}
+    action: get
+  post: |
+    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | default "none" -}}
+    {{- trim $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-create-listreplicapod-default-0.7.0
 spec:
   meta: |
@@ -464,7 +586,7 @@ spec:
     objectName: {{ .Volume.owner }}-rep
     action: patch
   task: |
-      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "false" -}}
+      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "none" -}}
       {{- $nodeAffinityRSIEVal := fromYaml .Config.NodeAffinityRequiredSchedIgnoredExec.value -}}
       {{- $nodeNames := .TaskResult.createlistrep.nodeNames -}}
       type: strategic
@@ -474,12 +596,12 @@ spec:
             spec:
               affinity:
                 nodeAffinity:
-                  {{- if ne $isNodeAffinityRSIE "false" }}
+                  {{- if ne $isNodeAffinityRSIE "none" }}
                   requiredDuringSchedulingIgnoredDuringExecution:
                     nodeSelectorTerms:
                     - matchExpressions:
                       {{- range $k, $v := $nodeAffinityRSIEVal }}
-                      - 
+                      -
                       {{- range $kk, $vv := $v }}
                         {{ $kk }}: {{ $vv }}
                       {{- end }}
@@ -523,21 +645,28 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "createputctrl.objectName" .TaskResult | noop -}}
   task: |
     {{- $isMonitor := .Config.VolumeMonitor.enabled | default "true" | lower -}}
+    {{- $setResourceRequests := .Config.TargetResourceRequests.value | default "none" -}}
+    {{- $resourceRequestsVal := fromYaml .Config.TargetResourceRequests.value -}}
+    {{- $setResourceLimits := .Config.TargetResourceLimits.value | default "none" -}}
+    {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
+    {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
+    {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
+    {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
     apiVersion: extensions/v1beta1
     Kind: Deployment
     metadata:
       labels:
-        openebs/volume-provisioner: jiva
-        openebs/controller: jiva-controller
-        vsm: {{ .Volume.owner }}
-        pvc: {{ .Volume.pvc }}
         {{- if eq $isMonitor "true" }}
         monitoring: "volume_exporter_prometheus"
+        openebs_pv: {{ .Volume.owner }}
         {{- end}}
         openebs.io/storage-engine-type: jiva
+        openebs.io/cas-type: jiva
         openebs.io/controller: jiva-controller
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        pvc: {{ .Volume.pvc }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
@@ -548,29 +677,25 @@ spec:
       replicas: 1
       selector:
         matchLabels:
-          openebs/volume-provisioner: jiva
-          openebs/controller: jiva-controller
-          vsm: {{ .Volume.owner }}
-          pvc: {{ .Volume.pvc }}
-          {{- if eq $isMonitor "true" }}
-          monitoring: volume_exporter_prometheus
-          {{- end}}
           openebs.io/controller: jiva-controller
           openebs.io/persistent-volume: {{ .Volume.owner }}
       template:
         metadata:
           labels:
-            openebs/volume-provisioner: jiva
-            openebs/controller: jiva-controller
-            vsm: {{ .Volume.owner }}
-            pvc: {{ .Volume.pvc }}
             {{- if eq $isMonitor "true" }}
             monitoring: volume_exporter_prometheus
             {{- end}}
             openebs.io/controller: jiva-controller
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            pvc: {{ .Volume.pvc }}
         spec:
+          {{- if ne $hasNodeSelector "none" }}
+          nodeSelector:
+            {{- range $sK, $sV := $nodeSelectorVal }}
+              {{ $sK }}: {{ $sV }}
+            {{- end }}
+          {{- end}}
           containers:
           - args:
             - controller
@@ -583,6 +708,19 @@ spec:
             - launch
             image: {{ .Config.ControllerImage.value }}
             name: {{ .Volume.owner }}-ctrl-con
+            resources:
+              {{- if ne $setResourceLimits "none" }}
+              limits:
+              {{- range $rKey, $rLimit := $resourceLimitsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rReq := $resourceRequestsVal }}
+                {{ $rKey }}: {{ $rReq }}
+              {{- end }}
+              {{- end }}
             env:
             - name: "REPLICATION_FACTOR"
               value: {{ .Config.ReplicaCount.value }}
@@ -598,6 +736,13 @@ spec:
             - maya-exporter
             image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
+            {{- if ne $setAuxResourceLimits "none" }}
+            resources:
+              limits:
+              {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+            {{- end }}
             ports:
             - containerPort: 9500
               protocol: TCP
@@ -634,20 +779,28 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "createputrep.objectName" .TaskResult | noop -}}
   task: |
-    {{- $isEvictionTolerations := .Config.EvictionTolerations.value | default "false" -}}
+    {{- $isEvictionTolerations := .Config.EvictionTolerations.value | default "none" -}}
     {{- $evictionTolerationsVal := fromYaml .Config.EvictionTolerations.value -}}
+    {{- $isCloneEnable := .Volume.isCloneEnable | default "false" -}}
+    {{- $setResourceRequests := .Config.ReplicaResourceRequests.value | default "none" -}}
+    {{- $resourceRequestsVal := fromYaml .Config.ReplicaResourceRequests.value -}}
+    {{- $setResourceLimits := .Config.ReplicaResourceLimits.value | default "none" -}}
+    {{- $resourceLimitsVal := fromYaml .Config.ReplicaResourceLimits.value -}}
+    {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
+    {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $replicaAntiAffinityVal := .TaskResult.creategetpvc.replicaAntiAffinity -}}
+    {{- $hasNodeSelector := .Config.ReplicaNodeSelector.value | default "none" -}}
+    {{- $nodeSelectorVal := fromYaml .Config.ReplicaNodeSelector.value -}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     metadata:
       labels:
-        openebs/replica: jiva-replica
-        openebs/volume-provisioner: jiva
-        vsm: {{ .Volume.owner }}
-        pvc: {{ .Volume.pvc }}
         openebs.io/storage-engine-type: jiva
+        openebs.io/cas-type: jiva
         openebs.io/replica: jiva-replica
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        pvc: {{ .Volume.pvc }}
       annotations:
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
@@ -656,41 +809,59 @@ spec:
       replicas: {{ .Config.ReplicaCount.value }}
       selector:
         matchLabels:
-          openebs/replica: jiva-replica
-          openebs/volume-provisioner: jiva
-          vsm: {{ .Volume.owner }}
-          pvc: {{ .Volume.pvc }}
           openebs.io/replica: jiva-replica
           openebs.io/persistent-volume: {{ .Volume.owner }}
       template:
         metadata:
           labels:
-            openebs/replica: jiva-replica
-            openebs/volume-provisioner: jiva
-            vsm: {{ .Volume.owner }}
-            pvc: {{ .Volume.pvc }}
             openebs.io/replica: jiva-replica
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            pvc: {{ .Volume.pvc }}
+            {{- if ne $replicaAntiAffinityVal "none" }}
+            openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
+            {{- end }}
           annotations:
             openebs.io/capacity: {{ .Volume.capacity }}
             openebs.io/storage-pool: {{ .Config.StoragePool.value }}
         spec:
+          {{- if ne $hasNodeSelector "none" }}
+          nodeSelector:
+            {{- range $sK, $sV := $nodeSelectorVal }}
+              {{ $sK }}: {{ $sV }}
+            {{- end }}
+          {{- end}}
           affinity:
             podAntiAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
               - labelSelector:
                   matchLabels:
-                    openebs/replica: jiva-replica
                     openebs.io/replica: jiva-replica
-                    vsm: {{ .Volume.owner }}
+                    {{/* If PVC object has a replica anti-affinity value. Use it.
+                         This is usually the case for STS that creates PVCs from a 
+                         PVC Template. So, a STS can have multiple PVs with their
+                         unique id. To schedule/spread out replicas belonging to 
+                         different PV, a unique label associated with the STS should 
+                         be passed to all the PVCs tied to the STS. */}}
+                    {{- if ne $replicaAntiAffinityVal "none" }}
+                    openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
+                    {{- else }}
                     openebs.io/persistent-volume: {{ .Volume.owner }}
-                topologyKey: kubernetes.io/hostname
+                    {{- end }}
+                topologyKey: {{ .Config.ReplicaAntiAffinityTopoKey.value }}
           containers:
           - args:
             - replica
             - --frontendIP
             - {{ .TaskResult.createputsvc.clusterIP }}
+            {{- if ne $isCloneEnable "false" }}
+            - --cloneIP
+            - {{ .Volume.sourceVolumeTargetIP }}
+            - --type
+            - "clone"
+            - --snapName
+            - {{ .Volume.snapshotName }}
+            {{- end }}
             - --size
             - {{ .Volume.capacity }}
             - /openebs
@@ -698,6 +869,19 @@ spec:
             - launch
             image: {{ .Config.ReplicaImage.value }}
             name: {{ .Volume.owner }}-rep-con
+            resources:
+              {{- if ne $setResourceLimits "none" }}
+              limits:
+              {{- range $rKey, $rLimit := $resourceLimitsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rReq := $resourceRequestsVal }}
+                {{ $rKey }}: {{ $rReq }}
+              {{- end }}
+              {{- end }}
             ports:
             - containerPort: 9502
               protocol: TCP
@@ -709,9 +893,9 @@ spec:
             - name: openebs
               mountPath: /openebs
           tolerations:
-          {{- if ne $isEvictionTolerations "false" }}
+          {{- if ne $isEvictionTolerations "none" }}
           {{- range $k, $v := $evictionTolerationsVal }}
-          - 
+          -
           {{- range $kk, $vv := $v }}
             {{ $kk }}: {{ $vv }}
           {{- end }}
@@ -744,6 +928,8 @@ spec:
       targetPortal: {{ .TaskResult.createputsvc.clusterIP }}:3260
       iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
       replicas: {{ .Config.ReplicaCount.value }}
+      targetIP: {{ .TaskResult.readlistsvc.clusterIP }}
+      targetPort: 3260
       casType: jiva
 ---
 apiVersion: openebs.io/v1alpha1
