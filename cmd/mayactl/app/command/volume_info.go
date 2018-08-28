@@ -292,7 +292,8 @@ Replica Count :   {{.ReplicaCount}}
 		nodeName := strings.Split(v.GetNodeName(), ",")
 
 		// Confirming replica status, poolname , cvrName, nodeName are equal to replica count
-		if replicaCount != len(replicaStatus) || replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
+		//if replicaCount != len(replicaStatus) || replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
+		if replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
 			fmt.Println("Invalid response received from maya-api service")
 			return nil
 		}
