@@ -45,7 +45,7 @@ spec:
     value: openebs/m-exporter:ci
   - name: ReplicaCount
     value: "3"
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - cstor-volume-create-listcstorpoolcr-default-0.7.0
@@ -60,7 +60,7 @@ kind: CASTemplate
 metadata:
   name: cstor-volume-delete-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - cstor-volume-delete-listcstorvolumecr-default-0.7.0
@@ -78,7 +78,7 @@ kind: CASTemplate
 metadata:
   name: cstor-volume-read-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - cstor-volume-read-listtargetservice-default-0.7.0
@@ -91,7 +91,7 @@ kind: CASTemplate
 metadata:
   name: cstor-volume-list-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - cstor-volume-list-listtargetservice-default-0.7.0

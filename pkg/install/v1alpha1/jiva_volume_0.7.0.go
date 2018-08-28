@@ -36,7 +36,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-read-listtargetservice-default-0.7.0
@@ -58,6 +58,8 @@ spec:
     value: openebs/m-exporter:ci
   - name: ReplicaCount
     value: "3"
+  - name: ReplicaNodeSelector
+    value: {{env "DEFAULT_REPLICA_NODE_SELECTOR" | default "false"}}
   - name: StoragePool
     value: default
   - name: VolumeMonitor
@@ -118,7 +120,7 @@ spec:
         operator: In
         values:
         - some-node-label-value
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-create-getstorageclass-default-0.7.0
@@ -133,7 +135,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-delete-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-delete-listtargetservice-default-0.7.0
@@ -149,7 +151,7 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-list-default-0.7.0
 spec:
-  taskNamespace: {{.installer.namespace}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-list-listtargetservice-default-0.7.0

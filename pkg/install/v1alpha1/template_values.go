@@ -44,16 +44,16 @@ func (l TemplateKeyValueList) AddServiceAccount(value string) TemplateKeyValueLi
 }
 
 // Values creates template values to be applied over install related artifacts
-func (l TemplateKeyValueList) Values() map[string]interface{} {
+func (l TemplateKeyValueList) Values() (final map[string]interface{}) {
+	final = map[string]interface{}{}
 	if len(l.Items) == 0 {
-		return nil
+		final["installer"] = nil
+		return
 	}
-	val := map[string]interface{}{}
+	nested := map[string]interface{}{}
 	for _, kv := range l.Items {
-		val[kv.Key] = kv.Value
+		nested[kv.Key] = kv.Value
 	}
-
-	return map[string]interface{}{
-		"installer": val,
-	}
+	final["installer"] = nested
+	return
 }

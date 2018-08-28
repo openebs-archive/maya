@@ -30,6 +30,8 @@ type ArtifactIdentifier string
 const (
 	// CASTemplateArtifact helps in identifying a CAS Template based artifact
 	CASTemplateArtifact ArtifactIdentifier = "kind: CASTemplate"
+	// RunTaskArtifact helps in identifying a RunTask based artifact
+	RunTaskArtifact ArtifactIdentifier = "kind: RunTask"
 )
 
 // Artifact represents a YAML compatible artifact that will be installed,
@@ -54,26 +56,29 @@ func IsCASTemplate(given *Artifact) bool {
 	return given != nil && strings.Contains(given.Doc, string(CASTemplateArtifact))
 }
 
+// IsNotRunTask flags if the provided artifact is not of type RunTask
+//
+// NOTE:
+//  This is an implementation of ArtifactPredicate
+func IsNotRunTask(given *Artifact) bool {
+	return given != nil && !strings.Contains(given.Doc, string(RunTaskArtifact))
+}
+
 // ArtifactTemplater updates an artifact instance by templating it and returns
 // the resulting templated instance
-func ArtifactTemplater(values map[string]interface{}, templater template.TextTemplater) ArtifactMiddleware {
+func ArtifactTemplater(values map[string]interface{}, t template.Templater) ArtifactMiddleware {
 	return func(given *Artifact) (updated *Artifact, err error) {
 		if given == nil {
 			err = fmt.Errorf("nil artifact instance: failed to template the artifact")
 			return
 		}
 
-		if templater == nil {
-			err = fmt.Errorf("nil templater: failed to template the artifact '%s'", given.Doc)
+		if t == nil {
+			err = fmt.Errorf("nil templater instance: failed to template the artifact '%s'", given.Doc)
 			return
 		}
 
-		if values == nil {
-			// nothing needs to be done
-			return given, nil
-		}
-
-		templated, err := templater("artifact", given.Doc, values)
+		templated, err := t("artifact", given.Doc, values)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to template the artifact '%s' with values '%+v'", given.Doc, values)
 			return

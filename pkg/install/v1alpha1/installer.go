@@ -93,7 +93,7 @@ func (i *simpleInstaller) Install() []error {
 		}
 
 		// run the list of artifacts through templating if it is a CASTemplate
-		list, errs := list.MapIf(i.artifactTemplater, IsCASTemplate)
+		list, errs := list.MapIf(i.artifactTemplater, IsNotRunTask)
 		if len(errs) != 0 {
 			i.addErrors(errs)
 		}
@@ -130,18 +130,12 @@ func SimpleInstaller() Installer {
 	// namespace that is configured for this openebs component
 	openebsNS := env.Get(string(commonenv.EnvKeyForOpenEBSNamespace))
 
-	// this is the serviceaccount of the pod where this binary is running i.e.
-	// serviceaccount that is configured for this openebs component
-
-	openebsSA := env.Get(string(commonenv.EnvKeyForOpenEBSServiceAccount))
 	// cmGetter to fetch install related config i.e. a config map
-
 	cmGetter := k8s.NewConfigMapGetter(openebsNS)
 	c := WithConfigMapConfigGetter(cmGetter)
 
-	// templating values to template the artifacts before installation
-	v := NewTemplateKeyValueList().AddNamespace(openebsNS).AddServiceAccount(openebsSA)
-	t := ArtifactTemplater(v.Values(), template.TemplateIt)
+	// templater to template the artifacts before installation
+	t := ArtifactTemplater(NewTemplateKeyValueList().Values(), template.TextTemplate)
 
 	// a condition based namespace updater
 	u := k8s.UpdateNamespaceP(
