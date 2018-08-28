@@ -35,15 +35,26 @@ const (
 	// to list cas volumes
 	CASTemplateToListVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_VOLUME"
 
-	// CASTemplateToCreateVolumeENVK is the ENV key that specifies the CAS Template
-	// to create cas volumes
-	CASTemplateToCreateVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_VOLUME"
-	// CASTemplateToReadVolumeENVK is the ENV key that specifies the CAS Template
-	// to read cas volumes
-	CASTemplateToReadVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_VOLUME"
-	// CASTemplateToDeleteVolumeENVK is the ENV key that specifies the CAS Template
-	// to delete cas volumes
-	CASTemplateToDeleteVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_VOLUME"
+	// CASTemplateToCreateJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to create jiva cas volumes
+	CASTemplateToCreateJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_CREATE_VOLUME"
+	// CASTemplateToReadJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to read jiva cas volumes
+	CASTemplateToReadJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_READ_VOLUME"
+	// CASTemplateToDeleteJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to delete jiva cas volumes
+	CASTemplateToDeleteJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_DELETE_VOLUME"
+
+	// CASTemplateToCreateCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to create cstor cas volumes
+	CASTemplateToCreateCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_CREATE_VOLUME"
+	// CASTemplateToReadCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to read cstor cas volumes
+	CASTemplateToReadCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_READ_VOLUME"
+	// CASTemplateToDeleteCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to delete cstor cas volumes
+	CASTemplateToDeleteCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_DELETE_VOLUME"
+
 	// CASTemplateToCreatePoolENVK is the ENV key that specifies the CAS Template
 	// to create storage pool
 	CASTemplateToCreatePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_POOL"
