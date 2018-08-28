@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
 
-#OPENEBS="$(https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml)"
-#CASTEMPLATE="${https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-cas-templates-pre-alpha.yaml}"
-#OPENEBSVOLUME="${https://raw.githubusercontent.com/openebs/openebs/master/k8s/demo/pvc-standard-jiva-default.yaml}"
-
 echo "--------------------Installing openebs operator---------------------------"
-sleep 10
+sleep 5
 kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml
-
-#cStor tests are not yet enabled on travis. 
-#Deleting the NDM that gets installed by default. 
-kubectl delete ds -n openebs node-disk-manager
 
 for i in $(seq 1 50) ; do
     replicas=$(kubectl get deployment -n openebs maya-apiserver -o json | jq ".status.readyReplicas")
@@ -45,21 +37,29 @@ done
 
 kubectl get pods --all-namespaces
 
-#echo "----------Deploy Pre-release features---------"
+sleep 10
+#echo "------------------ Deploy Pre-release features ---------------------------"
 #kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
+
+echo "------------------------ Create sparse storagepoolclaim --------------- "
+# delete the storagepoolclaim created earlier and create new spc with min/max pool
+# count 1
+kubectl delete spc --all
+kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/spc-sparse-single.yaml
+sleep 10
 
 echo "--------------- Maya apiserver later logs -----------------------------"
 kubectl logs --tail=200 $MAPIPOD -n openebs
 printf "\n\n"
 
+echo "--------------- Create Cstor and Jiva PersistentVolume ------------------"
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
 sleep 10
-echo "-----------Create Persistentvolumeclaim and PersistentVolume ------------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/demo/pvc-single-replica-jiva.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-sparse-claim-cstor.yaml
 
 sleep 30
 echo "--------------------- List PVC,PV and pods ---------------------------"
 kubectl get pvc,pv
-
 kubectl get pods --all-namespaces
 
 JIVACTRL=$(kubectl get deploy -l openebs.io/controller=jiva-controller --no-headers | awk {'print $1'})
@@ -67,11 +67,11 @@ for i in $(seq 1 5) ; do
     replicas=$(kubectl get deployment $JIVACTRL -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
         break
-			else
+      else
         echo "Waiting for volume ctrl to be ready"
-        kubectl logs $MAPIPOD -n openebs
+        kubectl logs --tail=10 $MAPIPOD -n openebs
         printf "\n\n"
-        sleep 60
+        sleep 30
     fi
 done
 
@@ -80,13 +80,23 @@ for i in $(seq 1 5) ; do
     replicas=$(kubectl get deployment $JIVAREP -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
         break
-			else
+      else
         echo "Waiting for volume replica to be ready"
-        kubectl logs $MAPIPOD -n openebs
+        kubectl logs --tail=10 $MAPIPOD -n openebs
         printf "\n\n"
-        sleep 60
+        sleep 30
     fi
 done
 
-#echo "----------- Delete Persistentvolumeclaim and PersistentVolume ------------"
-#kubectl delete -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/demo/pvc-standard-jiva-default.yaml
+CSTORTARGET=$(kubectl get deploy -n openebs -l openebs.io/target=cstor-target --no-headers | awk {'print $1'})
+for i in $(seq 1 5) ; do
+    replicas=$(kubectl get deployment -n openebs $CSTORTARGET -o json | jq ".status.readyReplicas")
+    if [ "$replicas" == "1" ]; then
+        break
+      else
+        echo "Waiting for cstor volume target to be ready"
+        kubectl logs --tail=10 $MAPIPOD -n openebs
+        printf "\n\n"
+        sleep 30
+    fi
+done
