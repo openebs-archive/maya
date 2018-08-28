@@ -23,6 +23,7 @@ import (
 	commonenv "github.com/openebs/maya/pkg/env/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -64,6 +65,7 @@ type simpleInstaller struct {
 	artifactLister    VersionArtifactLister
 	artifactTemplater ArtifactMiddleware
 	namespaceUpdater  k8s.UnstructuredMiddleware
+	labelsUpdater     k8s.UnstructuredMiddleware
 	installErrors
 }
 
@@ -106,6 +108,7 @@ func (i *simpleInstaller) Install() []error {
 
 		ulist = ulist.MapAll([]k8s.UnstructuredMiddleware{
 			i.namespaceUpdater,
+			i.labelsUpdater,
 		})
 
 		allUnstructured = append(allUnstructured, ulist.Items...)
@@ -137,11 +140,15 @@ func SimpleInstaller() Installer {
 	// templater to template the artifacts before installation
 	t := ArtifactTemplater(NewTemplateKeyValueList().Values(), template.TextTemplate)
 
+	uOpts := k8s.UnstructuredOptions{
+		Namespace: openebsNS,
+		Labels: map[string]string{
+			"openebs.io/version": version.GetVersion(),
+		},
+	}
 	// a condition based namespace updater
-	u := k8s.UpdateNamespaceP(
-		k8s.UnstructuredOptions{Namespace: openebsNS},
-		k8s.IsNamespaceScoped,
-	)
+	nu := k8s.UpdateNamespaceP(uOpts, k8s.IsNamespaceScoped)
+	lu := k8s.UpdateLabels(uOpts)
 
 	// lister to list artifacts for install
 	l := ListArtifactsByVersion
@@ -150,6 +157,7 @@ func SimpleInstaller() Installer {
 		configGetter:      c,
 		artifactLister:    l,
 		artifactTemplater: t,
-		namespaceUpdater:  u,
+		namespaceUpdater:  nu,
+		labelsUpdater:     lu,
 	}
 }

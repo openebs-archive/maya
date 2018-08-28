@@ -169,6 +169,7 @@ func IsNamespaceScoped(given *unstructured.Unstructured) bool {
 // utility for various operations related to unstructured instance
 type UnstructuredOptions struct {
 	Namespace string
+	Labels    map[string]string
 }
 
 // UpdateNamespaceP updates the unstructured's namespace conditionally
@@ -196,6 +197,27 @@ func UpdateNamespace(o UnstructuredOptions) UnstructuredMiddleware {
 	}
 }
 
+// UpdateLabels updates the unstructured's labels
+func UpdateLabels(o UnstructuredOptions) UnstructuredMiddleware {
+	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
+		if given == nil {
+			return given
+		}
+		if len(o.Labels) == 0 {
+			return given
+		}
+		orig := given.GetLabels()
+		if orig == nil {
+			orig = map[string]string{}
+		}
+		for k, v := range o.Labels {
+			orig[k] = v
+		}
+		given.SetLabels(orig)
+		return given
+	}
+}
+
 // UnstructuredUpdater updates an unstructured instance by executing all the
 // provided updaters
 func UnstructuredUpdater(updaters []UnstructuredMiddleware) UnstructuredMiddleware {
@@ -218,9 +240,9 @@ func (u UnstructList) MapAll(ml []UnstructuredMiddleware) (ul UnstructList) {
 	for _, unstruct := range u.Items {
 		for _, m := range ml {
 			unstruct = m(unstruct)
-			if unstruct != nil {
-				ul.Items = append(ul.Items, unstruct)
-			}
+		}
+		if unstruct != nil {
+			ul.Items = append(ul.Items, unstruct)
 		}
 	}
 	return
