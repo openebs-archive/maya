@@ -153,8 +153,6 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
 			nodeDisk := nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]]
-			// Increment the disk count
-			//nodeDisk.diskCount++
 			// Add the current disk to the diskList for this node.
 			nodeDisk.diskList = append(nodeDisk.diskList, value.Name)
 			// If pool type is mirrored the node qualifies for pool creation hence pendingAllotment decremented.
