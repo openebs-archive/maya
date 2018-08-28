@@ -102,7 +102,7 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	// controller's IP, status, iqn, replica IPs etc.
 	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
-		return err
+		return nil
 	}
 
 	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
