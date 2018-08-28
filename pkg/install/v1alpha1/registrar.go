@@ -60,13 +60,15 @@ func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifac
 // RegisteredArtifactsFor070 returns the list of 0.7.0 Artifacts that will get
 // installed
 func RegisteredArtifactsFor070() (list ArtifactList) {
+
+	list.Items = append(list.Items, JivaVolumeArtifactsFor070().Items...)
+	//Contains the read/list/delete CAST for supporting older volumes
+	list.Items = append(list.Items, JivaVolumeArtifactsFor060().Items...)
 	list.Items = append(list.Items, JivaPoolArtifactsFor070().Items...)
+
+	list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
+	list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorSparsePoolSpc070().Items...)
-	// TODO
-	// Below commented code will uncommented selectively
-	//list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
-	//list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
-	//list.Items = append(list.Items, JivaVolumeArtifactsFor070().Items...)
 
 	return
 }
