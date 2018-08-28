@@ -17,12 +17,11 @@ limitations under the License.
 package spc
 
 import (
-	"errors"
 	"fmt"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/storagepool"
-	"strings"
 )
 
 func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
@@ -30,9 +29,6 @@ func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
 	glog.Infof("Storagepool delete event received for storagepoolclaim %s", spcGot.Name)
 
 	casTemplateName := spcGot.Annotations[string(v1alpha1.SPDeleteCASTemplateCK)]
-	if strings.TrimSpace(casTemplateName) == "" {
-		return errors.New("aborting storagepool delete: missing cas template name for delete operation in storagepoolclaim annotations")
-	}
 
 	// Create an empty  CasPool object
 	pool := &v1alpha1.CasPool{}
