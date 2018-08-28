@@ -18,6 +18,7 @@ package volume
 
 import (
 	"fmt"
+	"github.com/openebs/maya/types/v1"
 
 	"strings"
 
@@ -153,10 +154,14 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 
 	// cas template to create a cas volume
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)]
+	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
-		// get default create-volume CAS template for create volume operations
-		// from ENV variable
-		castName = util.Get(string(util.CASTemplateToCreateVolumeENVK))
+		// check for cas-type, if cstor, set to create cas template for cstor, jiva otherwise
+		if strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)]) == string(v1.CStorVolumeType) {
+			castName = util.Get(string(util.CASTemplateToCreateCStorVolumeENVK))
+		} else {
+			castName = util.Get(string(util.CASTemplateToCreateJivaVolumeENVK))
+		}
 	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
@@ -226,11 +231,14 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
+	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
-		// get default delete-volume CAS template for delete volume operations
-		// from ENV variable
-		castName = util.Get(string(util.CASTemplateToDeleteVolumeENVK))
-
+		// check for cas-type, if cstor, set to delete cas template for cstor, jiva otherwise
+		if strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)]) == string(v1.CStorVolumeType) {
+			castName = util.Get(string(util.CASTemplateToDeleteCStorVolumeENVK))
+		} else {
+			castName = util.Get(string(util.CASTemplateToDeleteJivaVolumeENVK))
+		}
 	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
@@ -302,10 +310,14 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 
 	// extract read cas template name from sc annotation
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
+	// check for cas-type, if cstor, set to read cas template for cstor, jiva otherwise
 	if len(castName) == 0 {
-		// get default read-volume CAS template for read volume operations
-		// from ENV variable
-		castName = util.Get(string(util.CASTemplateToReadVolumeENVK))
+		// check for cas-type, if cstor set to cstor read cas template otherwise, jiva
+		if strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)]) == string(v1.CStorVolumeType) {
+			castName = util.Get(string(util.CASTemplateToReadCStorVolumeENVK))
+		} else {
+			castName = util.Get(string(util.CASTemplateToReadJivaVolumeENVK))
+		}
 	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
