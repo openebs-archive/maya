@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/storagepool"
 )
 
@@ -54,8 +55,24 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCo
 		return nil
 	}
 
+	// Get kubernetes clientset
+	// namespaces is not required, hence passed empty.
+	newK8sClient, err := k8s.NewK8sClient("")
+
+	if err != nil {
+		return err
+	}
+	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
+	// the openebs clientset is not exported.
+	newOecsClient := newK8sClient.GetOECS()
+
+	// Create instance of clientset struct defined above which binds
+	// ListDisk method and fill it with openebs clienset (i.e.newOecsClient ).
+	newClientSet := clientSet{
+		oecs: newOecsClient,
+	}
 	// Get a CasPool object
-	err, pool := newCasPool(spcGot, reSync, pendingPoolCount)
+	err, pool := newClientSet.newCasPool(spcGot, reSync, pendingPoolCount)
 	if err != nil {
 		return err
 	}
@@ -91,7 +108,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 }
 
 // newCasPool will return a CasPool object
-func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (error, *apis.CasPool) {
+func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (error, *apis.CasPool) {
 	// Validations for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if poolType == "" {
@@ -130,7 +147,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 	// If no disk are specified pool will be provisioned dynamically
 	if len(diskList) == 0 {
 		// newDisksList is the list of disks over which pool will be provisioned
-		err, newDisksList := getCasPoolDisk(pool)
+		err, newDisksList := newClientSet.getCasPoolDisk(pool)
 		if err != nil {
 			return err, nil
 		}
@@ -143,7 +160,7 @@ func newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int
 // getCasPoolDisk is a wrapper that will call getDiskList function to get the disk lists
 // that will be used to provision a storagepool dynamically
 
-func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
+func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 	// Performing valdations against CasPool fields
 	if cp.MaxPools <= 0 {
 		return fmt.Errorf("aborting storagepool create operation as no maxPool field is specified"), nil
@@ -166,7 +183,7 @@ func getCasPoolDisk(cp *apis.CasPool) (error, []string) {
 		cp.MaxPools = cp.PendingPoolCount
 	}
 	// getDiskList will get the disks to be used for storagepool provisioning
-	newDisksList, err := getDiskList(cp)
+	newDisksList, err := newClientSet.nodeDiskAlloter(cp)
 
 	if err != nil {
 		return fmt.Errorf("aborting storagepool create operation as no node qualified: %v", err), nil

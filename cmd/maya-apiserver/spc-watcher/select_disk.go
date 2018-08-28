@@ -24,7 +24,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	"github.com/openebs/maya/pkg/client/k8s"
 )
 
 // clientset struct holds the interface of internalclientset
@@ -38,42 +37,12 @@ type clientSet struct {
 // nodeDisk struct will be used as a value for a map nodeDiskMap (map defined in ListDisk function)
 // The struct will be useful in forming the data structure nodeDiskMap which will be manipulated
 // to efficiently select the nodes and disk for dynamic pool provisioning.
+
+// The struct can incorporate several other constraints(that might come in future)
+// related to disk that will be useful in selecting disks
 type nodeDisk struct {
-	// diskCount is the count of usable disks that can be used in storagepool provisioning.
-	diskCount int
 	//diskList is the list of usable disks that can be used in storagepool provisioning.
 	diskList []string
-}
-
-// getDiskList is a wrapper function which will receive list of disks
-// that can be used for dynamic pool provisioning at runtime.
-// The function finally returns the disk list to the caller (i.e. getCasPoolDisk function).
-func getDiskList(cp *v1alpha1.CasPool) ([]string, error) {
-
-	// Get kubernetes clientset
-	// namespaces is not required, hence passed empty.
-	newK8sClient, err := k8s.NewK8sClient("")
-
-	if err != nil {
-		return nil, err
-	}
-	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
-	// the openebs clientset is not exported.
-	newOecsClient := newK8sClient.GetOECS()
-
-	// Create instance of clientset struct defined above which binds
-	// ListDisk method and fill it with openebs clienset (i.e.newOecsClient ).
-	newClientSet := clientSet{
-		oecs: newOecsClient,
-	}
-	// nodeDiskAlloter will try to return a list of disks so that maxpool number of storagepool
-	// is provisioned.
-	diskList, err := newClientSet.nodeDiskAlloter(cp)
-	if err != nil {
-		return nil, err
-	}
-
-	return diskList, nil
 }
 
 // nodeDiskAlloter will try to allot nodes for pool creation as specified in
@@ -176,7 +145,7 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		if nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] == nil {
 			// Entry to this block means first time the hostname will be mapped for the first time.
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &nodeDisk{diskList: []string{value.Name}, diskCount: 1}
+			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &nodeDisk{diskList: []string{value.Name}}
 			// If pool type is striped the node qualifies for pool creation hence pendingAllotment decremented.
 			if poolType == string(v1alpha1.PoolTypeStripedCPV) {
 				pendingAllotment--
@@ -184,13 +153,11 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
 			nodeDisk := nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]]
-			// Increment the disk count
-			nodeDisk.diskCount++
 			// Add the current disk to the diskList for this node.
 			nodeDisk.diskList = append(nodeDisk.diskList, value.Name)
 			// If pool type is mirrored the node qualifies for pool creation hence pendingAllotment decremented.
 			if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
-				if nodeDisk.diskCount == int(v1alpha1.MirroredDiskCountCPV) {
+				if len(nodeDisk.diskList) == int(v1alpha1.MirroredDiskCountCPV) {
 					pendingAllotment--
 				}
 			}

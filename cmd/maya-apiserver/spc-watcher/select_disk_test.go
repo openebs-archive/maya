@@ -26,13 +26,7 @@ import (
 	"strconv"
 )
 
-func TestNodeDiskAlloter(t *testing.T) {
-
-	// Get a fake openebs client set
-	focs := &clientSet{
-		oecs: openebsFakeClientset.NewSimpleClientset(),
-	}
-
+func (focs *clientSet) FakeDiskCreator() {
 	// Create some fake disk objects over nodes.
 	// For example, create 6 disk (out of 6 disks 2 disks are sparse disks)for each of 5 nodes.
 	// That meant 6*5 i.e. 30 disk objects should be created
@@ -72,6 +66,15 @@ func TestNodeDiskAlloter(t *testing.T) {
 			glog.Error(err)
 		}
 	}
+
+}
+func TestNodeDiskAlloter(t *testing.T) {
+
+	// Get a fake openebs client set
+	focs := &clientSet{
+		oecs: openebsFakeClientset.NewSimpleClientset(),
+	}
+	focs.FakeDiskCreator()
 	tests := map[string]struct {
 		// fakeCasPool holds the fake fakeCasPool object in test cases.
 		fakeCasPool *v1alpha1.CasPool
