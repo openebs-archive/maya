@@ -161,7 +161,7 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 	}
 	if resp != nil && resp.StatusCode != 200 {
 		if resp.StatusCode == 500 {
-			fmt.Printf("Volume: %s not found at namespace: %q\n", volname, namespace)
+			fmt.Printf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues")
 			err = util.InternalServerError
 			return
 		} else if resp.StatusCode == 503 {
