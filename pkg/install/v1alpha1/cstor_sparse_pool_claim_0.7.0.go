@@ -44,6 +44,27 @@ func CstorSparsePoolSpc070() (list ArtifactList) {
 func cstorSparsePoolSpcFor070() string {
 	return `
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-cstor-sparse
+  annotations:
+    cas.openebs.io/create-volume-template: cstor-volume-create-default-0.7.0
+    cas.openebs.io/delete-volume-template: cstor-volume-delete-default-0.7.0
+    cas.openebs.io/read-volume-template: cstor-volume-read-default-0.7.0
+    cas.openebs.io/config: |
+      - name: StoragePoolClaim
+        value: "cstor-sparse-pool"
+      #- name: TargetResourceLimits
+      #  value: |-
+      #      memory: 1Gi
+      #      cpu: 200m
+      #- name: AuxResourceLimits
+      #  value: |-
+      #      memory: 0.5Gi
+      #      cpu: 50m
+provisioner: openebs.io/provisioner-iscsi
+---
 apiVersion: openebs.io/v1alpha1
 kind: StoragePoolClaim
 metadata:
