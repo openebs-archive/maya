@@ -64,7 +64,7 @@ func RegisteredArtifactsFor070() (list ArtifactList) {
 	list.Items = append(list.Items, CstorSparsePoolSpc070().Items...)
 	// TODO
 	// Below commented code will uncommented selectively
-	//finallist.Items = append(finallist.Items, CstorPoolArtifactsFor070().Items...)
+	list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
 	//finallist.Items = append(finallist.Items, CstorVolumeArtifactsFor070().Items...)
 	//finallist.Items = append(finallist.Items, JivaVolumeArtifactsFor070().Items...)
 
