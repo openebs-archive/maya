@@ -129,17 +129,33 @@ func SimpleInstaller() Installer {
 	// this is the namespace of the pod where this binary is running i.e.
 	// namespace that is configured for this openebs component
 	openebsNS := env.Get(string(commonenv.EnvKeyForOpenEBSNamespace))
+
 	// this is the serviceaccount of the pod where this binary is running i.e.
 	// serviceaccount that is configured for this openebs component
+
 	openebsSA := env.Get(string(commonenv.EnvKeyForOpenEBSServiceAccount))
+	// cmGetter to fetch install related config i.e. a config map
 
 	cmGetter := k8s.NewConfigMapGetter(openebsNS)
+	c := WithConfigMapConfigGetter(cmGetter)
+
+	// templating values to template the artifacts before installation
 	v := NewTemplateKeyValueList().AddNamespace(openebsNS).AddServiceAccount(openebsSA)
+	t := ArtifactTemplater(v.Values(), template.TemplateIt)
+
+	// a condition based namespace updater
+	u := k8s.UpdateNamespaceP(
+		k8s.UnstructuredOptions{Namespace: openebsNS},
+		k8s.IsNamespaceScoped,
+	)
+
+	// lister to list artifacts for install
+	l := ListArtifactsByVersion
 
 	return &simpleInstaller{
-		configGetter:      WithConfigMapConfigGetter(cmGetter),
-		artifactLister:    ListArtifactsByVersion,
-		artifactTemplater: ArtifactTemplater(v.Values(), template.TemplateIt),
-		namespaceUpdater:  k8s.UpdateNamespace(k8s.UnstructuredOptions{Namespace: openebsNS}),
+		configGetter:      c,
+		artifactLister:    l,
+		artifactTemplater: t,
+		namespaceUpdater:  u,
 	}
 }

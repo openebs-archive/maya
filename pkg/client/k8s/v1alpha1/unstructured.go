@@ -30,11 +30,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -62,6 +59,33 @@ func (k kind) resource() (resource string) {
 		return resource + "s"
 	}
 	return
+}
+
+// isNamespaced flags if the kind is namespaced or not
+//
+// NOTE:
+//  This may not be the best of approaches to flag a resource as namespaced or 
+// not. However, this fits the current requirement. This might need a revisit 
+// depending on future requirements.
+func (k kind) isNamespaced() (no bool) {
+	ks := strings.ToLower(string(k))
+	switch ks {
+	case "storageclass":
+		return no
+	case "persistentvolume":
+		return no
+	case "castemplate":
+		return no
+	case "storagepoolclaim":
+		return no
+	case "cstorpool":
+		return no
+	case "storagepool":
+		return no
+	default:
+		return !no
+	}
+	return !no
 }
 
 // GroupVersionResourceFromGVK returns the GroupVersionResource of the provided
@@ -128,33 +152,47 @@ func CreateUnstructuredFromJson(document string) (*unstructured.Unstructured, er
 // UnstructuredMiddleware abstracts updating given unstructured instance
 type UnstructuredMiddleware func(given *unstructured.Unstructured) (updated *unstructured.Unstructured)
 
+// UnstructuredPredicate abstracts evaluating a condition against the provided
+// unstructured instance
+type UnstructuredPredicate func(given *unstructured.Unstructured) bool
+
+// IsNamespaceScoped flags if the given unstructured instance is namespace
+// scoped
+//
+// NOTE:
+//  This is a UnstructuredPredicate implementation
+func IsNamespaceScoped(given *unstructured.Unstructured) bool {
+	return kind(given.GetKind()).isNamespaced()
+}
+
 // UnstructuredOptions provides a set of properties that can be used as a
 // utility for various operations related to unstructured instance
 type UnstructuredOptions struct {
 	Namespace string
 }
 
-// WithOptionsUpdater abstracts updating Unstructured instance based on
-// provided options
-type WithOptionsUpdater func(options UnstructuredOptions) UnstructuredMiddleware
+// UpdateNamespaceP updates the unstructured's namespace conditionally
+func UpdateNamespaceP(o UnstructuredOptions, p UnstructuredPredicate) UnstructuredMiddleware {
+	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
+		if p(given) {
+			return UpdateNamespace(o)(given)
+		}
+		return given
+	}
+}
 
 // UpdateNamespace updates the unstructured's namespace
-//
-// NOTE:
-//  This is an implementation of WithOptionsUpdater
-func UpdateNamespace(options UnstructuredOptions) UnstructuredMiddleware {
-	return func(unstructured *unstructured.Unstructured) *unstructured.Unstructured {
-		if unstructured == nil {
-			return unstructured
+func UpdateNamespace(o UnstructuredOptions) UnstructuredMiddleware {
+	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
+		if given == nil {
+			return given
 		}
-
-		namespace := strings.TrimSpace(options.Namespace)
+		namespace := strings.TrimSpace(o.Namespace)
 		if len(namespace) == 0 {
-			return unstructured
+			return given
 		}
-
-		unstructured.SetNamespace(namespace)
-		return unstructured
+		given.SetNamespace(namespace)
+		return given
 	}
 }
 
@@ -168,10 +206,6 @@ func UnstructuredUpdater(updaters []UnstructuredMiddleware) UnstructuredMiddlewa
 		return given
 	}
 }
-
-// UnstructuredPredicate abstracts evaluating a condition against the provided
-// unstructured instance
-type UnstructuredPredicate func(given *unstructured.Unstructured) bool
 
 // UnstructList represents a list of unstructured instances
 type UnstructList struct {
@@ -204,150 +238,4 @@ func (u UnstructList) MapIf(m UnstructuredMiddleware, p UnstructuredPredicate) (
 		}
 	}
 	return
-}
-
-// ResourceCreator abstracts creating an unstructured instance in kubernetes
-// cluster
-type ResourceCreator func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceCreator returns a new instance of ResourceCreator that is
-// capable of creating a resource in kubernetes cluster
-func NewResourceCreator(gvr schema.GroupVersionResource, namespace string) ResourceCreator {
-	return func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
-		if obj == nil {
-			return nil, fmt.Errorf("nil resource instance: failed to create '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
-		}
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Create(obj, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
-		}
-
-		return unstruct, nil
-	}
-}
-
-// ResourceGetter abstracts fetching an unstructured instance from kubernetes
-// cluster
-type ResourceGetter func(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceGetter returns a new instance of ResourceGetter that is capable
-// of fetching an unstructured instance from kubernetes cluster
-func NewResourceGetter(gvr schema.GroupVersionResource, namespace string) ResourceGetter {
-	return func(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
-		if len(strings.TrimSpace(name)) == 0 {
-			return nil, fmt.Errorf("missing resource name: failed to get '%s' from namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
-		}
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Get(name, options, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
-		}
-
-		return unstruct, nil
-	}
-}
-
-// ResourceUpdater abstracts updating an unstructured instance found in
-// kubernetes cluster
-type ResourceUpdater func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceUpdater returns a new instance of ResourceUpdater that is capable
-// of updating an unstructured instance found in kubernetes cluster
-func NewResourceUpdater(gvr schema.GroupVersionResource, namespace string) ResourceUpdater {
-	return func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
-		if oldobj == nil {
-			return nil, fmt.Errorf("nil old resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		if newobj == nil {
-			return nil, fmt.Errorf("nil new resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
-		}
-
-		resourceVersion := oldobj.GetResourceVersion()
-		newobj.SetResourceVersion(resourceVersion)
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Update(newobj, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
-		}
-
-		return unstruct, nil
-	}
-}
-
-// ResourceApplyOptions is used during a resource's apply operation
-type ResourceApplyOptions struct {
-	Getter  ResourceGetter
-	Creator ResourceCreator
-	Updater ResourceUpdater
-}
-
-// ResourceApplier abstracts applying an unstructured instance that may or may
-// not be available in kubernetes cluster
-type ResourceApplier func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// newResourceApplier returns a new instance of ResourceApplier that is capable
-// of applying an unstructured instance that may or may not be available in
-// kubernetes cluster
-func newResourceApplier(options ResourceApplyOptions) ResourceApplier {
-	return func(obj *unstructured.Unstructured, subresources ...string) (resource *unstructured.Unstructured, err error) {
-		if options.Getter == nil {
-			err = fmt.Errorf("nil resource getter instance: failed to apply resource")
-			return
-		}
-
-		if options.Creator == nil {
-			err = fmt.Errorf("nil resource creator instance: failed to apply resource")
-			return
-		}
-
-		if options.Updater == nil {
-			err = fmt.Errorf("nil resource updater instance: failed to apply resource")
-			return
-		}
-
-		if obj == nil {
-			err = fmt.Errorf("nil resource instance: failed to apply resource")
-			return
-		}
-
-		resource, err = options.Getter(obj.GetName(), metav1.GetOptions{})
-		if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
-			return options.Creator(obj, subresources...)
-		}
-
-		if resource != nil {
-			return options.Updater(resource, obj, subresources...)
-		}
-
-		return
-	}
-}
-
-// NewResourceApplier returns a new instance of ResourceApplier that is capable
-// of applying any resource into kubernetes cluster
-func NewResourceApplier(gvr schema.GroupVersionResource, namespace string) ResourceApplier {
-	options := ResourceApplyOptions{
-		Getter:  NewResourceGetter(gvr, namespace),
-		Creator: NewResourceCreator(gvr, namespace),
-		Updater: NewResourceUpdater(gvr, namespace),
-	}
-
-	return newResourceApplier(options)
 }
