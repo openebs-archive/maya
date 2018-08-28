@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -51,7 +50,7 @@ func TestRunVolumeInfo(t *testing.T) {
 				T: t,
 			},
 			addr:   "MAPI_ADDR",
-			output: io.EOF,
+			output: nil,
 		},
 		"WhenControllerIsNotRunning": {
 			cmdOptions: &CmdVolumeOptions{
