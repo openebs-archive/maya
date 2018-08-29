@@ -34,7 +34,7 @@ const (
 	// e.g. "openebs.io/spc-lease":"openebs/maya-apiserver-6b4695c9f8-nbwl9"
 	PodNameEnvKey = "OPENEBS_MAYA_POD_NAME"
 	// PodNameSpaceEnvKey is the key to fetch the namespace of the pod
-	PodNameSpaceEnvKey = "OPENEBS_MAYA_POD_NAMESPACE"
+	PodNameSpaceEnvKey = "OPENEBS_NAMESPACE"
 )
 
 // Leases is an interface which assists in getting and releasing lease over an spc object

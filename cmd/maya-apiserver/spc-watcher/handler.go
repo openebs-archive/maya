@@ -74,7 +74,8 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset}
 		_, err := newSpcLease.GetLease()
 		if err != nil {
-			return addEvent, fmt.Errorf("could not acquire lease on spc object:%v", err)
+			glog.Errorf("could not acquire lease on spc object:%v", err)
+			return addEvent, err
 		}
 		err = CreateStoragePool(spcGot, false, 0)
 
