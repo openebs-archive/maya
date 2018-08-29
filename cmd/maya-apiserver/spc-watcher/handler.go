@@ -70,7 +70,12 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		// It is a create event so resync should be false and pendingPoolcount is passed 0
 		// pendingPoolcount is not used when resync is false.
-		err := CreateStoragePool(spcGot, false, 0)
+		newSpcLease := &spcLease{spcGot, SpcLeaseKey, c.clientset}
+		_, err := newSpcLease.GetLease()
+		if err != nil {
+			return addEvent,fmt.Errorf("could not acquire lease on spc object:%v", err)
+		}
+		err = CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
