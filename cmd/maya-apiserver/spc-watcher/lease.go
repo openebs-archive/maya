@@ -16,20 +16,25 @@ limitations under the License.
 package spc
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"strings"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	"fmt"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"strings"
 )
 
 const (
 	// SpcLeaseKey is the key that will be used to acquire lease on spc object.
 	// It will be present in spc annotations
 	// If key has an empty value, that means no one has acquired a lease on spc object.
-	SpcLeaseKey = "openebs.io/spc-lease"
-	// SpcLeaseValue is the value of the SpcLeaseKey
-	SpcLeaseValue = "acquired"
+	SpcLeaseKey = "openebs.io/spc-create-lease"
+	// PodNameEnvKey is the key to fetch name of the pod,which will be combined with PodNameSpaceEnvKey
+	// to be used as a value of SpcLeaseKey.
+	// e.g. "openebs.io/spc-lease":"openebs/maya-apiserver-6b4695c9f8-nbwl9"
+	PodNameEnvKey = "OPENEBS_MAYA_POD_NAME"
+	// PodNameSpaceEnvKey is the key to fetch the namespace of the pod
+	PodNameSpaceEnvKey = "OPENEBS_MAYA_POD_NAMESPACE"
 )
 
 // Leases is an interface which assists in getting and releasing lease over an spc object
@@ -39,7 +44,7 @@ type Leases interface {
 	// UpdateLease will update the lease value of the spc
 	UpdateLease(leaseValue string) (*apis.StoragePoolClaim, error)
 	// RemoveLease will remove the acquired lease on the spc
-	RemoveLease() (*apis.StoragePoolClaim)
+	RemoveLease() *apis.StoragePoolClaim
 }
 
 // spcLease is the struct which will implement the Leases interface
@@ -57,7 +62,7 @@ func (sl *spcLease) GetLease() (string, error) {
 	leaseValue := sl.spcObject.Annotations[sl.leaseKey]
 	// If leaseValue is empty acquire lease.
 	if strings.TrimSpace(leaseValue) == "" {
-		spcObject, err := sl.UpdateLease(SpcLeaseValue)
+		spcObject, err := sl.UpdateLease(sl.getPodName())
 		if err != nil {
 			return "", err
 		}
@@ -89,10 +94,16 @@ func (sl *spcLease) UpdateLease(leaseValue string) (*apis.StoragePoolClaim, erro
 
 // Can be used for reconcile loop use cases
 // TODO Remove using patch instead of update
-func (sl *spcLease) RemoveLease() (*apis.StoragePoolClaim) {
+func (sl *spcLease) RemoveLease() *apis.StoragePoolClaim {
 	spcObject, err := sl.UpdateLease("")
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("Lease could not be removed:%v", err))
 	}
 	return spcObject
+}
+
+func (sl *spcLease) getPodName() string {
+	podName := env.Get(PodNameEnvKey)
+	podNameSpace := env.Get(PodNameSpaceEnvKey)
+	return podNameSpace + "/" + podName
 }
