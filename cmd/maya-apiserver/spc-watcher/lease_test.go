@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 	"github.com/golang/glog"
 )
 
-// SpcCreator will create face spc objects
+// SpcCreator will create fake spc objects
 func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcLeaseKeyValue string) (claim *apis.StoragePoolClaim) {
 	var spcObject *apis.StoragePoolClaim
 	if SpcLeaseKeyPresent {
@@ -66,18 +66,18 @@ func TestGetLease(t *testing.T) {
 		expectedResult string
 	}{
 		// TestCase#1
-		"SPC#1": {
+		"SPC#1 Lease acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool1", true, "acquired"),
 			expectedResult:       "",
 		},
 
 		// TestCase#2
-		"SPC#2": {
+		"SPC#2 Lease not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool2", false, ""),
 			expectedResult:       "acquired",
 		},
-		// TestCase#1
-		"SPC#3": {
+		// TestCase#3
+		"SPC#3 Lease not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool3", true, ""),
 			expectedResult:       "acquired",
 		},
@@ -86,7 +86,8 @@ func TestGetLease(t *testing.T) {
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			newSpcLease := spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs}
+			var newSpcLease spcLease
+			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs}
 			// newSpcLease is the function under test.
 			result, _ := newSpcLease.GetLease()
 			// If the result does not matches expectedResult, test case fails.
@@ -111,18 +112,18 @@ func TestRemoveLease(t *testing.T) {
 		expectedResult string
 	}{
 		// TestCase#1
-		"SPC#1": {
+		"SPC#1 Lease acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool1", true, "acquired"),
 			expectedResult:       "",
 		},
 
 		// TestCase#2
-		"SPC#2": {
+		"SPC#2 Lease not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool2", false, ""),
 			expectedResult:       "",
 		},
-		// TestCase#1
-		"SPC#3": {
+		// TestCase#3
+		"SPC#3 Lease not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool3", true, ""),
 			expectedResult:       "",
 		},
