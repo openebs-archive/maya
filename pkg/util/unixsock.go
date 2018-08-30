@@ -38,11 +38,12 @@ func Reader(r io.Reader, cmd string) []string {
 				fulllines = nil
 			}
 
-			if !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
+			if len(resp) != 0 && !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
 				!strings.HasPrefix(resp[len(resp)-1], cmd) {
 				glog.Infof("Breaking out of loop for line :", resp[len(resp)-1])
 				break
 			}
+
 		}
 		if err != nil {
 			glog.Errorf("Read error : %v", err)
