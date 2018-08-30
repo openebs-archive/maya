@@ -17,19 +17,19 @@ limitations under the License.
 package v1alpha1
 
 import (
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"strconv"
 )
 
 // IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
 // should be created by default or not.
 func IsCstorSparsePoolEnabled() (enabled bool) {
-	enabled, _ = strconv.ParseBool(env.Get(string(CASDefaultCstorSparsePool)))
+	enabled, _ = strconv.ParseBool(menv.Get(DefaultCstorSparsePool))
 	return
 }
 
-// CstorPoolSpc070 returns the default storagepoolclaim yaml
-// corresponding to version 0.7.0 if cstor sparse pool creation is enabled as a part of
+// CstorSparsePoolSpc070 returns the default storagepoolclaim yaml corresponding
+// to version 0.7.0 if cstor sparse pool creation is enabled as a part of
 // openebs installation
 func CstorSparsePoolSpc070() (list ArtifactList) {
 	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcFor070, IsCstorSparsePoolEnabled)...)

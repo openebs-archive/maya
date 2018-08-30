@@ -165,6 +165,15 @@ func IsNamespaceScoped(given *unstructured.Unstructured) bool {
 	return kind(given.GetKind()).isNamespaced()
 }
 
+// IsCASTemplate flags if the given unstructured instance is a CAS Template
+// scoped
+//
+// NOTE:
+//  This is a UnstructuredPredicate implementation
+func IsCASTemplate(given *unstructured.Unstructured) bool {
+	return strings.ToLower(given.GetKind()) == "castemplate"
+}
+
 // UnstructuredOptions provides a set of properties that can be used as a
 // utility for various operations related to unstructured instance
 type UnstructuredOptions struct {

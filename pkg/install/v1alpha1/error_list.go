@@ -16,15 +16,25 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-)
+type errorList struct {
+	errors []error
+}
 
-const (
-	// K8sMasterIPEnvironmentKey is the environment variable key used to
-	// determine the kubernetes master IP address
-	K8sMasterIPEnvironmentKey menv.ENVKey = "OPENEBS_IO_K8S_MASTER"
-	// KubeConfigEnvironmentKey is the environment variable key used to
-	// determine the kubernetes config
-	KubeConfigEnvironmentKey menv.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
-)
+// addError adds an error to error list
+func (l *errorList) addError(err error) []error {
+	if err == nil {
+		return l.errors
+	}
+
+	l.errors = append(l.errors, err)
+	return l.errors
+}
+
+// addErrors adds a list of errors to error list
+func (l *errorList) addErrors(errs []error) []error {
+	for _, err := range errs {
+		l.addError(err)
+	}
+
+	return l.errors
+}

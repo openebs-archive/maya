@@ -19,7 +19,7 @@ import (
 	"fmt"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"strings"
 )
@@ -97,7 +97,7 @@ func (sl *spcLease) RemoveLease() *apis.StoragePoolClaim {
 }
 
 func (sl *spcLease) getPodName() string {
-	podName := env.Get(string(env.EnvKeyForMayaPodName))
-	podNameSpace := env.Get(string(env.EnvKeyForOpenEBSNamespace))
+	podName := menv.Get(menv.OpenEBSMayaPodName)
+	podNameSpace := menv.Get(menv.OpenEBSNamespace)
 	return podNameSpace + "/" + podName
 }

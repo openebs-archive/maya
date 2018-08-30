@@ -96,15 +96,15 @@ type ArtifactList struct {
 
 // VersionArtifactLister abstracts fetching a list of artifacts based on
 // provided version
-type VersionArtifactLister func(version string) (ArtifactList, error)
+type VersionArtifactLister func(v version) (ArtifactList, error)
 
 // ListArtifactsByVersion returns artifacts based on the provided version
-func ListArtifactsByVersion(version string) (ArtifactList, error) {
-	switch version {
-	case "0.7.0":
+func ListArtifactsByVersion(v version) (ArtifactList, error) {
+	switch v {
+	case version070:
 		return RegisteredArtifactsFor070(), nil
 	default:
-		return ArtifactList{}, fmt.Errorf("invalid version '%s': failed to list artifacts by version", version)
+		return ArtifactList{}, fmt.Errorf("invalid version '%+v': failed to list artifacts by version", v)
 	}
 }
 

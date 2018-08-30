@@ -18,43 +18,141 @@ package v1alpha1
 
 import (
 	"os"
+	"strconv"
 	"strings"
 )
 
-// ENVKey is a typed string to represent various environment keys
+// ENVKey is a typed string to represent various environment keys used by this
+// binary
 type ENVKey string
 
 const (
-	// EnvKeyForOpenEBSNamespace is the environment variable to get
-	// openebs namespace
-	EnvKeyForOpenEBSNamespace ENVKey = "OPENEBS_NAMESPACE"
-	// EnvKeyForMayaPodName is the environment variable to get maya-apiserver pod name
-	EnvKeyForMayaPodName ENVKey = "OPENEBS_MAYA_POD_NAME"
-	// EnvKeyForOpenEBSServiceAccount is the environment variable to get
-	// openebs serviceaccount
-	EnvKeyForOpenEBSServiceAccount ENVKey = "OPENEBS_SERVICE_ACCOUNT"
+	// OpenEBSNamespace is the environment variable to get openebs namespace
+	//
+	// This environment variable is set via kubernetes downward API
+	OpenEBSNamespace ENVKey = "OPENEBS_NAMESPACE"
+
+	// OpenEBSMayaPodName is the environment variable to get maya-apiserver pod
+	// name
+	OpenEBSMayaPodName ENVKey = "OPENEBS_MAYA_POD_NAME"
+
+	// OpenEBSServiceAccount is the environment variable to get openebs
+	// serviceaccount
+	//
+	// This environment variable is set via kubernetes downward API
+	OpenEBSServiceAccount ENVKey = "OPENEBS_SERVICE_ACCOUNT"
+
+	// TODO:
+	//
+	// The constants present here should be moved to respective/relevant packages
+	// This file will hold env related operations as well as environment variables
+	// that is common.
+	//
+	// All these might be moved to
+	//
+	// pkg/<entity_name>/v1alpha1/env_<entity_name>_<introduced_at_version>.go
+	//
+	// Need to discuss with team on above !!!
+	//
+	// TODO:
+	//
+	// The names of these variables should also change. It need not be suffixed
+	// with ENVK. Need to discuss with team.
+
+	// CASTemplateFeatureGateENVK is the ENV key to fetch cas template feature gate
+	// i.e. if cas template based provisioning is enabled or disabled
+	CASTemplateFeatureGateENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_FEATURE_GATE"
+
+	// CASTemplateToListVolumeENVK is the ENV key that specifies the CAS Template
+	// to list cas volumes
+	CASTemplateToListVolumeENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_VOLUME"
+
+	// CASTemplateToCreateJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to create jiva cas volumes
+	CASTemplateToCreateJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_CREATE_VOLUME"
+
+	// CASTemplateToReadJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to read jiva cas volumes
+	CASTemplateToReadJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_READ_VOLUME"
+
+	// CASTemplateToDeleteJivaVolumeENVK is the ENV key that specifies the CAS Template
+	// to delete jiva cas volumes
+	CASTemplateToDeleteJivaVolumeENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_DELETE_VOLUME"
+
+	// CASTemplateToCreateCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to create cstor cas volumes
+	CASTemplateToCreateCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_CREATE_VOLUME"
+
+	// CASTemplateToReadCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to read cstor cas volumes
+	CASTemplateToReadCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_READ_VOLUME"
+
+	// CASTemplateToDeleteCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to delete cstor cas volumes
+	CASTemplateToDeleteCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_DELETE_VOLUME"
+
+	// CASTemplateToCreatePoolENVK is the ENV key that specifies the CAS Template
+	// to create storage pool
+	CASTemplateToCreatePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_POOL"
+
+	// CASTemplateToDeletePoolENVK is the ENV key that specifies the CAS Template
+	// to delete storage pool
+	CASTemplateToDeletePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_POOL"
 )
 
+// EnvironmentSetter abstracts setting of environment variable
+type EnvironmentSetter func(envKey ENVKey, value string) (err error)
+
 // EnvironmentGetter abstracts fetching value from an environment variable
-type EnvironmentGetter func(envKey string) (value string)
+type EnvironmentGetter func(envKey ENVKey) (value string)
+
+// EnvironmentLookup abstracts looking up an environment variable
+type EnvironmentLookup func(envKey ENVKey) (value string, present bool)
+
+// Set sets the provided environment variable
+//
+// NOTE:
+//  This is an implementation of EnvironmentSetter
+func Set(envKey ENVKey, value string) (err error) {
+	return os.Setenv(string(envKey), value)
+}
 
 // Get fetches value from the provided environment variable
 //
 // NOTE:
 //  This is an implementation of EnvironmentGetter
-func Get(envKey string) (value string) {
-	return getEnv(envKey)
+func Get(envKey ENVKey) (value string) {
+	return getEnv(string(envKey))
 }
-
-// EnvironmentLookup abstracts looking up an environment variable
-type EnvironmentLookup func(envKey string) (value string, present bool)
 
 // Lookup looks up an environment variable
 //
 // NOTE:
 //  This is an implementation of EnvironmentLookup
-func Lookup(envKey string) (value string, present bool) {
-	return lookupEnv(envKey)
+func Lookup(envKey ENVKey) (value string, present bool) {
+	return lookupEnv(string(envKey))
+}
+
+// Truthy returns boolean based on the environment variable's value
+//
+//  The value can be truthy or falsy
+func Truthy(envKey ENVKey) (truth bool) {
+	v, found := Lookup(envKey)
+	if !found {
+		return
+	}
+	truth, _ = strconv.ParseBool(v)
+	return
+}
+
+// LookupS looks up an environment variable and returns false if environment
+// variable is not present
+func LookupS(envKey ENVKey) string {
+	val, present := Lookup(envKey)
+	if !present {
+		return "false"
+	}
+	return strings.TrimSpace(val)
 }
 
 // getEnv fetches the provided environment variable's value

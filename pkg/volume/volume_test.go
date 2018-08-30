@@ -2,7 +2,7 @@ package volume
 
 import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	v1_storage "k8s.io/api/storage/v1"
 	"os"
 	"testing"
@@ -51,8 +51,8 @@ func TestGetCreateCASTemplate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = test.scCreateCASAnnotation
 			sc.Annotations[string(v1alpha1.CASTypeKey)] = test.scCASTypeAnnotation
-			os.Setenv(string(util.CASTemplateToCreateCStorVolumeENVK), test.envCStorCAST)
-			os.Setenv(string(util.CASTemplateToCreateJivaVolumeENVK), test.envJivaCAST)
+			os.Setenv(string(menv.CASTemplateToCreateCStorVolumeENVK), test.envCStorCAST)
+			os.Setenv(string(menv.CASTemplateToCreateJivaVolumeENVK), test.envJivaCAST)
 
 			castName := getCreateCASTemplate(sc)
 
@@ -106,8 +106,8 @@ func TestGetReadCASTemplate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = test.scReadCASAnnotation
 			sc.Annotations[string(v1alpha1.CASTypeKey)] = test.scCASTypeAnnotation
-			os.Setenv(string(util.CASTemplateToReadCStorVolumeENVK), test.envCStorCAST)
-			os.Setenv(string(util.CASTemplateToReadJivaVolumeENVK), test.envJivaCAST)
+			os.Setenv(string(menv.CASTemplateToReadCStorVolumeENVK), test.envCStorCAST)
+			os.Setenv(string(menv.CASTemplateToReadJivaVolumeENVK), test.envJivaCAST)
 
 			castName := getReadCASTemplate(sc)
 
@@ -161,8 +161,8 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = test.scDeleteCASAnnotation
 			sc.Annotations[string(v1alpha1.CASTypeKey)] = test.scCASTypeAnnotation
-			os.Setenv(string(util.CASTemplateToDeleteCStorVolumeENVK), test.envCStorCAST)
-			os.Setenv(string(util.CASTemplateToDeleteJivaVolumeENVK), test.envJivaCAST)
+			os.Setenv(string(menv.CASTemplateToDeleteCStorVolumeENVK), test.envCStorCAST)
+			os.Setenv(string(menv.CASTemplateToDeleteJivaVolumeENVK), test.envJivaCAST)
 
 			castName := getDeleteCASTemplate(sc)
 
