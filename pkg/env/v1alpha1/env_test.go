@@ -48,7 +48,7 @@ func TestLookEnv(t *testing.T) {
 	for k, v := range testCases {
 		t.Run(k, func(t *testing.T) {
 			os.Setenv(string(v.key), v.value)
-			actualValue := LookupS(v.key)
+			actualValue := LookupOrFalse(v.key)
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
