@@ -16,17 +16,19 @@ limitations under the License.
 
 package v1alpha1
 
-// InstallENVKey is a typed string to represent various environment keys
-// used for install
-type InstallENVKey string
+import (
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+)
 
 const (
-	// EnvKeyForInstallConfigName is the environment variable to get the
-	// the install config's name
-	EnvKeyForInstallConfigName InstallENVKey = "OPENEBS_IO_INSTALL_CONFIG_NAME"
-	// CASDefaultCstorPoolENVK is the ENV key that specifies wether default cstor pool
-	// should be configured or not
-	// If value is "true", default cstor pool will be configured else for "false"
-	// it will not be configured.
-	CASDefaultCstorSparsePool InstallENVKey = "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL"
+	// InstallerConfigName is the environment variable to get the the name of
+	// install config
+	InstallerConfigName menv.ENVKey = "OPENEBS_IO_INSTALL_CONFIG_NAME"
+
+	// DefaultCstorSparsePool is the environment variable that flags if default
+	// cstor pool should be configured or not
+	//
+	// If value is "true", default cstor pool will be installed/configured else
+	// for "false" it will not be configured
+	DefaultCstorSparsePool menv.ENVKey = "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL"
 )

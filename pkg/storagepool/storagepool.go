@@ -23,7 +23,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
-	"github.com/openebs/maya/pkg/util"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -74,7 +74,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 	castName := v.pool.CasCreateTemplate
 	if len(castName) == 0 {
 		// get default create CAS template to create storagepool from ENV variable
-		castName = util.Get(string(util.CASTemplateToCreatePoolENVK))
+		castName = menv.Get(menv.CASTemplateToCreatePoolENVK)
 	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("Unable to create storagepool: missing create cas template")
@@ -124,7 +124,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 	castName := v.pool.CasDeleteTemplate
 	if len(castName) == 0 {
 		// get default delete CAS template to delete storagepool from ENV variable
-		castName = util.Get(string(util.CASTemplateToDeletePoolENVK))
+		castName = menv.Get(menv.CASTemplateToDeletePoolENVK)
 	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to delete storagepool: no cas template for delete found")

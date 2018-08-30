@@ -16,15 +16,15 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-)
+// Updater abstracts updating installed resources
+type Updater interface {
+	Update() (errors []error)
+}
 
-const (
-	// K8sMasterIPEnvironmentKey is the environment variable key used to
-	// determine the kubernetes master IP address
-	K8sMasterIPEnvironmentKey menv.ENVKey = "OPENEBS_IO_K8S_MASTER"
-	// KubeConfigEnvironmentKey is the environment variable key used to
-	// determine the kubernetes config
-	KubeConfigEnvironmentKey menv.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
-)
+type setEnvironments struct {
+	errorList
+}
+
+func (u *setEnvironments) Update() (errors []error) {
+	return
+}

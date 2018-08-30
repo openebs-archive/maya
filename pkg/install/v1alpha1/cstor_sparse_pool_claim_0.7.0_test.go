@@ -21,11 +21,11 @@ import (
 )
 
 func setEnv() {
-	os.Setenv(string(CASDefaultCstorSparsePool), "true")
+	os.Setenv(string(DefaultCstorSparsePool), "true")
 }
 
 func unsetEnv() {
-	os.Unsetenv(string(CASDefaultCstorSparsePool))
+	os.Unsetenv(string(DefaultCstorSparsePool))
 }
 
 func TestIsCstorSparsePoolEnabled(t *testing.T) {
@@ -41,6 +41,13 @@ func TestIsCstorSparsePoolEnabled(t *testing.T) {
 	if result == true {
 		t.Errorf("Test failed as the env variable for cstor sparse pool creation is unset but function returned true")
 	}
+
+	os.Setenv(string(DefaultCstorSparsePool), "false")
+	result = IsCstorSparsePoolEnabled()
+	if result == true {
+		t.Errorf("Test failed as the env variable for cstor sparse pool creation is set to false but function returned true")
+	}
+	os.Unsetenv(string(DefaultCstorSparsePool))
 }
 
 func TestCstorSparsePoolSpc070(t *testing.T) {

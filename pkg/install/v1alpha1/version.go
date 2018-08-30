@@ -17,14 +17,26 @@ limitations under the License.
 package v1alpha1
 
 import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	mver "github.com/openebs/maya/pkg/version"
 )
 
+type version string
+
 const (
-	// K8sMasterIPEnvironmentKey is the environment variable key used to
-	// determine the kubernetes master IP address
-	K8sMasterIPEnvironmentKey menv.ENVKey = "OPENEBS_IO_K8S_MASTER"
-	// KubeConfigEnvironmentKey is the environment variable key used to
-	// determine the kubernetes config
-	KubeConfigEnvironmentKey menv.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
+	version070     version = "0.7.0"
+	invalidVersion version = "invalid.version"
 )
+
+func CurrentVersion() version {
+	return version(mver.GetVersion())
+}
+
+func Version(version string) version {
+	switch version {
+	case "0.7.0":
+		return version070
+	default:
+		return invalidVersion
+	}
+	return invalidVersion
+}

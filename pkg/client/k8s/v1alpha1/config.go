@@ -34,8 +34,8 @@ type ConfigGetter func() (*rest.Config, error)
 // environment values
 func WithEnvConfigGetter() ConfigGetter {
 	return func() (*rest.Config, error) {
-		k8sMaster := env.Get(string(K8sMasterIPEnvironmentKey))
-		kubeConfig := env.Get(string(KubeConfigEnvironmentKey))
+		k8sMaster := env.Get(K8sMasterIPEnvironmentKey)
+		kubeConfig := env.Get(KubeConfigEnvironmentKey)
 
 		if len(strings.TrimSpace(k8sMaster)) == 0 && len(strings.TrimSpace(kubeConfig)) == 0 {
 			return nil, fmt.Errorf("missing kubernetes master as well as kubeconfig: failed to get rest config")

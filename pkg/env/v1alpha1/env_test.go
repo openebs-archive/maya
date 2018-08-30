@@ -1,10 +1,24 @@
-package util
+/*
+Copyright 2018 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1alpha1
 
 import (
-	"errors"
 	"os"
 	"reflect"
-	"strconv"
 	"testing"
 )
 
@@ -34,7 +48,7 @@ func TestLookEnv(t *testing.T) {
 	for k, v := range testCases {
 		t.Run(k, func(t *testing.T) {
 			os.Setenv(string(v.key), v.value)
-			actualValue := lookEnv(v.key)
+			actualValue := LookupS(v.key)
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
@@ -48,31 +62,26 @@ func TestCASTemplateFeatureGate(t *testing.T) {
 	cases := map[string]struct {
 		key, value  string
 		expectValue bool
-		expectErr   error
 	}{
 		"Incorrect value on": {
 			key:         string(CASTemplateFeatureGateENVK),
 			value:       "on",
 			expectValue: false,
-			expectErr:   errors.New("invalid syntax"),
 		},
 		"Key and value nil": {
 			key:         "",
 			value:       "",
 			expectValue: false,
-			expectErr:   nil,
 		},
 		"Value is nil": {
 			key:         string(CASTemplateFeatureGateENVK),
 			value:       "",
 			expectValue: false,
-			expectErr:   errors.New("invalid syntax"),
 		},
 		"Valid key and value": {
 			key:         string(CASTemplateFeatureGateENVK),
 			value:       "true",
 			expectValue: true,
-			expectErr:   nil,
 		},
 	}
 
@@ -81,12 +90,7 @@ func TestCASTemplateFeatureGate(t *testing.T) {
 			os.Setenv(tc.key, tc.value)
 			defer os.Unsetenv(tc.key)
 
-			feature, err := CASTemplateFeatureGate()
-			if tc.expectErr != nil {
-				if !reflect.DeepEqual(tc.expectErr, err.(*strconv.NumError).Err) {
-					t.Errorf("Expected %s, got %s", tc.expectErr, err)
-				}
-			}
+			feature := Truthy(CASTemplateFeatureGateENVK)
 			if !reflect.DeepEqual(feature, tc.expectValue) {
 				t.Errorf("Expected %v, got %v", tc.expectValue, feature)
 			}
@@ -118,12 +122,12 @@ func TestgetEnv(t *testing.T) {
 	}
 	for k, v := range testCases {
 		t.Run(k, func(t *testing.T) {
-			os.Setenv(string(v.key), v.value)
-			actualValue := Get(v.key)
+			os.Setenv(v.key, v.value)
+			actualValue := Get(ENVKey(v.key))
 			if !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)
 			}
-			os.Unsetenv(string(v.key))
+			os.Unsetenv(v.key)
 		})
 	}
 }

@@ -20,10 +20,8 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	commonenv "github.com/openebs/maya/pkg/env/v1alpha1"
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
-	"github.com/openebs/maya/pkg/version"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -31,29 +29,6 @@ import (
 // Installer abstracts installation
 type Installer interface {
 	Install() (errors []error)
-}
-
-type installErrors struct {
-	errors []error
-}
-
-// addError adds an error to error list
-func (i *installErrors) addError(err error) []error {
-	if err == nil {
-		return i.errors
-	}
-
-	i.errors = append(i.errors, err)
-	return i.errors
-}
-
-// addErrors adds a list of errors to error list
-func (i *installErrors) addErrors(errs []error) []error {
-	for _, err := range errs {
-		i.addError(err)
-	}
-
-	return i.errors
 }
 
 // simpleInstaller installs artifacts by making use of install config
@@ -65,8 +40,16 @@ type simpleInstaller struct {
 	artifactLister    VersionArtifactLister
 	artifactTemplater ArtifactMiddleware
 	namespaceUpdater  k8s.UnstructuredMiddleware
-	labelsUpdater     k8s.UnstructuredMiddleware
-	installErrors
+	envLister         EnvLister
+	errorList
+}
+
+func (i *simpleInstaller) preInstall() (errs []error) {
+	// set the env for installer to work
+	elist := envInstallConfig().SetP("installer", isEnvNotPresent)
+	glog.Infof("%+v", elist.Infos())
+
+	return elist.Errors()
 }
 
 // Install the resources specified in the install config
@@ -78,17 +61,22 @@ func (i *simpleInstaller) Install() []error {
 		allUnstructured []*unstructured.Unstructured
 	)
 
+	errs := i.preInstall()
+	if len(errs) != 0 {
+		return errs
+	}
+
 	if i.configGetter == nil {
 		return i.addError(fmt.Errorf("nil config getter: simple installer failed"))
 	}
 
-	config, err := i.configGetter(env.Get(string(EnvKeyForInstallConfigName)))
+	config, err := i.configGetter(menv.Get(InstallerConfigName))
 	if err != nil {
 		return i.addError(errors.Wrap(err, "simple installer failed"))
 	}
 
 	for _, install := range config.Spec.Install {
-		list, err := i.artifactLister(install.Version)
+		list, err := i.artifactLister(Version(install.Version))
 		if err != nil {
 			i.addError(errors.Wrapf(err, "simple installer failed to list artifacts for version '%s'", install.Version))
 			continue
@@ -108,8 +96,21 @@ func (i *simpleInstaller) Install() []error {
 
 		ulist = ulist.MapAll([]k8s.UnstructuredMiddleware{
 			i.namespaceUpdater,
-			i.labelsUpdater,
+			k8s.UpdateLabels(k8s.UnstructuredOptions{
+				Labels: map[string]string{"openebs.io/version": install.Version},
+			}),
 		})
+
+		// fetch the environments required for this install version
+		elist, err := i.envLister(Version(install.Version))
+		if err != nil {
+			i.addError(err)
+		}
+
+		// set the environments required for this install version
+		eslist := elist.SetP(install.Version, isEnvNotPresent)
+		glog.Infof("%+v", eslist.Infos())
+		i.addErrors(eslist.Errors())
 
 		allUnstructured = append(allUnstructured, ulist.Items...)
 	}
@@ -131,7 +132,7 @@ func (i *simpleInstaller) Install() []error {
 func SimpleInstaller() Installer {
 	// this is the namespace of the pod where this binary is running i.e.
 	// namespace that is configured for this openebs component
-	openebsNS := env.Get(string(commonenv.EnvKeyForOpenEBSNamespace))
+	openebsNS := menv.Get(menv.OpenEBSNamespace)
 
 	// cmGetter to fetch install related config i.e. a config map
 	cmGetter := k8s.NewConfigMapGetter(openebsNS)
@@ -140,24 +141,21 @@ func SimpleInstaller() Installer {
 	// templater to template the artifacts before installation
 	t := ArtifactTemplater(NewTemplateKeyValueList().Values(), template.TextTemplate)
 
-	uOpts := k8s.UnstructuredOptions{
-		Namespace: openebsNS,
-		Labels: map[string]string{
-			"openebs.io/version": version.GetVersion(),
-		},
-	}
 	// a condition based namespace updater
+	uOpts := k8s.UnstructuredOptions{Namespace: openebsNS}
 	nu := k8s.UpdateNamespaceP(uOpts, k8s.IsNamespaceScoped)
-	lu := k8s.UpdateLabels(uOpts)
 
 	// lister to list artifacts for install
 	l := ListArtifactsByVersion
+
+	// env lister to list environment objects
+	e := EnvList
 
 	return &simpleInstaller{
 		configGetter:      c,
 		artifactLister:    l,
 		artifactTemplater: t,
 		namespaceUpdater:  nu,
-		labelsUpdater:     lu,
+		envLister:         e,
 	}
 }
