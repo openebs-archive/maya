@@ -59,7 +59,7 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	var cvols v1alpha1.CASVolumeList
 	err := mapiserver.ListVolumes(&cvols)
 	if err != nil {
-		return err
+		return fmt.Errorf("Volume list error: %s", err)
 	}
 
 	out := make([]string, len(cvols.Items)+1)

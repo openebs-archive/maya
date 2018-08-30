@@ -2,7 +2,6 @@ package mapiserver
 
 import (
 	"fmt"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
@@ -37,10 +36,10 @@ func TestListVolumes(t *testing.T) {
 		"BadRequest": {
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   404,
-				ResponseBody: string(response),
+				ResponseBody: "HTTP Error 404 : Not Found",
 				T:            t,
 			},
-			err:  fmt.Errorf("Server status error: %v", http.StatusText(404)),
+			err:  fmt.Errorf("HTTP Error 404 : Not Found"),
 			addr: "MAPI_ADDR",
 		},
 		"EmptyResponse": {
@@ -48,7 +47,7 @@ func TestListVolumes(t *testing.T) {
 				StatusCode: 204,
 				T:          t,
 			},
-			err:  fmt.Errorf("Server status error: %v", http.StatusText(204)),
+			err:  fmt.Errorf(""),
 			addr: "MAPI_ADDR",
 		},
 	}
