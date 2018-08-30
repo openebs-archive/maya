@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 // ConfigGetter abstracts fetching of kubernetes client config
@@ -34,8 +34,8 @@ type ConfigGetter func() (*rest.Config, error)
 // environment values
 func WithEnvConfigGetter() ConfigGetter {
 	return func() (*rest.Config, error) {
-		k8sMaster := env.Get(K8sMasterIPEnvironmentKey)
-		kubeConfig := env.Get(KubeConfigEnvironmentKey)
+		k8sMaster := menv.Get(K8sMasterIPEnvironmentKey)
+		kubeConfig := menv.Get(KubeConfigEnvironmentKey)
 
 		if len(strings.TrimSpace(k8sMaster)) == 0 && len(strings.TrimSpace(kubeConfig)) == 0 {
 			return nil, fmt.Errorf("missing kubernetes master as well as kubeconfig: failed to get rest config")

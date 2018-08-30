@@ -34,6 +34,8 @@ const (
 
 	// OpenEBSMayaPodName is the environment variable to get maya-apiserver pod
 	// name
+	//
+	// This environment variable is set via kubernetes downward API
 	OpenEBSMayaPodName ENVKey = "OPENEBS_MAYA_POD_NAME"
 
 	// OpenEBSServiceAccount is the environment variable to get openebs
@@ -135,7 +137,8 @@ func Lookup(envKey ENVKey) (value string, present bool) {
 
 // Truthy returns boolean based on the environment variable's value
 //
-//  The value can be truthy or falsy
+// The lookup value can be truthy (i.e. 1, t, TRUE, true) or falsy (0, false,
+// etc) based on strconv.ParseBool logic
 func Truthy(envKey ENVKey) (truth bool) {
 	v, found := Lookup(envKey)
 	if !found {
@@ -145,9 +148,10 @@ func Truthy(envKey ENVKey) (truth bool) {
 	return
 }
 
-// LookupS looks up an environment variable and returns false if environment
-// variable is not present
-func LookupS(envKey ENVKey) string {
+// LookupOrFalse looks up an environment variable and returns a string "false"
+// if environment variable is not present. It returns appropriate values for
+// other cases.
+func LookupOrFalse(envKey ENVKey) string {
 	val, present := Lookup(envKey)
 	if !present {
 		return "false"
