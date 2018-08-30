@@ -28,6 +28,8 @@ const (
 	// EnvKeyForOpenEBSNamespace is the environment variable to get
 	// openebs namespace
 	EnvKeyForOpenEBSNamespace ENVKey = "OPENEBS_NAMESPACE"
+	// EnvKeyForMayaPodName is the environment variable to get maya-apiserver pod name
+	EnvKeyForMayaPodName ENVKey = "OPENEBS_MAYA_POD_NAME"
 	// EnvKeyForOpenEBSServiceAccount is the environment variable to get
 	// openebs serviceaccount
 	EnvKeyForOpenEBSServiceAccount ENVKey = "OPENEBS_SERVICE_ACCOUNT"

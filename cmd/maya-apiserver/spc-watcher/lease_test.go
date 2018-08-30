@@ -18,10 +18,10 @@ package spc
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/golang/glog"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"testing"
 )
@@ -87,8 +87,8 @@ func TestGetLease(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var newSpcLease spcLease
-			os.Setenv(PodNameEnvKey, test.fakestoragepoolclaim.Name)
-			os.Setenv(PodNameSpaceEnvKey, test.fakestoragepoolclaim.Namespace)
+			os.Setenv(string(env.EnvKeyForMayaPodName), test.fakestoragepoolclaim.Name)
+			os.Setenv(string(env.EnvKeyForOpenEBSNamespace), test.fakestoragepoolclaim.Namespace)
 			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs}
 			// newSpcLease is the function under test.
 			result, _ := newSpcLease.GetLease()
@@ -96,8 +96,8 @@ func TestGetLease(t *testing.T) {
 			if result != test.expectedResult {
 				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)
 			}
-			os.Unsetenv(PodNameEnvKey)
-			os.Unsetenv(PodNameSpaceEnvKey)
+			os.Unsetenv(string(env.EnvKeyForMayaPodName))
+			os.Unsetenv(string(env.EnvKeyForOpenEBSNamespace))
 		})
 	}
 }

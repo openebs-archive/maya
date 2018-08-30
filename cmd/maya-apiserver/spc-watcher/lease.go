@@ -29,12 +29,6 @@ const (
 	// It will be present in spc annotations
 	// If key has an empty value, that means no one has acquired a lease on spc object.
 	SpcLeaseKey = "openebs.io/spc-create-lease"
-	// PodNameEnvKey is the key to fetch name of the pod,which will be combined with PodNameSpaceEnvKey
-	// to be used as a value of SpcLeaseKey.
-	// e.g. "openebs.io/spc-lease":"openebs/maya-apiserver-6b4695c9f8-nbwl9"
-	PodNameEnvKey = "OPENEBS_MAYA_POD_NAME"
-	// PodNameSpaceEnvKey is the key to fetch the namespace of the pod
-	PodNameSpaceEnvKey = "OPENEBS_NAMESPACE"
 )
 
 // Leases is an interface which assists in getting and releasing lease over an spc object
@@ -103,7 +97,7 @@ func (sl *spcLease) RemoveLease() *apis.StoragePoolClaim {
 }
 
 func (sl *spcLease) getPodName() string {
-	podName := env.Get(PodNameEnvKey)
-	podNameSpace := env.Get(PodNameSpaceEnvKey)
+	podName := env.Get(string(env.EnvKeyForMayaPodName))
+	podNameSpace := env.Get(string(env.EnvKeyForOpenEBSNamespace))
 	return podNameSpace + "/" + podName
 }
