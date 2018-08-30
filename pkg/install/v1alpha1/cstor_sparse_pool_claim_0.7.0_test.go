@@ -20,47 +20,113 @@ import (
 	"testing"
 )
 
-func setEnv() {
-	os.Setenv(string(DefaultCstorSparsePool), "true")
-}
-
-func unsetEnv() {
-	os.Unsetenv(string(DefaultCstorSparsePool))
-}
-
-func TestIsCstorSparsePoolEnabled(t *testing.T) {
-	// Set env variable to enable sparse pool creation
-	setEnv()
-	result := IsCstorSparsePoolEnabled()
-	if result != true {
-		t.Errorf("Test failed as the env variable for cstor sparse pool creation is true but function returned false")
+func TestIsCstorSparsePool(t *testing.T) {
+	tests := map[string]struct {
+		value     string
+		isenabled bool
+		iserr     bool
+	}{
+		"with true": {
+			value:     "true",
+			isenabled: true,
+			iserr:     false,
+		},
+		"with 1": {
+			value:     "1",
+			isenabled: true,
+			iserr:     false,
+		},
+		"with false": {
+			value:     "false",
+			isenabled: false,
+			iserr:     false,
+		},
+		"with 0": {
+			value:     "0",
+			isenabled: false,
+			iserr:     false,
+		},
+		"with junk": {
+			value:     "junk",
+			isenabled: false,
+			iserr:     false,
+		},
+		"with special chars": {
+			value:     "abc:123-123",
+			isenabled: false,
+			iserr:     true,
+		},
 	}
-	// Unset env variable to disable sparse pool creation
-	unsetEnv()
-	result = IsCstorSparsePoolEnabled()
-	if result == true {
-		t.Errorf("Test failed as the env variable for cstor sparse pool creation is unset but function returned true")
-	}
 
-	os.Setenv(string(DefaultCstorSparsePool), "false")
-	result = IsCstorSparsePoolEnabled()
-	if result == true {
-		t.Errorf("Test failed as the env variable for cstor sparse pool creation is set to false but function returned true")
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			os.Unsetenv(string(DefaultCstorSparsePool))
+			err := os.Setenv(string(DefaultCstorSparsePool), mock.value)
+			if err != nil {
+				t.Fatalf("Test '%s' failed %+v", name, err)
+			}
+			actual := IsCstorSparsePoolEnabled()
+			if actual != mock.isenabled {
+				t.Fatalf("Test '%s' failed: expected '%t' actual '%t' ", name, actual, mock.isenabled)
+			}
+			os.Unsetenv(string(DefaultCstorSparsePool))
+		})
 	}
-	os.Unsetenv(string(DefaultCstorSparsePool))
 }
 
 func TestCstorSparsePoolSpc070(t *testing.T) {
-	// Set Env variable to enable sparse pool creation
-	setEnv()
-	listItems := CstorSparsePoolSpc070()
-	if len(listItems.Items) == 0 {
-		t.Errorf("Expected non empty string list")
+	tests := map[string]struct {
+		value    string
+		expected int
+		iserr    bool
+	}{
+		"with 1": {
+			value:    "1",
+			expected: 2,
+			iserr:    false,
+		},
+		"with true": {
+			value:    "true",
+			expected: 2,
+			iserr:    false,
+		},
+		"with 0": {
+			value:    "0",
+			expected: 0,
+			iserr:    false,
+		},
+		"with false": {
+			value:    "false",
+			expected: 0,
+			iserr:    false,
+		},
+		"with junk": {
+			value:    "junk",
+			expected: 0,
+			iserr:    false,
+		},
+		"with special chars": {
+			value:    "abc:123-123",
+			expected: 0,
+			iserr:    false,
+		},
 	}
-	// Unset env variable to disable sparse pool creation
-	unsetEnv()
-	listItems = CstorSparsePoolSpc070()
-	if len(listItems.Items) != 0 {
-		t.Errorf("Expected empty string list")
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			os.Unsetenv(string(DefaultCstorSparsePool))
+			err := os.Setenv(string(DefaultCstorSparsePool), mock.value)
+			if err != nil {
+				t.Fatalf("Test '%s' failed %+v", name, err)
+			}
+
+			l := CstorSparsePoolSpc070()
+			actual := len(l.Items)
+			if actual != mock.expected {
+				t.Fatalf("Test '%s' failed: expected '%d' actual '%d'", name, mock.expected, actual)
+			}
+
+			os.Unsetenv(string(DefaultCstorSparsePool))
+		})
 	}
 }
