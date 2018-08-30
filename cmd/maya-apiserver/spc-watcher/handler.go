@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,7 +70,14 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		// It is a create event so resync should be false and pendingPoolcount is passed 0
 		// pendingPoolcount is not used when resync is false.
-		err := CreateStoragePool(spcGot, false, 0)
+		var newSpcLease Leases
+		newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset}
+		_, err := newSpcLease.GetLease()
+		if err != nil {
+			glog.Errorf("Could not acquire lease on spc object:%v", err)
+			return addEvent, err
+		}
+		err = CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
