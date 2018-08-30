@@ -48,7 +48,7 @@ func envInstallConfig() (l *envList) {
 // version
 func envList070() (l *envList) {
 	l = &envList{}
-	l.Items = append(l.Items, &env{Key: DefaultCstorSparsePool, Value: "true"})
+	l.Items = append(l.Items, &env{Key: DefaultCstorSparsePool, Value: "false"})
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateFeatureGateENVK, Value: "true"})
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateToCreateJivaVolumeENVK, Value: "jiva-volume-create-default-0.7.0"})
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateToReadJivaVolumeENVK, Value: "jiva-volume-read-default-0.7.0"})
