@@ -25,9 +25,9 @@ import (
 type EnvStatus string
 
 const (
-	EnvSetSuccess EnvStatus = "set succeeded"
-	EnvSetErr     EnvStatus = "set failed"
-	EnvSetSkip    EnvStatus = "set skipped"
+	EnvSetSuccess EnvStatus = "set env succeeded"
+	EnvSetErr     EnvStatus = "set env failed"
+	EnvSetSkip    EnvStatus = "set env skipped"
 )
 
 // env represents a environment variable
@@ -98,18 +98,25 @@ func EnvUpdateError(context string, err error) envMiddleware {
 	}
 }
 
+// EnvUpdateSuccess updates the env instance with success status
+func EnvUpdateSuccess(context string) envMiddleware {
+	return func(given *env) (updated *env) {
+		return EnvUpdateStatus(context, "", EnvSetSuccess)(given)
+	}
+}
+
 // envSetP executes set operation conditionally on the given env instance
 func envSetP(ctx string, p envPredicate) envMiddleware {
 	return func(given *env) (updated *env) {
 		pCtx, pOk := p(given)
 		if !pOk {
-			return EnvUpdateStatus(ctx, pCtx, EnvSetSkip)(given)
+			return EnvUpdateStatus(ctx, pCtx+" predicate failed", EnvSetSkip)(given)
 		}
 		err := menv.Set(given.Key, given.Value)
 		if err != nil {
 			return EnvUpdateError(ctx, err)(given)
 		}
-		return EnvUpdateStatus(ctx, "env set was successful", EnvSetSuccess)(given)
+		return EnvUpdateSuccess(ctx)(given)
 	}
 }
 
@@ -145,7 +152,7 @@ func (l *envList) Infos() (msgs []string) {
 		if env == nil || env.Err != nil {
 			continue
 		}
-		msgs = append(msgs, fmt.Sprintf("env '%s': val '%s': status: '%s' '%s' '%s'", env.Context, env.Status, env.Reason))
+		msgs = append(msgs, fmt.Sprintf("{env '%s': val '%s': msg: '%s' '%s' '%s'}", env.Key, env.Value, env.Context, env.Status, env.Reason))
 	}
 	return
 }

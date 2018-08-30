@@ -76,6 +76,18 @@ func (i *simpleInstaller) Install() []error {
 	}
 
 	for _, install := range config.Spec.Install {
+		// fetch the environments required for this install version
+		elist, err := i.envLister(Version(install.Version))
+		if err != nil {
+			i.addError(err)
+		}
+
+		// set the environments required for this install version
+		eslist := elist.SetP(install.Version, isEnvNotPresent)
+		glog.Infof("%+v", eslist.Infos())
+		i.addErrors(eslist.Errors())
+
+		// list the artifacts w.r.t install version
 		list, err := i.artifactLister(Version(install.Version))
 		if err != nil {
 			i.addError(errors.Wrapf(err, "simple installer failed to list artifacts for version '%s'", install.Version))
@@ -100,17 +112,6 @@ func (i *simpleInstaller) Install() []error {
 				Labels: map[string]string{"openebs.io/version": install.Version},
 			}),
 		})
-
-		// fetch the environments required for this install version
-		elist, err := i.envLister(Version(install.Version))
-		if err != nil {
-			i.addError(err)
-		}
-
-		// set the environments required for this install version
-		eslist := elist.SetP(install.Version, isEnvNotPresent)
-		glog.Infof("%+v", eslist.Infos())
-		i.addErrors(eslist.Errors())
 
 		allUnstructured = append(allUnstructured, ulist.Items...)
 	}
