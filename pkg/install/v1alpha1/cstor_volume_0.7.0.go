@@ -70,6 +70,15 @@ spec:
   # with permissions to view, create, edit, delete required custom resources
   - name: ServiceAccountName
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
+  # FSType specifies the format type that Kubernetes should use to 
+  # mount the Persistent Volume. Note that there are no validations 
+  # done to check the validity of the FsType
+  - name: FSType
+    value: "ext4"
+  # Lun specifies the lun number with which Kubernetes should login
+  # to iSCSI Volume (i.e OpenEBS Persistent Volume)
+  - name: Lun
+    value: "0"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -113,6 +122,7 @@ spec:
   run:
     tasks:
     - cstor-volume-read-listtargetservice-default-0.7.0
+    - cstor-volume-read-listcstorvolumecr-default-0.7.0
     - cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
     - cstor-volume-read-listtargetpod-default-0.7.0
   output: cstor-volume-read-output-default-0.7.0
@@ -224,6 +234,8 @@ spec:
       name: {{ .Volume.owner }}
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/fs-type: {{ .Config.FSType.value }}
+        openebs.io/lun: {{ .Config.Lun.value }}
     spec:
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
       capacity: {{ .Volume.capacity }}
@@ -594,6 +606,28 @@ spec:
     {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
 ---
+# runTask to list cstor volume cr
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-read-listcstorvolumecr-default-0.7.0
+spec:
+  meta: |
+    id: readlistcv
+    runNamespace: {{.Config.RunNamespace.value}}
+    apiVersion: openebs.io/v1alpha1
+    kind: CStorVolume
+    action: list
+    options: |-
+      labelSelector: openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistcv.names" .TaskResult | noop -}}
+    {{- .TaskResult.readlistcv.names | notFoundErr "cStor Volume CR not found" | saveIf "readlistcv.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistcv.fsType" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/lun}" | trim | default "0" | int | saveAs "readlistcv.lun" .TaskResult | noop -}}
+---
+# runTask to list cStor volume target pods
+apiVersion: openebs.io/v1alpha1
 # runTask to list all replicas of a volume
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -666,6 +700,8 @@ spec:
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
       targetIP: {{ .TaskResult.readlistsvc.clusterIP }}
       targetPort: 3260
+      lun: {{ .TaskResult.readlistcv.lun }}
+      fsType: {{ .TaskResult.readlistcv.fsType }}
       replicas: {{ .TaskResult.readlistrep.capacity | default "" | splitList " " | len }}
       casType: cstor
 ---

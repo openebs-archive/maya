@@ -185,6 +185,15 @@ spec:
   #      nodetype: storage
   - name: ReplicaNodeSelector
     value: "none"
+  # FSType specifies the format type that Kubernetes should use to 
+  # mount the Persistent Volume. Note that there are no validations 
+  # done to check the validity of the FsType
+  - name: FSType
+    value: "ext4"
+  # Lun specifies the lun number with which Kubernetes should login
+  # to iSCSI Volume (i.e OpenEBS Persistent Volume)
+  - name: Lun
+    value: "0"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -402,6 +411,8 @@ spec:
     {{- .TaskResult.readlistctrl.items | notFoundErr "controller pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistctrl.fsType" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/lun}" | trim | default "0" | int | saveAs "readlistctrl.lun" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -465,6 +476,8 @@ spec:
       replicas: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
       targetIP: {{ .TaskResult.readlistsvc.clusterIP }}
       targetPort: 3260
+      lun: {{ .TaskResult.readlistctrl.lun }}
+      fsType: {{ .TaskResult.readlistctrl.fsType }}
       casType: jiva
 ---
 apiVersion: openebs.io/v1alpha1
@@ -672,6 +685,8 @@ spec:
         openebs.io/volume-monitor: "true"
         {{- end}}
         openebs.io/volume-type: jiva
+        openebs.io/fs-type: {{ .Config.FSType.value }}
+        openebs.io/lun: {{ .Config.Lun.value }}
       name: {{ .Volume.owner }}-ctrl
     spec:
       replicas: 1

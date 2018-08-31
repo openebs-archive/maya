@@ -188,6 +188,10 @@ type CASVolumeSpec struct {
 	Replicas string `json:"replicas"`
 	// CasType will hold the storage engine used to provision this volume
 	CasType string `json:"casType"`
+	// FSType will specify the format type - ext4(default), xfs of PV
+	FSType string `json:"fsType"`
+	// Lun will specify the lun number 0, 1.. on iSCSI Volume. (default: 0) 
+	Lun int32 `json:"lun"`
 }
 
 // CASVolumeStatus provides status of a cas volume
