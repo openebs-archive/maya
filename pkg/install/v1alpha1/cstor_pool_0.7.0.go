@@ -156,11 +156,11 @@ spec:
       {{ end }}
       {{ end }}
   post: |
-    {{if eq .TaskResult.getspcinfo.type "disk"}}
+    {{- $diskDevLink:= jsonpath .JsonResult "{@.spec.devlinks[0].links[0]}"}}
+    {{if $diskDevLink }}
     {{- $nodeDiskdevlinkList := jsonpath .JsonResult "pkey=node,{@.metadata.labels.kubernetes\\.io/hostname}={@.spec.devlinks[0].links[0]};" | trim | default "" | splitList ";" -}}
     {{- $nodeDiskdevlinkList | keyMap "nodeDiskdevlinkMap" .ListItems | noop -}}
-    {{end}}
-    {{if eq .TaskResult.getspcinfo.type "sparse"}}
+    {{else}}
     {{- $nodeDiskdevlinkList := jsonpath .JsonResult "pkey=node,{@.metadata.labels.kubernetes\\.io/hostname}={@.spec.path};" | trim | default "" | splitList ";" -}}
     {{- $nodeDiskdevlinkList | keyMap "nodeDiskdevlinkMap" .ListItems | noop -}}
     {{end}}
