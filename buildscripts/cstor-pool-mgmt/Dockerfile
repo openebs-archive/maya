@@ -5,7 +5,9 @@
 
 #openebs/cstor-base is the image that contains cstor related binaries and
 #libraries - zpool, zfs, zrepl
-FROM openebs/cstor-base:ci
+#FROM openebs/cstor-base:ci
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
 
 COPY cstor-pool-mgmt /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/

@@ -31,6 +31,16 @@ ifeq (${IMAGE_TAG}, )
   export IMAGE_TAG
 endif
 
+ifeq (${TRAVIS_TAG}, )
+  BASE_TAG = ci
+  export BASE_TAG
+else
+  BASE_TAG = ${TRAVIS_TAG}
+  export BASE_TAG
+endif
+
+CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
+
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
@@ -179,10 +189,10 @@ cstor-pool-mgmt:
 
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
-	@echo "--> cstor-pool-mgmt image         "
+	@echo "--> cstor-pool-mgmt image "
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 	@sh buildscripts/cstor-pool-mgmt/push
 
