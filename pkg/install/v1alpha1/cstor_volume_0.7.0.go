@@ -232,10 +232,11 @@ spec:
     kind: CStorVolume
     metadata:
       name: {{ .Volume.owner }}
-      labels:
-        openebs.io/persistent-volume: {{ .Volume.owner }}
+      annotations:
         openebs.io/fs-type: {{ .Config.FSType.value }}
         openebs.io/lun: {{ .Config.Lun.value }}
+      labels:
+        openebs.io/persistent-volume: {{ .Volume.owner }}
     spec:
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
       capacity: {{ .Volume.capacity }}
