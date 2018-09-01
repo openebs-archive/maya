@@ -125,8 +125,6 @@ spec:
     # For backward compatibility, getspcinfo.disk is saved as a task result
     {{- jsonpath .JsonResult "{range .spec.disks.diskList[*]}{$},{end}" | trim | saveAs "getspcinfo.disk" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.poolSpec.poolType}" | trim | saveAs "getspcinfo.poolType" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.spec.poolSpec.cacheFile}" | trim | saveAs "getspcinfo.cacheFile" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.spec.poolSpec.overProvisioning}" | trim | saveAs "getspcinfo.overProvisioning" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.type}" | trim | saveAs "getspcinfo.type" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
