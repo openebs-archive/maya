@@ -94,8 +94,6 @@ spec:
   maxPools: 3
   poolSpec:
     poolType: striped
-    cacheFile: /tmp/cstor-sparse-pool.cache
-    overProvisioning: false
 ---
 `
 }
