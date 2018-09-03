@@ -19,7 +19,6 @@ package command
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
@@ -71,8 +70,7 @@ func (c *CmdVolumeOptions) RunVolumeCreate(cmd *cobra.Command) error {
 
 // IsVolumeExist checks whether the volume already exists or not
 func IsVolumeExist(volname string) error {
-	var cvols v1alpha1.CASVolumeList
-	err := mapiserver.ListVolumes(&cvols)
+	cvols, err := mapiserver.ListVolumes()
 	if err != nil {
 		return err
 	}

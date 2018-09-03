@@ -58,10 +58,10 @@ func TestListVolumes(t *testing.T) {
 			os.Setenv(tt.addr, server.URL)
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
-			got := ListVolumes(&vsm)
+			_, got := ListVolumes()
 
 			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("ListVolumes(%v) => got %v, want %v ", vsm, got, tt.err)
+				t.Fatalf("Test Name: %q\nListVolumes(%v) => got %v, want %v ", name, vsm, got, tt.err)
 			}
 		})
 	}
