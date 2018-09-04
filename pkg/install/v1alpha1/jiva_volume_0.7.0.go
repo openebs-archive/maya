@@ -122,25 +122,25 @@ spec:
         - some-node-label-value
   # TargetResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from TargetResourceLimits or the default requests set in the cluster. 
+  # from TargetResourceLimits or the default requests set in the cluster.
   - name: TargetResourceRequests
     value: "none"
-  # TargetResourceLimits allow you to set the limits on memory and cpu for jiva 
-  # target pods. The resource and limit value should be in the same format as 
+  # TargetResourceLimits allow you to set the limits on memory and cpu for jiva
+  # target pods. The resource and limit value should be in the same format as
   # expected by Kubernetes. Example:
   #- name: TargetResourceLimits
   #  value: |-
   #      memory: 1Gi
   #      cpu: 200m
-  # By default, the resource limits are disabled. 
+  # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
   # ReplicaResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from ReplicaResourceLimits or the default requests set in the cluster. 
+  # from ReplicaResourceLimits or the default requests set in the cluster.
   - name: ReplicaResourceRequests
     value: "none"
-  # ReplicaResourceLimits allow you to set the limits on memory and cpu for jiva 
+  # ReplicaResourceLimits allow you to set the limits on memory and cpu for jiva
   # replica pods. The resource and limit value should be in the same format as
   # expected by Kubernetes. Example:
   - name: ReplicaResourceLimits
@@ -149,10 +149,10 @@ spec:
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
     value: "none"
-  # ReplicaAntiAffinityTopoKey is used to schedule replica pods 
+  # ReplicaAntiAffinityTopoKey is used to schedule replica pods
   # of a given volume/application, such that they are:
   # - not co-located on the same node. (kubernetes.io/hostname)
-  # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone) 
+  # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone)
   # The value for toplogy key can be anythign supported by Kubernetes
   # clusters. It is possible that some cluster might support topology schemes
   # like the rack or floor.
@@ -185,8 +185,8 @@ spec:
   #      nodetype: storage
   - name: ReplicaNodeSelector
     value: "none"
-  # FSType specifies the format type that Kubernetes should use to 
-  # mount the Persistent Volume. Note that there are no validations 
+  # FSType specifies the format type that Kubernetes should use to
+  # mount the Persistent Volume. Note that there are no validations
   # done to check the validity of the FsType
   - name: FSType
     value: "ext4"
@@ -672,14 +672,12 @@ spec:
       labels:
         {{- if eq $isMonitor "true" }}
         monitoring: "volume_exporter_prometheus"
-        openebs_pv: {{ .Volume.owner }}
         {{- end}}
         openebs.io/storage-engine-type: jiva
         openebs.io/cas-type: jiva
         openebs.io/controller: jiva-controller
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-        pvc: {{ .Volume.pvc }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
@@ -703,7 +701,6 @@ spec:
             openebs.io/controller: jiva-controller
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-            pvc: {{ .Volume.pvc }}
         spec:
           {{- if ne $hasNodeSelector "none" }}
           nodeSelector:
@@ -815,7 +812,6 @@ spec:
         openebs.io/replica: jiva-replica
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-        pvc: {{ .Volume.pvc }}
       annotations:
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
@@ -832,7 +828,6 @@ spec:
             openebs.io/replica: jiva-replica
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-            pvc: {{ .Volume.pvc }}
             {{- if ne $replicaAntiAffinityVal "none" }}
             openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
             {{- end }}
@@ -853,10 +848,10 @@ spec:
                   matchLabels:
                     openebs.io/replica: jiva-replica
                     {{/* If PVC object has a replica anti-affinity value. Use it.
-                         This is usually the case for STS that creates PVCs from a 
+                         This is usually the case for STS that creates PVCs from a
                          PVC Template. So, a STS can have multiple PVs with their
-                         unique id. To schedule/spread out replicas belonging to 
-                         different PV, a unique label associated with the STS should 
+                         unique id. To schedule/spread out replicas belonging to
+                         different PV, a unique label associated with the STS should
                          be passed to all the PVCs tied to the STS. */}}
                     {{- if ne $replicaAntiAffinityVal "none" }}
                     openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}

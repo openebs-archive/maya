@@ -47,7 +47,7 @@ spec:
     value: "3"
   # TargetResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from TargetResourceLimits or the default requests set in the cluster. 
+  # from TargetResourceLimits or the default requests set in the cluster.
   - name: TargetResourceRequests
     value: "none"
   # TargetResourceLimits allow you to set the limits on memory and cpu for target pods
@@ -57,7 +57,7 @@ spec:
   #  value: |-
   #      memory: 1Gi
   #      cpu: 200m
-  # By default, the resource limits are disabled. 
+  # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
@@ -70,8 +70,8 @@ spec:
   # with permissions to view, create, edit, delete required custom resources
   - name: ServiceAccountName
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
-  # FSType specifies the format type that Kubernetes should use to 
-  # mount the Persistent Volume. Note that there are no validations 
+  # FSType specifies the format type that Kubernetes should use to
+  # mount the Persistent Volume. Note that there are no validations
   # done to check the validity of the FsType
   - name: FSType
     value: "ext4"
@@ -298,13 +298,11 @@ spec:
           labels:
             {{- if eq $isMonitor "true" }}
             monitoring: volume_exporter_prometheus
-            openebs_pv: {{ .Volume.owner }}
             {{- end}}
             app: cstor-volume-manager
             openebs.io/target: cstor-target
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-            pvc: {{ .Volume.pvc }}
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           containers:
@@ -577,7 +575,7 @@ spec:
           annotations:
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
-            openebs.io/controller-status: {{ $targetStatus | replace "true" "running" | replace "false" "notready" }}
+            openebs.io/controller-status: {{ $targetStatus | default "" | replace "true" "running" | replace "false" "notready" }}
         spec:
           capacity: {{ $capacity }}
           iqn: iqn.2016-09.com.openebs.cstor:{{ $name }}
