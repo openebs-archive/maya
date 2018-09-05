@@ -332,6 +332,9 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
+            - name: tmp
+              mountPath: /tmp
+              mountPropagation: Bidirectional
             - name: dummyfile
               mountPath: /tmp/cstor
           {{- if eq $isMonitor "true" }}
@@ -378,6 +381,9 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
+            - name: tmp
+              mountPath: /tmp
+              mountPropagation: Bidirectional              
             - name: dummyfile
               mountPath: /tmp/cstor
           volumes:
@@ -387,6 +393,10 @@ spec:
             emptyDir: {}
           - name: dummyfile
             emptyDir: {}
+          - name: tmp
+            hostPath:
+              path: /var/openebs/shared-{{ .Volume.owner }}-target
+              type: DirectoryOrCreate
 ---
 # runTask to create cStorVolumeReplica/(s)
 apiVersion: openebs.io/v1alpha1
