@@ -28,20 +28,20 @@ func IsCstorSparsePoolEnabled() (enabled bool) {
 	return
 }
 
-// CstorSparsePoolSpc070 returns the default storagepoolclaim yaml corresponding
-// to version 0.7.0 if cstor sparse pool creation is enabled as a part of
-// openebs installation
-func CstorSparsePoolSpc070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcFor070, IsCstorSparsePoolEnabled)...)
+// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim 
+// and storageclass yaml corresponding to version 0.7.0 if cstor 
+// sparse pool creation is enabled as a part of openebs installation
+func CstorSparsePoolSpcArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcArtifactsFor070, IsCstorSparsePoolEnabled)...)
 	return
 }
 
-// cstorPoolSpcFor070 returns all the yamls related to configuring a stoaragepoolclaim in string
-// format
+// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring 
+// a stoaragepoolclaim and storageclass in string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func cstorSparsePoolSpcFor070() string {
+func cstorSparsePoolSpcArtifactsFor070() string {
 	return `
 ---
 apiVersion: storage.k8s.io/v1
