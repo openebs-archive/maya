@@ -25,6 +25,10 @@ kubectl get sp
 #Print the default StoragePoolClaim Created
 kubectl get spc
 
+#Print the default StorageClasses Created
+kubectl get sc
+
+
 for i in $(seq 1 50) ; do
     replicas=$(kubectl get deployment -n openebs openebs-provisioner -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
@@ -58,8 +62,8 @@ sleep 10
 kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-sparse-claim-cstor.yaml
 
 sleep 30
-echo "--------------------- List PVC,PV and pods ---------------------------"
-kubectl get pvc,pv
+echo "--------------------- List SC,PVC,PV and pods ---------------------------"
+kubectl get sc,pvc,pv
 kubectl get pods --all-namespaces
 
 JIVACTRL=$(kubectl get deploy -l openebs.io/controller=jiva-controller --no-headers | awk {'print $1'})
