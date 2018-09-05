@@ -106,14 +106,14 @@ func (i *simpleInstaller) Install() []error {
 			i.addErrors(errs)
 		}
 
-		ulist = ulist.MapAll([]k8s.UnstructuredMiddleware{
-			i.namespaceUpdater,
-			k8s.UpdateLabels(k8s.UnstructuredOptions{
-				Labels: map[string]string{"openebs.io/version": install.Version},
-			}),
-		})
+		ml := k8s.UnstructuredMiddlewareList{}
+		ml = append(ml, i.namespaceUpdater)
+		ml = append(ml, k8s.UpdateLabels(k8s.UnstructuredOptions{
+			Labels: map[string]string{"openebs.io/version": install.Version},
+		}))
+		ulist = ulist.MapAll(ml)
 
-		allUnstructured = append(allUnstructured, ulist.Items...)
+		allUnstructured = append(allUnstructured, ulist...)
 	}
 
 	for _, unstruct := range allUnstructured {

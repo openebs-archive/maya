@@ -30,6 +30,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -154,7 +155,7 @@ type UnstructuredMiddleware func(given *unstructured.Unstructured) (updated *uns
 
 // UnstructuredPredicate abstracts evaluating a condition against the provided
 // unstructured instance
-type UnstructuredPredicate func(given *unstructured.Unstructured) bool
+type UnstructuredPredicate func(given *unstructured.Unstructured) (ok bool)
 
 // IsNamespaceScoped flags if the given unstructured instance is namespace
 // scoped
@@ -189,9 +190,6 @@ func UpdateNamespace(o UnstructuredOptions) UnstructuredMiddleware {
 			return given
 		}
 		namespace := strings.TrimSpace(o.Namespace)
-		if len(namespace) == 0 {
-			return given
-		}
 		given.SetNamespace(namespace)
 		return given
 	}
@@ -218,45 +216,137 @@ func UpdateLabels(o UnstructuredOptions) UnstructuredMiddleware {
 	}
 }
 
-// UnstructuredUpdater updates an unstructured instance by executing all the
-// provided updaters
-func UnstructuredUpdater(updaters []UnstructuredMiddleware) UnstructuredMiddleware {
-	return func(given *unstructured.Unstructured) *unstructured.Unstructured {
-		for _, u := range updaters {
-			given = u(given)
-		}
+// UnstructuredMiddlewareList is a type definition of a list of unstructured
+// middlewares
+type UnstructuredMiddlewareList []UnstructuredMiddleware
+
+// Update updates the given unstructured instance against all the available
+// middlewares
+func (l UnstructuredMiddlewareList) Update(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
+	if len(l) == 0 || given == nil {
 		return given
 	}
+	for _, middleware := range l {
+		if middleware == nil {
+			continue
+		}
+		given = middleware(given)
+	}
+	return given
+}
+
+// PredicateListOp represents the type of operation categorizing a given list of
+// predicates
+type PredicateListOp string
+
+const (
+	// AllPredicates represents AND logical operator
+	AllPredicates PredicateListOp = "and"
+	// AnyPredicates represents OR logical operator
+	AnyPredicates PredicateListOp = "or"
+	// NotPredicates represents NOT logical operator
+	NotPredicates PredicateListOp = "not"
+)
+
+// UnstructPredicateList represents a list of predicates with a logical operator
+// to evaluate the condition
+type UnstructPredicateList struct {
+	Op    PredicateListOp
+	Items map[string]UnstructuredPredicate
+}
+
+func (l UnstructPredicateList) String() string {
+	var names []string
+	for name := range l.Items {
+		names = append(names, name)
+	}
+	return fmt.Sprintf("unstruct predicate list: op='%s', items='%s'", l.Op, strings.Join(names, ","))
+}
+
+// isNot does a NOT logic among the predicate list against the given
+// unstructured instance
+func (l UnstructPredicateList) isNot(u *unstructured.Unstructured) bool {
+	if u == nil {
+		return false
+	}
+	for _, predicate := range l.Items {
+		if predicate(u) {
+			return false
+		}
+	}
+	return true
+}
+
+// isAll does a AND logic among the predicate list against the given
+// unstructured instance
+func (l UnstructPredicateList) isAll(u *unstructured.Unstructured) bool {
+	if u == nil {
+		return false
+	}
+	for _, predicate := range l.Items {
+		if !predicate(u) {
+			return false
+		}
+	}
+	return true
+}
+
+// isAny does a OR logic among the predicate list against the given unstructured
+// instance
+func (l UnstructPredicateList) isAny(u *unstructured.Unstructured) bool {
+	if u == nil {
+		return false
+	}
+	for _, predicate := range l.Items {
+		if predicate(u) {
+			return true
+		}
+	}
+	return false
 }
 
 // UnstructList represents a list of unstructured instances
-type UnstructList struct {
-	Items []*unstructured.Unstructured
-}
+type UnstructList []*unstructured.Unstructured
 
-// MapAll will execute the all UnstructuredMiddlewares on each unstructured
-// instance
-func (u UnstructList) MapAll(ml []UnstructuredMiddleware) (ul UnstructList) {
-	for _, unstruct := range u.Items {
-		for _, m := range ml {
-			unstruct = m(unstruct)
+// MapAll executes all unstructured middlewares on each unstructured
+// instance and returns a new list of these updated unstructured instances
+func (u UnstructList) MapAll(ml UnstructuredMiddlewareList) (l UnstructList) {
+	if len(u) == 0 {
+		return
+	}
+	for _, unstruct := range u {
+		if unstruct == nil {
+			continue
 		}
-		if unstruct != nil {
-			ul.Items = append(ul.Items, unstruct)
+		updated := ml.Update(unstruct)
+		if updated != nil {
+			l = append(l, updated)
 		}
 	}
 	return
 }
 
-// MapIf will execute the UnstructuredMiddleware conditionally based on
-// UnstructuredPredicate
-func (u UnstructList) MapIf(m UnstructuredMiddleware, p UnstructuredPredicate) (ul UnstructList) {
-	for _, unstruct := range u.Items {
-		if p(unstruct) {
-			unstruct = m(unstruct)
+// Filter filters the unstructured instances based on the given predicates
+func (u UnstructList) Filter(pl UnstructPredicateList) (l UnstructList) {
+	if len(u) == 0 {
+		return
+	}
+	for _, unstruct := range u {
+		if unstruct == nil {
+			continue
 		}
-		if unstruct != nil {
-			ul.Items = append(ul.Items, unstruct)
+		switch pl.Op {
+		case AllPredicates:
+		default:
+			if pl.isAll(unstruct) {
+				l = append(l, unstruct)
+			}
+			continue
+		case AnyPredicates:
+			if pl.isAny(unstruct) {
+				l = append(l, unstruct)
+			}
+			continue
 		}
 	}
 	return

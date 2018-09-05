@@ -136,14 +136,12 @@ func (l ArtifactList) UnstructuredList() (ul k8s.UnstructList, errs []error) {
 // unstructured instances by making use of unstructured creator instance
 func (l ArtifactList) UnstructuredListC(c k8s.UnstructuredCreator) (ul k8s.UnstructList, errs []error) {
 	for _, artifact := range l.Items {
-
 		unstructured, err := c(artifact.Doc)
 		if err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to transform artifact into unstructured instance"))
 			continue
 		}
-
-		ul.Items = append(ul.Items, unstructured)
+		ul = append(ul, unstructured)
 	}
 	return
 }
