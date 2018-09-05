@@ -70,6 +70,8 @@ func (k kind) resource() (resource string) {
 func (k kind) isNamespaced() (no bool) {
 	ks := strings.ToLower(string(k))
 	switch ks {
+	case "customresourcedefinition":
+		return no
 	case "storageclass":
 		return no
 	case "persistentvolume":
