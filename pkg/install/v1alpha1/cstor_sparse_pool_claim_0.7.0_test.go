@@ -120,7 +120,7 @@ func TestCstorSparsePoolSpc070(t *testing.T) {
 				t.Fatalf("Test '%s' failed %+v", name, err)
 			}
 
-			l := CstorSparsePoolSpc070()
+			l := CstorSparsePoolSpcArtifactsFor070()
 			actual := len(l.Items)
 			if actual != mock.expected {
 				t.Fatalf("Test '%s' failed: expected '%d' actual '%d'", name, mock.expected, actual)
