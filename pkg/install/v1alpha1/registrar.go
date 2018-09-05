@@ -61,14 +61,23 @@ func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifac
 // installed
 func RegisteredArtifactsFor070() (list ArtifactList) {
 
+	//Note: CRDs have to be installed first. Keep this at top of the list.
+	list.Items = append(list.Items, OpenEBSCRDArtifactsFor070().Items...)
+
 	list.Items = append(list.Items, JivaVolumeArtifactsFor070().Items...)
 	//Contains the read/list/delete CAST for supporting older volumes
+	//The CAST defined here are provided as fallback options to corresponding
+	//0.7.0 CAST
 	list.Items = append(list.Items, JivaVolumeArtifactsFor060().Items...)
 	list.Items = append(list.Items, JivaPoolArtifactsFor070().Items...)
 
 	list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorSparsePoolSpc070().Items...)
+
+	//Contains the SC to help with provisioning from clone. 
+	//This is generic for release till K8s supports native way of cloning.
+	list.Items = append(list.Items, SnapshotPromoterSCArtifacts().Items...)
 
 	return
 }

@@ -16,15 +16,15 @@ limitations under the License.
 
 package v1alpha1
 
-// JivaPoolArtifactsFor070 returns the jiva pool related artifacts
-// corresponding to version 0.7.0
+// JivaPoolArtifactsFor070 returns the default jiva pool and storage
+// class related artifacts corresponding to version 0.7.0
 func JivaPoolArtifactsFor070() (list ArtifactList) {
 	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPoolYamlsFor070)...)
 	return
 }
 
-// jivaPoolYamlsFor070 returns all the yamls related to jiva pool in a string
-// format
+// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and 
+// storage class in a string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
@@ -38,6 +38,29 @@ metadata:
   type: hostdir
 spec:
   path: "/var/openebs"
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-standard
+  annotations:
+    cas.openebs.io/config: |
+      - name: ReplicaCount
+        value: "3"
+      - name: StoragePool
+        value: default
+      #- name: TargetResourceLimits
+      #  value: |-
+      #      memory: 1Gi
+      #      cpu: 100m
+      #- name: AuxResourceLimits
+      #  value: |-
+      #      memory: 0.5Gi
+      #      cpu: 50m
+      #- name: ReplicaResourceLimits
+      #  value: |-
+      #      memory: 2Gi
+provisioner: openebs.io/provisioner-iscsi
 ---
 `
 }
