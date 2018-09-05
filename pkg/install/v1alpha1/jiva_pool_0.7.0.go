@@ -42,8 +42,9 @@ spec:
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: openebs-standard
+  name: openebs-jiva-default
   annotations:
+    openebs.io/cas-type: jiva
     cas.openebs.io/config: |
       - name: ReplicaCount
         value: "3"
