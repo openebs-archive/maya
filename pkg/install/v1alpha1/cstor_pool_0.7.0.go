@@ -208,7 +208,7 @@ metadata:
   name: cstor-pool-create-putcstorpooldeployment-default-0.7.0
 spec:
   meta: |
-    runNamespace: openebs
+    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -428,7 +428,7 @@ spec:
   meta: |
     id: listcstorpooldeployment
     apiVersion: extensions/v1beta1
-    runNamespace: openebs
+    runNamespace: {{.Config.RunNamespace.value}}
     kind: Deployment
     action: list
     options: |-
@@ -446,7 +446,7 @@ metadata:
 spec:
   meta: |
     id: deletecstorpooldeployment
-    runNamespace: openebs
+    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: delete
