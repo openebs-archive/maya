@@ -21,13 +21,13 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"github.com/Masterminds/sprig"
+	"github.com/ghodss/yaml"
+	. "github.com/openebs/maya/pkg/task/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"reflect"
 	"strings"
 	"text/template"
-
-	"github.com/Masterminds/sprig"
-	"github.com/ghodss/yaml"
-	"github.com/openebs/maya/pkg/util"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -567,10 +567,21 @@ func addTo(fields string, values map[string]interface{}, value string) string {
 //
 // Above will result in printing 'Hi'
 // Assumption here is .Values is of type map[string]interface{}
-func saveAs(fields string, values map[string]interface{}, value interface{}) interface{} {
+func saveAs(fields string, destination map[string]interface{}, given interface{}) interface{} {
 	fieldsArr := strings.Split(fields, ".")
-	util.SetNestedField(values, value, fieldsArr...)
-	return value
+	// save the run task command result in specific way
+	r, ok := given.(RunCommandResult)
+	if ok {
+		resultpath := append(fieldsArr, "result")
+		util.SetNestedField(destination, r.Result(), resultpath...)
+		errpath := append(fieldsArr, "error")
+		util.SetNestedField(destination, r.Error(), errpath...)
+		debugpath := append(fieldsArr, "debug")
+		util.SetNestedField(destination, r.Debug(), debugpath...)
+		return given
+	}
+	util.SetNestedField(destination, given, fieldsArr...)
+	return given
 }
 
 // saveIf stores the provided value at specific hierarchy as mentioned in the
@@ -745,12 +756,9 @@ func fromYaml(str string) map[string]interface{} {
 	return m
 }
 
-// funcMap returns the set of template functions supported in this library
-func funcMap() template.FuncMap {
-	f := sprig.TxtFuncMap()
-
-	// Add some extra templating functions
-	extra := template.FuncMap{
+// runtaskFuncs returns the set of runtask based template functions
+func runtaskFuncs() (f template.FuncMap) {
+	return template.FuncMap{
 		"pickContains":       pickContains,
 		"pickSuffix":         pickSuffix,
 		"pickPrefix":         pickPrefix,
@@ -758,7 +766,9 @@ func funcMap() template.FuncMap {
 		"fromYaml":           fromYaml,
 		"jsonpath":           jsonPath,
 		"saveAs":             saveAs,
+		"saveas":             saveAs,
 		"saveIf":             saveIf,
+		"saveif":             saveIf,
 		"addTo":              addTo,
 		"noop":               noop,
 		"notFoundErr":        notFoundErr,
@@ -770,11 +780,19 @@ func funcMap() template.FuncMap {
 		"splitKeyMap":        splitKeyMap,
 		"splitListTrim":      splitListTrim,
 	}
+}
 
-	for k, v := range extra {
+// allCustomFuncs returns the set of template functions supported in this library
+func allCustomFuncs() template.FuncMap {
+	f := sprig.TxtFuncMap()
+	rt := runtaskFuncs()
+	for k, v := range rt {
 		f[k] = v
 	}
-
+	rc := runCommandFuncs()
+	for k, v := range rc {
+		f[k] = v
+	}
 	return f
 }
 
@@ -784,7 +802,7 @@ func AsTemplatedBytes(context string, yml string, values map[string]interface{})
 	tpl := template.New(context + "YamlTpl")
 
 	// Any maya yaml exposes below templating functions
-	tpl.Funcs(funcMap())
+	tpl.Funcs(allCustomFuncs())
 
 	tpl, err := tpl.Parse(yml)
 	if err != nil {

@@ -33,11 +33,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ghodss/yaml"
 	"reflect"
 	"testing"
 	"text/template"
-
-	"github.com/ghodss/yaml"
 )
 
 func TestAddTo(t *testing.T) {
@@ -51,7 +50,7 @@ func TestAddTo(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Positive Test - Test by providing value to a new key hierarchy": {
+		"101": {
 			fields:        "k1.k2",
 			destination:   map[string]interface{}{},
 			value:         "hi",
@@ -65,7 +64,7 @@ func TestAddTo(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Positive Test - Test by providing value to an existing key hierarchy": {
+		"102": {
 			fields: "k1.k2",
 			destination: map[string]interface{}{
 				"k1": map[string]interface{}{
@@ -83,7 +82,7 @@ func TestAddTo(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Negative Test - Test by providing empty value to an existing key hierarchy": {
+		"103": {
 			fields: "k1.k2",
 			destination: map[string]interface{}{
 				"k1": map[string]interface{}{
@@ -101,7 +100,7 @@ func TestAddTo(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Negative Test - Test by providing empty value to an empty destination": {
+		"104": {
 			fields:              "k1.k2",
 			destination:         map[string]interface{}{},
 			value:               "",
@@ -135,7 +134,7 @@ func TestToYaml(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Positive Test - Test by providing a simple map": {
+		"101": {
 			data: map[string]string{
 				"co":      "k8s",
 				"storage": "openebs",
@@ -145,7 +144,7 @@ func TestToYaml(t *testing.T) {
 		//
 		// start of test case
 		//
-		"Positive Test - Test by providing a nested map": {
+		"102": {
 			data: map[string]interface{}{
 				"co": "k8s",
 				"storage": map[string]string{
@@ -162,7 +161,7 @@ storage:
 		//
 		// start of test case
 		//
-		"Negative Test - Test by providing a non map object": {
+		"103": {
 			data:           []interface{}{"co", "k8s", "storage", "gen1", "jiva", "gen2", "cstor"},
 			isErr:          true,
 			expectedErrMsg: "error unmarshaling JSON: json: cannot unmarshal array into Go value of type map[string]interface {}",
@@ -170,7 +169,7 @@ storage:
 		//
 		// start of test case
 		//
-		"Negative Test - Test by providing a nil object": {
+		"104": {
 			data: nil,
 		},
 	}
@@ -204,7 +203,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with valid pairs & delimiters`: {
+		`101`: {
 			delimiters:  "=",
 			given:       []string{"co/co1=k8s", "co1=k8sNew", "co2=swarm", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -218,7 +217,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with valid pairs, multiple values per key & delimiters`: {
+		`102`: {
 			delimiters:  "=",
 			given:       []string{"co/co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -231,7 +230,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with two-step i.e. multi level keys`: {
+		`103`: {
 			delimiters:  "/ =",
 			given:       []string{"co/co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -246,7 +245,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with three-step i.e. multi level keys`: {
+		`104`: {
 			delimiters:  "/ @ =",
 			given:       []string{"cloud/co@co1=k8s", "co2=swarm", "co2=swarm2", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -263,7 +262,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with three-step i.e. multi level duplicate keys`: {
+		`105`: {
 			delimiters:  "/ / =",
 			given:       []string{"cloud/co/co1=k8s", "co/co2=swarm", "co2=swarm2", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -283,7 +282,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with keys as well as values having whitespaces`: {
+		`106`: {
 			delimiters:  "=",
 			given:       []string{" co/co1 =k8s", "co2 = swarm ", " co2= swarm2", "co3=nomad "},
 			destination: map[string]interface{}{},
@@ -296,7 +295,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with multi level keys with some keys as blank`: {
+		`107`: {
 			delimiters:  "/ / =",
 			given:       []string{"cloud/ /co1=k8s", "co/=swarm", "co=swarm2", "co3=nomad"},
 			destination: map[string]interface{}{},
@@ -311,7 +310,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with some values as blank`: {
+		`108`: {
 			delimiters:  "/ / =",
 			given:       []string{"cloud/ /co1=k8s", "cloud/ /co1=", "co/=", "co=swarm2", "co3=nomad", "co4="},
 			destination: map[string]interface{}{},
@@ -327,7 +326,7 @@ func TestNestedKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with some keys & values as whitespaces`: {
+		`109`: {
 			delimiters:  "/ / =",
 			given:       []string{"cloud/ /co1=k8s", "cloud/ /co1=  ", "  =  ", " co3 = nomad ", "co4=  "},
 			destination: map[string]interface{}{},
@@ -362,8 +361,7 @@ func TestKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with valid pairs & delimiters:
-      - Verify if the result matches the expected`: {
+		`101`: {
 			destinationFields: "test1",
 			given:             []string{"co1=k8s,co2=swarm", "co3=nomad"},
 			destination:       map[string]interface{}{},
@@ -380,8 +378,7 @@ func TestKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with valid pairs, primary keys & delimiters:
-      - Verify if the result matches the expected`: {
+		`102`: {
 			destinationFields: "test1",
 			given:             []string{"co1=k8s,co2=swarm,pkey=one", "pkey=two,co3=nomad"},
 			destination:       map[string]interface{}{},
@@ -400,8 +397,7 @@ func TestKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with valid pairs & delimiters & erratic whitespaces:
-      - Verify if the result matches the expected`: {
+		`103`: {
 			destinationFields: "test2",
 			given:             []string{"co1 = k8s,  co2= swarm  ", "   co3=nomad  "},
 			destination:       map[string]interface{}{},
@@ -418,8 +414,7 @@ func TestKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with pairs having missing value(s) or key(s) or both:
-      - Verify if the result matches the expected`: {
+		`104`: {
 			destinationFields: "test3",
 			given:             []string{"= k8s,  co2=  ", " = "},
 			destination:       map[string]interface{}{},
@@ -434,8 +429,7 @@ func TestKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with primary key but missing primary key's value:
-      - Verify if the result matches the expected`: {
+		`105`: {
 			destinationFields: "test4",
 			given:             []string{"pkey=,co1= k8s,  co2=,=nomad  ", " = "},
 			destination:       map[string]interface{}{},
@@ -472,9 +466,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs separated by ::
-      - NOTE: If there is only one k=v pair then :: is not provided
-      - Verify if the result matches the expected`: {
+		`101`: {
 			splitters:   ":: =",
 			destFields:  "test1",
 			given:       []string{"co1=k8s::co2=swarm", "co3=nomad"},
@@ -492,10 +484,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs separated by --
-      - NOTE: If there is only one k=v pair then -- is not provided
-      - NOTE: primary key value is provided for some keyvalue pairs
-      - Verify if the result matches the expected`: {
+		`102`: {
 			splitters:   "-- =",
 			destFields:  "test2",
 			given:       []string{"co1=k8s--co2=swarm", "pkey=myCO--co3=nomad"},
@@ -515,10 +504,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k::v pairs separated by --
-      - NOTE: If there is only one k::v pair then -- is not provided
-      - NOTE: primary key value is provided for some keyvalue pairs
-      - Verify if the result matches the expected`: {
+		`103`: {
 			splitters:   "-- ::",
 			destFields:  "test3",
 			given:       []string{"co1::k8s--co2::swarm", "pkey::myCO--co3::nomad"},
@@ -538,9 +524,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs without any splitters
-      - NOTE: primary key value is provided only for some keyvalue pairs
-      - Verify if the result matches the expected`: {
+		`104`: {
 			splitters:   "",
 			destFields:  "test4",
 			given:       []string{"co1=k8s,co2=swarm", "pkey=myCO,co3=nomad", "co4=custom"},
@@ -561,8 +545,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs without any splitters and primary key
-      - Verify if the result matches the expected`: {
+		`105`: {
 			splitters:   "",
 			destFields:  "test5",
 			given:       []string{"co1=k8s,co2=swarm", "co3=nomad", "co4=custom"},
@@ -581,8 +564,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs with common keys & without splitters & primary key
-      - Verify if the result matches the expected`: {
+		`106`: {
 			splitters:   "",
 			destFields:  "test6",
 			given:       []string{"co1=k8s,co2=swarm,co3=newK8s,co4=newSwarm", "co3=nomad", "co3=mySched,co4=custom"},
@@ -601,8 +583,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs with common keys & without splitters & different primary keys
-      - Verify if the result matches the expected`: {
+		`107`: {
 			splitters:   "",
 			destFields:  "test7",
 			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "pkey=beta,co3=nomad", "pkey=delta,co3=mySched,co4=custom"},
@@ -626,8 +607,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs without destination field
-      - Verify if the result matches the expected`: {
+		`108`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "pkey=beta,co3=nomad", "pkey=delta,co3=mySched,co4=custom"},
@@ -649,8 +629,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs without destination field & some primary keys
-      - Verify if the result matches the expected`: {
+		`109`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"pkey=alpha,co1=k8s,co2=swarm", "co3=nomad", "co3=mySched,co4=custom"},
@@ -669,8 +648,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Positive Test - Verify map creation with k=v pairs without destination field & primary key
-      - Verify if the result matches the expected`: {
+		`110`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"co1=k8s,co2=swarm", "co3=nomad", "co3=mySched,co4=custom"},
@@ -687,8 +665,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with 'comma' as pair delimiter or 'comma with dangling spaces as pair delimiter'
-      - Verify if the result matches the expected`: {
+		`111`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"co1=k8s,co2=swarm ,  co3=newK8s", "co3=nomad", "co3=mySched, co4=custom"},
@@ -705,8 +682,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with blank value(s) & 'comma with dangling space delimiter'
-      - Verify if the result matches the expected`: {
+		`112`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"co1=,co2=swarm ,  co3= ", "co3=nomad", "co3=mySched, co4=custom"},
@@ -723,8 +699,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with blank key(s), blank value(s) & 'comma with dangling space delimiter'
-      - Verify if the result matches the expected`: {
+		`113`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"co1=,=swarm ,  =newK8s ", "co3=nomad", "co3=mySched, co4=custom"},
@@ -740,8 +715,7 @@ func TestSplitKeyMap(t *testing.T) {
 		//
 		// start of test case
 		//
-		`Negative Test - Verify map creation with blank string & strings with whitespaces
-      - Verify if the result matches the expected`: {
+		`114`: {
 			splitters:   "",
 			destFields:  "",
 			given:       []string{"", "  ", "  co3=mySched, co4=custom  "},
@@ -817,9 +791,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw VerifyError error for non-empty string:
-		  - Provide a non empty string to verifyErr template function
-		  - Verify it should not throw any error`: {
+		`101`: {
 			templateInYaml: `
 {{- "I am not empty" | empty | verifyErr "empty string provided" | noop -}}
 `,
@@ -832,9 +804,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw VerifyError error for non-empty list:
-		  - Provide a non empty list to verifyErr template function
-		  - Verify it should not throw any error`: {
+		`102`: {
 			templateInYaml: `
 {{- list "I am not empty" | empty | verifyErr "empty list provided" | noop -}}
 `,
@@ -847,9 +817,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw VerifyError error for non-empty dict:
-		  - Provide a non empty dict to verifyErr template function
-		  - Verify it should not throw any error`: {
+		`103`: {
 			templateInYaml: `
 {{- dict "k1" "v1" "k2" "v2" | empty | verifyErr "empty dict provided" | noop -}}
 `,
@@ -862,9 +830,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw VerifyError for empty list:
-		  - Provide a empty list to verifyErr template function
-		  - Verify it should throw an error`: {
+		`104`: {
 			templateInYaml: `
 {{- list | empty | verifyErr "empty list provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -878,9 +844,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw VerifyError for empty dict:
-		  - Provide a empty dict to verifyErr template function
-		  - Verify it should throw an error`: {
+		`105`: {
 			templateInYaml: `
 {{- dict | empty | verifyErr "empty dictionary provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -894,9 +858,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw VerifyError for empty string:
-		  - Provide a empty string to verifyErr template function
-		  - Verify it should throw an error`: {
+		`106`: {
 			templateInYaml: `
 {{- "" | empty | verifyErr "empty string provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -910,12 +872,7 @@ func TestTemplatingWithMutatingTemplateValues(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		`Positive Test: Does not throw VerifyError for non-empty kind objects: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which has two items i.e. output is non-empty,
-		  - Then split this output via " " into an array
-		  - Then throw verify error if this output array length is not 2
-		  - Verify this templating does not throw VerifyError error`: {
+		`107`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
 {{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}
@@ -948,12 +905,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test: Throw VerifyError due to empty kind objects: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which is empty in this case,
-		  - Then split this output via " " into an array
-		  - Then throw VerifyError if this output array length is not 2
-		  - Verify this templating throws VerifyError during template execution`: {
+		`108`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
 {{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}`,
@@ -984,12 +936,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test: Throws VerifyError as count of kind is not 2: 
-		  - Get a list of kinds via jsonpath as a string output, 
-		  - Then trim this output which has one item i.e. output is non-empty,
-		  - Then split this output via " " into an array
-		  - Then throw VerifyError if this output array length is not 2
-		  - Verify VerifyError is thrown during template execution`: {
+		`109`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
 {{- .Values.TaskResult.tskId.kind | splitList " " | isLen 2 | not | verifyErr "kind count is not two" | saveIf "err" .Values | noop -}}`,
@@ -1020,9 +967,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw notFoundErr for empty list:
-		  - Provide a empty list to notFoundErr template function
-		  - Verify it should throw an error`: {
+		`110`: {
 			templateInYaml: `
 {{- list | notFoundErr "empty list provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -1036,9 +981,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw notFoundErr for empty dict:
-		  - Provide a empty dict to notFoundErr template function
-		  - Verify it should throw an error`: {
+		`111`: {
 			templateInYaml: `
 {{- dict | notFoundErr "empty dictionary provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -1052,9 +995,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw notFoundErr for empty string:
-		  - Provide a empty string to notFoundErr template function
-		  - Verify it should throw an error`: {
+		`112`: {
 			templateInYaml: `
 {{- "" | notFoundErr "empty string provided" | saveIf "err" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -1068,9 +1009,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw notFoundErr error for non-empty string:
-		  - Provide a non empty string to notFoundErr template function
-		  - Verify it should not throw any error`: {
+		`113`: {
 			templateInYaml: `
 {{- "I am not empty" | notFoundErr "empty string provided" | saveIf "err" .Values | noop -}}
 `,
@@ -1085,9 +1024,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw notFoundErr error for non-empty list:
-		  - Provide a non empty list to notFoundErr template function
-		  - Verify it should not throw any error`: {
+		`114`: {
 			templateInYaml: `
 {{- list "I am not empty" | notFoundErr "empty list provided" | saveIf "err" .Values | noop -}}
 `,
@@ -1102,9 +1039,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw notFoundErr error for non-empty dict:
-		  - Provide a non empty dict to notFoundErr template function
-		  - Verify it should not throw any error`: {
+		`115`: {
 			templateInYaml: `
 {{- dict "k1" "v1" "k2" "v2" | notFoundErr "empty dict provided" | saveIf "err" .Values | noop -}}
 `,
@@ -1119,9 +1054,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Does not throw notFoundErr error for non empty kind
-		  - NOTE: jsonpath, saveAs and notFoundErr are template functions
-		  - Verify go templating should not throw any error`: {
+		`116`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | notFoundErr "kind is missing" | saveIf "err" .Values | noop -}}
 `,
@@ -1144,9 +1077,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - Throw notFoundErr error for empty kind
-		  - NOTE: jsonpath, saveAs and notFoundErr are template functions
-		  - Verify go templating throw error`: {
+		`117`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | notFoundErr "kind is missing" | saveIf "err" .Values | noop -}}
 `,
@@ -1169,7 +1100,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Negative Test - Verify if 'nestedKeyMap' works with nil list`: {
+		`118`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
 {{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}`,
@@ -1180,24 +1111,10 @@ value: Pod Deployment`,
 			expectedYaml:           ``,
 			expectedTemplateValues: map[string]interface{}{},
 		},
-		/* //
-				// start of test scenario
-				//
-				`Negative Test - Verify if 'nestedKeyMap' works with empty byte`: {
-					templateInYaml: `
-		{{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
-		{{- $kindArr | nestedKeyMap "se5jrhdgshdr5hft" .Values | noop -}}`,
-					templateValues: map[string]interface{}{
-						"JsonDoc": []byte{},
-						"Values":  map[string]interface{}{},
-					},
-					expectedYaml:           ``,
-					expectedTemplateValues: map[string]interface{}{},
-				}, */
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify if template function 'nestedKeyMap' works as expected`: {
+		`119`: {
 			templateInYaml: `
 {{- "default/mypod@app=jiva openebs/mypod@app=cstor" | splitList " " | nestedKeyMap "@ =" .Values | noop -}}
 {{- "default/mypod@backend=true default/mypod@app=jiva2" | splitList " " | nestedKeyMap "@ =" .Values | noop -}}
@@ -1224,7 +1141,7 @@ value: Pod Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify if template function 'nestedKeyMap' works as expected with jsonpath`: {
+		`120`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
 {{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
@@ -1267,7 +1184,7 @@ kindTwo: Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify if template function 'nestedKeyMap' works with multiple values for same key`: {
+		`121`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
 {{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
@@ -1315,7 +1232,7 @@ kindTwo: Deployment`,
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify yaml rendering of the map generated via 'nestedKeyMap`: {
+		`122`: {
 			templateInYaml: `
 {{- $kindArr := jsonpath .JsonDoc "{range .items[*]}{@.namespace}/{@.name}@kind={@.kind};{end}" | trim | splitList ";" -}}
 {{- $kindArr | nestedKeyMap "/ @ =" .Values | noop -}}
@@ -1361,7 +1278,7 @@ openebs:
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify if 'keyMap' works as expected`: {
+		`123`: {
 			templateInYaml: `
 {{- "pkey=openebs,stor1=jiva,stor2=cstor" | splitList " " | keyMap "scenario" .Values | noop -}}
 {{- "co1=swarm,co2=k8s" | splitList " " | keyMap "scenario" .Values | noop -}}
@@ -1386,7 +1303,7 @@ openebs:
 		//
 		// start of test scenario
 		//
-		`Positive Test - Verify yaml rendering of map generated via keyMap`: {
+		`124`: {
 			templateInYaml: `
 {{- $all := jsonpath .JsonDoc .Values.path | trim | splitList ";" -}}
 {{- $all | keyMap "scenario" .Values | noop -}}
@@ -1475,11 +1392,7 @@ items:
 		//
 		// start of test scenario
 		//
-		`Negative Test: To test if go templating works for empty yaml
-		  - Given a valid template function is invoked in yaml template, 
-		  - And this template function rendering is removed via {{- and -}}
-		  - And this template does not have any other yaml schema definition,
-		  - Then this template should work fine when executed via go templating`: {
+		`125`: {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.apiVersion}" | saveAs "TaskResult.tskId.apiVersion" .Values | noop -}}`,
 			templateValues: map[string]interface{}{
@@ -1500,11 +1413,7 @@ items:
 		//
 		// start of test scenario
 		//
-		`Positive Test: To verify parsing of template values from within go template
-		  - Set a variable called '$var' with value from this template's values,
-		  - Get the apiversion via jsonpath as a string output, 
-		  - Then save this apiversion value at .Values.TaskResult.tskId.<value_of_$var>,
-		  - Then frame a yaml by parsing the apiversion value available in template values i.e. .Values.TaskResult.tskId.$var`: {
+		`126`: {
 			templateInYaml: `
 {{- $var := .Values.placeholder -}}
 {{- jsonpath .JsonDoc "{.apiVersion}" | saveAs "TaskResult.tskId.myplace" .Values | noop -}}
@@ -1535,7 +1444,7 @@ apiVersion: v1beta1`,
 		//
 		// start of test scenario
 		//
-		"Positive Test - test by trimming the white spaced output and then check if empty": {
+		"127": {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.items[*].kind}" | trim | saveAs "TaskResult.tskId.kind" .Values | noop -}}
 {{- .Values.TaskResult.tskId.kind | empty | saveAs "TaskResult.tskId.iskindempty" .Values | noop -}}
@@ -1574,7 +1483,7 @@ bool: true`,
 		//
 		// start of test scenario
 		//
-		"Positive Test - test len of array of empty strings": {
+		"128": {
 			templateInYaml: `
 {{- $noop := jsonpath .JsonDoc "{.items[*].kind}" | splitList " " | isLen 0 | saveAs "TaskResult.tskId.iskindlenzero" .Values -}}
 show: {{ .Values.TaskResult.tskId.iskindlenzero }}`,
@@ -1608,7 +1517,7 @@ show: {{ .Values.TaskResult.tskId.iskindlenzero }}`,
 		//
 		// start of test scenario
 		//
-		"Positive Test - test saving of array of empty strings": {
+		"129": {
 			templateInYaml: `
 {{- $noop := jsonpath .JsonDoc "{.items[*].kind}" | splitList " " | saveAs "TaskResult.tskId.kinds" .Values -}}
 show: {{ .Values.TaskResult.tskId.kinds }}`,
@@ -1642,7 +1551,7 @@ show: {{ .Values.TaskResult.tskId.kinds }}`,
 		//
 		// start of test scenario
 		//
-		"Positive Test - list of items - jsonpath | saveAs | len": {
+		"130": {
 			templateInYaml: `
 apiVersion: {{ jsonpath .JsonDoc "{.apiVersion}" | saveAs "TaskResult.tskId.apiVersion" .Values }}
 kinds: {{ jsonpath .JsonDoc "{.items[*].kind}" | saveAs "TaskResult.tskId.kinds" .Values }}
@@ -1683,7 +1592,7 @@ count: 2
 		//
 		// start of test scenario
 		//
-		"Positive Test - kind is not missing - saveAs multiple times ": {
+		"131": {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.kind}" | saveAs "TaskResult.tskId.kind" .Values | noop -}}
 {{- saveAs "TaskResult.tskId.kind" .Values "Deployment" | noop -}}
@@ -1711,7 +1620,7 @@ kind: Deployment
 		//
 		// start of test scenario
 		//
-		"Positive Test - kind is not missing - saveIf multiple times ": {
+		"132": {
 			templateInYaml: `
 {{- jsonpath .JsonDoc "{.kind}" | saveIf "TaskResult.tskId.kind" .Values | noop -}}
 {{- saveIf "TaskResult.tskId.kind" .Values "Deployment" | noop -}}
@@ -1741,7 +1650,7 @@ kind: Pod
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			// augment the standard templating with sprig template functions
-			tpl := template.New("TestTemplatingWithMutatingTemplateValues").Funcs(funcMap())
+			tpl := template.New("TestTemplatingWithMutatingTemplateValues").Funcs(allCustomFuncs())
 			tpl, err := tpl.Parse(mock.templateInYaml)
 			if err != nil {
 				t.Fatalf("test failed: expected 'no template parse error': actual '%s'", err.Error())
@@ -1795,7 +1704,7 @@ func TestDynamicTemplating(t *testing.T) {
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pluck | first ": {
+		"101": {
 			ymlTpl: `
 {{- $ns := .defaultNamespace -}}
 version: v1
@@ -1819,7 +1728,7 @@ label: cas-volume
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pluck then first": {
+		"102": {
 			ymlTpl: `
 {{- $ns := .defaultNamespace -}}
 {{- $nsLbl := pluck $ns .labels -}}
@@ -1844,7 +1753,7 @@ label: cas-volume
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pick then nested ranges": {
+		"103": {
 			ymlTpl: `
 {{- $ns := .runNamespace -}}
 {{- $results := pick .taskResult.taskid $ns -}}
@@ -1878,7 +1787,7 @@ objectName: my-replica-pod`,
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pick then nested ranges then split then range": {
+		"104": {
 			ymlTpl: `
 {{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
@@ -1932,7 +1841,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pick then nested ranges then splitList | first": {
+		"105": {
 			ymlTpl: `{{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
 {{- range $k, $v := $nsResults }}
@@ -1978,7 +1887,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - boundary - pick then nested ranges then splitList of single-value | first": {
+		"106": {
 			ymlTpl: `{{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
 {{- range $k, $v := $nsResults }}
@@ -2025,7 +1934,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - boundary - pick then nested ranges then splitList of single-value-with-dangling-space | first": {
+		"107": {
 			ymlTpl: `{{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
 {{- range $k, $v := $nsResults }}
@@ -2072,7 +1981,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pick then nested ranges then splitList | len": {
+		"108": {
 			ymlTpl: `{{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
 {{- range $k, $v := $nsResults }}
@@ -2106,7 +2015,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"test dynamic templating - +ve - pick then nested ranges then splitList | join": {
+		"109": {
 			ymlTpl: `{{- $ns := .runNamespace -}}
 {{- $nsResults := pick .taskResult.taskid $ns -}}
 {{- range $k, $v := $nsResults }}
@@ -2140,7 +2049,7 @@ requiredDuringSchedulingIgnoredDuringExecution:
 		//
 		// start of test scenario
 		//
-		"Positive test - suffix with number": {
+		"110": {
 			ymlTpl: `{{- $count := "3" -}}
 all:
 {{- range $i, $e := until ($count|int) }}
@@ -2156,7 +2065,7 @@ all:
 		//
 		// start of test scenario
 		//
-		"Positive test - suffix with number - customized": {
+		"111": {
 			ymlTpl: `{{- $count := "3" -}}
 all:
 {{- range $i, $e := untilStep 1 ($count|int) 1 }}
@@ -2173,7 +2082,7 @@ all:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			// augment the standard templating with sprig template functions
-			tpl := template.New("testdynamicvartemplating").Funcs(funcMap())
+			tpl := template.New("testdynamicvartemplating").Funcs(allCustomFuncs())
 			tpl, err := tpl.Parse(mock.ymlTpl)
 			if err != nil {
 				t.Fatalf("failed to test dynamic templating: expected 'no instantiation error': actual '%s'", err.Error())

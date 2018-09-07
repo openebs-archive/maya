@@ -274,6 +274,10 @@ func (m *metaTaskExecutor) getListOptions() (opts mach_apis_meta_v1.ListOptions,
 	return
 }
 
+func (m *metaTaskExecutor) isCommand() bool {
+	return m.identifier.isCommand()
+}
+
 func (m *metaTaskExecutor) isList() bool {
 	return m.metaTask.Action == ListTA
 }
