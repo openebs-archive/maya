@@ -22,6 +22,13 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 )
 
+// RunTaskKind represents type of runtask operation
+type RunTaskKind string
+
+const (
+	CommandKind RunTaskKind = "Command"
+)
+
 // MetaTaskIdentity will provide the required identity to a task
 type MetaTaskIdentity struct {
 	// Identity provides a unique identification to this
@@ -52,13 +59,18 @@ func newTaskIdentifier(identity MetaTaskIdentity) (taskIdentifier, error) {
 		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task kind is missing")
 	}
 
-	if len(identity.APIVersion) == 0 {
+	// apiversion is not mandatory for Command kind
+	if len(identity.APIVersion) == 0 && string(identity.Kind) != string(CommandKind) {
 		return taskIdentifier{}, fmt.Errorf("failed to create task identifier instance: task apiVersion is missing")
 	}
 
 	return taskIdentifier{
 		identity: identity,
 	}, nil
+}
+
+func (i taskIdentifier) isCommand() bool {
+	return i.identity.Kind == string(CommandKind)
 }
 
 func (i taskIdentifier) isPod() bool {

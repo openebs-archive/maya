@@ -327,6 +327,11 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		return
 	}
 
+	// kind as command is a special case of task execution
+	if m.metaTaskExec.isCommand() {
+		return m.postExecuteIt()
+	}
+
 	if m.metaTaskExec.isPutExtnV1B1Deploy() {
 		err = m.putExtnV1B1Deploy()
 	} else if m.metaTaskExec.isPutAppsV1B1Deploy() {
