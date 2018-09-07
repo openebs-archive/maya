@@ -26,11 +26,14 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type TestRunner struct{}
+type TestRunner struct {
+	expectedError string
+}
 
 // RunCombinedOutput is to mock Real runner exec.
 func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
@@ -56,6 +59,9 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 		cmd.Env = []string{"labelClearErr=nil"}
 		break
 	case "status":
+		if len(r.expectedError) != 0 {
+			return []byte(r.expectedError), nil
+		}
 		cs = []string{"-test.run=TestStatusProcess", "--"}
 		cmd.Env = []string{"StatusErr=nil"}
 		break
@@ -366,18 +372,43 @@ func TestCheckForZreplInitial(t *testing.T) {
 
 // TestCheckForZreplContinuous is to test zrepl running.
 func TestCheckForZreplContinuous(t *testing.T) {
-	done := make(chan bool)
-	RunnerVar = TestRunner{}
-	go func(done chan bool) {
-		CheckForZreplContinuous(1 * time.Second)
-		done <- true
-	}(done)
-
-	select {
-	case <-time.After(3 * time.Second):
-	case <-done:
-		t.Fatalf("Check for Zrepl continuous test failure")
+	PoolAddEventHandled = true
+	testcases := map[string]struct {
+		expectedError error
+		runner        util.Runner
+	}{
+		"statusSuccess": {
+			expectedError: nil,
+			runner:        TestRunner{},
+		},
+		"statusNoPoolsAvailable": {
+			expectedError: fmt.Errorf(StatusNoPoolsAvailable),
+			runner:        TestRunner{expectedError: StatusNoPoolsAvailable},
+		},
 	}
+
+	for desc, ut := range testcases {
+		done := make(chan bool)
+		RunnerVar = ut.runner
+		go func(done chan bool) {
+			CheckForZreplContinuous(1 * time.Second)
+			done <- true
+		}(done)
+		if ut.expectedError != nil {
+			select {
+			case <-done:
+			case <-time.After(3 * time.Second):
+				t.Fatalf("Check for Zrepl continuous test failure for expected error case %s", desc)
+			}
+		} else {
+			select {
+			case <-time.After(3 * time.Second):
+			case <-done:
+				t.Fatalf("Check for Zrepl continuous test failure")
+			}
+		}
+	}
+	PoolAddEventHandled = false
 }
 
 // TestGetPool is to test zrepl running.
