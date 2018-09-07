@@ -22,7 +22,7 @@ func SnapshotPromoterSCArtifacts() (list ArtifactList) {
 	return
 }
 
-// snapshotPromoterSCYaml returns all the yamls related to 
+// snapshotPromoterSCYaml returns all the yamls related to
 // snapshot promote (clone) provisioner SC in a string
 // format
 //

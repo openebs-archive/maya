@@ -23,7 +23,7 @@ func JivaPoolArtifactsFor070() (list ArtifactList) {
 	return
 }
 
-// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and 
+// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and
 // storage class in a string format
 //
 // NOTE:
