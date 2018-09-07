@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
@@ -15,37 +14,19 @@ func (r TestUnixSock) SendCommand(cmd string) ([]string, error) {
 	return ret, nil
 }
 
-func TestRunVolumeCommand(t *testing.T) {
+func TestRunVolumeSnapCreateCommand(t *testing.T) {
 
 	var sock TestUnixSock
 	APIUnixSockVar = sock
 
 	cases := map[string]struct {
 		expectedError error
-		test          *v1alpha1.VolumeSnapRequest
+		test          *v1alpha1.VolumeSnapCreateRequest
 	}{
 		"successSnapshotCreate": {
 			expectedError: nil,
-			test: &v1alpha1.VolumeSnapRequest{
-				Command:  CmdSnapCreate,
-				Volume:   "dummyvol1",
-				Snapname: "dummysnap1",
-			},
-		},
-
-		"successSnapshotDestroy": {
-			expectedError: nil,
-			test: &v1alpha1.VolumeSnapRequest{
-				Command:  CmdSnapDestroy,
-				Volume:   "dummyvol1",
-				Snapname: "dummysnap1",
-			},
-		},
-
-		"failureInvalidCommand": {
-			expectedError: fmt.Errorf("Invalid VolumeCommand : SNAPDOSOMETHING"),
-			test: &v1alpha1.VolumeSnapRequest{
-				Command:  "SNAPDOSOMETHING",
+			test: &v1alpha1.VolumeSnapCreateRequest{
+				Version:  ProtocolVersion,
 				Volume:   "dummyvol1",
 				Snapname: "dummysnap1",
 			},
@@ -55,7 +36,47 @@ func TestRunVolumeCommand(t *testing.T) {
 	var s Server
 	for i, c := range cases {
 		t.Run(i, func(t *testing.T) {
-			resp, obtainedErr := s.RunVolumeSnapCommand(nil, c.test)
+			resp, obtainedErr := s.RunVolumeSnapCreateCommand(nil, c.test)
+
+			if c.expectedError != obtainedErr {
+				// XXX: this can be written in a more compact way. but keeping it this way
+				//  as it is easy to understand this way.
+				if c.expectedError != nil && obtainedErr != nil &&
+					(c.expectedError.Error() == obtainedErr.Error()) {
+					//got the expected error
+
+				} else {
+					t.Fatalf("Expected: %v, Got: %v, resp.Status: %v",
+						c.expectedError, obtainedErr, resp.Status)
+				}
+			}
+		})
+	}
+}
+
+func TestRunVolumeSnapDeleteCommand(t *testing.T) {
+
+	var sock TestUnixSock
+	APIUnixSockVar = sock
+
+	cases := map[string]struct {
+		expectedError error
+		test          *v1alpha1.VolumeSnapDeleteRequest
+	}{
+		"successSnapshotDestroy": {
+			expectedError: nil,
+			test: &v1alpha1.VolumeSnapDeleteRequest{
+				Version:  ProtocolVersion,
+				Volume:   "dummyvol1",
+				Snapname: "dummysnap1",
+			},
+		},
+	}
+
+	var s Server
+	for i, c := range cases {
+		t.Run(i, func(t *testing.T) {
+			resp, obtainedErr := s.RunVolumeSnapDeleteCommand(nil, c.test)
 
 			if c.expectedError != obtainedErr {
 				// XXX: this can be written in a more compact way. but keeping it this way

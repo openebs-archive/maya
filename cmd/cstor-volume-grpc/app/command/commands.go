@@ -57,7 +57,7 @@ func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
 }
 
 //CreateSnapshot creates snapshots
-func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapResponse, error) {
+func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapCreateResponse, error) {
 	var conn *grpc.ClientConn
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
@@ -66,15 +66,15 @@ func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapResponse, err
 	defer conn.Close()
 
 	c := v1alpha1.NewRunSnapCommandClient(conn)
-	response, err := c.RunVolumeSnapCommand(context.Background(),
-		&v1alpha1.VolumeSnapRequest{
-			Command:  api.CmdSnapCreate,
+	response, err := c.RunVolumeSnapCreateCommand(context.Background(),
+		&v1alpha1.VolumeSnapCreateRequest{
+			Version:  api.ProtocolVersion,
 			Volume:   volName,
 			Snapname: snapName,
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeCommand: %s", err)
+		glog.Fatalf("Error when calling RunVolumeSnapCreateCommand: %s", err)
 	}
 
 	if response != nil {
@@ -89,7 +89,7 @@ func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapResponse, err
 }
 
 //DestroySnapshot destroys snapshots
-func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapResponse, error) {
+func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapDeleteResponse, error) {
 	var conn *grpc.ClientConn
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
@@ -98,15 +98,15 @@ func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapResponse, er
 	defer conn.Close()
 
 	c := v1alpha1.NewRunSnapCommandClient(conn)
-	response, err := c.RunVolumeSnapCommand(context.Background(),
-		&v1alpha1.VolumeSnapRequest{
-			Command:  api.CmdSnapDestroy,
+	response, err := c.RunVolumeSnapDeleteCommand(context.Background(),
+		&v1alpha1.VolumeSnapDeleteRequest{
+			Version:  api.ProtocolVersion,
 			Volume:   volName,
 			Snapname: snapName,
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeCommand: %s", err)
+		glog.Fatalf("Error when calling RunVolumeSnapDeleteCommand: %s", err)
 	}
 	if response != nil {
 		var responseStatus api.CommandStatus

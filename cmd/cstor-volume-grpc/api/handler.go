@@ -22,7 +22,8 @@ const (
 	//IoWaitTime is the time interval for which the IO has to be stopped before doing snapshot operation
 	IoWaitTime = 10
 	//TotalWaitTime is the max time duration to wait for doing snapshot operation on all the replicas
-	TotalWaitTime = 60
+	TotalWaitTime   = 60
+	ProtocolVersion = 1
 )
 
 //CommandStatus is the response from istgt for control commands
@@ -37,34 +38,25 @@ var APIUnixSockVar util.UnixSock
 type Server struct {
 }
 
-// RunVolumeSnapCommand generates response to a RunCommand request
-func (s *Server) RunVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeSnapRequest) (*v1alpha1.VolumeSnapResponse, error) {
-	glog.Infof("Received command %s", in.Command)
-
-	switch in.Command {
-	case CmdSnapCreate:
-		volcmd, err := SendVolumeSnapCommand(ctx, in)
-		return volcmd, err
-
-	case CmdSnapDestroy:
-		volcmd, err := SendVolumeSnapCommand(ctx, in)
-		return volcmd, err
-	}
-
-	status := CommandStatus{
-		Response: "INVALIDCOMMAND",
-	}
-	jsonresp, _ := json.Marshal(status)
-	return &v1alpha1.VolumeSnapResponse{
-		Status: jsonresp,
-	}, fmt.Errorf("Invalid VolumeCommand : %s", in.Command)
+// RunVolumeSnapCreateCommand performs snapshot create operation and sends back the response
+func (s *Server) RunVolumeSnapCreateCommand(ctx context.Context, in *v1alpha1.VolumeSnapCreateRequest) (*v1alpha1.VolumeSnapCreateResponse, error) {
+	glog.Infof("Received snapshot create request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
+	volcmd, err := CreateSnapshot(ctx, in)
+	return volcmd, err
 
 }
 
-// SendVolumeSnapCommand sends snapcreate or snapdelete command to istgt
-func SendVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeSnapRequest) (*v1alpha1.VolumeSnapResponse, error) {
+// RunVolumeSnapDeleteCommand performs snapshot create operation and sends back the response
+func (s *Server) RunVolumeSnapDeleteCommand(ctx context.Context, in *v1alpha1.VolumeSnapDeleteRequest) (*v1alpha1.VolumeSnapDeleteResponse, error) {
+	glog.Infof("Received snapshot delete request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
+	volcmd, err := DeleteSnapshot(ctx, in)
+	return volcmd, err
+}
+
+// CreateSnapshot sends snapcreate command to istgt and returns the response
+func CreateSnapshot(ctx context.Context, in *v1alpha1.VolumeSnapCreateRequest) (*v1alpha1.VolumeSnapCreateResponse, error) {
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
-		in.Command, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
+		CmdSnapCreate, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
 	respstr := "ERR"
 	if len(sockresp) > 1 {
 		respstr = sockresp[1]
@@ -73,7 +65,25 @@ func SendVolumeSnapCommand(ctx context.Context, in *v1alpha1.VolumeSnapRequest) 
 		Response: respstr,
 	}
 	jsonresp, _ := json.Marshal(status)
-	resp := &v1alpha1.VolumeSnapResponse{
+	resp := &v1alpha1.VolumeSnapCreateResponse{
+		Status: jsonresp,
+	}
+	return resp, err
+}
+
+// DeleteSnapshot sends snapdelete command to istgt and returns the response
+func DeleteSnapshot(ctx context.Context, in *v1alpha1.VolumeSnapDeleteRequest) (*v1alpha1.VolumeSnapDeleteResponse, error) {
+	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
+		CmdSnapDestroy, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
+	respstr := "ERR"
+	if len(sockresp) > 1 {
+		respstr = sockresp[1]
+	}
+	status := CommandStatus{
+		Response: respstr,
+	}
+	jsonresp, _ := json.Marshal(status)
+	resp := &v1alpha1.VolumeSnapDeleteResponse{
 		Status: jsonresp,
 	}
 	return resp, err

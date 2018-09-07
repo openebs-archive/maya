@@ -17,11 +17,7 @@ limitations under the License.
 package command
 
 import (
-	"fmt"
-	"strconv"
-
 	"github.com/openebs/maya/cmd/cstor-volume-grpc/server"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -33,18 +29,6 @@ type CmdStartOptions struct {
 	port string
 }
 
-// Validate validates the flag values
-func (c *CmdStartOptions) Validate(cmd *cobra.Command) error {
-	if len(c.port) != 0 {
-		i, err := strconv.Atoi(c.port)
-		if err != nil || i > MaxPortNumber {
-			return fmt.Errorf("--port should be a valid integer and less than %d ", MaxPortNumber+1)
-		}
-	}
-
-	return nil
-}
-
 // NewCmdStart starts gRPC server for CStorVolume.
 func NewCmdStart() *cobra.Command {
 	options := CmdStartOptions{}
@@ -53,7 +37,6 @@ func NewCmdStart() *cobra.Command {
 		Short: "starts CStorVolume gRPC",
 		Long:  `CStorVolume gRPC will be serving snapshot requests`,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.Validate(cmd), util.Fatal)
 			server.StartServer(options.port)
 		},
 	}
