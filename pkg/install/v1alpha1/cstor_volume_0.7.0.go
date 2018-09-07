@@ -335,8 +335,6 @@ spec:
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional
-            - name: dummyfile
-              mountPath: /tmp/cstor
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
@@ -384,14 +382,10 @@ spec:
             - name: tmp
               mountPath: /tmp
               mountPropagation: Bidirectional              
-            - name: dummyfile
-              mountPath: /tmp/cstor
           volumes:
           - name: sockfile
             emptyDir: {}
           - name: conf
-            emptyDir: {}
-          - name: dummyfile
             emptyDir: {}
           - name: tmp
             hostPath:
