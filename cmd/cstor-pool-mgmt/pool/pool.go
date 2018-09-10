@@ -28,8 +28,12 @@ import (
 
 // PoolOperator is the name of the tool that makes pool-related operations.
 const (
-	PoolOperator = "zpool"
+	PoolOperator           = "zpool"
+	StatusNoPoolsAvailable = "no pools available"
 )
+
+//PoolAddEventHandled is a flag representing if the pool has been initially imported or created
+var PoolAddEventHandled = false
 
 type PoolNamePrefix string
 
@@ -179,12 +183,17 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 // CheckForZreplContinuous is continuous health checker for status of zrepl in cstor-pool container.
 func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	for {
-		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		out, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
 		if err == nil {
+			//even though we imported pool, it disappeared (may be due to zrepl container crashing).
+			// so we need to reimport.
+			if PoolAddEventHandled && strings.Contains(string(out), StatusNoPoolsAvailable) {
+				break
+			}
 			time.Sleep(ZreplRetryInterval)
 			continue
 		}
-		glog.Errorf("zpool status returned error in zrepl healthcheck : %v", err)
+		glog.Errorf("zpool status returned error in zrepl healthcheck : %v, out: %s", err, out)
 		break
 	}
 }
