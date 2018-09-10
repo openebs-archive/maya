@@ -47,7 +47,7 @@ spec:
     value: "3"
   # TargetResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from TargetResourceLimits or the default requests set in the cluster.
+  # from TargetResourceLimits or the default requests set in the cluster. 
   - name: TargetResourceRequests
     value: "none"
   # TargetResourceLimits allow you to set the limits on memory and cpu for target pods
@@ -57,7 +57,7 @@ spec:
   #  value: |-
   #      memory: 1Gi
   #      cpu: 200m
-  # By default, the resource limits are disabled.
+  # By default, the resource limits are disabled. 
   - name: TargetResourceLimits
     value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
@@ -70,8 +70,8 @@ spec:
   # with permissions to view, create, edit, delete required custom resources
   - name: ServiceAccountName
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
-  # FSType specifies the format type that Kubernetes should use to
-  # mount the Persistent Volume. Note that there are no validations
+  # FSType specifies the format type that Kubernetes should use to 
+  # mount the Persistent Volume. Note that there are no validations 
   # done to check the validity of the FsType
   - name: FSType
     value: "ext4"
@@ -381,7 +381,7 @@ spec:
               mountPath: /usr/local/etc/istgt
             - name: tmp
               mountPath: /tmp
-              mountPropagation: Bidirectional              
+              mountPropagation: Bidirectional    
           volumes:
           - name: sockfile
             emptyDir: {}
@@ -529,7 +529,7 @@ spec:
     We create a pair of "targetIP"=xxxxx and save it for corresponding volume
     The per volume is servicePair is identified by unique "namespace/vol-name" key
     */}}
-    {{- $targetPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},targetIP={@.status.podIP},targetStatus={@.status.containerStatuses[*].ready};{end}" | trim | default "" | splitList ";" -}}
+    {{- $targetPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},namespace={@.metadata.namespace},targetIP={@.status.podIP},targetStatus={@.status.containerStatuses[*].ready};{end}" | trim | default "" | splitList ";" -}}
     {{- $targetPairs | keyMap "volumeList" .ListItems | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
@@ -570,16 +570,18 @@ spec:
     {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first }}
     {{- $clusterIP := pluck "clusterIP" $map | first }}
     {{- $targetStatus := pluck "targetStatus" $map | first }}
+    {{- $namespace := pluck "namespace" $map | first }}
     {{- $replicaName := pluck "replicaName" $map | first }}
     {{- $name := $pkey }}
       - kind: CASVolume
         apiVersion: v1alpha1
         metadata:
           name: {{ $name }}
+          namespace: {{ $namespace }}
           annotations:
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
-            openebs.io/controller-status: {{ $targetStatus | default "" | replace "true" "running" | replace "false" "notready" }}
+            openebs.io/controller-status: {{ $targetStatus | replace "true" "Running" | replace "false" "notready" }}
         spec:
           capacity: {{ $capacity }}
           iqn: iqn.2016-09.com.openebs.cstor:{{ $name }}
@@ -669,6 +671,7 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistctrl.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistctrl.items | notFoundErr "target pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.namespace}" | trim | saveAs "readlistctrl.itemsNamespace" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
 ---
@@ -691,9 +694,10 @@ spec:
     metadata:
       name: {{ .Volume.owner }}
       {{/* Render other values into annotation */}}
+      namespace: {{ .TaskResult.readlistctrl.itemsNamespace }}
       annotations:
         openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
-        openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
+        openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "Running" | replace "false" "notready" }}
         openebs.io/cvr-names: {{ .TaskResult.readlistrep.items | default "" | splitList " " | join "," }}
         openebs.io/node-names: {{ .TaskResult.readlistrep.hostname | default "" | splitList " " | join "," }}
         openebs.io/pool-names: {{ .TaskResult.readlistrep.poolname | default "" | splitList " " | join "," }}
