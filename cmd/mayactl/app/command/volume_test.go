@@ -690,3 +690,69 @@ func TestGetNodeName(t *testing.T) {
 		})
 	}
 }
+
+func TestGetVolumeNamespace(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching volume namespace when present in response": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+					},
+				},
+			},
+			expectedOutput: "default",
+		},
+		"Fetching volume namespace when not present in response": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedOutput: "N/A",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetVolumeNamespace()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}
+
+func TestGetVolumeStatus(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching volume status when reason is empty": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{},
+			},
+			expectedOutput: "Running",
+		},
+		"Fetching volume status when reason is not empty": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					Status: v1alpha1.CASVolumeStatus{
+						Reason: "Some Error",
+					},
+				},
+			},
+			expectedOutput: "Some Error",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetVolumeStatus()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}

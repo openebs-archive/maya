@@ -320,3 +320,19 @@ func (volInfo *VolumeInfo) GetNodeName() string {
 	}
 	return ""
 }
+
+// GetVolumeStatus returns the status of the volume
+func (volInfo *VolumeInfo) GetVolumeStatus() string {
+	if len(volInfo.Volume.Status.Reason) > 0 {
+		return volInfo.Volume.Status.Reason
+	}
+	return volumeStatusOK
+}
+
+// GetVolumeNamespace returns the status of the volume
+func (volInfo *VolumeInfo) GetVolumeNamespace() string {
+	if len(volInfo.Volume.ObjectMeta.Namespace) > 0 {
+		return volInfo.Volume.ObjectMeta.Namespace
+	}
+	return "N/A"
+}
