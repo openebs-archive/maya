@@ -17,17 +17,17 @@ limitations under the License.
 package command
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"net/http"
+	"html/template"
+	"os"
 	"strings"
-	"time"
+	"text/tabwriter"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/mapiserver"
-	"github.com/openebs/maya/pkg/util"
+	client "github.com/openebs/maya/pkg/client/jiva"
+	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -50,15 +50,25 @@ type CmdVolumeOptions struct {
 type CASType string
 
 const (
-	// VolumeAPIPath is the api path to get volume information
-	VolumeAPIPath      = "/latest/volumes/"
-	controllerStatusOk = "running"
-	volumeStatusOK     = "Running"
 	// JivaStorageEngine is constant for jiva engine
 	JivaStorageEngine CASType = "jiva"
 	// CstorStorageEngine is constant for cstor engine
 	CstorStorageEngine CASType = "cstor"
-	timeout                    = 5 * time.Second
+
+	infoNotAvailable = "N/A"
+	statusRunning    = "Running"
+
+	// Keys of annotations
+	replicaStatus     = "openebs.io/replica-status"
+	replicaIP         = "openebs.io/replica-ips"
+	controllerStatus  = "openebs.io/controller-status"
+	clusterIP         = "openebs.io/cluster-ips"
+	replicaAccessMode = "openebs.io/replica-access-mode"
+	replicaNodeName   = "openebs.io/replica-node-names"
+	storagePool       = "openebs.io/pool-names"
+	cvrName           = "openebs.io/cvr-names"
+	nodeName          = "openebs.io/node-names"
+	replicaPodName    = "openebs.io/replica-pod-names"
 )
 
 // # Create a Volume:
@@ -142,181 +152,79 @@ func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sour
 	return nil
 }
 
-// NewVolumeInfo fetches and fills CASVolume structure from URL given to it
-func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *VolumeInfo, err error) {
-	url := URL
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return
-	}
-	req.Header.Set("namespace", namespace)
+// processCASVolume process the response with values to be displayed
+func processCASVolume(volume v1alpha1.CASVolume, fetchAccessMode bool) (v1alpha1.CASVolume, error) {
 
-	c := &http.Client{
-		Timeout: timeout,
+	// For support to 0.6 volumes
+	if len(volume.Spec.CasType) == 0 {
+		volume.Spec.CasType = string(JivaStorageEngine)
 	}
-	resp, err := c.Do(req)
-	if err != nil {
-		fmt.Printf("Can't get a response, error found: %v", err)
-		return
+
+	// Assigning N/A if info not available
+	if len(volume.ObjectMeta.Namespace) == 0 {
+		volume.ObjectMeta.Namespace = infoNotAvailable
 	}
-	if resp != nil && resp.StatusCode != 200 {
-		if resp.StatusCode == 500 {
-			fmt.Printf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues")
-			err = util.InternalServerError
-			return
-		} else if resp.StatusCode == 503 {
-			fmt.Printf("maya apiservice not reachable at %q\n", mapiserver.GetURL())
-			err = util.ServerUnavailable
-			return
-		} else if resp.StatusCode == 404 {
-			fmt.Printf("Volume: %s not found at namespace: %q error: %s\n", volname, namespace, http.StatusText(resp.StatusCode))
-			err = util.PageNotFound
-			return
+
+	// Assigning reason as Running when no error found
+	if len(volume.Status.Reason) == 0 {
+		volume.Status.Reason = statusRunning
+	}
+
+	if fetchAccessMode && volume.Spec.CasType == string(JivaStorageEngine) {
+		controllerClient := client.ControllerClient{}
+		collection := client.ReplicaCollection{}
+		controllerStatuses := strings.Split(volume.ObjectMeta.Annotations[controllerStatus], ",")
+		// Iterating over controllerStatus
+		for _, controllerStatus := range controllerStatuses {
+			if controllerStatus != statusRunning {
+				fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
+				return volume, errors.New("Unable to fetch volume details")
+			}
 		}
-		fmt.Printf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
-		err = fmt.Errorf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
-		return
+		// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
+		// An API needs to be passed as argument.
+		_, err := controllerClient.GetVolumeStats(volume.ObjectMeta.Annotations[clusterIP]+v1.ControllerPort, v1.InfoAPI, &collection)
+		if err != nil {
+			return volume, fmt.Errorf("Cannot get volume stats %v", err)
+		}
+
+		replica := make(map[string]string)
+		accessMode := []string{}
+		for _, repl := range collection.Data {
+			replica[repl.Address] = repl.Mode
+		}
+		for _, ip := range strings.Split(volume.ObjectMeta.Annotations[replicaIP], ",") {
+			if val, ok := replica[ip]; ok {
+				accessMode = append(accessMode, val)
+			} else {
+				accessMode = append(accessMode, "N/A")
+			}
+		}
+		volume.ObjectMeta.Annotations[replicaAccessMode] = strings.Join(accessMode, ",")
 	}
-	defer resp.Body.Close()
-	casVol := v1alpha1.CASVolume{}
-	err = json.NewDecoder(resp.Body).Decode(&casVol)
+	return volume, nil
+}
+
+func renderTemplate(templateName, templatePreview string, templateStructure interface{}) (err error) {
+	// Create template instance and pass template structure into it.
+	templ, err := template.New(templateName).Parse(templatePreview)
 	if err != nil {
-		fmt.Printf("Response decode failed: error '%+v'", err)
+		fmt.Println("Error displaying output, found error:", err)
 		return
 	}
-	if casVol.Status.Reason == "pending" {
-		fmt.Println("VOLUME status Unknown to maya apiservice")
-		err = fmt.Errorf("VOLUME status Unknown to maya apiservice")
+
+	// Create tabwriter instance and execute it with template.
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+	err = templ.Execute(w, templateStructure)
+	if err != nil {
+		fmt.Println("Error displaying output, found error:", err)
 		return
 	}
-	volInfo = &VolumeInfo{
-		Volume: casVol,
+
+	// Flush the tabwriter instance.
+	err = w.Flush()
+	if err != nil {
+		fmt.Println("Error displaying output, found error:", err)
 	}
-	return
-}
-
-// GetCASType returns the CASType of the volume in lowercase
-func (volInfo *VolumeInfo) GetCASType() string {
-	if len(volInfo.Volume.Spec.CasType) == 0 {
-		return string(JivaStorageEngine)
-	}
-	return strings.ToLower(volInfo.Volume.Spec.CasType)
-}
-
-// GetClusterIP returns the ClusterIP of the cluster
-func (volInfo *VolumeInfo) GetClusterIP() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/cluster-ips"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/cluster-ips"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetControllerStatus returns the status of the volume controller
-func (volInfo *VolumeInfo) GetControllerStatus() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/controller-status"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/controller-status"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetIQN returns the IQN of the volume
-func (volInfo *VolumeInfo) GetIQN() string {
-	if len(volInfo.Volume.Spec.Iqn) > 0 {
-		return volInfo.Volume.Spec.Iqn
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/iqn"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/iqn"]; ok {
-		return val
-	}
-	return ""
-
-}
-
-// GetVolumeName returns the volume name
-func (volInfo *VolumeInfo) GetVolumeName() string {
-	return volInfo.Volume.ObjectMeta.Name
-}
-
-// GetTargetPortal returns the TargetPortal of the volume
-func (volInfo *VolumeInfo) GetTargetPortal() string {
-	if len(volInfo.Volume.Spec.TargetPortal) > 0 {
-		return volInfo.Volume.Spec.TargetPortal
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/targetportals"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/targetportals"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetVolumeSize returns the capacity of the volume
-func (volInfo *VolumeInfo) GetVolumeSize() string {
-	if len(volInfo.Volume.Spec.Capacity) > 0 {
-		return volInfo.Volume.Spec.Capacity
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/volume-size"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/volume-size"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetReplicaCount returns the volume replica count
-func (volInfo *VolumeInfo) GetReplicaCount() string {
-	if len(volInfo.Volume.Spec.Replicas) > 0 {
-		return volInfo.Volume.Spec.Replicas
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-count"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-count"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetReplicaStatus returns the replica status of the volume replica
-func (volInfo *VolumeInfo) GetReplicaStatus() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-status"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-status"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetReplicaIP returns the IP of volume replica
-func (volInfo *VolumeInfo) GetReplicaIP() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/replica-ips"]; ok {
-		return val
-	} else if val, ok := volInfo.Volume.ObjectMeta.Annotations["vsm.openebs.io/replica-ips"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetStoragePool returns the name of the storage pool
-func (volInfo *VolumeInfo) GetStoragePool() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/pool-names"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetCVRName returns the name of the CVR
-func (volInfo *VolumeInfo) GetCVRName() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/cvr-names"]; ok {
-		return val
-	}
-	return ""
-}
-
-// GetNodeName returns the name of the node
-func (volInfo *VolumeInfo) GetNodeName() string {
-	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/node-names"]; ok {
-		return val
-	}
-	return ""
+	return err
 }

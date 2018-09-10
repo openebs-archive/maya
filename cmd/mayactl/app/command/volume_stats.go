@@ -26,6 +26,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
@@ -76,21 +77,21 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		stats1, stats2 v1.VolumeMetrics
 	)
 	// Filling the volumeInfo structure with response from mayapi server
-	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
+	volumeInfo, err := mapiserver.ReadVolume(c.volName, c.namespace)
 	if err != nil {
-		return nil
+		CheckError(err)
 	}
 
-	controllerStatus := strings.Split(volumeInfo.GetControllerStatus(), ",")
+	controllerStatus := strings.Split(volumeInfo.ObjectMeta.Annotations[controllerStatus], ",")
 	for i := range controllerStatus {
-		if controllerStatus[i] != controllerStatusOk {
+		if controllerStatus[i] != statusRunning {
 			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
 			return nil
 		}
 	}
 
-	replicas := strings.Split(volumeInfo.GetReplicaIP(), ",")
-	replicaStatus := strings.Split(volumeInfo.GetReplicaStatus(), ",")
+	replicas := strings.Split(volumeInfo.ObjectMeta.Annotations[replicaIP], ",")
+	replicaStatus := strings.Split(volumeInfo.ObjectMeta.Annotations[replicaStatus], ",")
 	replicaStats := make(map[int]*ReplicaStats)
 	for i, replica := range replicas {
 		replicaClient := client.ReplicaClient{}
@@ -108,7 +109,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 
 	controllerClient := client.ControllerClient{}
 	// Fetching volume stats from replica controller
-	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats1)
+	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.ObjectMeta.Annotations[clusterIP]+v1.ControllerPort, v1.StatsAPI, &stats1)
 	if err != nil {
 		if (respStatus == 500) || (respStatus == 503) || err != nil {
 			fmt.Println("Volume not Reachable\n", err)
@@ -116,7 +117,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 		}
 	} else {
 		time.Sleep(1 * time.Second)
-		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats2)
+		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.ObjectMeta.Annotations[clusterIP]+v1.ControllerPort, v1.StatsAPI, &stats2)
 		if err != nil {
 			if respStatus == 500 || respStatus == 503 || err != nil {
 				fmt.Println("Volume not Reachable\n", err)
@@ -136,7 +137,7 @@ func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
 // displayStats displays the volume stats as standard output and in json format.
 // By default it displays in standard output format, if flag json has passed
 // displays stats in json format.
-func displayStats(v *VolumeInfo, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
+func displayStats(v v1alpha1.CASVolume, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
 
 	var (
 		ReadLatency          int64
@@ -232,18 +233,18 @@ Capacity Stats :
 	actualUsed = actualUsed * sectorSize
 
 	annotation := v1.Annotation{
-		IQN:    v.GetIQN(),
-		Volume: v.GetVolumeName(),
-		Portal: v.GetTargetPortal(),
-		Size:   v.GetVolumeSize(),
+		IQN:    v.Spec.Iqn,
+		Volume: v.ObjectMeta.Name,
+		Portal: v.Spec.TargetPortal,
+		Size:   v.Spec.Capacity,
 	}
 
 	stat1 := v1.StatsJSON{
 
-		IQN:    v.GetIQN(),
-		Volume: v.GetVolumeName(),
-		Portal: v.GetTargetPortal(),
-		Size:   v.GetVolumeSize(),
+		IQN:    v.Spec.Iqn,
+		Volume: v.ObjectMeta.Name,
+		Portal: v.Spec.TargetPortal,
+		Size:   v.Spec.Capacity,
 
 		ReadIOPS:  readIOPS,
 		WriteIOPS: writeIOPS,
@@ -284,7 +285,7 @@ Capacity Stats :
 			return nil
 		}
 
-		replicaCount, err := strconv.Atoi(v.GetReplicaCount())
+		replicaCount, err := strconv.Atoi(v.Spec.Replicas)
 		if err != nil {
 			fmt.Println("Can't convert to int, found error", err)
 			return nil

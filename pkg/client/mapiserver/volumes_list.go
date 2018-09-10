@@ -2,21 +2,23 @@ package mapiserver
 
 import (
 	"encoding/json"
-	"time"
-)
+	"fmt"
+	"net/http"
 
-const (
-	timeoutVolumesList = 5 * time.Second
-	listVolumePath     = "/latest/volumes/"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
 // ListVolumes and return them as obj
-func ListVolumes(obj interface{}) error {
-
-	body, err := getRequest(GetURL()+listVolumePath, "", true)
+func ListVolumes() (volumes v1alpha1.CASVolumeList, err error) {
+	volumes = v1alpha1.CASVolumeList{}
+	body, responseStatusCode, err := serverRequest(get, nil, GetURL()+volumePath, "")
 	if err != nil {
-		return err
+		return
+	} else if responseStatusCode != http.StatusOK {
+		err = fmt.Errorf(string(body))
+		return
 	}
 
-	return json.Unmarshal(body, &obj)
+	err = json.Unmarshal(body, &volumes)
+	return
 }
