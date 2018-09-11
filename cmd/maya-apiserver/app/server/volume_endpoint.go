@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
 	policies_v1 "github.com/openebs/maya/volume/policies/v1"
 	"github.com/openebs/maya/volume/provisioners"
@@ -22,26 +21,29 @@ const (
 // requests w.r.t a single Volume.
 func (s *HTTPServer) volumeSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// check the feature gate & switch if enabled
-	feature, err := util.CASTemplateFeatureGate()
-	if err != nil {
-		// log and return http error 500
-		glog.Errorf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
-		return nil, CodedError(500, http.StatusText(500))
-	}
-	if feature {
-		return s.volumeV1alpha1SpecificRequest(resp, req)
-	}
+	// feature, err := util.CASTemplateFeatureGate()
+	// if err != nil {
+	// 	// log and return http error 500
+	// 	glog.Errorf("invalid feature gate value for %s only boolean values allowed", util.CASTemplateFeatureGateENVK)
+	// 	return nil, CodedError(500, http.StatusText(500))
+	// }
+	// if feature {
+	// 	return s.volumeV1alpha1SpecificRequest(resp, req)
+	// }
 
-	glog.Infof("received volume request: method '%s'", req.Method)
+	// glog.Infof("received volume request: method '%s'", req.Method)
 
-	switch req.Method {
-	case "PUT", "POST":
-		return s.volumeAdd(resp, req)
-	case "GET":
-		return s.volumeSpecificGetRequest(resp, req)
-	default:
-		return nil, CodedError(405, ErrInvalidMethod)
-	}
+	// switch req.Method {
+	// case "PUT", "POST":
+	// 	return s.volumeAdd(resp, req)
+	// case "GET":
+	// 	return s.volumeSpecificGetRequest(resp, req)
+	// default:
+	// 	return nil, CodedError(405, ErrInvalidMethod)
+	// }
+
+	// To enable feature gate check feature uncomment previous code and comment the code after this in present block
+	return s.volumeV1alpha1SpecificRequest(resp, req)
 }
 
 // VolumeSpecificGetRequest deals with HTTP GET request w.r.t a single Volume

@@ -17,6 +17,7 @@ limitations under the License.
 package replicacontroller
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -29,9 +30,30 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
+
+// CVRPatch struct represent the struct used to patch
+// the cvr object
+type CVRPatch struct {
+	// Op defines the operation
+	Op string `json:"op"`
+	// Path defines the key path
+	// eg. for
+	// {
+	//  	"Name": "openebs"
+	//	    Category: {
+	//		  "Inclusive": "v1",
+	//		  "Rank": "A"
+	//	     }
+	// }
+	// The path of 'Inclusive' would be
+	// "/Name/Category/Inclusive"
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
 
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the CStorReplicaUpdated resource
@@ -40,6 +62,9 @@ func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.
 	cVRGot, err := c.getVolumeReplicaResource(key)
 	if err != nil {
 		return err
+	}
+	if cVRGot == nil {
+		return fmt.Errorf("cannot retrieve cStorVolumeReplica %q", key)
 	}
 	status, err := c.cVREventHandler(operation, cVRGot)
 	if status == "" {
@@ -98,6 +123,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 
 		err := volumereplica.DeleteVolume(fullVolName)
 		if err != nil {
+			glog.Errorf("Error in deleting volume %q: %s", cVR.ObjectMeta.Name, err)
 			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
 			return string(apis.CVRStatusDeletionFailed), err
 		}
@@ -173,11 +199,22 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*ap
 
 // removeFinalizer is to remove finalizer of CStorVolumeReplica resource.
 func (c *CStorVolumeReplicaController) removeFinalizer(cVR *apis.CStorVolumeReplica) error {
-	if len(cVR.Finalizers) > 0 {
-		cVR.Finalizers = []string{}
-	}
-	_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Update(cVR)
+	glog.Errorf("Removing finalizers for %s", cVR.Name)
+	// The Patch method requires an array of elements
+	// therefore creating array of one element
+	cvrPatch := make([]CVRPatch, 1)
+	// setting operation as remove
+	cvrPatch[0].Op = "remove"
+	// object to be removed is finalizers
+	cvrPatch[0].Path = "/metadata/finalizers"
+	cvrPatchJSON, err := json.Marshal(cvrPatch)
 	if err != nil {
+		glog.Errorf("Error marshaling cvrPatch object: %s", err)
+		return err
+	}
+	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Patch(cVR.Name, types.JSONPatchType, cvrPatchJSON)
+	if err != nil {
+		glog.Errorf("Finalizer patch failed for %s: %s", cVR.Name, err)
 		return err
 	}
 	glog.Infof("Removed Finalizer: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))

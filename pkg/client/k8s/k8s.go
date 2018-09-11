@@ -202,6 +202,12 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 	}, nil
 }
 
+// GetOECS() is a getter method for fetching openebs clientset as
+// the openebs clientset is not exported.
+func (k *K8sClient) GetOECS() *openebs.Clientset {
+	return k.oecs
+}
+
 // scOps is a utility function that provides a instance capable of
 // executing various K8s StorageClass related operations
 func (k *K8sClient) storageV1SCOps() typed_storage_v1.StorageClassInterface {
@@ -478,7 +484,6 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 func (k *K8sClient) GetCoreV1PersistentVolumeAsRaw(name string) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().
 		Get().
-		Namespace(k.ns).
 		Resource("persistentvolumes").
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).

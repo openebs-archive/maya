@@ -76,6 +76,7 @@ func createVolumeBuilder(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	createVolAttr = append(createVolAttr, "create",
+		"-b", "4K", "-s", "-o", "compression=on",
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName,
 		"-o", openebsTargetIP, "-o", openebsVolname)
 
@@ -102,9 +103,14 @@ func GetVolumes() ([]string, error) {
 
 // DeleteVolume deletes the specified volume.
 func DeleteVolume(fullVolName string) error {
-	deleteVolStr := []string{"destroy", fullVolName}
+	deleteVolStr := []string{"destroy", "-r", fullVolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {
+		// If volume is missing then do not return error
+		if strings.Contains(err.Error(), "dataset does not exist") {
+			glog.Infof("Assuming volume deletion successful for error: %v", string(stdoutStderr))
+			return nil
+		}
 		glog.Errorf("Unable to delete volume : %v", string(stdoutStderr))
 		return err
 	}

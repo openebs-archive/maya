@@ -15,6 +15,12 @@ const (
 	IstgtHeader      = "iSCSI Target Controller version"
 )
 
+//IsResponseEOD will detect if the data coming from UNIX pipe is completely received
+func IsResponseEOD(resp []string, cmd string) bool {
+	return (len(resp) != 0 && !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
+		!strings.HasPrefix(resp[len(resp)-1], cmd))
+}
+
 //Reader reads the response from unix domain socket
 func Reader(r io.Reader, cmd string) []string {
 	resp := []string{}
@@ -37,9 +43,7 @@ func Reader(r io.Reader, cmd string) []string {
 				//clear the fulllines buffer once the response lines are appended to the response
 				fulllines = nil
 			}
-
-			if !strings.HasPrefix(resp[len(resp)-1], IstgtHeader) &&
-				!strings.HasPrefix(resp[len(resp)-1], cmd) {
+			if IsResponseEOD(resp, cmd) {
 				glog.Infof("Breaking out of loop for line :", resp[len(resp)-1])
 				break
 			}

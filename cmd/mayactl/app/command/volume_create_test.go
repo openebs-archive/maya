@@ -31,21 +31,21 @@ func TestIsVolumeExist(t *testing.T) {
 			volname: "test2",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   400,
-				ResponseBody: string("HTTP Error 400 - Bad Request"),
+				ResponseBody: string("HTTP Error 400 : Bad Request"),
 				T:            t,
 			},
 			addr:           "MAPI_ADDR",
-			expectedOutput: fmt.Errorf("Server status error: Bad Request"),
+			expectedOutput: fmt.Errorf("HTTP Error 400 : Bad Request"),
 		},
 		"Getting status error 404": {
 			volname: "test3",
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   404,
-				ResponseBody: string("HTTP Error 404 - Not Found"),
+				ResponseBody: string("HTTP Error 404 : Not Found"),
 				T:            t,
 			},
 			addr:           "MAPI_ADDR",
-			expectedOutput: fmt.Errorf("Server status error: Not Found"),
+			expectedOutput: fmt.Errorf("HTTP Error 404 : Not Found"),
 		},
 		"Creating volume which already exist": {
 			volname: "test5",

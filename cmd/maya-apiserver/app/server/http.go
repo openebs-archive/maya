@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//	"github.com/NYTimes/gziphandler"
 	"io"
 	"io/ioutil"
 	"log"

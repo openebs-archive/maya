@@ -21,7 +21,8 @@ EXTERNAL_TOOLS=\
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html \
 	github.com/ugorji/go/codec/codecgen \
-	gopkg.in/alecthomas/gometalinter.v1
+	gopkg.in/alecthomas/gometalinter.v1 \
+	github.com/golang/protobuf/protoc-gen-go
 
 # list only our .go files i.e. exlcudes any .go files from the vendor directory
 GOFILES_NOVENDOR = $(shell find . -type f -name '*.go' -not -path "./vendor/*")
@@ -31,11 +32,22 @@ ifeq (${IMAGE_TAG}, )
   export IMAGE_TAG
 endif
 
+ifeq (${TRAVIS_TAG}, )
+  BASE_TAG = ci
+  export BASE_TAG
+else
+  BASE_TAG = ${TRAVIS_TAG}
+  export BASE_TAG
+endif
+
+CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
+
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
+VOLUME_GRPC=cstor-volume-grpc
 AGENT=maya-agent
 EXPORTER=maya-exporter
 
@@ -64,6 +76,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
+	rm -rf ${GOPATH}/bin/${VOLUME_GRPC}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -118,7 +131,7 @@ bootstrap:
 	done
 
 # code generation for custom resources
-generated_files: deepcopy clientset lister informer
+generated_files: deepcopy clientset lister informer cstor-volume-grpc
 
 # builds vendored version of deepcopy-gen tool
 deepcopy:
@@ -179,10 +192,10 @@ cstor-pool-mgmt:
 
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
-	@echo "--> cstor-pool-mgmt image         "
+	@echo "--> cstor-pool-mgmt image "
 	@echo "----------------------------"
 	@cp bin/cstor-pool-mgmt/${POOL_MGMT} buildscripts/cstor-pool-mgmt/
-	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/cstor-pool-mgmt && sudo docker build -t openebs/cstor-pool-mgmt:${IMAGE_TAG} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 	@sh buildscripts/cstor-pool-mgmt/push
 
@@ -193,13 +206,25 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
 
+#Use this to build cstor-volume-grpc
+cstor-volume-grpc:
+	@echo "----------------------------"
+	@echo "--> cstor-volume-grpc           "            
+	@echo "----------------------------"
+	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
+    -I${GOPATH}/src \
+    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-grpc/v1alpha1 \
+    $(PWD)/pkg/apis/openebs.io/v1alpha1/cstorvolume.proto
+
 volume-mgmt-image: cstor-volume-mgmt
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
+	@cp bin/cstor-volume-mgmt/${VOLUME_GRPC} buildscripts/cstor-volume-mgmt/
 	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
+	@rm buildscripts/cstor-volume-mgmt/${VOLUME_GRPC}
 	@sh buildscripts/cstor-volume-mgmt/push
 
 # Use this to build only the maya-agent.

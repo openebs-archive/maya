@@ -79,7 +79,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		common.SyncResources.Mux.Lock()
 		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 		common.SyncResources.Mux.Unlock()
-
+		pool.PoolAddEventHandled = true
 		return status, err
 
 	case common.QOpDestroy:

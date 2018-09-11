@@ -3,34 +3,25 @@ package command
 import (
 	"testing"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/types/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDisplayStats(t *testing.T) {
 	validStats := map[string]struct {
-		annotation   *Annotations
 		cmdOptions   *CmdVolumeOptions
 		replicaStats map[int]*ReplicaStats
 		initialStats v1.VolumeMetrics
 		finalStats   v1.VolumeMetrics
 		output       error
 		replicaCount int
+		volume       VolumeInfo
 	}{
 		"StatsStdWhenReplicaIs0": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "0",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10",
 			},
 			replicaStats: nil,
 			initialStats: v1.VolumeMetrics{
@@ -65,6 +56,41 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "0",
 				WriteIOPS:            "0",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 
@@ -72,17 +98,6 @@ func TestDisplayStats(t *testing.T) {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "1",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -123,23 +138,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs2": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "2",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -190,23 +229,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsJSONWhenReplicaIs3": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "json",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -257,23 +320,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -329,23 +416,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4AndOneErrorPullBack": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,ErrImagePull,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -401,23 +512,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsStdWhenReplicaIs4AndOneCrashLoopBackOff": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "4",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,CrashLoopBackOff,Running",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil,10.10.10.12",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -473,23 +608,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"StatsStd": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -539,6 +698,41 @@ func TestDisplayStats(t *testing.T) {
 				UsedBlocks:           "1048576",
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
+			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
 			},
 			output: nil,
 		},
@@ -547,17 +741,6 @@ func TestDisplayStats(t *testing.T) {
 				json:    "",
 				volName: "vol1",
 			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
-			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
 					Replica:         "10.10.10.10",
@@ -607,23 +790,47 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "20",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 		"WriteIOPSIsZero": {
 			cmdOptions: &CmdVolumeOptions{
 				json:    "",
 				volName: "vol1",
-			},
-			annotation: &Annotations{
-				TargetPortal:     "10.99.73.74:3260",
-				ClusterIP:        "10.99.73.74",
-				Iqn:              "iqn.2016-09.com.openebs.jiva:vol1",
-				ReplicaCount:     "3",
-				ControllerStatus: "Running",
-				ReplicaStatus:    "Running,Running,Offline",
-				VolSize:          "1G",
-				ControllerIP:     "",
-				Replicas:         "10.10.10.10,10.10.10.11,nil",
 			},
 			replicaStats: map[int]*ReplicaStats{
 				0: {
@@ -674,13 +881,48 @@ func TestDisplayStats(t *testing.T) {
 				UsedLogicalBlocks:    "1048576",
 				WriteIOPS:            "15",
 			},
+			volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"vsm.openebs.io/controller-ips":    "10.48.1.17",
+							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/cluster-ips":           "10.51.242.184",
+							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
+							"openebs.io/replica-status":        "running, running, running",
+							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
+							"vsm.openebs.io/replica-status":    "running, running, running",
+							"vsm.openebs.io/volume-size":       "5G",
+							"openebs.io/controller-ips":        "10.48.1.17",
+							"openebs.io/volume-size":           "5G",
+							"vsm.openebs.io/replica-count":     "3",
+							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/controller-status":     "running,running",
+							"openebs.io/replica-count":         "3",
+							"vsm.openebs.io/controller-status": "running,running",
+							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
+							"openebs.io/targetportals":         "10.51.242.184:3260",
+							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
+						},
+					},
+					Spec: v1alpha1.CASVolumeSpec{
+						Capacity:     "5G",
+						CasType:      "jiva",
+						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
+						Replicas:     "1",
+						TargetIP:     "<no value>",
+						TargetPort:   "3260",
+						TargetPortal: "<no value>:3260",
+					},
+				},
+			},
 			output: nil,
 		},
 	}
 	for name, tt := range validStats {
 		t.Run(name, func(t *testing.T) {
-			if got := tt.annotation.DisplayStats(tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
-				t.Fatalf("DisplayStats(%v, %v, %v, %v) => %v, want %v", tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
+			if got := displayStats(&tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
+				t.Fatalf("displayStats(%v,%v, %v, %v, %v) => %v, want %v", &tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
 			}
 		})
 	}

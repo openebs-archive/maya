@@ -32,6 +32,7 @@ import (
 
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
+	install "github.com/openebs/maya/pkg/install/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 
@@ -235,6 +236,13 @@ func (c *CmdStartOptions) readMayaConfig() *config.MayaConfig {
 // setupMayaServer is used to start Maya server
 func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	glog.Info("Starting maya api server ...")
+
+	// run maya installer
+	installErrs := install.SimpleInstaller().Install()
+	if len(installErrs) != 0 {
+		glog.Errorf("Install errors were found: %+v", installErrs)
+		return fmt.Errorf("Failed to install resources")
+	}
 
 	// Setup maya service i.e. maya api server
 	maya, err := server.NewMayaApiServer(mconfig, os.Stdout)

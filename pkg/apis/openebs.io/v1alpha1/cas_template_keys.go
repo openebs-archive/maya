@@ -109,7 +109,8 @@ const (
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
-	OwnerCTP StoragePoolTLPProperty = "owner"
+	OwnerCTP    StoragePoolTLPProperty = "owner"
+	DiskListCTP StoragePoolTLPProperty = "diskList"
 )
 
 // VolumeTLPProperty is used to define properties that comes
@@ -146,6 +147,21 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Volume.storageclass }}
 	StorageClassVTP VolumeTLPProperty = "storageclass"
+)
+
+// CloneTLPProperty is used to define properties for clone operations
+type CloneTLPProperty string
+
+const (
+	// SnapshotNameVTP is the snapshot name
+	SnapshotNameVTP CloneTLPProperty = "snapshotName"
+	// SourceVolumeTargetIPVTP is source volume target IP
+	SourceVolumeTargetIPVTP CloneTLPProperty = "sourceVolumeTargetIP"
+	// IsCloneVTP is a bool value for clone operations
+	// for a volume
+	IsCloneEnableVTP CloneTLPProperty = "isCloneEnable"
+	// Name of the source volume
+	SourceVolumeVTP CloneTLPProperty = "sourceVolume"
 )
 
 // PolicyTLPProperty is the name of the property that is found
@@ -228,6 +244,15 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.notFoundErr }}
 	TaskResultNotFoundErrTRTP TaskResultTLPProperty = "notFoundErr"
+	// TaskResultVersionMismatchErrTRTP is a property of TaskResultTLP
+	//
+	// First error found after **version mismatch** checks done against the 
+	// result of the task's execution is stored in this property.
+	//
+	// NOTE:
+	//  The corresponding value will be accessed as
+	// {{ .TaskResult.<TaskIdentity>.versionMismatchErr }}
+	TaskResultVersionMismatchErrTRTP TaskResultTLPProperty = "versionMismatchErr"
 )
 
 // ListItemsTLPProperty is the name of the property that is found

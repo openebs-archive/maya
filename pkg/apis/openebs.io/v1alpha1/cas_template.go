@@ -48,6 +48,9 @@ type CASTemplateSpec struct {
 	// OutputTask is the task that has the CAS template result's output
 	// format
 	OutputTask string `json:"output"`
+	// Fallback is the CASTemplate to fallback to in-case of specific failures
+	// e.g. VersionMismatchError, etc
+	Fallback string `json:"fallback"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

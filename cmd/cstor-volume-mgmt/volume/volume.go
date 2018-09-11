@@ -74,7 +74,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   PidFile "/var/run/istgt.pid"
   AuthFile "/usr/local/etc/istgt/auth.conf"
   LogFile "/usr/local/etc/istgt/logfile"
-  Luworkers 1 
+  Luworkers 6
   MediaDirectory "/mnt"
   Timeout 60
   NopInInterval 20
@@ -132,7 +132,7 @@ func CreateIstgtConf(cStorVolume *apis.CStorVolume) []byte {
   UnitOnline Yes
   BlockLength 512
   QueueDepth 32
-  Luworkers 1
+  Luworkers 6
 `)
 	buffer.WriteString("  UnitInquiry \"OpenEBS\" \"iscsi\" \"0\" \"" + string(cStorVolume.UID) + "\"")
 	buffer.WriteString(`

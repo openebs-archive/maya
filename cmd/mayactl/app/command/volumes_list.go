@@ -59,18 +59,18 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	var cvols v1alpha1.CASVolumeList
 	err := mapiserver.ListVolumes(&cvols)
 	if err != nil {
-		return err
+		return fmt.Errorf("Volume list error: %s", err)
 	}
 
 	out := make([]string, len(cvols.Items)+1)
-	out[0] = "Name|Status"
+	out[0] = "Name|Status|Type"
 	for i, items := range cvols.Items {
-		if items.Status.Reason == "" {
-			items.Status.Reason = "Running"
+		if len(items.Status.Reason) == 0 {
+			items.Status.Reason = volumeStatusOK
 		}
-		out[i+1] = fmt.Sprintf("%s|%s",
+		out[i+1] = fmt.Sprintf("%s|%s|%s",
 			items.ObjectMeta.Name,
-			items.Status.Reason)
+			items.Status.Reason, items.Spec.CasType)
 	}
 	if len(out) == 1 {
 		fmt.Println("No Volumes are running")
