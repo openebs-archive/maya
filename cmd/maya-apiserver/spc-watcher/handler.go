@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors
+Copyright 2018 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package spc
 import (
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/maya-apiserver/spc-actions"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -68,7 +68,16 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 	switch operation {
 	case addEvent:
 		// CreateStoragePool function will create the storage pool
-		err := storagepoolactions.CreateStoragePool(spcGot)
+		// It is a create event so resync should be false and pendingPoolcount is passed 0
+		// pendingPoolcount is not used when resync is false.
+		var newSpcLease Leases
+		newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset}
+		_, err := newSpcLease.GetLease()
+		if err != nil {
+			glog.Errorf("Could not acquire lease on spc object:%v", err)
+			return addEvent, err
+		}
+		err = CreateStoragePool(spcGot, false, 0)
 
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
@@ -84,9 +93,15 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// Hook Update Business Logic Here
 		return updateEvent, nil
 		break
-
+	case syncEvent:
+		err := syncSpc(spcGot)
+		if err != nil {
+			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
+		}
+		return syncEvent, err
+		break
 	case deleteEvent:
-		err := storagepoolactions.DeleteStoragePool(spcGot)
+		err := DeleteStoragePool(spcGot)
 
 		if err != nil {
 			glog.Error("Storagepool could not be deleted:", err)
@@ -138,4 +153,42 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 		return nil, err
 	}
 	return spcGot, nil
+}
+
+func syncSpc(spcGot *apis.StoragePoolClaim) error {
+	if len(spcGot.Spec.Disks.DiskList) > 0 {
+		// TODO : reconciliation for manual storagepool provisioning
+		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
+		return nil
+	}
+	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
+	// Get kubernetes clientset
+	// namespaces is not required, hence passed empty.
+	newK8sClient, err := k8s.NewK8sClient("")
+	if err != nil {
+		return err
+	}
+	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
+	// the openebs clientset is not exported.
+	newOecsClient := newK8sClient.GetOECS()
+
+	// Get the current count of provisioned pool for the storagepool claim
+	spList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
+	if err != nil {
+		return fmt.Errorf("unable to list storagepools: %v", err)
+	}
+	currentPoolCount := len(spList.Items)
+
+	// If current pool count is less than maxpool count, try to converge to maxpool
+	if currentPoolCount < int(spcGot.Spec.MaxPools) {
+		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
+		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
+		pendingPoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
+		// Call the storage pool create logic to provision the pending pools.
+		err := CreateStoragePool(spcGot, true, pendingPoolCount)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

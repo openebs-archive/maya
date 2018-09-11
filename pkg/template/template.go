@@ -61,6 +61,21 @@ func empty(given interface{}) bool {
 	return true
 }
 
+// VersionMismatchError represents an error due to version mismatch
+type VersionMismatchError struct {
+	err string
+}
+
+func (e *VersionMismatchError) Error() string {
+	return e.err
+}
+
+// IsVersionMismatch flags if the error is a version mismatch error
+func IsVersionMismatch(err error) (match bool) {
+	_, match = err.(*VersionMismatchError)
+	return
+}
+
 // NotFoundError represents an error due to a missing object
 //
 // NOTE: This is meant to be used as a template function
@@ -663,6 +678,36 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 	return
 }
 
+// versionMismatchErr returns VersionMismatchError if given verification flag
+// failed i.e. is true
+//
+// NOTE:
+//  This is intended to be used as a go template function
+//
+// Example:
+// {{- "vsm" | eq "vsm" | versionMismatchErr "vsm not supported in 0.7.0" | saveIf "errMsg" .Values | noop -}}
+//
+// Above returns VersionMismatchError during template execution. However this
+// does not result in a runtime error.
+//
+// Assumption here is .Values is of type 'map[string]interface{}'
+func versionMismatchErr(errMessage string, isWrongVersion bool) (err error) {
+	if !isWrongVersion {
+		// no error if no version mismatch
+		return
+	}
+
+	if len(errMessage) == 0 {
+		errMessage = "version mismatch"
+	}
+
+	err = &VersionMismatchError{
+		err: errMessage,
+	}
+
+	return
+}
+
 // ToYaml takes an interface, marshals it to yaml, and returns a string. It will
 // always return a string, even on marshal error (empty string).
 //
@@ -706,22 +751,23 @@ func funcMap() template.FuncMap {
 
 	// Add some extra templating functions
 	extra := template.FuncMap{
-		"pickContains": pickContains,
-		"pickSuffix":   pickSuffix,
-		"pickPrefix":   pickPrefix,
-		"toYaml":       ToYaml,
-		"fromYaml":     fromYaml,
-		"jsonpath":     jsonPath,
-		"saveAs":       saveAs,
-		"saveIf":       saveIf,
-		"addTo":        addTo,
-		"noop":         noop,
-		"notFoundErr":  notFoundErr,
-		"verifyErr":    verifyErr,
-		"isLen":        isLen,
-		"nestedKeyMap": nestedKeyMap,
-		"keyMap":       keyMap,
-		"splitKeyMap":  splitKeyMap,
+		"pickContains":       pickContains,
+		"pickSuffix":         pickSuffix,
+		"pickPrefix":         pickPrefix,
+		"toYaml":             ToYaml,
+		"fromYaml":           fromYaml,
+		"jsonpath":           jsonPath,
+		"saveAs":             saveAs,
+		"saveIf":             saveIf,
+		"addTo":              addTo,
+		"noop":               noop,
+		"notFoundErr":        notFoundErr,
+		"verifyErr":          verifyErr,
+		"versionMismatchErr": versionMismatchErr,
+		"isLen":              isLen,
+		"nestedKeyMap":       nestedKeyMap,
+		"keyMap":             keyMap,
+		"splitKeyMap":        splitKeyMap,
 	}
 
 	for k, v := range extra {

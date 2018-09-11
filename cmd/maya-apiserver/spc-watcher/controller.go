@@ -44,6 +44,7 @@ const (
 	updateEvent = "update"
 	deleteEvent = "delete"
 	ignoreEvent = "ignore"
+	syncEvent   = "sync"
 )
 
 // Controller is the controller implementation for SPC resources
@@ -150,7 +151,12 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 
 	if spcObjectNew.ObjectMeta.ResourceVersion == spcObjectOld.ObjectMeta.ResourceVersion {
 		// If Resource Version is same it means the object has not got updated.
-		c.queueLoad.Operation = ignoreEvent
+		// Enqueue the object as part of sync event to achieve the reconciliation loop for storagepool
+		// Reconciliation will try to converge the pool to its desired state
+		// If the storagepool is already in the desired state, it will do nothing.
+		c.queueLoad.Operation = syncEvent
+		c.queueLoad.Object = spcObjectNew
+		c.enqueueSpc(&c.queueLoad)
 	} else {
 		// Suppressing delete event here as the event is already captured in
 		// deleteSpc hook.

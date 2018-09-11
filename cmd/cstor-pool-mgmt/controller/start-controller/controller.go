@@ -78,7 +78,7 @@ func StartControllers(kubeconfig string) {
 		// for zrepl container such that the period(x) of the goroutine thread will
 		// be half that of this initialTimeDelay y. (x = 1/2 y).
 		pool.CheckForZreplContinuous(common.ContinuousZreplRetryInterval)
-		glog.Errorf("Zrepl is not available, Shutting down")
+		glog.Errorf("Zrepl/Pool is not available, Shutting down")
 		os.Exit(1)
 	}()
 	// Blocking call for checking status of CStorPool CRD.

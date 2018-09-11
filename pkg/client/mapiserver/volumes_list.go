@@ -13,7 +13,7 @@ const (
 // ListVolumes and return them as obj
 func ListVolumes(obj interface{}) error {
 
-	body, err := getRequest(GetURL()+listVolumePath, "", false)
+	body, err := getRequest(GetURL()+listVolumePath, "", true)
 	if err != nil {
 		return err
 	}

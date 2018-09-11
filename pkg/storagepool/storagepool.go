@@ -23,6 +23,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -69,14 +70,18 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 	if v.k8sClient == nil {
 		return nil, fmt.Errorf("Unable to create storagepool: nil k8s client")
 	}
-
+	// cas template to create a storagepool
 	castName := v.pool.CasCreateTemplate
+	if len(castName) == 0 {
+		// get default create CAS template to create storagepool from ENV variable
+		castName = menv.Get(menv.CASTemplateToCreatePoolENVK)
+	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("Unable to create storagepool: missing create cas template")
 	}
-
+	// extract the cas openebs config from storagepoolclaim
+	openebsConfig := v.pool.Annotations[string(v1alpha1.CASConfigKey)]
 	// fetch CASTemplate specifications
-	//cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -84,9 +89,11 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 	// provision cas storagepool via cas template engine
 	cc, err := NewCASStoragePoolEngine(
 		cast,
+		openebsConfig,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
+			string(v1alpha1.OwnerCTP):    v.pool.StoragePoolClaim,
+			string(v1alpha1.DiskListCTP): v.pool.DiskList,
 		},
 	)
 	if err != nil {
@@ -115,6 +122,10 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 
 	// cas template to delete a storagepool
 	castName := v.pool.CasDeleteTemplate
+	if len(castName) == 0 {
+		// get default delete CAS template to delete storagepool from ENV variable
+		castName = menv.Get(menv.CASTemplateToDeletePoolENVK)
+	}
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to delete storagepool: no cas template for delete found")
 	}

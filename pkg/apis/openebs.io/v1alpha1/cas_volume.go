@@ -63,6 +63,9 @@ const (
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 
+	// CASTypeKey is the key to fetch storage engine for the volume
+	CASTypeKey CASKey = "openebs.io/cas-type"
+
 	// StorageClassHeaderKey is the key to fetch name of StorageClass
 	// This key is present only in get request headers
 	StorageClassHeaderKey CASKey = "storageclass"
@@ -163,6 +166,8 @@ type CASVolume struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec i.e. specifications of this cas volume
 	Spec CASVolumeSpec `json:"spec"`
+	// CloneSpec contains the required information related to volume clone
+	CloneSpec VolumeCloneSpec `json:"cloneSpec,omitempty"`
 	// Status of this cas volume
 	Status CASVolumeStatus `json:"status"`
 }
@@ -181,6 +186,12 @@ type CASVolumeSpec struct {
 	TargetPort string `json:"targetPort"`
 	// Replicas will hold the replica count for this volume
 	Replicas string `json:"replicas"`
+	// CasType will hold the storage engine used to provision this volume
+	CasType string `json:"casType"`
+	// FSType will specify the format type - ext4(default), xfs of PV
+	FSType string `json:"fsType"`
+	// Lun will specify the lun number 0, 1.. on iSCSI Volume. (default: 0) 
+	Lun int32 `json:"lun"`
 }
 
 // CASVolumeStatus provides status of a cas volume
@@ -193,6 +204,20 @@ type CASVolumeStatus struct {
 	// Reason is a brief CamelCase string that describes any failure and is meant
 	// for machine parsing and tidy display in the CLI
 	Reason string
+}
+
+// VolumeCloneSpec contains the required information which enable volume to cloned
+type VolumeCloneSpec struct {
+	// Defaults to false, true will enable the volume to be created as a clone
+	IsClone bool `json:"isClone,omitempty"`
+	// SourceVolume is snapshotted volume
+	SourceVolume string `json:"sourceVolume,omitempty"`
+	// CloneIP is the source controller IP which will be used to make a sync and rebuild
+	// request from the new clone replica.
+	SourceVolumeTargetIP string `json:"sourceTargetIP,omitempty"`
+	// SnapshotName name of snapshot which is getting promoted as persistent
+	// volume(this snapshot will be cloned to new volume).
+	SnapshotName string `json:"snapshotName,omitempty"`
 }
 
 // VolumePhase defines phase of a volume
