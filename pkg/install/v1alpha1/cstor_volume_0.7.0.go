@@ -164,7 +164,7 @@ spec:
     Save the cstorpool's uid:name into .ListItems.cvolPoolList otherwise
     */}}
     {{- $replicaCount := int64 .Config.ReplicaCount.value | saveAs "rc" .ListItems -}}
-    {{- $poolsList := jsonpath .JsonResult "{range .items[?(@.status.phase=='Online')]}pkey=pools,{@.metadata.uid}={@.metadata.name};{end}" | trim | default "" | splitList ";" -}}
+    {{- $poolsList := jsonpath .JsonResult "{range .items[?(@.status.phase=='Online')]}pkey=pools,{@.metadata.uid}={@.metadata.name};{end}" | trim | default "" | splitListTrim ";" -}}
     {{- $poolsList | saveAs "pl" .ListItems -}}
     {{- len $poolsList | gt $replicaCount | verifyErr "not enough pools available to create replicas" | saveAs "cvolcreatelistpool.verifyErr" .TaskResult | noop -}}
     {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
