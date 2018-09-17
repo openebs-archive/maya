@@ -768,6 +768,7 @@ func funcMap() template.FuncMap {
 		"nestedKeyMap":       nestedKeyMap,
 		"keyMap":             keyMap,
 		"splitKeyMap":        splitKeyMap,
+		"splitListTrim":      splitListTrim,
 	}
 
 	for k, v := range extra {
@@ -838,4 +839,20 @@ func AsMapOfStrings(context string, yml string, values map[string]interface{}) (
 	}
 
 	return obj, nil
+}
+
+// splitListTrim trims the separator from prefix and suffix, then
+// returns an array of strings split on separator
+//
+// NOTE:
+//  This is intended to be used as a template function
+//
+// Example:
+//  {{- $pools =: "pool1;pool2;" | splitListTrim ";" | -}}
+//
+// Above operation would assign an array of strings containing
+// 'pool1' and 'pool2' to pools
+func splitListTrim(sep, orig string) []string {
+	processedStr := strings.TrimRight(strings.TrimLeft(orig, sep), sep)
+	return strings.Split(processedStr, sep)
 }
