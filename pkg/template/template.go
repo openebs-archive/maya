@@ -853,6 +853,6 @@ func AsMapOfStrings(context string, yml string, values map[string]interface{}) (
 // Above operation would assign an array of strings containing
 // 'pool1' and 'pool2' to pools
 func splitListTrim(sep, orig string) []string {
-	processedStr := strings.TrimSuffix(strings.TrimPrefix(orig, sep), sep)
+	processedStr := strings.TrimRight(strings.TrimLeft(orig, sep), sep)
 	return strings.Split(processedStr, sep)
 }

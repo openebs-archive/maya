@@ -2237,11 +2237,16 @@ func TestSplitListTrim(t *testing.T) {
 		"Multiple seperators only": {
 			";",
 			";;;;",
-			[]string{"", "", ""},
+			[]string{""},
+		},
+		"Multiple seperators in between": {
+			";",
+			"p1;;;p2",
+			[]string{"p1", "", "", "p2"},
 		},
 		"Prefix-Suffix seperators in string": {
 			";",
-			";p1;p2;p3;",
+			";;p1;p2;p3;;;",
 			[]string{"p1", "p2", "p3"},
 		},
 		"Single seperator in string": {
