@@ -701,6 +701,9 @@ spec:
             openebs.io/controller: jiva-controller
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+          annotations:
+            openebs.io/fs-type: {{ .Config.FSType.value }}
+            openebs.io/lun: {{ .Config.Lun.value }}
         spec:
           {{- if ne $hasNodeSelector "none" }}
           nodeSelector:
