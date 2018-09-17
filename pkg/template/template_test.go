@@ -31,12 +31,11 @@ package template
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 	"text/template"
-
-	"encoding/json"
 
 	"github.com/ghodss/yaml"
 )
@@ -2209,6 +2208,60 @@ all:
 			ok := reflect.DeepEqual(objExpected, objActual)
 			if !ok {
 				t.Fatalf("failed to test dynamic templating:\n\nexpected: '%s' \n\nactual: '%s'", mock.ymlExpected, buf.Bytes())
+			}
+		})
+	}
+}
+
+func TestSplitListTrim(t *testing.T) {
+	tests := map[string]struct {
+		sep  string
+		orig string
+		want []string
+	}{
+		"No separator in string": {
+			";",
+			"pool1pool2",
+			[]string{"pool1pool2"},
+		},
+		"Prefixed seperator in string": {
+			";",
+			";pool1;pool2",
+			[]string{"pool1", "pool2"},
+		},
+		"Suffixed seperator in string": {
+			";",
+			"pool1;pool2;",
+			[]string{"pool1", "pool2"},
+		},
+		"Multiple seperators only": {
+			";",
+			";;;;",
+			[]string{""},
+		},
+		"Multiple seperators in between": {
+			";",
+			"p1;;;p2",
+			[]string{"p1", "", "", "p2"},
+		},
+		"Prefix-Suffix seperators in string": {
+			";",
+			";;p1;p2;p3;;;",
+			[]string{"p1", "p2", "p3"},
+		},
+		"Single seperator in string": {
+			";",
+			";",
+			[]string{""},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			list := splitListTrim(mock.sep, mock.orig)
+			ok := reflect.DeepEqual(list, mock.want)
+			if !ok {
+				t.Fatalf("failed to test splitListTrim: expected '%v': actual '%v'", mock.want, list)
 			}
 		})
 	}
