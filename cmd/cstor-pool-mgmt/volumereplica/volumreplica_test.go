@@ -124,8 +124,12 @@ func TestCreateVolume(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "10MB",
+					TargetIPSpec: apis.TargetIPSpec{
+						"10.210.110.121",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"10MB",
+					},
 				},
 			},
 		},
@@ -154,8 +158,12 @@ func TestDeleteVolume(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{
+						"10.210.110.121",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"100MB",
+					},
 				},
 			},
 		},
@@ -201,8 +209,12 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					Name: "VolumeReplicaResource1",
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{
+						"",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"10MB",
+					},
 				},
 			},
 		},
@@ -216,8 +228,12 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{
+						"",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"100MB",
+					},
 				},
 			},
 		},
@@ -231,8 +247,12 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "",
+					TargetIPSpec: apis.TargetIPSpec{
+						"10.210.110.121",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"",
+					},
 				},
 			},
 		},
@@ -246,8 +266,12 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 					},
 				},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{
+						"10.210.110.121",
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"100MB",
+					},
 				},
 			},
 		},

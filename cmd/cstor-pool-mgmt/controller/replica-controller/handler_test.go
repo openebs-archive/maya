@@ -51,8 +51,8 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 			test: &apis.CStorVolumeReplica{
 				ObjectMeta: metav1.ObjectMeta{Name: "VolumeReplicaResource1"},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{"10.210.110.121"},
+					CapacitySpec: apis.CapacitySpec{"100MB"},
 				},
 			},
 		},
@@ -61,8 +61,8 @@ func TestGetVolumeReplicaResource(t *testing.T) {
 			test: &apis.CStorVolumeReplica{
 				ObjectMeta: metav1.ObjectMeta{Name: "VolumeReplicaResource2"},
 				Spec: apis.CStorVolumeReplicaSpec{
-					TargetIP: "10.210.110.121",
-					Capacity: "100MB",
+					TargetIPSpec: apis.TargetIPSpec{"10.210.110.121"},
+					CapacitySpec: apis.CapacitySpec{"100MB"},
 				},
 			},
 		},

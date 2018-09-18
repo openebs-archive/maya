@@ -191,7 +191,11 @@ func TestGetIQN(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 					Spec: v1alpha1.CASVolumeSpec{
-						Iqn: "iqn.2016-09.com.openebs.cstor:default-testclaim7",
+						ISCSISpec: v1alpha1.ISCSISpec{
+							IQNSpec: v1alpha1.IQNSpec{
+								"iqn.2016-09.com.openebs.cstor:default-testclaim7",
+							},
+						},
 					},
 				},
 			},
@@ -279,7 +283,11 @@ func TestGetTargetPortal(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 					Spec: v1alpha1.CASVolumeSpec{
-						TargetPortal: "10.63.247.173:3260",
+						ISCSISpec: v1alpha1.ISCSISpec{
+							TargetPortalSpec: v1alpha1.TargetPortalSpec{
+								"10.63.247.173:3260",
+							},
+						},
 					},
 				},
 			},
@@ -340,7 +348,7 @@ func TestGetVolumeSize(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 					Spec: v1alpha1.CASVolumeSpec{
-						Capacity: "5G",
+						CapacitySpec: v1alpha1.CapacitySpec{"5G"},
 					},
 				},
 			},

@@ -22,7 +22,7 @@ func CreateVolume(vname, size, namespace string) error {
 			Namespace: namespace,
 		},
 		Spec: v1alpha1.CASVolumeSpec{
-			Capacity: size,
+			CapacitySpec: v1alpha1.CapacitySpec{size},
 		},
 	}
 	// Marshal serializes the value of vs structure

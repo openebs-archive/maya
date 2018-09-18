@@ -35,8 +35,8 @@ type CStorVolumeReplica struct {
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
-	TargetIP string `json:"targetIP"`
-	Capacity string `json:"capacity"`
+	TargetIPSpec
+	CapacitySpec
 }
 
 // CStorVolumeReplicaPhase is to hold result of action.

@@ -25,8 +25,14 @@ func TestCreateVolume(t *testing.T) {
 					UID:  types.UID("abc"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "5G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"5G",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -57,8 +63,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID(""),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "5G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"5G",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -74,8 +86,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "",
-					Capacity:          "5G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"5G",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -92,8 +110,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "5G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"5G",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -109,8 +133,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 2,
@@ -126,8 +156,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "2G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"2G",
+					},
 					Status:            "init",
 					ReplicationFactor: 0,
 					ConsistencyFactor: 2,
@@ -143,8 +179,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "2G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"2G",
+					},
 					Status:            "init",
 					ReplicationFactor: 3,
 					ConsistencyFactor: 0,
@@ -160,8 +202,14 @@ func TestCheckValidVolume(t *testing.T) {
 					UID:  types.UID("123"),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP:          "0.0.0.0",
-					Capacity:          "2G",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						"2G",
+					},
 					Status:            "init",
 					ReplicationFactor: 2,
 					ConsistencyFactor: 3,

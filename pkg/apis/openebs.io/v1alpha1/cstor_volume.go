@@ -35,11 +35,8 @@ type CStorVolume struct {
 
 // CStorVolumeSpec is the spec for a CStorVolume resource
 type CStorVolumeSpec struct {
-	Capacity          string `json:"capacity"`
-	TargetIP          string `json:"targetIP"`
-	TargetPort        string `json:"targetPort"`
-	Iqn               string `json:"iqn"`
-	TargetPortal      string `json:"targetPortal"`
+	CapacitySpec
+	ISCSISpec
 	Status            string `json:"status"`
 	NodeBase          string `json:"nodeBase"`
 	ReplicationFactor int    `json:"replicationFactor"`

@@ -46,9 +46,15 @@ func TestGetVolumeResource(t *testing.T) {
 					Namespace: string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "5G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "5G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},
@@ -63,9 +69,15 @@ func TestGetVolumeResource(t *testing.T) {
 					Namespace: string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "15G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "15G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},
@@ -103,9 +115,15 @@ func TestIsValidCStorVolumeMgmt(t *testing.T) {
 					Namespace:  string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "15G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "15G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},
@@ -139,9 +157,15 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 					Namespace:  string(common.DefaultNameSpace),
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "15G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "15G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},

@@ -76,9 +76,15 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "5G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "5G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{Phase: "init"},
 			},
@@ -128,9 +134,15 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "5G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "5G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},
@@ -180,9 +192,15 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 					Finalizers: []string{"cstorvolume.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorVolumeSpec{
-					TargetIP: "0.0.0.0",
-					Capacity: "5G",
-					Status:   "init",
+					ISCSISpec: apis.ISCSISpec{
+						TargetIPSpec: apis.TargetIPSpec{
+							"0.0.0.0",
+						},
+					},
+					CapacitySpec: apis.CapacitySpec{
+						Capacity: "5G",
+					},
+					Status: "init",
 				},
 				Status: apis.CStorVolumeStatus{},
 			},
