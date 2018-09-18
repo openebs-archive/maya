@@ -1,0 +1,11 @@
+testCase:positive
+resourceCount:1
+poolStatus:1
+generateClusterEnv:false
+commandBeforeSpcApplication:
+clearPoolResources:true
+resetCluster:false
+commands:
+applySPC:true
+commandAfterSpcApplication:false
+commands:

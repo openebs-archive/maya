@@ -1,0 +1,12 @@
+testCase:negative
+resourceCount:0
+poolStatus:0
+generateClusterEnv:true
+commands:kubectl get disk -l kubernetes.io/hostname=$(kubectl get node | awk 'NR==2{print$1}') | grep disk | awk '{print $1}'|xargs kubectl delete disk;kubectl get disk -l kubernetes.io/hostname=$(kubectl get node | awk 'NR==3{print$1}') | grep disk | awk '{print $1}'|xargs kubectl delete disk
+clearPoolResources:false
+resetCluster:false
+commands:
+applySPC:true
+commandAfterSpcApplication:false
+commands:
+

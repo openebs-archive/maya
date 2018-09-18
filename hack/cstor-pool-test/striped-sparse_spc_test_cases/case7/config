@@ -1,0 +1,12 @@
+testCase:negative
+resourceCount:0
+poolStatus:0
+generateClusterEnv:true
+commands:kubectl delete disk --all
+clearPoolResources:false
+resetCluster:false
+commands:
+applySPC:true
+commandAfterSpcApplication:false
+commands:
+

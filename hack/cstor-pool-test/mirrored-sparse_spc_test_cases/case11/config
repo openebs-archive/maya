@@ -1,0 +1,11 @@
+testCase:positive
+resourceCount:3
+poolStatus:3
+generateClusterEnv:true
+commands:kubectl delete disk --all;kubectl delete pod -l app=node-disk-manager -n openebs
+clearPoolResources:false
+resetCluster:false
+commands:
+applySPC:false
+commandAfterSpcApplication:false
+commands:
