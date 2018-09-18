@@ -5,4 +5,7 @@ Clone this repo and cd to this directory.
 Configure operator and pool config yaml if required.
 Run `bash vol-test.sh -o openebs-operator.yaml -p openebs-config.yaml`
 
-NOTE: It is assumed that there are at lease three nodes and each one of them has at least one external disk attacher.
+**Important notes**
+> It is assumed that there are at lease three nodes and each one of them has at least one external disk attached.
+> The kubectl should be in admin context.
+> The cluster is clean i.e. no existing openebs installation exists.
