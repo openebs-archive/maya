@@ -1,0 +1,2 @@
+Test to check if the volume is writeable when the target pod is restarted.
+Note:The target deployment is scaled to zero then back to one.
