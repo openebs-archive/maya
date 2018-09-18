@@ -1,0 +1,12 @@
+---
+apiVersion: openebs.io/v1alpha1
+kind: StoragePoolClaim
+metadata:
+  name: disk-claim-auto
+spec:
+  name: disk-claim-auto
+  type: disk
+  maxPools: 3
+  minPools: 3
+  poolSpec:
+    poolType: striped

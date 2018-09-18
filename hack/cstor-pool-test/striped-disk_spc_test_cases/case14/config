@@ -1,0 +1,11 @@
+testCase:positive
+resourceCount:3
+poolStatus:3
+generateClusterEnv:true
+commandBeforeSpcApplication:kubectl scale --replicas=3 deployment maya-apiserver -n openebs;sleep 10
+clearPoolResources:true
+resetCluster:false
+commands:
+applySPC:true
+commandAfterSpcApplication:false
+commands:

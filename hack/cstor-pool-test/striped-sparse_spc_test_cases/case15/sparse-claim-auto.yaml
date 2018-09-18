@@ -1,0 +1,14 @@
+---
+apiVersion: openebs.io/v1alpha1
+kind: StoragePoolClaim
+metadata:
+  name: sparse-claim-auto
+  annotations:
+    "openebs.io/spc-create-lease": "openebs/maya-apiserver-666d8ffc47-h9z8l"
+spec:
+  name: sparse-claim-auto
+  type: sparse
+  maxPools: 3
+  minPools: 1
+  poolSpec:
+    poolType: striped

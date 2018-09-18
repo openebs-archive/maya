@@ -1,0 +1,11 @@
+testCase:positive
+resourceCount:3
+poolStatus:2
+generateClusterEnv:true
+commandBeforeSpcApplication:kubectl drain $(kubectl get node | grep -v $(kubectl get pod -l name=maya-apiserver -n openebs -o=jsonpath='{.items[*].spec.nodeName}') | awk 'NR==2 {print$1}') --ignore-daemonsets
+clearPoolResources:false
+resetCluster:false
+commands:
+applySPC:true
+commandAfterSpcApplication:false
+commands:
