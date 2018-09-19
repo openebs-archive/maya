@@ -2,6 +2,5 @@
 
 set -ex
 
-exec /usr/local/bin/cstor-volume-mgmt start
-exec service ssh start
-exec service rsyslog start
+/usr/local/bin/cstor-volume-mgmt start &
+exec /usr/local/bin/cstor-volume-grpc server start
