@@ -10,6 +10,7 @@ RUN apt-get -y install rsyslog
 RUN mkdir -p /usr/local/etc/istgt
 
 COPY cstor-volume-mgmt /usr/local/bin/
+COPY cstor-volume-grpc /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
@@ -23,4 +24,4 @@ LABEL org.label-schema.schema-version="1.0"
 LABEL org.label-schema.build-date=$BUILD_DATE
 
 ENTRYPOINT entrypoint.sh
-EXPOSE 7676
+EXPOSE 7676 7777
