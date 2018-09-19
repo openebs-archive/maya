@@ -47,10 +47,10 @@ type CmdSnaphotOptions struct {
 // Validate validates the flag values
 func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
 	if c.volName == "" {
-		return errors.New("--volname is missing. Please specify an unique name")
+		return errors.New("--volname is missing. Please specify a unique name")
 	}
 	if c.snapName == "" {
-		return errors.New("--snapname is missing. Please specify an unique name")
+		return errors.New("--snapname is missing. Please specify a unique name")
 	}
 
 	return nil
