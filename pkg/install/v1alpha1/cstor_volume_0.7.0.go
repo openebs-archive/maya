@@ -243,7 +243,7 @@ spec:
       nodeBase: iqn.2016-09.com.openebs.cstor
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
       targetPortal: {{ .TaskResult.cvolcreateputsvc.clusterIP }}:3260
-      targetPort: 3260
+      targetPort: '3260'
       status: ""
       replicationFactor: {{ $replicaCount }}
       consistencyFactor: {{ div $replicaCount 2 | floor | add1 }}
@@ -470,7 +470,7 @@ spec:
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
       targetPortal: {{ .TaskResult.cvolcreateputsvc.clusterIP }}:3260
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
-      targetPort: 3260
+      targetPort: '3260'
       replicas: {{ .ListItems.replicaList.replicas | len }}
       casType: cstor
 ---
@@ -585,7 +585,7 @@ spec:
           iqn: iqn.2016-09.com.openebs.cstor:{{ $name }}
           targetPortal: {{ $clusterIP }}:3260
           targetIP: {{ $clusterIP }}
-          targetPort: 3260
+          targetPort: '3260'
           replicas: {{ $replicaName | default "" | splitList ", " | len }}
           casType: cstor
     {{- end -}}
@@ -702,7 +702,7 @@ spec:
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
       targetIP: {{ .TaskResult.readlistsvc.clusterIP }}
-      targetPort: 3260
+      targetPort: '3260'
       lun: {{ .TaskResult.readlistcv.lun }}
       fsType: {{ .TaskResult.readlistcv.fsType }}
       replicas: {{ .TaskResult.readlistrep.capacity | default "" | splitList " " | len }}
