@@ -21,9 +21,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//MaxPortNumber that can be used for ipv4
-const MaxPortNumber = 65535
-
 // CmdStartOptions has flags for starting CStorVolume watcher.
 type CmdStartOptions struct {
 	port string
