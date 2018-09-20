@@ -42,7 +42,7 @@ type TargetPortalSpec struct {
 //
 // NOTE: It is intended to be used as embedded struct
 type TargetPortSpec struct {
-	TargetPort string `json:"targetPort"`
+	TargetPort int `json:"targetPort"`
 }
 
 // IQNSpec wraps the iqn property
