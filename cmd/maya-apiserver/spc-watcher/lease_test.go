@@ -20,21 +20,25 @@ import (
 
 	"github.com/golang/glog"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"os"
+	"strconv"
 	"testing"
 )
 
 // SpcCreator will create fake spc objects
-func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcLeaseKeyValue string) (claim *apis.StoragePoolClaim) {
+func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcLeaseKeyValue string) *apis.StoragePoolClaim {
 	var spcObject *apis.StoragePoolClaim
 	if SpcLeaseKeyPresent {
 		spcObject = &apis.StoragePoolClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
-					SpcLeaseKey: SpcLeaseKeyValue,
+					SpcLeaseKey: "{\"holderIdentity\":\"/" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
 				},
 			},
 		}
@@ -51,35 +55,73 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 	}
 	return spcGot
 }
+
+// Create 5 fake pods that will compete to acquire lease on spc
+func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
+	for i := 1; i <= 5; i++ {
+		podObjet := &v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: podName + strconv.Itoa(i),
+			},
+			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
+			},
+		}
+		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
+		if err != nil {
+			glog.Errorf("Fake pod object could not be created:", err)
+		}
+	}
+}
 func TestGetLease(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &clientSet{
 		oecs: openebsFakeClientset.NewSimpleClientset(),
 	}
+
+	fakeKubeClient := k8sfake.NewSimpleClientset()
+
 	// Make a map of string(key) to struct(value).
 	// Key of map describes test case behaviour.
 	// Value of map is the test object.
+	PodCreator(fakeKubeClient, "maya-apiserver")
 	tests := map[string]struct {
 		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
 		fakestoragepoolclaim *apis.StoragePoolClaim
+		storagePoolClaimName string
+		podName              string
+		podNamespace         string
 		// expectedResult holds the expected result for the test case under run.
 		expectedResult string
 	}{
 		// TestCase#1
-		"SPC#1 Lease acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool1", true, "openebs/maya-apiserver-6b4695c9f8-nbwl9"),
-			expectedResult:       "",
+		"SPC#1 Lease Not acquired": {
+			fakestoragepoolclaim: focs.SpcCreator("pool1", false, ""),
+			podName:              "maya-apiserver1",
+			podNamespace:         "openebs",
+			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
 		},
 
 		// TestCase#2
-		"SPC#2 Lease not acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool2", false, ""),
-			expectedResult:       "/pool2",
+		"SPC#2 Lease already acquired": {
+			fakestoragepoolclaim: focs.SpcCreator("pool2", true, "maya-apiserver1"),
+			podName:              "maya-apiserver2",
+			podNamespace:         "openebs",
+			expectedResult:       "",
 		},
 		// TestCase#3
-		"SPC#3 Lease not acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool3", true, ""),
-			expectedResult:       "/pool3",
+		"SPC#3 Lease already acquired": {
+			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "maya-apiserver6"),
+			podName:              "maya-apiserver2",
+			podNamespace:         "openebs",
+			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
+		},
+		// TestCase#4
+		"SPC#4 Lease already acquired": {
+			fakestoragepoolclaim: focs.SpcCreator("pool4", true, ""),
+			podName:              "maya-apiserver3",
+			podNamespace:         "openebs",
+			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver3\",\"leaderTransition\":2}",
 		},
 	}
 
@@ -87,63 +129,17 @@ func TestGetLease(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var newSpcLease spcLease
-			os.Setenv(string(menv.OpenEBSMayaPodName), test.fakestoragepoolclaim.Name)
-			os.Setenv(string(menv.OpenEBSNamespace), test.fakestoragepoolclaim.Namespace)
-			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs}
+			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
+			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
+			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
 			// newSpcLease is the function under test.
 			result, _ := newSpcLease.GetLease()
-			// If the result does not matches expectedResult, test case fails.
+			//If the result does not matches expectedResult, test case fails.
 			if result != test.expectedResult {
 				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)
 			}
-			os.Unsetenv(string(menv.OpenEBSMayaPodName))
-			os.Unsetenv(string(menv.OpenEBSNamespace))
-		})
-	}
-}
-func TestRemoveLease(t *testing.T) {
-	// Get a fake openebs client set
-	focs := &clientSet{
-		oecs: openebsFakeClientset.NewSimpleClientset(),
-	}
-	// Make a map of string(key) to struct(value).
-	// Key of map describes test case behaviour.
-	// Value of map is the test object.
-	tests := map[string]struct {
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.StoragePoolClaim
-		// expectedResult holds the expected result for the test case under run.
-		expectedResult string
-	}{
-		// TestCase#1
-		"SPC#1 Lease acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool1", true, "openebs/maya-apiserver-6b4695c9f8-nbwl9"),
-			expectedResult:       "",
-		},
-
-		// TestCase#2
-		"SPC#2 Lease not acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool2", false, ""),
-			expectedResult:       "",
-		},
-		// TestCase#3
-		"SPC#3 Lease not acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool3", true, ""),
-			expectedResult:       "",
-		},
-	}
-
-	// Iterate over whole map to run the test cases.
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			newSpcLease := spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs}
-			// newSpcLease is the function under test.
-			spcObject := newSpcLease.RemoveLease()
-			result := spcObject.Annotations[SpcLeaseKey]
-			// If the result does not matches expectedResult, test case fails.
-			if result != test.expectedResult {
-				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)
-			}
+			os.Unsetenv(string(env.OpenEBSMayaPodName))
+			os.Unsetenv(string(env.OpenEBSNamespace))
 		})
 	}
 }
