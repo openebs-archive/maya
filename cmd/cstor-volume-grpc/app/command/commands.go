@@ -61,7 +61,7 @@ func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapCreateRespons
 	var conn *grpc.ClientConn
 	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
-		glog.Fatalf("did not connect: %s", err)
+		glog.Fatalf("Unable to dial gRPC server on port %d error : %s", api.VolumeGrpcListenPort, err)
 	}
 	defer conn.Close()
 

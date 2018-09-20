@@ -58,7 +58,7 @@ func CreateSnapshot(ctx context.Context, in *v1alpha1.VolumeSnapCreateRequest) (
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
 		CmdSnapCreate, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
 	respstr := "ERR"
-	if len(sockresp) > 1 {
+	if nil != sockresp && len(sockresp) > 1 {
 		respstr = sockresp[1]
 	}
 	status := CommandStatus{
@@ -76,7 +76,7 @@ func DeleteSnapshot(ctx context.Context, in *v1alpha1.VolumeSnapDeleteRequest) (
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %s %s %v %v",
 		CmdSnapDestroy, in.Volume, in.Snapname, IoWaitTime, TotalWaitTime))
 	respstr := "ERR"
-	if len(sockresp) > 1 {
+	if nil != sockresp && len(sockresp) > 1 {
 		respstr = sockresp[1]
 	}
 	status := CommandStatus{
