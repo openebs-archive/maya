@@ -20,6 +20,7 @@ package v1alpha1
 //
 // NOTE: It is intended to be used as embedded struct
 type CapacitySpec struct {
+	// Capacity will hold the capacity of this Volume e.g. 5GB
 	Capacity string `json:"capacity"`
 }
 
@@ -27,6 +28,7 @@ type CapacitySpec struct {
 //
 // NOTE: It is intended to be used as embedded struct
 type TargetIPSpec struct {
+	// TargetIP will hold the targetIP for this Volume
 	TargetIP string `json:"targetIP"`
 }
 
@@ -42,6 +44,7 @@ type TargetPortalSpec struct {
 //
 // NOTE: It is intended to be used as embedded struct
 type TargetPortSpec struct {
+	// TargetPort will hold the targetPort for this Volume eg. 3260
 	TargetPort int `json:"targetPort"`
 }
 
