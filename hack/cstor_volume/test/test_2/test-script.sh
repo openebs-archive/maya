@@ -2,6 +2,7 @@
 
 source ../util.sh
 
+# cleans up all the applied yamls
 cleanUp()
 {
     kubectlDelete pvc.yaml
@@ -12,8 +13,7 @@ cleanUp()
 echo Applying sc
 kubectlApply sc.yaml
 
-# Apply the pvc.yaml and then application.yaml
-
+# Apply the pvc.yaml
 echo Applying pvc
 kubectlApply pvc.yaml
 
@@ -21,9 +21,11 @@ kubectlApply pvc.yaml
 sleep 10
 pvStatus=
 try=1
+# loop until pvc becomes bound or max retries are not hit
 printf "%s" "Checking status of pvc:"
 until [ "$pvStatus" == "Pending" ] || [ "$try" == "5" ] || [ "$pvStatus" == "Bound" ]; do
     printf " %s" "$try"
+    # get status of pvc
     pvStatus=$(kubectl get pvc openebs-pvc -o jsonpath='{.status.phase}')
     try=`expr $try + 1`
     sleep 5
@@ -38,6 +40,7 @@ if [ "$pvStatus" == "Bound" ]; then
 fi
 
 if [ "$pvStatus" == "Pending" ]; then
+   # the pvc should be in pending state and the reason for it is not enough pools
    error=$(kubectl describe pvc openebs-pvc | grep "not enough pool" | wc -l)
    echo Grepping \'not enough pool\' resulted $error value/s
    if [ "$error" == "0" ]; then
@@ -46,5 +49,6 @@ if [ "$pvStatus" == "Pending" ]; then
        exit 1
    fi
 fi
+
 cleanUp
 exit 0

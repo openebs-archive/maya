@@ -2,6 +2,7 @@
 
 source ../util.sh
 
+# reincarnate scales down the pool deplouments to zero then back to one
 reincarnate()
 {
     echo Scaling down cstor pool deploys replica to 0
@@ -34,6 +35,7 @@ reincarnate()
     sleep 10
 }
 
+# clean up the applied yamls
 cleanUp()
 {
     kubectlDelete app.yaml
@@ -57,6 +59,8 @@ kubectlApply app.yaml
 sleep 10
 appStatus=
 try=1
+
+# loop until app status changes to running or max retries are hit
 printf "%s:" "Checking status of application"
 until [ "$appStatus" == "Running"  ] || [ $try == 30 ]; do
     printf "%s " $try
@@ -82,6 +86,10 @@ export appName=`kubectl get po -l name=nginx -o jsonpath='{.items[0].metadata.na
 printf "%s" "Trying to write file to openebs vol in the app"
 until [ "$writeStatus" == "0"  ] || [ $try == 20 ]; do
     printf " %s" $try
+    # run a seperate process and kill it after some time
+    # the script would write its exit status into a file
+    # write-status.txt. 0 value indicates sucess any other
+    # value is failure
     bash sanity-script.sh &
     pid=$!
     sleep 8

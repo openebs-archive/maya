@@ -3,20 +3,24 @@
 source ../util.sh
 # TODO: Copy csp status test from ashutosh's code
 
+# cleans up all the yamls that were applied intitially
 cleanUp()
 {
     kubectlDelete app.yaml
     kubectlDelete pvc.yaml
+    # sleep as pvc deleteion is dependent on sc
     sleep 5
     kubectlDelete sc.yaml
     sleep 5
 }
 
+# check if all the dependent resources are cleaned up. the count of each resource should be 0
 checkDependentResources()
 {
     pvName=`kubectl get pvc openebs-pvc -o jsonpath='{.spec.volumeName}'`
     pvSelector="-l openebs.io/persistent-volume=$pvName"
     try=1
+    # initialize all count to empty initially
     csvCount=
     cvrCount=
     svcCount=
@@ -36,7 +40,7 @@ checkDependentResources()
     done
     echo ""
     echo Resources status- csvCount: $csvCount, cvrCount: $cvrCount, svcCount: $svcCount, targetDeployCount: $targetDeployCount, targetPoCount: $targetPoCount \(Ignored\)
-    if [ "$try" == "20" ]; then
+    if [ "$try" == "25" ]; then
         echo Resources are not cleaned up
         exit 1
     else
@@ -74,7 +78,8 @@ if [ "$appStatus" == "Running" ]; then
     cleanUp
     checkDependentResources
     exit 0
+else
+    cleanUp
 fi
 
-cleanUp
 exit 1
