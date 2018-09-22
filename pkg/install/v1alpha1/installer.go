@@ -36,7 +36,7 @@ type Installer interface {
 // NOTE:
 //  This is an implementation of Installer
 type simpleInstaller struct {
-	configGetter      ConfigGetter
+	configProvider    ConfigProvider
 	artifactLister    VersionArtifactLister
 	artifactTemplater ArtifactMiddleware
 	namespaceUpdater  k8s.UnstructuredMiddleware
@@ -66,11 +66,11 @@ func (i *simpleInstaller) Install() []error {
 		return errs
 	}
 
-	if i.configGetter == nil {
-		return i.addError(fmt.Errorf("nil config getter: simple installer failed"))
+	if i.configProvider == nil {
+		return i.addError(fmt.Errorf("nil config provider: simple installer failed"))
 	}
 
-	config, err := i.configGetter(menv.Get(InstallerConfigName))
+	config, err := i.configProvider.Provide()
 	if err != nil {
 		return i.addError(errors.Wrap(err, "simple installer failed"))
 	}
@@ -117,8 +117,8 @@ func (i *simpleInstaller) Install() []error {
 	}
 
 	for _, unstruct := range allUnstructured {
-		apply := k8s.NewResourceApplier(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
-		u, err := apply(unstruct)
+		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
+		u, err := cu.Apply(unstruct)
 		if err == nil {
 			glog.Infof("'%s' '%s' installed successfully at namespace '%s'", u.GroupVersionKind(), u.GetName(), u.GetNamespace())
 		} else {
@@ -135,9 +135,8 @@ func SimpleInstaller() Installer {
 	// namespace that is configured for this openebs component
 	openebsNS := menv.Get(menv.OpenEBSNamespace)
 
-	// cmGetter to fetch install related config i.e. a config map
-	cmGetter := k8s.NewConfigMapGetter(openebsNS)
-	c := WithConfigMapConfigGetter(cmGetter)
+	// config provider to fetch install config i.e. a config map
+	p := Config(openebsNS, menv.Get(InstallerConfigName))
 
 	// templater to template the artifacts before installation
 	t := ArtifactTemplater(NewTemplateKeyValueList().Values(), template.TextTemplate)
@@ -153,7 +152,7 @@ func SimpleInstaller() Installer {
 	e := EnvList
 
 	return &simpleInstaller{
-		configGetter:      c,
+		configProvider:    p,
 		artifactLister:    l,
 		artifactTemplater: t,
 		namespaceUpdater:  nu,

@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,26 +25,28 @@ import (
 
 // ConfigMapGetter abstracts fetching of ConfigMap instance from kubernetes
 // cluster
-type ConfigMapGetter func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error)
+type ConfigMapGetter interface {
+	Get(options metav1.GetOptions) (*corev1.ConfigMap, error)
+}
 
-// NewConfigMapGetter returns a new instance of ConfigMapGetter that is capable
-// of fetching a ConfigMap from kubernetes cluster
-func NewConfigMapGetter(namespace string) ConfigMapGetter {
-	return func(name string, options metav1.GetOptions) (*corev1.ConfigMap, error) {
-		if len(strings.TrimSpace(name)) == 0 {
-			return nil, fmt.Errorf("missing config map name: failed to get config map from namespace '%s'", namespace)
-		}
+type configmap struct {
+	namespace string // namespace where this configmap exists
+	name      string // name of this configmap
+}
 
-		cs, err := NewClientsetGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get config map '%s' from namespace '%s'", name, namespace)
-		}
+// ConfigMap returns a new instance of configmap
+func ConfigMap(namespace, name string) *configmap {
+	return &configmap{namespace: namespace, name: name}
+}
 
-		cm, err := cs.CoreV1().ConfigMaps(namespace).Get(name, options)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get config map '%s' from namespace '%s'", name, namespace)
-		}
-
-		return cm, nil
+// Get returns configmap instance from kubernetes cluster
+func (c *configmap) Get(options metav1.GetOptions) (cm *corev1.ConfigMap, err error) {
+	if len(strings.TrimSpace(c.name)) == 0 {
+		return nil, errors.Errorf("missing config map name: failed to get config map from namespace %s", c.namespace)
 	}
+	cs, err := Clientset().Get()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get config map %s %s", c.namespace, c.name)
+	}
+	return cs.CoreV1().ConfigMaps(c.namespace).Get(c.name, options)
 }

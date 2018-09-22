@@ -18,21 +18,27 @@ package v1alpha1
 
 import (
 	"github.com/pkg/errors"
-	"k8s.io/client-go/dynamic"
+	k8sdynamic "k8s.io/client-go/dynamic"
 )
 
-// DynamicGetter abstracts fetching of kubernetes dynamic interface
-type DynamicGetter func() (dynamic.Interface, error)
+// DynamicProvider abstracts providing kubernetes dynamic client interface
+type DynamicProvider interface {
+	Provide() (k8sdynamic.Interface, error)
+}
 
-// NewDynamicGetter returns a DynamicGetter instance that is capable of
-// invoking kubernetes API calls
-func NewDynamicGetter() DynamicGetter {
-	return func() (dynamic.Interface, error) {
-		config, err := NewClientConfigGetter()()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get dynamic client")
-		}
+type dynamic struct{}
 
-		return dynamic.NewForConfig(config)
+// Dynamic returns a new instance of dynamic
+func Dynamic() *dynamic {
+	return &dynamic{}
+}
+
+// Provide provides a kubernetes dynamic client capable of invoking operations
+// against kubernetes resources
+func (d *dynamic) Provide() (k8sdynamic.Interface, error) {
+	config, err := Config().Get()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to provide dynamic client")
 	}
+	return k8sdynamic.NewForConfig(config)
 }

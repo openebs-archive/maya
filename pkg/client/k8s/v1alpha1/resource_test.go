@@ -14,29 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Move this file to pkg/k8sresource/v1alpha1
 package v1alpha1
 
-import (
-	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
-)
+// verify if resource struct is an implementation of ResourceGetter
+var _ ResourceGetter = &resource{}
 
-// ClientsetGetter abstracts fetching of kubernetes clientset
-type ClientsetGetter interface {
-	Get() (*kubernetes.Clientset, error)
-}
+// verify if resource struct is an implementation of ResourceCreator
+var _ ResourceCreator = &resource{}
 
-type clientset struct{}
+// verify if resource struct is an implementation of ResourceUpdater
+var _ ResourceUpdater = &resource{}
 
-func Clientset() *clientset {
-	return &clientset{}
-}
-
-// Get returns a new instance of kubernetes clientset
-func (c *clientset) Get() (*kubernetes.Clientset, error) {
-	config, err := Config().Get()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get kubernetes clientset")
-	}
-	return kubernetes.NewForConfig(config)
-}
+// verify if createOrUpdate struct is an implementation of ResourceApplier
+var _ ResourceApplier = &createOrUpdate{}

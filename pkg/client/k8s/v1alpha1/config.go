@@ -17,74 +17,83 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-	"strings"
-
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	"strings"
 )
 
 // ConfigGetter abstracts fetching of kubernetes client config
-type ConfigGetter func() (*rest.Config, error)
-
-// WithEnvConfigGetter returns kubernetes rest config based on kubernetes
-// environment values
-func WithEnvConfigGetter() ConfigGetter {
-	return func() (*rest.Config, error) {
-		k8sMaster := menv.Get(K8sMasterIPEnvironmentKey)
-		kubeConfig := menv.Get(KubeConfigEnvironmentKey)
-
-		if len(strings.TrimSpace(k8sMaster)) == 0 && len(strings.TrimSpace(kubeConfig)) == 0 {
-			return nil, fmt.Errorf("missing kubernetes master as well as kubeconfig: failed to get rest config")
-		}
-
-		return clientcmd.BuildConfigFromFlags(k8sMaster, kubeConfig)
-	}
+type ConfigGetter interface {
+	Get() (*rest.Config, error)
+	Name() string
 }
 
-// WithRestConfigGetter returns kubernetes rest config based on
-// in cluster config implementation
-func WithRestConfigGetter() ConfigGetter {
-	return func() (*rest.Config, error) {
-		return rest.InClusterConfig()
-	}
+// configFromENV is an implementation of ConfigGetter
+type configFromENV struct{}
+
+// Name returns the name of this config getter instance
+func (c *configFromENV) Name() string {
+	return "k8s-config-from-env"
 }
 
-// newClientConfigGetter fetches the kubernetes client config that is used to
-// make kubernetes API calls
+// Get returns kubernetes rest config based on kubernetes environment values
+func (c *configFromENV) Get() (*rest.Config, error) {
+	k8sMaster := menv.Get(K8sMasterIPEnvironmentKey)
+	kubeConfig := menv.Get(KubeConfigEnvironmentKey)
+
+	if len(strings.TrimSpace(k8sMaster)) == 0 && len(strings.TrimSpace(kubeConfig)) == 0 {
+		return nil, errors.New("missing kubernetes master as well as kubeconfig: failed to get kubernetes client config")
+	}
+
+	return clientcmd.BuildConfigFromFlags(k8sMaster, kubeConfig)
+}
+
+// configFromREST is an implementation of ConfigGetter
+type configFromREST struct{}
+
+// Name returns the name of this config getter instance
+func (c *configFromREST) Name() string {
+	return "k8s-config-from-rest"
+}
+
+// Get returns kubernetes rest config based on in-cluster config implementation
+func (c *configFromREST) Get() (*rest.Config, error) {
+	return rest.InClusterConfig()
+}
+
+// ConfigGetters holds a list of ConfigGetter instances
 //
 // NOTE:
-//  This makes use of multiple strategies to get the client config instance
-func newClientConfigGetter(strategies map[string]ConfigGetter) ConfigGetter {
-	return func() (config *rest.Config, err error) {
-		var allErrors []error
+//  This is an implementation of ConfigGetter
+type ConfigGetters []ConfigGetter
 
-		for name, strategy := range strategies {
-			config, err = strategy()
-			if err == nil {
-				// no error means this succeeded
-				return
-			}
-			allErrors = append(allErrors, errors.Wrapf(err, "failed to get kubernetes client config via strategy '%s'", name))
-		}
-
-		// all strategies failed
-		err = fmt.Errorf("%+v", allErrors)
-		err = errors.Wrap(err, "failed to get kubernetes client config")
-		return
-	}
+// Name returns the name of this config getter instance
+func (c ConfigGetters) Name() string {
+	return "list-of-k8s-config-getter"
 }
 
-// NewClientConfigGetter fetches the kubernetes client config that is used to
-// make kubernetes API calls
-func NewClientConfigGetter() ConfigGetter {
-	strategies := map[string]ConfigGetter{
-		"env-based":  WithEnvConfigGetter(),
-		"rest-based": WithRestConfigGetter(),
+// Get fetches the kubernetes client config that is used to make kubernetes API
+// calls. It makes use of its list of getter instances to fetch kubernetes
+// config.
+func (c ConfigGetters) Get() (config *rest.Config, err error) {
+	var errs []error
+	for _, g := range c {
+		config, err = g.Get()
+		if err == nil {
+			return
+		}
+		errs = append(errs, errors.Wrapf(err, "failed to get kubernetes client config via %s", g.Name()))
 	}
+	// at this point; all getters have failed
+	err = errors.Errorf("%+v", errs)
+	err = errors.Wrap(err, "failed to get kubernetes client config")
+	return
+}
 
-	return newClientConfigGetter(strategies)
+// Config provides appropriate config getter instances that help in fetching
+// kubernetes client config to invoke kubernetes API calls
+func Config() ConfigGetter {
+	return ConfigGetters{&configFromENV{}, &configFromREST{}}
 }

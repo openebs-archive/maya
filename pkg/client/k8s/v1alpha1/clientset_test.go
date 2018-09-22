@@ -17,26 +17,22 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
+	"testing"
 )
 
-// ClientsetGetter abstracts fetching of kubernetes clientset
-type ClientsetGetter interface {
-	Get() (*kubernetes.Clientset, error)
-}
-
-type clientset struct{}
-
-func Clientset() *clientset {
-	return &clientset{}
-}
-
-// Get returns a new instance of kubernetes clientset
-func (c *clientset) Get() (*kubernetes.Clientset, error) {
-	config, err := Config().Get()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to get kubernetes clientset")
+func TestClientsetGet(t *testing.T) {
+	tests := map[string]struct {
+		iserr bool
+	}{
+		"101": {true},
 	}
-	return kubernetes.NewForConfig(config)
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Clientset().Get()
+			if !mock.iserr && err != nil {
+				t.Fatalf("Test '%s' failed: expected no error: actual '%s'", name, err)
+			}
+		})
+	}
 }
