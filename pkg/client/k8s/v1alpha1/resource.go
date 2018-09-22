@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Move this file to pkg/k8sresource/v1alpha1
 package v1alpha1
 
 import (
-	"fmt"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,146 +29,146 @@ import (
 
 // ResourceCreator abstracts creating an unstructured instance in kubernetes
 // cluster
-type ResourceCreator func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceCreator returns a new instance of ResourceCreator that is
-// capable of creating a resource in kubernetes cluster
-func NewResourceCreator(gvr schema.GroupVersionResource, namespace string) ResourceCreator {
-	return func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
-		if obj == nil {
-			return nil, fmt.Errorf("nil resource instance: failed to create '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
-		}
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Create(obj, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create '%s' '%s' at namespace '%s'", gvr, obj.GetName(), namespace)
-		}
-
-		return unstruct, nil
-	}
+type ResourceCreator interface {
+	Create(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
 }
 
 // ResourceGetter abstracts fetching an unstructured instance from kubernetes
 // cluster
-type ResourceGetter func(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceGetter returns a new instance of ResourceGetter that is capable
-// of fetching an unstructured instance from kubernetes cluster
-func NewResourceGetter(gvr schema.GroupVersionResource, namespace string) ResourceGetter {
-	return func(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
-		if len(strings.TrimSpace(name)) == 0 {
-			return nil, fmt.Errorf("missing resource name: failed to get '%s' from namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
-		}
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Get(name, options, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get '%s' '%s' from namespace '%s'", gvr, name, namespace)
-		}
-
-		return unstruct, nil
-	}
+type ResourceGetter interface {
+	Get(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
 }
 
 // ResourceUpdater abstracts updating an unstructured instance found in
 // kubernetes cluster
-type ResourceUpdater func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// NewResourceUpdater returns a new instance of ResourceUpdater that is capable
-// of updating an unstructured instance found in kubernetes cluster
-func NewResourceUpdater(gvr schema.GroupVersionResource, namespace string) ResourceUpdater {
-	return func(oldobj, newobj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error) {
-		if oldobj == nil {
-			return nil, fmt.Errorf("nil old resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		if newobj == nil {
-			return nil, fmt.Errorf("nil new resource instance: failed to update '%s' at namespace '%s'", gvr, namespace)
-		}
-
-		dynamic, err := NewDynamicGetter()()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
-		}
-
-		resourceVersion := oldobj.GetResourceVersion()
-		newobj.SetResourceVersion(resourceVersion)
-
-		unstruct, err := dynamic.Resource(gvr).Namespace(namespace).Update(newobj, subresources...)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update '%s' '%s' at namespace '%s'", gvr, oldobj.GetName(), namespace)
-		}
-
-		return unstruct, nil
-	}
+type ResourceUpdater interface {
+	Update(oldobj, newobj *unstructured.Unstructured, subresources ...string) (u *unstructured.Unstructured, err error)
 }
 
-// ResourceApplyOptions is used during a resource's apply operation
+// ResourceApplier abstracts applying an unstructured instance that may or may
+// not be available in kubernetes cluster
+type ResourceApplier interface {
+	Apply(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
+}
+
+type resource struct {
+	gvr       schema.GroupVersionResource // identify a resource
+	namespace string                      // namespace where this resource is to be operated at
+}
+
+func Resource(gvr schema.GroupVersionResource, namespace string) *resource {
+	return &resource{gvr: gvr, namespace: namespace}
+}
+
+// Create creates a new resource in kubernetes cluster
+func (r *resource) Create(obj *unstructured.Unstructured, subresources ...string) (u *unstructured.Unstructured, err error) {
+	if obj == nil {
+		err = errors.Errorf("nil resource instance: failed to create resource '%s' at '%s'", r.gvr, r.namespace)
+		return
+	}
+	dynamic, err := Dynamic().Provide()
+	if err != nil {
+		err = errors.Wrapf(err, "failed to create resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
+		return
+	}
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Create(obj, subresources...)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to create resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
+		return
+	}
+	return
+}
+
+// Get returns a specific resource from kubernetes cluster
+func (r *resource) Get(name string, opts metav1.GetOptions, subresources ...string) (u *unstructured.Unstructured, err error) {
+	if len(strings.TrimSpace(name)) == 0 {
+		err = errors.Errorf("missing resource name: failed to get resource '%s' at '%s'", r.gvr, r.namespace)
+		return
+	}
+	dynamic, err := Dynamic().Provide()
+	if err != nil {
+		err = errors.Wrapf(err, "failed to get resource '%s' '%s' at '%s'", r.gvr, name, r.namespace)
+		return
+	}
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Get(name, opts, subresources...)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to get resource '%s' '%s' at '%s'", r.gvr, name, r.namespace)
+		return
+	}
+	return
+}
+
+// Update updates the resource at kubernetes cluster
+func (r *resource) Update(oldobj, newobj *unstructured.Unstructured, subresources ...string) (u *unstructured.Unstructured, err error) {
+	if oldobj == nil {
+		err = errors.Errorf("nil old resource instance: failed to update resource '%s' at '%s'", r.gvr, r.namespace)
+		return
+	}
+	if newobj == nil {
+		err = errors.Errorf("nil new resource instance: failed to update resource '%s' at '%s'", r.gvr, r.namespace)
+		return
+	}
+	dynamic, err := Dynamic().Provide()
+	if err != nil {
+		err = errors.Wrapf(err, "failed to update resource '%s' '%s' at '%s'", r.gvr, oldobj.GetName(), r.namespace)
+		return
+	}
+
+	resourceVersion := oldobj.GetResourceVersion()
+	newobj.SetResourceVersion(resourceVersion)
+
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Update(newobj, subresources...)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to update resource '%s' '%s' at '%s'", r.gvr, oldobj.GetName(), r.namespace)
+		return
+	}
+	return
+}
+
+// ResourceApplyOptions is a utility instance used during the resource's apply
+// operation
 type ResourceApplyOptions struct {
 	Getter  ResourceGetter
 	Creator ResourceCreator
 	Updater ResourceUpdater
 }
 
-// ResourceApplier abstracts applying an unstructured instance that may or may
-// not be available in kubernetes cluster
-type ResourceApplier func(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
-
-// newResourceApplier returns a new instance of ResourceApplier that is capable
-// of applying an unstructured instance that may or may not be available in
-// kubernetes cluster
-func newResourceApplier(options ResourceApplyOptions) ResourceApplier {
-	return func(obj *unstructured.Unstructured, subresources ...string) (resource *unstructured.Unstructured, err error) {
-		if options.Getter == nil {
-			err = fmt.Errorf("nil resource getter instance: failed to apply resource")
-			return
-		}
-
-		if options.Creator == nil {
-			err = fmt.Errorf("nil resource creator instance: failed to apply resource")
-			return
-		}
-
-		if options.Updater == nil {
-			err = fmt.Errorf("nil resource updater instance: failed to apply resource")
-			return
-		}
-
-		if obj == nil {
-			err = fmt.Errorf("nil resource instance: failed to apply resource")
-			return
-		}
-
-		resource, err = options.Getter(obj.GetName(), metav1.GetOptions{})
-		if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
-			return options.Creator(obj, subresources...)
-		}
-
-		if resource != nil {
-			return options.Updater(resource, obj, subresources...)
-		}
-
-		return
-	}
+// createOrUpdate is a resource that is suitable to be executed as an apply
+// operation
+type createOrUpdate struct {
+	*resource
+	options ResourceApplyOptions // options used during resource's apply operation
 }
 
-// NewResourceApplier returns a new instance of ResourceApplier that is capable
-// of applying any resource into kubernetes cluster
-func NewResourceApplier(gvr schema.GroupVersionResource, namespace string) ResourceApplier {
-	options := ResourceApplyOptions{
-		Getter:  NewResourceGetter(gvr, namespace),
-		Creator: NewResourceCreator(gvr, namespace),
-		Updater: NewResourceUpdater(gvr, namespace),
-	}
+// CreateOrUpdate returns a new instance of createOrUpdate resource
+func CreateOrUpdate(gvr schema.GroupVersionResource, namespace string) *createOrUpdate {
+	resource := Resource(gvr, namespace)
+	options := ResourceApplyOptions{Getter: resource, Creator: resource, Updater: resource}
+	return &createOrUpdate{resource: resource, options: options}
+}
 
-	return newResourceApplier(options)
+// Apply applies a resource to the kubernetes cluster. In other words, it
+// creates a new resource if it does not exist or updates the existing resource.
+func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...string) (resource *unstructured.Unstructured, err error) {
+	if r.options.Getter == nil {
+		err = errors.New("nil resource getter instance: failed to apply resource")
+		return
+	}
+	if r.options.Creator == nil {
+		err = errors.New("nil resource creator instance: failed to apply resource")
+		return
+	}
+	if r.options.Updater == nil {
+		err = errors.New("nil resource updater instance: failed to apply resource")
+		return
+	}
+	if obj == nil {
+		err = errors.New("nil resource instance: failed to apply resource")
+		return
+	}
+	resource, err = r.options.Getter.Get(obj.GetName(), metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
+		return r.options.Creator.Create(obj, subresources...)
+	}
+	return r.options.Updater.Update(resource, obj, subresources...)
 }
