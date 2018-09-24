@@ -19,10 +19,11 @@ package template
 import (
 	"bytes"
 	"fmt"
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
 	"strings"
 	"testing"
 	"text/template"
+
+	. "github.com/openebs/maya/pkg/task/v1alpha1"
 )
 
 // TestIsValidTemplateFunctionName verifies if suggested template function names
@@ -49,7 +50,7 @@ func TestIsValidTemplateFunctionName(t *testing.T) {
 		"'cstor' as function name":     {"cstor"},
 		"'volume' as function name":    {"volume"},
 		"'pool' as function name":      {"pool"},
-		"'url' as function name":       {"url"},
+		"'withoption' as function name":  {"withoption"},
 		"'namespace' as function name": {"namespace"},
 		// possible selector based template functions
 		"'select' as function name": {"select"},
@@ -104,11 +105,11 @@ func TestRunCommandTemplatingCombinations(t *testing.T) {
 		"test 206": {"get volume cstor | run"},
 		"test 207": {"lst cstor volume | run"},
 		"test 208": {"lst volume cstor | run"},
-		// with url as input data combinations
-		"test 301": {`delete jiva volume | url "http://10.10.10.10:9501/v1" | run`},
-		"test 302": {`delete volume jiva | url "http://10.10.10.10:9501/v1" | run`},
-		"test 303": {`delete cstor volume | url "http://10.10.10.10:9501/v1" | run`},
-		"test 304": {`delete volume cstor | url "http://10.10.10.10:9501/v1" | run`},
+		// with withoption as input data combinations
+		"test 301": {`delete jiva volume | withoption "url" "http://10.10.10.10:9501/v1" | run`},
+		"test 302": {`delete volume jiva | withoption "url" "http://10.10.10.10:9501/v1" | run`},
+		"test 303": {`delete cstor volume | withoption "url" "http://10.10.10.10:9501/v1" | run`},
+		"test 304": {`delete volume cstor | withoption "url" "http://10.10.10.10:9501/v1" | run`},
 		// with select path combinations
 		"test 401": {`select "name" "namespace" | get jiva volume | run`},
 		"test 402": {`select "all" | lst jiva volume | run`},
@@ -252,11 +253,11 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 		tvalues  map[string]interface{}
 	}{
 		"test 101": {`{{- delete jiva volume | run -}}`, mockval},
-		"test 102": {`{{- delete jiva volume | url "" | run -}}`, mockval},
-		"test 103": {`{{- delete jiva volume | url "http://1.1.1.1" | run -}}`, mockval},
-		"test 104": {`{{- delete jiva volume | url "http://1.1.1.1:1010/v1" | run -}}`, mockval},
+		"test 102": {`{{- delete jiva volume | withoption "url" "" | run -}}`, mockval},
+		"test 103": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1" | run -}}`, mockval},
+		"test 104": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1:1010/v1" | run -}}`, mockval},
 		"test 105": {`{{- $url := "http://1.1.1.1:1010/v1" -}}
-		              {{- delete jiva volume | url $url | run -}}`, mockval},
+		              {{- delete jiva volume | withoption "url" $url | run -}}`, mockval},
 	}
 
 	for name, mock := range tests {
@@ -294,13 +295,13 @@ func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 		// NOTE:
 		//  Name of the test case and saveas key needs to be same
 		"101": {`{{- delete jiva volume | run | saveas "101" .Values -}}`},
-		"102": {`{{- delete jiva volume | url "" | name "" | run | saveas "102" .Values -}}`},
-		"103": {`{{- delete jiva volume | url "http://1.1.1.1" | name "ab" | run | saveas "103" .Values -}}`},
-		"104": {`{{- delete jiva volume | url "http://1.1.1.1:1010" | name "abc" | run | saveas "104" .Values -}}`},
+		"102": {`{{- delete jiva volume | withoption "url" "" | withoption "name" "" | run | saveas "102" .Values -}}`},
+		"103": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1" | withoption "name" "ab" | run | saveas "103" .Values -}}`},
+		"104": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1:1010" | withoption "name" "abc" | run | saveas "104" .Values -}}`},
 		"105": {`{{- $url := "http://1.1.1.1:1010/v1" -}}
-		         {{- delete jiva volume | url $url | name "abcd" | run | saveas "105" .Values -}}`},
+		         {{- delete jiva volume | withoption "url" $url | withoption "name" "abcd" | run | saveas "105" .Values -}}`},
 		"106": {`{{- $url := "http://1.1.1.1:1010/v1/volumes" -}}
-		         {{- delete jiva volume | url $url | name "abcde" | run | saveas "106" .Values -}}`},
+		         {{- delete jiva volume | withoption "url" $url | withoption "name" "abcde" | run | saveas "106" .Values -}}`},
 	}
 
 	for name, mock := range tests {
@@ -365,7 +366,7 @@ func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 		//  Name of the test case should equal to the key used by saveas & saveif
 		// functions
 		"t101": {`{{- $url := "http://1.1.1.1:1010" -}}
-		         {{- delete jiva volume | url $url | name "myvol" | run | saveas "t101" .Values -}}
+		         {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run | saveas "t101" .Values -}}
 		         {{- $err := toString .Values.t101.error -}}
 		         {{- $err | empty | not | verifyErr $err | saveif "t101.verifyerr" .Values | noop -}}`},
 	}

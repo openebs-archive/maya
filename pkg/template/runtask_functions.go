@@ -17,10 +17,11 @@ limitations under the License.
 package template
 
 import (
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
 	"strings"
 	"text/template"
+
+	. "github.com/openebs/maya/pkg/task/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 )
 
 // delete returns a new instance of delete based runtask command
@@ -131,24 +132,14 @@ func slect(paths ...string) RunCommandMiddleware {
 	return Select(paths)
 }
 
-// url sets the provided url as a input data to runtask command
+// withoption sets the provided <key,value> pair as an input data to runtask command
 //
 // Examples:
 // ---------
 // {{- $url := "http://10.10.10.10:9501" -}}
-// {{- delete jiva volume | url $url | run -}}
-func url(u string, given *RunCommand) (updated *RunCommand) {
-	return WithData(given, "url", u)
-}
-
-// name sets the provided name as a input data to runtask command
-//
-// Examples:
-// ---------
-// {{- $url := "http://10.10.10.10:9501" -}}
-// {{- delete jiva volume | url $url | name "myvol" | run -}}
-func name(n string, given *RunCommand) (updated *RunCommand) {
-	return WithData(given, "name", n)
+// {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run -}}
+func withoption(key, value string, given *RunCommand) (updated *RunCommand) {
+	return WithData(given, key, value)
 }
 
 // run executes the runtask command
@@ -194,19 +185,18 @@ func runlog(resultpath, debugpath string, store map[string]interface{}, given *R
 // runCommandFuncs returns the set of runtask command based template functions
 func runCommandFuncs() template.FuncMap {
 	return template.FuncMap{
-		"delete": delete,
-		"get":    get,
-		"lst":    list,
-		"create": create,
-		"patch":  patch,
-		"update": update,
-		"jiva":   jiva,
-		"cstor":  cstor,
-		"volume": volume,
-		"url":    url,
-		"name":   name,
-		"run":    run,
-		"runlog": runlog,
-		"select": slect,
+		"delete":     delete,
+		"get":        get,
+		"lst":        list,
+		"create":     create,
+		"patch":      patch,
+		"update":     update,
+		"jiva":       jiva,
+		"cstor":      cstor,
+		"volume":     volume,
+		"withoption": withoption,
+		"run":        run,
+		"runlog":     runlog,
+		"select":     slect,
 	}
 }
