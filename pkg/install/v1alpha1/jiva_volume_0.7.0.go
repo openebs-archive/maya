@@ -23,13 +23,7 @@ func JivaVolumeArtifactsFor070() (list ArtifactList) {
 	return
 }
 
-// jivaVolumeYamlsFor070 returns all the yamls related to jiva volume in a
-// string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func jivaVolumeYamlsFor070() string {
-	return `
+const jivaRunTask = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -409,6 +403,7 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistctrl.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistctrl.items | notFoundErr "controller pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.nodeName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistctrl.fsType" .TaskResult | noop -}}
@@ -453,6 +448,7 @@ spec:
       annotations:
         vsm.openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
         vsm.openebs.io/cluster-ips: {{ .TaskResult.readlistsvc.clusterIP }}
+        vsm.openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.nodeName | default "" }}
         vsm.openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
         vsm.openebs.io/replica-count: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
         vsm.openebs.io/volume-size: {{ $capacity }}
@@ -462,6 +458,7 @@ spec:
         vsm.openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
         openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
         openebs.io/cluster-ips: {{ .TaskResult.readlistsvc.clusterIP }}
+        openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.nodeName | default "" }}
         openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
         openebs.io/replica-count: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
         openebs.io/volume-size: {{ $capacity }}
@@ -1055,4 +1052,12 @@ spec:
       name: {{ .Volume.owner }}
 ---
 `
+
+// jivaVolumeYamlsFor070 returns all the yamls related to jiva volume in a
+// string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func jivaVolumeYamlsFor070() string {
+	return jivaRunTask
 }

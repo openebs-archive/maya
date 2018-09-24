@@ -23,13 +23,7 @@ func CstorVolumeArtifactsFor070() (list ArtifactList) {
 	return
 }
 
-// cstorVolumeYamlsFor070 returns all the yamls related to cstor volume in a
-// string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func cstorVolumeYamlsFor070() string {
-	return `
+const cstorRunTask = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -529,7 +523,7 @@ spec:
     We create a pair of "targetIP"=xxxxx and save it for corresponding volume
     The per volume is servicePair is identified by unique "namespace/vol-name" key
     */}}
-    {{- $targetPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},targetIP={@.status.podIP},targetStatus={@.status.containerStatuses[*].ready};{end}" | trim | default "" | splitList ";" -}}
+    {{- $targetPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},targetIP={@.status.podIP},namespace={@.metadata.namespace},targetStatus={@.status.containerStatuses[*].ready};{end}" | trim | default "" | splitList ";" -}}
     {{- $targetPairs | keyMap "volumeList" .ListItems | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
@@ -571,11 +565,13 @@ spec:
     {{- $clusterIP := pluck "clusterIP" $map | first }}
     {{- $targetStatus := pluck "targetStatus" $map | first }}
     {{- $replicaName := pluck "replicaName" $map | first }}
+    {{- $namespace := pluck "namespace" $map | first }}
     {{- $name := $pkey }}
       - kind: CASVolume
         apiVersion: v1alpha1
         metadata:
           name: {{ $name }}
+          namespace: {{ $namespace }}
           annotations:
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
@@ -670,6 +666,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistctrl.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistctrl.items | notFoundErr "target pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.podNodeName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
 ---
 # runTask to render output of read volume task as CAS Volume
@@ -697,6 +694,7 @@ spec:
         openebs.io/cvr-names: {{ .TaskResult.readlistrep.items | default "" | splitList " " | join "," }}
         openebs.io/node-names: {{ .TaskResult.readlistrep.hostname | default "" | splitList " " | join "," }}
         openebs.io/pool-names: {{ .TaskResult.readlistrep.poolname | default "" | splitList " " | join "," }}
+        openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.podNodeName | default ""}}
     spec:
       capacity: {{ $capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
@@ -867,4 +865,12 @@ spec:
       name: {{ .Volume.owner }}
 ---
 `
+
+// cstorVolumeYamlsFor070 returns all the yamls related to cstor volume in a
+// string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func cstorVolumeYamlsFor070() string {
+	return cstorRunTask
 }
