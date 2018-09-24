@@ -46,12 +46,12 @@ func TestIsValidTemplateFunctionName(t *testing.T) {
 		"'patch' as function name":  {"patch"},
 		"'update' as function name": {"update"},
 		// possible domain based template functions
-		"'jiva' as function name":      {"jiva"},
-		"'cstor' as function name":     {"cstor"},
-		"'volume' as function name":    {"volume"},
-		"'pool' as function name":      {"pool"},
-		"'withoption' as function name":  {"withoption"},
-		"'namespace' as function name": {"namespace"},
+		"'jiva' as function name":       {"jiva"},
+		"'cstor' as function name":      {"cstor"},
+		"'volume' as function name":     {"volume"},
+		"'pool' as function name":       {"pool"},
+		"'withoption' as function name": {"withoption"},
+		"'namespace' as function name":  {"namespace"},
 		// possible selector based template functions
 		"'select' as function name": {"select"},
 		"'where' as function name":  {"where"},
