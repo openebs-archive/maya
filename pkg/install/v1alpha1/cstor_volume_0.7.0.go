@@ -16,14 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// CstorVolumeArtifactsFor070 returns the cstor volume related artifacts
-// corresponding to version 0.7.0
-func CstorVolumeArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorVolumeYamlsFor070)...)
-	return
-}
-
-const cstorRunTask = `
+const cstorVolumeYamls070 = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -666,7 +659,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistctrl.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistctrl.items | notFoundErr "target pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.podNodeName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.targetNodeName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
 ---
 # runTask to render output of read volume task as CAS Volume
@@ -694,7 +687,7 @@ spec:
         openebs.io/cvr-names: {{ .TaskResult.readlistrep.items | default "" | splitList " " | join "," }}
         openebs.io/node-names: {{ .TaskResult.readlistrep.hostname | default "" | splitList " " | join "," }}
         openebs.io/pool-names: {{ .TaskResult.readlistrep.poolname | default "" | splitList " " | join "," }}
-        openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.podNodeName | default ""}}
+        openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.targetNodeName | default ""}}
     spec:
       capacity: {{ $capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
@@ -866,11 +859,18 @@ spec:
 ---
 `
 
+// CstorVolumeArtifactsFor070 returns the cstor volume related artifacts
+// corresponding to version 0.7.0
+func CstorVolumeArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorVolumeYamlsFor070)...)
+	return
+}
+
 // cstorVolumeYamlsFor070 returns all the yamls related to cstor volume in a
 // string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
 func cstorVolumeYamlsFor070() string {
-	return cstorRunTask
+	return cstorVolumeYamls070
 }

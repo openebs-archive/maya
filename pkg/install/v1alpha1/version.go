@@ -27,10 +27,12 @@ const (
 	invalidVersion version = "invalid.version"
 )
 
+// CurrentVersion returns the version of the calling instance
 func CurrentVersion() version {
 	return version(mver.GetVersion())
 }
 
+// Version returns the version in version type if present
 func Version(version string) version {
 	switch version {
 	case "0.7.0":
@@ -38,5 +40,4 @@ func Version(version string) version {
 	default:
 		return invalidVersion
 	}
-	return invalidVersion
 }

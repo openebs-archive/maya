@@ -16,20 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// CstorPoolArtifactsFor070 returns the cstor pool related artifacts
-// corresponding to version 0.7.0
-func CstorPoolArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorPoolYamlsFor070)...)
-	return
-}
-
-// cstorPoolYamlsFor070 returns all the yamls related to cstor pool in a string
-// format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func cstorPoolYamlsFor070() string {
-	return `
+const cstorPoolYamls070 = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -484,4 +471,19 @@ spec:
     objectName: {{ keys .ListItems.splist.sps | join "," }}
 ---
 `
+
+// CstorPoolArtifactsFor070 returns the cstor pool related artifacts
+// corresponding to version 0.7.0
+func CstorPoolArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorPoolYamlsFor070)...)
+	return
+}
+
+// cstorPoolYamlsFor070 returns all the yamls related to cstor pool in a string
+// format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func cstorPoolYamlsFor070() string {
+	return cstorPoolYamls070
 }

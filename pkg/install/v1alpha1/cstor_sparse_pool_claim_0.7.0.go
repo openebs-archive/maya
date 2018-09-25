@@ -17,32 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"strconv"
+
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
-// IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
-// should be created by default or not.
-func IsCstorSparsePoolEnabled() (enabled bool) {
-	enabled, _ = strconv.ParseBool(menv.Get(DefaultCstorSparsePool))
-	return
-}
-
-// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim
-// and storageclass yaml corresponding to version 0.7.0 if cstor
-// sparse pool creation is enabled as a part of openebs installation
-func CstorSparsePoolSpcArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcArtifactsFor070, IsCstorSparsePoolEnabled)...)
-	return
-}
-
-// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring
-// a stoaragepoolclaim and storageclass in string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func cstorSparsePoolSpcArtifactsFor070() string {
-	return `
+const cstorSparsePoolSpcArtifacts070 = `
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -96,4 +76,27 @@ spec:
     poolType: striped
 ---
 `
+
+// IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
+// should be created by default or not.
+func IsCstorSparsePoolEnabled() (enabled bool) {
+	enabled, _ = strconv.ParseBool(menv.Get(DefaultCstorSparsePool))
+	return
+}
+
+// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim
+// and storageclass yaml corresponding to version 0.7.0 if cstor
+// sparse pool creation is enabled as a part of openebs installation
+func CstorSparsePoolSpcArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcArtifactsFor070, IsCstorSparsePoolEnabled)...)
+	return
+}
+
+// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring
+// a stoaragepoolclaim and storageclass in string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func cstorSparsePoolSpcArtifactsFor070() string {
+	return cstorSparsePoolSpcArtifacts070
 }

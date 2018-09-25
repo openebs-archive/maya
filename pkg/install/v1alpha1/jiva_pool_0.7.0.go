@@ -16,20 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// JivaPoolArtifactsFor070 returns the default jiva pool and storage
-// class related artifacts corresponding to version 0.7.0
-func JivaPoolArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPoolYamlsFor070)...)
-	return
-}
-
-// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and
-// storage class in a string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func jivaPoolYamlsFor070() string {
-	return `
+const jivaPoolYamls070 = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: StoragePool
@@ -64,4 +51,19 @@ metadata:
 provisioner: openebs.io/provisioner-iscsi
 ---
 `
+
+// JivaPoolArtifactsFor070 returns the default jiva pool and storage
+// class related artifacts corresponding to version 0.7.0
+func JivaPoolArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPoolYamlsFor070)...)
+	return
+}
+
+// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and
+// storage class in a string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func jivaPoolYamlsFor070() string {
+	return jivaPoolYamls070
 }
