@@ -51,12 +51,13 @@ type Value struct {
 
 // PortalInfo keep info about the ISCSI Target Portal.
 type PortalInfo struct {
-	IQN          string
-	VolumeName   string
-	Portal       string
-	Size         string
-	Status       string
-	ReplicaCount string
+	IQN            string
+	VolumeName     string
+	Portal         string
+	Size           string
+	Status         string
+	ReplicaCount   string
+	ControllerNode string
 }
 
 // ReplicaInfo keep info about the replicas.
@@ -189,12 +190,13 @@ Replica Details :
 		portalTemplate = `
 Portal Details :
 ----------------
-IQN           :   {{.IQN}}
-Volume        :   {{.VolumeName}}
-Portal        :   {{.Portal}}
-Size          :   {{.Size}}
-Status        :   {{.Status}}
-Replica Count :   {{.ReplicaCount}}
+IQN               :   {{.IQN}}
+Volume            :   {{.VolumeName}}
+Portal            :   {{.Portal}}
+Size              :   {{.Size}}
+Controller Status :   {{.Status}}
+Controller Node   :   {{.ControllerNode}}
+Replica Count     :   {{.ReplicaCount}}
 `
 	)
 
@@ -205,6 +207,7 @@ Replica Count :   {{.ReplicaCount}}
 		v.GetVolumeSize(),
 		v.GetControllerStatus(),
 		v.GetReplicaCount(),
+		v.GetControllerNode(),
 	}
 	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
 	if err != nil {
