@@ -128,6 +128,12 @@ func (sl *spcLease) Hold() (string, error) {
 	return "", fmt.Errorf("lease on spc already acquired by a live pod")
 }
 
+// Update will update a lease on spc depending on type of update that is required.
+// We have following type of update strategy:
+// 1.nilUpdate
+// 2.selfReleaseUpdate
+// 3.forceUpdate
+// See the functions(below) for more details on update strategy
 func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
 	newSpcObject := sl.spcObject
 	if newSpcObject.Annotations == nil {
@@ -146,6 +152,7 @@ func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
 	return spcObject, nil
 }
 
+// Function to release lease on a given spc.
 func (sl *spcLease) Release() {
 	_, err := sl.patchSpc()
 	if err != nil {
@@ -223,6 +230,7 @@ func parseLeaseValue(leaseValue string) (lease, error) {
 	return *leaseValueObj, nil
 }
 
+// nilUpdate function will update lease on such SPC which was not acquired by any pod ever in its lifetime.
 func (sl *spcLease) nilUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	// make a map that should contain the lease key in spc
 	mapLease := make(map[string]string)
@@ -240,6 +248,7 @@ func (sl *spcLease) nilUpdate(podName string, newSpcObject *apis.StoragePoolClai
 	return newSpcObject, nil
 }
 
+// selfReleaseUpdate function will update lease on SPC if the holder of lease has released the lease successfully.
 func (sl *spcLease) selfReleaseUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	leaseValueObj := &lease{
 		podName,
@@ -253,6 +262,7 @@ func (sl *spcLease) selfReleaseUpdate(podName string, newSpcObject *apis.Storage
 	return newSpcObject, nil
 }
 
+// forceUpdate function will update lease on SPC if the holder of lease has died before releasing the lease.
 func (sl *spcLease) forceUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	leaseValueObj, err := parseLeaseValue(newSpcObject.Annotations[sl.leaseKey])
 	if err != nil {
