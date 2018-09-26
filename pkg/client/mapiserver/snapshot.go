@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/http"
 	"os"
 	"strconv"
 	"text/tabwriter"
@@ -74,8 +75,13 @@ func CreateSnapshot(volName string, snapName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
-	return err
+	body, responseStatusCode, err := serverRequest(post, jsonValue, GetURL()+snapshotCreatePath, namespace)
+	if err != nil {
+		return err
+	} else if responseStatusCode != http.StatusOK {
+		return fmt.Errorf(string(body))
+	}
+	return nil
 }
 
 // RevertSnapshot reverts a snapshot of volume by API request to m-apiserver
@@ -98,17 +104,25 @@ func RevertSnapshot(volName string, snapName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+snapshotRevertPath, jsonValue, namespace, false)
-	return err
+	_, responseStatusCode, err := serverRequest(post, jsonValue, GetURL()+snapshotRevertPath, namespace)
+	if err != nil {
+		return err
+	} else if responseStatusCode != http.StatusOK {
+		return fmt.Errorf("Server status error: %v", http.StatusText(responseStatusCode))
+	}
+	return nil
 }
 
 // ListSnapshot lists snapshots of volume by API request to m-apiserver
 func ListSnapshot(volName string, namespace string) error {
 
-	body, err := getRequest(GetURL()+snapshotListPath+volName, namespace, false)
+	body, responseStatusCode, err := serverRequest(get, nil, GetURL()+snapshotListPath+volName, namespace)
 	if err != nil {
 		return err
+	} else if responseStatusCode != http.StatusOK {
+		return fmt.Errorf("Server status error: %v", http.StatusText(responseStatusCode))
 	}
+
 	snapdisk, err := getInfo(body)
 	if err != nil {
 		return fmt.Errorf("Failed to get the snapshot info, found error - %v", err)

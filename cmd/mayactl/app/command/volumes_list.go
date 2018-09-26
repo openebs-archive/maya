@@ -19,7 +19,6 @@ package command
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
@@ -33,6 +32,23 @@ If no volume ID is given, a list of all known volumes will be displayed.
 Usage: mayactl volume list [options]
 	`
 )
+
+const (
+	volumeListTemplate = `
+{{ printf "NAMESPACE\t NAME\t STATUS\t TYPE" }}
+{{ printf "---------\t ----\t ------\t ----" }} {{range $key,$value := .}}
+{{ printf "%v\t" $value.Namespace }} {{ printf "%v\t" $value.Name }} {{ printf "%s\t" $value.Status }} {{ printf "%s" $value.VolumeType }} {{end}}
+
+`
+)
+
+// VolumeList struct holds the volume's information like status and volume type.
+type VolumeList struct {
+	Namespace  string
+	Name       string
+	Status     string
+	VolumeType string
+}
 
 // NewCmdVolumesList displays status of OpenEBS Volume(s)
 func NewCmdVolumesList() *cobra.Command {
@@ -54,28 +70,33 @@ func NewCmdVolumesList() *cobra.Command {
 
 //RunVolumesList fetchs the volumes from maya-apiserver
 func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
-	//fmt.Println("Executing volume list...")
-
-	var cvols v1alpha1.CASVolumeList
-	err := mapiserver.ListVolumes(&cvols)
+	// Call to m-api service to fetch volume list.
+	cvols, err := mapiserver.ListVolumes()
 	if err != nil {
-		return fmt.Errorf("Volume list error: %s", err)
+		CheckError(err)
 	}
 
-	out := make([]string, len(cvols.Items)+1)
-	out[0] = "Name|Status|Type"
-	for i, items := range cvols.Items {
-		if len(items.Status.Reason) == 0 {
-			items.Status.Reason = volumeStatusOK
+	// Create and Fill the slice with required fields after process
+	volumes := []VolumeList{}
+	for index, volume := range cvols.Items {
+		cvols.Items[index], err = processCASVolume(volume, false)
+		if err != nil {
+			CheckError(err)
 		}
-		out[i+1] = fmt.Sprintf("%s|%s|%s",
-			items.ObjectMeta.Name,
-			items.Status.Reason, items.Spec.CasType)
+		volumes = append(volumes, VolumeList{
+			Namespace:  cvols.Items[index].ObjectMeta.Namespace,
+			Name:       cvols.Items[index].ObjectMeta.Name,
+			Status:     cvols.Items[index].Status.Reason,
+			VolumeType: cvols.Items[index].Spec.CasType,
+		})
 	}
-	if len(out) == 1 {
-		fmt.Println("No Volumes are running")
+
+	// Check for volumes length.
+	if len(volumes) == 0 {
+		fmt.Println("No volumes found")
 		return nil
 	}
-	fmt.Println(util.FormatList(out))
+
+	renderTemplate("VolumeList", volumeListTemplate, volumes)
 	return nil
 }

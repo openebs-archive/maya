@@ -122,25 +122,25 @@ spec:
         - some-node-label-value
   # TargetResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from TargetResourceLimits or the default requests set in the cluster.
+  # from TargetResourceLimits or the default requests set in the cluster. 
   - name: TargetResourceRequests
     value: "none"
-  # TargetResourceLimits allow you to set the limits on memory and cpu for jiva
-  # target pods. The resource and limit value should be in the same format as
+  # TargetResourceLimits allow you to set the limits on memory and cpu for jiva 
+  # target pods. The resource and limit value should be in the same format as 
   # expected by Kubernetes. Example:
   #- name: TargetResourceLimits
   #  value: |-
   #      memory: 1Gi
   #      cpu: 200m
-  # By default, the resource limits are disabled.
+  # By default, the resource limits are disabled. 
   - name: TargetResourceLimits
     value: "none"
   # ReplicaResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from ReplicaResourceLimits or the default requests set in the cluster.
+  # from ReplicaResourceLimits or the default requests set in the cluster. 
   - name: ReplicaResourceRequests
     value: "none"
-  # ReplicaResourceLimits allow you to set the limits on memory and cpu for jiva
+  # ReplicaResourceLimits allow you to set the limits on memory and cpu for jiva 
   # replica pods. The resource and limit value should be in the same format as
   # expected by Kubernetes. Example:
   - name: ReplicaResourceLimits
@@ -149,10 +149,10 @@ spec:
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
     value: "none"
-  # ReplicaAntiAffinityTopoKey is used to schedule replica pods
+  # ReplicaAntiAffinityTopoKey is used to schedule replica pods 
   # of a given volume/application, such that they are:
   # - not co-located on the same node. (kubernetes.io/hostname)
-  # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone)
+  # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone) 
   # The value for toplogy key can be anythign supported by Kubernetes
   # clusters. It is possible that some cluster might support topology schemes
   # like the rack or floor.
@@ -185,8 +185,8 @@ spec:
   #      nodetype: storage
   - name: ReplicaNodeSelector
     value: "none"
-  # FSType specifies the format type that Kubernetes should use to
-  # mount the Persistent Volume. Note that there are no validations
+  # FSType specifies the format type that Kubernetes should use to 
+  # mount the Persistent Volume. Note that there are no validations 
   # done to check the validity of the FsType
   - name: FSType
     value: "ext4"
@@ -353,8 +353,8 @@ spec:
             vsm.openebs.io/replica-count: {{ $replicaIP | default "" | splitList ", " | len }}
             vsm.openebs.io/volume-size: {{ $capacity }}
             vsm.openebs.io/replica-ips: {{ $replicaIP }}
-            vsm.openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
-            vsm.openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
+            vsm.openebs.io/replica-status: {{ $replicaStatus | replace "true" "Running" | replace "false" "notready" }}
+            vsm.openebs.io/controller-status: {{ $controllerStatus | replace "true" "Running" | replace "false" "notready" | replace " " "," }}
             vsm.openebs.io/targetportals: {{ $clusterIP }}:3260
             openebs.io/controller-ips: {{ $controllerIP }}
             openebs.io/cluster-ips: {{ $clusterIP }}
@@ -362,8 +362,8 @@ spec:
             openebs.io/replica-count: {{ $replicaIP | default "" | splitList ", " | len }}
             openebs.io/volume-size: {{ $capacity }}
             openebs.io/replica-ips: {{ $replicaIP }}
-            openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
-            openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
+            openebs.io/replica-status: {{ $replicaStatus | replace "true" "Running" | replace "false" "notready" }}
+            openebs.io/controller-status: {{ $controllerStatus | replace "true" "Running" | replace "false" "notready" | replace " " "," }}
             openebs.io/targetportals: {{ $clusterIP }}:3260
         spec:
           capacity: {{ $capacity }}
@@ -409,6 +409,7 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistctrl.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistctrl.items | notFoundErr "controller pod not found" | saveIf "readlistctrl.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.namespace}" | trim | saveAs "readlistctrl.itemsNamespace" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistctrl.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistctrl.fsType" .TaskResult | noop -}}
@@ -430,8 +431,10 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistrep.items | notFoundErr "replica pod(s) not found" | saveIf "readlistrep.notFoundErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistrep.podIP" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistrep.status" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{range .items[*]}<{@.spec.nodeName}> {end}" | trim | saveAs "readlistrep.nodeName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{range .items[*]}<{@.metadata.name}> {end}" | trim | saveAs "readlistrep.podName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{range .items[*]}<{@.status.podIP}> {end}" | trim | saveAs "readlistrep.podIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{range .items[*]}<{@.status.containerStatuses[*].ready}> {end}" | trim | saveAs "readlistrep.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
@@ -450,24 +453,27 @@ spec:
     apiVersion: v1alpha1
     metadata:
       name: {{ .Volume.owner }}
+      namespace: {{ .TaskResult.readlistctrl.itemsNamespace }}
       annotations:
         vsm.openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
         vsm.openebs.io/cluster-ips: {{ .TaskResult.readlistsvc.clusterIP }}
         vsm.openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
         vsm.openebs.io/replica-count: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
         vsm.openebs.io/volume-size: {{ $capacity }}
-        vsm.openebs.io/replica-ips: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | join "," }}
-        vsm.openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
-        vsm.openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
+        vsm.openebs.io/replica-ips: {{ .TaskResult.readlistrep.podIP | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," }}
+        vsm.openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," | replace "true" "Running" | replace "false" "notready" }}
+        vsm.openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "Running" | replace "false" "notready" }}
         vsm.openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
         openebs.io/controller-ips: {{ .TaskResult.readlistctrl.podIP | default "" | splitList " " | first }}
         openebs.io/cluster-ips: {{ .TaskResult.readlistsvc.clusterIP }}
         openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ .Volume.owner }}
         openebs.io/replica-count: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | len }}
         openebs.io/volume-size: {{ $capacity }}
-        openebs.io/replica-ips: {{ .TaskResult.readlistrep.podIP | default "" | splitList " " | join "," }}
-        openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
-        openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
+        openebs.io/replica-ips: {{ .TaskResult.readlistrep.podIP | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," }}
+        openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," | replace "true" "Running" | replace "false" "notready" }}
+        openebs.io/replica-node-names: {{ .TaskResult.readlistrep.nodeName | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," }}
+        openebs.io/replica-pod-names: {{ .TaskResult.readlistrep.podName | default "" | replace "<>" "N/A" | replace "<" "" | replace ">" "" | splitList " " | join "," }}
+        openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "Running" | replace "false" "notready" }}
         openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
     spec:
       capacity: {{ $capacity }}
@@ -479,7 +485,7 @@ spec:
       lun: {{ .TaskResult.readlistctrl.lun }}
       fsType: {{ .TaskResult.readlistctrl.fsType }}
       casType: jiva
----
+---    
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
@@ -851,10 +857,10 @@ spec:
                   matchLabels:
                     openebs.io/replica: jiva-replica
                     {{/* If PVC object has a replica anti-affinity value. Use it.
-                         This is usually the case for STS that creates PVCs from a
+                         This is usually the case for STS that creates PVCs from a 
                          PVC Template. So, a STS can have multiple PVs with their
-                         unique id. To schedule/spread out replicas belonging to
-                         different PV, a unique label associated with the STS should
+                         unique id. To schedule/spread out replicas belonging to 
+                         different PV, a unique label associated with the STS should 
                          be passed to all the PVCs tied to the STS. */}}
                     {{- if ne $replicaAntiAffinityVal "none" }}
                     openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}

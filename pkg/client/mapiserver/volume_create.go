@@ -2,15 +2,11 @@ package mapiserver
 
 import (
 	"encoding/json"
-	"time"
+	"fmt"
+	"net/http"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-const (
-	volumeCreateTimeout = 60 * time.Second
-	volumePath          = "/latest/volumes/"
 )
 
 // CreateVolume creates a volume by invoking the API call to m-apiserver
@@ -30,6 +26,12 @@ func CreateVolume(vname, size, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+volumePath, jsonValue, "", false)
-	return err
+	_, responseStatusCode, err := serverRequest(post, jsonValue, GetURL()+volumePath, "")
+	if err != nil {
+		return err
+	} else if responseStatusCode != http.StatusOK {
+		return fmt.Errorf("Server status error: %v", http.StatusText(responseStatusCode))
+	}
+
+	return nil
 }

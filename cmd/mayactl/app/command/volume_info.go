@@ -17,19 +17,13 @@ limitations under the License.
 package command
 
 import (
-	"errors"
 	"fmt"
-	"html/template"
-	"os"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 
-	client "github.com/openebs/maya/pkg/client/jiva"
-	k8sclient "github.com/openebs/maya/pkg/client/k8s"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -42,13 +36,6 @@ Usage: mayactl volume info --volname <vol>
 `
 )
 
-// Value keeps info of the values of a current address in replicaIPStatus map
-type Value struct {
-	index  int
-	status string
-	mode   string
-}
-
 // PortalInfo keep info about the ISCSI Target Portal.
 type PortalInfo struct {
 	IQN          string
@@ -57,10 +44,11 @@ type PortalInfo struct {
 	Size         string
 	Status       string
 	ReplicaCount string
+	FileSystem   string
 }
 
 // ReplicaInfo keep info about the replicas.
-type ReplicaInfo struct {
+type jivaReplicaInfo struct {
 	IP         string
 	AccessMode string
 	Status     string
@@ -97,234 +85,159 @@ func NewCmdVolumeInfo() *cobra.Command {
 
 // RunVolumeInfo runs info command and make call to DisplayVolumeInfo to display the results
 func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
-	volumeInfo := &VolumeInfo{}
-	// FetchVolumeInfo is called to get the volume controller's info such as
+	// ReadVolume is called to get the volume controller's info such as
 	// controller's IP, status, iqn, replica IPs etc.
-	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
+	volume, err := mapiserver.ReadVolume(c.volName, c.namespace)
 	if err != nil {
-		return nil
+		CheckError(err)
 	}
 
-	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
-	collection := client.ReplicaCollection{}
-	if volumeInfo.GetCASType() == string(JivaStorageEngine) {
-		collection, err = getReplicaInfo(volumeInfo)
-	}
-	c.DisplayVolumeInfo(volumeInfo, collection)
-	return nil
-}
-
-// getReplicaInfo returns the collection of replicas available for jiva volumes
-func getReplicaInfo(volumeInfo *VolumeInfo) (client.ReplicaCollection, error) {
-	controllerClient := client.ControllerClient{}
-	collection := client.ReplicaCollection{}
-	controllerStatuses := strings.Split(volumeInfo.GetControllerStatus(), ",")
-	// Iterating over controllerStatus
-	for _, controllerStatus := range controllerStatuses {
-		if controllerStatus != controllerStatusOk {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
-			return collection, errors.New("Unable to fetch volume details")
-		}
-	}
-	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.
-	// An API needs to be passed as argument.
-	_, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.InfoAPI, &collection)
+	// Sanitize the response
+	volume, err = processCASVolume(volume, true)
 	if err != nil {
-		fmt.Printf("Cannot get volume stats %v", err)
+		CheckError(err)
 	}
-	return collection, err
-}
 
-// updateReplicaInfo parses replica information to replicaInfo structure
-func updateReplicasInfo(replicaInfo map[int]*ReplicaInfo) error {
-	K8sClient, err := k8sclient.NewK8sClient("")
+	// render the the volume portal information
+	err = displayPortal(volume)
 	if err != nil {
-		return err
+		CheckError(err)
 	}
 
-	pods, err := K8sClient.GetPods()
+	if volume.Spec.CasType == string(JivaStorageEngine) {
+		err = displayJivaReplicaDetails(volume)
+	} else if volume.Spec.CasType == string(CstorStorageEngine) {
+		err = displayCstorReplicaDetails(volume)
+	} else {
+		err = fmt.Errorf("Unsupported CASType found")
+	}
+
 	if err != nil {
-		return err
-	}
-
-	for _, replica := range replicaInfo {
-		for _, pod := range pods {
-			if pod.Status.PodIP == replica.IP {
-				replica.NodeName = pod.Spec.NodeName
-				replica.Name = pod.ObjectMeta.Name
-			}
-		}
+		CheckError(err)
 	}
 
 	return nil
 }
 
-// DisplayVolumeInfo displays the outputs in standard I/O.
-// Currently it displays volume access modes and target portal details only.
-func (c *CmdVolumeOptions) DisplayVolumeInfo(v *VolumeInfo, collection client.ReplicaCollection) error {
-	var (
-		// address and mode are used here as blackbox for the replica info
-		// address keeps the ip and access mode details respectively.
-		address, mode []string
-		replicaCount  int
-		portalInfo    PortalInfo
-	)
-	const (
-		jivaReplicaTemplate = `
+func displayPortal(v v1alpha1.CASVolume) error {
+	const portalTemplate = `
+Portal Details :
+----------------
+IQN                :   {{.IQN}}
+Volume             :   {{.VolumeName}}
+Portal             :   {{.Portal}}
+Size               :   {{.Size}}
+Status             :   {{.Status}}
+Replica Count      :   {{.ReplicaCount}}
+File System Type   :   {{.FileSystem}}
+
+`
+
+	portalInfo := PortalInfo{
+		v.Spec.Iqn,
+		v.ObjectMeta.Name,
+		v.Spec.TargetPortal,
+		v.Spec.Capacity,
+		v.ObjectMeta.Annotations[controllerStatus],
+		v.Spec.Replicas,
+		v.Spec.FSType,
+	}
+	err := renderTemplate("VolumePortal", portalTemplate, portalInfo)
+	return err
+}
+
+func displayJivaReplicaDetails(v v1alpha1.CASVolume) error {
+	const jivaReplicaTemplate = `
 Replica Details :
 -----------------
 {{ printf "NAME\t ACCESSMODE\t STATUS\t IP\t NODE" }}
 {{ printf "-----\t -----------\t -------\t ---\t -----" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.AccessMode }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.IP }} {{ $value.NodeName }} {{end}}
+
 `
 
-		cstorReplicaTemplate = `
+	// Convert replica count character to int
+	jivaReplicaCount, err := strconv.Atoi(v.Spec.Replicas)
+	if err != nil {
+		CheckError(fmt.Errorf("Invalid replica count"))
+	}
+	// Splitting values seperated by delemiter
+	jivaReplicaNodeName := strings.Split(v.ObjectMeta.Annotations[replicaNodeName], ",")
+	jivaReplicaPodName := strings.Split(v.ObjectMeta.Annotations[replicaPodName], ",")
+	jivaReplicaAccessMode := strings.Split(v.ObjectMeta.Annotations[replicaAccessMode], ",")
+	jivaReplicaIP := strings.Split(v.ObjectMeta.Annotations[replicaIP], ",")
+	jivaReplicaStatus := strings.Split(v.ObjectMeta.Annotations[replicaStatus], ",")
+	jivaReplicas := []jivaReplicaInfo{}
+
+	// Confirm replica status, podname , accessmode, nodeName and IP are equal to replica count
+	checkInvalidResponse := len(jivaReplicaAccessMode) != jivaReplicaCount || len(jivaReplicaIP) != jivaReplicaCount || len(jivaReplicaNodeName) != jivaReplicaCount || len(jivaReplicaPodName) != jivaReplicaCount || len(jivaReplicaStatus) != jivaReplicaCount
+	if checkInvalidResponse {
+		return fmt.Errorf("Invalid replica response received from maya api service")
+	}
+
+	// Iterating over the values replica values and appending to the structure
+	for index := 0; index < jivaReplicaCount; index++ {
+		jivaReplicas = append(jivaReplicas, jivaReplicaInfo{
+			Name:       jivaReplicaPodName[index],
+			NodeName:   jivaReplicaNodeName[index],
+			AccessMode: jivaReplicaAccessMode[index],
+			Status:     jivaReplicaStatus[index],
+			IP:         jivaReplicaIP[index],
+		})
+	}
+
+	// Render the jiva template
+	err = renderTemplate("JivaReplicaInfo", jivaReplicaTemplate, jivaReplicas)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func displayCstorReplicaDetails(v v1alpha1.CASVolume) error {
+	const cstorReplicaTemplate = `
 Replica Details :
 -----------------
 {{ printf "%s\t" "NAME"}} {{ printf "%s\t" "STATUS"}} {{ printf "%s\t" "POOL NAME"}} {{ printf "%s\t" "NODE"}}
 {{ printf "----\t ------\t ---------\t -----" }} {{range $key, $value := .}}
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.PoolName }} {{ $value.NodeName }} {{end}}
+	
 `
-
-		portalTemplate = `
-Portal Details :
-----------------
-IQN           :   {{.IQN}}
-Volume        :   {{.VolumeName}}
-Portal        :   {{.Portal}}
-Size          :   {{.Size}}
-Status        :   {{.Status}}
-Replica Count :   {{.ReplicaCount}}
-`
-	)
-
-	portalInfo = PortalInfo{
-		v.GetIQN(),
-		v.GetVolumeName(),
-		v.GetTargetPortal(),
-		v.GetVolumeSize(),
-		v.GetControllerStatus(),
-		v.GetReplicaCount(),
-	}
-	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
+	// Convert replica count character to int
+	cstorReplicaCount, err := strconv.Atoi(v.Spec.Replicas)
 	if err != nil {
-		fmt.Println("Error displaying output, found error :", err)
+		fmt.Println("Invalid replica count")
 		return nil
 	}
-	err = tmpl.Execute(os.Stdout, portalInfo)
+
+	// Split values seperated by delemiter
+	cstorCVRStatus := strings.Split(v.ObjectMeta.Annotations[cvrStatus], ",")
+	cstorPoolName := strings.Split(v.ObjectMeta.Annotations[storagePool], ",")
+	cstorCVRName := strings.Split(v.ObjectMeta.Annotations[cvrName], ",")
+	cstorNodeName := strings.Split(v.ObjectMeta.Annotations[nodeName], ",")
+	cstorReplicas := []cstorReplicaInfo{}
+
+	// Confirm replica status, poolname , cvrName and nodeName are equal to replica count
+	checkInvalidResponse := cstorReplicaCount != len(cstorPoolName) || cstorReplicaCount != len(cstorCVRName) || cstorReplicaCount != len(cstorNodeName) || cstorReplicaCount != len(cstorCVRStatus)
+	if checkInvalidResponse {
+		return fmt.Errorf("Invalid replica response received from maya api service")
+	}
+
+	// Iterating over the values replica values and appending to the structure
+	for index := 0; index < cstorReplicaCount; index++ {
+		cstorReplicas = append(cstorReplicas, cstorReplicaInfo{
+			Name:     cstorCVRName[index],
+			PoolName: cstorPoolName[index],
+			Status:   cstorCVRStatus[index],
+			NodeName: cstorNodeName[index],
+		})
+	}
+
+	// Render the cstor template
+	err = renderTemplate("CstorReplicaInfo", cstorReplicaTemplate, cstorReplicas)
 	if err != nil {
-		fmt.Println("Error displaying volume details, found error :", err)
-		return nil
+		return err
 	}
-	if v.GetCASType() == string(JivaStorageEngine) {
-		replicaCount, _ = strconv.Atoi(v.GetReplicaCount())
-		// This case will occur only if user has manually specified zero replica.
-		if replicaCount == 0 || len(v.GetReplicaStatus()) == 0 {
-			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
-			return nil
-		}
-		// Splitting strings with delimiter ','
-		replicaStatusStrings := strings.Split(v.GetReplicaStatus(), ",")
-		addressIPStrings := strings.Split(v.GetReplicaIP(), ",")
 
-		// making a map of replica ip and their respective status,index and mode
-		replicaIPStatus := make(map[string]*Value)
-
-		// Creating a map of address and mode. The IP is chosed as key so that the status of that corresponding replica can be merged in linear time complexity
-		for index, IP := range addressIPStrings {
-			if strings.Contains(IP, "nil") {
-				// appending address with index to avoid same key conflict as the IP is returned as `nil` in case of error
-				replicaIPStatus[IP+string(index)] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
-			} else {
-				replicaIPStatus[IP] = &Value{index: index, status: replicaStatusStrings[index], mode: "NA"}
-			}
-		}
-
-		// We get the info of the running replicas from the collection.data.
-		// We are appending modes if available in collection.data to replicaIPStatus
-		replicaInfo := make(map[int]*ReplicaInfo)
-
-		for key := range collection.Data {
-			address = append(address, strings.TrimSuffix(strings.TrimPrefix(collection.Data[key].Address, "tcp://"), v1.ReplicaPort))
-			mode = append(mode, collection.Data[key].Mode)
-			if _, ok := replicaIPStatus[address[key]]; ok {
-				replicaIPStatus[address[key]].mode = mode[key]
-			}
-		}
-
-		for IP, replicaStatus := range replicaIPStatus {
-			// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
-			if strings.Contains(IP, "nil") {
-				replicaInfo[replicaStatus.index] = &ReplicaInfo{"NA", replicaStatus.mode, replicaStatus.status, "NA", "NA"}
-			} else {
-				replicaInfo[replicaStatus.index] = &ReplicaInfo{IP, replicaStatus.mode, replicaStatus.status, "NA", "NA"}
-			}
-		}
-		// updating the replica info to replica structure
-		err = updateReplicasInfo(replicaInfo)
-		if err != nil {
-			fmt.Println("Error in getting specific information from K8s. Please try again.")
-		}
-
-		// parsing the information to replicastatus template
-		tmpl = template.New("ReplicaInfo")
-		tmpl = template.Must(tmpl.Parse(jivaReplicaTemplate))
-
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-		err = tmpl.Execute(w, replicaInfo)
-		if err != nil {
-			fmt.Println("Unable to display volume info, found error : ", err)
-		}
-		w.Flush()
-	} else if v.GetCASType() == string(CstorStorageEngine) {
-
-		// Converting replica count character to int
-		replicaCount, err = strconv.Atoi(v.GetReplicaCount())
-		if err != nil {
-			fmt.Println("Invalid replica count")
-			return nil
-		}
-
-		// Spitting the replica status
-		replicaStatus := strings.Split(v.GetControllerStatus(), ",")
-		poolName := strings.Split(v.GetStoragePool(), ",")
-		cvrName := strings.Split(v.GetCVRName(), ",")
-		nodeName := strings.Split(v.GetNodeName(), ",")
-
-		// Confirming replica status, poolname , cvrName, nodeName are equal to replica count
-		//if replicaCount != len(replicaStatus) || replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
-		if replicaCount != len(poolName) || replicaCount != len(cvrName) || replicaCount != len(nodeName) {
-			fmt.Println("Invalid response received from maya-api service")
-			return nil
-		}
-
-		replicaInfo := []cstorReplicaInfo{}
-
-		// Iterating over the values replica values and appending to the structure
-		for i := 0; i < replicaCount; i++ {
-			replicaInfo = append(replicaInfo, cstorReplicaInfo{
-				Name:       cvrName[i],
-				PoolName:   poolName[i],
-				AccessMode: "N/A",
-				Status:     strings.Title(replicaStatus[i]),
-				NodeName:   nodeName[i],
-				IP:         "N/A",
-			})
-		}
-
-		// Parsing the information to cstorReplicaInfo template
-		cstorTemplate := template.New("CstorReplicaInfo")
-		cstorTemplate = template.Must(cstorTemplate.Parse(cstorReplicaTemplate))
-
-		//	Executing tabwriter on above template
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-		err = cstorTemplate.Execute(w, replicaInfo)
-		if err != nil {
-			fmt.Println("Unable to display volume info, found error : ", err)
-		}
-		w.Flush()
-	} else {
-		fmt.Println("Unsupported Volume Type")
-	}
 	return nil
 }
