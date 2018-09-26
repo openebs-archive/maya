@@ -83,8 +83,8 @@ type lease struct {
 
 // Leases is an interface which assists in getting and releasing lease over an spc object
 type Leases interface {
-	// Get will try to get a lease on spc, in case of failure it will return error
-	Get() (string, error)
+	// Hold will try to get a lease on spc, in case of failure it will return error
+	Hold() (string, error)
 	// Update will update the lease value of the spc
 	Update(leaseValue string) (*apis.StoragePoolClaim, error)
 	// Release will remove the acquired lease on the spc
@@ -103,7 +103,7 @@ type spcLease struct {
 	kubeclientset kubernetes.Interface
 }
 
-func (sl *spcLease) Get() (string, error) {
+func (sl *spcLease) Hold() (string, error) {
 	// Get the lease value.
 	leaseValue := sl.spcObject.Annotations[sl.leaseKey]
 	var leaseValueObj lease

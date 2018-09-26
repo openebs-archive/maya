@@ -133,7 +133,7 @@ func TestGetLease(t *testing.T) {
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
 			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
 			// newSpcLease is the function under test.
-			result, _ := newSpcLease.Get()
+			result, _ := newSpcLease.Hold()
 			//If the result does not matches expectedResult, test case fails.
 			if result != test.expectedResult {
 				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)

@@ -56,7 +56,7 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 	}
 	var newSpcLease Leases
 	newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset, c.kubeclientset}
-	_, err := newSpcLease.Get()
+	_, err := newSpcLease.Hold()
 	if err != nil {
 		glog.Errorf("Could not acquire lease on spc object:%v", err)
 		return err
