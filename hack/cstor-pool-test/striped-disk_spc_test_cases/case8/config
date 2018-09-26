@@ -5,7 +5,7 @@ generateClusterEnv:false
 commands:
 clearPoolResources:true
 resetCluster:true
-commands:kubectl delete pod -l app=node-disk-manager -n openebs
+commands:kubectl delete pod -l name=openebs-ndm -n openebs
 applySPC:false
 commandAfterSpcApplication:false
 commands:
