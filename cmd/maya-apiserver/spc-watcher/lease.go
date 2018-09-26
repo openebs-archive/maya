@@ -41,12 +41,12 @@ const (
 	PatchPath = "/metadata/annotations/openebs.io~1spc-lease"
 )
 
-// SPCPatch struct represent the struct used to patch
+// Patch struct represent the struct used to patch
 // the spc object
 
 // This struct will used to patch the spc object by a lease holder
 // to release the lease once done.
-type SPCPatch struct {
+type Patch struct {
 	// Op defines the operation
 	Op string `json:"op"`
 	// Path defines the key path
@@ -70,8 +70,8 @@ type SPCPatch struct {
 // The struct object will be parsed to string which will be then
 // put as a value to the lease key of spc annotation.
 type lease struct {
-	// HolderIdentity is the namespace/name of the pod who acquires the lease
-	HolderIdentity   string `json:"holderIdentity"`
+	// Holder is the namespace/name of the pod who acquires the lease
+	Holder           string `json:"holder"`
 	LeaderTransition int    `json:"leaderTransition"`
 	// More specific details can be added here that will describe the
 	// current state of lease in more details.
@@ -83,12 +83,12 @@ type lease struct {
 
 // Leases is an interface which assists in getting and releasing lease over an spc object
 type Leases interface {
-	// GetLease will try to get a lease on spc, in case of failure it will return error
-	GetLease() (string, error)
-	// UpdateLease will update the lease value of the spc
-	UpdateLease(leaseValue string) (*apis.StoragePoolClaim, error)
-	// RemoveLease will remove the acquired lease on the spc
-	RemoveLease()
+	// Get will try to get a lease on spc, in case of failure it will return error
+	Get() (string, error)
+	// Update will update the lease value of the spc
+	Update(leaseValue string) (*apis.StoragePoolClaim, error)
+	// Release will remove the acquired lease on the spc
+	Release()
 }
 
 // spcLease is the struct which will implement the Leases interface
@@ -103,7 +103,7 @@ type spcLease struct {
 	kubeclientset kubernetes.Interface
 }
 
-func (sl *spcLease) GetLease() (string, error) {
+func (sl *spcLease) Get() (string, error) {
 	// Get the lease value.
 	leaseValue := sl.spcObject.Annotations[sl.leaseKey]
 	var leaseValueObj lease
@@ -118,7 +118,7 @@ func (sl *spcLease) GetLease() (string, error) {
 	// If leaseValue is empty check whether it is expired.
 	// If leaseValue is not emtpy and not expired check wether the holder is live.
 	if strings.TrimSpace(leaseValue) == "" || isLeaseExpired(leaseValueObj) || sl.checkLeaderLiveness(leaseValueObj) {
-		spcObject, err := sl.UpdateLease(sl.getPodName())
+		spcObject, err := sl.Update(sl.getPodName())
 		if err != nil {
 			return "", err
 		}
@@ -128,7 +128,7 @@ func (sl *spcLease) GetLease() (string, error) {
 	return "", fmt.Errorf("lease on spc already acquired by a live pod")
 }
 
-func (sl *spcLease) UpdateLease(podName string) (*apis.StoragePoolClaim, error) {
+func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
 	newSpcObject := sl.spcObject
 	if newSpcObject.Annotations == nil {
 		// make a map that should contain the lease key in spc
@@ -161,7 +161,7 @@ func (sl *spcLease) UpdateLease(podName string) (*apis.StoragePoolClaim, error) 
 				return nil, err
 			}
 			leaseValueObj.LeaderTransition++
-			leaseValueObj.HolderIdentity = podName
+			leaseValueObj.Holder = podName
 			leaseValue, err := json.Marshal(leaseValueObj)
 			if err != nil {
 				return nil, err
@@ -177,7 +177,7 @@ func (sl *spcLease) UpdateLease(podName string) (*apis.StoragePoolClaim, error) 
 	return spcObject, nil
 }
 
-func (sl *spcLease) RemoveLease() {
+func (sl *spcLease) Release() {
 	_, err := sl.patchSpc()
 	if err != nil {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
@@ -194,13 +194,13 @@ func (sl *spcLease) getPodName() string {
 
 // patchSpc will patch the spc object to release the lease
 func (sl *spcLease) patchSpc() (*apis.StoragePoolClaim, error) {
-	spcPatch := make([]SPCPatch, 1)
+	spcPatch := make([]Patch, 1)
 	// setting operation as remove
 	spcPatch[0].Op = PatchOperation
 	// object to be removed is finalizers
 	spcPatch[0].Path = PatchPath
 	leaseValueObj, err := parseLeaseValue(sl.spcObject.Annotations[SpcLeaseKey])
-	leaseValueObj.HolderIdentity = ""
+	leaseValueObj.Holder = ""
 	newLeaseValue, err := json.Marshal(leaseValueObj)
 	if err != nil {
 		return nil, err
@@ -220,7 +220,7 @@ func (sl *spcLease) patchSpc() (*apis.StoragePoolClaim, error) {
 // If the holder of lease is not live or does not exists the lease can be acquired
 // by the other contestant(i.e. maya pod)
 func (sl *spcLease) checkLeaderLiveness(leaseValueObj lease) bool {
-	holderName := leaseValueObj.HolderIdentity
+	holderName := leaseValueObj.Holder
 	podDetails := strings.Split(holderName, "/")
 	// Check whether the holder is live or not
 	pod, _ := sl.kubeclientset.CoreV1().Pods(podDetails[0]).Get(podDetails[1], meta_v1.GetOptions{})
@@ -238,7 +238,7 @@ func (sl *spcLease) checkLeaderLiveness(leaseValueObj lease) bool {
 // The holder of lease can only expire the lease.
 // isLeaseExpired return true if the lease is expired.
 func isLeaseExpired(leaseValueObj lease) bool {
-	if strings.TrimSpace(leaseValueObj.HolderIdentity) == "" {
+	if strings.TrimSpace(leaseValueObj.Holder) == "" {
 		return true
 	}
 	return false

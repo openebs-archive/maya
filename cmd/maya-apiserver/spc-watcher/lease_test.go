@@ -38,7 +38,7 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
-					SpcLeaseKey: "{\"holderIdentity\":\"/" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
+					SpcLeaseKey: "{\"holder\":\"/" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
 				},
 			},
 		}
@@ -99,7 +99,7 @@ func TestGetLease(t *testing.T) {
 			fakestoragepoolclaim: focs.SpcCreator("pool1", false, ""),
 			podName:              "maya-apiserver1",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
 		},
 
 		// TestCase#2
@@ -114,14 +114,14 @@ func TestGetLease(t *testing.T) {
 			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "maya-apiserver6"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
 		},
 		// TestCase#4
 		"SPC#4 Lease already acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool4", true, ""),
 			podName:              "maya-apiserver3",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holderIdentity\":\"openebs/maya-apiserver3\",\"leaderTransition\":2}",
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver3\",\"leaderTransition\":2}",
 		},
 	}
 
@@ -133,7 +133,7 @@ func TestGetLease(t *testing.T) {
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
 			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
 			// newSpcLease is the function under test.
-			result, _ := newSpcLease.GetLease()
+			result, _ := newSpcLease.Get()
 			//If the result does not matches expectedResult, test case fails.
 			if result != test.expectedResult {
 				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)

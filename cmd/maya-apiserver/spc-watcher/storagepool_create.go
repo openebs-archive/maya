@@ -56,14 +56,14 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 	}
 	var newSpcLease Leases
 	newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset, c.kubeclientset}
-	_, err := newSpcLease.GetLease()
+	_, err := newSpcLease.Get()
 	if err != nil {
 		glog.Errorf("Could not acquire lease on spc object:%v", err)
 		return err
 	}
 	glog.Info("Lease acquired successfully on storagepoolclaim %s ", spcGot.Name)
 
-	defer newSpcLease.RemoveLease()
+	defer newSpcLease.Release()
 
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
