@@ -131,44 +131,13 @@ func (sl *spcLease) Hold() (string, error) {
 func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
 	newSpcObject := sl.spcObject
 	if newSpcObject.Annotations == nil {
-		// make a map that should contain the lease key in spc
-		mapLease := make(map[string]string)
-		leaseValueObj := &lease{
-			podName,
-			1,
-		}
-		leaseValue, err := json.Marshal(leaseValueObj)
-		if err != nil {
-			return nil, err
-		}
-		// Fill the map lease key with lease value
-		mapLease[sl.leaseKey] = string(leaseValue)
-		newSpcObject.Annotations = mapLease
-	} else {
-		if newSpcObject.Annotations[sl.leaseKey] == "" {
-			leaseValueObj := &lease{
-				podName,
-				1,
-			}
-			leaseValue, err := json.Marshal(leaseValueObj)
-			if err != nil {
-				return nil, err
-			}
-			newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
-		} else {
-			leaseValueObj, err := parseLeaseValue(newSpcObject.Annotations[sl.leaseKey])
-			if err != nil {
-				return nil, err
-			}
-			leaseValueObj.LeaderTransition++
-			leaseValueObj.Holder = podName
-			leaseValue, err := json.Marshal(leaseValueObj)
-			if err != nil {
-				return nil, err
-			}
-			newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
-		}
+		sl.nilUpdate(podName, newSpcObject)
 
+	} else if newSpcObject.Annotations[sl.leaseKey] == "" {
+		sl.selfReleaseUpdate(podName, newSpcObject)
+
+	} else {
+		sl.forceUpdate(podName, newSpcObject)
 	}
 	spcObject, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Update(sl.spcObject)
 	if err != nil {
@@ -252,4 +221,49 @@ func parseLeaseValue(leaseValue string) (lease, error) {
 		return lease{}, err
 	}
 	return *leaseValueObj, nil
+}
+
+func (sl *spcLease) nilUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	// make a map that should contain the lease key in spc
+	mapLease := make(map[string]string)
+	leaseValueObj := &lease{
+		podName,
+		1,
+	}
+	leaseValue, err := json.Marshal(leaseValueObj)
+	if err != nil {
+		return nil, err
+	}
+	// Fill the map lease key with lease value
+	mapLease[sl.leaseKey] = string(leaseValue)
+	newSpcObject.Annotations = mapLease
+	return newSpcObject, nil
+}
+
+func (sl *spcLease) selfReleaseUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	leaseValueObj := &lease{
+		podName,
+		1,
+	}
+	leaseValue, err := json.Marshal(leaseValueObj)
+	if err != nil {
+		return nil, err
+	}
+	newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
+	return newSpcObject, nil
+}
+
+func (sl *spcLease) forceUpdate(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	leaseValueObj, err := parseLeaseValue(newSpcObject.Annotations[sl.leaseKey])
+	if err != nil {
+		return nil, err
+	}
+	leaseValueObj.LeaderTransition++
+	leaseValueObj.Holder = podName
+	leaseValue, err := json.Marshal(leaseValueObj)
+	if err != nil {
+		return nil, err
+	}
+	newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
+	return newSpcObject, nil
 }
