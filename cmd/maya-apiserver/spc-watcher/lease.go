@@ -208,7 +208,7 @@ func (sl *spcLease) patchSpc() (*apis.StoragePoolClaim, error) {
 	spcPatch[0].Value = string(newLeaseValue)
 	spcPatchJSON, err := json.Marshal(spcPatch)
 	if err != nil {
-		glog.Errorf("Error marshalling spcPatch object: %s", err)
+		return nil, fmt.Errorf("Error marshalling spcPatch object: %s", err)
 	}
 	obj, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(sl.spcObject.Name, types.JSONPatchType, spcPatchJSON)
 	return obj, err
