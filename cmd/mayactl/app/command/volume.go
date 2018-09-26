@@ -320,3 +320,11 @@ func (volInfo *VolumeInfo) GetNodeName() string {
 	}
 	return ""
 }
+
+// GetControllerNode returns the node name of the controller
+func (volInfo *VolumeInfo) GetControllerNode() string {
+	if val, ok := volInfo.Volume.ObjectMeta.Annotations["openebs.io/controller-node-name"]; ok {
+		return val
+	}
+	return ""
+}
