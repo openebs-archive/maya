@@ -16,6 +16,16 @@ limitations under the License.
 
 package v1alpha1
 
+const snapshotPromoterSCYamls = `
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: openebs-snapshot-promoter
+provisioner: volumesnapshot.external-storage.k8s.io/snapshot-promoter
+---
+`
+
 // SnapshotPromoterSCArtifacts returns the snapshot(clone) provisioner related artifacts
 func SnapshotPromoterSCArtifacts() (list ArtifactList) {
 	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(snapshotPromoterSCYaml)...)
@@ -29,13 +39,5 @@ func SnapshotPromoterSCArtifacts() (list ArtifactList) {
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
 func snapshotPromoterSCYaml() string {
-	return `
----
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: openebs-snapshot-promoter
-provisioner: volumesnapshot.external-storage.k8s.io/snapshot-promoter
----
-`
+	return snapshotPromoterSCYamls
 }

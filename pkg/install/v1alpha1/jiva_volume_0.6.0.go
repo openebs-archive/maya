@@ -16,20 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// JivaVolumeArtifactsFor060 returns the jiva volume related artifacts
-// corresponding to version 0.6.0
-func JivaVolumeArtifactsFor060() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumeYamlsFor060)...)
-	return
-}
-
-// jivaVolumeYamlsFor060 returns all the yamls related to jiva volume in a
-// string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func jivaVolumeYamlsFor060() string {
-	return `
+const jivaVolumeYamls060 = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -267,8 +254,20 @@ spec:
     {{- .TaskResult.deletelistrep.names | notFoundErr "replica deployment not found" | saveIf "deletelistrep.notFoundErr" .TaskResult | noop -}}
     {{- .TaskResult.deletelistrep.names | default "" | splitList " " | isLen 1 | not | verifyErr "total no. of replica deployments is not 1" | saveIf "deletelistrep.verifyErr" .TaskResult | noop -}}
 ---
-
-
-
 `
+
+// JivaVolumeArtifactsFor060 returns the jiva volume related artifacts
+// corresponding to version 0.6.0
+func JivaVolumeArtifactsFor060() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumeYamlsFor060)...)
+	return
+}
+
+// jivaVolumeYamlsFor060 returns all the yamls related to jiva volume in a
+// string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func jivaVolumeYamlsFor060() string {
+	return jivaVolumeYamls060
 }

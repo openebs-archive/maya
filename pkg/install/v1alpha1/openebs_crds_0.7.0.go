@@ -16,19 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// OpenEBSCRDArtifactsFor070 returns the CRDs required for version 0.7.0
-func OpenEBSCRDArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(openEBSCRDYamlsFor070)...)
-	return
-}
-
-// openEBSCRDYamlsFor070 returns all the CRD yamls related to 0.7.0
-// in a string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func openEBSCRDYamlsFor070() string {
-	return `
+const openEBSCRDYamls070 = `
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -215,4 +203,18 @@ spec:
     - disk
 ---
 `
+
+// OpenEBSCRDArtifactsFor070 returns the CRDs required for version 0.7.0
+func OpenEBSCRDArtifactsFor070() (list ArtifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(openEBSCRDYamlsFor070)...)
+	return
+}
+
+// openEBSCRDYamlsFor070 returns all the CRD yamls related to 0.7.0
+// in a string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func openEBSCRDYamlsFor070() string {
+	return openEBSCRDYamls070
 }
