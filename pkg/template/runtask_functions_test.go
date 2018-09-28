@@ -288,6 +288,51 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 	}
 }
 
+func TestCreateCstorSnapshotCommand(t *testing.T) {
+	mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+
+	tests := map[string]struct {
+		template string
+		tvalues  map[string]interface{}
+	}{
+		"test 101": {`{{- create cstor snapshot | run -}}`, mockval},
+		"test 102": {`{{- create cstor snapshot | withoption "ip" "1.1.1.1" | withoption "volname" "vol1" | withoption "snapname" "" | run -}}`, mockval},
+		"test 103": {`{{- create cstor snapshot | withoption "ip" "" | withoption "volname" "" | withoption "snapname" "snap1" | run -}}`, mockval},
+		"test 104": {`{{- create cstor snapshot | withoption "ip" "1.1.1.1" | run -}}`, mockval},
+		"test 105": {`{{- $ip := "1.1.1.1" -}}
+					  {{- $volName := "vol1" -}}
+					  {{- $snapName := "s1" -}}
+		              {{- create cstor volume | withoption "ip" $ip | withoption "volname" $volName | withoption "snapname" $snapName | run -}}`, mockval},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			allfuncs := allCustomFuncs()
+			tpl := template.New(mock.template).Funcs(allfuncs)
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mock.tvalues)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+		})
+	}
+}
+
 func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 	tests := map[string]struct {
 		template string
@@ -369,6 +414,71 @@ func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 		         {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run | saveas "t101" .Values -}}
 		         {{- $err := toString .Values.t101.error -}}
 		         {{- $err | empty | not | verifyErr $err | saveif "t101.verifyerr" .Values | noop -}}`},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mockval)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+
+			tvalues := mockval["Values"]
+			if tvalues == nil {
+				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
+			}
+
+			response := tvalues.(map[string]interface{})[name]
+			if response == nil {
+				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
+			}
+
+			cmdres := response.(map[string]interface{})
+			verifyerr := cmdres["verifyerr"]
+			if verifyerr == nil {
+				t.Fatalf("Test '%s' failed: expected not nil verifyerr: actual verifyerr %#v", name, verifyerr)
+			}
+
+			var verr error
+			verr, ok := verifyerr.(*VerifyError)
+			if !ok {
+				t.Fatalf("Test '%s' failed: expected VerifyErr error: actual %#v", name, verr)
+			}
+		})
+	}
+}
+
+func TestCreateCstorSnapshotSaveAsVerifyError(t *testing.T) {
+	tests := map[string]struct {
+		template string
+	}{
+		// NOTE:
+		//  Name of the test case should equal to the key used by saveas & saveif
+		"t101": {`{{- $ip := "1.1.1.1" -}}
+					  {{- $volName := "vol1" -}}
+					  {{- $snapName := "s1" -}}
+					  {{- create cstor snapshot | withoption "ip" $ip | withoption "volname" $volName | withoption "snapname" $snapName | run | saveas "t101" .Values -}}
+					  {{- $err := .Values.t101.error | default "" | toString -}}
+					  {{- $err | empty | not | verifyErr $err | saveIf "t101.verifyerr" .Values | noop -}}`,
+		},
 	}
 
 	for name, mock := range tests {

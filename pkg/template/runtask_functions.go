@@ -60,6 +60,7 @@ func list(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- create jiva volume | run -}}
 // {{- create cstor volume | run -}}
+// {{- create cstor snapshot | run -}}
 func create(ml ...RunCommandMiddleware) *RunCommand {
 	return RunCommandMiddlewareList(ml).Update(Command().CreateAction())
 }
@@ -114,6 +115,14 @@ func cstor() RunCommandMiddleware {
 // {{- create jiva volume | run -}}
 func volume() RunCommandMiddleware {
 	return VolumeCategory()
+}
+
+// snapshot returns a new instance of snapshot based runtask command
+//
+// Examples:
+// {{- create cstor snapshot | run -}}
+func snapshot() RunCommandMiddleware {
+	return SnapshotCategory()
 }
 
 // slect returns the values of the specified paths post runtask command
@@ -194,6 +203,7 @@ func runCommandFuncs() template.FuncMap {
 		"jiva":       jiva,
 		"cstor":      cstor,
 		"volume":     volume,
+		"snapshot":   snapshot,
 		"withoption": withoption,
 		"run":        run,
 		"runlog":     runlog,

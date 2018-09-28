@@ -189,6 +189,10 @@ spec:
         port: 3260
         protocol: TCP
         targetPort: 3260
+      - name: cstor-grpc
+        port: 7777
+        protocol: TCP
+        targetPort: 7777
       - name: mgmt
         port: 6060
         targetPort: 6060
@@ -406,6 +410,7 @@ spec:
       {{- end }}
       {{- end }}
   task: |
+    {{- $isCloneEnable := .Volume.isCloneEnable | default "false" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1
     metadata:
@@ -421,7 +426,14 @@ spec:
         cstorpool.openebs.io/uid: {{ .ListItems.currentRepeatResource }}
         cstorvolume.openebs.io/name: {{ .Volume.owner }}
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        {{- if ne $isCloneEnable "false" }}
+        openebs.io/cloned: true
+        {{- end }}
       annotations:
+        {{- if ne $isCloneEnable "false" }}
+        openebs.io/snapshot: {{ .Volume.snapshotName }}
+        openebs.io/source-volume: {{ .Volume.sourceVolume }}
+        {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
       finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
     spec:

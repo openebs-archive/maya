@@ -73,6 +73,7 @@ func RegisteredArtifactsFor070() (list ArtifactList) {
 
 	list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
+	list.Items = append(list.Items, CstorSnapshotArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorSparsePoolSpcArtifactsFor070().Items...)
 
 	//Contains the SC to help with provisioning from clone.

@@ -57,9 +57,9 @@ func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
 }
 
 //CreateSnapshot creates snapshots
-func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapCreateResponse, error) {
+func CreateSnapshot(volName, snapName, ip string) (*v1alpha1.VolumeSnapCreateResponse, error) {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
 		glog.Fatalf("Unable to dial gRPC server on port %d error : %s", api.VolumeGrpcListenPort, err)
 	}
@@ -74,24 +74,24 @@ func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapCreateRespons
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeSnapCreateCommand: %s", err)
+		return nil, fmt.Errorf("error when calling RunVolumeSnapCreateCommand: %s", err)
 	}
 
 	if response != nil {
 		var responseStatus api.CommandStatus
 		json.Unmarshal(response.Status, &responseStatus)
 		if strings.Contains(responseStatus.Response, "ERR") {
-			return response, fmt.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
+			return response, fmt.Errorf("snapshot create failed with error : %v", responseStatus.Response)
 		}
 
 	}
-	return response, err
+	return response, nil
 }
 
 //DestroySnapshot destroys snapshots
-func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapDeleteResponse, error) {
+func DestroySnapshot(volName, snapName, ip string) (*v1alpha1.VolumeSnapDeleteResponse, error) {
 	var conn *grpc.ClientConn
-	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, api.VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
 		glog.Fatalf("did not connect: %s", err)
 	}
@@ -106,23 +106,24 @@ func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapDeleteRespon
 		})
 
 	if err != nil {
-		glog.Fatalf("Error when calling RunVolumeSnapDeleteCommand: %s", err)
+		return nil, fmt.Errorf("error when calling RunVolumeSnapDeleteCommand: %s", err)
+
 	}
 	if response != nil {
 		var responseStatus api.CommandStatus
 		json.Unmarshal(response.Status, &responseStatus)
 		if strings.Contains(responseStatus.Response, "ERR") {
-			return response, fmt.Errorf("Snapshot deletion failed with error : %v", responseStatus.Response)
+			return response, fmt.Errorf("snapshot deletion failed with error : %v", responseStatus.Response)
 		}
 
 	}
-	return response, err
+	return response, nil
 }
 
 // RunSnapshotCreate does tasks related to grpc snapshot create.
 func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 	glog.Info("Executing volume snapshot create...")
-	response, err := CreateSnapshot(c.volName, c.snapName)
+	response, err := CreateSnapshot(c.volName, c.snapName, "")
 	if response != nil {
 		glog.Infof("Response from server: %s", response.Status)
 		if err == nil {
@@ -137,7 +138,7 @@ func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 //RunSnapshotDestroy will initiate deletion of snapshot
 func (c *CmdSnaphotOptions) RunSnapshotDestroy(cmd *cobra.Command) error {
 	glog.Info("Executing snapshot destroy...")
-	response, err := DestroySnapshot(c.volName, c.snapName)
+	response, err := DestroySnapshot(c.volName, c.snapName, "")
 	if response != nil {
 		glog.Infof("Response from server: %s", response.Status)
 		if err == nil {
