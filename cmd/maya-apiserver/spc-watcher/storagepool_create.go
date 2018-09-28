@@ -65,11 +65,13 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCo
 	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
 	// the openebs clientset is not exported.
 	newOecsClient := newK8sClient.GetOECS()
+	newKubeClient := newK8sClient.GetKCS()
 
 	// Create instance of clientset struct defined above which binds
 	// ListDisk method and fill it with openebs clienset (i.e.newOecsClient ).
 	newClientSet := clientSet{
-		oecs: newOecsClient,
+		oecs:          newOecsClient,
+		kubeclientset: newKubeClient,
 	}
 	// Get a CasPool object
 	err, pool := newClientSet.newCasPool(spcGot, reSync, pendingPoolCount)

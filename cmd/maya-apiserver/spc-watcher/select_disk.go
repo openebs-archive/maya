@@ -17,6 +17,7 @@ limitations under the License.
 package spc
 
 import (
+	"k8s.io/api/core/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
 	"errors"
@@ -24,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"k8s.io/client-go/kubernetes"
 )
 
 // clientset struct holds the interface of internalclientset
@@ -32,6 +34,8 @@ import (
 // and unit testing.
 type clientSet struct {
 	oecs openebs.Interface
+	// kubeclientset is a standard kubernetes clientset
+	kubeclientset kubernetes.Interface
 }
 
 // nodeDisk struct will be used as a value for a map nodeDiskMap (map defined in ListDisk function)
@@ -137,6 +141,20 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		if usedNodeMap[value.Labels[string(v1alpha1.HostNameCPK)]] == 1 {
 			continue
 		}
+		// Form a map that will store all the bad nodes
+		// This is memoization that will help save network request for checking node conditions
+		// repeatedly for the same node.
+		badNodeMap := make(map[string]int)
+		if badNodeMap[value.Labels[string(v1alpha1.HostNameCPK)]] > 0 {
+			continue
+		}
+		// If the disk has node that is unschedulable or unreachable, do not select this disk and mark this node as
+		// bad node.
+		if k.isBadNode(value.Labels[string(v1alpha1.HostNameCPK)]) {
+			badNodeMap[value.Labels[string(v1alpha1.HostNameCPK)]]++
+			continue
+		}
+
 		// if no more allotment is required, stop processing
 		if pendingAllotment == 0 {
 			glog.Info("Required pool allotment done")
@@ -189,7 +207,6 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 	}
 	// Range over the nodeDiskMap map to get the list of disks
 	for _, val := range nodeDiskMap {
-
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
 		if len(val.diskList) < requiredDiskCount {
@@ -251,4 +268,26 @@ func (k *clientSet) getUsedNodeMap(spc string) (error, map[string]int) {
 		usedNodeMap[sp.Labels[string(v1alpha1.HostNameCPK)]]++
 	}
 	return nil, usedNodeMap
+}
+
+// isBadNode returns true if a node is not reachable or is marked unschedulable
+func (k *clientSet) isBadNode(hostName string) bool {
+	node, err := k.kubeclientset.CoreV1().Nodes().Get(hostName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		glog.Warningf("Disk with hostName '%s' not selected:%v", hostName, err)
+		return true
+	}
+	if node == nil {
+		glog.Warningf("Disk with hostName '%s' not selected:No such host found", hostName)
+		return true
+	}
+	if node.Spec.Unschedulable {
+		return true
+	}
+	for _, conditionObject := range node.Status.Conditions {
+		if conditionObject.Type == v1.NodeReady && conditionObject.Status != v1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
