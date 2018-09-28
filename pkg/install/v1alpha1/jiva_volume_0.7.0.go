@@ -428,6 +428,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistrep.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistrep.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.volumes[0].hostPath.path}" | trim | saveAs "readlistrep.hostPath" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -441,6 +442,7 @@ spec:
     apiVersion: v1alpha1
   task: |
     {{- $capacity := .TaskResult.readlistrep.capacity | default "" | splitList " " | first -}}
+    {{- $hostPath := .TaskResult.readlistrep.hostPath | default "" | splitList " " | first -}}
     kind: CASVolume
     apiVersion: v1alpha1
     metadata:
@@ -466,6 +468,7 @@ spec:
         openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
+        openebs.io/hostPath: {{ $hostPath }}
     spec:
       capacity: {{ $capacity }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260

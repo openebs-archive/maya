@@ -60,6 +60,11 @@ type PortalInfo struct {
 	ControllerNode string
 }
 
+// PoolDetails keeps info about pools of the volumes
+type PoolDetails struct {
+	HostPath string
+}
+
 // ReplicaInfo keep info about the replicas.
 type ReplicaInfo struct {
 	IP         string
@@ -198,6 +203,12 @@ Controller Status :   {{.Status}}
 Controller Node   :   {{.ControllerNode}}
 Replica Count     :   {{.ReplicaCount}}
 `
+
+		poolDetails = `
+Pool Details :
+--------------
+Pool Path : {{ .HostPath }}	
+`
 	)
 
 	portalInfo = PortalInfo{
@@ -269,11 +280,29 @@ Replica Count     :   {{.ReplicaCount}}
 			fmt.Println("Error in getting specific information from K8s. Please try again.")
 		}
 
+		poolInfo := PoolDetails{}
+		if val, ok := v.Volume.ObjectMeta.Annotations[poolPath]; ok {
+			poolInfo = PoolDetails{
+				HostPath: val,
+			}
+		}
+
+		// parsing the information to replicastatus template
+		tmpl = template.New("PoolDetails")
+		tmpl = template.Must(tmpl.Parse(poolDetails))
+
+		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+		err = tmpl.Execute(w, poolInfo)
+		if err != nil {
+			fmt.Println("Unable to display pool details, found error : ", err)
+		}
+		w.Flush()
+
 		// parsing the information to replicastatus template
 		tmpl = template.New("ReplicaInfo")
 		tmpl = template.Must(tmpl.Parse(jivaReplicaTemplate))
 
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+		w = tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
 		err = tmpl.Execute(w, replicaInfo)
 		if err != nil {
 			fmt.Println("Unable to display volume info, found error : ", err)

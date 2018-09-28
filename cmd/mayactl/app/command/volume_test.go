@@ -690,3 +690,41 @@ func TestGetNodeName(t *testing.T) {
 		})
 	}
 }
+
+func TestGetControllerNode(t *testing.T) {
+	tests := map[string]struct {
+		expectedOutput string
+		Volume         VolumeInfo
+	}{
+		"Fetching Node Name from openebs.io/controller-node-name": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							"openebs.io/controller-node-name": "127.1.1.1",
+						},
+					},
+				},
+			},
+			expectedOutput: "127.1.1.1",
+		},
+		"Fetching Node Name when no key is present": {
+			Volume: VolumeInfo{
+				Volume: v1alpha1.CASVolume{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{},
+					},
+				},
+			},
+			expectedOutput: "",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := tt.Volume.GetControllerNode()
+			if got != tt.expectedOutput {
+				t.Fatalf("Test: %v Expected: %v but got: %v", name, tt.expectedOutput, got)
+			}
+		})
+	}
+}

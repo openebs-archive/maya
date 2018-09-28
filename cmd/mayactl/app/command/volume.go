@@ -59,6 +59,7 @@ const (
 	// CstorStorageEngine is constant for cstor engine
 	CstorStorageEngine CASType = "cstor"
 	timeout                    = 5 * time.Second
+	poolPath                   = "openebs.io/hostPath"
 )
 
 // # Create a Volume:
