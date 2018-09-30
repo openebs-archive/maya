@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	jp "github.com/openebs/maya/pkg/jsonpath/v1alpha1"
 	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
@@ -322,13 +323,13 @@ func Off() bool {
 
 // RunCommand represent a run command
 type RunCommand struct {
-	ID        string                 // uniquely identifies a run command
-	WillRun   bool                   // flags if this run command should get executed or not
-	Action    RunCommandAction       // represents the run command's action
-	Category  RunCommandCategoryList // classification of run command
-	Data      RunCommandDataMap      // input data required to execute run command
-	Selects   SelectPaths            // paths whose values will be retrieved after run command execution
-	*msg.Msgs                        // store and retrieve info, warns, errors, etc occured during execution
+	ID          string                 // uniquely identifies a runtask command
+	WillRun     bool                   // flags if this runtask command should get executed or not
+	Action      RunCommandAction       // represents the runtask command's action
+	Category    RunCommandCategoryList // classification of runtask command
+	Data        RunCommandDataMap      // input data required to execute runtask command
+	SelectPaths []string               // paths whose values will be retrieved after runtask command execution
+	*Msgs                              // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // SelfInfo returns this instance of RunCommand as a string format
@@ -602,6 +603,107 @@ type notSupportedActionCommand struct {
 }
 
 func (c *notSupportedActionCommand) Run() (r RunCommandResult) {
-	c.AddError(ErrorNotSupportedAction)
-	return NewRunCommandResult(nil, c.AllMsgs())
+	c.cmd.AddError(NotSupportedActionError)
+	return NewRunCommandResult(nil, c.cmd.AllMsgs())
+}
+
+// ResultStoreFn abstracts storing a key value pair against the provided id
+type ResultStoreFn func(id string, key string, value interface{})
+
+// WillRunFn abstracts evaluation of condition to execute or skip a runtask
+// command
+type WillRunFn func() bool
+
+// defaultCommandRunner manages execution of RunCommand instance based on
+// provided hooks
+//
+// Hooks set in this runner are defined externally to this runner
+//
+// 1/ 'willrun' hook can be used to determine if the given runtask command
+// should get executed or can be skipped
+//
+// 2/ 'store' hook can be used to save runtask command's execution response
+type defaultCommandRunner struct {
+	store   ResultStoreFn // mechanism to store runtask command's response
+	willrun WillRunFn     // flag that determines if runtask command will execute or not
+	id      string        // unique identification of the runtask command
+	cmd     *RunCommand   // manages execution of runtask command
+	*Msgs                 // store and retrieve info, warns, errors, etc occurred during execution
+}
+
+// DefaultCommandRunner returns a new instance of defaultCommandRunner
+func DefaultCommandRunner(s ResultStoreFn, w WillRunFn) *defaultCommandRunner {
+	return &defaultCommandRunner{store: s, willrun: w, Msgs: &Msgs{}}
+}
+
+// GetID returns unique id of this runner / runtask command
+func (r *defaultCommandRunner) GetID() string {
+	return r.id
+}
+
+// Result sets the result due to execution of runtask command
+func (r *defaultCommandRunner) Result(id string, v interface{}) *defaultCommandRunner {
+	r.store(id, "result", v)
+	return r
+}
+
+// Debug sets the debug information due to execution of runtask command
+func (r *defaultCommandRunner) Debug(id string, d AllMsgs) *defaultCommandRunner {
+	r.store(id, "debug", d)
+	return r
+}
+
+// Error sets the error due to execution of runtask command
+func (r *defaultCommandRunner) Error(id string, e error) *defaultCommandRunner {
+	r.store(id, "error", e)
+	return r
+}
+
+// Stores sets various responses due to execution of runtask command
+func (r *defaultCommandRunner) Stores(res RunCommandResult) {
+	if len(r.id) == 0 {
+		r.id = time.Now().Format("15040500000")
+	}
+	r.Result(r.id, res.Result()).Debug(r.id, res.Debug()).Error(r.id, res.Error())
+}
+
+// Command sets the runtask command to be executed via this runner
+func (r *defaultCommandRunner) Command(id string, c *RunCommand) (u *defaultCommandRunner) {
+	if len(id) == 0 {
+		r.AddError(fmt.Errorf("missing runtask id: can not execute runtask command"))
+		return r
+	}
+	r.id = id
+
+	if c == nil {
+		r.AddError(fmt.Errorf("nil runtask command: can not execute runtask command with id '%s'", id))
+		return r
+	}
+	r.cmd = c
+	return r
+}
+
+// preRun sets options conditionally prior to execution of runtask command
+func (r *defaultCommandRunner) preRun() {
+	if !r.willrun() && r.cmd != nil {
+		r.cmd.SetRun(false).AddError(CanNotRunDueToFailedConditionError)
+	}
+}
+
+// postRun executes the post activities associated after the execution of
+// runtask command
+func (r *defaultCommandRunner) postRun(res RunCommandResult) {
+	r.Stores(res)
+}
+
+// Run executes the runtask command
+func (r *defaultCommandRunner) Run() (res RunCommandResult) {
+	r.preRun()
+	if r.cmd == nil {
+		res = NewRunCommandResult(nil, r.AllMsgs())
+	} else {
+		res = r.cmd.Run()
+	}
+	r.postRun(res)
+	return
 }
