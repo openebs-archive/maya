@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	rest "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	jp "github.com/openebs/maya/pkg/jsonpath/v1alpha1"
 )
@@ -75,7 +76,7 @@ func (j *jivaVolumeDelete) fetchDeleteVolumeLink(b []byte) (url string) {
 	// execute json query
 	s := jsp.Query(jp.Selection("dellink", path))
 
-	// collect the messages occured during jsonpath querying
-	j.Msgs.Merge(jsp.Msgs)
-	return s.Value()
+	// collect the messages occurred during jsonpath querying
+	j.cmd.Msgs.Merge(jpath.Msgs)
+	return ul.ValueByName("dellink")
 }
