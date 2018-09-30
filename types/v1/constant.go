@@ -16,10 +16,10 @@ const (
 	// Padding used in tabwriter
 	Padding = 4
 
-	// ControllerPort : Jiva volume cotrolller listens on this for various api
-	// reqests.
+	// ControllerPort : Jiva volume cotroller listens on this for various api
+	// requests.
 	ControllerPort string = ":9501"
-	// infoAPI is the api for getting the volume access modes.
+	// InfoAPI is the api for getting the volume access modes.
 	InfoAPI string = "/replicas"
 	// ReplicaPort : Jiva volume replica listens on this for various api
 	// requests
