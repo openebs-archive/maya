@@ -1298,7 +1298,7 @@ func OSGetEnv(envKey string, profileMap map[string]string) string {
 	return val
 }
 
-// ParseAndSubstract parses the string and then returns the the substracted
+// ParseAndSubstract parses the string and then returns the the subtracted
 // values and error if any.
 func ParseAndSubstract(initial, final string) (float64, error) {
 	var (
@@ -1317,7 +1317,7 @@ func ParseAndSubstract(initial, final string) (float64, error) {
 	}
 	result, ok := SubstractFloat64(f, i)
 	if !ok {
-		glog.Errorf("Error in substraction %v > %v", i, f)
+		glog.Errorf("Error in subtraction %v > %v", i, f)
 		return 0, nil
 	}
 	return result, nil
