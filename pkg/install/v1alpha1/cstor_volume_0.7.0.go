@@ -551,7 +551,7 @@ spec:
     {{/*
     We have a unique key for each volume in .ListItems.volumeList
     We iterate over it to extract various volume properties. These
-    properties were set in preceeding list tasks,
+    properties were set in preceding list tasks,
     */}}
     {{- range $pkey, $map := .ListItems.volumeList }}
     {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first }}
