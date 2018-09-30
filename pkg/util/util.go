@@ -27,13 +27,16 @@ import (
 )
 
 var (
-	// MAPIADDRNotSet is the new error to display this error if MAPI_ADDR
-	// is not set.
-	MAPIADDRNotSet      = errors.New("MAPI_ADDR environment variable not set")
-	InternalServerError = errors.New("Internal Server Error")
-	ServerUnavailable   = errors.New("Server Unavailable")
-	ServerNotReachable  = errors.New("Server Not Reachable")
-	PageNotFound        = errors.New("Page Not Found")
+	// ErrMAPIADDRNotSet is the new error to display this error if MAPI_ADDR is not set.
+	ErrMAPIADDRNotSet      = errors.New("MAPI_ADDR environment variable not set")
+	// ErrInternalServerError is the new error to raise if an error occurs while rendering the service
+	ErrInternalServerError = errors.New("Internal Server Error")
+	// ErrServerUnavailable is the new error to raise if the server is not available
+	ErrServerUnavailable   = errors.New("Server Unavailable")
+	// ErrServerNotReachable is the new error to raise if the server is not reachable
+	ErrServerNotReachable  = errors.New("Server Not Reachable")
+	// ErrPageNotFound is the new error to raise if the page is not found
+	ErrPageNotFound        = errors.New("Page Not Found")
 )
 
 // truthyValues maps a set of values which are considered as true
@@ -131,7 +134,7 @@ func ContainsString(stringarr []string, element string) bool {
 
 // ContainsKey returns true if the provided key is present in the provided map
 func ContainsKey(mapOfObjs map[string]interface{}, key string) bool {
-	for k, _ := range mapOfObjs {
+	for k := range mapOfObjs {
 		if k == key {
 			return true
 		}
@@ -139,7 +142,7 @@ func ContainsKey(mapOfObjs map[string]interface{}, key string) bool {
 	return false
 }
 
-// ContainKey returns true if all the provided keys are present in the
+// ContainKeys returns true if all the provided keys are present in the
 // provided map
 func ContainKeys(mapOfObjs map[string]interface{}, keys []string) bool {
 	if len(keys) == 0 || len(mapOfObjs) == 0 {
@@ -147,7 +150,7 @@ func ContainKeys(mapOfObjs map[string]interface{}, keys []string) bool {
 	}
 
 	allKeys := []string{}
-	for k, _ := range mapOfObjs {
+	for k := range mapOfObjs {
 		allKeys = append(allKeys, k)
 	}
 
