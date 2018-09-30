@@ -18,7 +18,8 @@ package v1alpha1
 
 import (
 	"fmt"
-	. "github.com/openebs/maya/pkg/client/http/v1alpha1"
+
+	rest "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	jp "github.com/openebs/maya/pkg/jsonpath/v1alpha1"
 )
 
@@ -37,7 +38,7 @@ func (j *jivaVolumeDelete) Run() (r RunCommandResult) {
 	if len(baseurl) == 0 {
 		return j.cmd.AddError(fmt.Errorf("missing base url: failed to delete jiva volume")).Result(nil)
 	}
-	b, err := API("GET", baseurl, "volumes")
+	b, err := rest.API("GET", baseurl, "volumes")
 	if err != nil {
 		return j.cmd.AddError(err).Result(nil)
 	}
@@ -47,7 +48,7 @@ func (j *jivaVolumeDelete) Run() (r RunCommandResult) {
 	if len(durl) == 0 {
 		return j.cmd.AddError(fmt.Errorf("delete action link not found: failed to delete jiva volume")).Result(nil)
 	}
-	b, err = URL("DELETE", durl)
+	b, err = rest.URL("DELETE", durl)
 	if err != nil {
 		return j.cmd.AddError(err).Result(nil)
 	}

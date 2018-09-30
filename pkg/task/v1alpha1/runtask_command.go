@@ -19,8 +19,9 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	. "github.com/openebs/maya/pkg/msg/v1alpha1"
 	"time"
+
+	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
 )
 
 // RunCommandAction determines the kind of action that gets executed by run task
@@ -28,11 +29,17 @@ import (
 type RunCommandAction string
 
 const (
+	//DeleteCommandAction represents a run command as a delete action
 	DeleteCommandAction RunCommandAction = "delete"
+	//CreateCommandAction represents a run command as a command action
 	CreateCommandAction RunCommandAction = "create"
-	GetCommandAction    RunCommandAction = "get"
-	ListCommandAction   RunCommandAction = "list"
-	PatchCommandAction  RunCommandAction = "patch"
+	//GetCommandAction represents a run command as a get action
+	GetCommandAction RunCommandAction = "get"
+	// ListCommandAction represents a run command as a list action
+	ListCommandAction RunCommandAction = "list"
+	// PatchCommandAction represents a run command as a patch action
+	PatchCommandAction RunCommandAction = "patch"
+	// UpdateCommandAction represents a run command as a update action
 	UpdateCommandAction RunCommandAction = "update"
 )
 
@@ -43,17 +50,21 @@ const (
 type RunCommandCategory string
 
 const (
-	JivaCommandCategory   RunCommandCategory = "jiva"
-	CstorCommandCategory  RunCommandCategory = "cstor"
+	//JivaCommandCategory categorises the run command as jiva based
+	JivaCommandCategory RunCommandCategory = "jiva"
+	// CstorCommandCategory categorises the run command as cstor based
+	CstorCommandCategory RunCommandCategory = "cstor"
+	// VolumeCommandCategory categorises the run command as volume based
 	VolumeCommandCategory RunCommandCategory = "volume"
-	PoolCommandCategory   RunCommandCategory = "pool"
+	// PoolCommandCategory categorises the run command as pool based
+	PoolCommandCategory RunCommandCategory = "pool"
 )
 
 // RunCommandCategoryList represents a list of RunCommandCategory
 type RunCommandCategoryList []RunCommandCategory
 
 func (l RunCommandCategoryList) String() string {
-	return YamlString("runcommandcategories", l)
+	return msg.YamlString("runcommandcategories", l)
 }
 
 // Contains returns true if this list has the given category
@@ -114,17 +125,18 @@ type RunCommandData interface{}
 type RunCommandDataMap map[string]RunCommandData
 
 func (m RunCommandDataMap) String() string {
-	return YamlString("runcommanddatamap", m)
+	return msg.YamlString("runcommanddatamap", m)
 }
 
 // RunCommandResult holds the result of executing runtask command
 type RunCommandResult struct {
 	Res    interface{} `json:"result"`          // result of runtask command execution
 	Err    error       `json:"error"`           // root cause of issue; error if any during runtask command execution
-	Extras AllMsgs     `json:"debug,omitempty"` // debug details i.e. errors, warnings, information, etc during execution
+	Extras msg.AllMsgs `json:"debug,omitempty"` // debug details i.e. errors, warnings, information, etc during execution
 }
 
-func NewRunCommandResult(result interface{}, extras AllMsgs) (r RunCommandResult) {
+// NewRunCommandResult returns result for new command
+func NewRunCommandResult(result interface{}, extras msg.AllMsgs) (r RunCommandResult) {
 	return RunCommandResult{
 		Res:    result,
 		Err:    extras.Error(),
@@ -133,26 +145,29 @@ func NewRunCommandResult(result interface{}, extras AllMsgs) (r RunCommandResult
 }
 
 func (r RunCommandResult) String() string {
-	return YamlString("runcommandresult", r)
+	return msg.YamlString("runcommandresult", r)
 }
 
 func (r RunCommandResult) Error() error {
 	return r.Err
 }
 
+// Result is the name of method on RunCommandResult that returns an interface
 func (r RunCommandResult) Result() interface{} {
 	return r.Res
 }
 
-func (r RunCommandResult) Debug() AllMsgs {
+// Debug is the name of method on RunCommandResult that returns a map
+func (r RunCommandResult) Debug() msg.AllMsgs {
 	return r.Extras
 }
 
+// These represents error messages
 var (
-	NotSupportedCategoryError          = errors.New("not supported category: invalid runtask command")
-	NotSupportedActionError            = errors.New("not supported action: invalid runtask command")
-	InvalidCategoryError               = errors.New("invalid categories: invalid runtask command")
-	CanNotRunDueToFailedConditionError = errors.New("can not execute runtask command: run condition failed")
+	ErrorNotSupportedCategory          = errors.New("not supported category: invalid runtask command")
+	ErrorNotSupportedAction            = errors.New("not supported action: invalid runtask command")
+	ErrorCategoryInvalid               = errors.New("invalid categories: invalid runtask command")
+	ErrorCanNotRunDueToFailedCondition = errors.New("can not execute runtask command: run condition failed")
 )
 
 // CommandRunner abstracts execution of runtask command
@@ -168,7 +183,7 @@ type RunCommand struct {
 	Category    RunCommandCategoryList // classification of runtask command
 	Data        RunCommandDataMap      // input data required to execute runtask command
 	SelectPaths []string               // paths whose values will be retrieved after runtask command execution
-	*Msgs                              // store and retrieve info, warns, errors, etc occurred during execution
+	*msg.Msgs                          // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // SelfInfo returns this instance of RunCommand as a string format
@@ -186,7 +201,7 @@ func (c *RunCommand) SelfInfo() string {
 
 // Command returns a new instance of RunCommand
 func Command() *RunCommand {
-	return &RunCommand{Msgs: &Msgs{}, WillRun: true}
+	return &RunCommand{Msgs: &msg.Msgs{}, WillRun: true}
 }
 
 // SetRun updates RunCommand instance with run flag
@@ -276,9 +291,10 @@ func WithSelect(given *RunCommand, paths []string) (updated *RunCommand) {
 }
 
 func (c *RunCommand) String() string {
-	return YamlString("runcommand", c)
+	return msg.YamlString("runcommand", c)
 }
 
+// Result is the name of method on RunCommand
 func (c *RunCommand) Result(result interface{}) (r RunCommandResult) {
 	return NewRunCommandResult(result, c.AllMsgs())
 }
@@ -298,7 +314,7 @@ func (c *RunCommand) instance() (r CommandRunner) {
 // command
 func (c *RunCommand) preRun() {
 	if !c.Category.IsValid() {
-		c.SetRun(false).AddError(InvalidCategoryError)
+		c.SetRun(false).AddError(ErrorCategoryInvalid)
 	}
 	c.AddInfo(c.SelfInfo())
 }
@@ -368,7 +384,7 @@ type notSupportedCategoryCommand struct {
 }
 
 func (c *notSupportedCategoryCommand) Run() (r RunCommandResult) {
-	c.cmd.AddError(NotSupportedCategoryError)
+	c.cmd.AddError(ErrorNotSupportedCategory)
 	return NewRunCommandResult(nil, c.cmd.AllMsgs())
 }
 
@@ -379,7 +395,7 @@ type notSupportedActionCommand struct {
 }
 
 func (c *notSupportedActionCommand) Run() (r RunCommandResult) {
-	c.cmd.AddError(NotSupportedActionError)
+	c.cmd.AddError(ErrorNotSupportedAction)
 	return NewRunCommandResult(nil, c.cmd.AllMsgs())
 }
 
@@ -400,16 +416,16 @@ type WillRunFn func() bool
 //
 // 2/ 'store' hook can be used to save runtask command's execution response
 type defaultCommandRunner struct {
-	store   ResultStoreFn // mechanism to store runtask command's response
-	willrun WillRunFn     // flag that determines if runtask command will execute or not
-	id      string        // unique identification of the runtask command
-	cmd     *RunCommand   // manages execution of runtask command
-	*Msgs                 // store and retrieve info, warns, errors, etc occurred during execution
+	store     ResultStoreFn // mechanism to store runtask command's response
+	willrun   WillRunFn     // flag that determines if runtask command will execute or not
+	id        string        // unique identification of the runtask command
+	cmd       *RunCommand   // manages execution of runtask command
+	*msg.Msgs               // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // DefaultCommandRunner returns a new instance of defaultCommandRunner
 func DefaultCommandRunner(s ResultStoreFn, w WillRunFn) *defaultCommandRunner {
-	return &defaultCommandRunner{store: s, willrun: w, Msgs: &Msgs{}}
+	return &defaultCommandRunner{store: s, willrun: w, Msgs: &msg.Msgs{}}
 }
 
 // GetID returns unique id of this runner / runtask command
@@ -424,7 +440,7 @@ func (r *defaultCommandRunner) Result(id string, v interface{}) *defaultCommandR
 }
 
 // Debug sets the debug information due to execution of runtask command
-func (r *defaultCommandRunner) Debug(id string, d AllMsgs) *defaultCommandRunner {
+func (r *defaultCommandRunner) Debug(id string, d msg.AllMsgs) *defaultCommandRunner {
 	r.store(id, "debug", d)
 	return r
 }
@@ -462,7 +478,7 @@ func (r *defaultCommandRunner) Command(id string, c *RunCommand) (u *defaultComm
 // preRun sets options conditionally prior to execution of runtask command
 func (r *defaultCommandRunner) preRun() {
 	if !r.willrun() && r.cmd != nil {
-		r.cmd.SetRun(false).AddError(CanNotRunDueToFailedConditionError)
+		r.cmd.SetRun(false).AddError(ErrorCanNotRunDueToFailedCondition)
 	}
 }
 

@@ -17,10 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"testing"
+
 	"github.com/ghodss/yaml"
 	. "github.com/openebs/maya/pkg/msg/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"testing"
 )
 
 // mockNoopStore is an implementation of ResultStoreFn
@@ -99,12 +100,12 @@ func TestNotSupportedCategoryCommand(t *testing.T) {
 				return
 			}
 
-			if !mock.isSupportedCategory && result.Error() != NotSupportedCategoryError {
-				t.Fatalf("Test '%s' failed: expected 'NotSupportedCategoryError': actual '%s': result '%s'", name, result.Error(), result)
+			if !mock.isSupportedCategory && result.Error() != ErrorNotSupportedCategory {
+				t.Fatalf("Test '%s' failed: expected 'ErrorNotSupportedCategory': actual '%s': result '%s'", name, result.Error(), result)
 			}
 
-			if mock.isSupportedCategory && result.Error() == NotSupportedCategoryError {
-				t.Fatalf("Test '%s' failed: expected 'supported category': actual 'NotSupportedCategoryError': result '%s'", name, result)
+			if mock.isSupportedCategory && result.Error() == ErrorNotSupportedCategory {
+				t.Fatalf("Test '%s' failed: expected 'supported category': actual 'ErrorNotSupportedCategory': result '%s'", name, result)
 			}
 		})
 	}

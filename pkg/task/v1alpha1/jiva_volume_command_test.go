@@ -42,12 +42,12 @@ func TestJivaVolumeCommand(t *testing.T) {
 
 			result := j.Run()
 
-			if !mock.isSupportedAction && result.Error() != NotSupportedActionError {
-				t.Fatalf("Test '%s' failed: expected 'NotSupportedActionError': actual '%s': result '%s'", name, result.Error(), result)
+			if !mock.isSupportedAction && result.Error() != ErrorNotSupportedAction {
+				t.Fatalf("Test '%s' failed: expected 'ErrorNotSupportedAction': actual '%s': result '%s'", name, result.Error(), result)
 			}
 
-			if mock.isSupportedAction && result.Error() == NotSupportedActionError {
-				t.Fatalf("Test '%s' failed: expected 'supported action': actual 'NotSupportedActionError': result '%s'", name, result)
+			if mock.isSupportedAction && result.Error() == ErrorNotSupportedAction {
+				t.Fatalf("Test '%s' failed: expected 'supported action': actual 'ErrorNotSupportedAction': result '%s'", name, result)
 			}
 		})
 	}
