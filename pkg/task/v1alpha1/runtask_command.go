@@ -168,7 +168,7 @@ type RunCommand struct {
 	Category    RunCommandCategoryList // classification of runtask command
 	Data        RunCommandDataMap      // input data required to execute runtask command
 	SelectPaths []string               // paths whose values will be retrieved after runtask command execution
-	*Msgs                              // store and retrieve info, warns, errors, etc occured during execution
+	*Msgs                              // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // SelfInfo returns this instance of RunCommand as a string format
@@ -404,7 +404,7 @@ type defaultCommandRunner struct {
 	willrun WillRunFn     // flag that determines if runtask command will execute or not
 	id      string        // unique identification of the runtask command
 	cmd     *RunCommand   // manages execution of runtask command
-	*Msgs                 // store and retrieve info, warns, errors, etc occured during execution
+	*Msgs                 // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // DefaultCommandRunner returns a new instance of defaultCommandRunner
