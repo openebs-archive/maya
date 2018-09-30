@@ -1,0 +1,2 @@
+Test to check if volume is writeable when all the replica pools are restarted.
+Note: The pools are scaled to zero then scaled back to one. The volume replicas reside on these pods.

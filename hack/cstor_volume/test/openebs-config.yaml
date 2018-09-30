@@ -1,0 +1,14 @@
+apiVersion: openebs.io/v1alpha1
+kind: StoragePoolClaim
+metadata:
+  name: cstor-pool-default-0.7.0
+spec:
+  name: cstor-pool-default-0.7.0
+  type: disk
+  maxPools: 3
+  poolSpec:
+    poolType: striped
+  #  disks:
+  #    diskList:
+  #      - disk-4268137899842721d2d4fc0c16c3b138
+  #      - disk-99cde73d1defa35375029e8164e974e0
