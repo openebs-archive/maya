@@ -455,11 +455,11 @@ func (p *VolumeMarkerBuilder) AsLabels() map[string]string {
 
 type LabelK8sObject struct {
 	// LabelKey is the label key that will be assigned
-	// to the targetted K8s object
+	// to the targeted K8s object
 	LabelKey string
 
 	// LabelValue is the label value that will be assigned
-	// to the targetted K8s Object
+	// to the targeted K8s Object
 	LabelValue string
 }
 
