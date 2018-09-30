@@ -147,7 +147,7 @@ spec:
   # of a given volume/application, such that they are:
   # - not co-located on the same node. (kubernetes.io/hostname)
   # - not co-located on the same availability zone.(failure-domain.beta.kubernetes.io/zone)
-  # The value for toplogy key can be anythign supported by Kubernetes
+  # The value for toplogy key can be anything supported by Kubernetes
   # clusters. It is possible that some cluster might support topology schemes
   # like the rack or floor.
   #
