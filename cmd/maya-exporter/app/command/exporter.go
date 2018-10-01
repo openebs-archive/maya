@@ -1,6 +1,6 @@
-// Package exporter start an http server and display the collected
-// metrics at "/metrics" endpoint. It collect metrics from collector.go
-// You have to instantiates NewExporter by calling collector.NewExporter
+// Package command starts an http server and displays the collected
+// metrics at "/metrics" endpoint. It collects metrics from collector.go
+// You have to instantiate NewExporter by calling collector.NewExporter
 // method and pass the Jiva volume controller IP.
 package command
 
