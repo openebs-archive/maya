@@ -45,7 +45,7 @@ func TestEnqueueSpc(t *testing.T) {
 	// Key of map describes test case behaviour.
 	// Value of map is the test object.
 	tests := map[string]struct {
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
+		// fakestoragepoolclaim holds the fake storagepoolclaim object in test cases.
 		fakestoragepoolclaim *apis.StoragePoolClaim
 		// queueload holds the queueLoad for the test case under run.
 		queueload QueueLoad
