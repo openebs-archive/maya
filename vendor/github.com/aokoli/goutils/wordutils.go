@@ -91,7 +91,7 @@ func WrapCustom(str string, wrapLength int, newLineStr string, wrapLongWords boo
 		return ""
 	}
 	if newLineStr == "" {
-		newLineStr = "\n" // TODO Assumes "\n" is separator. Explore SystemUtils.LINE_SEPARATOR from Apache Commons
+		newLineStr = "\n" // TODO Assumes "\n" is seperator. Explore SystemUtils.LINE_SEPARATOR from Apache Commons
 	}
 	if wrapLength < 1 {
 		wrapLength = 1
