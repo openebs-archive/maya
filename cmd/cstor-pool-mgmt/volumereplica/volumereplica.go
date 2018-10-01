@@ -18,17 +18,17 @@ package volumereplica
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"strings"
 )
 
 // VolumeReplicaOperator is the name of the tool that makes
 // volume-related operations.
 const (
-	VolumeReplicaOperator = "zfs"
+	VolumeReplicaOperator    = "zfs"
+	BinaryCapacityUnitSuffix = "i"
 )
 
 // RunnerVar the runner variable for executing binaries.
@@ -58,6 +58,9 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 
 // CreateVolume creates cStor replica(zfs volumes).
 func CreateVolume(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) error {
+	// Parse capacity unit on CVR to support backward compatibility
+	volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
+	cStorVolumeReplica.Spec.Capacity = volCapacity
 	createVolAttr := createVolumeBuilder(cStorVolumeReplica, fullVolName)
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, createVolAttr...)
 	if err != nil {
@@ -115,4 +118,14 @@ func DeleteVolume(fullVolName string) error {
 		return err
 	}
 	return nil
+}
+
+// parseCapacityUnit add support for backward compatibility with respect to capacity units
+func parseCapacityUnit(capacity string) string {
+	// ToDo Use parsing factor for Ki->K,Gi->G, etc conversion
+	if strings.HasSuffix(capacity, BinaryCapacityUnitSuffix) {
+		newCapacity := strings.TrimSuffix(capacity, BinaryCapacityUnitSuffix)
+		return newCapacity
+	}
+	return capacity
 }
