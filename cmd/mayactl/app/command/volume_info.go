@@ -106,7 +106,7 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 		return nil
 	}
 
-	// Initiallize an instance of ReplicaCollection, json response recieved from the replica controller. Collection contains status and other information of replica.
+	// Initiallize an instance of ReplicaCollection, json response received from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
 	if volumeInfo.GetCASType() == string(JivaStorageEngine) {
 		collection, err = getReplicaInfo(volumeInfo)
@@ -256,7 +256,7 @@ Replica Count     :   {{.ReplicaCount}}
 		}
 
 		for IP, replicaStatus := range replicaIPStatus {
-			// checking if the first three letters is nil or not if it is nil then the ip is not avaiable
+			// checking if the first three letters is nil or not if it is nil then the ip is not available
 			if strings.Contains(IP, "nil") {
 				replicaInfo[replicaStatus.index] = &ReplicaInfo{"NA", replicaStatus.mode, replicaStatus.status, "NA", "NA"}
 			} else {
