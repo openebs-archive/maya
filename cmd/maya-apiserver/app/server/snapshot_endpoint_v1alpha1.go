@@ -67,18 +67,18 @@ func (v *snapshotAPIOpsV1alpha1) create(resp http.ResponseWriter, req *http.Requ
 		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot '%v': missing volume name", snap.Name))
 	}
 
-	snapOps, err := snapshot.NewSnapshotOperation(snap)
+	snapOps, err := snapshot.Snapshot(snap)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}
 
 	snap, err = snapOps.Create()
 	if err != nil {
-		glog.Errorf("failed to create cas template based snapshot: error '%s'", err.Error())
+		glog.Errorf("failed to create snapshot: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("cas template based snapshot created successfully: name '%s'", snap.Name)
+	glog.Infof("snapshot created successfully: name '%s'", snap.Name)
 	return snap, nil
 }
 

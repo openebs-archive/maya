@@ -18,46 +18,46 @@ limitations under the License.
 package snapshot
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
 )
 
-// casSnapshotEngine is capable of creating a CAS snapshot via CAS template
+// snapshotEngine is capable of creating a CAS snapshot via CAS template
 //
 // It implements following interfaces:
 // - engine.CASCreator
 //
 // NOTE:
 //  It overrides the Create method exposed by generic CASEngine
-type casSnapshotEngine struct {
-	// casEngine exposes generic CAS template operations
-	casEngine *engine.CASEngine
+type snapshotEngine struct {
+	// engine exposes generic CAS template operations
+	engine *engine.CASEngine
 	// defaultConfig is the default cas snapshot configurations found
 	// in the CASTemplate
 	defaultConfig []v1alpha1.Config
 }
 
-// NewCASSnapshotEngine returns a new instance of casSnapshotEngine based on
+// SnapshotEngine returns a new instance of snapshotEngine based on
 // the provided cas configs & runtime snapshot values
 //
 // NOTE:
 //  runtime snapshot values set at **runtime** by openebs storage provisioner
 // (a kubernetes dynamic storage provisioner)
-func NewCASSnapshotEngine(
+func SnapshotEngine(
 	casTemplate *v1alpha1.CASTemplate,
 	runtimeKey string,
-	runtimeSnapshotValues map[string]interface{}) (snapshotEngine *casSnapshotEngine, err error) {
+	runtimeSnapshotValues map[string]interface{}) (snapEngine *snapshotEngine, err error) {
 
 	if len(strings.TrimSpace(runtimeKey)) == 0 {
-		err = fmt.Errorf("failed to create cas template engine: nil runtime snapshot key was provided")
+		err = errors.New("failed to create cas template engine: nil runtime snapshot key was provided")
 		return
 	}
 
 	if len(runtimeSnapshotValues) == 0 {
-		err = fmt.Errorf("failed to create cas template engine: nil runtime snapshot values was provided")
+		err = errors.New("failed to create cas template engine: nil runtime snapshot values was provided")
 		return
 	}
 
@@ -67,8 +67,8 @@ func NewCASSnapshotEngine(
 		return
 	}
 
-	snapshotEngine = &casSnapshotEngine{
-		casEngine:     cEngine,
+	snapEngine = &snapshotEngine{
+		engine:        cEngine,
 		defaultConfig: casTemplate.Spec.Defaults,
 	}
 
@@ -76,13 +76,13 @@ func NewCASSnapshotEngine(
 }
 
 // Create creates a CAS snapshot
-func (c *casSnapshotEngine) Create() ([]byte, error) {
+func (c *snapshotEngine) Create() ([]byte, error) {
 	// set customized CAS config as a top level property
-	err := c.casEngine.AddConfigToConfigTLP(c.defaultConfig)
+	err := c.engine.AddConfigToConfigTLP(c.defaultConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// delegate to generic cas template engine
-	return c.casEngine.Run()
+	return c.engine.Run()
 }

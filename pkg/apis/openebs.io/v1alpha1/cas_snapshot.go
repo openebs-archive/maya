@@ -31,13 +31,13 @@ type CASSnapshot struct {
 // CASSnapshotSpec has the properties of a cas snapshot
 type CASSnapshotSpec struct {
 	CasType    string `json:"casType"`
-	VolumeName string `json:"volName"`
+	VolumeName string `json:"volumeName"`
 }
 
 // CASSnapshotListSpec has the properties of a cas snapshot list
 type CASSnapshotListSpec struct {
 	CasType    string `json:"casType"`
-	VolumeName string `json:"volName"`
+	VolumeName string `json:"volumeName"`
 	Namespace  string `json:"namespace"`
 }
 

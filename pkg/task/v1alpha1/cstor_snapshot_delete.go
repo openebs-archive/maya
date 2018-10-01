@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/openebs/maya/cmd/cstor-volume-grpc/app/command"
+	"github.com/openebs/maya/pkg/grpc"
 )
 
 // cstorSnapshotDelete represents a cstor snapshot delete runtask command
@@ -48,7 +48,7 @@ func (c *cstorSnapshotDelete) Run() (r RunCommandResult) {
 		return c.cmd.AddError(fmt.Errorf("missing snapshot name: failed to delete cstor snapshot")).Result(nil)
 	}
 
-	response, err := command.DestroySnapshot(volName, snapName, ip)
+	response, err := grpc.DestroySnapshot(volName, snapName, ip)
 	if err != nil {
 		return c.cmd.AddError(err).Result(nil)
 	}

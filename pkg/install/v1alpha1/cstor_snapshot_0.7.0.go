@@ -51,13 +51,10 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  labels:
-    openebs.io/version: 0.7.0
   name: cstor-snapshot-create-listtargetservice-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    runNamespace: {{ .Config.RunNamespace.value }}
     apiVersion: v1
     id: readlistsvc
     kind: Service
@@ -73,7 +70,6 @@ apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: cstor-snapshot-create-createsnapshot-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     id: createcstorsnap
@@ -86,10 +82,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  labels:
-    openebs.io/version: 0.7.0
   name: cstor-snapshot-create-output-default-0.7.0
-  namespace: openebs
 spec:
   meta: |
     action: output
@@ -103,6 +96,6 @@ spec:
       name: {{ .Snapshot.owner }}
     spec:
       casType: cstor
-      volumeName: .Snapshot.volumeName
+      volumeName: {{ .Snapshot.volumeName }}
 ---`
 }

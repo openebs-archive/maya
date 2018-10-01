@@ -35,7 +35,6 @@ func TestCstorSnapshotDelete(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-<<<<<<< HEAD
 			c := &cstorSnapshotDelete{
 				cmd: Command(),
 			}
@@ -48,18 +47,6 @@ func TestCstorSnapshotDelete(t *testing.T) {
 				if mock.errMsg != result.Error().Error() {
 					t.Fatalf("Test '%s' failed: expected error: %q actual error: %q", name, mock.errMsg, result.Error().Error())
 				}
-=======
-			c := &cstorSnapshotCreate{
-				cmd: Command(),
-			}
-			c.cmd = WithData(c.cmd, "url", mock.url)
-			c.cmd = WithData(c.cmd, "url", mock.url)
-			c.cmd = WithData(c.cmd, "url", mock.url)
-			result := c.Run()
-
-			if mock.iserr && result.Error() == nil {
-				t.Fatalf("Test '%s' failed: expected error: actual no error: result '%s'", name, result)
->>>>>>> 346aee0a... temp commit
 			}
 		})
 	}

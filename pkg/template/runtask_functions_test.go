@@ -302,7 +302,9 @@ func TestCreateCstorSnapshotCommand(t *testing.T) {
 		"test 105": {`{{- $ip := "1.1.1.1" -}}
 					  {{- $volName := "vol1" -}}
 					  {{- $snapName := "s1" -}}
-		              {{- create cstor volume | withoption "ip" $ip | withoption "volname" $volName | withoption "snapname" $snapName | run -}}`, mockval},
+					  {{- create cstor volume | withoption "ip" $ip |
+					   withoption "volname" $volName | withoption "snapname" $snapName |
+					    run -}}`, mockval},
 	}
 
 	for name, mock := range tests {

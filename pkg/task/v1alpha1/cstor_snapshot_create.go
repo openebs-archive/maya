@@ -19,7 +19,8 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/openebs/maya/cmd/cstor-volume-grpc/app/command"
+	"github.com/openebs/maya/pkg/grpc"
+	"github.com/pkg/errors"
 )
 
 // cstorSnapshotCreate represents a cstor snapshot create runtask command
@@ -41,14 +42,14 @@ func (c *cstorSnapshotCreate) Run() (r RunCommandResult) {
 	}
 
 	if len(volName) == 0 {
-		return c.cmd.AddError(fmt.Errorf("missing volume name: failed to create cstor snapshot")).Result(nil)
+		return c.cmd.AddError(errors.Errorf("missing volume name: failed to create cstor snapshot")).Result(nil)
 	}
 
 	if len(snapName) == 0 {
-		return c.cmd.AddError(fmt.Errorf("missing snapshot name: failed to create cstor snapshot")).Result(nil)
+		return c.cmd.AddError(errors.Errorf("missing snapshot name: failed to create cstor snapshot")).Result(nil)
 	}
 
-	response, err := command.CreateSnapshot(volName, snapName, ip)
+	response, err := grpc.CreateSnapshot(volName, snapName, ip)
 	if err != nil {
 		return c.cmd.AddError(err).Result(nil)
 	}

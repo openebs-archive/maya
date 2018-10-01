@@ -17,8 +17,6 @@ limitations under the License.
 package snapshot
 
 import (
-	"fmt"
-
 	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -28,69 +26,68 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// snapshotOperationOptions contains the options with respect to
+// snapshotOptions contains the options with respect to
 // snapshot related operations
-type snapshotOperationOptions struct {
+type snapshotOptions struct {
 	// k8sClient will make K8s API calls
 	k8sClient *m_k8s_client.K8sClient
 }
 
-// SnapshotOperation exposes methods with respect to snapshot related operations
+// snapshot exposes methods with respect to snapshot related operations
 // e.g. read, create, delete.
-type SnapshotOperation struct {
-	// snapshotOperationOptions has the options to various snapshot related
+type snapshot struct {
+	// snapshotOptions has the options to various snapshot related
 	// operations
-	snapshotOperationOptions
+	snapshotOptions
 	// snapshot to create or read or delete
-	snapshot *v1alpha1.CASSnapshot
+	casSnapshot *v1alpha1.CASSnapshot
 }
 
-// NewSnapshotOperation returns a new instance of snapshotOperation
-func NewSnapshotOperation(snapshot *v1alpha1.CASSnapshot) (*SnapshotOperation, error) {
-	if snapshot == nil {
-		return nil, fmt.Errorf("failed to instantiate snapshot operation: nil snapshot was provided")
+// Snapshot returns a new instance of snapshot
+func Snapshot(casSnapshot *v1alpha1.CASSnapshot) (*snapshot, error) {
+	if casSnapshot == nil {
+		return nil, errors.Errorf("failed to instantiate snapshot operation: nil snapshot was provided")
 	}
 
-	if len(snapshot.Namespace) == 0 {
-		return nil, fmt.Errorf("failed to instantiate snapshot operation: missing run namespace")
+	if len(casSnapshot.Namespace) == 0 {
+		return nil, errors.Errorf("failed to instantiate snapshot operation: missing run namespace")
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(snapshot.Namespace)
+	kc, err := m_k8s_client.NewK8sClient(casSnapshot.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	return &SnapshotOperation{
-		snapshot: snapshot,
-		snapshotOperationOptions: snapshotOperationOptions{
+	return &snapshot{
+		casSnapshot: casSnapshot,
+		snapshotOptions: snapshotOptions{
 			k8sClient: kc,
 		},
 	}, nil
 }
 
 // Create creates an OpenEBS snapshot of a volume
-func (v *SnapshotOperation) Create() (*v1alpha1.CASSnapshot, error) {
-	if v.k8sClient == nil {
-		return nil, fmt.Errorf("unable to create snapshot: nil k8s client")
+func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
+	if s.k8sClient == nil {
+		return nil, errors.Errorf("unable to create snapshot: nil k8s client")
 	}
 
-	castName := getCreateCASTemplate(v.snapshot.Spec.CasType)
+	castName := getCreateCASTemplate(s.casSnapshot.Spec.CasType)
 	if castName == "" {
-		return nil, errors.Errorf("unable to create snapshot: could not find castemplate for engine type %q", v.snapshot.Spec.CasType)
+		return nil, errors.Errorf("unable to create snapshot: could not find castemplate for engine type %q", s.casSnapshot.Spec.CasType)
 	}
 
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	snapshotLables := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):        v.snapshot.Name,
-		string(v1alpha1.RunNamespaceVTP): v.snapshot.Namespace,
-		string(v1alpha1.VolumeSTP):       v.snapshot.Spec.VolumeName,
+		string(v1alpha1.OwnerVTP):  s.casSnapshot.Name,
+		string(v1alpha1.VolumeSTP): s.casSnapshot.Spec.VolumeName,
 	}
 
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
-	cc, err := NewCASSnapshotEngine(
+	cc, err := SnapshotEngine(
 		cast,
 		string(v1alpha1.SnapshotTLP),
 		snapshotLables,
@@ -120,7 +117,7 @@ func (v *SnapshotOperation) Create() (*v1alpha1.CASSnapshot, error) {
 /* func (v *SnapshotOperation) Delete() (*v1alpha1.CASSnapshot, error) {
 	castName := getDeleteCASTemplate(v.snapshot.Spec.CasType)
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", v.snapshot.Name)
+		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", v.snapshot.Name)
 	}
 
 	// fetch delete cas template specifications
@@ -163,7 +160,7 @@ func (v *SnapshotOperation) Create() (*v1alpha1.CASSnapshot, error) {
 func (v *SnapshotOperation) Read() (*v1alpha1.CASSnapshot, error) {
 	castName := getReadCASTemplate(v.snapshot.Spec.CasType)
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to read snapshot %s: missing cas template for read snapshot", v.snapshot.Name)
+		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", v.snapshot.Name)
 	}
 
 	// fetch read cas template specifications
@@ -205,7 +202,7 @@ func (v *SnapshotOperation) Read() (*v1alpha1.CASSnapshot, error) {
 func (v *SnapshotListOperation) List() (*v1alpha1.CASSnapshotList, error) {
 	castName := getListCASTemplate(v.snapshots.Spec.CasType)
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to list snapshots for volume %q: missing cas template for list snapshot", v.snapshots.Spec.VolumeName)
+		return nil, errors.Errorf("unable to list snapshots for volume %q: missing cas template for list snapshot", v.snapshots.Spec.VolumeName)
 	}
 
 	// fetch read cas template specifications
@@ -256,7 +253,7 @@ type SnapshotListOperation struct {
 // capable of listing snapshots
 func NewSnapshotListOperation(snapshots *v1alpha1.CASSnapshotList) (*SnapshotListOperation, error) {
 	if snapshots == nil {
-		return nil, fmt.Errorf("failed to instantiate 'snapshot list operation': nil list options provided")
+		return nil, errors.Errorf("failed to instantiate 'snapshot list operation': nil list options provided")
 	}
 
 	kc, err := m_k8s_client.NewK8sClient("")

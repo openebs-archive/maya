@@ -410,7 +410,7 @@ spec:
       {{- end }}
       {{- end }}
   task: |
-    {{- $isCloneEnable := .Volume.isCloneEnable | default "false" -}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1
     metadata:
@@ -426,11 +426,11 @@ spec:
         cstorpool.openebs.io/uid: {{ .ListItems.currentRepeatResource }}
         cstorvolume.openebs.io/name: {{ .Volume.owner }}
         openebs.io/persistent-volume: {{ .Volume.owner }}
-        {{- if ne $isCloneEnable "false" }}
+        {{- if ne $isClone "false" }}
         openebs.io/cloned: true
         {{- end }}
       annotations:
-        {{- if ne $isCloneEnable "false" }}
+        {{- if ne $isClone "false" }}
         openebs.io/snapshot: {{ .Volume.snapshotName }}
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
