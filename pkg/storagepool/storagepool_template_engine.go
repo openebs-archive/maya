@@ -20,7 +20,6 @@ package storagepool
 import (
 	"fmt"
 	"strings"
-
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
