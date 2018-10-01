@@ -54,7 +54,7 @@ func TestEnqueueSpc(t *testing.T) {
 	}{
 		// TestCase#1
 		// Make a queueload object
-		// Function under test should utilize the object and extract name from storagepoolcalim object as key
+		// Function under test should utilize the object and extract name from storagepoolclaim object as key
 		// Finally the queueload key filed should be filled with the extracted key.
 		"Forming queueload object": {
 			queueload: QueueLoad{
