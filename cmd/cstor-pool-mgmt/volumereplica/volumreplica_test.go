@@ -264,3 +264,51 @@ func TestCheckValidVolumeReplica(t *testing.T) {
 		}
 	}
 }
+
+// TestParseCapacityUnit tests parseCapacityUnit function which
+// provide backward compatibility of capacity units.
+func TestParseCapacityUnit(t *testing.T) {
+	testVolumeCapacity := map[string]struct {
+		volumeCapacity         string
+		expectedVolumeCapacity string
+	}{
+		"capacity#1": {
+			volumeCapacity: "1Ei",
+			//expectedVolumeCapacity: "1.15292E",
+			expectedVolumeCapacity: "1E",
+		},
+		"capacity#2": {
+			volumeCapacity: "1Pi",
+			//expectedVolumeCapacity: "1.12590P",
+			expectedVolumeCapacity: "1P",
+		},
+		"capacity#3": {
+			volumeCapacity: "1Ti",
+			//expectedVolumeCapacity: "1.09951T",
+			expectedVolumeCapacity: "1T",
+		},
+		"capacity#4": {
+			volumeCapacity: "1Gi",
+			//expectedVolumeCapacity: "1.07374G",
+			expectedVolumeCapacity: "1G",
+		},
+		"capacity#5": {
+			volumeCapacity: "1Mi",
+			//expectedVolumeCapacity: "1.04858M",
+			expectedVolumeCapacity: "1M",
+		},
+		"capacity#6": {
+			volumeCapacity: "1Ki",
+			//expectedVolumeCapacity: "1.024K",
+			expectedVolumeCapacity: "1K",
+		},
+	}
+	for name, test := range testVolumeCapacity {
+		t.Run(name, func(t *testing.T) {
+			gotVolumeCapacity := parseCapacityUnit(test.volumeCapacity)
+			if gotVolumeCapacity != test.expectedVolumeCapacity {
+				t.Errorf("Test case failed as expected capacity '%v' but got '%v'", test.expectedVolumeCapacity, gotVolumeCapacity)
+			}
+		})
+	}
+}
