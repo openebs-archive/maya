@@ -14,16 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file has storagepool specific implementation of cas template engine
+// Package storagepool provides a specific implementation of CAS template engine
 package storagepool
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
 	"github.com/openebs/maya/pkg/util"
-	"strings"
 )
 
 // casStoragePoolEngine is capable of creating a storagepool via CAS template
