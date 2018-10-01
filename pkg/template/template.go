@@ -555,7 +555,7 @@ func addTo(fields string, values map[string]interface{}, value string) string {
 //
 // NOTE:
 //  This hierarchy along with the provided value is added or updated
-// (i.e. overriden) in the values object.
+// (i.e. overridden) in the values object.
 //
 // NOTE:
 //  fields is represented as a single string with each field separated by dot
