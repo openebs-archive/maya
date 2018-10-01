@@ -79,11 +79,7 @@ func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, er
 	return deploy, nil
 }
 
-<<<<<<< HEAD
 // ServiceYml provides utility methods to generate K8s Service objects
-=======
-// ServiceYml struct provides utility methods to generate K8s Service objects
->>>>>>> Fix lint errors as reported by Go report card (#632)
 type ServiceYml struct {
 	// YmlInBytes represents a K8s Service in
 	// yaml format
