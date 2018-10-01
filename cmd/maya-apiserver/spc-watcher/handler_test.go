@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-// TestEnqueueSpc function test enqueueSpc function to check wether the queueload is
+// TestEnqueueSpc function test enqueueSpc function to check whether the queueload is
 // properly formed for enqueue into the workqueue
 
 func TestEnqueueSpc(t *testing.T) {
@@ -45,7 +45,7 @@ func TestEnqueueSpc(t *testing.T) {
 	// Key of map describes test case behaviour.
 	// Value of map is the test object.
 	tests := map[string]struct {
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
+		// fakestoragepoolclaim holds the fake storagepoolclaim object in test cases.
 		fakestoragepoolclaim *apis.StoragePoolClaim
 		// queueload holds the queueLoad for the test case under run.
 		queueload QueueLoad
@@ -110,7 +110,7 @@ func TestGetSpcResource(t *testing.T) {
 		SpcObject *apis.StoragePoolClaim
 	}{
 		// TestCase#2
-		// Make a storagepoolcalim object named pool1.
+		// Make a storagepoolclaim object named pool1.
 		// Query for pool1 object and there should be no error.
 		"Create spc object with name pool1 and query for the same object": {
 			querySpcName:  "pool1",
