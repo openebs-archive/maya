@@ -110,7 +110,7 @@ func TestGetSpcResource(t *testing.T) {
 		SpcObject *apis.StoragePoolClaim
 	}{
 		// TestCase#2
-		// Make a storagepoolcalim object named pool1.
+		// Make a storagepoolclaim object named pool1.
 		// Query for pool1 object and there should be no error.
 		"Create spc object with name pool1 and query for the same object": {
 			querySpcName:  "pool1",
