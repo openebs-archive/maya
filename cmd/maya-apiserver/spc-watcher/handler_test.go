@@ -30,8 +30,8 @@ import (
 	"time"
 )
 
-// TestEnqueueSpc function test enqueueSpc function to check whether the queueload
-// is properly formed for enqueue into the workqueue
+// TestEnqueueSpc function test enqueueSpc function to check whether the queueload is
+// properly formed for enqueue into the workqueue
 
 func TestEnqueueSpc(t *testing.T) {
 	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
