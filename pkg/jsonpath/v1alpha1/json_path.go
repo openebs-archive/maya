@@ -20,10 +20,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	. "github.com/openebs/maya/pkg/msg/v1alpha1"
+	"reflect"
+
+	_ "github.com/openebs/maya/pkg/msg/v1alpha1"
 	ft "k8s.io/client-go/third_party/forked/golang/template"
 	jp "k8s.io/client-go/util/jsonpath"
-	"reflect"
 )
 
 type selection struct {
@@ -33,6 +34,7 @@ type selection struct {
 	*Msgs
 }
 
+// Selection generate a new selection struct
 func Selection(name, path string) *selection {
 	return &selection{
 		Name: name,
@@ -62,12 +64,14 @@ func (s *selection) SetValues(rvals [][]reflect.Value) {
 	return
 }
 
+// SelectionList represents a list of selection
 type SelectionList []*selection
 
 func (l SelectionList) String() string {
 	return YamlString("selectionlist", l)
 }
 
+// ValuesByName retrieves an list of values filtering by his name
 func (l SelectionList) ValuesByName(name string) (vals []string) {
 	for _, s := range l {
 		if s.Name == name {
@@ -77,6 +81,7 @@ func (l SelectionList) ValuesByName(name string) (vals []string) {
 	return
 }
 
+// ValueByName retrieves an single value filtering by his name
 func (l SelectionList) ValueByName(name string) (value string) {
 	vals := l.ValuesByName(name)
 	if len(vals) == 0 {
@@ -85,6 +90,7 @@ func (l SelectionList) ValueByName(name string) (value string) {
 	return vals[0]
 }
 
+// ValuesByPath retrieves an list of values filtering by his path
 func (l SelectionList) ValuesByPath(path string) (vals []string) {
 	for _, s := range l {
 		if s.Path == path {
@@ -94,6 +100,7 @@ func (l SelectionList) ValuesByPath(path string) (vals []string) {
 	return
 }
 
+// ValueByPath retrieves a single value according to the given path
 func (l SelectionList) ValueByPath(path string) (value string) {
 	vals := l.ValuesByPath(path)
 	if len(vals) == 0 {
@@ -110,6 +117,7 @@ type jsonpath struct {
 	*Msgs
 }
 
+// JSONPath generate an new jsonpath struct
 func JSONPath(name string) (j *jsonpath) {
 	return &jsonpath{
 		name:  name,
