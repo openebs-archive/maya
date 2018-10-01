@@ -19,6 +19,7 @@ package k8s
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -35,6 +36,9 @@ type DeploymentYml struct {
 	YmlInBytes []byte
 }
 
+// NewDeploymentYml setups the given
+// context, yml, values and returns a
+// pointer to DeploymentYml, otherwise an error
 func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -78,13 +82,20 @@ func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, er
 	return deploy, nil
 }
 
+<<<<<<< HEAD
 // ServiceYml struct provides utility methods to generate K8s Service objects
+=======
+// ServiceYml provides utility methods to generate K8s Service objects
+>>>>>>> Fixed lint errors in k8s/from_yaml.go file
 type ServiceYml struct {
 	// YmlInBytes represents a K8s Service in
 	// yaml format
 	YmlInBytes []byte
 }
 
+// NewServiceYml setups the given context,
+// yml, values and returns a pointer
+// to ServiceYml, otherwise an error
 func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -133,6 +144,9 @@ type StoragePoolYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorPoolYml setups the given context
+// yml, values and returns a pointer
+// to CStorPoolYml, otherwise an error
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -144,6 +158,9 @@ func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStor
 	}, nil
 }
 
+// NewStoragePoolYml setups the given
+// context, yml, values and returns a
+// pointer to StoragePoolYml, otherwise an error
 func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -155,6 +172,9 @@ func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*Sto
 	}, nil
 }
 
+// NewCStorVolumeYml setups the given
+// context, yml, values and returns a
+// CStorVolumeYml, otherwise an error
 func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -221,6 +241,9 @@ type CStorVolumeReplicaYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorVolumeReplicaYml setups a given
+// context, yml, values and returns a pointer to
+// CStorVolumeReplicaYml, otherwise an error
 func NewCStorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CStorVolumeReplicaYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
