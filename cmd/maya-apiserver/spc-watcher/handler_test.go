@@ -221,7 +221,7 @@ func TestSyncHandler(t *testing.T) {
 		// Function under test expects key,operation,and storagepoolcalim object as an argument
 		// If the event is deleteEvent or addEvent , creation of storagepool and deletion of storagepool
 		// should be attempted.
-		// The attempt will fail beacuse of the absence of cas template in go environment
+		// The attempt will fail because of the absence of cas template in go environment
 		// Hence deleteEvent and addEvent should error out.
 		// For all other events there is no such attempt and no error should occur.
 
