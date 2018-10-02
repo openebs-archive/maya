@@ -40,3 +40,29 @@ func TestIsCurrentVersionValid(t *testing.T) {
 		})
 	}
 }
+
+func TestVersion(t *testing.T) {
+	tests := map[string]struct {
+		inputVersion    string
+		expectedVersion version
+	}{
+		"case1": {
+			inputVersion:    "0.7.0",
+			expectedVersion: "0.7.0",
+		},
+		"case 2": {
+			inputVersion:    "",
+			expectedVersion: "invalid.version",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			validatedVersion := Version(tt.inputVersion)
+			if validatedVersion != tt.expectedVersion {
+				t.Errorf("Version error, got version: %v, expected version: %v", validatedVersion, tt.expectedVersion)
+			}
+		})
+	}
+
+}
