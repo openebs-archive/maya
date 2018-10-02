@@ -18,6 +18,7 @@ package volume
 
 import (
 	"fmt"
+
 	"github.com/openebs/maya/types/v1"
 	v1_storage "k8s.io/api/storage/v1"
 
@@ -202,6 +203,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	return vol, nil
 }
 
+// Delete removes a CASVolume 
 func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
@@ -362,6 +364,7 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 	}, nil
 }
 
+// List returns a list of CASVolumeList
 func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	// cas template to list cas volumes
 	castNames := menv.Get(menv.CASTemplateToListVolumeENVK)
