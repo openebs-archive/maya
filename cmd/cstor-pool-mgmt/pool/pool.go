@@ -35,12 +35,15 @@ const (
 //PoolAddEventHandled is a flag representing if the pool has been initially imported or created
 var PoolAddEventHandled = false
 
+//It declares a variable string of type string to store the prefix of pool name
 type PoolNamePrefix string
 
+//Assigns prefix of pool name 
 const (
 	PoolPrefix PoolNamePrefix = "cstor-"
 )
 
+//Declares variable of util package to help import and build pool
 var RunnerVar util.Runner
 
 // ImportPool imports cStor pool if already present.
