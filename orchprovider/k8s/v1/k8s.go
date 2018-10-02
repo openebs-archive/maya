@@ -1,3 +1,4 @@
+// Package v1 contains orchestration provider plugin.
 // This file registers Kubernetes as an orchestration provider plugin in maya
 // api server. This orchestration is for persistent volume provisioners which
 // also are registered in maya api server.
@@ -53,8 +54,8 @@ type k8sOrchestrator struct {
 	k8sUtlGtr K8sUtilGetter
 }
 
-// Deprecate in favour of NewK8sOrchProvider
 // NewK8sOrchestrator provides a new instance of K8sOrchestrator.
+// Deprecate in favour of NewK8sOrchProvider
 func NewK8sOrchestrator(label v1.NameLabel, name v1.OrchProviderRegistry) (orchprovider.OrchestratorInterface, error) {
 
 	glog.Infof("Building '%s':'%s' orchestration provider", label, name)
@@ -858,7 +859,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 		return nil, err
 	}
 	glog.Infof("Adding controller for volume 'name: %s'", vsm)
-	var tolerationSeconds int64 = 0
+	var tolerationSeconds int64
 
 	ctrlLabelSpec := map[string]string{
 		string(v1.VSMSelectorKey):               vsm,
