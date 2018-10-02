@@ -35,6 +35,8 @@ type CStorVolumeReplica struct {
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
 type CStorVolumeReplicaSpec struct {
+	Type     string `json:"type"`
+	SnapName string `json:"snapshotName"`
 	TargetIP string `json:"targetIP"`
 	Capacity string `json:"capacity"`
 }

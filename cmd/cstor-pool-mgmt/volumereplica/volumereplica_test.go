@@ -107,8 +107,8 @@ func TestDestroyerProcess(*testing.T) {
 	fmt.Println(nil)
 }
 
-// TestCreateVolume is to test cStorVolumeReplica creation.
-func TestCreateVolume(t *testing.T) {
+// TestCreateVolumeReplica is to test cStorVolumeReplica creation.
+func TestCreateVolumeReplica(t *testing.T) {
 	testPoolResource := map[string]struct {
 		expectedError error
 		test          *apis.CStorVolumeReplica
@@ -131,7 +131,7 @@ func TestCreateVolume(t *testing.T) {
 		},
 	}
 	RunnerVar = TestRunner{}
-	obtainedErr := CreateVolume(testPoolResource["Valid-vol1Resource"].test, "abcd123/dcba")
+	obtainedErr := CreateVolumeReplica(testPoolResource["Valid-vol1Resource"].test, "abcd123/dcba")
 	if testPoolResource["Valid-vol1Resource"].expectedError != obtainedErr {
 		t.Fatalf("Expected: %v, Got: %v", testPoolResource["Valid-vol1Resource"].expectedError, obtainedErr)
 	}

@@ -30,6 +30,9 @@ import (
 const (
 	VolumeReplicaOperator    = "zfs"
 	BinaryCapacityUnitSuffix = "i"
+	VolumeTypeClone          = "clone"
+	CreateCmd                = "create"
+	CloneCmd                 = "clone"
 )
 
 // RunnerVar the runner variable for executing binaries.
@@ -57,34 +60,65 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 	return nil
 }
 
-// CreateVolume creates cStor replica(zfs volumes).
-func CreateVolume(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) error {
-	// Parse capacity unit on CVR to support backward compatibility
-	volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
-	cStorVolumeReplica.Spec.Capacity = volCapacity
-	createVolAttr := createVolumeBuilder(cStorVolumeReplica, fullVolName)
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, createVolAttr...)
+// CreateVolumeReplica creates cStor replica(zfs volumes).
+func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) error {
+	cmd := []string{}
+	isClone := false
+	snapName := ""
+	if len(cStorVolumeReplica.Spec.Type) == 0 || cStorVolumeReplica.Spec.Type == VolumeTypeClone {
+		isClone = true
+		snapName = cStorVolumeReplica.Spec.SnapName
+		glog.Infof("Creating clone volume: %s of snapshot %s", string(fullVolName), string(snapName))
+		cmd = builldVolumeCloneCommand(cStorVolumeReplica, snapName, fullVolName)
+	} else {
+		// Parse capacity unit on CVR to support backward compatibility
+		volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
+		cStorVolumeReplica.Spec.Capacity = volCapacity
+		cmd = builldVolumeCreateCommand(cStorVolumeReplica, fullVolName)
+	}
+
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
 	if err != nil {
-		glog.Errorf("Unable to create volume: %v", string(stdoutStderr))
+		if isClone {
+			glog.Errorf("Unable to create clone volume: %s for snapshot %s. error : %v", fullVolName, snapName, string(stdoutStderr))
+		} else {
+			glog.Errorf("Unable to create volume %s. error : %v", fullVolName, string(stdoutStderr))
+		}
+
 		return err
 	}
 	return nil
 }
 
-// createVolumeBuilder builds volume creations command to run.
-func createVolumeBuilder(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) []string {
-	var createVolAttr []string
+// builldVolumeCreateCommand returns volume create command along with attributes as a string array
+func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) []string {
+	var createVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
 
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
-	createVolAttr = append(createVolAttr, "create",
+	createVolCmd = append(createVolCmd, CreateCmd,
 		"-b", "4K", "-s", "-o", "compression=on",
-		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName,
-		"-o", openebsTargetIP, "-o", openebsVolname)
+		"-o", openebsTargetIP, "-o", openebsVolname,
+		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 
-	return createVolAttr
+	return createVolCmd
+}
+
+// builldVolumeCloneCommand returns volume clone command along with attributes as a string array
+func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapName, fullVolName string) []string {
+	var cloneVolCmd []string
+
+	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
+
+	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
+
+	cloneVolCmd = append(cloneVolCmd, CloneCmd,
+		"-o", "compression=on", "-o", openebsTargetIP,
+		"-o", openebsVolname, snapName, fullVolName)
+
+	return cloneVolCmd
 }
 
 // GetVolumes returns the slice of volumes.
