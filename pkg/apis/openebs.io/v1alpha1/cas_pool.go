@@ -15,14 +15,18 @@ limitations under the License.
 */
 
 package v1alpha1
+
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CasPool is a type which will be utilised by CAS engine to perform
-// storagepool related operation
+// CasPoolKey is the key for the CasPool.
 type CasPoolKey string
+
+// CasPoolValString represents the string value for a CasPoolKey.
 type CasPoolValString string
+
+// CasPoolValInt represents the integer value for a CasPoolKey
 type CasPoolValInt int
 
 const (
@@ -30,23 +34,25 @@ const (
 	HostNameCPK CasPoolKey = "kubernetes.io/hostname"
 	// StoragePoolClaimCPK is the storage pool claim label
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
-	// DiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
+	// NdmDiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
-	// PoolTypeMirroredCPK is a key for mirrored for pool
+	// PoolTypeMirroredCPV is a key for mirrored for pool
 	PoolTypeMirroredCPV CasPoolValString = "mirrored"
-	// PoolTypeMirroredCPK is a key for striped for pool
+	// PoolTypeStripedCPV is a key for striped for pool
 	PoolTypeStripedCPV CasPoolValString = "striped"
-	// TypeSparseCPK is a key for sparse disk pool
+	// TypeSparseCPV is a key for sparse disk pool
 	TypeSparseCPV CasPoolValString = "sparse"
-	// TypeDiskCPK is a key for physical,iscsi,virtual etc disk pool
+	// TypeDiskCPV is a key for physical,iscsi,virtual etc disk pool
 	TypeDiskCPV CasPoolValString = "disk"
-	// StripedDiskCountCPK is the count for striped type pool
+	// StripedDiskCountCPV is the count for striped type pool
 	StripedDiskCountCPV CasPoolValInt = 1
-	// MirroredDiskCountCPK is the count for mirrored type pool
+	// MirroredDiskCountCPV is the count for mirrored type pool
 	MirroredDiskCountCPV CasPoolValInt = 2
 )
 
-// TODO : Restructure the CasPool struct
+// CasPool is a type which will be utilised by CAS engine to perform
+// storagepool related operation.
+// TODO: Restrucutre CasPool struct.
 type CasPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
