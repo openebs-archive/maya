@@ -53,6 +53,7 @@ type CStorPoolAttr struct {
 	OverProvisioning bool   `json:"overProvisioning"` //true or false
 }
 
+// CStorPoolPhase is a CStorPool phase.
 type CStorPoolPhase string
 
 // Status written onto CStorPool and CStorVolumeReplica objects.
