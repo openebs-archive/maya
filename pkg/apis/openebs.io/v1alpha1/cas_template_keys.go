@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-// CasKey ...
+// CasKey is used for all cas specific annotation keys
 type CasKey string
 
 const (
@@ -110,7 +110,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
 	OwnerCTP StoragePoolTLPProperty = "owner"
-	// DiskListCTP ...
+	// DiskListCTP indicates the list of disks
 	DiskListCTP StoragePoolTLPProperty = "diskList"
 )
 
@@ -188,7 +188,7 @@ const (
 )
 
 const (
-	// TaskIdentityPrefix ...
+	// TaskIdentityPrefix is the prefix used for all TaskIdentity
 	TaskIdentityPrefix string = "key"
 )
 
