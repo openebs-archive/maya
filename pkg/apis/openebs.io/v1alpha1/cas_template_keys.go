@@ -16,14 +16,15 @@ limitations under the License.
 
 package v1alpha1
 
+// CasKey ...
 type CasKey string
 
 const (
-	// This is the cas template annotation whose value is the name of
+	// SPCreateCASTemplateCK is the cas template annotation whose value is the name of
 	// cas template that will be used to provision a storagepool
 	SPCreateCASTemplateCK CasKey = "cas.openebs.io/create-pool-template"
 
-	// This is the cas template annotation whose value is the name of
+	// SPDeleteCASTemplateCK is the cas template annotation whose value is the name of
 	// cas template that will be used to delete a storagepool
 	SPDeleteCASTemplateCK CasKey = "cas.openebs.io/delete-pool-template"
 )
@@ -77,11 +78,10 @@ const (
 	//  This is typically used to feed inputs of a task's execution
 	// result to **next task** before the later's execution
 	TaskResultTLP TopLevelProperty = "TaskResult"
-	// CurrentJsonDocTLP is a top level property supported by CAS template engine
-	//
+	// CurrentJSONResultTLP is a top level property supported by CAS template engine
 	// The result of the current task's execution is stored in this top
 	// level property.
-	CurrentJsonResultTLP TopLevelProperty = "JsonResult"
+	CurrentJSONResultTLP TopLevelProperty = "JsonResult"
 	// ListItemsTLP is a top level property supported by CAS template engine
 	//
 	// Results of one or more tasks' execution can be saved in this property.
@@ -109,7 +109,8 @@ const (
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
-	OwnerCTP    StoragePoolTLPProperty = "owner"
+	OwnerCTP StoragePoolTLPProperty = "owner"
+	// DiskListCTP ...
 	DiskListCTP StoragePoolTLPProperty = "diskList"
 )
 
@@ -157,10 +158,10 @@ const (
 	SnapshotNameVTP CloneTLPProperty = "snapshotName"
 	// SourceVolumeTargetIPVTP is source volume target IP
 	SourceVolumeTargetIPVTP CloneTLPProperty = "sourceVolumeTargetIP"
-	// IsCloneVTP is a bool value for clone operations
+	// IsCloneEnableVTP is a bool value for clone operations
 	// for a volume
 	IsCloneEnableVTP CloneTLPProperty = "isCloneEnable"
-	// Name of the source volume
+	// SourceVolumeVTP is the name of the source volume
 	SourceVolumeVTP CloneTLPProperty = "sourceVolume"
 )
 
@@ -187,6 +188,7 @@ const (
 )
 
 const (
+	// TaskIdentityPrefix ...
 	TaskIdentityPrefix string = "key"
 )
 
@@ -246,7 +248,7 @@ const (
 	TaskResultNotFoundErrTRTP TaskResultTLPProperty = "notFoundErr"
 	// TaskResultVersionMismatchErrTRTP is a property of TaskResultTLP
 	//
-	// First error found after **version mismatch** checks done against the 
+	// First error found after **version mismatch** checks done against the
 	// result of the task's execution is stored in this property.
 	//
 	// NOTE:
