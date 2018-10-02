@@ -23,10 +23,12 @@ type TemplateKeyValue struct {
 	Value interface{}
 }
 
+// TemplateKeyValueList is a list of TemplateKeyValue
 type TemplateKeyValueList struct {
 	Items []TemplateKeyValue
 }
 
+// NewTemplateKeyValueList returns a list of NewTemplateKeyValue
 func NewTemplateKeyValueList() TemplateKeyValueList {
 	return TemplateKeyValueList{}
 }
