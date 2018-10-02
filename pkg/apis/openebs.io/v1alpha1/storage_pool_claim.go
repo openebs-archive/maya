@@ -49,7 +49,7 @@ type StoragePoolClaimSpec struct {
 	PoolSpec     CStorPoolAttr `json:"poolSpec"`
 }
 
-// StoragePoolClaim is for handling status of pool.
+// StoragePoolClaimStatus is for handling status of pool.
 type StoragePoolClaimStatus struct {
 	Phase string `json:"phase"`
 }
