@@ -24,7 +24,36 @@ import (
 func TestNewTaskIdentifier(t *testing.T) {}
 
 // TODO
-func TestIsPod(t *testing.T) {}
+func TestIsPod(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isPod          bool
+	}{
+		"True": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isPod: true},
+		"False": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "NotPod",
+				},
+			},
+			isPod: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isPod := tt.taskIdentifier.isPod()
+			if tt.isPod != isPod {
+				t.Fatalf("isPod() => got %v, want %v", isPod, tt.isPod)
+			}
+		})
+	}
+}
 
 // TODO
 func TestIsDeployment(t *testing.T) {}
