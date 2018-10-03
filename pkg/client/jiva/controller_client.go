@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/openebs/maya/pkg/util"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/openebs/maya/pkg/util"
 )
 
 // NewControllerClient create the new controller client
