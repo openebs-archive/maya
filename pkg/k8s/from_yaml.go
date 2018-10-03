@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package k8s provides the necessary codebase for K8s implementation.
-// Setups the different yaml files for deployment
-
 package k8s
 
 import (
