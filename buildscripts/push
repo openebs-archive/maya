@@ -43,9 +43,9 @@ function TagAndPushImage() {
   TAG="$2"
 
   IMAGE_URI="${REPO}:${TAG}";
-  sudo docker tag ${IMAGEID} ${IMAGE_URI};
+  #sudo docker tag ${IMAGEID} ${IMAGE_URI};
   echo " push ${IMAGE_URI}";
-  sudo docker push ${IMAGE_URI};
+  #sudo docker push ${IMAGE_URI};
 }
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ];
