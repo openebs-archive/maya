@@ -27,7 +27,7 @@ else
   CURRENT_BRANCH=${TRAVIS_BRANCH}
 fi
 
-#Depending on the branch where builds are generated, 
+#Depending on the branch where builds are generated,
 # set the tag CI (fixed) and build tags.
 BUILD_TAG="${CURRENT_BRANCH}-${BUILD_ID}"
 CI_TAG="${CURRENT_BRANCH}-ci"
@@ -41,11 +41,11 @@ echo "Set the build/unique image tag as: ${BUILD_TAG}"
 function TagAndPushImage() {
   REPO="$1"
   TAG="$2"
-  
+
   IMAGE_URI="${REPO}:${TAG}";
-  #sudo docker tag ${IMAGEID} ${IMAGE_URI};
+  sudo docker tag ${IMAGEID} ${IMAGE_URI};
   echo " push ${IMAGE_URI}";
-  #sudo docker push ${IMAGE_URI};
+  sudo docker push ${IMAGE_URI};
 }
 
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ];
@@ -56,7 +56,7 @@ then
   TagAndPushImage "${DIMAGE}" "${CI_TAG}"
 
   # Push unique tagged image - :master-<uuid> or :branch-<uuid>
-  # This unique/build image will be pushed to corresponding ci repo. 
+  # This unique/build image will be pushed to corresponding ci repo.
   TagAndPushImage "${DIMAGE}-ci" "${BUILD_TAG}"
 
 
@@ -73,8 +73,8 @@ else
 fi;
 
 # Push ci image to quay.io for security scanning
-if [ ! -z "${QNAME}" ] && [ ! -z "${QPASS}" ]; 
-then 
+if [ ! -z "${QNAME}" ] && [ ! -z "${QPASS}" ];
+then
   sudo docker login -u "${QNAME}" -p "${QPASS}" quay.io;
 
   # Push CI tagged image - :ci or :branch-ci
