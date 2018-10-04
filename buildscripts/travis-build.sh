@@ -14,23 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MASTER="master"
-
-# On travis the docker image tag will be of <upstreambranch>-ci format.
-# `local` tag is at contributor's local machine for verifying with make command.
-if [ "$TRAVIS_BRANCH" != "" ]; 
-then
- if [ "$TRAVIS_BRANCH" == "$MASTER" ];
- then
-  IMAGE_TAG="ci"
- else
-  IMAGE_TAG="$TRAVIS_BRANCH-ci"
- fi
-else
- IMAGE_TAG="local"
-fi
-export IMAGE_TAG
-
 SRC_REPO="$TRAVIS_BUILD_DIR"
 DST_REPO="$GOPATH/src/github.com/openebs/maya"
 

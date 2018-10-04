@@ -2133,32 +2133,32 @@ func TestSplitListTrim(t *testing.T) {
 			"pool1pool2",
 			[]string{"pool1pool2"},
 		},
-		"Prefixed seperator in string": {
+		"Prefixed separator in string": {
 			";",
 			";pool1;pool2",
 			[]string{"pool1", "pool2"},
 		},
-		"Suffixed seperator in string": {
+		"Suffixed separator in string": {
 			";",
 			"pool1;pool2;",
 			[]string{"pool1", "pool2"},
 		},
-		"Multiple seperators only": {
+		"Multiple separators only": {
 			";",
 			";;;;",
 			[]string{""},
 		},
-		"Multiple seperators in between": {
+		"Multiple separators in between": {
 			";",
 			"p1;;;p2",
 			[]string{"p1", "", "", "p2"},
 		},
-		"Prefix-Suffix seperators in string": {
+		"Prefix-Suffix separators in string": {
 			";",
 			";;p1;p2;p3;;;",
 			[]string{"p1", "p2", "p3"},
 		},
-		"Single seperator in string": {
+		"Single separator in string": {
 			";",
 			";",
 			[]string{""},

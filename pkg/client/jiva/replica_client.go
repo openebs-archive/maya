@@ -49,6 +49,8 @@ func NewReplicaClient(address string) (*ReplicaClient, error) {
 	}, nil
 }
 
+// GetReplica will return the InfoReplica struct which contains info
+// related to specific replica
 func (c *ReplicaClient) GetReplica() (InfoReplica, error) {
 	var replica InfoReplica
 
@@ -57,6 +59,7 @@ func (c *ReplicaClient) GetReplica() (InfoReplica, error) {
 	return replica, err
 }
 
+// Get obj from a specific url
 func (c *ReplicaClient) Get(url string, obj interface{}) error {
 	if !strings.HasPrefix(url, "http") {
 		url = c.Address + url
@@ -71,6 +74,7 @@ func (c *ReplicaClient) Get(url string, obj interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(obj)
 }
 
+// Post to a specific path
 func (c *ReplicaClient) Post(path string, req, resp interface{}) error {
 	b, err := json.Marshal(req)
 	if err != nil {
@@ -102,6 +106,7 @@ func (c *ReplicaClient) Post(path string, req, resp interface{}) error {
 	return json.NewDecoder(httpResp.Body).Decode(resp)
 }
 
+// MarkDiskAsRemoved is the helper function to mark the disks as removed
 func (c *ReplicaClient) MarkDiskAsRemoved(disk string) error {
 
 	_, err := c.GetReplica()
@@ -116,7 +121,7 @@ func (c *ReplicaClient) MarkDiskAsRemoved(disk string) error {
 	}, nil)
 }
 
-// GetStatus is the helper function for mayactl.It is used to get the response of
+// GetVolumeStats is the helper function for mayactl.It is used to get the response of
 // the replica created in json format and then the response is then decoded to
 // the desired structure.
 func (c *ReplicaClient) GetVolumeStats(address string, obj interface{}) (int, error) {

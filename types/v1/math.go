@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// // This is extracted from k8s.io/apimachinery/pkg/api/resource/math.go
+// Package v1 is extracted from k8s.io/apimachinery/pkg/api/resource/math.go
 package v1
 
 import (
@@ -47,7 +47,7 @@ var (
 	// Largest (in magnitude) number allowed.
 	maxAllowed = infDecAmount{inf.NewDec((1<<63)-1, 0)} // == max int64
 
-	// The maximum value we can represent milli-units for.
+	// MaxMilliValue represents the maximum value we can represent milli-units for.
 	// Compare with the return value of Quantity.Value() to
 	// see if it's safe to use Quantity.MilliValue().
 	MaxMilliValue = int64(((1 << 63) - 1) / 1000)

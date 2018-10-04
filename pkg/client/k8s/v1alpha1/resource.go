@@ -16,15 +16,17 @@ limitations under the License.
 
 // TODO
 // Move this file to pkg/k8sresource/v1alpha1
+
 package v1alpha1
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"strings"
 )
 
 // ResourceCreator abstracts creating an unstructured instance in kubernetes
@@ -56,6 +58,7 @@ type resource struct {
 	namespace string                      // namespace where this resource is to be operated at
 }
 
+// Resource returns a new resource instance
 func Resource(gvr schema.GroupVersionResource, namespace string) *resource {
 	return &resource{gvr: gvr, namespace: namespace}
 }

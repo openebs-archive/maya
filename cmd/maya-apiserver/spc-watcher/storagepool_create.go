@@ -37,10 +37,8 @@ const (
 
 // CreateStoragePool is a function that does following:
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
-
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
-
 func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) error {
 
 	if reSync {
@@ -72,7 +70,7 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCo
 		oecs: newOecsClient,
 	}
 	// Get a CasPool object
-	err, pool := newClientSet.newCasPool(spcGot, reSync, pendingPoolCount)
+	pool, err := newClientSet.newCasPool(spcGot, reSync, pendingPoolCount)
 	if err != nil {
 		return err
 	}
@@ -108,20 +106,20 @@ func poolCreateWorker(pool *apis.CasPool) error {
 }
 
 // newCasPool will return a CasPool object
-func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (error, *apis.CasPool) {
+func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (*apis.CasPool, error) {
 	// Validations for poolType
 	poolType := spcGot.Spec.PoolSpec.PoolType
 	if poolType == "" {
-		return errors.New("aborting storagepool create operation as no poolType is specified"), nil
+		return nil, errors.New("aborting storagepool create operation as no poolType is specified")
 	}
 
 	if !(poolType == string(v1alpha1.PoolTypeStripedCPV) || poolType == string(v1alpha1.PoolTypeMirroredCPV)) {
-		return fmt.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
 	}
 
 	diskType := spcGot.Spec.Type
 	if !(diskType == string(v1alpha1.TypeSparseCPV) || diskType == string(v1alpha1.TypeDiskCPV)) {
-		return fmt.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
 	// The name of cas template should be provided as annotation in storagepoolclaim yaml
 	// so that it can be used.
@@ -147,23 +145,23 @@ func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync 
 	// If no disk are specified pool will be provisioned dynamically
 	if len(diskList) == 0 {
 		// newDisksList is the list of disks over which pool will be provisioned
-		err, newDisksList := newClientSet.getCasPoolDisk(pool)
+		newDisksList, err := newClientSet.getCasPoolDisk(pool)
 		if err != nil {
-			return err, nil
+			return nil, err
 		}
 		// Fill the object with the new disks list
 		pool.DiskList = newDisksList
 	}
-	return nil, pool
+	return pool, nil
 }
 
 // getCasPoolDisk is a wrapper that will call getDiskList function to get the disk lists
 // that will be used to provision a storagepool dynamically
 
-func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) (error, []string) {
+func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) ([]string, error) {
 	// Performing valdations against CasPool fields
 	if cp.MaxPools <= 0 {
-		return fmt.Errorf("aborting storagepool create operation as no maxPool field is specified"), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as no maxPool field is specified")
 	}
 	// if no minimum pools were specified it will default to 1.
 	if cp.MinPools <= 0 {
@@ -171,7 +169,7 @@ func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) (error, []string
 		cp.MinPools = 1
 	}
 	if cp.MaxPools < cp.MinPools {
-		return fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool"), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool")
 	}
 	// If it is a resync event, MaxPool is the pending pool to be provisioned
 	if cp.ReSync {
@@ -186,11 +184,11 @@ func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) (error, []string
 	newDisksList, err := newClientSet.nodeDiskAlloter(cp)
 
 	if err != nil {
-		return fmt.Errorf("aborting storagepool create operation as no node qualified: %v", err), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as no node qualified: %v", err)
 	}
 
 	if len(newDisksList) == 0 {
-		return fmt.Errorf("aborting storagepool create operation as no disk was found"), nil
+		return nil, fmt.Errorf("aborting storagepool create operation as no disk was found")
 	}
-	return nil, newDisksList
+	return newDisksList, nil
 }

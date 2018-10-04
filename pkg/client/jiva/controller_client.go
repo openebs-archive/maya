@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -43,10 +42,14 @@ func NewControllerClient(address string) (*ControllerClient, error) {
 	}, nil
 }
 
+// Post sends a POST request to the specified path and stores body in the value
+// pointed to by resp.
 func (c *ControllerClient) Post(path string, req, resp interface{}) error {
 	return c.Do("POST", path, req, resp)
 }
 
+// Do sends a request to the specified path and it stores JSON-decoded body
+// from the response into the value pointed to by resp.
 func (c *ControllerClient) Do(method, path string, req, resp interface{}) error {
 	b, err := json.Marshal(req)
 	if err != nil {
@@ -83,6 +86,7 @@ func (c *ControllerClient) Do(method, path string, req, resp interface{}) error 
 	return json.NewDecoder(httpResp.Body).Decode(resp)
 }
 
+// GetVolume returns Volumes from the specified path.
 func GetVolume(path string) (*Volumes, error) {
 	var volume VolumeCollection
 	var c ControllerClient
@@ -98,6 +102,9 @@ func GetVolume(path string) (*Volumes, error) {
 
 	return &volume.Data[0], nil
 }
+
+// Get sends a request to the specified path and stores body in the value
+// pointed to by obj.
 func (c *ControllerClient) Get(path string, obj interface{}) error {
 	resp, err := http.Get(path)
 

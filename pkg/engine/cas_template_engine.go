@@ -276,22 +276,22 @@ func (c *CASEngine) Run() (output []byte, err error) {
 	return c.taskGroupRunner.Run(c.templateValues)
 }
 
-// create creates a CAS entity
+// Create a CAS entity
 func (c *CASEngine) Create() (output []byte, err error) {
 	return c.Run()
 }
 
-// read gets the details of a CAS entity
+// Read the details of a CAS entity
 func (c *CASEngine) Read() (output []byte, err error) {
 	return c.Run()
 }
 
-// delete deletes a CAS entity
+// Delete a CAS entity
 func (c *CASEngine) Delete() (output []byte, err error) {
 	return c.Run()
 }
 
-// list gets the details of one or more CAS entities
+// List the details of one or more CAS entities
 func (c *CASEngine) List() (output []byte, err error) {
 	return c.Run()
 }

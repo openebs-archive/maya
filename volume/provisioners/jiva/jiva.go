@@ -1,4 +1,4 @@
-// This file registers jiva as maya api server's persistent volume provisioner plugin.
+// Package jiva registers jiva as the maya api server's persistent volume provisioner plugin.
 package jiva
 
 import (

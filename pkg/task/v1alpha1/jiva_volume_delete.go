@@ -75,7 +75,7 @@ func (j *jivaVolumeDelete) fetchDeleteVolumeLink(b []byte) (url string) {
 	// execute json query
 	ul := jpath.Query(jp.SelectionList{jp.Selection("dellink", p)})
 
-	// collect the messages occured during jsonpath querying
+	// collect the messages occurred during jsonpath querying
 	j.cmd.Msgs.Merge(jpath.Msgs)
 	return ul.ValueByName("dellink")
 }

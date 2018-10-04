@@ -3,13 +3,13 @@
 ## Prerequisites
 
 * You have Go 1.9 installed on your local host/development machine.
-* You have Docker installed on your local host/development machine. Docker is required for building maya component container images and to push them into a Kubernetes cluster for testing. 
+* You have Docker installed on your local host/development machine. Docker is required for building maya component container images and to push them into a Kubernetes cluster for testing.
 
 ## Initial Setup
 
 ### Fork in the cloud
 
-1. Visit https://github.com/openebs/maya
+1. Visit https://github.com/openebs/maya.
 2. Click `Fork` button (top right) to establish a cloud-based fork.
 
 ### Clone fork to local host
@@ -22,7 +22,7 @@ Create your clone:
 mkdir -p $GOPATH/src/github.com/openebs
 cd $GOPATH/src/github.com/openebs
 
-# Note: Here user= your github profile name
+# Note: Here $user is your GitHub profile name
 git clone https://github.com/$user/maya.git
 
 # Configure remote upstream
@@ -32,14 +32,14 @@ git remote add upstream https://github.com/openebs/maya.git
 # Never push to upstream master
 git remote set-url --push upstream no_push
 
-# Confirm that your remotes make sense:
+# Confirm that your remotes make sense
 git remote -v
 ```
 
-
 ## Development
 
-### Always sync your local repository:
+### Always sync your local repository
+
 Open a terminal on your local host. Change directory to the maya-fork root.
 
 ```sh
@@ -70,6 +70,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
  ```sh
  $ git remote add upstream https://github.com/openebs/maya.git
  ```
+
  Fetch all the changes from the upstream master branch.
 
  ```sh
@@ -90,6 +91,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
  First, rewinding head to replay your work on top of it...
  Fast-forwarded master to upstream/master.
  ```
+
  This command applies all the commits from the upstream master to your local master.
 
  Check the status of your local branch.
@@ -101,6 +103,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
  (use "git push" to publish your local commits)
  nothing to commit, working directory clean
  ```
+
  Your local repository now has all the changes from the upstream remote. You need to push the changes to your own remote fork which is origin master.
 
  Push the rebased master to origin master.
@@ -117,7 +120,8 @@ $ cd $GOPATH/src/github.com/openebs/maya
  8e107a9..5035fa1  master -> master
  ```
 
-### Create a new feature branch to work on your issue.
+### Create a new feature branch to work on your issue
+
  Your branch name should have the format XX-descriptive where XX is the issue number you are working on followed by some descriptive text. For example:
 
  ```sh
@@ -125,20 +129,20 @@ $ cd $GOPATH/src/github.com/openebs/maya
  Switched to a new branch '1234-fix-developer-docs'
  ```
 
-### Make your changes and build them 
+### Make your changes and build them
 
  ```sh
  cd $GOPATH/src/github.com/openebs/maya
  make dev
  ```
 
- Check your linting
+Check your linting.
 
  ```sh
  make golint
  ```
 
- To build binaries for other distributions:
+To build binaries for other distributions run the following command.
 
  ```sh
  make bin
@@ -155,7 +159,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
 
 ### Keep your branch in sync
 
-[Rebasing](https://git-scm.com/docs/git-rebase) is very import to keep your branch in sync with the changes being made by others and to avoid huge merge conflicts while raising your Pull Requests. You will always have to rebase before raising the PR. 
+[Rebasing](https://git-scm.com/docs/git-rebase) is very important to keep your branch in sync with the changes being made by others and to avoid huge merge conflicts while raising your Pull Requests. You will always have to rebase before raising the PR.
 
 ```sh
 # While on your myfeature branch (see above)
@@ -163,7 +167,7 @@ git fetch upstream
 git rebase upstream/master
 ```
 
-While you rebase your changes, you must resolve any conflicts that might arise and build and test your changes using the above steps. 
+While you rebase your changes, you must resolve any conflicts that might arise and build and test your changes using the above steps.
 
 ## Submission
 
@@ -171,10 +175,7 @@ While you rebase your changes, you must resolve any conflicts that might arise a
 
 Before you raise the Pull Requests, ensure you have reviewed the checklist in the [CONTRIBUTING GUIDE](../CONTRIBUTING.md):
 - Ensure that you have re-based your changes with the upstream using the steps above.
-- Ensure that you have added the required unit tests for the bug fixes or new feature that you have introduced. 
+- Ensure that you have added the required unit tests for the bug fixes or new feature that you have introduced.
 - Ensure your commits history is clean with proper header and descriptions.
 
 Go to the [openebs/maya github](https://github.com/openebs/maya) and follow the Open Pull Request link to raise your PR from your development branch.
-
-
-

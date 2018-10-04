@@ -4,7 +4,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewCmdBlockDevice and its nested children are created
+// NewCmdIscsi creates NewCmdBlockDevice and its nested children
 func NewCmdIscsi() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "iscsi",
