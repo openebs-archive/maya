@@ -30,13 +30,13 @@ func Reader(r io.Reader, cmd string) []string {
 		buf := make([]byte, 1024)
 		n, err := r.Read(buf[:])
 		if n > 0 {
-			glog.Infof("Client got:", string(buf[0:n]))
+			glog.Infof("Client got: %s", string(buf[0:n]))
 			fulllines = append(fulllines, buf[0:n]...)
 			if strings.HasSuffix(string(fulllines), EndOfLine) {
 				lines := strings.Split(string(fulllines), EndOfLine)
 				for _, line := range lines {
 					if len(line) != 0 {
-						glog.Infof("Appending line to resp : ", line)
+						glog.Infof("Appending line to resp: %s", line)
 						resp = append(resp, line+EndOfLine)
 					}
 				}
@@ -44,7 +44,7 @@ func Reader(r io.Reader, cmd string) []string {
 				fulllines = nil
 			}
 			if IsResponseEOD(resp, cmd) {
-				glog.Infof("Breaking out of loop for line :", resp[len(resp)-1])
+				glog.Infof("Breaking out of loop for line: %s", resp[len(resp)-1])
 				break
 			}
 		}
@@ -62,9 +62,9 @@ func Reader(r io.Reader, cmd string) []string {
 func Writer(w io.Writer, msg string) error {
 	_, err := w.Write([]byte(msg))
 	if err != nil {
-		glog.Fatal("Write error: ", err)
+		glog.Fatalf("Write error: %s", err)
 	} else {
-		glog.Infof("Client sent:", msg)
+		glog.Infof("Client sent: %s", msg)
 	}
 	return err
 }

@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -106,6 +107,7 @@ func (r *Rest) Do() (res interface{}, err error) {
 	return
 }
 
+// API performs a REST API call to a given named action
 func API(verb HttpVerb, baseurl, name string) (b []byte, err error) {
 	if len(name) == 0 {
 		err = fmt.Errorf("empty resource name: failed to invoke REST API %s %s", verb, baseurl)
@@ -120,6 +122,7 @@ func API(verb HttpVerb, baseurl, name string) (b []byte, err error) {
 	return doRaw(verb, req)
 }
 
+// URL performs a REST API call to a given url
 func URL(verb HttpVerb, url string) (b []byte, err error) {
 	if len(url) == 0 {
 		err = fmt.Errorf("empty URL: failed to invoke REST API %s", verb)

@@ -18,10 +18,11 @@ package volumereplica
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"strings"
 )
 
 // VolumeReplicaOperator is the name of the tool that makes
