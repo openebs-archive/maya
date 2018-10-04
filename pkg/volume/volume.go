@@ -203,7 +203,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	return vol, nil
 }
 
-// Delete removes a CASVolume 
+// Delete removes a CASVolume
 func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
