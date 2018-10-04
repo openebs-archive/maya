@@ -11,7 +11,8 @@ import (
 
 // SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
 func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.snapshotV1alpha1SpecificRequest(resp, req)
+	return s.snapshotRequest(resp, req)
+
 	// Extract info from path after trimming
 	/* path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
 

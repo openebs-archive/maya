@@ -22,9 +22,9 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	"github.com/openebs/maya/cmd/cstor-volume-grpc/api"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
-	"github.com/openebs/maya/pkg/grpc/api"
 	"github.com/openebs/maya/pkg/util"
 	"google.golang.org/grpc"
 )

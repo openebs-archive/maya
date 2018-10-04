@@ -19,7 +19,10 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/grpc"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cstor "github.com/openebs/maya/pkg/snapshot/cstor/v1alpha1"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cstorSnapshotDelete represents a cstor snapshot delete runtask command
@@ -41,14 +44,25 @@ func (c *cstorSnapshotDelete) Run() (r RunCommandResult) {
 	}
 
 	if len(volName) == 0 {
-		return c.cmd.AddError(fmt.Errorf("missing volume name: failed to delete cstor snapshot")).Result(nil)
+		return c.cmd.AddError(errors.Errorf("missing volume name: failed to delete cstor snapshot")).Result(nil)
 	}
 
 	if len(snapName) == 0 {
-		return c.cmd.AddError(fmt.Errorf("missing snapshot name: failed to delete cstor snapshot")).Result(nil)
+		return c.cmd.AddError(errors.Errorf("missing snapshot name: failed to delete cstor snapshot")).Result(nil)
 	}
 
-	response, err := grpc.DestroySnapshot(volName, snapName, ip)
+	// get snapshot operation struct
+	snapOps := cstor.Cstor()
+	// use the struct to call the Create method
+	response, err := snapOps.Delete(ip, &apis.CASSnapshot{
+		Spec: apis.SnapshotSpec{
+			VolumeName: volName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: snapName,
+		},
+	})
+
 	if err != nil {
 		return c.cmd.AddError(err).Result(nil)
 	}

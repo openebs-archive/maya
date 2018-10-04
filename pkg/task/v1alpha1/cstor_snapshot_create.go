@@ -19,8 +19,10 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/grpc"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cstor "github.com/openebs/maya/pkg/snapshot/cstor/v1alpha1"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cstorSnapshotCreate represents a cstor snapshot create runtask command
@@ -49,7 +51,18 @@ func (c *cstorSnapshotCreate) Run() (r RunCommandResult) {
 		return c.cmd.AddError(errors.Errorf("missing snapshot name: failed to create cstor snapshot")).Result(nil)
 	}
 
-	response, err := grpc.CreateSnapshot(volName, snapName, ip)
+	// get snapshot operation struct
+	snapOps := cstor.Cstor()
+	// use the struct to call the Create method
+	response, err := snapOps.Create(ip, &apis.CASSnapshot{
+		Spec: apis.SnapshotSpec{
+			VolumeName: volName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: snapName,
+		},
+	})
+
 	if err != nil {
 		return c.cmd.AddError(err).Result(nil)
 	}

@@ -17,19 +17,136 @@ limitations under the License.
 package command
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
-	grpc_util "github.com/openebs/maya/pkg/grpc"
+	"github.com/openebs/maya/cmd/cstor-volume-grpc/api"
+	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 var (
 	cmdName = "cstor-volume-grpc"
 	usage   = fmt.Sprintf("%s", cmdName)
 )
+
+// CmdSnaphotOptions holds the options for snapshot
+// create command
+type CmdSnaphotOptions struct {
+	volName  string
+	snapName string
+}
+
+// Validate validates the flag values
+func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
+	if c.volName == "" {
+		return errors.New("--volname is missing. Please specify a unique name")
+	}
+	if c.snapName == "" {
+		return errors.New("--snapname is missing. Please specify a unique name")
+	}
+
+	return nil
+}
+
+//CreateSnapshot creates snapshots
+func CreateSnapshot(volName, snapName string) (*v1alpha1.VolumeSnapCreateResponse, error) {
+	var conn *grpc.ClientConn
+	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
+	if err != nil {
+		glog.Fatalf("Unable to dial gRPC server on port %d error : %s", api.VolumeGrpcListenPort, err)
+	}
+	defer conn.Close()
+
+	c := v1alpha1.NewRunSnapCommandClient(conn)
+	response, err := c.RunVolumeSnapCreateCommand(context.Background(),
+		&v1alpha1.VolumeSnapCreateRequest{
+			Version:  api.ProtocolVersion,
+			Volume:   volName,
+			Snapname: snapName,
+		})
+
+	if err != nil {
+		glog.Fatalf("Error when calling RunVolumeSnapCreateCommand: %s", err)
+	}
+
+	if response != nil {
+		var responseStatus api.CommandStatus
+		json.Unmarshal(response.Status, &responseStatus)
+		if strings.Contains(responseStatus.Response, "ERR") {
+			return response, fmt.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
+		}
+
+	}
+	return response, err
+}
+
+//DestroySnapshot destroys snapshots
+func DestroySnapshot(volName, snapName string) (*v1alpha1.VolumeSnapDeleteResponse, error) {
+	var conn *grpc.ClientConn
+	conn, err := grpc.Dial(fmt.Sprintf(":%d", api.VolumeGrpcListenPort), grpc.WithInsecure())
+	if err != nil {
+		glog.Fatalf("did not connect: %s", err)
+	}
+	defer conn.Close()
+
+	c := v1alpha1.NewRunSnapCommandClient(conn)
+	response, err := c.RunVolumeSnapDeleteCommand(context.Background(),
+		&v1alpha1.VolumeSnapDeleteRequest{
+			Version:  api.ProtocolVersion,
+			Volume:   volName,
+			Snapname: snapName,
+		})
+
+	if err != nil {
+		glog.Fatalf("Error when calling RunVolumeSnapDeleteCommand: %s", err)
+	}
+	if response != nil {
+		var responseStatus api.CommandStatus
+		json.Unmarshal(response.Status, &responseStatus)
+		if strings.Contains(responseStatus.Response, "ERR") {
+			return response, fmt.Errorf("Snapshot deletion failed with error : %v", responseStatus.Response)
+		}
+
+	}
+	return response, err
+}
+
+// RunSnapshotCreate does tasks related to grpc snapshot create.
+func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
+	glog.Info("Executing volume snapshot create...")
+	response, err := CreateSnapshot(c.volName, c.snapName)
+	if response != nil {
+		glog.Infof("Response from server: %s", response.Status)
+		if err == nil {
+			glog.Infof("Volume Snapshot Successfully Created:%v@%v\n", c.volName, c.snapName)
+		}
+
+	}
+
+	return err
+}
+
+//RunSnapshotDestroy will initiate deletion of snapshot
+func (c *CmdSnaphotOptions) RunSnapshotDestroy(cmd *cobra.Command) error {
+	glog.Info("Executing snapshot destroy...")
+	response, err := DestroySnapshot(c.volName, c.snapName)
+	if response != nil {
+		glog.Infof("Response from server: %s", response.Status)
+		if err == nil {
+			glog.Infof("Snapshot deletion initiated:%v@%v\n", c.volName, c.snapName)
+		}
+	}
+
+	return err
+}
 
 // NewCmdOptions creates an options Cobra command to return usage.
 func NewCmdOptions() *cobra.Command {
@@ -89,7 +206,7 @@ func NewCmdSnapshot() *cobra.Command {
 
 // NewCmdSnapshotCreate creates a volume snapshot
 func NewCmdSnapshotCreate() *cobra.Command {
-	options := grpc_util.CmdSnaphotOptions{}
+	options := CmdSnaphotOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -101,11 +218,11 @@ func NewCmdSnapshotCreate() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.VolName, "volname", "n", options.VolName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 
-	cmd.Flags().StringVarP(&options.SnapName, "snapname", "s", options.SnapName,
+	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
 	cmd.MarkPersistentFlagRequired("snapname")
 
@@ -114,7 +231,7 @@ func NewCmdSnapshotCreate() *cobra.Command {
 
 // NewCmdSnapshotDestroy destroys a volume snapshot
 func NewCmdSnapshotDestroy() *cobra.Command {
-	options := grpc_util.CmdSnaphotOptions{}
+	options := CmdSnaphotOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "destroy",
@@ -126,11 +243,11 @@ func NewCmdSnapshotDestroy() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.VolName, "volname", "n", options.VolName,
+	cmd.Flags().StringVarP(&options.volName, "volname", "n", options.volName,
 		"unique volume name.")
 	cmd.MarkPersistentFlagRequired("volname")
 
-	cmd.Flags().StringVarP(&options.SnapName, "snapname", "s", options.SnapName,
+	cmd.Flags().StringVarP(&options.snapName, "snapname", "s", options.snapName,
 		"unique snapshot name")
 	cmd.MarkPersistentFlagRequired("snapname")
 

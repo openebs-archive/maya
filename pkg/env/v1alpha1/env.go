@@ -101,37 +101,37 @@ const (
 	// to delete storage pool
 	CASTemplateToDeletePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_POOL"
 
-	// // CASTemplateToListCStorSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to list cstor cas snapshots
-	// CASTemplateToListCStorSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_CSTOR_SNAPSHOT"
+	// CASTemplateToListCStorSnapshotENVK is the ENV key that specifies the CAS Template
+	// to list cstor cas snapshots
+	CASTemplateToListCStorSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_CSTOR_SNAPSHOT"
 
-	// // CASTemplateToListCStorSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to list jiva cas snapshots
-	// CASTemplateToListJivaSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_JIVA_SNAPSHOT"
+	// CASTemplateToListCStorSnapshotENVK is the ENV key that specifies the CAS Template
+	// to list jiva cas snapshots
+	CASTemplateToListJivaSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_JIVA_SNAPSHOT"
 
 	// CASTemplateToCreateJivaSnasphotENVK is the ENV key that specifies the CAS Template
 	// to create jiva cas snapshot
 	CASTemplateToCreateJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_CREATE_SNAPSHOT"
 
-	// // CASTemplateToReadJivaSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to read jiva cas snapshot
-	// CASTemplateToReadJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_READ_SNAPSHOT"
+	// CASTemplateToReadJivaSnapshotENVK is the ENV key that specifies the CAS Template
+	// to read jiva cas snapshot
+	CASTemplateToReadJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_READ_SNAPSHOT"
 
-	// // CASTemplateToDeleteJivaSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to delete jiva cas snapshot
-	// CASTemplateToDeleteJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_DELETE_SNAPSHOT"
+	// CASTemplateToDeleteJivaSnapshotENVK is the ENV key that specifies the CAS Template
+	// to delete jiva cas snapshot
+	CASTemplateToDeleteJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_DELETE_SNAPSHOT"
 
 	// CASTemplateToCreateCStorSnapshotENVK is the ENV key that specifies the CAS Template
 	// to create cstor cas snapshot
 	CASTemplateToCreateCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_CREATE_SNAPSHOT"
 
-	// // CASTemplateToReadCStorSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to read cstor cas snapshot
-	// CASTemplateToReadCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_READ_SNAPSHOT"
+	// CASTemplateToReadCStorSnapshotENVK is the ENV key that specifies the CAS Template
+	// to read cstor cas snapshot
+	CASTemplateToReadCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_READ_SNAPSHOT"
 
-	// // CASTemplateToDeleteCStorSnapshotENVK is the ENV key that specifies the CAS Template
-	// // to delete cstor cas snapshot
-	// CASTemplateToDeleteCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_DELETE_SNAPSHOT"
+	// CASTemplateToDeleteCStorSnapshotENVK is the ENV key that specifies the CAS Template
+	// to delete cstor cas snapshot
+	CASTemplateToDeleteCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_DELETE_SNAPSHOT"
 )
 
 // EnvironmentSetter abstracts setting of environment variable

@@ -20,32 +20,67 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// CASSnapshotKey is a typed string to represent CAS Snapshot related annotations'
+// or labels' keys
+//
+// Example 1 - Below is a sample StorageClass that makes use of a CASSnapshotKey
+// constant i.e. the cas template used to create a cas snapshot
+//
+// ```yaml
+// apiVersion: storage.k8s.io/v1
+// kind: StorageClass
+// metadata:
+//  name: openebs-standard
+//  annotations:
+//    cas.openebs.io/create-snapshot-template: cast-standard-0.8.0
+// provisioner: openebs.io/provisioner-iscsi
+// ```
+type CASSnapshotKey string
+
+const (
+	// CASTemplateKeyForSnapshotCreate is the key to fetch name of CASTemplate
+	// to create a CAS Snapshot
+	CASTemplateKeyForSnapshotCreate CASSnapshotKey = "cas.openebs.io/create-snapshot-template"
+
+	// CASTemplateKeyForSnapshotRead is the key to fetch name of CASTemplate
+	// to read a CAS Snapshot
+	CASTemplateKeyForSnapshotRead CASSnapshotKey = "cas.openebs.io/read-snapshot-template"
+
+	// CASTemplateKeyForSnapshotDelete is the key to fetch name of CASTemplate
+	// to delete a CAS Snapshot
+	CASTemplateKeyForSnapshotDelete CASSnapshotKey = "cas.openebs.io/delete-snapshot-template"
+
+	// CASTemplateKeyForSnapshotList is the key to fetch name of CASTemplate
+	// to list CAS Snapshots
+	CASTemplateKeyForSnapshotList CASSnapshotKey = "cas.openebs.io/list-snapshot-template"
+)
+
 // CASSnapshot represents a cas snapshot
 type CASSnapshot struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec i.e. specifications of this cas snapshot
-	Spec CASSnapshotSpec `json:"spec"`
+	Spec SnapshotSpec `json:"spec"`
 }
 
-// CASSnapshotSpec has the properties of a cas snapshot
-type CASSnapshotSpec struct {
+// SnapshotSpec has the properties of a cas snapshot
+type SnapshotSpec struct {
 	CasType    string `json:"casType"`
 	VolumeName string `json:"volumeName"`
 }
 
-// CASSnapshotListSpec has the properties of a cas snapshot list
-type CASSnapshotListSpec struct {
-	CasType    string `json:"casType"`
-	VolumeName string `json:"volumeName"`
-	Namespace  string `json:"namespace"`
+// SnapshotListOptions has the properties of a cas snapshot list
+type SnapshotListOptions struct {
+	CasType    string `json:"casType,omitempty"`
+	VolumeName string `json:"volumeName,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
 }
 
 // CASSnapshotList is a list of CASSnapshot resources
 type CASSnapshotList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Spec will contain the volume name and cas type for which snapshots is listed
-	Spec CASSnapshotListSpec
+	// Options will contain the volume name and cas type for which snapshots is listed
+	Options SnapshotListOptions
 	// Items are the list of volumes
 	Items []CASSnapshot `json:"items"`
 }

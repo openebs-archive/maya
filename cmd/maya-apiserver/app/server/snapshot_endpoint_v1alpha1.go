@@ -10,49 +10,83 @@ import (
 	"github.com/openebs/maya/pkg/snapshot"
 )
 
-type snapshotAPIOpsV1alpha1 struct {
+type snapshotAPIOps struct {
 	req  *http.Request
 	resp http.ResponseWriter
 }
 
 // SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
-func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	snapOp := &snapshotAPIOpsV1alpha1{
+func (s *HTTPServer) snapshotRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	snapOp := &snapshotAPIOps{
 		req:  req,
 		resp: resp,
 	}
-	// volName := req.URL.Query().Get("volume")
-	// snapName := strings.Split(strings.TrimPrefix(req.URL.Path, "/latest/snapshots/"), "?")[0]
+	// volName is the volume name in the query params
+	volName := req.URL.Query().Get("volume")
+	// snapName is expected to be used only in case of delete and get of a particular snapshot
+	snapName := strings.Split(strings.TrimPrefix(req.URL.Path, "/latest/snapshots/"), "?")[0]
 	switch req.Method {
 	case "POST":
 		return snapOp.create(resp, req)
-	// case "GET":
-	// 	// The volume name is expected to be present as request parameter
-	// 	// eg http://1.1.1.1:5656/latest/snapshots/?volume=myvol
-	// 	if snapName == "" {
-	// 		return snapOp.list(resp, req, volName)
-	// 	}
-	// 	return snapOp.get(resp, req, snapName, volName)
-	// case "DELETE":
-	// 	// The volume name is expected to be present as request parameter
-	// 	// eg http://1.1.1.1:5656/latest/snapshots/?volume=myvol
-	// 	//
-	// 	// TODO: Use some http framework to extract snapshot name. strings method is not a good way
-	// 	return snapOp.delete(resp, req, snapName, volName)
-	default:
-		return nil, CodedError(405, ErrInvalidMethod)
+	case "GET":
+		// The volume name is expected to be present as request parameter
+		// eg http://1.1.1.1:5656/latest/snapshots/?volume=myvol
+		if snapName == "" {
+			return snapOp.list(resp, req, volName)
+		}
+
+		return snapOp.get(resp, req, snapName, volName)
+	case "DELETE":
+		// The volume name is expected to be present as request parameter
+		// eg http://1.1.1.1:5656/latest/snapshots/?volume=myvol
+		//
+		// TODO: Use some http framework to extract snapshot name. strings method is not a good way
+		// TODO: Uncomment the below line when we start supporting deletion of snapshot
+		return snapOp.delete(resp, req, snapName, volName)
+		//return nil, errors.Errorf("snapshot deletion not supported")
 	}
+	return nil, CodedError(405, ErrInvalidMethod)
+}
+
+// list is http handler for listing all created snapshot specific to particular volume
+func (sOps *snapshotAPIOps) list(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
+	glog.Infof("Snapshot list request was received")
+
+	snaps := &v1alpha1.CASSnapshotList{}
+
+	err := decodeBody(req, snaps)
+	if err != nil {
+		return nil, err
+	}
+	// Volume name is expected
+	if len(strings.TrimSpace(snaps.Options.VolumeName)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to list snapshot: missing snapshot name "))
+	}
+
+	glog.Infof("Listing snapshots for volume %q ", snaps.Options.VolumeName)
+
+	snapOps, err := snapshot.SnapshotList(snaps)
+	if err != nil {
+		return nil, CodedError(400, err.Error())
+	}
+
+	snaps, err = snapOps.List()
+	if err != nil {
+		glog.Errorf("Failed to list snapshots: error '%s'", err.Error())
+		return nil, CodedError(500, err.Error())
+	}
+
+	glog.Infof("Snapshots listed successfully for volume '%s'", snaps.Options.VolumeName)
+	return snaps, nil
 }
 
 // Create is http handler which handles snaphsot-create request
-func (v *snapshotAPIOpsV1alpha1) create(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("cas template based snapshot create request was received")
+func (sOps *snapshotAPIOps) create(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	glog.Infof("Snapshot create request was received")
 
 	snap := &v1alpha1.CASSnapshot{}
 
-	// do initial validation with passed params
-	// create snapshotOperation object and then create the snapshot using the object
-	err := decodeBody(v.req, snap)
+	err := decodeBody(req, snap)
 	if err != nil {
 		return nil, err
 	}
@@ -67,123 +101,81 @@ func (v *snapshotAPIOpsV1alpha1) create(resp http.ResponseWriter, req *http.Requ
 		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot '%v': missing volume name", snap.Name))
 	}
 
+	glog.Infof("Creating snapshot %q for %s volume %q ", snap.Name, snap.Spec.CasType, snap.Spec.VolumeName)
+
 	snapOps, err := snapshot.Snapshot(snap)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}
 
+	glog.Infof("Creating %s volume %q snapshot", snap.Spec.CasType, snap.Spec.VolumeName)
+
 	snap, err = snapOps.Create()
 	if err != nil {
-		glog.Errorf("failed to create snapshot: error '%s'", err.Error())
+		glog.Errorf("Failed to create snapshot: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("snapshot created successfully: name '%s'", snap.Name)
+	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
 	return snap, nil
 }
 
-/*
-// list is http handler for listing all created snapshot specific to particular volume
-func (v *snapshotAPIOpsV1alpha1) list(resp http.ResponseWriter, req *http.Request, volName string) (interface{}, error) {
-	glog.Infof("cas template based snapshot list request received")
-	snapList := &v1alpha1.CASSnapshotList{}
-
-	// hdrNS := ""
-	// // get namespace from http request
-	// if v.req != nil {
-	// 	decodeBody(v.req, snapList)
-	// 	hdrNS = v.req.Header.Get(NamespaceKey)
-	// }
-
-	// snapList.Spec.Namespace = hdrNS
-	// if snapList.Spec.Namespace == "" {
-	// 	return nil, CodedError(400, fmt.Sprintf("failed to list snapshot for volume %q: missing volume namespace", snapList.Spec.VolumeName))
-	// }
-
-	glog.Infof("Processing snapshot list request for volume: %q", snapList.Spec.VolumeName)
-	// volDetails, err := v.read(snapList.Spec.VolumeName)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	snapOps, err := snapshot.NewSnapshotListOperation(snapList)
-	if err != nil {
-		glog.Errorf("Error creating SnapshotOps: %s", err)
-		return nil, err
-	}
-
-	glog.Infof("Listing snapshots for volume %q", snap.Spec.VolumeName)
-	output, err := snapOps.SnapshotList()
-	if err != nil {
-		glog.Errorf("Failed to list snapshots for volume %q: %s", snap.Spec.VolumeName, err)
-		return nil, err
-	}
-	return output, nil
-}
-
-// read is http handler for listing all created snapshot specific to particular volume
-func (v *snapshotAPIOpsV1alpha1) get(resp http.ResponseWriter, req *http.Request, snapName, volName string) (interface{}, error) {
-	glog.Infof("Received request for snapshot list")
-	snap := v1.VolumeSnapshot{}
+// read is http handler for reading a snapshot specific to particular volume
+func (sOps *snapshotAPIOps) get(resp http.ResponseWriter, req *http.Request, snapName, volName string) (interface{}, error) {
+	glog.Infof("Received request for snapshot get")
+	snap := &v1alpha1.CASSnapshot{}
+	snap.Name = snapName
 	snap.Spec.VolumeName = volName
 
-	// Name is expected to be available in snapshot specs
-	if snap.Spec.VolumeName == "" {
-		return nil, CodedError(400, fmt.Sprintf("Volume name missing in '%v'", snap.Spec.VolumeName))
+	// snapshot name is expected
+	if len(strings.TrimSpace(snap.Name)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot: missing snapshot name "))
 	}
 
-	glog.Infof("Processing snapshot list request for volume: %q", snap.Spec.VolumeName)
-	volDetails, err := v.read(snap.Spec.VolumeName)
-	if err != nil {
-		return "", err
+	// volume name is expected
+	if len(strings.TrimSpace(snap.Spec.VolumeName)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot '%v': missing volume name", snap.Name))
 	}
 
-	snapOps, err := snapshot.GetSnapshotOps(volDetails.Spec.CasType)
+	glog.Infof("Processing snapshot get request for volume: %q", snap.Spec.VolumeName)
+
+	snapOps, err := snapshot.Snapshot(snap)
 	if err != nil {
-		glog.Errorf("Error creating SnapshotOps: %s", err)
-		return nil, err
+		return nil, CodedError(400, err.Error())
 	}
 
-	glog.Infof("Listing snapshots for volume %q", snap.Spec.VolumeName)
-	output, err := snapOps.SnapshotList(snap, volDetails.Spec.TargetIP)
+	snap, err = snapOps.Read()
 	if err != nil {
-		glog.Errorf("Failed to list snapshots for volume %q: %s", snap.Spec.VolumeName, err)
-		return nil, err
+		glog.Errorf("Failed to get snapshot: error '%s'", err.Error())
+		return nil, CodedError(500, err.Error())
 	}
-	return output, nil
+
+	glog.Infof("Getting %s volume %q snapshot", snap.Spec.CasType, snap.Spec.VolumeName)
+
+	return nil, nil
 }
 
-func (v *snapshotAPIOpsV1alpha1) delete(resp http.ResponseWriter, req *http.Request, snapName, volName string) (interface{}, error) {
+func (sOps *snapshotAPIOps) delete(resp http.ResponseWriter, req *http.Request, snapName, volName string) (interface{}, error) {
 	glog.Infof("Received request for snapshot delete")
-	snap := v1.VolumeSnapshot{}
-	snap.Metadata.Name = snapName
+	snap := &v1alpha1.CASSnapshot{}
+	snap.Name = snapName
 	snap.Spec.VolumeName = volName
-	// Name is expected to be available in snapshot specs
-	if snap.Metadata.Name == "" {
-		return nil, CodedError(400, fmt.Sprintf("Snapshot name missing"))
-	}
-	if snap.Spec.VolumeName == "" {
-		return nil, CodedError(400, fmt.Sprintf("Volume name missing"))
+	// snapshot name is expected
+	if len(strings.TrimSpace(snap.Name)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot: missing snapshot name "))
 	}
 
-	glog.Infof("Processing snapshot delete request for volume: %s", snap.Spec.VolumeName)
-	volDetails, err := v.read(snap.Spec.VolumeName)
-	if err != nil {
-		return "", err
+	// volume name is expected
+	if len(strings.TrimSpace(snap.Spec.VolumeName)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot '%v': missing volume name", snap.Name))
 	}
+	snapOps, err := snapshot.Snapshot(snap)
 
-	snapOps, err := snapshot.GetSnapshotOps(volDetails.Spec.CasType)
+	glog.Infof("Deleting snapshot %q of volume %q", snap.Name, snap.Spec.VolumeName)
+	output, err := snapOps.Delete()
 	if err != nil {
-		glog.Errorf("Error creating SnapshotOps: %s", err)
-		return nil, err
-	}
-
-	glog.Infof("Deleting snapshot %q of volume %q", snap.Metadata.Name, snap.Spec.VolumeName)
-	output, err := snapOps.SnapshotDelete(snap, volDetails.Spec.TargetIP)
-	if err != nil {
-		glog.Errorf("Failed to delete snapshot %q for volume %q: %s", snap.Metadata.Name, snap.Spec.VolumeName, err)
+		glog.Errorf("Failed to delete snapshot %q for volume %q: %s", snap.Name, snap.Spec.VolumeName, err)
 		return nil, err
 	}
 	return output, nil
 }
-*/
