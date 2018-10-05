@@ -3,8 +3,8 @@
 echo "--------------------Installing openebs operator---------------------------"
 sleep 5
 
-CI_BRANCH="master"
-CI_TAG="ci"
+CI_BRANCH="v0.7.x"
+CI_TAG="v0.7.x-ci"
 
 #Images from this repo are always tagged as ci 
 #The downloaded operator file will may contain a non-ci tag name 
