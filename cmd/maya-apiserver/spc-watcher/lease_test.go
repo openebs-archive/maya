@@ -92,14 +92,14 @@ func TestGetLease(t *testing.T) {
 		podName              string
 		podNamespace         string
 		// expectedResult holds the expected result for the test case under run.
-		expectedResult string
+		expectedError bool
 	}{
 		// TestCase#1
 		"SPC#1 Lease Not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool1", false, ""),
 			podName:              "maya-apiserver1",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holder\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
+			expectedError:        false,
 		},
 
 		// TestCase#2
@@ -107,21 +107,21 @@ func TestGetLease(t *testing.T) {
 			fakestoragepoolclaim: focs.SpcCreator("pool2", true, "maya-apiserver1"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
-			expectedResult:       "",
+			expectedError:        true,
 		},
 		// TestCase#3
 		"SPC#3 Lease already acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "maya-apiserver6"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holder\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
+			expectedError:        false,
 		},
 		// TestCase#4
-		"SPC#4 Lease already acquired": {
+		"SPC#4 Lease Not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool4", true, ""),
 			podName:              "maya-apiserver3",
 			podNamespace:         "openebs",
-			expectedResult:       "{\"holder\":\"openebs/maya-apiserver3\",\"leaderTransition\":2}",
+			expectedError:        false,
 		},
 	}
 
@@ -129,14 +129,20 @@ func TestGetLease(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var newSpcLease spcLease
+			var gotError bool
 			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
 			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
 			// newSpcLease is the function under test.
-			result, _ := newSpcLease.Hold()
+			err := newSpcLease.Hold()
+			if err == nil {
+				gotError = false
+			} else {
+				gotError = true
+			}
 			//If the result does not matches expectedResult, test case fails.
-			if result != test.expectedResult {
-				t.Errorf("Test case failed: expected '%v' but got '%v' ", test.expectedResult, result)
+			if gotError != test.expectedError {
+				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
 			}
 			os.Unsetenv(string(env.OpenEBSMayaPodName))
 			os.Unsetenv(string(env.OpenEBSNamespace))

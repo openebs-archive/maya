@@ -84,9 +84,9 @@ type lease struct {
 // Leases is an interface which assists in getting and releasing lease over an spc object
 type Leases interface {
 	// Hold will try to get a lease on spc, in case of failure it will return error
-	Hold() (string, error)
+	Hold() error
 	// Update will update the lease value of the spc
-	Update(leaseValue string) (*apis.StoragePoolClaim, error)
+	Update(leaseValue string) error
 	// Release will remove the acquired lease on the spc
 	Release()
 }
@@ -103,7 +103,7 @@ type spcLease struct {
 	kubeclientset kubernetes.Interface
 }
 
-func (sl *spcLease) Hold() (string, error) {
+func (sl *spcLease) Hold() error {
 	// Get the lease value.
 	leaseValue := sl.spcObject.Annotations[sl.leaseKey]
 	var leaseValueObj lease
@@ -111,21 +111,21 @@ func (sl *spcLease) Hold() (string, error) {
 	if !(strings.TrimSpace(leaseValue) == "") {
 		leaseValueObj, err = parseLeaseValue(leaseValue)
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
 	// If leaseValue is empty acquire lease.
 	// If leaseValue is empty check whether it is expired.
 	// If leaseValue is not emtpy and not expired check wether the holder is live.
 	if strings.TrimSpace(leaseValue) == "" || isLeaseExpired(leaseValueObj) || sl.checkLeaderLiveness(leaseValueObj) {
-		spcObject, err := sl.Update(sl.getPodName())
+		err := sl.Update(sl.getPodName())
 		if err != nil {
-			return "", err
+			return err
 		}
-		return spcObject.Annotations[sl.leaseKey], nil
+		return nil
 	}
 	// If none of the above three conditions are met, lease can not be acquired.
-	return "", fmt.Errorf("lease on spc already acquired by a live pod")
+	return fmt.Errorf("lease on spc already acquired by a live pod")
 }
 
 // Update will update a lease on spc depending on type of update that is required.
@@ -134,7 +134,7 @@ func (sl *spcLease) Hold() (string, error) {
 // 2.selfReleaseUpdate
 // 3.forceUpdate
 // See the functions(below) for more details on update strategy
-func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
+func (sl *spcLease) Update(podName string) error {
 	newSpcObject := sl.spcObject
 	if newSpcObject.Annotations == nil {
 		sl.nilUpdate(podName, newSpcObject)
@@ -145,11 +145,8 @@ func (sl *spcLease) Update(podName string) (*apis.StoragePoolClaim, error) {
 	} else {
 		sl.forceUpdate(podName, newSpcObject)
 	}
-	spcObject, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Update(sl.spcObject)
-	if err != nil {
-		return nil, err
-	}
-	return spcObject, nil
+	_, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Update(sl.spcObject)
+	return err
 }
 
 // Function to release lease on a given spc.
