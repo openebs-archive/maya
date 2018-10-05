@@ -38,7 +38,7 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
-					SpcLeaseKey: "{\"holder\":\"/" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
+					SpcLeaseKey: "{\"holder\":\"" + SpcLeaseKeyValue + "\",\"leaderTransition\":1}",
 				},
 			},
 		}
@@ -91,8 +91,10 @@ func TestGetLease(t *testing.T) {
 		storagePoolClaimName string
 		podName              string
 		podNamespace         string
-		// expectedResult holds the expected result for the test case under run.
+		// expectedResult holds the expected error for the test case under run.
 		expectedError bool
+		// expectedResult holds the expected lease value the test case under run.
+		expectedResult string
 	}{
 		// TestCase#1
 		"SPC#1 Lease Not acquired": {
@@ -100,21 +102,24 @@ func TestGetLease(t *testing.T) {
 			podName:              "maya-apiserver1",
 			podNamespace:         "openebs",
 			expectedError:        false,
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
 		},
 
 		// TestCase#2
 		"SPC#2 Lease already acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool2", true, "maya-apiserver1"),
+			fakestoragepoolclaim: focs.SpcCreator("pool2", true, "openebs/maya-apiserver1"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
 			expectedError:        true,
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
 		},
 		// TestCase#3
 		"SPC#3 Lease already acquired": {
-			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "maya-apiserver6"),
+			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "openebs/maya-apiserver6"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
 			expectedError:        false,
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
 		},
 		// TestCase#4
 		"SPC#4 Lease Not acquired": {
@@ -122,17 +127,18 @@ func TestGetLease(t *testing.T) {
 			podName:              "maya-apiserver3",
 			podNamespace:         "openebs",
 			expectedError:        false,
+			expectedResult:       "{\"holder\":\"openebs/maya-apiserver3\",\"leaderTransition\":2}",
 		},
 	}
 
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var newSpcLease spcLease
+			var newSpcLease Lease
 			var gotError bool
 			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
-			newSpcLease = spcLease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
+			newSpcLease = Lease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
 			// newSpcLease is the function under test.
 			err := newSpcLease.Hold()
 			if err == nil {
@@ -143,6 +149,12 @@ func TestGetLease(t *testing.T) {
 			//If the result does not matches expectedResult, test case fails.
 			if gotError != test.expectedError {
 				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
+			}
+			// Check for lease value
+			spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			if spcGot.Annotations[SpcLeaseKey] != test.expectedResult {
+				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, spcGot.Annotations[SpcLeaseKey])
+
 			}
 			os.Unsetenv(string(env.OpenEBSMayaPodName))
 			os.Unsetenv(string(env.OpenEBSNamespace))
