@@ -19,10 +19,9 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"strings"
-
 	jp "github.com/openebs/maya/pkg/jsonpath/v1alpha1"
 	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
+	"strings"
 )
 
 const (
@@ -321,13 +320,13 @@ func Off() bool {
 
 // RunCommand represent a run command
 type RunCommand struct {
-	ID          string                 // uniquely identifies a runtask command
-	WillRun     bool                   // flags if this runtask command should get executed or not
-	Action      RunCommandAction       // represents the runtask command's action
-	Category    RunCommandCategoryList // classification of runtask command
-	Data        RunCommandDataMap      // input data required to execute runtask command
-	SelectPaths []string               // paths whose values will be retrieved after runtask command execution
-	*Msgs                              // store and retrieve info, warns, errors, etc occurred during execution
+	ID        string                 // uniquely identifies a run command
+	WillRun   bool                   // flags if this run command should get executed or not
+	Action    RunCommandAction       // represents the run command's action
+	Category  RunCommandCategoryList // classification of run command
+	Data      RunCommandDataMap      // input data required to execute run command
+	Selects   SelectPaths            // paths whose values will be retrieved after run command execution
+	*msg.Msgs                        // store and retrieve info, warns, errors, etc occured during execution
 }
 
 // SelfInfo returns this instance of RunCommand as a string format
@@ -600,6 +599,7 @@ type notSupportedActionCommand struct {
 
 func (c *notSupportedActionCommand) Run() (r RunCommandResult) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 	c.AddError(ErrorNotSupportedAction)
 	return NewRunCommandResult(nil, c.AllMsgs())
 =======
@@ -704,7 +704,7 @@ func (r *defaultCommandRunner) Run() (res RunCommandResult) {
 	} else {
 		res = r.cmd.Run()
 	}
-	r.postRun(res)
-	return
->>>>>>> Fix typo in runtask_command.go #1934
+
+	c.AddError(ErrorNotSupportedAction)
+	return NewRunCommandResult(nil, c.AllMsgs())
 }
