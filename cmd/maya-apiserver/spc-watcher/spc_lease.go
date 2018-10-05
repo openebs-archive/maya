@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package spc
 
 import (
@@ -42,7 +43,7 @@ const (
 // Patch struct represent the struct used to patch
 // the spc object
 
-// This struct will used to patch the spc object by a lease holder
+// Patch struct will used to patch the spc object by a lease holder
 // to release the lease once done.
 type Patch struct {
 	// Op defines the operation
@@ -62,6 +63,8 @@ type Patch struct {
 	Value string `json:"value"`
 }
 
+// Hold is the implenetation of method from interface Leases
+// It will try to hold a lease on spc object.
 func (sl *Lease) Hold() error {
 	// Get the lease value.
 	spcObject := sl.Object.(*apis.StoragePoolClaim)
@@ -90,18 +93,16 @@ func (sl *Lease) Hold() error {
 
 // Update will update a lease on spc depending on type of update that is required.
 // We have following type of update strategy:
-// 1.nilUpdate
-// 2.selfReleaseUpdate
-// 3.forceUpdate
+// 1.putKeyValue
+// 2.putValue
+// 3.putUpdatedValue
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) error {
 	newSpcObject := sl.Object.(*apis.StoragePoolClaim)
 	if newSpcObject.Annotations == nil {
 		sl.putKeyValue(podName, newSpcObject)
-
 	} else if newSpcObject.Annotations[sl.leaseKey] == "" {
 		sl.putValue(podName, newSpcObject)
-
 	} else {
 		sl.putUpdatedValue(podName, newSpcObject)
 	}
@@ -109,7 +110,7 @@ func (sl *Lease) Update(podName string) error {
 	return err
 }
 
-// Function to release lease on a given spc.
+// Release method is implementation of  to release lease on a given spc.
 func (sl *Lease) Release() {
 	_, err := sl.patchSpcLeaseAnnotation()
 	if err != nil {
@@ -125,7 +126,7 @@ func (sl *Lease) getPodName() string {
 	return podNameSpace + "/" + podName
 }
 
-// patchSpc will patch the annotation on spc object to release the lease
+// patchSpcLeaseAnnotation will patch the lease key annotation on spc object to release the lease
 func (sl *Lease) patchSpcLeaseAnnotation() (*apis.StoragePoolClaim, error) {
 	spcObject := sl.Object.(*apis.StoragePoolClaim)
 	spcPatch := make([]Patch, 1)
@@ -148,7 +149,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() (*apis.StoragePoolClaim, error) {
 	return obj, err
 }
 
-// checkLeaderLiveness checks whether the holder of lease is live or not
+// isLeaderLive checks whether the holder of lease is live or not
 // If the holder is not live or does not exists the function will return true.
 
 // If the holder of lease is not live or does not exists the lease can be acquired

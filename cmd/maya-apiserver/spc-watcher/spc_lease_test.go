@@ -73,7 +73,7 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 		}
 	}
 }
-func TestGetLease(t *testing.T) {
+func TestHold(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &clientSet{
 		oecs: openebsFakeClientset.NewSimpleClientset(),
@@ -139,7 +139,7 @@ func TestGetLease(t *testing.T) {
 			os.Setenv(string(env.OpenEBSMayaPodName), test.podName)
 			os.Setenv(string(env.OpenEBSNamespace), test.podNamespace)
 			newSpcLease = Lease{test.fakestoragepoolclaim, SpcLeaseKey, focs.oecs, fakeKubeClient}
-			// newSpcLease is the function under test.
+			// Hold is the function under test.
 			err := newSpcLease.Hold()
 			if err == nil {
 				gotError = false

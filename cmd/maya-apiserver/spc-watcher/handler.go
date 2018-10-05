@@ -71,9 +71,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		// It is a create event so resync should be false and pendingPoolcount is passed 0
 		// pendingPoolcount is not used when resync is false.
-
 		err := c.CreateStoragePool(spcGot, false, 0)
-
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
 			// To-Do
