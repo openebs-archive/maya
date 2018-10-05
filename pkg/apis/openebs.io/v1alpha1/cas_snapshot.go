@@ -69,18 +69,17 @@ type SnapshotSpec struct {
 	VolumeName string `json:"volumeName"`
 }
 
-// SnapshotListOptions has the properties of a cas snapshot list
-type SnapshotListOptions struct {
+// SnapshotOptions has the properties of a cas snapshot list
+type SnapshotOptions struct {
 	CasType    string `json:"casType,omitempty"`
 	VolumeName string `json:"volumeName,omitempty"`
 	Namespace  string `json:"namespace,omitempty"`
+	Name       string `json:"name,omitempty"`
 }
 
 // CASSnapshotList is a list of CASSnapshot resources
 type CASSnapshotList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Options will contain the volume name and cas type for which snapshots is listed
-	Options SnapshotListOptions
 	// Items are the list of volumes
 	Items []CASSnapshot `json:"items"`
 }

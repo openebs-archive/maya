@@ -8,6 +8,8 @@ import (
 // cstor is used to invoke Create call
 // TODO: Convert this to implement interface
 type cstor struct {
+	IP   string
+	Snap *v1alpha1.CASSnapshot
 }
 
 // Cstor return a pointer to cstor
@@ -18,8 +20,8 @@ func Cstor() *cstor {
 }
 
 // Create creates a snapshot of cstor volume
-func (c *cstor) Create(ip string, snap *v1alpha1.CASSnapshot) (*v1alpha1.CASSnapshot, error) {
-	_, err := snapshot.CreateSnapshot(ip, snap.Spec.VolumeName, snap.Name)
+func (c *cstor) Create() (*v1alpha1.CASSnapshot, error) {
+	_, err := snapshot.CreateSnapshot(c.IP, c.Snap.Spec.VolumeName, c.Snap.Name)
 	// If there is no err that means call was successful
 	if err != nil {
 		return nil, err
@@ -27,12 +29,12 @@ func (c *cstor) Create(ip string, snap *v1alpha1.CASSnapshot) (*v1alpha1.CASSnap
 	// we are returning the same struct that we received as input.
 	// This would be modified when server replies back with some property of
 	// created snapshot
-	return snap, nil
+	return c.Snap, nil
 }
 
 // Delete deletes a snapshot of cstor volume
-func (c *cstor) Delete(ip string, snap *v1alpha1.CASSnapshot) (*v1alpha1.CASSnapshot, error) {
-	_, err := snapshot.DestroySnapshot(ip, snap.Spec.VolumeName, snap.Name)
+func (c *cstor) Delete() (*v1alpha1.CASSnapshot, error) {
+	_, err := snapshot.DestroySnapshot(c.IP, c.Snap.Spec.VolumeName, c.Snap.Name)
 	// If there is no err that means call was successful
 	if err != nil {
 		return nil, err
@@ -40,5 +42,5 @@ func (c *cstor) Delete(ip string, snap *v1alpha1.CASSnapshot) (*v1alpha1.CASSnap
 	// we are returning the same struct that we received as input.
 	// This would be modified when server replies back with some property of
 	// created snapshot
-	return snap, nil
+	return c.Snap, nil
 }

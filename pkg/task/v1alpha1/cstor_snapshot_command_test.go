@@ -25,7 +25,7 @@ func TestCstorSnapshotCommand(t *testing.T) {
 		action            RunCommandAction
 		isSupportedAction bool
 	}{
-		"test 101": {DeleteCommandAction, false},
+		"test 101": {DeleteCommandAction, true},
 		"test 102": {CreateCommandAction, true},
 		"test 103": {ListCommandAction, false},
 		"test 104": {GetCommandAction, false},

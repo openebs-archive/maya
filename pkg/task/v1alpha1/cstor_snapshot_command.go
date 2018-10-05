@@ -16,6 +16,12 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // cstorSnapshotCommand represents a cstor snapshot runtask command
 //
 // NOTE:
@@ -29,9 +35,11 @@ type cstorSnapshotCommand struct {
 func (c *cstorSnapshotCommand) instance() (r CommandRunner) {
 	switch c.cmd.Action {
 	case CreateCommandAction:
-		r = &cstorSnapshotCreate{cmd: c.cmd}
+		r = &cstorSnapshotCreate{c}
+	case DeleteCommandAction:
+		r = &cstorSnapshotDelete{c}
 	default:
-		r = &notSupportedActionCommand{cmd: c.cmd}
+		r = &notSupportedActionCommand{c.cmd}
 	}
 	return
 }
@@ -39,4 +47,37 @@ func (c *cstorSnapshotCommand) instance() (r CommandRunner) {
 // Run executes various cstor volume related operations
 func (c *cstorSnapshotCommand) Run() (r RunCommandResult) {
 	return c.instance().Run()
+}
+
+// validateOptions checks if the required params are missing
+func (c *cstorSnapshotCommand) validateOptions() error {
+	ip, _ := c.cmd.Data["ip"].(string)
+	volName, _ := c.cmd.Data["volname"].(string)
+	snapName, _ := c.cmd.Data["snapname"].(string)
+	if len(ip) == 0 {
+		return errors.Errorf("missing ip address")
+	}
+
+	if len(volName) == 0 {
+		return errors.Errorf("missing volume name")
+	}
+
+	if len(snapName) == 0 {
+		return errors.Errorf("missing snapshot name")
+	}
+	return nil
+}
+
+// getSnapshotObj returns a filled object of CASSnapshot
+func (c *cstorSnapshotCommand) getSnapshotObj() *apis.CASSnapshot {
+	volName, _ := c.cmd.Data["volname"].(string)
+	snapName, _ := c.cmd.Data["snapname"].(string)
+	return &apis.CASSnapshot{
+		Spec: apis.SnapshotSpec{
+			VolumeName: volName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: snapName,
+		},
+	}
 }

@@ -75,7 +75,9 @@ spec:
     id: createcstorsnap
     kind: Command
   post: |
-    {{- create cstor snapshot | withoption "ip" .TaskResult.readlistsvc.clusterIP | withoption "volname" .Snapshot.volumeName | withoption "snapname" .Snapshot.owner | run | saveas "createcstorsnap" .TaskResult -}}
+    {{- $runCommand := create cstor snapshot | withoption "ip" .TaskResult.readlistsvc.clusterIP -}}
+    {{- $runCommand := $runCommand | withoption "volname" .Snapshot.volumeName -}}
+    {{- $runCommand | withoption "snapname" .Snapshot.owner | run | saveas "createcstorsnap" .TaskResult -}}
     {{- $err := .TaskResult.createcstorsnap.error | default "" | toString -}}
     {{- $err | empty | not | verifyErr $err | saveIf "createcstorsnap.verifyErr" .TaskResult | noop -}}
 ---

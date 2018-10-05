@@ -30,71 +30,37 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// snapshotOptions contains the options with respect to
+// options contains the options with respect to
 // snapshot related operations
-type snapshotOptions struct {
+type options struct {
 	// k8sClient will make K8s API calls
-	k8sClient *m_k8s_client.K8sClient
+	k8sClient   *m_k8s_client.K8sClient
+	snapOptions *v1alpha1.SnapshotOptions
 }
 
 // snapshot exposes methods with respect to snapshot related operations
 // e.g. read, create, delete.
 type snapshot struct {
-	// snapshotOptions has the options to various snapshot related
+	// options has the options to various snapshot related
 	// operations
-	snapshotOptions
-	// snapshot to create or read or delete
-	casSnapshot *v1alpha1.CASSnapshot
-}
-
-// snapshotList exposes methods to execute snapshot list operation
-type snapshotList struct {
-	// snapshotOptions has the options to various snapshot related
-	// operations
-	snapshotOptions
-	// snapshots to list operation
-	casSnapshots *v1alpha1.CASSnapshotList
+	options
 }
 
 // Snapshot returns a new instance of snapshot
-func Snapshot(casSnapshot *v1alpha1.CASSnapshot) (*snapshot, error) {
-	if casSnapshot == nil {
-		return nil, errors.Errorf("failed to instantiate snapshot operation: nil snapshot was provided")
-	}
-
-	if len(casSnapshot.Namespace) == 0 {
+func Snapshot(opts *v1alpha1.SnapshotOptions) (*snapshot, error) {
+	if len(opts.Namespace) == 0 {
 		return nil, errors.Errorf("failed to instantiate snapshot operation: missing run namespace")
 	}
 
-	kc, err := m_k8s_client.NewK8sClient(casSnapshot.Namespace)
+	kc, err := m_k8s_client.NewK8sClient(opts.Namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	return &snapshot{
-		casSnapshot: casSnapshot,
-		snapshotOptions: snapshotOptions{
-			k8sClient: kc,
-		},
-	}, nil
-}
-
-// SnapshotList returns a new instance of snapshotList that is
-// capable of listing snapshots
-func SnapshotList(snapshots *v1alpha1.CASSnapshotList) (*snapshotList, error) {
-	if snapshots == nil {
-		return nil, errors.Errorf("failed to instantiate 'snapshot list operation': nil list options provided")
-	}
-
-	kc, err := m_k8s_client.NewK8sClient("")
-	if err != nil {
-		return nil, err
-	}
-
-	return &snapshotList{
-		casSnapshots: snapshots,
-		snapshotOptions: snapshotOptions{
-			k8sClient: kc,
+		options: options{
+			k8sClient:   kc,
+			snapOptions: opts,
 		},
 	}, nil
 }
@@ -106,14 +72,14 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// fetch the pv specifications
-	pv, err := s.k8sClient.GetPV(s.casSnapshot.Spec.VolumeName, mach_apis_meta_v1.GetOptions{})
+	pv, err := s.k8sClient.GetPV(s.snapOptions.VolumeName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to create snapshot %s: missing storage class in PV %s", s.casSnapshot.Name, s.casSnapshot.Spec.VolumeName)
+		return nil, errors.Errorf("unable to create snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
 
 	// fetch the storage class specifications
@@ -124,7 +90,7 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 
 	castName := getCreateCASTemplate(sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.casSnapshot.Name)
+		return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.snapOptions.Name)
 	}
 
 	// fetch read cas template specifications
@@ -134,9 +100,9 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	snapshotLables := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):        s.casSnapshot.Name,
-		string(v1alpha1.VolumeSTP):       s.casSnapshot.Spec.VolumeName,
-		string(v1alpha1.RunNamespaceVTP): s.casSnapshot.Namespace,
+		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
+		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
+		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 	}
 
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
@@ -172,14 +138,14 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// fetch the pv specifications
-	pv, err := s.k8sClient.GetPV(s.casSnapshot.Spec.VolumeName, mach_apis_meta_v1.GetOptions{})
+	pv, err := s.k8sClient.GetPV(s.snapOptions.VolumeName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to read snapshot %s: missing storage class in PV %s", s.casSnapshot.Name, s.casSnapshot.Spec.VolumeName)
+		return nil, errors.Errorf("unable to read snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
 
 	// fetch the storage class specifications
@@ -190,7 +156,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 
 	castName := getReadCASTemplate(sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.casSnapshot.Name)
+		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.snapOptions.Name)
 	}
 
 	// fetch read cas template specifications
@@ -200,12 +166,12 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	snapshotLables := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):        s.casSnapshot.Name,
-		string(v1alpha1.RunNamespaceVTP): s.casSnapshot.Namespace,
-		string(v1alpha1.VolumeSTP):       s.casSnapshot.Spec.VolumeName,
+		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
+		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
+		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
-	// delete cas volume via cas template engine
+	// read cas volume via cas template engine
 	engine, err := engine.NewCASEngine(
 		cast,
 		string(v1alpha1.SnapshotTLP),
@@ -236,14 +202,14 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// fetch the pv specifications
-	pv, err := s.k8sClient.GetPV(s.casSnapshot.Spec.VolumeName, mach_apis_meta_v1.GetOptions{})
+	pv, err := s.k8sClient.GetPV(s.snapOptions.VolumeName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to delete snapshot %s: missing storage class in PV %s", s.casSnapshot.Name, s.casSnapshot.Spec.VolumeName)
+		return nil, errors.Errorf("unable to delete snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
 
 	// fetch the storage class specifications
@@ -254,7 +220,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 
 	castName := getReadCASTemplate(sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.casSnapshot.Name)
+		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
 	}
 
 	// fetch read cas template specifications
@@ -264,9 +230,9 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	snapshotLables := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):        s.casSnapshot.Name,
-		string(v1alpha1.RunNamespaceVTP): s.casSnapshot.Namespace,
-		string(v1alpha1.VolumeSTP):       s.casSnapshot.Spec.VolumeName,
+		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
+		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
+		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
 	// delete cas volume via cas template engine
@@ -293,23 +259,23 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 	return snap, nil
 }
 
-func (sl *snapshotList) List() (*v1alpha1.CASSnapshotList, error) {
-	if sl.k8sClient == nil {
+func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
+	if s.k8sClient == nil {
 		return nil, errors.Errorf("unable to list snapshot: nil k8s client")
 	}
 	// fetch the pv specifications
-	pv, err := sl.k8sClient.GetPV(sl.casSnapshots.Options.VolumeName, mach_apis_meta_v1.GetOptions{})
+	pv, err := s.k8sClient.GetPV(s.snapOptions.VolumeName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to list snapshot: missing storage class in PV %s", sl.casSnapshots.Options.VolumeName)
+		return nil, errors.Errorf("unable to list snapshot: missing storage class in PV %s", s.snapOptions.VolumeName)
 	}
 
 	// fetch the storage class specifications
-	sc, err := sl.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+	sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -320,14 +286,14 @@ func (sl *snapshotList) List() (*v1alpha1.CASSnapshotList, error) {
 	}
 
 	// fetch read cas template specifications
-	cast, err := sl.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	snapshotLables := map[string]interface{}{
-		string(v1alpha1.RunNamespaceVTP): sl.casSnapshots.Options.Namespace,
-		string(v1alpha1.VolumeSTP):       sl.casSnapshots.Options.VolumeName,
+		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
+		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
 	// list cas volume via cas template engine

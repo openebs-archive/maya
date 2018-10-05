@@ -17,12 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cstor "github.com/openebs/maya/pkg/snapshot/cstor/v1alpha1"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // cstorSnapshotCreate represents a cstor snapshot create runtask command
@@ -30,39 +26,24 @@ import (
 // NOTE:
 //  This is an implementation of CommandRunner
 type cstorSnapshotCreate struct {
-	cmd *RunCommand
+	*cstorSnapshotCommand
 }
 
 // Run creates cstor snapshot contents
 func (c *cstorSnapshotCreate) Run() (r RunCommandResult) {
-	// api call to list snapshots and snapshot actions per controller
+	err := c.validateOptions()
+	if err != nil {
+		c.cmd.AddError(errors.Errorf("failed to create cstor snapshot: %s", err)).Result(nil)
+	}
 	ip, _ := c.cmd.Data["ip"].(string)
-	volName, _ := c.cmd.Data["volname"].(string)
-	snapName, _ := c.cmd.Data["snapname"].(string)
-	if len(ip) == 0 {
-		return c.cmd.AddError(fmt.Errorf("missing ip address: failed to create cstor snapshot")).Result(nil)
-	}
-
-	if len(volName) == 0 {
-		return c.cmd.AddError(errors.Errorf("missing volume name: failed to create cstor snapshot")).Result(nil)
-	}
-
-	if len(snapName) == 0 {
-		return c.cmd.AddError(errors.Errorf("missing snapshot name: failed to create cstor snapshot")).Result(nil)
-	}
 
 	// get snapshot operation struct
 	snapOps := cstor.Cstor()
-	// use the struct to call the Create method
-	response, err := snapOps.Create(ip, &apis.CASSnapshot{
-		Spec: apis.SnapshotSpec{
-			VolumeName: volName,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: snapName,
-		},
-	})
+	snapOps.IP = ip
+	snapOps.Snap = c.getSnapshotObj()
 
+	// use the struct to call the Create method
+	response, err := snapOps.Create()
 	if err != nil {
 		return c.cmd.AddError(err).Result(nil)
 	}

@@ -98,9 +98,6 @@ func (l RunCommandCategoryList) IsCstorVolume() (no bool) {
 // IsCstorSnapshot returns true if this list has both cstor and snapshot as its
 // category items
 func (l RunCommandCategoryList) IsCstorSnapshot() (no bool) {
-	if len(l) == 0 {
-		return
-	}
 	if l.Contains(CstorCommandCategory) && l.Contains(SnapshotCommandCategory) {
 		return !no
 	}
