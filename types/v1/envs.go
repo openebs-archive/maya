@@ -16,6 +16,7 @@ limitations under the License.
 
 // TODO
 // Deprecate this file & use instead pkg/util/env.go
+
 package v1
 
 import (
@@ -112,61 +113,85 @@ func OrchProviderENV() OrchProvider {
 	return OrchProvider(val)
 }
 
+// K8sStorageClassENV will  fetch the value of storage class
+// from ENV variable if present
 func K8sStorageClassENV() string {
 	val := GetEnv(K8sStorageClassENVK)
 	return val
 }
 
+// NamespaceENV will fetch the value of the namespace
+// from ENV variable if present
 func NamespaceENV() string {
 	val := GetEnv(NamespaceENVK)
 	return val
 }
 
+// K8sOutClusterENV will fetch the value of K8s cluster information
+// from ENV variable if present
 func K8sOutClusterENV() string {
 	val := GetEnv(K8sOutClusterENVK)
 	return val
 }
 
+// CapacityENV will fetch the value key to fetch volume's capacity value
+// from ENV variable if present
 func CapacityENV() string {
 	val := GetEnv(CapacityENVK)
 	return val
 }
 
+// JivaReplicasENV will fetch the value key to fetch jiva replica count
+// from ENV variable if present
 func JivaReplicasENV() *int32 {
 	val := util.StrToInt32(GetEnv(JivaReplicasENVK))
 	return val
 }
 
+// JivaReplicaImageENV will fetch the value key to fetch jiva replica image
+// from ENV variable if present
 func JivaReplicaImageENV() string {
 	val := GetEnv(JivaReplicaImageENVK)
 	return val
 }
 
+// JivaControllersENV will fetch the value key to fetch jiva controller count
+// from ENV variable if present
 func JivaControllersENV() *int32 {
 	val := util.StrToInt32(GetEnv(JivaControllersENVK))
 	return val
 }
 
+// JivaControllerImageENV will fetch the value key to fetch jiva controller image
+// from ENV variable if present
 func JivaControllerImageENV() string {
 	val := GetEnv(JivaControllerImageENVK)
 	return val
 }
 
+// StoragePoolENV will fetch the value key to fetch storage pool
+// from ENV variable if present
 func StoragePoolENV() string {
 	val := GetEnv(StoragePoolENVK)
 	return val
 }
 
+// HostPathENV will fetch the value key to fetch host path
+// from ENV variable if present
 func HostPathENV() string {
 	val := GetEnv(HostPathENVK)
 	return val
 }
 
+// MonitorENV will fetch the value key to fetch the volume monitoring details
+// from ENV variable if present
 func MonitorENV() string {
 	val := GetEnv(MonitorENVK)
 	return val
 }
 
+// KubeConfigENV will fetch the value key to fetch the kubeconfig
+// from ENV variable if present
 func KubeConfigENV() string {
 	val := GetEnv(KubeConfigENVK)
 	if val == "" {
@@ -175,6 +200,8 @@ func KubeConfigENV() string {
 	return val
 }
 
+// K8sMasterENV will fetch the value key to fetch the K8s Master's Address
+// from ENV variable if present
 func K8sMasterENV() string {
 	val := GetEnv(K8sMasterENVK)
 	return val

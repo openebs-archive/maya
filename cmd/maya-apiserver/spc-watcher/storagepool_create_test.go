@@ -178,7 +178,7 @@ func TestNewCasPool(t *testing.T) {
 
 				focs.FakeDiskCreator()
 			}
-			err, CasPool := focs.newCasPool(test.fakestoragepoolclaim, test.reSync, test.pendingPoolCount)
+			CasPool, err := focs.newCasPool(test.fakestoragepoolclaim, test.reSync, test.pendingPoolCount)
 			if test.invalidDataInjection {
 				if err == nil || CasPool != nil {
 					t.Errorf("Test case failed as expected expected error but got nil")
