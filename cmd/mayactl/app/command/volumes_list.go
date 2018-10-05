@@ -69,7 +69,7 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 		if len(items.Status.Reason) == 0 {
 			items.Status.Reason = volumeStatusOK
 		}
-		out[i+2] = fmt.Sprintf("%s|%s|%s|%s", items.ObjectMeta.Namespace,
+		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s", items.ObjectMeta.Namespace,
 			items.ObjectMeta.Name,
 			items.Status.Reason, items.Spec.CasType, items.Spec.Capacity)
 	}
