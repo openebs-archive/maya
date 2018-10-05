@@ -79,5 +79,8 @@ func RegisteredArtifactsFor070() (list ArtifactList) {
 	//This is generic for release till K8s supports native way of cloning.
 	list.Items = append(list.Items, SnapshotPromoterSCArtifacts().Items...)
 
+	// snapshots
+	list.Items = append(list.Items, JivaSnapshotArtifactsFor070().Items...)
+
 	return
 }

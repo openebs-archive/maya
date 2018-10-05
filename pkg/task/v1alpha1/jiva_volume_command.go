@@ -16,22 +16,22 @@ limitations under the License.
 
 package v1alpha1
 
-// jivaVolumeCommand represents a jiva volume runtask command
+// jivaVolumeCommand represents a jiva volume command
 //
 // NOTE:
-//  This is an implementation of CommandRunner
+//  This is an implementation of Runner
 type jivaVolumeCommand struct {
-	cmd *RunCommand
+	*RunCommand
 }
 
-// instance returns specific jiva volume runtask command implementation based
+// instance returns specific jiva volume command implementation based
 // on the command's action
-func (c *jivaVolumeCommand) instance() (r CommandRunner) {
-	switch c.cmd.Action {
+func (c *jivaVolumeCommand) instance() (r Runner) {
+	switch c.Action {
 	case DeleteCommandAction:
-		r = &jivaVolumeDelete{cmd: c.cmd}
+		r = &jivaVolumeDelete{c}
 	default:
-		r = &notSupportedActionCommand{cmd: c.cmd}
+		r = &notSupportedActionCommand{c.RunCommand}
 	}
 	return
 }

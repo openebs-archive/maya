@@ -7,7 +7,7 @@ type StorageBackendAdaptor struct {
 	MaxAllocationSize string `json:"maxAllocationSize"`
 }
 
-// HostDirSBA contains the generic options that apply to all the 
+// HostDirSBA contains the generic options that apply to all the
 // HostDirStorageBackendAdaptors (K8s CRD yaml)
 type HostDirSBA struct {
 	StorageBackendAdaptor

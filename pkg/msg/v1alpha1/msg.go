@@ -48,7 +48,13 @@ type msg struct {
 	Err   error   `json:"err,omitempty"` // if this message is an error
 }
 
+// String is an implementation of Stringer interface
 func (m *msg) String() string {
+	return YamlString("msg", m)
+}
+
+// GoString is an implementation of GoStringer interface
+func (m *msg) GoString() string {
 	return YamlString("msg", m)
 }
 
@@ -96,7 +102,13 @@ type Msgs struct {
 	Items []*msg `json:"items,omitempty"`
 }
 
+// String is an implementation of Stringer interface
 func (m Msgs) String() string {
+	return YamlString("msgs", m)
+}
+
+// GoString is an implementation of GoStringer interface
+func (m Msgs) GoString() string {
 	return YamlString("msgs", m)
 }
 
@@ -134,16 +146,25 @@ func (m Msgs) LogErrors(l func(string, ...interface{})) {
 }
 
 func (m *Msgs) AddInfo(i string) (u *Msgs) {
+	if len(i) == 0 {
+		return m
+	}
 	m.Items = append(m.Items, &msg{Mtype: InfoMsg, Desc: i})
 	return m
 }
 
 func (m *Msgs) AddWarn(w string) (u *Msgs) {
+	if len(w) == 0 {
+		return m
+	}
 	m.Items = append(m.Items, &msg{Mtype: WarnMsg, Desc: w})
 	return m
 }
 
 func (m *Msgs) AddSkip(s string) (u *Msgs) {
+	if len(s) == 0 {
+		return m
+	}
 	m.Items = append(m.Items, &msg{Mtype: SkipMsg, Desc: s})
 	return m
 }
@@ -156,8 +177,18 @@ func (m *Msgs) AddError(e error) (u *Msgs) {
 	return m
 }
 
-func (m *Msgs) Merge(s *Msgs) {
+func (m *Msgs) Merge(s *Msgs) (u *Msgs) {
+	if s == nil {
+		return m
+	}
 	m.Items = append(m.Items, s.Items...)
+	return m
+}
+
+// Reset clears the list of messages
+func (m *Msgs) Reset() (u *Msgs) {
+	m.Items = nil
+	return m
 }
 
 func (m Msgs) Infos() (f Msgs) {
@@ -191,7 +222,13 @@ func (m Msgs) HasWarn() bool {
 // AllMsgs holds messages categorized per message type
 type AllMsgs map[MsgType]Msgs
 
+// String is an implementation of Stringer interface
 func (a AllMsgs) String() string {
+	return YamlString("allmsgs", a)
+}
+
+// GoString is an implementation of GoStringer interface
+func (a AllMsgs) GoString() string {
 	return YamlString("allmsgs", a)
 }
 
@@ -223,6 +260,22 @@ func (a AllMsgs) HasWarn() (iswarn bool) {
 	return true
 }
 
+func (a AllMsgs) HasSkip() (isskip bool) {
+	skips := a[SkipMsg]
+	if len(skips.Items) == 0 {
+		return
+	}
+	return true
+}
+
+func (a AllMsgs) HasInfo() (isinfo bool) {
+	infos := a[InfoMsg]
+	if len(infos.Items) == 0 {
+		return
+	}
+	return true
+}
+
 func (a AllMsgs) IsEmpty() (isempty bool) {
 	warns := a[WarnMsg]
 	infos := a[InfoMsg]
@@ -231,6 +284,34 @@ func (a AllMsgs) IsEmpty() (isempty bool) {
 
 	if len(warns.Items) == 0 && len(errs.Items) == 0 && len(infos.Items) == 0 && len(skips.Items) == 0 {
 		return true
+	}
+	return
+}
+
+func (a AllMsgs) ToMsgs() (m *Msgs) {
+	m = &Msgs{}
+	if len(a) == 0 {
+		return
+	}
+	// grab the errors
+	errors := a[ErrMsg].Items
+	if len(errors) != 0 {
+		m.Items = append(m.Items, errors...)
+	}
+	// grab the warns
+	warns := a[WarnMsg].Items
+	if len(warns) != 0 {
+		m.Items = append(m.Items, warns...)
+	}
+	// grab the infos
+	infos := a[InfoMsg].Items
+	if len(infos) != 0 {
+		m.Items = append(m.Items, infos...)
+	}
+	// grab the skips
+	skips := a[SkipMsg].Items
+	if len(skips) != 0 {
+		m.Items = append(m.Items, skips...)
 	}
 	return
 }

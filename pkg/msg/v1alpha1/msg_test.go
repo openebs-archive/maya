@@ -373,3 +373,62 @@ func TestMsgsMerge(t *testing.T) {
 		})
 	}
 }
+
+func TestAllMsgsToMsgs(t *testing.T) {
+	tests := map[string]struct {
+		info         string
+		err          error
+		warn         string
+		skip         string
+		expectedInfo int
+		expectedErr  bool
+		expectedWarn int
+		expectedSkip int
+	}{
+		"101": {"i", errors.New("e"), "w", "s", 1, true, 1, 1},
+		"102": {"", errors.New("e"), "w", "s", 0, true, 1, 1},
+		"103": {"", nil, "w", "s", 0, false, 1, 1},
+		"104": {"", nil, "", "s", 0, false, 0, 1},
+		"105": {"", nil, "", "", 0, false, 0, 0},
+		"106": {"i", nil, "", "", 1, false, 0, 0},
+		"107": {"", errors.New("e"), "", "", 0, false, 0, 0},
+		"108": {"", nil, "w", "", 0, false, 1, 0},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			o := &Msgs{}
+			if len(mock.info) != 0 {
+				o.AddInfo(mock.info)
+			}
+			if mock.err != nil {
+				o.AddError(mock.err)
+			}
+			if len(mock.warn) != 0 {
+				o.AddWarn(mock.warn)
+			}
+			if len(mock.skip) != 0 {
+				o.AddSkip(mock.skip)
+			}
+
+			a := o.AllMsgs()
+			n := a.ToMsgs()
+
+			if n == nil {
+				t.Fatalf("Test '%s' failed: expected not nil msgs: actual nil msgs", name)
+			}
+			if len(n.Infos().Items) != mock.expectedInfo {
+				t.Fatalf("Test '%s' failed: expected infos %d: actual infos %d", name, mock.expectedInfo, len(n.Infos().Items))
+			}
+			if mock.expectedErr && len(n.Errors().Items) != 1 {
+				t.Fatalf("Test '%s' failed: expected 1 error: actual errors %d", name, len(n.Errors().Items))
+			}
+			if len(n.Skips().Items) != mock.expectedSkip {
+				t.Fatalf("Test '%s' failed: expected skips %d: actual skips %d", name, mock.expectedSkip, len(n.Skips().Items))
+			}
+			if len(n.Warns().Items) != mock.expectedWarn {
+				t.Fatalf("Test '%s' failed: expected warns %d: actual warns %d", name, mock.expectedWarn, len(n.Warns().Items))
+			}
+		})
+	}
+}
