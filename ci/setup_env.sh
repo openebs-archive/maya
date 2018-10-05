@@ -39,50 +39,50 @@ if [[ $rc != 0 ]]; then
 	exit $rc;
 fi
 
-sleep 60
-echo "************** Running Jiva mayactl snapshot create **********************"
-${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap1
-rc=$?;
-if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
-	exit $rc;
-fi
-
-printf "\n\n"
-sleep 30
-
-${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap2
-if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
-	exit $rc;
-fi
-
-sleep 30
-
-echo "************** Running Jiva mayactl snapshot list ************************"
-${MAYACTL} snapshot list --volname $JIVAVOL
-if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
-	exit $rc;
-fi
-
-printf "\n\n"
-sleep 30
-echo "************** Running Jiva mayactl snapshot revert **********************"
-${MAYACTL} snapshot revert --volname $JIVAVOL --snapname snap1
-if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
-	exit $rc;
-fi
-printf "\n\n"
-sleep 10
-
-echo "************** Running Jiva mayactl snapshot list after revert ************"
-${MAYACTL} snapshot list --volname $JIVAVOL
-if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
-	exit $rc;
-fi
+#sleep 60
+#echo "************** Running Jiva mayactl snapshot create **********************"
+#${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap1
+#rc=$?;
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
+#
+#printf "\n\n"
+#sleep 30
+#
+#${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap2
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
+#
+#sleep 30
+#
+#echo "************** Running Jiva mayactl snapshot list ************************"
+#${MAYACTL} snapshot list --volname $JIVAVOL
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
+#
+#printf "\n\n"
+#sleep 30
+#echo "************** Running Jiva mayactl snapshot revert **********************"
+#${MAYACTL} snapshot revert --volname $JIVAVOL --snapname snap1
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
+#printf "\n\n"
+#sleep 10
+#
+#echo "************** Running Jiva mayactl snapshot list after revert ************"
+#${MAYACTL} snapshot list --volname $JIVAVOL
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
 echo "************** Running Jiva mayactl volume delete ************************"
 ${MAYACTL} volume delete --volname $JIVAVOL
 if [[ $rc != 0 ]]; then
