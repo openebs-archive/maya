@@ -47,11 +47,11 @@ func CreateSnapshot(ip, volName, snapName string) (*v1alpha1.VolumeSnapCreateRes
 		var responseStatus CommandStatus
 		json.Unmarshal(response.Status, &responseStatus)
 		if strings.Contains(responseStatus.Response, "ERR") {
-			return response, errors.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
+			return nil, errors.Errorf("Snapshot create failed with error : %v", responseStatus.Response)
 		}
 	}
 
-	return response, err
+	return response, nil
 }
 
 //DestroySnapshot destroys snapshots
@@ -79,8 +79,8 @@ func DestroySnapshot(ip, volName, snapName string) (*v1alpha1.VolumeSnapDeleteRe
 		var responseStatus CommandStatus
 		json.Unmarshal(response.Status, &responseStatus)
 		if strings.Contains(responseStatus.Response, "ERR") {
-			return response, errors.Errorf("Snapshot deletion failed with error : %v", responseStatus.Response)
+			return nil, errors.Errorf("Snapshot deletion failed with error : %v", responseStatus.Response)
 		}
 	}
-	return response, err
+	return response, nil
 }
