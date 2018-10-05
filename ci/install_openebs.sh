@@ -2,22 +2,56 @@
 
 echo "--------------------Installing openebs operator---------------------------"
 sleep 5
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-operator.yaml
 
-for i in $(seq 1 50) ; do
-    replicas=$(kubectl get deployment -n openebs maya-apiserver -o json | jq ".status.readyReplicas")
+CI_BRANCH="master"
+CI_TAG="ci"
+
+#Images from this repo are always tagged as ci 
+#The downloaded operator file will may contain a non-ci tag name 
+# depending on when and from where it is being downloaded. For ex:
+# - during the release time, the image tags can be versioned like 0.7.0-RC..
+# - from a branch, the image tags can be the branch names like v0.7.x-ci
+if [ ${CI_TAG} != "ci" ]; then
+  sudo docker tag openebs/m-apiserver:ci openebs/m-apiserver:${CI_TAG}
+  sudo docker tag openebs/m-exporter:ci openebs/m-exporter:${CI_TAG}
+  sudo docker tag openebs/cstor-pool-mgmt:ci openebs/cstor-pool-mgmt:${CI_TAG}
+  sudo docker tag openebs/cstor-volume-mgmt:ci openebs/cstor-volume-mgmt:${CI_TAG}
+fi
+
+kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/k8s/openebs-operator.yaml
+
+function waitForDeployment() {
+  DEPLOY=$1
+  NS=$2
+  
+  for i in $(seq 1 50) ; do
+    kubectl get deployment -n ${NS} ${DEPLOY}
+    replicas=$(kubectl get deployment -n ${NS} ${DEPLOY} -o json | jq ".status.readyReplicas")
     if [ "$replicas" == "1" ]; then
-        break
-			else
-        echo "Waiting for Maya-apiserver to be ready"
-        sleep 10
+      break
+    else
+      echo "Waiting for ${DEPLOY} to be ready"
+      if [ ${DEPLOY} != "maya-apiserver" ] && [ ${DEPLOY} != "openebs-provisioner" ]; then
+        dumpMayaAPIServerLogs 10
+      fi
+      sleep 10
     fi
-done
+  done
+}
 
-echo "--------------- Maya apiserver initial logs -----------------------------"
-MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
-kubectl logs $MAPIPOD -n openebs
-printf "\n\n"
+function dumpMayaAPIServerLogs() {
+  LC=$1
+  MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
+  kubectl logs --tail=${LC} $MAPIPOD -n openebs
+  printf "\n\n"
+}
+
+waitForDeployment maya-apiserver openebs
+waitForDeployment openebs-provisioner openebs
+dumpMayaAPIServerLogs 200
+
+kubectl get pods --all-namespaces
+
 
 #Print the default StoragePools Created
 kubectl get sp
@@ -29,17 +63,6 @@ kubectl get spc
 kubectl get sc
 
 
-for i in $(seq 1 50) ; do
-    replicas=$(kubectl get deployment -n openebs openebs-provisioner -o json | jq ".status.readyReplicas")
-    if [ "$replicas" == "1" ]; then
-        break
-			else
-        echo "Waiting for Openebs-provisioner to be ready"
-        sleep 10
-    fi
-done
-
-kubectl get pods --all-namespaces
 
 sleep 10
 #echo "------------------ Deploy Pre-release features ---------------------------"
@@ -53,8 +76,7 @@ kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sa
 sleep 10
 
 echo "--------------- Maya apiserver later logs -----------------------------"
-kubectl logs --tail=200 $MAPIPOD -n openebs
-printf "\n\n"
+dumpMayaAPIServerLogs 200
 
 echo "--------------- Create Cstor and Jiva PersistentVolume ------------------"
 kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
@@ -66,41 +88,14 @@ echo "--------------------- List SC,PVC,PV and pods ---------------------------"
 kubectl get sc,pvc,pv
 kubectl get pods --all-namespaces
 
+kubectl get deploy -l openebs.io/controller=jiva-controller
 JIVACTRL=$(kubectl get deploy -l openebs.io/controller=jiva-controller --no-headers | awk {'print $1'})
-for i in $(seq 1 5) ; do
-    replicas=$(kubectl get deployment $JIVACTRL -o json | jq ".status.readyReplicas")
-    if [ "$replicas" == "1" ]; then
-        break
-      else
-        echo "Waiting for volume ctrl to be ready"
-        kubectl logs --tail=10 $MAPIPOD -n openebs
-        printf "\n\n"
-        sleep 30
-    fi
-done
+waitForDeployment ${JIVACTRL} default 
 
+kubectl get deploy -l openebs.io/replica=jiva-replica
 JIVAREP=$(kubectl get deploy -l openebs.io/replica=jiva-replica --no-headers | awk {'print $1'})
-for i in $(seq 1 5) ; do
-    replicas=$(kubectl get deployment $JIVAREP -o json | jq ".status.readyReplicas")
-    if [ "$replicas" == "1" ]; then
-        break
-      else
-        echo "Waiting for volume replica to be ready"
-        kubectl logs --tail=10 $MAPIPOD -n openebs
-        printf "\n\n"
-        sleep 30
-    fi
-done
+waitForDeployment ${JIVAREP} default 
 
+kubectl get deploy -n openebs -l openebs.io/target=cstor-target
 CSTORTARGET=$(kubectl get deploy -n openebs -l openebs.io/target=cstor-target --no-headers | awk {'print $1'})
-for i in $(seq 1 5) ; do
-    replicas=$(kubectl get deployment -n openebs $CSTORTARGET -o json | jq ".status.readyReplicas")
-    if [ "$replicas" == "1" ]; then
-        break
-      else
-        echo "Waiting for cstor volume target to be ready"
-        kubectl logs --tail=10 $MAPIPOD -n openebs
-        printf "\n\n"
-        sleep 30
-    fi
-done
+waitForDeployment ${CSTORTARGET} openebs

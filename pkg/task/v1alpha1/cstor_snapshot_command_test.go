@@ -35,19 +35,16 @@ func TestCstorSnapshotCommand(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &cstorSnapshotCommand{
-				cmd: Command(),
-			}
-			c.cmd = WithAction(c.cmd, mock.action)
-
+			cmd := WithAction(Command(), mock.action)
+			c := &cstorSnapshotCommand{cmd}
 			result := c.Run()
 
-			if !mock.isSupportedAction && result.Error() != NotSupportedActionError {
-				t.Fatalf("Test '%s' failed: expected 'NotSupportedActionError': actual '%s': result '%s'", name, result.Error(), result)
+			if !mock.isSupportedAction && result.Error() != ErrorNotSupportedAction {
+				t.Fatalf("Test '%s' failed: expected 'ErrorNotSupportedAction': actual '%s': result '%s'", name, result.Error(), result)
 			}
 
-			if mock.isSupportedAction && result.Error() == NotSupportedActionError {
-				t.Fatalf("Test '%s' failed: expected 'supported action': actual 'NotSupportedActionError': result '%s'", name, result)
+			if mock.isSupportedAction && result.Error() == ErrorNotSupportedAction {
+				t.Fatalf("Test '%s' failed: expected 'supported action': actual 'ErrorNotSupportedAction': result '%s'", name, result)
 			}
 		})
 	}

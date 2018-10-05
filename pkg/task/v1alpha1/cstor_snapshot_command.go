@@ -27,19 +27,19 @@ import (
 // NOTE:
 //  This is an implementation of CommandRunner
 type cstorSnapshotCommand struct {
-	cmd *RunCommand
+	*RunCommand
 }
 
 // instance returns specific cstor snapshot runtask command implementation based
 // on the command's action
-func (c *cstorSnapshotCommand) instance() (r CommandRunner) {
-	switch c.cmd.Action {
+func (c *cstorSnapshotCommand) instance() (r Runner) {
+	switch c.Action {
 	case CreateCommandAction:
 		r = &cstorSnapshotCreate{c}
 	case DeleteCommandAction:
 		r = &cstorSnapshotDelete{c}
 	default:
-		r = &notSupportedActionCommand{c.cmd}
+		r = &notSupportedActionCommand{c.RunCommand}
 	}
 	return
 }
@@ -51,9 +51,9 @@ func (c *cstorSnapshotCommand) Run() (r RunCommandResult) {
 
 // validateOptions checks if the required params are missing
 func (c *cstorSnapshotCommand) validateOptions() error {
-	ip, _ := c.cmd.Data["ip"].(string)
-	volName, _ := c.cmd.Data["volname"].(string)
-	snapName, _ := c.cmd.Data["snapname"].(string)
+	ip, _ := c.Data["ip"].(string)
+	volName, _ := c.Data["volname"].(string)
+	snapName, _ := c.Data["snapname"].(string)
 	if len(ip) == 0 {
 		return errors.Errorf("missing ip address")
 	}
@@ -70,8 +70,8 @@ func (c *cstorSnapshotCommand) validateOptions() error {
 
 // getSnapshotObj returns a filled object of CASSnapshot
 func (c *cstorSnapshotCommand) getSnapshotObj() *apis.CASSnapshot {
-	volName, _ := c.cmd.Data["volname"].(string)
-	snapName, _ := c.cmd.Data["snapname"].(string)
+	volName, _ := c.Data["volname"].(string)
+	snapName, _ := c.Data["snapname"].(string)
 	return &apis.CASSnapshot{
 		Spec: apis.SnapshotSpec{
 			VolumeName: volName,

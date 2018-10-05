@@ -17,29 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/ghodss/yaml"
+	cas "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	. "github.com/openebs/maya/pkg/msg/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// mockNoopStore is an implementation of ResultStoreFn
-func mockNoopStore(id string, key string, value interface{}) {}
-
-// mockMapStore stores the provided key value pair against the provided id
-// inside the provided storage map
-func mockMapStore(storage map[string]interface{}) ResultStoreFn {
-	return func(id string, key string, value interface{}) {
-		util.SetNestedField(storage, value, id, key)
-	}
-}
-
-// mockAlwaysRun is an implementation of WillRunFn
-func mockAlwaysRun() bool { return true }
-
-// mockNeverRun is an implementation of WillRunFn
-func mockNeverRun() bool { return false }
 
 func mockRunCommandFromCategory(l []RunCommandCategory) (r *RunCommand) {
 	r = Command()
@@ -47,8 +31,236 @@ func mockRunCommandFromCategory(l []RunCommandCategory) (r *RunCommand) {
 	return
 }
 
-// check if RunCommand implements CommandRunner interface
-var _ CommandRunner = &RunCommand{}
+// check if RunCommand implements Runner interface
+var _ Runner = &RunCommand{}
+
+func TestSelectPathsString(t *testing.T) {
+	tests := map[string]struct {
+		paths    []string
+		expected string
+	}{
+		"101": {[]string{".metadata.name"}, "select '.metadata.name'"},
+		"102": {[]string{".metadata.name", ".metadata.namespace"}, "select '.metadata.name' '.metadata.namespace'"},
+		"103": {[]string{".metadata.name as name"}, "select '.metadata.name as name'"},
+		"104": {[]string{".metadata.name as name", ".spec.replicas as replicas"}, "select '.metadata.name as name' '.spec.replicas as replicas'"},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := SelectPaths{}
+			s = append(s, mock.paths...)
+			if s.String() != mock.expected {
+				t.Fatalf("Test '%s' failed: expected '%s': actual '%s'", name, mock.expected, s.String())
+			}
+		})
+	}
+}
+
+func TestSelectsAliasPaths(t *testing.T) {
+	tests := map[string]struct {
+		paths    []string
+		expected map[string]string
+	}{
+		"101": {nil, nil},
+		"102": {[]string{}, nil},
+		"103": {[]string{".metadata.name"}, map[string]string{"s0": ".metadata.name"}},
+		"104": {[]string{".metadata.name", ".metadata.namespace"}, map[string]string{"s0": ".metadata.name", "s1": ".metadata.namespace"}},
+		"105": {[]string{".metadata.name as name"}, map[string]string{"name": ".metadata.name"}},
+		"106": {[]string{".metadata.name as name", ".spec.replicas as replicas"}, map[string]string{"name": ".metadata.name", "replicas": ".spec.replicas"}},
+		// invalid aliases
+		"201": {[]string{".metadata.name name"}, map[string]string{"s0": ".metadata.name name"}},
+		"202": {[]string{".metadata.name is name"}, map[string]string{"s0": ".metadata.name is name"}},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := SelectPaths{}
+			s = append(s, mock.paths...)
+			m := s.aliasPaths()
+
+			if len(s) == 0 && mock.expected != nil {
+				t.Fatalf("Test '%s' failed: expected nil: actual '%#v'", name, mock.expected)
+			}
+
+			for a, p := range m {
+				if mock.expected[a] != p {
+					t.Fatalf("Test '%s' failed: with alias '%s': expected '%s': actual '%s'", name, a, mock.expected[a], p)
+				}
+			}
+		})
+	}
+}
+
+func TestSelectsQueryCommandResult(t *testing.T) {
+	var result interface{}
+	result = &cas.CStorVolumeReplica{
+		ObjectMeta: v1.ObjectMeta{
+			Name: "my-cstor-rep",
+		},
+		Spec: cas.CStorVolumeReplicaSpec{
+			TargetIP: "20.10.10.10",
+			Capacity: "40Gi",
+		},
+		Status: cas.CStorVolumeReplicaStatus{
+			Phase: "Online",
+		},
+	}
+	r := NewRunCommandResult(result, AllMsgs{})
+
+	tests := map[string]struct {
+		paths    []string
+		expected map[string]interface{}
+	}{
+		"101": {nil, nil},
+		"102": {[]string{}, nil},
+		"103": {[]string{"{.Name}"}, map[string]interface{}{"s0": "my-cstor-rep"}},
+		"104": {[]string{"{.Spec.TargetIP}", "{.Spec.Capacity}"}, map[string]interface{}{"s0": "20.10.10.10", "s1": "40Gi"}},
+		"105": {[]string{"{..TargetIP}", "{..Capacity}"}, map[string]interface{}{"s0": "20.10.10.10", "s1": "40Gi"}},
+		"106": {[]string{"{.Status.Phase}", "{..Phase}"}, map[string]interface{}{"s0": "Online", "s1": "Online"}},
+		"107": {[]string{"{.Status.Phase} as phase", "{..Phase} as ph"}, map[string]interface{}{"phase": "Online", "ph": "Online"}},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := SelectPaths{}
+			s = append(s, mock.paths...)
+			u := s.QueryCommandResult(r)
+
+			if len(mock.paths) == 0 {
+				// there were no runtime errors! good !!!
+				return
+			}
+			result := u.Result()
+			m, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Test '%s' failed: expected map[string]interface{}: actual '%#v'", name, u)
+			}
+			for alias, value := range m {
+				if !reflect.DeepEqual(mock.expected[alias], value) {
+					t.Fatalf("Test '%s' failed for alias '%s': expected '%#v': actual '%#v'", name, alias, mock.expected[alias], value)
+				}
+			}
+		})
+	}
+}
+
+func TestSelectsQueryCommandResultV2(t *testing.T) {
+	var result interface{}
+	result = struct {
+		Items []*cas.CStorVolumeReplica
+	}{
+		Items: []*cas.CStorVolumeReplica{
+			&cas.CStorVolumeReplica{
+				ObjectMeta: v1.ObjectMeta{Name: "my-cstor-rep"},
+				Spec:       cas.CStorVolumeReplicaSpec{TargetIP: "20.10.10.10", Capacity: "40Gi"},
+				Status:     cas.CStorVolumeReplicaStatus{Phase: "Online"},
+			},
+			&cas.CStorVolumeReplica{
+				ObjectMeta: v1.ObjectMeta{Name: "my-cstor-rep-2"},
+				Spec:       cas.CStorVolumeReplicaSpec{TargetIP: "20.1.1.1", Capacity: "20Gi"},
+				Status:     cas.CStorVolumeReplicaStatus{Phase: "Offline"},
+			},
+		},
+	}
+	r := NewRunCommandResult(result, AllMsgs{})
+
+	tests := map[string]struct {
+		paths    []string
+		expected map[string]interface{}
+	}{
+		"101": {nil, nil},
+		"102": {[]string{}, nil},
+		"103": {[]string{"{.Items[*].Name}"}, map[string]interface{}{"s0": []string{"my-cstor-rep", "my-cstor-rep-2"}}},
+		"104": {[]string{"{.Items[*].Spec.TargetIP}"}, map[string]interface{}{"s0": []string{"20.10.10.10", "20.1.1.1"}}},
+		"105": {[]string{"{.Items[*]..TargetIP}"}, map[string]interface{}{"s0": []string{"20.10.10.10", "20.1.1.1"}}},
+		"106": {[]string{"{.Items[*].Status.Phase}"}, map[string]interface{}{"s0": []string{"Online", "Offline"}}},
+		"107": {[]string{"{.Items[*]..Phase}"}, map[string]interface{}{"s0": []string{"Online", "Offline"}}},
+		"108": {[]string{"{.Items[*].Status.Phase} as phase"}, map[string]interface{}{"phase": []string{"Online", "Offline"}}},
+		"109": {[]string{"{range .Items[*]..Phase}{@}{end}"}, map[string]interface{}{"s0": []string{"Online", "Offline"}}},
+		"110": {[]string{"{range .Items[*].Spec}{@.TargetIP}{@.Capacity}{end}"}, map[string]interface{}{"s0": []string{"20.10.10.10", "40Gi", "20.1.1.1", "20Gi"}}},
+		"111": {[]string{"{range .Items[*].Spec}{.TargetIP}{.Capacity}{end}"}, map[string]interface{}{"s0": []string{"20.10.10.10", "40Gi", "20.1.1.1", "20Gi"}}},
+		"112": {[]string{"{.Items[*].Spec['.TargetIP','.Capacity']}"}, map[string]interface{}{"s0": []string{"20.10.10.10", "20.1.1.1", "40Gi", "20Gi"}}},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := SelectPaths{}
+			s = append(s, mock.paths...)
+			u := s.QueryCommandResult(r)
+
+			if len(mock.paths) == 0 {
+				// there were no runtime errors! good !!!
+				return
+			}
+			result := u.Result()
+			m, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Test '%s' failed: expected map[string]interface{}: actual '%#v'", name, u)
+			}
+			for alias, value := range m {
+				if !reflect.DeepEqual(mock.expected[alias], value) {
+					t.Fatalf("Test '%s' failed for alias '%s': expected '%#v': actual '%#v'", name, alias, mock.expected[alias], value)
+				}
+			}
+		})
+	}
+}
+
+func TestRunCommandEnable(t *testing.T) {
+	tests := map[string]struct {
+		predicate RunPredicate
+		willrun   bool
+	}{
+		"101": {On, true},
+		"102": {Off, false},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			c := Command()
+			isRun := c.Enable(mock.predicate).IsRun()
+			if isRun != mock.willrun {
+				t.Fatalf("Test '%s' failed: expected willrun '%t': actual willrun '%t'", name, mock.willrun, isRun)
+			}
+		})
+	}
+}
+
+func TestRunCommandPostRun(t *testing.T) {
+	tests := map[string]struct {
+		result   RunCommandResult
+		selects  SelectPaths
+		expected map[string]interface{}
+	}{
+		"101": {RunCommandResult{}, nil, nil},
+		"102": {RunCommandResult{}, []string{"{.}"}, nil},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			c := WithSelect(Command(), mock.selects)
+			u := c.postRun(mock.result)
+			result := u.Result()
+			if mock.expected == nil && result != nil {
+				t.Fatalf("Test '%s' failed: expected nil result: actual '%#v'", name, result)
+			}
+			if mock.expected == nil {
+				return
+			}
+			// this test is designed to have result as a map
+			m, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Test '%s' failed: expected map[string]interface{}: actual '%#v'", name, result)
+			}
+			// test each value within the map
+			for alias, value := range m {
+				if !reflect.DeepEqual(mock.expected[alias], value) {
+					t.Fatalf("Test '%s' failed for alias '%s': expected '%#v': actual '%#v'", name, alias, mock.expected[alias], value)
+				}
+			}
+		})
+	}
+}
 
 func TestRunCommandWithData(t *testing.T) {
 	tests := map[string]struct {
@@ -103,12 +315,12 @@ func TestNotSupportedCategoryCommand(t *testing.T) {
 				return
 			}
 
-			if !mock.isSupportedCategory && result.Error() != NotSupportedCategoryError {
-				t.Fatalf("Test '%s' failed: expected 'NotSupportedCategoryError': actual '%s': result '%s'", name, result.Error(), result)
+			if !mock.isSupportedCategory && result.Error() != ErrorNotSupportedCategory {
+				t.Fatalf("Test '%s' failed: expected 'ErrorNotSupportedCategory': actual '%s': result '%s'", name, result.Error(), result)
 			}
 
-			if mock.isSupportedCategory && result.Error() == NotSupportedCategoryError {
-				t.Fatalf("Test '%s' failed: expected 'supported category': actual 'NotSupportedCategoryError': result '%s'", name, result)
+			if mock.isSupportedCategory && result.Error() == ErrorNotSupportedCategory {
+				t.Fatalf("Test '%s' failed: expected 'supported category': actual 'ErrorNotSupportedCategory': result '%s'", name, result)
 			}
 		})
 	}
@@ -228,7 +440,7 @@ func TestRunCommandIsValid(t *testing.T) {
 		"101": {[]RunCommandCategory{JivaCommandCategory}, true},
 		"102": {[]RunCommandCategory{CstorCommandCategory, JivaCommandCategory}, false},
 		"103": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, true},
-		"104": {[]RunCommandCategory{}, false},
+		"104": {[]RunCommandCategory{}, true},
 		"105": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory}, true},
 		"106": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory, CstorCommandCategory}, false},
 		"107": {[]RunCommandCategory{JivaCommandCategory, SnapshotCommandCategory, CstorCommandCategory}, false},
@@ -247,120 +459,25 @@ func TestRunCommandIsValid(t *testing.T) {
 	}
 }
 
-// check if defaultCommandRunner implements CommandRunner interface
-var _ CommandRunner = &defaultCommandRunner{}
-
-func TestDefaultCommandRunnerRun(t *testing.T) {
+func TestRunCommandIsEmpty(t *testing.T) {
 	tests := map[string]struct {
-		willrun      WillRunFn
-		id           string
-		cmd          *RunCommand
-		expectResult bool
-		expectError  bool
-		expectDebug  bool
-		expectWarn   bool
+		given    []RunCommandCategory
+		expected bool
 	}{
-		// always run
-		"101": {mockAlwaysRun, "", Command(), false, true, true, true},
-		"102": {mockAlwaysRun, "t102", nil, false, true, true, true},
-		"103": {mockAlwaysRun, "t103", Command(), false, true, true, false},
-		"104": {mockAlwaysRun, "t104", VolumeCategory()(Command()), false, true, true, false},
-		"105": {mockAlwaysRun, "t105", JivaCategory()(Command()), false, true, true, false},
-		"106": {mockAlwaysRun, "t106", CstorCategory()(Command()), false, true, true, false},
-		"107": {mockAlwaysRun, "t107", SnapshotCategory()(Command()), false, true, true, false},
-		// never run
-		"201": {mockNeverRun, "", Command(), false, true, true, true},
-		"202": {mockNeverRun, "t202", nil, false, true, true, true},
-		"203": {mockNeverRun, "t203", Command(), false, true, true, false},
-		"204": {mockNeverRun, "t204", VolumeCategory()(Command()), false, true, true, false},
-		"205": {mockNeverRun, "t205", JivaCategory()(Command()), false, true, true, false},
-		"206": {mockNeverRun, "t206", CstorCategory()(Command()), false, true, true, false},
-		"207": {mockNeverRun, "t207", SnapshotCategory()(Command()), false, true, true, false},
+		"101": {[]RunCommandCategory{JivaCommandCategory}, false},
+		"102": {[]RunCommandCategory{CstorCommandCategory, JivaCommandCategory}, false},
+		"103": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, false},
+		"104": {[]RunCommandCategory{}, true},
+		"105": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory}, false},
+		"106": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory, CstorCommandCategory}, false},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			r := DefaultCommandRunner(mockNoopStore, mock.willrun)
-			res := r.Command(mock.id, mock.cmd).Run()
-			if !mock.expectResult && res.Result() != nil {
-				t.Fatalf("Test '%s' failed: expected nil result: actual '%#v'", name, res.Result())
-			}
-			if !mock.expectError && res.Error() != nil {
-				t.Fatalf("Test '%s' failed: expected nil error: actual '%+v'", name, res.Error())
-			}
-			if !mock.expectDebug && !res.Debug().IsEmpty() {
-				t.Fatalf("Test '%s' failed: expected no debug: actual '%#v'", name, res.Debug())
-			}
-			if !mock.expectWarn && res.Debug().HasWarn() {
-				t.Fatalf("Test '%s' failed: expected no warn: actual '%#v'", name, res.Debug())
-			}
-		})
-	}
-}
-
-func TestDefaultCommandRunnerStore(t *testing.T) {
-	tests := map[string]struct {
-		willrun      WillRunFn
-		id           string
-		cmd          *RunCommand
-		expectResult bool
-		expectError  bool
-		expectDebug  bool
-		expectWarn   bool
-	}{
-		// always run
-		"101": {mockAlwaysRun, "", Command(), false, true, true, false},
-		"102": {mockAlwaysRun, "t102", nil, false, true, true, false},
-		"103": {mockAlwaysRun, "t103", Command(), false, true, true, false},
-		"104": {mockAlwaysRun, "t104", VolumeCategory()(Command()), false, true, true, false},
-		"105": {mockAlwaysRun, "t105", JivaCategory()(Command()), false, true, true, false},
-		"106": {mockAlwaysRun, "t106", CstorCategory()(Command()), false, true, true, false},
-		"107": {mockAlwaysRun, "t107", SnapshotCategory()(Command()), false, true, true, false},
-		// never run
-		"201": {mockNeverRun, "", Command(), false, true, true, false},
-		"202": {mockNeverRun, "t202", nil, false, true, true, false},
-		"203": {mockNeverRun, "t203", Command(), false, true, true, false},
-		"204": {mockNeverRun, "t204", VolumeCategory()(Command()), false, true, true, false},
-		"205": {mockNeverRun, "t205", JivaCategory()(Command()), false, true, true, false},
-		"206": {mockNeverRun, "t206", CstorCategory()(Command()), false, true, true, false},
-		"207": {mockNeverRun, "t207", SnapshotCategory()(Command()), false, true, true, false},
-	}
-
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			stor := map[string]interface{}{}
-			runner := DefaultCommandRunner(mockMapStore(stor), mock.willrun)
-			runner.Command(mock.id, mock.cmd).Run()
-			runid := runner.GetID()
-
-			story, _ := yaml.Marshal(stor)
-			s := string(story)
-
-			resp := util.GetNestedField(stor, runid)
-			if resp == nil {
-				t.Fatalf("Test '%s' failed: expected response at id '%s': actual \n%s", name, runid, s)
-			}
-
-			if mock.expectResult && util.GetNestedField(stor, runid, "result") == nil {
-				t.Fatalf("Test '%s' failed: expected result at id '%s': actual \n%s", name, runid, s)
-			}
-
-			if mock.expectDebug {
-				d := util.GetNestedField(stor, runid, "debug").(AllMsgs)
-				if d.IsEmpty() {
-					t.Fatalf("Test '%s' failed: expected debug at id '%s': actual \n%s", name, runid, s)
-				}
-			}
-
-			if mock.expectWarn {
-				d := util.GetNestedField(stor, runid, "debug").(AllMsgs)
-				if !d.HasWarn() {
-					t.Fatalf("Test '%s' failed: expected warn at id '%s.debug': actual \n%s", name, runid, s)
-				}
-			}
-
-			if mock.expectError && util.GetNestedField(stor, runid, "error") == nil {
-				t.Fatalf("Test '%s' failed: expected error at id '%s': actual \n%s", name, runid, s)
+			c := mockRunCommandFromCategory(mock.given)
+			actual := c.Category.IsEmpty()
+			if mock.expected != actual {
+				t.Fatalf("Test '%s' failed: expected '%t' actual '%t'", name, mock.expected, actual)
 			}
 		})
 	}

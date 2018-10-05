@@ -35,12 +35,13 @@ func TestCstorSnapshotCreate(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &cstorSnapshotCreate{
-				&cstorSnapshotCommand{Command()},
-			}
-			c.cmd = WithData(c.cmd, "ip", mock.ip)
-			c.cmd = WithData(c.cmd, "volname", mock.volName)
-			c.cmd = WithData(c.cmd, "snapname", mock.snapName)
+			cmd := Command()
+			cmd = WithData(cmd, "ip", mock.ip)
+			cmd = WithData(cmd, "volname", mock.volName)
+			cmd = WithData(cmd, "snapname", mock.snapName)
+
+			c := &cstorSnapshotCreate{&cstorSnapshotCommand{cmd}}
+
 			result := c.Run()
 
 			if mock.isErr {

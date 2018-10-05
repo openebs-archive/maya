@@ -34,9 +34,9 @@ type cstorSnapshotDelete struct {
 func (c *cstorSnapshotDelete) Run() (r RunCommandResult) {
 	err := c.validateOptions()
 	if err != nil {
-		c.cmd.AddError(errors.Errorf("failed to delete cstor snapshot: %s", err)).Result(nil)
+		c.AddError(errors.Errorf("failed to delete cstor snapshot: %s", err)).Result(nil)
 	}
-	ip, _ := c.cmd.Data["ip"].(string)
+	ip, _ := c.Data["ip"].(string)
 
 	// get snapshot operation struct
 	snapOps := cstor.Cstor()
@@ -46,7 +46,7 @@ func (c *cstorSnapshotDelete) Run() (r RunCommandResult) {
 	// use the struct to call the Create method
 	response, err := snapOps.Delete()
 	if err != nil {
-		return c.cmd.AddError(err).Result(nil)
+		return c.AddError(err).Result(nil)
 	}
-	return c.cmd.Result(response)
+	return c.Result(response)
 }
