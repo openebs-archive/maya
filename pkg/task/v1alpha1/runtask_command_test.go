@@ -23,6 +23,10 @@ import (
 	cas "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	. "github.com/openebs/maya/pkg/msg/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	cas "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	. "github.com/openebs/maya/pkg/msg/v1alpha1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func mockRunCommandFromCategory(l []RunCommandCategory) (r *RunCommand) {
@@ -412,46 +416,16 @@ func TestRunCommandIsCstorSnapshot(t *testing.T) {
 	}{
 		"101": {[]RunCommandCategory{CstorCommandCategory}, false},
 		"102": {[]RunCommandCategory{CstorCommandCategory, JivaCommandCategory}, false},
-		"103": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, false},
-		"104": {[]RunCommandCategory{}, false},
-		"105": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, false},
-		"106": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory, JivaCommandCategory}, false},
-		"107": {[]RunCommandCategory{CstorCommandCategory, SnapshotCommandCategory}, true},
-		"108": {[]RunCommandCategory{JivaCommandCategory, SnapshotCommandCategory, CstorCommandCategory}, true},
-		"109": {[]RunCommandCategory{JivaCommandCategory, SnapshotCommandCategory}, false},
+		"103": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, true},
+		"104": {[]RunCommandCategory{}, true},
+		"105": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory}, true},
+		"106": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory, CstorCommandCategory}, false},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			c := mockRunCommandFromCategory(mock.given)
 			actual := c.Category.IsCstorSnapshot()
-			if mock.expected != actual {
-				t.Fatalf("Test '%s' failed: expected '%t' actual '%t'", name, mock.expected, actual)
-			}
-		})
-	}
-}
-
-func TestRunCommandIsValid(t *testing.T) {
-	tests := map[string]struct {
-		given    []RunCommandCategory
-		expected bool
-	}{
-		"101": {[]RunCommandCategory{JivaCommandCategory}, true},
-		"102": {[]RunCommandCategory{CstorCommandCategory, JivaCommandCategory}, false},
-		"103": {[]RunCommandCategory{CstorCommandCategory, VolumeCommandCategory}, true},
-		"104": {[]RunCommandCategory{}, true},
-		"105": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory}, true},
-		"106": {[]RunCommandCategory{JivaCommandCategory, VolumeCommandCategory, CstorCommandCategory}, false},
-		"107": {[]RunCommandCategory{JivaCommandCategory, SnapshotCommandCategory, CstorCommandCategory}, false},
-		"108": {[]RunCommandCategory{SnapshotCommandCategory, CstorCommandCategory}, true},
-		"109": {[]RunCommandCategory{SnapshotCommandCategory, JivaCommandCategory}, true},
-	}
-
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			c := mockRunCommandFromCategory(mock.given)
-			actual := c.Category.IsValid()
 			if mock.expected != actual {
 				t.Fatalf("Test '%s' failed: expected '%t' actual '%t'", name, mock.expected, actual)
 			}

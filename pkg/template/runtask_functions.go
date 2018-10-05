@@ -145,14 +145,6 @@ func volume() cmd.RunCommandMiddleware {
 	return cmd.VolumeCategory()
 }
 
-// snapshot returns a new instance of snapshot based runtask command
-//
-// Examples:
-// {{- create cstor snapshot | run -}}
-func snapshot() cmd.RunCommandMiddleware {
-	return cmd.SnapshotCategory()
-}
-
 // slect returns the values of the specified paths post runtask command
 // execution
 //
@@ -293,7 +285,6 @@ func runCommandFuncs() template.FuncMap {
 		"run":             run,
 		"runlog":          runlog,
 		"select":          slect,
-		"snapshot":        snapshot,
 		"storeAt":         storeAt,
 		"storeRunner":     storeRunner,
 		"storeRunnerCond": storeRunnerCond,
