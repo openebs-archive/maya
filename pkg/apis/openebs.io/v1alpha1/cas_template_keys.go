@@ -58,6 +58,16 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
+	// SnapshotTLP is a top level property supported by CAS template engine
+	//
+	// The properties provided by the caller are placed with SnapshotTLP
+	// as the top level property
+	//
+	// NOTE:
+	//  CAS template engine cannot modify these properties. These are the
+	// runtime properties that are provided as inputs to CAS template
+	// engine.
+	SnapshotTLP TopLevelProperty = "Snapshot"
 	// StoragePoolTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with StoragePoolTLP
@@ -164,6 +174,14 @@ const (
 	SourceVolumeVTP CloneTLPProperty = "sourceVolume"
 )
 
+// SnapshotTLPProperty is used to define properties for clone operations
+type SnapshotTLPProperty string
+
+const (
+	// VolumeNameSTP is the snapshot name
+	VolumeSTP SnapshotTLPProperty = "volumeName"
+)
+
 // PolicyTLPProperty is the name of the property that is found
 // under PolicyTLP
 type PolicyTLPProperty string
@@ -246,7 +264,7 @@ const (
 	TaskResultNotFoundErrTRTP TaskResultTLPProperty = "notFoundErr"
 	// TaskResultVersionMismatchErrTRTP is a property of TaskResultTLP
 	//
-	// First error found after **version mismatch** checks done against the 
+	// First error found after **version mismatch** checks done against the
 	// result of the task's execution is stored in this property.
 	//
 	// NOTE:

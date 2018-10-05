@@ -19,9 +19,10 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	jp "github.com/openebs/maya/pkg/jsonpath/v1alpha1"
 	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
-	"strings"
 )
 
 const (
@@ -51,11 +52,12 @@ const (
 type RunCommandCategory string
 
 const (
-	JivaCommandCategory   RunCommandCategory = "jiva"
-	CstorCommandCategory  RunCommandCategory = "cstor"
-	VolumeCommandCategory RunCommandCategory = "volume"
-	PoolCommandCategory   RunCommandCategory = "pool"
-	HttpCommandCategory   RunCommandCategory = "http"
+	JivaCommandCategory     RunCommandCategory = "jiva"
+	CstorCommandCategory    RunCommandCategory = "cstor"
+	VolumeCommandCategory   RunCommandCategory = "volume"
+	PoolCommandCategory     RunCommandCategory = "pool"
+	HttpCommandCategory     RunCommandCategory = "http"
+	SnapshotCommandCategory RunCommandCategory = "snapshot"
 )
 
 // RunCommandCategoryList represents a list of RunCommandCategory
@@ -109,6 +111,15 @@ func (l RunCommandCategoryList) IsCstorVolume() (no bool) {
 		return
 	}
 	if l.Contains(CstorCommandCategory) && l.Contains(VolumeCommandCategory) {
+		return !no
+	}
+	return
+}
+
+// IsCstorSnapshot returns true if this list has both cstor and snapshot as its
+// category items
+func (l RunCommandCategoryList) IsCstorSnapshot() (no bool) {
+	if l.Contains(CstorCommandCategory) && l.Contains(SnapshotCommandCategory) {
 		return !no
 	}
 	return
@@ -459,6 +470,8 @@ func (c *RunCommand) instance() (r Runner) {
 		r = &jivaVolumeCommand{c}
 	} else if c.Category.IsHttpReq() {
 		r = HttpCommand(c)
+	} else if c.Category.IsCstorSnapshot() {
+		r = &cstorSnapshotCommand{c}
 	} else {
 		r = &notSupportedCategoryCommand{c}
 	}
@@ -538,6 +551,14 @@ func CstorCategory() RunCommandMiddleware {
 func VolumeCategory() RunCommandMiddleware {
 	return func(given *RunCommand) (updated *RunCommand) {
 		return WithCategory(given, VolumeCommandCategory)
+	}
+}
+
+// SnapshotCategory updates RunCommand instance with snapshot as the runtask
+// command's category
+func SnapshotCategory() RunCommandMiddleware {
+	return func(given *RunCommand) (updated *RunCommand) {
+		return WithCategory(given, SnapshotCommandCategory)
 	}
 }
 
