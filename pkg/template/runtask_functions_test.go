@@ -19,11 +19,11 @@ package template
 import (
 	"bytes"
 	"fmt"
+	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
+	cmd "github.com/openebs/maya/pkg/task/v1alpha1"
 	"strings"
 	"testing"
 	"text/template"
-
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
 )
 
 // TestIsValidTemplateFunctionName verifies if suggested template function names
@@ -106,10 +106,10 @@ func TestRunCommandTemplatingCombinations(t *testing.T) {
 		"test 207": {"lst cstor volume | run"},
 		"test 208": {"lst volume cstor | run"},
 		// with withoption as input data combinations
-		"test 301": {`delete jiva volume | withoption "url" "http://10.10.10.10:9501/v1" | run`},
-		"test 302": {`delete volume jiva | withoption "url" "http://10.10.10.10:9501/v1" | run`},
-		"test 303": {`delete cstor volume | withoption "url" "http://10.10.10.10:9501/v1" | run`},
-		"test 304": {`delete volume cstor | withoption "url" "http://10.10.10.10:9501/v1" | run`},
+		"test 301": {`delete jiva volume | withoption "url" "http://" | run`},
+		"test 302": {`delete volume jiva | withoption "url" "http://" | run`},
+		"test 303": {`delete cstor volume | withoption "url" "http://" | run`},
+		"test 304": {`delete volume cstor | withoption "url" "http://" | run`},
 		// with select path combinations
 		"test 401": {`select "name" "namespace" | get jiva volume | run`},
 		"test 402": {`select "all" | lst jiva volume | run`},
@@ -190,8 +190,8 @@ func TestNotSupportedActionCommand(t *testing.T) {
 				t.Fatalf("Test '%s' failed: nil result", name)
 			}
 
-			if !strings.Contains(buf.String(), NotSupportedActionError.Error()) {
-				t.Fatalf("Test '%s' failed: expected error '%s' actual: '%s'", name, NotSupportedActionError.Error(), buf.String())
+			if !strings.Contains(buf.String(), cmd.ErrorNotSupportedAction.Error()) {
+				t.Fatalf("Test '%s' failed: expected error '%s' actual: '%s'", name, cmd.ErrorNotSupportedAction.Error(), buf.String())
 			}
 		})
 	}
@@ -238,8 +238,8 @@ func TestNotSupportedCategoryCommand(t *testing.T) {
 				t.Fatalf("Test '%s' failed: nil result", name)
 			}
 
-			if !strings.Contains(buf.String(), NotSupportedCategoryError.Error()) {
-				t.Fatalf("Test '%s' failed: expected error '%s' actual: '%s'", name, NotSupportedCategoryError.Error(), buf.String())
+			if !strings.Contains(buf.String(), cmd.ErrorNotSupportedCategory.Error()) {
+				t.Fatalf("Test '%s' failed: expected error '%s' actual: '%s'", name, cmd.ErrorNotSupportedCategory.Error(), buf.String())
 			}
 		})
 	}
@@ -254,10 +254,8 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 	}{
 		"test 101": {`{{- delete jiva volume | run -}}`, mockval},
 		"test 102": {`{{- delete jiva volume | withoption "url" "" | run -}}`, mockval},
-		"test 103": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1" | run -}}`, mockval},
-		"test 104": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1:1010/v1" | run -}}`, mockval},
-		"test 105": {`{{- $url := "http://1.1.1.1:1010/v1" -}}
-		              {{- delete jiva volume | withoption "url" $url | run -}}`, mockval},
+		"test 103": {`{{- delete jiva volume | withoption "url" "http://" | run -}}`, mockval},
+		"test 104": {`{{- delete cstor volume | withoption "url" "http://1.1.1.1:1010/v1" | run -}}`, mockval},
 	}
 
 	for name, mock := range tests {
@@ -282,7 +280,7 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 
 			op := buf.String()
 			if len(op) == 0 {
-				t.Fatalf("Test '%s' failed: nil result", name)
+				t.Fatalf("Test '%s' failed: expected result: actual no result", name)
 			}
 		})
 	}
@@ -290,18 +288,18 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 
 func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 	tests := map[string]struct {
-		template string
+		commandName string
+		template    string
 	}{
-		// NOTE:
-		//  Name of the test case and saveas key needs to be same
-		"101": {`{{- delete jiva volume | run | saveas "101" .Values -}}`},
-		"102": {`{{- delete jiva volume | withoption "url" "" | withoption "name" "" | run | saveas "102" .Values -}}`},
-		"103": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1" | withoption "name" "ab" | run | saveas "103" .Values -}}`},
-		"104": {`{{- delete jiva volume | withoption "url" "http://1.1.1.1:1010" | withoption "name" "abc" | run | saveas "104" .Values -}}`},
-		"105": {`{{- $url := "http://1.1.1.1:1010/v1" -}}
-		         {{- delete jiva volume | withoption "url" $url | withoption "name" "abcd" | run | saveas "105" .Values -}}`},
-		"106": {`{{- $url := "http://1.1.1.1:1010/v1/volumes" -}}
-		         {{- delete jiva volume | withoption "url" $url | withoption "name" "abcde" | run | saveas "106" .Values -}}`},
+		"101": {"101", `{{- delete jiva volume | run | saveas "101" .Values -}}`},
+		"102": {"102", `{{- delete jiva volume | withoption "url" "" | withoption "name" "" | run | saveas "102" .Values -}}`},
+		"103": {"103", `{{- delete jiva volume | withoption "url" "http://" | withoption "name" "ab" | run | saveas "103" .Values -}}`},
+		"104": {"104",
+			`{{- $url := "http://1.1.1.1:1010/v1" -}}
+		   {{- delete jiva volume | withoption "url" $url | withoption "name" "abcd" | run | saveas "104" .Values -}}`},
+		"105": {"105",
+			`{{- $url := "http://1.1.1.1:1010/v1/volumes" -}}
+		  {{- delete jiva volume | withoption "url" $url | withoption "name" "abcde" | run | saveas "105" .Values -}}`},
 	}
 
 	for name, mock := range tests {
@@ -334,7 +332,7 @@ func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
 			}
 
-			response := tvalues.(map[string]interface{})[name]
+			response := tvalues.(map[string]interface{})[mock.commandName]
 			if response == nil {
 				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
 			}
@@ -360,15 +358,14 @@ func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 
 func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 	tests := map[string]struct {
-		template string
+		commandName string
+		template    string
 	}{
-		// NOTE:
-		//  Name of the test case should equal to the key used by saveas & saveif
-		// functions
-		"t101": {`{{- $url := "http://1.1.1.1:1010" -}}
-		         {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run | saveas "t101" .Values -}}
-		         {{- $err := toString .Values.t101.error -}}
-		         {{- $err | empty | not | verifyErr $err | saveif "t101.verifyerr" .Values | noop -}}`},
+		"t101": {"deljivavol",
+			`{{- $url := "http://" -}}
+		   {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run | saveas "deljivavol" .Values -}}
+		   {{- $err := toString .Values.deljivavol.error -}}
+		   {{- $err | empty | not | verifyErr $err | saveif "deljivavol.verifyerr" .Values | noop -}}`},
 	}
 
 	for name, mock := range tests {
@@ -401,7 +398,7 @@ func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
 			}
 
-			response := tvalues.(map[string]interface{})[name]
+			response := tvalues.(map[string]interface{})[mock.commandName]
 			if response == nil {
 				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
 			}
@@ -416,6 +413,416 @@ func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 			verr, ok := verifyerr.(*VerifyError)
 			if !ok {
 				t.Fatalf("Test '%s' failed: expected VerifyErr error: actual %#v", name, verr)
+			}
+		})
+	}
+}
+
+func TestSkipOnError(t *testing.T) {
+	tests := map[string]struct {
+		commandToTest string
+		template      string
+		resultCount   int
+		isErr         bool
+		isSkip        bool
+		isInfo        bool
+	}{
+		"t101": {"delJivaVol",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | runas "delJivaVol" $runner -}}`,
+			1, true, false, true},
+		"t102": {"delCstorVol",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol1" | runas "delJivaVol" $runner -}}
+		   {{- delete cstor volume | withoption "url" $url | withoption "name" "myvol2" | runas "delCstorVol" $runner -}}`,
+			2, true, true, true},
+		"t103": {"createCstorVol",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol1" | runas "delJivaVol" $runner -}}
+		   {{- delete cstor volume | withoption "name" "vol2" | runas "delCvol2" $runner -}}
+		   {{- get cstor volume | withoption "name" "vol3" | runas "getCvol3" $runner -}}
+		   {{- get cstor volume | withoption "name" "vol4" | runas "getCvol4" $runner -}}
+		   {{- lst cstor volume | runas "listCstorVol" $runner -}}
+		   {{- create cstor volume | withoption "url" $url | withoption "name" "vol5" | runas "createCstorVol" $runner -}}`,
+			6, true, true, true},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mockval)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+
+			tvalues := mockval["Values"]
+			if tvalues == nil {
+				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
+			}
+
+			results := tvalues.(map[string]interface{})
+			mockResultCount := mock.resultCount
+
+			if results["rootCause"] != nil {
+				mockResultCount = mockResultCount + 1
+			}
+
+			if len(results) != mockResultCount {
+				t.Fatalf("Test '%s' failed: expected run command results count '%d': actual '%d'", name, mock.resultCount, len(results))
+			}
+
+			response := results[mock.commandToTest]
+			if response == nil {
+				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
+			}
+
+			cmdres := response.(map[string]interface{})
+			err = cmdres["error"].(error)
+			if mock.isErr && err == nil {
+				t.Fatalf("Test '%s' failed: expected not nil err: actual %#v", name, cmdres)
+			}
+
+			debug := cmdres["debug"].(msg.AllMsgs)
+			if mock.isErr && len(debug[msg.ErrMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected error messages: actual %s", name, debug)
+			}
+			if mock.isSkip && len(debug[msg.SkipMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected skip messages: actual %s", name, debug)
+			}
+			if mock.isInfo && len(debug[msg.InfoMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected info messages: actual %s", name, debug)
+			}
+		})
+	}
+}
+
+func TestGetHttp(t *testing.T) {
+	tests := map[string]struct {
+		commandToTest string
+		template      string
+		resultCount   int
+		isErr         bool
+		isSkip        bool
+		isInfo        bool
+	}{
+		// test scenario with one get http request
+		"t101": {"step1",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- get http | withoption "url" $url | withoption "name" "myvol" | runas "step1" $runner -}}`,
+			1, true, false, true},
+		// test scenario with more than one get http requests
+		"t102": {"step2",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- get http | withoption "url" $url | withoption "name" "myvol1" | runas "step1" $runner -}}
+		   {{- get http | withoption "url" $url | withoption "name" "myvol2" | runas "step2" $runner -}}`,
+			2, true, true, true},
+		// test scenario with a series of get http requests
+		"t103": {"step3",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- get http | withoption "url" $url | withoption "name" "vol1" | runas "step1" $runner -}}
+		   {{- get http | withoption "url" $url | withoption "name" "vol2" | runas "step2" $runner -}}
+ 		   {{- get http | withoption "url" $url | withoption "name" "vol3" | runas "step3" $runner -}}
+ 		   {{- get http | withoption "url" $url | withoption "name" "vol4" | runas "step4" $runner -}}
+ 		   {{- get http | withoption "url" $url | withoption "name" "vol4" | runas "step5" $runner -}}`,
+			5, true, true, true},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mockval)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+
+			tvalues := mockval["Values"]
+			if tvalues == nil {
+				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
+			}
+
+			results := tvalues.(map[string]interface{})
+			mockResultCount := mock.resultCount
+
+			if results["rootCause"] != nil {
+				mockResultCount = mockResultCount + 1
+			}
+
+			if len(results) != mockResultCount {
+				t.Fatalf("Test '%s' failed: expected run command results count '%d': actual '%d'", name, mock.resultCount, len(results))
+			}
+
+			response := results[mock.commandToTest]
+			if response == nil {
+				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
+			}
+
+			cmdres := response.(map[string]interface{})
+			err = cmdres["error"].(error)
+			if mock.isErr && err == nil {
+				t.Fatalf("Test '%s' failed: expected not nil err: actual %#v", name, cmdres)
+			}
+
+			debug := cmdres["debug"].(msg.AllMsgs)
+			if mock.isErr && len(debug[msg.ErrMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected error messages: actual %s", name, debug)
+			}
+			if mock.isSkip && len(debug[msg.SkipMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected skip messages: actual %s", name, debug)
+			}
+			if mock.isInfo && len(debug[msg.InfoMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected info messages: actual %s", name, debug)
+			}
+		})
+	}
+}
+
+func TestPostHttp(t *testing.T) {
+	tests := map[string]struct {
+		commandToTest string
+		template      string
+		resultCount   int
+		isErr         bool
+		isSkip        bool
+		isInfo        bool
+	}{
+		// test scenario with one post http request
+		"t101": {"step1",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- post http | withoption "url" $url | withoption "name" "myvol" | runas "step1" $runner -}}`,
+			1, true, false, true},
+		// test scenario with more than one post http requests
+		"t102": {"step2",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- post http | withoption "url" $url | withoption "name" "myvol1" | runas "step1" $runner -}}
+		   {{- post http | withoption "url" $url | withoption "body" "myvol2" | runas "step2" $runner -}}`,
+			2, true, true, true},
+		// test scenario with a series of post http requests
+		"t103": {"step3",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- post http | withoption "url" $url | withoption "name" "vol1" | runas "step1" $runner -}}
+		   {{- post http | withoption "url" $url | withoption "name" "vol2" | runas "step2" $runner -}}
+ 		   {{- post http | withoption "url" $url | withoption "body" "vol3" | runas "step3" $runner -}}
+ 		   {{- post http | withoption "url" $url | withoption "body" "vol4" | runas "step4" $runner -}}
+ 		   {{- post http | withoption "url" $url | withoption "name" "vol4" | runas "step5" $runner -}}`,
+			5, true, true, true},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mockval)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+
+			tvalues := mockval["Values"]
+			if tvalues == nil {
+				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
+			}
+
+			results := tvalues.(map[string]interface{})
+			mockResultCount := mock.resultCount
+
+			if results["rootCause"] != nil {
+				mockResultCount = mockResultCount + 1
+			}
+
+			if len(results) != mockResultCount {
+				t.Fatalf("Test '%s' failed: expected run command results count '%d': actual '%d'", name, mock.resultCount, len(results))
+			}
+
+			response := results[mock.commandToTest]
+			if response == nil {
+				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
+			}
+
+			cmdres := response.(map[string]interface{})
+			err = cmdres["error"].(error)
+			if mock.isErr && err == nil {
+				t.Fatalf("Test '%s' failed: expected not nil err: actual %#v", name, cmdres)
+			}
+
+			debug := cmdres["debug"].(msg.AllMsgs)
+			if mock.isErr && len(debug[msg.ErrMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected error messages: actual %s", name, debug)
+			}
+			if mock.isSkip && len(debug[msg.SkipMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected skip messages: actual %s", name, debug)
+			}
+			if mock.isInfo && len(debug[msg.InfoMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected info messages: actual %s", name, debug)
+			}
+		})
+	}
+}
+
+func TestPutHttp(t *testing.T) {
+	tests := map[string]struct {
+		commandToTest string
+		template      string
+		resultCount   int
+		isErr         bool
+		isSkip        bool
+		isInfo        bool
+	}{
+		// test scenario with one put http request
+		"t101": {"step1",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- put http | withoption "url" $url | withoption "name" "myvol" | runas "step1" $runner -}}`,
+			1, true, false, true},
+		// test scenario with more than one put http requests
+		"t102": {"step2",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- put http | withoption "url" $url | withoption "name" "myvol1" | runas "step1" $runner -}}
+		   {{- put http | withoption "url" $url | withoption "name" "myvol2" | runas "step2" $runner -}}`,
+			2, true, true, true},
+		// test scenario with a series of put http requests
+		"t103": {"step3",
+			`{{- $store :=  storeAt .Values -}}
+       {{- $runner := storeRunner $store -}}
+		   {{- $url := "http://" -}}
+		   {{- put http | withoption "url" $url | withoption "name" "vol1" | runas "step1" $runner -}}
+		   {{- put http | withoption "url" $url | withoption "name" "vol2" | runas "step2" $runner -}}
+ 		   {{- put http | withoption "url" $url | withoption "name" "vol3" | runas "step3" $runner -}}
+ 		   {{- put http | withoption "url" $url | withoption "name" "vol4" | runas "step4" $runner -}}
+ 		   {{- put http | withoption "url" $url | withoption "name" "vol4" | runas "step5" $runner -}}`,
+			5, true, true, true},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
+			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl, err := tpl.Parse(mock.template)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
+			}
+
+			// buf is an io.Writer implementation
+			// as required by the template
+			var buf bytes.Buffer
+
+			// execute the parsed yaml against the values
+			// & write the result into the buffer
+			err = tpl.Execute(&buf, mockval)
+			if err != nil {
+				t.Fatalf("Test '%s' failed: failed to execute: err '%+v'", name, err)
+			}
+
+			op := buf.String()
+			if len(op) == 0 {
+				t.Fatalf("Test '%s' failed: nil result", name)
+			}
+
+			tvalues := mockval["Values"]
+			if tvalues == nil {
+				t.Fatalf("Test '%s' failed: nil template values post template execution", name)
+			}
+
+			results := tvalues.(map[string]interface{})
+			mockResultCount := mock.resultCount
+
+			if results["rootCause"] != nil {
+				mockResultCount = mockResultCount + 1
+			}
+
+			if len(results) != mockResultCount {
+				t.Fatalf("Test '%s' failed: expected run command results count '%d': actual '%d'", name, mock.resultCount, len(results))
+			}
+
+			response := results[mock.commandToTest]
+			if response == nil {
+				t.Fatalf("Test '%s' failed: nil runtask command response post template execution", name)
+			}
+
+			cmdres := response.(map[string]interface{})
+			err = cmdres["error"].(error)
+			if mock.isErr && err == nil {
+				t.Fatalf("Test '%s' failed: expected not nil err: actual %#v", name, cmdres)
+			}
+
+			debug := cmdres["debug"].(msg.AllMsgs)
+			if mock.isErr && len(debug[msg.ErrMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected error messages: actual %s", name, debug)
+			}
+			if mock.isSkip && len(debug[msg.SkipMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected skip messages: actual %s", name, debug)
+			}
+			if mock.isInfo && len(debug[msg.InfoMsg].Items) == 0 {
+				t.Fatalf("Test '%s' failed: expected info messages: actual %s", name, debug)
 			}
 		})
 	}

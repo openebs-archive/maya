@@ -22,19 +22,19 @@ import (
 
 func TestAPI(t *testing.T) {
 	tests := map[string]struct {
-		verb    string
+		verb    HttpVerb
 		baseurl string
 		name    string
 		iserr   bool
 	}{
-		"101": {"GET", "", "", true},
-		"102": {"GET", "http", "abc", true},
-		"103": {"GET", "http://", "abc", true},
-		"104": {"GET", "http://127.0.0.1", "abc", true},
-		"105": {"GET", "http://127.0.0.1:8080", "abc", true},
-		"106": {"DELETE", "http://127.0.0.1:2123", "abc", true},
-		"107": {"POST", "http://127.0.0.1:2123", "abc", true},
-		"108": {"PUT", "http://127.0.0.1:2123", "abc", true},
+		"101": {GetAction, "", "", true},
+		"102": {GetAction, "http", "abc", true},
+		"103": {GetAction, "http://", "abc", true},
+		"104": {GetAction, "http://127.0.0.1", "abc", true},
+		"105": {GetAction, "http://127.0.0.1:8080", "abc", true},
+		"106": {DeleteAction, "http://127.0.0.1:2123", "abc", true},
+		"107": {PostAction, "http://127.0.0.1:2123", "abc", true},
+		"108": {PutAction, "http://127.0.0.1:2123", "abc", true},
 	}
 
 	for name, mock := range tests {
@@ -50,33 +50,33 @@ func TestAPI(t *testing.T) {
 
 func TestURL(t *testing.T) {
 	tests := map[string]struct {
-		verb  string
+		verb  HttpVerb
 		url   string
 		iserr bool
 	}{
-		"101": {"GET", "", true},
-		"102": {"GET", "http", true},
-		"103": {"GET", "http://", true},
-		"104": {"GET", "http://127.0.0.1", true},
-		"105": {"GET", "http://127.0.0.1:8080", true},
-		"106": {"DELETE", "http://127.0.0.1:2123", true},
-		"107": {"POST", "http://127.0.0.1:2123", true},
-		"108": {"PUT", "http://127.0.0.1:2123", true},
+		"101": {GetAction, "", true},
+		"102": {GetAction, "http", true},
+		"103": {GetAction, "http://", true},
+		"104": {GetAction, "http://127.0.0.1", true},
+		"105": {GetAction, "http://127.0.0.1:8080", true},
+		"106": {DeleteAction, "http://127.0.0.1:2123", true},
+		"107": {PostAction, "http://127.0.0.1:2123", true},
+		"108": {PutAction, "http://127.0.0.1:2123", true},
 		// with version
-		"201": {"GET", "http://127.0.0.1:8080/v2", true},
-		"202": {"DELETE", "http://127.0.0.1:2123/v2", true},
-		"203": {"POST", "http://127.0.0.1:2123/v2", true},
-		"204": {"PUT", "http://127.0.0.1:2123/v2", true},
+		"201": {GetAction, "http://127.0.0.1:8080/v2", true},
+		"202": {DeleteAction, "http://127.0.0.1:2123/v2", true},
+		"203": {PostAction, "http://127.0.0.1:2123/v2", true},
+		"204": {PutAction, "http://127.0.0.1:2123/v2", true},
 		// with version; with resource name
-		"301": {"GET", "http://127.0.0.1:8080/v2/vol", true},
-		"302": {"DELETE", "http://127.0.0.1:2123/v2/vol", true},
-		"303": {"POST", "http://127.0.0.1:2123/v2/vol", true},
-		"304": {"PUT", "http://127.0.0.1:2123/v2/vol", true},
+		"301": {GetAction, "http://127.0.0.1:8080/v2/vol", true},
+		"302": {DeleteAction, "http://127.0.0.1:2123/v2/vol", true},
+		"303": {PostAction, "http://127.0.0.1:2123/v2/vol", true},
+		"304": {PutAction, "http://127.0.0.1:2123/v2/vol", true},
 		// with server != localhost
-		"401": {"GET", "http://10.0.0.1:8080/v2/vol", true},
-		"402": {"DELETE", "http://10.0.0.1:2123/v2/vol", true},
-		"403": {"POST", "http://10.0.0.1:2123/v2/vol", true},
-		"404": {"PUT", "http://10.0.0.1:2123/v2/vol", true},
+		"401": {GetAction, "http://10.0.0.1:8080/v2/vol", true},
+		"402": {DeleteAction, "http://10.0.0.1:2123/v2/vol", true},
+		"403": {PostAction, "http://10.0.0.1:2123/v2/vol", true},
+		"404": {PutAction, "http://10.0.0.1:2123/v2/vol", true},
 	}
 
 	for name, mock := range tests {

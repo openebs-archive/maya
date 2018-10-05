@@ -33,10 +33,8 @@ func TestJivaVolumeDelete(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			j := &jivaVolumeDelete{
-				cmd: Command(),
-			}
-			j.cmd = WithData(j.cmd, "url", mock.url)
+			cmd := &jivaVolumeCommand{WithData(Command(), "url", mock.url)}
+			j := &jivaVolumeDelete{cmd}
 			result := j.Run()
 
 			if mock.iserr && result.Error() == nil {
