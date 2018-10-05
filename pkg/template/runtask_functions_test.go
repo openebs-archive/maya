@@ -885,7 +885,8 @@ func TestCreateCstorSnapshotSaveAsVerifyError(t *testing.T) {
 		"t101": {`{{- $ip := "1.1.1.1" -}}
 					  {{- $volName := "vol1" -}}
 					  {{- $snapName := "s1" -}}
-					  {{- create cstor snapshot | withoption "ip" $ip | withoption "volname" $volName | withoption "snapname" $snapName | run | saveas "t101" .Values -}}
+					  {{- $runCmd := create cstor snapshot | withoption "ip" $ip | withoption "volname" $volName -}}
+					  {{- $runCmd | withoption "snapname" $snapName | run | saveas "t101" .Values -}}
 					  {{- $err := .Values.t101.error | default "" | toString -}}
 					  {{- $err | empty | not | verifyErr $err | saveIf "t101.verifyerr" .Values | noop -}}`,
 		},
