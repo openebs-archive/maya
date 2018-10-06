@@ -38,7 +38,7 @@ var (
 This command fetches information and status of the various
 aspects of a Volume such as ISCSI, Controller, and Replica.
 
-Usage: mayactl volume info --volname <vol>
+Usage: mayactl volume describe --volname <vol>
 `
 )
 
@@ -82,10 +82,10 @@ type cstorReplicaInfo struct {
 // NewCmdVolumeInfo displays OpenEBS Volume information.
 func NewCmdVolumeInfo() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "info",
+		Use:     "describe",
 		Short:   "Displays Openebs Volume information",
 		Long:    volumeInfoCommandHelpText,
-		Example: `mayactl volume info --volname <vol>`,
+		Example: `mayactl volume describe --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
 			util.CheckErr(options.RunVolumeInfo(cmd), util.Fatal)
