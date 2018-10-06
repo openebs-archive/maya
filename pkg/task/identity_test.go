@@ -23,23 +23,67 @@ import (
 // TODO
 func TestNewTaskIdentifier(t *testing.T) {}
 
-// TODO
+func TestIsCommand(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isCommand      bool
+	}{
+		"kindCommand#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Command",
+				},
+			},
+			isCommand: true},
+		"kindNotCommand#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "COMMAND",
+				},
+			},
+			isCommand: false},
+		"kindNotCommand#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Deployment",
+				},
+			},
+			isCommand: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isCommand := tt.taskIdentifier.isCommand()
+			if tt.isCommand != isCommand {
+				t.Fatalf("isCommand() => got %v, want %v", isCommand, tt.isCommand)
+			}
+		})
+	}
+}
+
 func TestIsPod(t *testing.T) {
 	tests := map[string]struct {
 		taskIdentifier taskIdentifier
 		isPod          bool
 	}{
-		"True": {
+		"kindPod#1": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isPod: true},
-		"False": {
+		"kindNotPod#1": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
-					Kind: "NotPod",
+					Kind: "POD",
+				},
+			},
+			isPod: false},
+		"kindNotPod#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Deployment",
 				},
 			},
 			isPod: false},
@@ -55,23 +99,278 @@ func TestIsPod(t *testing.T) {
 	}
 }
 
-// TODO
-func TestIsDeployment(t *testing.T) {}
+func TestIsDeployment(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isDeployment   bool
+	}{
+		"kindDeployment#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Deployment",
+				},
+			},
+			isDeployment: true},
+		"kindNotDeployment#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "DEPLOYMENT",
+				},
+			},
+			isDeployment: false},
+		"kindNotDeployment#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isDeployment: false},
+	}
 
-// TODO
-func TestIsService(t *testing.T) {}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isDeployment := tt.taskIdentifier.isDeployment()
+			if tt.isDeployment != isDeployment {
+				t.Fatalf("isDeployment() => got %v, want %v", isDeployment, tt.isDeployment)
+			}
+		})
+	}
 
-// TODO
-func TestIsStoragePool(t *testing.T) {}
+}
 
-// TODO
-func TestIsConfigMap(t *testing.T) {}
+func TestIsService(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isService      bool
+	}{
+		"kindService#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Service",
+				},
+			},
+			isService: true},
+		"kindNotService#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "SERVICE",
+				},
+			},
+			isService: false},
+		"kindNotService#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isService: false},
+	}
 
-// TODO
-func TestIsPVC(t *testing.T) {}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isService := tt.taskIdentifier.isService()
+			if tt.isService != isService {
+				t.Fatalf("isService() => got %v, want %v", isService, tt.isService)
+			}
+		})
+	}
 
-// TODO
-func TestIsExtnV1Beta1(t *testing.T) {}
+}
+
+func TestIsStoragePoolClaim(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier     taskIdentifier
+		isStoragePoolClaim bool
+	}{
+		"kindStoragePoolClaim#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "StoragePoolClaim",
+				},
+			},
+			isStoragePoolClaim: true},
+		"kindNotStoragePoolClaim#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "STORAGEPOOLCLAIM",
+				},
+			},
+			isStoragePoolClaim: false},
+		"kindNotStoragePooClaim#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isStoragePoolClaim: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isStoragePoolClaim := tt.taskIdentifier.isStoragePoolClaim()
+			if tt.isStoragePoolClaim != isStoragePoolClaim {
+				t.Fatalf("isStoragePoolClaim() => got %v, want %v", isStoragePoolClaim, tt.isStoragePoolClaim)
+			}
+		})
+	}
+
+}
+
+func TestIsStoragePool(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isStoragePool  bool
+	}{
+		"kindStoragePool#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "StoragePool",
+				},
+			},
+			isStoragePool: true},
+		"kindNotStoragePool#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "STORAGEPOOL",
+				},
+			},
+			isStoragePool: false},
+		"kindNotStoragePool#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isStoragePool: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isStoragePool := tt.taskIdentifier.isStoragePool()
+			if tt.isStoragePool != isStoragePool {
+				t.Fatalf("isStoragePool() => got %v, want %v", isStoragePool, tt.isStoragePool)
+			}
+		})
+	}
+
+}
+
+func TestIsConfigMap(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isConfigMap    bool
+	}{
+		"kindConfigMap#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "ConfigMap",
+				},
+			},
+			isConfigMap: true},
+		"kindNotConfigMap#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "ConfigMAP",
+				},
+			},
+			isConfigMap: false},
+		"kindNotConfigMap#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isConfigMap: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isConfigMap := tt.taskIdentifier.isConfigMap()
+			if tt.isConfigMap != isConfigMap {
+				t.Fatalf("isConfigMap() => got %v, want %v", isConfigMap, tt.isConfigMap)
+			}
+		})
+	}
+
+}
+
+func TestIsPV(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isPV           bool
+	}{
+		"kindPV#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolume",
+				},
+			},
+			isPV: true},
+		"kindNotPV#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolumE",
+				},
+			},
+			isPV: false},
+		"kindNotPV#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isPV: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isPV := tt.taskIdentifier.isPV()
+			if tt.isPV != isPV {
+				t.Fatalf("isPV() => got %v, want %v", isPV, tt.isPV)
+			}
+		})
+	}
+
+}
+
+func TestIsPVC(t *testing.T) {
+	tests := map[string]struct {
+		taskIdentifier taskIdentifier
+		isPVC          bool
+	}{
+		"kindPVC#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolumeClaim",
+				},
+			},
+			isPVC: true},
+		"kindNotPVC#1": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolumeClaiM",
+				},
+			},
+			isPVC: false},
+		"kindNotPVC#2": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pod",
+				},
+			},
+			isPVC: false},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			isPVC := tt.taskIdentifier.isPVC()
+			if tt.isPVC != isPVC {
+				t.Fatalf("isPVC() => got %v, want %v", isPVC, tt.isPVC)
+			}
+		})
+	}
+
+}
 
 // TODO
 func TestIsAppsV1Beta1(t *testing.T) {}
