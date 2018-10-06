@@ -69,7 +69,7 @@ func (c *cstorSnapshotCommand) validateOptions() error {
 }
 
 // getSnapshotObj returns a filled object of CASSnapshot
-func (c *cstorSnapshotCommand) casSnapshot() *apis.CASSnapshot {
+func (c *cstorSnapshotCommand) getSnapshotObj() *apis.CASSnapshot {
 	volName, _ := c.Data["volname"].(string)
 	snapName, _ := c.Data["snapname"].(string)
 	return &apis.CASSnapshot{
