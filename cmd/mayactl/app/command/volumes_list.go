@@ -65,7 +65,6 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	out := make([]string, len(cvols.Items)+2)
 	out[0] = "Namespace|Name|Status|Type|Capacity"
 	out[1] = "---------|----|------|----|--------"
-
 	for i, items := range cvols.Items {
 		if len(items.Status.Reason) == 0 {
 			items.Status.Reason = volumeStatusOK
