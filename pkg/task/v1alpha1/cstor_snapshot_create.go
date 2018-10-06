@@ -40,7 +40,7 @@ func (c *cstorSnapshotCreate) Run() (r RunCommandResult) {
 	// get snapshot operation struct
 	snapOps := cstor.Cstor()
 	snapOps.IP = ip
-	snapOps.Snap = c.getSnapshotObj()
+	snapOps.Snap = c.casSnapshot()
 
 	// use the struct to call the Create method
 	response, err := snapOps.Create()
