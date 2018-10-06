@@ -272,9 +272,8 @@ func (m *mockK8sUtil) K8sClient() (K8sClient, bool) {
 func (m *mockK8sUtil) K8sClientV2() (K8sClientV2, bool, error) {
 	if m.kcSupport == "true" {
 		return nil, true, nil
-	} else {
-		return nil, false, nil
 	}
+	return nil, false, nil
 }
 
 func (m *mockK8sUtil) IsInCluster() (bool, error) {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// instead of pkg/maya/maya.go
+// package k8s can be used instead of pkg/maya/maya.go
 package k8s
 
 import (
@@ -78,7 +78,7 @@ func (m *DeploymentYml) AsAppsV1B1Deployment() (*api_apps_v1beta1.Deployment, er
 	return deploy, nil
 }
 
-// Service provides utility methods to generate K8s Service objects
+// ServiceYml struct provides utility methods to generate K8s Service objects
 type ServiceYml struct {
 	// YmlInBytes represents a K8s Service in
 	// yaml format
