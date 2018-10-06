@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// These are based on functions from k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.
+// Package util provides functions based on k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.
 // They are copied here to make them exported.
 //
 // TODO
@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+// GetNestedField returns a nested field from the provided map
 func GetNestedField(obj map[string]interface{}, fields ...string) interface{} {
 	var val interface{} = obj
 	for _, field := range fields {
