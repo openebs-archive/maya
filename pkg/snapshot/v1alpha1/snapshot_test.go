@@ -48,6 +48,12 @@ func TestGetCreateCASTemplate(t *testing.T) {
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToCreateCStorSnapshotENVK))
+		os.Unsetenv(string(menv.CASTemplateToCreateJivaSnapshotENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)] = test.scCreateCASAnnotation
@@ -103,6 +109,12 @@ func TestGetReadCASTemplate(t *testing.T) {
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToReadCStorSnapshotENVK))
+		os.Unsetenv(string(menv.CASTemplateToReadJivaSnapshotENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)] = test.scReadCASAnnotation
@@ -158,6 +170,12 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToDeleteCStorSnapshotENVK))
+		os.Unsetenv(string(menv.CASTemplateToDeleteJivaSnapshotENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)] = test.scDeleteCASAnnotation
