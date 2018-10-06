@@ -136,7 +136,7 @@ func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sour
 	}
 	if volnameverify {
 		if len(c.volName) == 0 {
-			return errors.New("--volname not specified.")
+			return errors.New("error: --volname not specified.")
 		}
 	}
 	return nil
