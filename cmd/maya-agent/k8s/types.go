@@ -13,7 +13,6 @@ import (
 
 // #############################################################################
 
-
 // StorageBackendAdaptorSpec is a specification for a storage backend adaptor resource
 type StorageBackendAdaptorSpec struct {
 	metav1.TypeMeta `json:",inline"`
