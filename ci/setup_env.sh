@@ -21,7 +21,7 @@ fi
 printf "\n\n"
 
 echo "************** Running Jiva mayactl volume info **************************"
-${MAYACTL} volume info --volname $JIVAVOL
+${MAYACTL} volume describe --volname $JIVAVOL
 rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
@@ -92,7 +92,7 @@ fi
 
 printf "\n\n"
 echo "************** Running Cstor mayactl volume info *************************"
-${MAYACTL} volume info --volname $CSTORVOL
+${MAYACTL} volume describe --volname $CSTORVOL
 rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
