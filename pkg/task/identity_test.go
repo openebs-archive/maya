@@ -49,6 +49,13 @@ func TestIsCommand(t *testing.T) {
 				},
 			},
 			isCommand: false},
+		"kindNotCommand#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Commands",
+				},
+			},
+			isCommand: false},
 	}
 
 	for name, tt := range tests {
@@ -87,6 +94,13 @@ func TestIsPod(t *testing.T) {
 				},
 			},
 			isPod: false},
+		"kindNotPod#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Pods",
+				},
+			},
+			isPod: false},
 	}
 
 	for name, tt := range tests {
@@ -122,6 +136,13 @@ func TestIsDeployment(t *testing.T) {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
+				},
+			},
+			isDeployment: false},
+		"kindNotDeployment#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Deployments",
 				},
 			},
 			isDeployment: false},
@@ -164,6 +185,13 @@ func TestIsService(t *testing.T) {
 				},
 			},
 			isService: false},
+		"kindNotService#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "Services",
+				},
+			},
+			isService: false},
 	}
 
 	for name, tt := range tests {
@@ -200,6 +228,13 @@ func TestIsStoragePoolClaim(t *testing.T) {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
+				},
+			},
+			isStoragePoolClaim: false},
+		"kindNotStoragePooClaim#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "StoragePoolClaims",
 				},
 			},
 			isStoragePoolClaim: false},
@@ -242,6 +277,13 @@ func TestIsStoragePool(t *testing.T) {
 				},
 			},
 			isStoragePool: false},
+		"kindNotStoragePool#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "StoragePools",
+				},
+			},
+			isStoragePool: false},
 	}
 
 	for name, tt := range tests {
@@ -278,6 +320,13 @@ func TestIsConfigMap(t *testing.T) {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
+				},
+			},
+			isConfigMap: false},
+		"kindNotConfigMap#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "ConfigMaps",
 				},
 			},
 			isConfigMap: false},
@@ -320,6 +369,13 @@ func TestIsPV(t *testing.T) {
 				},
 			},
 			isPV: false},
+		"kindNotPV#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolumes",
+				},
+			},
+			isPV: false},
 	}
 
 	for name, tt := range tests {
@@ -356,6 +412,13 @@ func TestIsPVC(t *testing.T) {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
+				},
+			},
+			isPVC: false},
+		"kindNotPVC#3": {
+			taskIdentifier: taskIdentifier{
+				identity: MetaTaskIdentity{
+					Kind: "PersistentVolumeClaims",
 				},
 			},
 			isPVC: false},
