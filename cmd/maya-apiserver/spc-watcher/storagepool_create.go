@@ -50,7 +50,7 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 		glog.Infof("Storagepool already exists since the status on storagepoolclaim object %s is Online", spcGot.Name)
 		return nil
 	}
-	var newSpcLease Leases
+	var newSpcLease Leaser
 	newSpcLease = &Lease{spcGot, SpcLeaseKey, c.clientset, c.kubeclientset}
 	err := newSpcLease.Hold()
 	if err != nil {

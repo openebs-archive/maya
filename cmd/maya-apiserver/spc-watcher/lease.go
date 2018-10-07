@@ -22,13 +22,21 @@ import (
 )
 
 // ToDo : Move this file to pkg
-// This struct will be used as a value of lease key that will
+
+// LeaseContract struct will be used as a value of lease key that will
 // give information about an acquired lease on object
 // The struct object will be parsed to string which will be then
 // put as a value to the lease key of object annotation.
-type lease struct {
+type LeaseContract struct {
 	// Holder is the namespace/name of the pod who acquires the lease
 	Holder           string `json:"holder"`
+	// LeaderTransition is the count of lease that has been taken on the object
+	// in its lifetime.
+	// e.g. One of the pod takes a lease on the object and release and then some other
+	// pod (or even the same pod ) takes a lease again on the object its leaderTransition
+	// value is 1.
+	// If an object has leaderTranisiton value equal to 'n' that means it was leased
+	// 'n+1' times in its lifetime by distinct, same or some distinct and some same pods.
 	LeaderTransition int    `json:"leaderTransition"`
 	// More specific details can be added here that will describe the
 	// current state of lease in more details.
@@ -37,8 +45,8 @@ type lease struct {
 	// self-release will tell whether the lease was removed by the acquirer or not
 }
 
-// Leases is an interface which assists in getting and releasing lease on an object
-type Leases interface {
+// Leaser is an interface which assists in getting and releasing lease on an object
+type Leaser interface {
 	// Hold will try to get a lease, in case of failure it will return error
 	Hold() error
 	// Update will update the lease value on the object

@@ -67,9 +67,12 @@ type Patch struct {
 // It will try to hold a lease on spc object.
 func (sl *Lease) Hold() error {
 	// Get the lease value.
-	spcObject := sl.Object.(*apis.StoragePoolClaim)
+	spcObject, ok := sl.Object.(*apis.StoragePoolClaim)
+	if !ok {
+		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
+	}
 	leaseValue := spcObject.Annotations[sl.leaseKey]
-	var leaseValueObj lease
+	var leaseValueObj LeaseContract
 	var err error
 	if !(strings.TrimSpace(leaseValue) == "") {
 		leaseValueObj, err = parseLeaseValue(leaseValue)
@@ -112,7 +115,7 @@ func (sl *Lease) Update(podName string) error {
 
 // Release method is implementation of  to release lease on a given spc.
 func (sl *Lease) Release() {
-	_, err := sl.patchSpcLeaseAnnotation()
+	err := sl.patchSpcLeaseAnnotation()
 	if err != nil {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
 		runtime.HandleError(newErr)
@@ -127,8 +130,11 @@ func (sl *Lease) getPodName() string {
 }
 
 // patchSpcLeaseAnnotation will patch the lease key annotation on spc object to release the lease
-func (sl *Lease) patchSpcLeaseAnnotation() (*apis.StoragePoolClaim, error) {
-	spcObject := sl.Object.(*apis.StoragePoolClaim)
+func (sl *Lease) patchSpcLeaseAnnotation() (error) {
+	spcObject, ok := sl.Object.(*apis.StoragePoolClaim)
+	if !ok {
+		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
+	}
 	spcPatch := make([]Patch, 1)
 	// setting operation as remove
 	spcPatch[0].Op = PatchOperation
@@ -138,15 +144,15 @@ func (sl *Lease) patchSpcLeaseAnnotation() (*apis.StoragePoolClaim, error) {
 	leaseValueObj.Holder = ""
 	newLeaseValue, err := json.Marshal(leaseValueObj)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	spcPatch[0].Value = string(newLeaseValue)
 	spcPatchJSON, err := json.Marshal(spcPatch)
 	if err != nil {
-		return nil, fmt.Errorf("Error marshalling spcPatch object: %s", err)
+		return fmt.Errorf("error marshalling spcPatch object: %s", err)
 	}
-	obj, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
-	return obj, err
+	_, err = sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
+	return err
 }
 
 // isLeaderLive checks whether the holder of lease is live or not
@@ -154,7 +160,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() (*apis.StoragePoolClaim, error) {
 
 // If the holder of lease is not live or does not exists the lease can be acquired
 // by the other contestant(i.e. maya pod)
-func (sl *Lease) isLeaderLive(leaseValueObj lease) bool {
+func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
 	holderName := leaseValueObj.Holder
 	podDetails := strings.Split(holderName, "/")
 	// Check whether the holder is live or not
@@ -173,7 +179,7 @@ func (sl *Lease) isLeaderLive(leaseValueObj lease) bool {
 // A lease is expired if it has a empty holder name.
 // The holder of lease can only expire the lease.
 // isLeaseExpired return true if the lease is expired.
-func isLeaseExpired(leaseValueObj lease) bool {
+func isLeaseExpired(leaseValueObj LeaseContract) bool {
 	if strings.TrimSpace(leaseValueObj.Holder) == "" {
 		return true
 	}
@@ -181,11 +187,11 @@ func isLeaseExpired(leaseValueObj lease) bool {
 }
 
 // parseLeaseValue will parse a leaseValue string to lease object
-func parseLeaseValue(leaseValue string) (lease, error) {
-	leaseValueObj := &lease{}
+func parseLeaseValue(leaseValue string) (LeaseContract, error) {
+	leaseValueObj := &LeaseContract{}
 	err := json.Unmarshal([]byte(leaseValue), leaseValueObj)
 	if err != nil {
-		return lease{}, err
+		return LeaseContract{}, err
 	}
 	return *leaseValueObj, nil
 }
@@ -194,7 +200,7 @@ func parseLeaseValue(leaseValue string) (lease, error) {
 func (sl *Lease) putKeyValue(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 	// make a map that should contain the lease key in spc
 	mapLease := make(map[string]string)
-	leaseValueObj := &lease{
+	leaseValueObj := &LeaseContract{
 		podName,
 		1,
 	}
@@ -210,7 +216,7 @@ func (sl *Lease) putKeyValue(podName string, newSpcObject *apis.StoragePoolClaim
 
 // putValue function will update lease on SPC if the holder of lease has released the lease successfully.
 func (sl *Lease) putValue(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
-	leaseValueObj := &lease{
+	leaseValueObj := &LeaseContract{
 		podName,
 		1,
 	}
