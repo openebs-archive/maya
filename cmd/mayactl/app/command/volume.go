@@ -162,15 +162,15 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 	if resp != nil && resp.StatusCode != 200 {
 		if resp.StatusCode == 500 {
 			fmt.Printf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues")
-			err = util.InternalServerError
+			err = util.ErrInternalServerError
 			return
 		} else if resp.StatusCode == 503 {
 			fmt.Printf("maya apiservice not reachable at %q\n", mapiserver.GetURL())
-			err = util.ServerUnavailable
+			err = util.ErrServerUnavailable
 			return
 		} else if resp.StatusCode == 404 {
 			fmt.Printf("Volume: %s not found at namespace: %q error: %s\n", volname, namespace, http.StatusText(resp.StatusCode))
-			err = util.PageNotFound
+			err = util.ErrPageNotFound
 			return
 		}
 		fmt.Printf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
