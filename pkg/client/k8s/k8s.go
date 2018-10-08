@@ -208,6 +208,12 @@ func (k *K8sClient) GetOECS() *openebs.Clientset {
 	return k.oecs
 }
 
+// GetKCS() is a getter method for fetching kube clientset as
+// the kube clientset is not exported.
+func (k *K8sClient) GetKCS() *kubernetes.Clientset {
+	return k.cs
+}
+
 // scOps is a utility function that provides a instance capable of
 // executing various K8s StorageClass related operations
 func (k *K8sClient) storageV1SCOps() typed_storage_v1.StorageClassInterface {

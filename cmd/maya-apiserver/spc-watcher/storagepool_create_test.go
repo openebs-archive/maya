@@ -19,12 +19,14 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	"testing"
 )
 
 func TestNewCasPool(t *testing.T) {
 	focs := &clientSet{
-		oecs: openebsFakeClientset.NewSimpleClientset(),
+		oecs:          openebsFakeClientset.NewSimpleClientset(),
+		kubeclientset: fake.NewSimpleClientset(),
 	}
 	// Make a map of string(key) to struct(value).
 	// Key of map describes test case behaviour.
@@ -175,8 +177,7 @@ func TestNewCasPool(t *testing.T) {
 			// newCasPool is the function under test.
 			if test.autoProvisioning {
 				// Get a fake openebs client set
-
-				focs.FakeDiskCreator()
+				focs.FakeDiskCreator(0, false, "")
 			}
 			CasPool, err := focs.newCasPool(test.fakestoragepoolclaim, test.reSync, test.pendingPoolCount)
 			if test.invalidDataInjection {
