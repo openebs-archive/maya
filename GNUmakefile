@@ -70,6 +70,7 @@ deps:
 	dep ensure
 
 clean:
+	go clean -testcache
 	rm -rf bin
 	rm -rf ${GOPATH}/bin/${MAYACTL}
 	rm -rf ${GOPATH}/bin/${APISERVER}

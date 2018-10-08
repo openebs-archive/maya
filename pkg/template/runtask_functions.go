@@ -20,7 +20,7 @@ import (
 	"strings"
 	"text/template"
 
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
+	cmd "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -30,8 +30,8 @@ import (
 // ---------
 // {{- delete jiva volume | run -}}
 // {{- delete cstor volume | run -}}
-func delete(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().DeleteAction())
+func delete(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().DeleteAction())
 }
 
 // get returns a new instance of get based runtask command
@@ -40,8 +40,9 @@ func delete(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- get jiva volume | run -}}
 // {{- get cstor volume | run -}}
-func get(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().GetAction())
+// {{- get http | url $url | run -}}
+func get(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().GetAction())
 }
 
 // list returns a new instance of list based runtask command
@@ -50,8 +51,8 @@ func get(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- list jiva volume | run -}}
 // {{- list cstor volume | run -}}
-func list(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().ListAction())
+func list(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().ListAction())
 }
 
 // create returns a new instance of create based runtask command
@@ -60,8 +61,26 @@ func list(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- create jiva volume | run -}}
 // {{- create cstor volume | run -}}
-func create(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().CreateAction())
+func create(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().CreateAction())
+}
+
+// post returns a new instance of post based runtask command
+//
+// Examples:
+// ---------
+// {{- post http | url $url -}}
+func post(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().PostAction())
+}
+
+// put returns a new instance of put based runtask command
+//
+// Examples:
+// ---------
+// {{- put http | url $url -}}
+func put(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().PutAction())
 }
 
 // patch returns a new instance of patch based runtask command
@@ -70,8 +89,8 @@ func create(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- patch jiva volume | run -}}
 // {{- patch cstor volume | run -}}
-func patch(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().PatchAction())
+func patch(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().PatchAction())
 }
 
 // update returns a new instance of update based runtask command
@@ -80,8 +99,18 @@ func patch(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- update jiva volume | run -}}
 // {{- update cstor volume | run -}}
-func update(ml ...RunCommandMiddleware) *RunCommand {
-	return RunCommandMiddlewareList(ml).Update(Command().UpdateAction())
+func update(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().UpdateAction())
+}
+
+// http returns a new instance of http based runtask command
+//
+// Examples:
+// ---------
+// {{- post http | url $url | run -}}
+// {{- get http | url $url | run -}}
+func http() cmd.RunCommandMiddleware {
+	return cmd.HttpCategory()
 }
 
 // jiva returns a new instance of jiva based runtask command
@@ -90,8 +119,8 @@ func update(ml ...RunCommandMiddleware) *RunCommand {
 // ---------
 // {{- get jiva volume | run -}}
 // {{- list jiva volume | run -}}
-func jiva() RunCommandMiddleware {
-	return JivaCategory()
+func jiva() cmd.RunCommandMiddleware {
+	return cmd.JivaCategory()
 }
 
 // cstor returns a new instance of cstor based runtask command
@@ -100,8 +129,8 @@ func jiva() RunCommandMiddleware {
 // ---------
 // {{- get cstor volume | run -}}
 // {{- list cstor volume | run -}}
-func cstor() RunCommandMiddleware {
-	return CstorCategory()
+func cstor() cmd.RunCommandMiddleware {
+	return cmd.CstorCategory()
 }
 
 // volume returns a new instance of volume based runtask command
@@ -112,8 +141,16 @@ func cstor() RunCommandMiddleware {
 // {{- list cstor volume | run -}}
 // {{- update jiva volume | run -}}
 // {{- create jiva volume | run -}}
-func volume() RunCommandMiddleware {
-	return VolumeCategory()
+func volume() cmd.RunCommandMiddleware {
+	return cmd.VolumeCategory()
+}
+
+// snapshot returns a new instance of snapshot based runtask command
+//
+// Examples:
+// {{- create cstor snapshot | run -}}
+func snapshot() cmd.RunCommandMiddleware {
+	return cmd.SnapshotCategory()
 }
 
 // slect returns the values of the specified paths post runtask command
@@ -125,21 +162,18 @@ func volume() RunCommandMiddleware {
 // {{- select "name" | list cstor volume | run -}}
 // {{- select "name" "namespace" | update jiva volume | run -}}
 // {{- select ".metadata.name" | create jiva volume | run -}}
-func slect(paths ...string) RunCommandMiddleware {
+func slect(paths ...string) cmd.RunCommandMiddleware {
 	if len(paths) == 0 {
 		paths = append(paths, "all")
 	}
-	return Select(paths)
+	return cmd.Select(paths)
 }
 
-// withoption sets the provided <key,value> pair as an input data to runtask command
+// withOption sets the provided <key,value> pair as an input data to run command
 //
-// Examples:
-// ---------
-// {{- $url := "http://10.10.10.10:9501" -}}
-// {{- delete jiva volume | withoption "url" $url | withoption "name" "myvol" | run -}}
-func withoption(key, value string, given *RunCommand) (updated *RunCommand) {
-	return WithData(given, key, value)
+// {{- delete jiva volume | withOption "url" $url | withOption "name" "myvol" | run -}}
+func withOption(key string, value interface{}, given *cmd.RunCommand) (updated *cmd.RunCommand) {
+	return cmd.WithData(given, key, value)
 }
 
 // run executes the runtask command
@@ -147,8 +181,65 @@ func withoption(key, value string, given *RunCommand) (updated *RunCommand) {
 // Examples:
 // ---------
 // {{- get jiva volume | run -}}
-func run(given *RunCommand) RunCommandResult {
+func run(given *cmd.RunCommand) cmd.RunCommandResult {
 	return given.Run()
+}
+
+// runAlways will always execute the provided command
+//
+// Examples:
+// ---------
+// {{- $cond := runAlways .TaskResult -}}
+// {{- $store :=  storeAt .TaskResult -}}
+// {{- $runner := storeRunnerCond $store $cond -}}
+func runAlways() cmd.RunCondition {
+	return cmd.RunAlways()
+}
+
+// storeAt sets the storage to save the command's execution result(s)
+//
+// Examples:
+// ---------
+// {{- $store :=  storeAt .TaskResult -}}
+// {{- $runner := storeRunner $store -}}
+func storeAt(kv map[string]interface{}) cmd.BucketStorageCondition {
+	return cmd.KVStore(kv)
+}
+
+// storeRunner provides a utility that helps executing a run command as well as
+// saving the execution result(s)
+//
+// Examples:
+// ---------
+// {{- $store :=  storeAt .TaskResult -}}
+// {{- $runner := storeRunner $store -}}
+func storeRunner(store cmd.BucketStorageCondition) cmd.Interface {
+	return cmd.StoreCommand(store)
+}
+
+// storeRunnerCond provides a utility that helps executing a run command as well
+// as saving the execution result(s)
+//
+// Examples:
+// ---------
+// {{- $cond := runAlways .TaskResult -}}
+// {{- $store :=  storeAt .TaskResult -}}
+// {{- $runner := storeRunnerCond $store $cond -}}
+func storeRunnerCond(store cmd.BucketStorage, cond cmd.RunCondition) cmd.Interface {
+	return cmd.StoreCommandCondition(store, cond)
+}
+
+// runas executes the runtask command by mapping it against a provided id
+//
+// Examples:
+// ---------
+// {{- $store :=  storeAt .TaskResult -}}
+// {{- $runner := storeRunner $store -}}
+// {{- get jiva volume | runas "getJivaVol" $runner -}}
+// {{- get cstor volume | runas "getCstorVol" $runner -}}
+func runas(id string, runner cmd.Interface, given *cmd.RunCommand) cmd.RunCommandResult {
+	runner.Map(id, given)
+	return runner.Run()
 }
 
 // runlog executes the runtask command and stores the result as well as other
@@ -166,7 +257,7 @@ func run(given *RunCommand) RunCommandResult {
 // Once above template gets executed '.Values' will have .Values.getj.result
 // and .Values.getj.extras set with result and extras due to runtask command
 // execution
-func runlog(resultpath, debugpath string, store map[string]interface{}, given *RunCommand) (res RunCommandResult) {
+func runlog(resultpath, debugpath string, store map[string]interface{}, given *cmd.RunCommand) (res cmd.RunCommandResult) {
 	res = run(given)
 
 	resultpath = strings.TrimPrefix(resultpath, ".")
@@ -185,18 +276,28 @@ func runlog(resultpath, debugpath string, store map[string]interface{}, given *R
 // runCommandFuncs returns the set of runtask command based template functions
 func runCommandFuncs() template.FuncMap {
 	return template.FuncMap{
-		"delete":     delete,
-		"get":        get,
-		"lst":        list,
-		"create":     create,
-		"patch":      patch,
-		"update":     update,
-		"jiva":       jiva,
-		"cstor":      cstor,
-		"volume":     volume,
-		"withoption": withoption,
-		"run":        run,
-		"runlog":     runlog,
-		"select":     slect,
+		"delete":          delete,
+		"get":             get,
+		"lst":             list,
+		"create":          create,
+		"post":            post,
+		"patch":           patch,
+		"update":          update,
+		"put":             put,
+		"jiva":            jiva,
+		"cstor":           cstor,
+		"volume":          volume,
+		"http":            http,
+		"withOption":      withOption,
+		"withoption":      withOption,
+		"run":             run,
+		"runlog":          runlog,
+		"select":          slect,
+		"snapshot":        snapshot,
+		"storeAt":         storeAt,
+		"storeRunner":     storeRunner,
+		"storeRunnerCond": storeRunnerCond,
+		"runas":           runas,
+		"runAlways":       runAlways,
 	}
 }

@@ -1,6 +1,6 @@
 **Test script for striped dynamic cstor pool provisioning for sparse and disk type storage pool claim.**
 
-```test.sh``` is the script that shhould be used to run tests.
+```test.sh``` is the script that should be used to run tests.
 
 ```striped_sparse_spc_test_cases``` folder contains the test cases for striped type of sparse claims whose provisioning mode is dynamic.
 

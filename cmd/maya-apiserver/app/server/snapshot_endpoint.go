@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
@@ -12,8 +11,10 @@ import (
 
 // SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
 func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.snapshotRequest(resp, req)
+
 	// Extract info from path after trimming
-	path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
+	/* path := strings.TrimPrefix(req.URL.Path, "/latest/snapshots")
 
 	// Check request validity
 	if path == req.URL.Path {
@@ -33,7 +34,7 @@ func (s *HTTPServer) snapshotSpecificRequest(resp http.ResponseWriter, req *http
 		return volOp.snapshotList(volName)
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
-	}
+	} */
 }
 
 // SnapshotCreate is http handler which handles snaphsot-create request

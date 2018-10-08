@@ -20,6 +20,84 @@ import (
 	"testing"
 )
 
+func TestSelectionValue(t *testing.T) {
+	tests := map[string]struct {
+		values   []string
+		expected string
+	}{
+		"101": {[]string{"hi", "there", "where"}, "hi"},
+		"102": {[]string{"", "there", "where"}, ""},
+		"103": {[]string{"hi", "", "where"}, "hi"},
+		"104": {[]string{"hi", "where", ""}, "hi"},
+		"105": {[]string{"hi", "there"}, "hi"},
+		"106": {[]string{"there"}, "there"},
+		"107": {[]string{}, ""},
+		"108": {nil, ""},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := &selection{Values: mock.values}
+			if s.Value() != mock.expected {
+				t.Fatalf("Test '%s' failed: expected '%s': actual '%s'", name, mock.expected, s.Value())
+			}
+		})
+	}
+}
+
+func TestSelectionList(t *testing.T) {
+	tests := map[string]struct {
+		aliasPaths    map[string]string
+		expectedCount int
+	}{
+		"101": {nil, 0},
+		"102": {map[string]string{}, 0},
+		"103": {map[string]string{"name": ".name"}, 1},
+		"104": {map[string]string{"name": ".spec.name", "namespace": ".spec.namespace"}, 2},
+		"105": {map[string]string{"name": ".spec.name", "capacity": ".config.capacity", "namespace": ".spec.namespace"}, 3},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			sl := SelectionList(mock.aliasPaths)
+			if len(sl) != mock.expectedCount {
+				t.Fatalf("Test '%s' failed: expected count '%d': actual count '%d'", name, mock.expectedCount, len(sl))
+			}
+		})
+	}
+}
+
+func TestSelectionListValues(t *testing.T) {
+	tests := map[string]struct {
+		alias          string
+		values         []string
+		isValuesArray  bool
+		isValuesString bool
+	}{
+		"101": {"1", []string{"a"}, false, true},
+		"102": {"1", []string{"a", "b"}, true, false},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			sl := selectionList{}
+			sl = append(sl, &selection{Alias: mock.alias, Values: mock.values})
+			m := sl.Values()
+			val := m[mock.alias]
+			if mock.isValuesArray {
+				if _, ok := val.([]string); !ok {
+					t.Fatalf("Test '%s' failed: expected []string values: actual '%#v'", name, val)
+				}
+			}
+			if mock.isValuesString {
+				if _, ok := val.(string); !ok {
+					t.Fatalf("Test '%s' failed: expected string value: actual '%#v'", name, val)
+				}
+			}
+		})
+	}
+}
+
 func TestJSONPathValues(t *testing.T) {
 	tests := map[string]struct {
 		target   interface{}
@@ -110,12 +188,11 @@ func TestSinglePathJsonQuery(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			sl := SelectionList{Selection(name, mock.path)}
 			j := JSONPath(name).WithTarget(mock.target)
-			ul := j.Query(sl)
+			s := j.Query(Selection(name, mock.path))
 
-			if mock.isVal && len(ul[0].Values) == 0 {
-				t.Fatalf("Test '%s' failed: expected queried value(s): actual %s", name, ul)
+			if mock.isVal && len(s.Values) == 0 {
+				t.Fatalf("Test '%s' failed: expected queried value(s): actual %s", name, s)
 			}
 
 			if !mock.isWarn && j.HasWarn() {
@@ -125,7 +202,7 @@ func TestSinglePathJsonQuery(t *testing.T) {
 	}
 }
 
-func TestQueryArrayOfStructs(t *testing.T) {
+func TestQueryAllWithJsonBytes(t *testing.T) {
 	target := []byte(`[
 		{"id": "i1", "x":4, "y":-5},
 		{"id": "i2", "x":-2, "y":-5, "z":1},
@@ -136,9 +213,9 @@ func TestQueryArrayOfStructs(t *testing.T) {
 	]`)
 
 	tests := map[string]struct {
-		namepaths map[string]string
-		isVal     bool
-		isWarn    bool
+		aliaspaths map[string]string
+		isVal      bool
+		isWarn     bool
 	}{
 		"101": {map[string]string{"s1": "{[?(@.id)].x}"}, true, false},
 		"102": {map[string]string{"s1": "{[?(@.id)].x}", "s2": "{[0]['id']}"}, true, false},
@@ -147,25 +224,22 @@ func TestQueryArrayOfStructs(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			j := JSONPath(name).WithTargetAsRaw(target)
-			var sl = SelectionList{}
-			for n, p := range mock.namepaths {
-				sl = append(sl, Selection(n, p))
-			}
-			ul := j.Query(sl)
+			sl := SelectionList(mock.aliaspaths)
+			ul := j.QueryAll(sl)
 
 			if mock.isVal {
-				for n, p := range mock.namepaths {
-					if len(ul.ValueByName(n)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, n, p, ul)
+				for a, p := range mock.aliaspaths {
+					if len(ul.ValueByAlias(a)) == 0 {
+						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, a, p, ul)
 					}
-					if len(ul.ValuesByName(n)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, n, p, ul)
+					if len(ul.ValuesByAlias(a)) == 0 {
+						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, a, p, ul)
 					}
 					if len(ul.ValueByPath(p)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, n, p, ul)
+						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, a, p, ul)
 					}
 					if len(ul.ValuesByPath(p)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, n, p, ul)
+						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, a, p, ul)
 					}
 				}
 			}
@@ -176,7 +250,7 @@ func TestQueryArrayOfStructs(t *testing.T) {
 	}
 }
 
-func TestQueryJsonCollection(t *testing.T) {
+func TestQueryAllJivaPayload(t *testing.T) {
 	target := []byte(`{
     "data": [
       {
@@ -202,9 +276,9 @@ func TestQueryJsonCollection(t *testing.T) {
   }`)
 
 	tests := map[string]struct {
-		namepaths map[string]string
-		isVal     bool
-		isWarn    bool
+		aliaspaths map[string]string
+		isVal      bool
+		isWarn     bool
 	}{
 		"101": {map[string]string{"dlink": "{.data[?(@.name=='def-vol-claim-mysql-76555')].actions.deletevolume}"}, true, false},
 	}
@@ -212,25 +286,22 @@ func TestQueryJsonCollection(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			j := JSONPath(name).WithTargetAsRaw(target)
-			var sl = SelectionList{}
-			for n, p := range mock.namepaths {
-				sl = append(sl, Selection(n, p))
-			}
-			ul := j.Query(sl)
+			sl := SelectionList(mock.aliaspaths)
+			ul := j.QueryAll(sl)
 
 			if mock.isVal {
-				for n, p := range mock.namepaths {
-					if len(ul.ValueByName(n)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, n, p, ul)
+				for a, p := range mock.aliaspaths {
+					if len(ul.ValueByAlias(a)) == 0 {
+						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, a, p, ul)
 					}
-					if len(ul.ValuesByName(n)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, n, p, ul)
+					if len(ul.ValuesByAlias(a)) == 0 {
+						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, a, p, ul)
 					}
 					if len(ul.ValueByPath(p)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, n, p, ul)
+						t.Fatalf("Test '%s' failed: expected value for select %s %s: actual %s", name, a, p, ul)
 					}
 					if len(ul.ValuesByPath(p)) == 0 {
-						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, n, p, ul)
+						t.Fatalf("Test '%s' failed: expected value(s) for select %s %s: actual %s", name, a, p, ul)
 					}
 				}
 			}
