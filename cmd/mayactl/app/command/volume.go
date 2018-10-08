@@ -126,17 +126,17 @@ func NewCmdVolume() *cobra.Command {
 func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sourcenameverify, volnameverify bool) error {
 	if snapshotnameverify {
 		if len(c.snapshotName) == 0 {
-			return errors.New("--snapname is missing. Please provide a snapshotname")
+			return errors.New("error: --snapname not specified.")
 		}
 	}
 	if sourcenameverify {
 		if len(c.sourceVolumeName) == 0 {
-			return errors.New("--sourcevol is missing. Please specify a sourcevolumename")
+			return errors.New("error: --sourcevol not specified.")
 		}
 	}
 	if volnameverify {
 		if len(c.volName) == 0 {
-			return errors.New("error: --volname not specified")
+			return errors.New("error: --volname not specified.")
 		}
 	}
 	return nil
