@@ -133,12 +133,12 @@ func (c *ReplicaClient) GetVolumeStats(address string, obj interface{}) (int, er
 	resp, err := replica.httpClient.Get(url)
 	if resp != nil {
 		if resp.StatusCode == 500 {
-			return 500, util.InternalServerError
+			return 500, util.ErrInternalServerError
 		} else if resp.StatusCode == 503 {
-			return 503, util.ServerUnavailable
+			return 503, util.ErrServerUnavailable
 		}
 	} else {
-		return -1, util.ServerNotReachable
+		return -1, util.ErrServerNotReachable
 	}
 	if err != nil {
 		return -1, err

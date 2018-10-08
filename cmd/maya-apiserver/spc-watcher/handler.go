@@ -71,15 +71,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		// CreateStoragePool function will create the storage pool
 		// It is a create event so resync should be false and pendingPoolcount is passed 0
 		// pendingPoolcount is not used when resync is false.
-		var newSpcLease Leases
-		newSpcLease = &spcLease{spcGot, SpcLeaseKey, c.clientset}
-		_, err := newSpcLease.GetLease()
-		if err != nil {
-			glog.Errorf("Could not acquire lease on spc object:%v", err)
-			return addEvent, err
-		}
-		err = CreateStoragePool(spcGot, false, 0)
-
+		err := c.CreateStoragePool(spcGot, false, 0)
 		if err != nil {
 			glog.Error("Storagepool could not be created:", err)
 			// To-Do
@@ -95,7 +87,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		return updateEvent, nil
 		break
 	case syncEvent:
-		err := syncSpc(spcGot)
+		err := c.syncSpc(spcGot)
 		if err != nil {
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
@@ -156,7 +148,7 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 	return spcGot, nil
 }
 
-func syncSpc(spcGot *apis.StoragePoolClaim) error {
+func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 	if len(spcGot.Spec.Disks.DiskList) > 0 {
 		// TODO : reconciliation for manual storagepool provisioning
 		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
@@ -186,7 +178,7 @@ func syncSpc(spcGot *apis.StoragePoolClaim) error {
 		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
 		pendingPoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
 		// Call the storage pool create logic to provision the pending pools.
-		err := CreateStoragePool(spcGot, true, pendingPoolCount)
+		err := c.CreateStoragePool(spcGot, true, pendingPoolCount)
 		if err != nil {
 			return err
 		}

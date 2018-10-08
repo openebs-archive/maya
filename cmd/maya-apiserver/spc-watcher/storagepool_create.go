@@ -39,19 +39,27 @@ const (
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
-func CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) error {
-
+func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) error {
 	if reSync {
 		glog.Infof("Storagepool resync event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
 	} else {
 		glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
 	}
-
 	// Check wether the spc object has been processed for storagepool creation
 	if spcGot.Status.Phase == onlineStatus && !reSync {
 		glog.Infof("Storagepool already exists since the status on storagepoolclaim object %s is Online", spcGot.Name)
 		return nil
 	}
+	var newSpcLease Leaser
+	newSpcLease = &Lease{spcGot, SpcLeaseKey, c.clientset, c.kubeclientset}
+	err := newSpcLease.Hold()
+	if err != nil {
+		glog.Errorf("Could not acquire lease on spc object:%v", err)
+		return err
+	}
+	glog.Info("Lease acquired successfully on storagepoolclaim %s ", spcGot.Name)
+
+	defer newSpcLease.Release()
 
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.

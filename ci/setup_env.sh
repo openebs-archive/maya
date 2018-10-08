@@ -20,7 +20,7 @@ fi
 
 printf "\n\n"
 
-echo "************** Running Jiva mayactl volume info **************************"
+echo "************** Running Jiva mayactl volume describe **************************"
 ${MAYACTL} volume describe --volname $JIVAVOL
 rc=$?;
 if [[ $rc != 0 ]]; then
@@ -91,7 +91,7 @@ if [[ $rc != 0 ]]; then
 fi
 
 printf "\n\n"
-echo "************** Running Cstor mayactl volume info *************************"
+echo "************** Running Cstor mayactl volume describe *************************"
 ${MAYACTL} volume describe --volname $CSTORVOL
 rc=$?;
 if [[ $rc != 0 ]]; then

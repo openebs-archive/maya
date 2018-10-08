@@ -14,14 +14,14 @@ cd "$DIR"
 # Get the git commit
 if [ -f $GOPATH/src/github.com/openebs/maya/GITCOMMIT ];
 then
-	GIT_CIMMIT="`cat $GOPATH/src/github.com/openebs/maya/GITCOMMIT`"
+    GIT_COMMIT="$(cat $GOPATH/src/github.com/openebs/maya/GITCOMMIT)"
 else
-	GIT_COMMIT="$(git rev-parse HEAD)"
+    GIT_COMMIT="$(git rev-parse HEAD)"
 fi
 
 # Get the version details
-VERSION="`cat $GOPATH/src/github.com/openebs/maya/VERSION`"
-VERSION_META="`cat $GOPATH/src/github.com/openebs/maya/BUILDMETA`"
+VERSION="$(cat $GOPATH/src/github.com/openebs/maya/VERSION)"
+VERSION_META="$(cat $GOPATH/src/github.com/openebs/maya/BUILDMETA)"
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64"}
@@ -47,7 +47,7 @@ if [[ "${MAYA_DEV}" ]]; then
 fi
 
 # Build!
-echo "==> Building mayactl using `go version`... "
+echo "==> Building mayactl using $(go version)... "
 for GOOS in "${XC_OSS[@]}"
 do
     for GOARCH in "${XC_ARCHS[@]}"
@@ -58,7 +58,7 @@ do
             output_name+='.exe'
         fi
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-           "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+            "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
             -X main.CtlName='${CTLNAME}' \
             -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
             -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
@@ -98,7 +98,7 @@ if [[ "x${MAYA_DEV}" == "x" ]]; then
         OSARCH=$(basename ${PLATFORM})
         echo "--> ${OSARCH}"
 
-        pushd $PLATFORM >/dev/null 2>&1
+        pushd "$PLATFORM" >/dev/null 2>&1
         zip ../maya-${OSARCH}.zip ./*
         popd >/dev/null 2>&1
     done
