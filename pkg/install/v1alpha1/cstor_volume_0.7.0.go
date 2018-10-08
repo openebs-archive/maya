@@ -147,8 +147,6 @@ spec:
     options: |-
     {{- if ne $isClone "false" }}
       labelSelector: openebs.io/persistent-volume={{ .Volume.sourceVolume }}
-    {{- else }}
-      labelSelector: ignore: "true"
     {{- end }}
   post: |
     {{- $poolsList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.labels.cstorpool\\.openebs\\.io/uid}={@.metadata.labels.cstorpool\\.openebs\\.io/name};{end}" | trim | default "" | splitListTrim ";" -}}
