@@ -42,14 +42,14 @@ func TestIsCommand(t *testing.T) {
 				},
 			},
 			isCommand: false},
-		"kindNotCommand#2": {
+		"kindDeployment#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Deployment",
 				},
 			},
 			isCommand: false},
-		"kindNotCommand#3": {
+		"kindNotCommand#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Commands",
@@ -87,14 +87,14 @@ func TestIsPod(t *testing.T) {
 				},
 			},
 			isPod: false},
-		"kindNotPod#2": {
+		"kindDeployment#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Deployment",
 				},
 			},
 			isPod: false},
-		"kindNotPod#3": {
+		"kindNotPod#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pods",
@@ -132,14 +132,14 @@ func TestIsDeployment(t *testing.T) {
 				},
 			},
 			isDeployment: false},
-		"kindNotDeployment#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isDeployment: false},
-		"kindNotDeployment#3": {
+		"kindNotDeployment#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Deployments",
@@ -178,14 +178,14 @@ func TestIsService(t *testing.T) {
 				},
 			},
 			isService: false},
-		"kindNotService#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isService: false},
-		"kindNotService#3": {
+		"kindNotService#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Services",
@@ -224,14 +224,14 @@ func TestIsStoragePoolClaim(t *testing.T) {
 				},
 			},
 			isStoragePoolClaim: false},
-		"kindNotStoragePooClaim#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isStoragePoolClaim: false},
-		"kindNotStoragePooClaim#3": {
+		"kindNotStoragePooClaim#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "StoragePoolClaims",
@@ -270,14 +270,14 @@ func TestIsStoragePool(t *testing.T) {
 				},
 			},
 			isStoragePool: false},
-		"kindNotStoragePool#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isStoragePool: false},
-		"kindNotStoragePool#3": {
+		"kindNotStoragePool#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "StoragePools",
@@ -316,14 +316,14 @@ func TestIsConfigMap(t *testing.T) {
 				},
 			},
 			isConfigMap: false},
-		"kindNotConfigMap#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isConfigMap: false},
-		"kindNotConfigMap#3": {
+		"kindNotConfigMap#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "ConfigMaps",
@@ -362,14 +362,14 @@ func TestIsPV(t *testing.T) {
 				},
 			},
 			isPV: false},
-		"kindNotPV#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isPV: false},
-		"kindNotPV#3": {
+		"kindNotPV#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "PersistentVolumes",
@@ -408,14 +408,14 @@ func TestIsPVC(t *testing.T) {
 				},
 			},
 			isPVC: false},
-		"kindNotPVC#2": {
+		"kindPod": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "Pod",
 				},
 			},
 			isPVC: false},
-		"kindNotPVC#3": {
+		"kindNotPVC#2": {
 			taskIdentifier: taskIdentifier{
 				identity: MetaTaskIdentity{
 					Kind: "PersistentVolumeClaims",
