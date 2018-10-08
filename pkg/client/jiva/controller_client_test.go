@@ -44,7 +44,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(replicaResponse),
 				T:            t,
 			},
-			err: util.InternalServerError,
+			err: util.ErrInternalServerError,
 		},
 		"503ServerUnavailable": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -52,7 +52,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(replicaResponse),
 				T:            t,
 			},
-			err: util.ServerUnavailable,
+			err: util.ErrServerUnavailable,
 		},
 		"BadRequest": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -90,7 +90,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(controllerResponse),
 				T:            t,
 			},
-			err: util.InternalServerError,
+			err: util.ErrInternalServerError,
 		},
 		"503_ServerUnavailable": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -98,7 +98,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(controllerResponse),
 				T:            t,
 			},
-			err: util.ServerUnavailable,
+			err: util.ErrServerUnavailable,
 		},
 		"Bad_Request": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -144,7 +144,7 @@ func TestGetVolumeAccessMode(t *testing.T) {
 				ResponseBody: string(v1ReplicasResponse),
 				T:            t,
 			},
-			err: util.InternalServerError,
+			err: util.ErrInternalServerError,
 		},
 		"503ServerUnavailable": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -152,7 +152,7 @@ func TestGetVolumeAccessMode(t *testing.T) {
 				ResponseBody: string(v1ReplicasResponse),
 				T:            t,
 			},
-			err: util.ServerUnavailable,
+			err: util.ErrServerUnavailable,
 		},
 		"BadRequest": {
 			fakeHandler: utiltesting.FakeHandler{
