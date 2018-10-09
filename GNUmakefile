@@ -56,13 +56,13 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image
 
 dev: format
-	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh maya'"
+	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'" maya
 
 mayactl:
 	@echo "----------------------------"
 	@echo "--> mayactl                    "
 	@echo "----------------------------"
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh maya'"
+	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'" maya
 
 initialize: bootstrap
 
@@ -224,7 +224,7 @@ exporter:
 	@echo "----------------------------"
 	@echo "--> maya-exporter              "
 	@echo "----------------------------"
-	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh exporter'"
+	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'" exporter
 
 # m-exporter image. This is going to be decoupled soon.
 exporter-image: exporter
@@ -240,7 +240,7 @@ apiserver:
 	@echo "----------------------------"
 	@echo "--> maya-apiserver               "
 	@echo "----------------------------"
-	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/build.sh apiserver'"
+	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/build.sh'" apiserver
 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
