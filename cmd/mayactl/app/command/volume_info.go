@@ -38,7 +38,7 @@ var (
 This command fetches information and status of the various
 aspects of a Volume such as ISCSI, Controller, and Replica.
 
-Usage: mayactl volume info --volname <vol>
+Usage: mayactl volume describe --volname <vol>
 `
 )
 
