@@ -69,6 +69,7 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - cstor-volume-create-listclonecstorvolumecr-default-0.7.0
     - cstor-volume-create-listcstorpoolcr-default-0.7.0
     - cstor-volume-create-puttargetservice-default-0.7.0
     - cstor-volume-create-putcstorvolumecr-default-0.7.0
@@ -130,6 +131,30 @@ spec:
     - cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
   output: cstor-volume-list-output-default-0.7.0
 ---
+# runTask to list cvrs if this is a clone volume
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-create-listclonecstorvolumecr-default-0.7.0
+spec:
+  meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    id: cvolcreatelistclonecvr
+    runNamespace: {{.Config.RunNamespace.value}}
+    apiVersion: openebs.io/v1alpha1
+    kind: CStorVolumeReplica
+    action: list
+    options: |-
+    {{- if ne $isClone "false" }}
+      labelSelector: openebs.io/persistent-volume={{ .Volume.sourceVolume }}
+    {{- end }}
+  post: |
+    {{- $poolsList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.labels.cstorpool\\.openebs\\.io/uid}={@.metadata.labels.cstorpool\\.openebs\\.io/name};{end}" | trim | default "" | splitListTrim ";" -}}
+    {{- $poolsList | saveAs "pl" .ListItems -}}
+    {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
+    {{- $poolsNodeList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.labels.cstorpool\\.openebs\\.io/uid}={@.metadata.annotations.cstorpool\\.openebs\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
+    {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
+---
 # runTask to list cstor pools
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -145,6 +170,11 @@ spec:
     options: |-
       labelSelector: openebs.io/storage-pool-claim={{ .Config.StoragePoolClaim.value }}
   post: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{/*
+    If clone is not enabled then override changes of previous runtask
+    */}}
+    {{- if eq $isClone "false" }}
     {{/*
     Check if enough online pools are present to create replicas.
     If pools are not present error out.
@@ -157,6 +187,7 @@ spec:
     {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
     {{- $poolsNodeList := jsonpath .JsonResult "{range .items[?(@.status.phase=='Online')]}pkey=pools,{@.metadata.uid}={@.metadata.labels.kubernetes\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
     {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
+    {{- end }}
 ---
 # runTask to create cStor target service
 apiVersion: openebs.io/v1alpha1
