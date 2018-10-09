@@ -33,25 +33,25 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// volumeOperationOptions contains the options with respect to
+// OperationOptions contains the options with respect to
 // volume related operations
-type volumeOperationOptions struct {
+type OperationOptions struct {
 	// k8sClient will make K8s API calls
 	k8sClient *m_k8s_client.K8sClient
 }
 
-// VolumeOperation exposes methods with respect to volume related operations
+// Operation exposes methods with respect to volume related operations
 // e.g. read, create, delete.
-type VolumeOperation struct {
-	// volumeOperationOptions has the options to various volume related
+type Operation struct {
+	// OperationOptions has the options to various volume related
 	// operations
-	volumeOperationOptions
+	OperationOptions
 	// volume to create or read or delete
 	volume *v1alpha1.CASVolume
 }
 
-// NewVolumeOperation returns a new instance of volumeOperation
-func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
+// NewOperation returns a new instance of volumeOperation
+func NewOperation(volume *v1alpha1.CASVolume) (*Operation, error) {
 	if volume == nil {
 		return nil, fmt.Errorf("failed to instantiate volume operation: nil volume was provided")
 	}
@@ -65,16 +65,16 @@ func NewVolumeOperation(volume *v1alpha1.CASVolume) (*VolumeOperation, error) {
 		return nil, err
 	}
 
-	return &VolumeOperation{
+	return &Operation{
 		volume: volume,
-		volumeOperationOptions: volumeOperationOptions{
+		OperationOptions: OperationOptions{
 			k8sClient: kc,
 		},
 	}, nil
 }
 
 // getCloneLabels returns a map of clone specific configuration
-func (v *VolumeOperation) getCloneLabels() (map[string]interface{}, error) {
+func (v *Operation) getCloneLabels() (map[string]interface{}, error) {
 	// Initially all the values are set to their defaults
 	cloneLabels := map[string]interface{}{
 		string(v1alpha1.SnapshotNameVTP):         "",
@@ -104,7 +104,7 @@ func (v *VolumeOperation) getCloneLabels() (map[string]interface{}, error) {
 }
 
 // Create provisions an OpenEBS volume
-func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
+func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	if v.k8sClient == nil {
 		return nil, fmt.Errorf("unable to create volume: nil k8s client")
 	}
@@ -204,7 +204,7 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 }
 
 // Delete removes a CASVolume
-func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
+func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
@@ -266,7 +266,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 }
 
 // Get the openebs volume details
-func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
+func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
@@ -335,18 +335,18 @@ func (v *VolumeOperation) Read() (*v1alpha1.CASVolume, error) {
 	return vol, nil
 }
 
-// VolumeListOperation exposes methods to execute volume list operation
-type VolumeListOperation struct {
-	// volumeOperationOptions has the options to various volume related
+// ListOperation exposes methods to execute volume list operation
+type ListOperation struct {
+	// OperationOptions has the options to various volume related
 	// operations
-	volumeOperationOptions
+	OperationOptions
 	// volumes to list operation
 	volumes *v1alpha1.CASVolumeList
 }
 
-// NewVolumeListOperation returns a new instance of VolumeListOperation that is
+// NewListOperation returns a new instance of ListOperation that is
 // capable of listing volumes
-func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperation, error) {
+func NewListOperation(volumes *v1alpha1.CASVolumeList) (*ListOperation, error) {
 	if volumes == nil {
 		return nil, fmt.Errorf("failed to instantiate 'volume list operation': nil list options provided")
 	}
@@ -356,16 +356,16 @@ func NewVolumeListOperation(volumes *v1alpha1.CASVolumeList) (*VolumeListOperati
 		return nil, err
 	}
 
-	return &VolumeListOperation{
+	return &ListOperation{
 		volumes: volumes,
-		volumeOperationOptions: volumeOperationOptions{
+		OperationOptions: OperationOptions{
 			k8sClient: kc,
 		},
 	}, nil
 }
 
 // List returns a list of CASVolumeList
-func (v *VolumeListOperation) List() (*v1alpha1.CASVolumeList, error) {
+func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	// cas template to list cas volumes
 	castNames := menv.Get(menv.CASTemplateToListVolumeENVK)
 	if len(castNames) == 0 {

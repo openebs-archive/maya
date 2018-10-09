@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file has volume specific implementation of cas template engine
+// Package volume contains specific implementation of cas template engine
 package volume
 
 import (
@@ -81,7 +81,7 @@ func NewCASVolumeEngine(
 	casConfigSC string,
 	casTemplate *v1alpha1.CASTemplate,
 	runtimeKey string,
-	runtimeVolumeValues map[string]interface{}) (volumeEngine *casVolumeEngine, err error) {
+	runtimeVolumeValues map[string]interface{}) (volumeEngine engine.CASCreator, err error) {
 
 	if len(strings.TrimSpace(runtimeKey)) == 0 {
 		err = fmt.Errorf("failed to create cas template engine: nil runtime volume key was provided")
