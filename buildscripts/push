@@ -91,4 +91,3 @@ then
 else
   echo "No docker credentials provided. Skip uploading ${DIMAGE} to quay";
 fi;
-
