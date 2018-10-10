@@ -3,7 +3,7 @@
 # This script builds the application from source for multiple platforms.
 set -e
 
-case $1 in
+case ${1} in
 	"maya")
     env_goos="mayactl"
     dev_name=$MAYA_DEV;;
@@ -15,7 +15,7 @@ case $1 in
     dev_name=$M_APISERVER_DEV;;
 	*)
 		echo "Invalid argument."
-    break;;
+    exit;;
 esac
 
 
@@ -52,31 +52,26 @@ rm -rf bin/$1/*
 mkdir -p bin/$1/
 
 
-if [$1 = "maya"];
+if [ $1 = "maya" ];
 then
   if [ -z "${MAYACTL}" ];
   then
     MAYACTL="mayactl"
-    MIDVAR="mayactl"
   fi
-  # If its dev mode, only build for ourself
-  if [[ "${dev_name}" ]]; then
-    XC_OS=$(go env GOOS)
-    XC_ARCH=$(go env GOARCH)
-  fi
+	MIDVAR=$MAYACTL
 
 else
   if [ -z "${CTLNAME}" ];
   then
     CTLNAME="$1"
-    MIDVAR="$1"
   fi
-  # If its dev mode, only build for ourself
-  if [[ "${dev_name}" ]]; then
-      XC_OS=$(go env GOOS)
-      XC_ARCH=$(go env GOARCH)
-  fi
+	MIDVAR=$CTLNAME
+fi
 
+# If its dev mode, only build for ourself
+if [[ "${dev_name}" ]]; then
+	XC_OS=$(go env GOOS)
+	XC_ARCH=$(go env GOARCH)
 fi
 
 # Build!
