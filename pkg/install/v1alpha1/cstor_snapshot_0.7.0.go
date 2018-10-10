@@ -99,5 +99,74 @@ spec:
     spec:
       casType: cstor
       volumeName: {{ .Snapshot.volumeName }}
+---
+apiVersion: openebs.io/v1alpha1
+kind: CASTemplate
+metadata:
+  labels:
+    openebs.io/version: 0.7.0
+  name: cstor-snapshot-delete-default-0.7.0
+spec:
+  defaultConfig:
+  - name: RunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
+  output: cstor-snapshot-delete-output-default-0.7.0
+  run:
+    tasks:
+    - cstor-snapshot-delete-listtargetservice-default-0.7.0
+    - cstor-snapshot-delete-deletesnapshot-default-0.7.0
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-snapshot-delete-listtargetservice-default-0.7.0
+spec:
+  meta: |
+    runNamespace: {{ .Config.RunNamespace.value }}
+    apiVersion: v1
+    id: readlistsvc
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/target-service=cstor-target-svc,openebs.io/persistent-volume={{ .Snapshot.volumeName }}
+  post: |-
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
+    {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-snapshot-delete-deletesnapshot-default-0.7.0
+spec:
+  meta: |
+    id: deletecstorsnap
+    kind: Command
+  post: |
+    {{- $runCommand := delete cstor snapshot | withoption "ip" .TaskResult.readlistsvc.clusterIP -}}
+    {{- $runCommand := $runCommand | withoption "volname" .Snapshot.volumeName -}}
+    {{- $runCommand | withoption "snapname" .Snapshot.owner | run | saveas "deletecstorsnap" .TaskResult -}}
+    {{- $err := .TaskResult.deletecstorsnap.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "deletecstorsnap.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-snapshot-delete-output-default-0.7.0
+spec:
+  meta: |
+    action: output
+    id: cstorsnapshotoutput
+    kind: CASSnapshot
+    apiVersion: v1alpha1
+  task: |-
+    kind: CASSnapshot
+    apiVersion: v1alpha1
+    metadata:
+      name: {{ .Snapshot.owner }}
+    spec:
+      casType: cstor
+      volumeName: {{ .Snapshot.volumeName }}
 ---`
 }
