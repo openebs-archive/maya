@@ -104,6 +104,10 @@ if [[ "x${MAYA_DEV}" == "x" ]]; then
     done
 fi
 
+echo
+echo "==> Adding autocompletion..."
+./bin/maya/mayactl -y -complete > /dev/null
+
 # Done!
 echo
 echo "==> Results:"
