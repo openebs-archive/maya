@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	// SkipExecutionMessage will skip run command execution
 	SkipExecutionMessage string = "will skip run command execution"
 )
 
@@ -34,14 +35,22 @@ const (
 type RunCommandAction string
 
 const (
+	// DeleteCommandAction represents a run command as a delete action
 	DeleteCommandAction RunCommandAction = "delete"
+	// CreateCommandAction represents a run command as a create action
 	CreateCommandAction RunCommandAction = "create"
-	PostCommandAction   RunCommandAction = "post"
-	GetCommandAction    RunCommandAction = "get"
-	ListCommandAction   RunCommandAction = "list"
-	PatchCommandAction  RunCommandAction = "patch"
+	// PostCommandAction represents a run command as a post action
+	PostCommandAction RunCommandAction = "post"
+	// GetCommandAction represents a run command as a get action
+	GetCommandAction RunCommandAction = "get"
+	// ListCommandAction represents a run command as a list action
+	ListCommandAction RunCommandAction = "list"
+	// PatchCommandAction represents a run command as a patch action
+	PatchCommandAction RunCommandAction = "patch"
+	// UpdateCommandAction represents a run command as a update action
 	UpdateCommandAction RunCommandAction = "update"
-	PutCommandAction    RunCommandAction = "put"
+	// PutCommandAction represents a run command as a put action
+	PutCommandAction RunCommandAction = "put"
 )
 
 // RunCommandCategory represents the category of the run command. It helps
@@ -52,11 +61,17 @@ const (
 type RunCommandCategory string
 
 const (
-	JivaCommandCategory     RunCommandCategory = "jiva"
-	CstorCommandCategory    RunCommandCategory = "cstor"
-	VolumeCommandCategory   RunCommandCategory = "volume"
-	PoolCommandCategory     RunCommandCategory = "pool"
-	HttpCommandCategory     RunCommandCategory = "http"
+	// JivaCommandCategory categorises the run command as jiva based
+	JivaCommandCategory RunCommandCategory = "jiva"
+	// CstorCommandCategory categorises the run command as cstor based
+	CstorCommandCategory RunCommandCategory = "cstor"
+	// VolumeCommandCategory categorises the run command as volume based
+	VolumeCommandCategory RunCommandCategory = "volume"
+	// PoolCommandCategory categorises the run command as pool based
+	PoolCommandCategory RunCommandCategory = "pool"
+	// HttpCommandCategory categorises the run command as http based
+	HttpCommandCategory RunCommandCategory = "http"
+	// SnapshotCommandCategory categorises the run command as snapshot based
 	SnapshotCommandCategory RunCommandCategory = "snapshot"
 )
 
@@ -260,6 +275,7 @@ func (s SelectPaths) QueryCommandResult(r RunCommandResult) (u RunCommandResult)
 	return
 }
 
+// These represents error messages
 var (
 	ErrorNotSupportedCategory = errors.New("not supported category: invalid run command")
 	ErrorNotSupportedAction   = errors.New("not supported action: invalid run command")
@@ -356,7 +372,7 @@ func Command() *RunCommand {
 	return &RunCommand{Msgs: &msg.Msgs{}, WillRun: true}
 }
 
-// Enables enables or disables execution of RunCommand instance based on the
+// Enable enables or disables execution of RunCommand instance based on the
 // outcome of given predicate
 func (c *RunCommand) Enable(p RunPredicate) (u *RunCommand) {
 	c.WillRun = p()
@@ -459,6 +475,7 @@ func (c *RunCommand) String() string {
 	return msg.YamlString("runcommand", c)
 }
 
+// Result is the name of method on RunCommand
 func (c *RunCommand) Result(result interface{}) (r RunCommandResult) {
 	return NewRunCommandResult(result, c.AllMsgs())
 }
