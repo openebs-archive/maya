@@ -44,7 +44,7 @@ spec:
     tasks:
     - jiva-snapshot-create-listsourcetargetservice-default-0.7.0
     - jiva-snapshot-create-invokehttp-default-0.7.0
-    - jiva-snapshot-create-output-default-0.7.0
+  output: jiva-snapshot-create-output-default-0.7.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
