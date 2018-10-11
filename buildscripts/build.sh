@@ -13,6 +13,12 @@ case ${1} in
 	"apiserver")
     env_goos="maya-apiserver"
     dev_name=$M_APISERVER_DEV;;
+	"cstor-pool-mgmt")
+		env_goos="cstor-pool-mgmt"
+		dev_name=$POOL_MGMT_DEV;;
+	"cstor-volume-mgmt")
+		env_goos="cstor-volume-grpc"
+		dev_name=$VOLUME_MGMT_DEV;;
 	*)
 		echo "Invalid argument."
     exit;;
@@ -47,7 +53,7 @@ XC_ARCHS=(${XC_ARCH// / })
 XC_OSS=(${XC_OS// / })
 
 # Delete the old contents : maya, exporter, apiserver
-echo "==> Removing old directory..."
+echo "==> Removing old bin/$1 contents..."
 rm -rf bin/$1/*
 mkdir -p bin/$1/
 
@@ -85,6 +91,15 @@ do
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
         fi
+				if [ $1 = "cstor-volume-mgmt" ]; then
+					env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+	           "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+	            -X main.CtlName='${CTLNAME}' \
+	            -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
+	            -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
+	            -o $output_name\
+	           ./cmd/cstor-volume-mgmt
+				fi
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
             "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
             -X main.CtlName='${CTLNAME}' \
@@ -126,7 +141,7 @@ if [[ "x${dev_name}" == "x" ]]; then
         echo "--> ${OSARCH}"
 
         pushd $PLATFORM >/dev/null 2>&1
-        zip ../$1-${OSARCH}.zip ./*
+        zip ../${MIDVAR}-${OSARCH}.zip ./*
         popd >/dev/null 2>&1
     done
 fi

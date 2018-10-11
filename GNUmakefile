@@ -182,7 +182,7 @@ cstor-pool-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-pool-mgmt           "
 	@echo "----------------------------"
-	@CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/cstor-pool-mgmt/build.sh'"
+	@CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/build.sh' cstor-pool-mgmt"
 
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
@@ -197,7 +197,7 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt           "
 	@echo "----------------------------"
-	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
+	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh' cstor-volume-mgmt"
 
 #Use this to build cstor-volume-grpc
 cstor-volume-grpc:
