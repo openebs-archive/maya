@@ -21,7 +21,7 @@ type StorageBackendAdaptorSpec struct {
 	Spec magentyptesv1.StorageBackendAdaptor `json:"spec"`
 }
 
-// StorageBackendAdaptorList struct is a list of storage backend adaptor 
+// StorageBackendAdaptorList struct is a list of storage backend adaptor
 type StorageBackendAdaptorList struct {
 	metav1.TypeMeta `json:",inline"`
 	Metadata        metav1.ListMeta `json:"metadata"`
