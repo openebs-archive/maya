@@ -218,7 +218,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getReadCASTemplate(sc)
+	castName := getDeleteCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
 	}

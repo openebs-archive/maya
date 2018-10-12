@@ -98,7 +98,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 		vol.Namespace = v.req.Header.Get(NamespaceKey)
 	}
 
-	vOps, err := volume.NewVolumeOperation(vol)
+	vOps, err := volume.NewOperation(vol)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}
@@ -145,7 +145,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 		string(v1alpha1.StorageClassKey): scName,
 	}
 
-	vOps, err := volume.NewVolumeOperation(vol)
+	vOps, err := volume.NewOperation(vol)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}
@@ -188,7 +188,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 		vol.Namespace = hdrNS
 	}
 
-	vOps, err := volume.NewVolumeOperation(vol)
+	vOps, err := volume.NewOperation(vol)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}
@@ -224,7 +224,7 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 		vols.Namespace = hdrNS
 	}
 
-	vOps, err := volume.NewVolumeListOperation(vols)
+	vOps, err := volume.NewListOperation(vols)
 	if err != nil {
 		return nil, CodedError(400, err.Error())
 	}

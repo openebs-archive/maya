@@ -1,7 +1,10 @@
 ## Overview
 
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
-[![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya) [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya) [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
+[![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
+[![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya)
+[![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/maya/blob/master/LICENSE)
 
 *Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*.
 
@@ -70,3 +73,7 @@ See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/
 \[golang dep\]: https://github.com/golang/dep
 
 \[dep README\]: https://github.com/golang/dep#usage
+
+## License
+
+Maya is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text. Some of the projects used by the Maya project may be governed by a different license, please refer to its specific license. 

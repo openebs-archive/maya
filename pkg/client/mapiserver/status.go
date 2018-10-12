@@ -13,7 +13,7 @@ func GetStatus() (string, error) {
 		return "Connection failed", err
 	}
 	if string(body) != `"any-compute"` {
-		err = util.ServerUnavailable
+		err = util.ErrServerUnavailable
 	}
 	return string(body), err
 }

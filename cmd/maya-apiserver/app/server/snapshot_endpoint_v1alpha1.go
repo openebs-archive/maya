@@ -35,21 +35,21 @@ func (s *HTTPServer) snapshotRequest(resp http.ResponseWriter, req *http.Request
 
 	switch req.Method {
 	case "POST":
-		return snapOp.create(resp, req)
+		return snapOp.create()
 	case "GET":
 		// If snapshot name is missing, assume it to be list request
 		if snapName == "" {
-			return snapOp.list(resp, req, volName, namespace, casType)
+			return snapOp.list(volName, namespace, casType)
 		}
-		return snapOp.get(resp, req, snapName, volName, namespace, casType)
+		return snapOp.get(snapName, volName, namespace, casType)
 	case "DELETE":
-		return snapOp.delete(resp, req, snapName, volName, namespace, casType)
+		return snapOp.delete(snapName, volName, namespace, casType)
 	}
 	return nil, CodedError(405, ErrInvalidMethod)
 }
 
 // list is http handler for listing all created snapshot specific to particular volume
-func (sOps *snapshotAPIOps) list(resp http.ResponseWriter, req *http.Request, volName, namespace, casType string) (interface{}, error) {
+func (sOps *snapshotAPIOps) list(volName, namespace, casType string) (interface{}, error) {
 	glog.Infof("Snapshot list request was received")
 
 	// Volume name is expected
@@ -84,16 +84,16 @@ func (sOps *snapshotAPIOps) list(resp http.ResponseWriter, req *http.Request, vo
 }
 
 // Create is http handler which handles snaphsot-create request
-func (sOps *snapshotAPIOps) create(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (sOps *snapshotAPIOps) create() (interface{}, error) {
 	glog.Infof("Snapshot create request was received")
 
 	snap := &v1alpha1.CASSnapshot{}
 
-	err := decodeBody(req, snap)
+	err := decodeBody(sOps.req, snap)
 	if err != nil {
 		return nil, err
 	}
-	glog.V(2).Infof("CASSnapshot object received: %+v", req)
+	glog.V(2).Infof("CASSnapshot object received: %+v", sOps.req)
 	// snapshot name is expected
 	if len(strings.TrimSpace(snap.Name)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create snapshot: missing snapshot name "))
@@ -134,7 +134,7 @@ func (sOps *snapshotAPIOps) create(resp http.ResponseWriter, req *http.Request) 
 }
 
 // read is http handler for reading a snapshot specific to particular volume
-func (sOps *snapshotAPIOps) get(resp http.ResponseWriter, req *http.Request, snapName, volName, namespace, casType string) (interface{}, error) {
+func (sOps *snapshotAPIOps) get(snapName, volName, namespace, casType string) (interface{}, error) {
 	glog.Infof("Received request for snapshot get")
 
 	// snapshot name is expected
@@ -175,7 +175,7 @@ func (sOps *snapshotAPIOps) get(resp http.ResponseWriter, req *http.Request, sna
 	return snap, nil
 }
 
-func (sOps *snapshotAPIOps) delete(resp http.ResponseWriter, req *http.Request, snapName, volName, namespace, casType string) (interface{}, error) {
+func (sOps *snapshotAPIOps) delete(snapName, volName, namespace, casType string) (interface{}, error) {
 	glog.Infof("Received request for snapshot delete")
 	// snapshot name is expected
 	if len(strings.TrimSpace(snapName)) == 0 {

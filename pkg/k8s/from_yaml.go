@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// package k8s can be used instead of pkg/maya/maya.go
 package k8s
 
 import (
 	"fmt"
+
 	"github.com/ghodss/yaml"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
