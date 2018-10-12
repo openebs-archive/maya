@@ -130,7 +130,7 @@ func (sl *Lease) getPodName() string {
 }
 
 // patchSpcLeaseAnnotation will patch the lease key annotation on spc object to release the lease
-func (sl *Lease) patchSpcLeaseAnnotation() (error) {
+func (sl *Lease) patchSpcLeaseAnnotation() error {
 	spcObject, ok := sl.Object.(*apis.StoragePoolClaim)
 	if !ok {
 		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
