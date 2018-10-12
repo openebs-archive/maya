@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
@@ -59,6 +60,9 @@ func envList070() (l *envList) {
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateToCreatePoolENVK, Value: "cstor-pool-create-default-0.7.0"})
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateToDeletePoolENVK, Value: "cstor-pool-delete-default-0.7.0"})
 	l.Items = append(l.Items, &env{Key: menv.CASTemplateToListVolumeENVK, Value: "jiva-volume-list-default-0.6.0,jiva-volume-list-default-0.7.0,cstor-volume-list-default-0.7.0"})
-
+	l.Items = append(l.Items, &env{Key: menv.CASTemplateToCreateCStorSnapshotENVK, Value: "cstor-snapshot-create-default-0.7.0"})
+	l.Items = append(l.Items, &env{Key: menv.CASTemplateToDeleteCStorSnapshotENVK, Value: "cstor-snapshot-delete-default-0.7.0"})
+	l.Items = append(l.Items, &env{Key: menv.CASTemplateToCreateJivaSnapshotENVK, Value: "jiva-snapshot-create-default-0.7.0"})
+	l.Items = append(l.Items, &env{Key: menv.CASTemplateToDeleteJivaSnapshotENVK, Value: "jiva-snapshot-delete-default-0.7.0"})
 	return
 }
