@@ -79,7 +79,7 @@ spec:
     {{- $volID := print "{.data[?(@.name=='" .Snapshot.volumeName "')].id} as id" -}}
     {{- select $volID | get http | withoption "url" $volsUrl | runas "getVol" $runner -}}
     {{- $snapUrl := print $volsUrl "/" .TaskResult.getVol.result.id "?action=snapshot" -}}
-    {{- $body := dict "name" .Snapshot.owner | toJson -}}
+    {{- $body := dict "name" .Snapshot.owner | toJsonObj -}}
     {{- post http | withoption "url" $snapUrl | withoption "body" $body | runas "createSnap" $runner -}}
     {{- $err := .TaskResult.createSnap.error | default "" | toString -}}
     {{- $err | empty | not | verifyErr $err | saveIf "createJivaSnap.verifyErr" .TaskResult | noop -}}
