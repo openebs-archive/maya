@@ -17,7 +17,7 @@ case ${1} in
 		env_goos="cstor-pool-mgmt"
 		dev_name=$POOL_MGMT_DEV;;
 	"cstor-volume-mgmt")
-		env_goos="cstor-volume-grpc"
+		env_goos="cstor-volume-mgmt"
 		dev_name=$VOLUME_MGMT_DEV;;
 	*)
 		echo "Invalid argument."
@@ -87,19 +87,14 @@ do
     for GOARCH in "${XC_ARCHS[@]}"
     do
         output_name="bin/$1/"$GOOS"_"$GOARCH"/"$MIDVAR
+				if [ $1 = "cstor-volume-mgmt" ]; then
+					rpcoutput_name="bin/cstor-volume-mgmt/"$GOOS"_"$GOARCH"/cstor-volume-grpc"
+				fi
 
         if [ $GOOS = "windows" ]; then
             output_name+='.exe'
         fi
-				if [ $1 = "cstor-volume-mgmt" ]; then
-					env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-	           "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
-	            -X main.CtlName='${CTLNAME}' \
-	            -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
-	            -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
-	            -o $output_name\
-	           ./cmd/cstor-volume-mgmt
-				fi
+
         env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
             "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
             -X main.CtlName='${CTLNAME}' \
@@ -107,6 +102,16 @@ do
             -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
             -o $output_name\
            ./cmd/$env_goos
+
+				if [ $1 = "cstor-volume-mgmt" ]; then
+		 				env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+		 					 "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+		 						-X main.CtlName='cstor-volume-grpc' \
+		 						-X github.com/openebs/maya/pkg/version.Version=${VERSION} \
+		 						-X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
+		 						-o $output_name\
+		 					 ./cmd/cstor-volume-grpc
+		 			fi
     done
 done
 
