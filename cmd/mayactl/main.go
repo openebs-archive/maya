@@ -15,11 +15,89 @@
 package main
 
 import (
+	"flag"
+
 	"github.com/openebs/maya/cmd/mayactl/app/command"
+	"github.com/posener/complete"
 )
 
 func main() {
-	err := command.NewMayaCommand().Execute()
+	snapshot := complete.Command{
+		Sub: complete.Commands{
+			"create": complete.Command{},
+			"list": complete.Command{},
+			"revert": complete.Command{},
+		},
+	}
 
+	version := complete.Command{
+		Flags: complete.Flags{
+			"--help": complete.PredictNothing,
+			"-h": complete.PredictNothing,
+		},
+	}
+
+	volume := complete.Command{
+		Sub: complete.Commands{
+			"delete": complete.Command{},
+			"info": complete.Command{},
+			"list": complete.Command{},
+			"stats": complete.Command{},
+		},
+	}
+
+	help := complete.Command{
+		Sub: complete.Commands{
+			"help": complete.Command{},
+			"snapshot": complete.Command{},
+			"version": complete.Command{},
+			"volume": complete.Command{},
+		},
+		Flags: complete.Flags{
+			"--help": complete.PredictNothing,
+			"-h": complete.PredictNothing,
+		},
+	}
+
+	cmp := complete.New(
+		"mayactl",
+		complete.Command{
+			Sub: complete.Commands{
+				"help": help,
+				"snapshot": snapshot,
+				"version": version,
+				"volume": volume,
+			},
+			GlobalFlags: complete.Flags{
+				"--alsologtostderr": complete.PredictNothing,
+				"--log_backtrace_at": complete.PredictAnything,
+				"--log_dir": complete.PredictAnything,
+				"--logtostderr": complete.PredictNothing,
+				"--mapiserver": complete.PredictAnything,
+				"-m": complete.PredictAnything,
+				"--mapiserverport": complete.PredictAnything,
+				"-p": complete.PredictAnything,
+				"--namespace": complete.PredictAnything,
+				"-n": complete.PredictAnything,
+				"--stderrthreshold": complete.PredictAnything,
+				"-v": complete.PredictAnything,
+				"--v": complete.PredictAnything,
+				"--vmodule": complete.PredictAnything,
+			},
+		},
+	)
+
+	cmp.CLI.InstallName = "complete"
+	cmp.CLI.UninstallName = "uncomplete"
+	cmp.AddFlags(nil)
+
+	flag.Parse()
+
+	if cmp.Complete() {
+		return
+	}
+
+	err := command.NewMayaCommand().Execute()
+	
 	command.CheckError(err)
 }
