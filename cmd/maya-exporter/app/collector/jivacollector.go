@@ -48,7 +48,7 @@ func (j *Jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	resp, err := httpClient.Get(j.VolumeControllerURL)
 
 	if err != nil {
-		glog.Error("could not retrieve OpenEBS Volume controller metrics: %v", err)
+		glog.Errorf("could not retrieve OpenEBS Volume controller metrics: %v", err)
 		return err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
@@ -60,7 +60,7 @@ func (j *Jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	err = json.Unmarshal(body, &obj)
 
 	if err != nil {
-		glog.Error("could not decode OpenEBS Volume controller metrics: %#v", err)
+		glog.Errorf("could not decode OpenEBS Volume controller metrics: %#v", err)
 		return errors.New("Error in unmarshalling the json response")
 	}
 
