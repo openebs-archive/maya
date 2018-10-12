@@ -17,6 +17,7 @@ limitations under the License.
 package template
 
 import (
+	"encoding/json"
 	"strings"
 	"text/template"
 
@@ -169,6 +170,14 @@ func slect(paths ...string) cmd.RunCommandMiddleware {
 	return cmd.Select(paths)
 }
 
+// toJsonObj marshals and returns the json representation of value interface
+//
+// {{- "{'name':'openebs'}" | toJsonObj -}}
+func toJsonObj(value interface{}) (b []byte) {
+	b, _ = json.Marshal(value)
+	return
+}
+
 // withOption sets the provided <key,value> pair as an input data to run command
 //
 // {{- delete jiva volume | withOption "url" $url | withOption "name" "myvol" | run -}}
@@ -299,5 +308,6 @@ func runCommandFuncs() template.FuncMap {
 		"storeRunnerCond": storeRunnerCond,
 		"runas":           runas,
 		"runAlways":       runAlways,
+		"toJsonObj":       toJsonObj,
 	}
 }
