@@ -501,7 +501,7 @@ func (m *taskExecutor) putAppsV1B1Deploy() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -518,7 +518,7 @@ func (m *taskExecutor) putExtnV1B1Deploy() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -546,7 +546,7 @@ func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -581,7 +581,7 @@ func (m *taskExecutor) patchExtnV1B1Deploy() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -642,7 +642,7 @@ func (m *taskExecutor) putCoreV1Service() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, svc, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, svc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -668,7 +668,7 @@ func (m *taskExecutor) getOEV1alpha1Disk() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, disk, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, disk, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -679,7 +679,7 @@ func (m *taskExecutor) getOEV1alpha1SPC() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -690,7 +690,7 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, sp, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, sp, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -701,7 +701,7 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -712,7 +712,7 @@ func (m *taskExecutor) getAppsV1B1Deployment() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -723,7 +723,7 @@ func (m *taskExecutor) getCoreV1PVC() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, pvc, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, pvc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -734,7 +734,7 @@ func (m *taskExecutor) getCoreV1PV() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, pv, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, pv, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -745,7 +745,7 @@ func (m *taskExecutor) getStorageV1SC() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, sc, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, sc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -761,7 +761,7 @@ func (m *taskExecutor) putStoragePool() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, storagePool, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, storagePool, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -777,7 +777,7 @@ func (m *taskExecutor) putCStorPool() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, cstorPool, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, cstorPool, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -793,7 +793,7 @@ func (m *taskExecutor) putCStorVolume() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, cstorVolume, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, cstorVolume, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -809,7 +809,7 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -897,6 +897,6 @@ func (m *taskExecutor) listK8sResources() (err error) {
 	}
 
 	// set the json doc result
-	util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJsonResultTLP))
+	util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }

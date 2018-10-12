@@ -34,7 +34,7 @@ import (
 // its tasks or when executing a task met an error & is now exiting by logging
 // the error.
 func redactJsonResult(templateValues map[string]interface{}) {
-	templateValues[string(v1alpha1.CurrentJsonResultTLP)] = "--redacted--"
+	templateValues[string(v1alpha1.CurrentJSONResultTLP)] = "--redacted--"
 }
 
 // PostTaskRunFn is a closure definition that provides option
