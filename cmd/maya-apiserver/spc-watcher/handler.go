@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// syncHandler compares the actual state with the desired, and attempts to
+// syncHandler compare the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(key, operation string, object interface{}) error {

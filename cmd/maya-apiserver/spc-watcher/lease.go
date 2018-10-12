@@ -29,7 +29,7 @@ import (
 // put as a value to the lease key of object annotation.
 type LeaseContract struct {
 	// Holder is the namespace/name of the pod who acquires the lease
-	Holder           string `json:"holder"`
+	Holder string `json:"holder"`
 	// LeaderTransition is the count of lease that has been taken on the object
 	// in its lifetime.
 	// e.g. One of the pod takes a lease on the object and release and then some other
@@ -37,7 +37,7 @@ type LeaseContract struct {
 	// value is 1.
 	// If an object has leaderTranisiton value equal to 'n' that means it was leased
 	// 'n+1' times in its lifetime by distinct, same or some distinct and some same pods.
-	LeaderTransition int    `json:"leaderTransition"`
+	LeaderTransition int `json:"leaderTransition"`
 	// More specific details can be added here that will describe the
 	// current state of lease in more details.
 	// e.g. acquiredTimeStamp, self-release etc

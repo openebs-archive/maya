@@ -28,15 +28,15 @@ import (
 
 var (
 	// ErrMAPIADDRNotSet is the new error to display this error if MAPI_ADDR is not set.
-	ErrMAPIADDRNotSet      = errors.New("MAPI_ADDR environment variable not set")
+	ErrMAPIADDRNotSet = errors.New("MAPI_ADDR environment variable not set")
 	// ErrInternalServerError is the new error to raise if an error occurs while rendering the service
 	ErrInternalServerError = errors.New("Internal Server Error")
 	// ErrServerUnavailable is the new error to raise if the server is not available
-	ErrServerUnavailable   = errors.New("Server Unavailable")
+	ErrServerUnavailable = errors.New("Server Unavailable")
 	// ErrServerNotReachable is the new error to raise if the server is not reachable
-	ErrServerNotReachable  = errors.New("Server Not Reachable")
+	ErrServerNotReachable = errors.New("Server Not Reachable")
 	// ErrPageNotFound is the new error to raise if the page is not found
-	ErrPageNotFound        = errors.New("Page Not Found")
+	ErrPageNotFound = errors.New("Page Not Found")
 )
 
 // truthyValues maps a set of values which are considered as true
