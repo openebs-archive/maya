@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This file deals with the labels, constants, defaults & utility
+// Package V1 deals with the labels, constants, defaults & utility
 // functions related to the profiles
+
 package v1
 
 import (
@@ -45,6 +46,7 @@ import (
 //   size: 5G
 type ProvisionPolicyKey string
 
+//ReplicaCountPPK holds the provsion policy key for the provison/replica-count.
 const (
 	ReplicaCountPPK         ProvisionPolicyKey = "provision/replica-count"
 	ControllerCountPPK      ProvisionPolicyKey = "provision/controller-count"
@@ -87,7 +89,7 @@ const (
 // USAGE:
 //  Already mentioned in PlacementPolicyKey
 type PlacementPolicyValue string
-
+//SpreadReplicaPPV holds placement policy value for spread-replica.
 const (
 	SpreadReplicaPPV PlacementPolicyValue = "spread-replica"
 	StickyReplicaPPV PlacementPolicyValue = "sticky-replica"
