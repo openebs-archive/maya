@@ -1102,7 +1102,7 @@ func (k *k8sUtil) getOutClusterOECS() (*versioned.Clientset, error) {
 	return nil, fmt.Errorf("out cluster OE clientset not supported in '%s'", k.Name())
 }
 
-//
+//SetControllerIPs is used to set the ControllerIPs.
 func SetControllerIPs(cp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(cp.Status.PodIP)
 	if current == "" {
@@ -1120,7 +1120,7 @@ func SetControllerIPs(cp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetReplicaIPs is used to set ReplicaIPs.
 func SetReplicaIPs(rp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(rp.Status.PodIP)
 	if current == "" {
@@ -1138,7 +1138,7 @@ func SetReplicaIPs(rp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetControllerStatuses is used to set ControllerStatuses.
 func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(string(cp.Status.Phase))
 	if current == "" {
@@ -1156,7 +1156,7 @@ func SetControllerStatuses(cp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-//
+//SetReplicaStatuses is used to set ReplicaStatuses.
 func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {
 	current := strings.TrimSpace(string(rp.Status.Phase))
 	if current == "" {
@@ -1174,15 +1174,15 @@ func SetReplicaStatuses(rp k8sApiV1.Pod, annotations map[string]string) {
 	}
 }
 
-// TODO
-// Not sure !!
+//SetServiceStatuses is used to set ServiceStatuses.
 func SetServiceStatuses(svc k8sApiV1.Service, annotations map[string]string) {}
 
+//SetReplicaCount is used to set ReplicaCount.
 func SetReplicaCount(rd k8sApisExtnsBeta1.Deployment, annotations map[string]string) {
 	annotations[string(v1.ReplicaCountAPILbl)] = fmt.Sprint(*rd.Spec.Replicas)
 }
 
-// TODO Get it from Pod
+//SetReplicaVolSize is used to set ReplicaVolSize.
 func SetReplicaVolSize(rd k8sApisExtnsBeta1.Deployment, annotations map[string]string) {
 	// TODO
 	// Set the size as labels in replica deployment & extract from the label
@@ -1193,10 +1193,12 @@ func SetReplicaVolSize(rd k8sApisExtnsBeta1.Deployment, annotations map[string]s
 	annotations[string(v1.VolumeSizeAPILbl)] = size
 }
 
+//SetIQN is used to set IQN.
 func SetIQN(vsm string, annotations map[string]string) {
 	annotations[string(v1.IQNAPILbl)] = string(v1.JivaIqnFormatPrefix) + ":" + vsm
 }
 
+//SetControllerClusterIPs is used to set ControllerClusterIPs.
 func SetControllerClusterIPs(svc k8sApiV1.Service, annotations map[string]string) {
 	current := strings.TrimSpace(svc.Spec.ClusterIP)
 	if current == "" {
@@ -1214,6 +1216,7 @@ func SetControllerClusterIPs(svc k8sApiV1.Service, annotations map[string]string
 	}
 }
 
+//SetISCSITargetPortals is used to set ISCSITargetPortals.
 func SetISCSITargetPortals(svc k8sApiV1.Service, annotations map[string]string) {
 	current := strings.TrimSpace(svc.Spec.ClusterIP)
 	if current == "" {
