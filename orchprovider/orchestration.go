@@ -1,4 +1,4 @@
-// Package Orchprovider defines interfaces that determines an orchestrator w.r.t maya api
+// Package orchprovider defines interfaces that determines an orchestrator w.r.t maya api
 // server. All the features that maya api server wants from an orchestrator is
 // defined in these set of interfaces.
 package orchprovider
