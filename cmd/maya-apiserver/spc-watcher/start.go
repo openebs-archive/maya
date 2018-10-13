@@ -38,12 +38,14 @@ var (
 	kubeconfig string
 )
 
+// QueueLoad struct holds object to be pushed in workqueue
 type QueueLoad struct {
 	Key       string
 	Operation string
 	Object    interface{}
 }
 
+// Start function will setup OpenEBS and Kubernetes clientset and launches the SPC controller.
 func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
