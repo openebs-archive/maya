@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Profiles are related to OpenEBS volume.
+// related to OpenEBS volume.
 // Profiles can be categorized into volume related placements, volume
 // related provisioning, and probably a few more features in the future.
 // Profiles are meant to be used by storage admins to communicate
