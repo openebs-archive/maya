@@ -1,4 +1,4 @@
-// This file defines interfaces that determines an orchestrator w.r.t maya api
+// Package Orchprovider defines interfaces that determines an orchestrator w.r.t maya api
 // server. All the features that maya api server wants from an orchestrator is
 // defined in these set of interfaces.
 package orchprovider
@@ -10,7 +10,7 @@ import (
 	k8sApiV1 "k8s.io/api/core/v1"
 )
 
-// OrchestrationInterface is an interface abstraction of a real orchestrator.
+// OrchestratorInterface is an interface abstraction of a real orchestrator.
 // It represents an abstraction that serves operations feasible from an
 // orchestrator.
 type OrchestratorInterface interface {
