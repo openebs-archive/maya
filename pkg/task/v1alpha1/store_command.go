@@ -23,6 +23,7 @@ import (
 	"time"
 )
 
+// Error : Cannot run due to failed condition
 var (
 	ErrorCanNotRunDueToFailedCondition = errors.New("run condition failed: can not execute run command")
 )
@@ -30,6 +31,7 @@ var (
 // StoreKey represents supported keys to store run command's execution results
 type StoreKey string
 
+// ResultStoreKey stores the run commands results
 const (
 	ResultStoreKey    StoreKey = "result"
 	DebugStoreKey     StoreKey = "debug"
@@ -91,7 +93,7 @@ func (kv *kvStore) SetBucket(b string) {
 
 // IsBucketTaken flags if the given bucket is already in use
 func (kv *kvStore) IsBucketTaken(bucket string) bool {
-	for b, _ := range kv.MStore {
+	for b := range kv.MStore {
 		if b == bucket {
 			return true
 		}
