@@ -1,4 +1,4 @@
-// This package deals with profiles. A profile in maya api service categorises
+// Package orchestrator deals with profiles. A profile in maya api service categorises
 // the generic properties associated with maya api service components (i.e. volume
 // provisioners, orchestration providers).
 //
