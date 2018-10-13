@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This package has the implementation logic for policy enforcement
+// Package v1 has the implementation logic for policy enforcement
 package v1
