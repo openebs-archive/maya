@@ -293,7 +293,7 @@ type HTTPCodedError interface {
 	Code() int
 }
 
-// CodedError is used to provide the Code error
+// CodedError is used to provide the HTTP Code error
 func CodedError(c int, s string) HTTPCodedError {
 	return &codedError{s, c}
 }
