@@ -51,7 +51,7 @@ type K8sTaskSpecFetcher struct {
 // string format
 //
 // NOTE:
-//  This is an implementation of TaskSpecFetcher interface
+// Fetch is an implementation of TaskSpecFetcher interface
 func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask *v1alpha1.RunTask, err error) {
 	rtGetter := defaultRunTaskGetter(getRunTaskSpec{
 		taskName:  taskName,
