@@ -13,12 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-// Package V1 deals with the labels, constants, defaults & utility
+// Package v1 deals with the labels, constants, defaults & utility
 // functions related to the profiles
-
 package v1
-
 import (
 	"fmt"
 	"strings"
@@ -45,13 +42,15 @@ import (
 //   replica: "2"
 //   size: 5G
 type ProvisionPolicyKey string
-
-//ReplicaCountPPK holds the provsion policy key for the provison/replica-count.
 const (
 	ReplicaCountPPK         ProvisionPolicyKey = "provision/replica-count"
+	//ReplicaCountPPK holds the provsion policy key for the provison/replica-count.0
 	ControllerCountPPK      ProvisionPolicyKey = "provision/controller-count"
+	//ControllerCountPPK holds the provision policiy key for the provison/controller-count.
 	ReplicaTolerationPPK    ProvisionPolicyKey = "provision/replica-toleration"
+	//ReplicaTolerationPPK holds the provision policiy key for the provision/replica-toleration.
 	ControllerTolerationPPK ProvisionPolicyKey = "provision/controller-toleration"
+	//ControllerTolerationPPK holds the provison policy key for the provision/controller-toleration.
 )
 
 // PlacementPolicyKey is a constant which will be used as a key. This key can be
@@ -90,6 +89,7 @@ const (
 //  Already mentioned in PlacementPolicyKey
 type PlacementPolicyValue string
 //SpreadReplicaPPV holds placement policy value for spread-replica.
+//StickyReplicaPPV holds placement policy value for sticky-replica.
 const (
 	SpreadReplicaPPV PlacementPolicyValue = "spread-replica"
 	StickyReplicaPPV PlacementPolicyValue = "sticky-replica"
