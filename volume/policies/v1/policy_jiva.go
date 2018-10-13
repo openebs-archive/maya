@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// TODO
+// Package v1
 // Should this be changed to policy_ov.go ?
 // Should the name of the struct be renamed accordingly ?
 // ov expands to openebs volume
