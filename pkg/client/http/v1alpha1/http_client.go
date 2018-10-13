@@ -24,12 +24,13 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
-	. "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 )
 
 // HttpVerb is a typed constant that represents various http action
 type HttpVerb string
 
+//const is used to create actions
 const (
 	DeleteAction HttpVerb = "DELETE"
 	PostAction   HttpVerb = "POST"
@@ -41,7 +42,7 @@ const (
 // TODO
 // expose REST via interface
 
-// rest is a wrapper over restclient library
+// Rest is a wrapper over restclient library
 type Rest struct {
 	client *RESTClient // rest client that does the actual API invocation
 	base   string
@@ -55,6 +56,7 @@ type Rest struct {
 //
 // NOTE:
 // base url can be of form http://ipaddr:port with no trailing slash
+// REST function starts
 func REST(base string) (r *Rest, err error) {
 	c, err := RESTClientFor(&Config{
 		Host: base,
