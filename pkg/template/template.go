@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
+	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"reflect"
 	"strings"
@@ -570,7 +570,7 @@ func addTo(fields string, values map[string]interface{}, value string) string {
 func saveAs(fields string, destination map[string]interface{}, given interface{}) interface{} {
 	fieldsArr := strings.Split(fields, ".")
 	// save the run task command result in specific way
-	r, ok := given.(RunCommandResult)
+	r, ok := given.(v1alpha1.RunCommandResult)
 	if ok {
 		resultpath := append(fieldsArr, "result")
 		util.SetNestedField(destination, r.Result(), resultpath...)
