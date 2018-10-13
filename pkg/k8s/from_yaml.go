@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+//Package k8s
 package k8s
 
 import (
@@ -35,6 +36,7 @@ type DeploymentYml struct {
 	YmlInBytes []byte
 }
 
+// NewDeploymentYml returns a K8s deployment in case there is no error, else returns nil value
 func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -85,6 +87,7 @@ type ServiceYml struct {
 	YmlInBytes []byte
 }
 
+// NewServiceYml return a K8s service object in case there is no error, else returns nil
 func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -133,6 +136,7 @@ type StoragePoolYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorPoolYml return a CStorPool object in case there is no error, else returns nil
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -144,6 +148,7 @@ func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStor
 	}, nil
 }
 
+// NewStoragePoolYml return a StoragePool object in case there is no error, else returns nil
 func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -155,6 +160,7 @@ func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*Sto
 	}, nil
 }
 
+// NewCStorVolumeYml return a CStorVolume object in case there is no error, else returns nil
 func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -221,6 +227,7 @@ type CStorVolumeReplicaYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorVolumeReplicaYml return a CStorVolumeReplica object in case there is no error, else returns nil
 func NewCStorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CStorVolumeReplicaYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
