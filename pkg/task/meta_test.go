@@ -1526,3 +1526,40 @@ action: {{ .action }}
 		})
 	}
 }
+
+func TestMetaTaskPropsToString(t *testing.T) {
+	tests := map[string]struct {
+		metaTaskProps MetaTaskProps
+		result        string
+	}{
+		//
+		// start of test case
+		//
+		"test empty MetaTaskProps string representation": {
+			metaTaskProps: MetaTaskProps{},
+			result:        "runNamespace=::owner=::objectName=::options=::retry=",
+		},
+		//
+		// start of test case
+		//
+		"test complete MetaTaskProps string representation": {
+			metaTaskProps: MetaTaskProps{
+				RunNamespace: "aRunNamespace",
+				Owner:        "anOwner",
+				ObjectName:   "anObjectName",
+				Options:      "someOptions",
+				Retry:        "someRetry",
+			},
+			result: "runNamespace=aRunNamespace::owner=anOwner::objectName=anObjectName::options=someOptions::retry=someRetry",
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			res := mock.metaTaskProps.toString()
+			if res != mock.result {
+				t.Fatalf("failed to get metaTaskProps string representation: expected '%s': actual '%s'", mock.result, res)
+			}
+		})
+	}
+}
