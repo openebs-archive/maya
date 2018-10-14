@@ -85,7 +85,7 @@ const (
 type K8sAPIVersion string
 
 const (
-	// ExtensionsV1Beta1KA is the extensions/v1beta` API
+	// ExtensionsV1Beta1KA is the extensions/v1beta API
 	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
 
 	// AppsV1B1KA is the apps/v1beta1 API
