@@ -33,13 +33,18 @@ func YamlString(ctx string, o interface{}) string {
 	return fmt.Sprintf("\n%s", string(b))
 }
 
+// MsgType represents a message type
 type MsgType string
 
 const (
-	InfoMsg MsgType = "info"  // represents an information
-	ErrMsg  MsgType = "error" // represents an error message
-	WarnMsg MsgType = "warn"  // represents a warning message
-	SkipMsg MsgType = "skip"  // represents a message about a skipped operation
+	// InfoMsg represents an information
+	InfoMsg MsgType = "info"
+	// ErrMsg represents an error message
+	ErrMsg MsgType = "error"
+	// WarnMsg represents a warning message
+	WarnMsg MsgType = "warn"
+	// SkipMsg represents a message about a skipped operation
+	SkipMsg MsgType = "skip"
 )
 
 type msg struct {
@@ -61,6 +66,7 @@ func (m *msg) GoString() string {
 // msgPredicate abstracts evaluation of a message condition
 type msgPredicate func(given *msg) bool
 
+// IsInfo returns true if given message's MType is InfoMsg
 func IsInfo(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -68,6 +74,7 @@ func IsInfo(given *msg) (ok bool) {
 	return given.Mtype == InfoMsg
 }
 
+// IsWarn returns true if given message's MType is WarnMsg
 func IsWarn(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -75,6 +82,7 @@ func IsWarn(given *msg) (ok bool) {
 	return given.Mtype == WarnMsg
 }
 
+// IsSkip returns true if given message's MType is SkipMsg
 func IsSkip(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -82,10 +90,12 @@ func IsSkip(given *msg) (ok bool) {
 	return given.Mtype == SkipMsg
 }
 
+// IsNotInfo returns true if given message's MType is not InfoMsg
 func IsNotInfo(given *msg) (ok bool) {
 	return !IsInfo(given)
 }
 
+// IsErr returns true if given message's MType is ErrMsg
 func IsErr(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -93,6 +103,7 @@ func IsErr(given *msg) (ok bool) {
 	return given.Mtype == ErrMsg
 }
 
+// IsNotErr returns true if given message's MType is not ErrMsg
 func IsNotErr(given *msg) (ok bool) {
 	return !IsErr(given)
 }
@@ -112,6 +123,7 @@ func (m Msgs) GoString() string {
 	return YamlString("msgs", m)
 }
 
+// Filter filters messages by predicate returning only matching ones
 func (m Msgs) Filter(p msgPredicate) (f Msgs) {
 	for _, msg := range m.Items {
 		if msg == nil {
@@ -124,6 +136,7 @@ func (m Msgs) Filter(p msgPredicate) (f Msgs) {
 	return
 }
 
+// Log logs non nil messages
 func (m Msgs) Log(l func(string, ...interface{})) {
 	for _, msg := range m.Items {
 		if msg == nil {
@@ -133,18 +146,23 @@ func (m Msgs) Log(l func(string, ...interface{})) {
 	}
 }
 
+// LogNonInfos logs all messages but ones with MType equal to InfoMsg
 func (m Msgs) LogNonInfos(l func(string, ...interface{})) {
 	m.Filter(IsNotInfo).Log(l)
 }
 
+// LogNonErrors logs all messages but ones with MType equal to ErrMsg
 func (m Msgs) LogNonErrors(l func(string, ...interface{})) {
 	m.Filter(IsNotErr).Log(l)
 }
 
+// LogErrors logs all messages with MType equal to ErrMsg
 func (m Msgs) LogErrors(l func(string, ...interface{})) {
 	m.Filter(IsErr).Log(l)
 }
 
+// AddInfo appends a new InfoMsg to messages and initializes
+// it with the passed description
 func (m *Msgs) AddInfo(i string) (u *Msgs) {
 	if len(i) == 0 {
 		return m
@@ -153,6 +171,8 @@ func (m *Msgs) AddInfo(i string) (u *Msgs) {
 	return m
 }
 
+// AddWarn appends a new WarnMsg to messages and initializes
+// it with the passed description
 func (m *Msgs) AddWarn(w string) (u *Msgs) {
 	if len(w) == 0 {
 		return m
@@ -161,6 +181,8 @@ func (m *Msgs) AddWarn(w string) (u *Msgs) {
 	return m
 }
 
+// AddSkip appends a new SkipMsg to messages and initializes
+// it with the passed description
 func (m *Msgs) AddSkip(s string) (u *Msgs) {
 	if len(s) == 0 {
 		return m
@@ -169,6 +191,8 @@ func (m *Msgs) AddSkip(s string) (u *Msgs) {
 	return m
 }
 
+// AddError appends a new ErrMsg to messages and initializes
+// it with the passed description
 func (m *Msgs) AddError(e error) (u *Msgs) {
 	if e == nil {
 		return m
@@ -177,6 +201,7 @@ func (m *Msgs) AddError(e error) (u *Msgs) {
 	return m
 }
 
+// Merge merges receiver messages with passed ones
 func (m *Msgs) Merge(s *Msgs) (u *Msgs) {
 	if s == nil {
 		return m
@@ -191,30 +216,37 @@ func (m *Msgs) Reset() (u *Msgs) {
 	return m
 }
 
+// Infos filters InfoMsg messages
 func (m Msgs) Infos() (f Msgs) {
 	return m.Filter(IsInfo)
 }
 
+// NonInfos filters all messages but InfoMsg ones
 func (m Msgs) NonInfos() (f Msgs) {
 	return m.Filter(IsNotInfo)
 }
 
+// Errors filters ErrMsg messages
 func (m Msgs) Errors() (f Msgs) {
 	return m.Filter(IsErr)
 }
 
+// NonErrors filters all messages but ErrMsg messages
 func (m Msgs) NonErrors() (f Msgs) {
 	return m.Filter(IsNotErr)
 }
 
+// Skips filters SkipMsg messages
 func (m Msgs) Skips() (f Msgs) {
 	return m.Filter(IsSkip)
 }
 
+// Warns filters WarnMsg messages
 func (m Msgs) Warns() (f Msgs) {
 	return m.Filter(IsWarn)
 }
 
+// HasWarn returns true if at least one WarnMsg is present
 func (m Msgs) HasWarn() bool {
 	return len(m.Filter(IsWarn).Items) != 0
 }
@@ -244,6 +276,7 @@ func (a AllMsgs) Error() (err error) {
 	return e.Err
 }
 
+// HasError returns true if at least one ErrMsg is present
 func (a AllMsgs) HasError() (iserr bool) {
 	errs := a[ErrMsg]
 	if len(errs.Items) == 0 {
@@ -252,6 +285,7 @@ func (a AllMsgs) HasError() (iserr bool) {
 	return true
 }
 
+// HasWarn returns true if at least one WarnMsg is present
 func (a AllMsgs) HasWarn() (iswarn bool) {
 	warns := a[WarnMsg]
 	if len(warns.Items) == 0 {
@@ -260,6 +294,7 @@ func (a AllMsgs) HasWarn() (iswarn bool) {
 	return true
 }
 
+// HasSkip returns true if at least one SkipMsg is present
 func (a AllMsgs) HasSkip() (isskip bool) {
 	skips := a[SkipMsg]
 	if len(skips.Items) == 0 {
@@ -268,6 +303,7 @@ func (a AllMsgs) HasSkip() (isskip bool) {
 	return true
 }
 
+// HasInfo returns true if at least one InfoMsg is present
 func (a AllMsgs) HasInfo() (isinfo bool) {
 	infos := a[InfoMsg]
 	if len(infos.Items) == 0 {
@@ -276,6 +312,7 @@ func (a AllMsgs) HasInfo() (isinfo bool) {
 	return true
 }
 
+// IsEmpty returns true no messages having a declared MsgType are present
 func (a AllMsgs) IsEmpty() (isempty bool) {
 	warns := a[WarnMsg]
 	infos := a[InfoMsg]
@@ -288,6 +325,7 @@ func (a AllMsgs) IsEmpty() (isempty bool) {
 	return
 }
 
+// ToMsgs parses AllMsgs to appropriate Msgs
 func (a AllMsgs) ToMsgs() (m *Msgs) {
 	m = &Msgs{}
 	if len(a) == 0 {
@@ -316,6 +354,7 @@ func (a AllMsgs) ToMsgs() (m *Msgs) {
 	return
 }
 
+// AllMsgs returns messages by MsgType key
 func (m Msgs) AllMsgs() (all AllMsgs) {
 	return map[MsgType]Msgs{
 		InfoMsg: m.Infos(),
