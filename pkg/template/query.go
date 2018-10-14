@@ -41,6 +41,7 @@ type Query interface {
 	Query() (string, error)
 }
 
+// JsonQuery contains parameters to describe a Query.
 type JsonQuery struct {
 	// name given to this json query operation
 	name string
@@ -50,6 +51,8 @@ type JsonQuery struct {
 	path string
 }
 
+// NewJsonQuery takes json query operation name, json doc, json path and 
+// returns a struct of type JsonQuery.
 func NewJsonQuery(name string, jsondoc []byte, path string) *JsonQuery {
 	return &JsonQuery{
 		name:    name,
