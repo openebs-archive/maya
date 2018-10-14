@@ -1013,18 +1013,17 @@ func MakeOrDefJivaReplicaArgs(vol *Volume, clusterIP string) []string {
 			repArgs[i] = rArg
 		}
 		return repArgs
-	} else {
-		repArgs := make([]string, len(JivaCloneReplicaArgs))
-		for i, rArg := range JivaCloneReplicaArgs {
-			rArg = strings.Replace(rArg, string(JivaClusterIPHolder), clusterIP, 1)
-			rArg = strings.Replace(rArg, string(JivaStorageSizeHolder), storSize, 1)
-			rArg = strings.Replace(rArg, string(JivaCloneIPHolder), cloneIP, 1)
-			rArg = strings.Replace(rArg, string(JivaSnapNameHolder), snapshotName, 1)
-			repArgs[i] = rArg
-
-		}
-		return repArgs
 	}
+
+	repArgs := make([]string, len(JivaCloneReplicaArgs))
+	for i, rArg := range JivaCloneReplicaArgs {
+		rArg = strings.Replace(rArg, string(JivaClusterIPHolder), clusterIP, 1)
+		rArg = strings.Replace(rArg, string(JivaStorageSizeHolder), storSize, 1)
+		rArg = strings.Replace(rArg, string(JivaCloneIPHolder), cloneIP, 1)
+		rArg = strings.Replace(rArg, string(JivaSnapNameHolder), snapshotName, 1)
+		repArgs[i] = rArg
+	}
+	return repArgs
 }
 
 // DefaultJivaISCSIPort will provide the port required to make ISCSI based
@@ -1220,7 +1219,7 @@ func DefaultPVPVSMIPs(profileMap map[string]string, requestCtrlIPs bool, request
 	}
 
 	if len(uIPs) != cc+rc {
-		return "", "", fmt.Errorf("Could not find required '%d' unused IPs, got '%d'.", cc+rc, len(uIPs))
+		return "", "", fmt.Errorf("Could not find required '%d' unused IPs, got '%d'", cc+rc, len(uIPs))
 	}
 
 	return strings.Join(uIPs[:cc], ","), strings.Join(uIPs[cc:], ","), nil
