@@ -24,6 +24,8 @@ import (
 	"github.com/openebs/maya/pkg/storagepool"
 )
 
+
+// DeleteStoragePool receives StoragePoolClaim object and deletes it. 
 func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
 	// Business logic for deletion of storagepool
 	glog.Infof("Storagepool delete event received for storagepoolclaim %s", spcGot.Name)
