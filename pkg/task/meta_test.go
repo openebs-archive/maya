@@ -134,6 +134,15 @@ func TestNewMetaTaskExecutor(t *testing.T) {
 			},
 			isErr: true,
 		},
+		"new meta task - -ve test case - invalid template": {
+			id: "121",
+			// an invalid template
+			yaml: `Hi {{.there}`,
+			values: map[string]interface{}{
+				"there": "openebs",
+			},
+			isErr: true,
+		},
 	}
 
 	for name, mock := range tests {
