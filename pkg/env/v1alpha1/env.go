@@ -105,11 +105,11 @@ const (
 	// to list cstor cas snapshots
 	CASTemplateToListCStorSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_CSTOR_SNAPSHOT"
 
-	// CASTemplateToListCStorSnapshotENVK is the ENV key that specifies the CAS Template
+	// CASTemplateToListJivaSnapshotENVK is the ENV key that specifies the CAS Template
 	// to list jiva cas snapshots
 	CASTemplateToListJivaSnapshotENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_JIVA_SNAPSHOT"
 
-	// CASTemplateToCreateJivaSnasphotENVK is the ENV key that specifies the CAS Template
+	// CASTemplateToCreateJivaSnapshotENVK is the ENV key that specifies the CAS Template
 	// to create jiva cas snapshot
 	CASTemplateToCreateJivaSnapshotENVK ENVKey = "OPENEBS_IO_JIVA_CAS_TEMPLATE_TO_CREATE_SNAPSHOT"
 
