@@ -16,13 +16,13 @@ limitations under the License.
 
 package v1alpha1
 
-// InstallConfig contains installation configuration specifications
+// InstallConfig contains installation configuration specifications.
 type InstallConfig struct {
 	Spec InstallConfigSpec `json:"spec"`
 }
 
 // InstallConfigSpec caters to installation and un-installation of
-// artifacts understood by installer
+// artifacts understood by installer.
 type InstallConfigSpec struct {
 	// Install caters to installation of artifacts that are understood by
 	// installer
