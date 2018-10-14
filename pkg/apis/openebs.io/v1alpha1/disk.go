@@ -50,7 +50,7 @@ type DiskStatus struct {
 
 // DiskCapacity provides disk size in byte
 type DiskCapacity struct {
-	Storage uint64 `json:"storage"` //disk size in byte
+	Storage uint64 `json:"storage"`
 }
 
 // DiskDetails contains basic and static info of a disk
