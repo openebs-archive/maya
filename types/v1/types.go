@@ -162,6 +162,7 @@ const (
 type K8sKind string
 
 const (
+	// DeploymentKK is a K8s Deployment Kind
 	DeploymentKK K8sKind = "deployment"
 )
 
