@@ -201,7 +201,7 @@ func (m *Msgs) AddError(e error) (u *Msgs) {
 	return m
 }
 
-// Merge merges receiver messages with passed ones
+// Merge merges receiver messages with passed ones into receiver
 func (m *Msgs) Merge(s *Msgs) (u *Msgs) {
 	if s == nil {
 		return m
