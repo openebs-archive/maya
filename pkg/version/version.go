@@ -40,8 +40,8 @@ var (
 	buildMetaFile = "/src/github.com/openebs/maya/BUILDMETA"
 )
 
-// GetVersion returns the version from the global Version variable,
-// or if this unset, from the VERSION file at the root of the repo
+// GetVersion returns the version from the global Version variable.
+// If Version is unset then from the VERSION file at the root of the repo.
 func GetVersion() string {
 	if Version != "" {
 		return Version
@@ -55,8 +55,8 @@ func GetVersion() string {
 	return strings.TrimSpace(string(vBytes))
 }
 
-// GetBuildMeta returns the build type from the global VersionMeta variable,
-// or if this unset, from the BUILDMETA file at the root of the repo
+// GetBuildMeta returns the build type from the global VersionMeta variable.
+// If VersionMeta is unset then from the BUILDMETA file at the root of the repo.
 func GetBuildMeta() string {
 	if VersionMeta != "" {
 		return "-" + VersionMeta
@@ -70,8 +70,8 @@ func GetBuildMeta() string {
 	return "-" + strings.TrimSpace(string(vBytes))
 }
 
-// GetGitCommit returns the Git commit SHA-1 from the global GitCommit variable, 
-// or if this unset, by calling Git directly
+// GetGitCommit returns the Git commit SHA-1 from the global GitCommit variable.
+// If GitCommit is unset then by calling Git directly.
 func GetGitCommit() string {
 	if GitCommit != "" {
 		return GitCommit
