@@ -23,17 +23,24 @@ import (
 	"time"
 )
 
+
 var (
+	// ErrorCanNotRunDueToFailedCondition is an error object that indicates that command could not be executed due to failed condition.
 	ErrorCanNotRunDueToFailedCondition = errors.New("run condition failed: can not execute run command")
 )
 
 // StoreKey represents supported keys to store run command's execution results
 type StoreKey string
 
+
 const (
+	// ResultStoreKey stores the run commands results
 	ResultStoreKey    StoreKey = "result"
+	//DebugStoreKey stores the debug results
 	DebugStoreKey     StoreKey = "debug"
+	//ErrorStoreKey stores the errors after the run command
 	ErrorStoreKey     StoreKey = "error"
+	//RootcauseStoreKey stores the rootCause of the errors
 	RootCauseStoreKey StoreKey = "rootCause"
 )
 
@@ -91,7 +98,7 @@ func (kv *kvStore) SetBucket(b string) {
 
 // IsBucketTaken flags if the given bucket is already in use
 func (kv *kvStore) IsBucketTaken(bucket string) bool {
-	for b, _ := range kv.MStore {
+	for b := range kv.MStore {
 		if b == bucket {
 			return true
 		}

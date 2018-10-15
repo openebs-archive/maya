@@ -14,10 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Profiles are related to OpenEBS volume.
-// Profiles can be categorized into volume related placements, volume
+// Package v1 profiles are related to OpenEBS volume.
+// Package v1 profiles can be categorized into volume related placements, volume
 // related provisioning, and probably a few more features in the future.
-// Profiles are meant to be used by storage admins to communicate
+// Package v1 profiles are meant to be used by storage admins to communicate
 // their volume requirements to Maya without being involved into providing
 // exact values or numbers.
 package v1
