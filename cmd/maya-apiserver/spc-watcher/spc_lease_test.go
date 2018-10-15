@@ -69,7 +69,7 @@ func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 		}
 		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
 		if err != nil {
-			glog.Errorf("Fake pod object could not be created:", err)
+			glog.Error("Fake pod object could not be created:", err)
 		}
 	}
 }

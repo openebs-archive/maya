@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-// Package spc defines all the spc related codebase.
+
 package spc
 
 import (
@@ -79,20 +79,17 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		}
 
 		return addEvent, err
-		break
 
 	case updateEvent:
 		// TO-DO : Handle Business Logic
 		// Hook Update Business Logic Here
 		return updateEvent, nil
-		break
 	case syncEvent:
 		err := c.syncSpc(spcGot)
 		if err != nil {
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
 		return syncEvent, err
-		break
 	case deleteEvent:
 		err := DeleteStoragePool(spcGot)
 
@@ -101,12 +98,10 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		}
 
 		return deleteEvent, err
-		break
 	default:
 		// opeartion with tag other than add,update and delete are ignored.
-		break
+		return ignoreEvent, nil
 	}
-	return ignoreEvent, nil
 }
 
 // enqueueSpc takes a SPC resource and converts it into a namespace/name

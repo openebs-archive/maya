@@ -57,7 +57,7 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 		glog.Errorf("Could not acquire lease on spc object:%v", err)
 		return err
 	}
-	glog.Info("Lease acquired successfully on storagepoolclaim %s ", spcGot.Name)
+	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spcGot.Name)
 
 	defer newSpcLease.Release()
 
