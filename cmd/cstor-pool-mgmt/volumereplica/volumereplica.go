@@ -63,13 +63,16 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 // CreateVolumeReplica creates cStor replica(zfs volumes).
 func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) error {
 	cmd := []string{}
-	isClone := false
+	isClone := cStorVolumeReplica.Labels[string(apis.CloneEnableKEY)] == "true"
 	snapName := ""
-	if len(cStorVolumeReplica.Spec.Type) == 0 || cStorVolumeReplica.Spec.Type == VolumeTypeClone {
-		isClone = true
-		snapName = cStorVolumeReplica.Spec.SnapName
-		glog.Infof("Creating clone volume: %s of snapshot %s", string(fullVolName), string(snapName))
-		cmd = builldVolumeCloneCommand(cStorVolumeReplica, snapName, fullVolName)
+	if isClone {
+		srcVolume := cStorVolumeReplica.Annotations[string(apis.SourceVolumeKey)]
+		snapName = cStorVolumeReplica.Annotations[string(apis.SnapshotNameKey)]
+		// Get the dataset name from volume name
+		dataset := strings.Split(fullVolName, "/")[0]
+		glog.Infof("Creating clone volume: %s from snapshot %s", fullVolName, srcVolume+"@"+snapName)
+		// zfs snapshots are named as dataset/volname@snapname
+		cmd = builldVolumeCloneCommand(cStorVolumeReplica, dataset+"/"+srcVolume+"@"+snapName, fullVolName)
 	} else {
 		// Parse capacity unit on CVR to support backward compatibility
 		volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
@@ -141,7 +144,7 @@ func GetVolumes() ([]string, error) {
 
 // DeleteVolume deletes the specified volume.
 func DeleteVolume(fullVolName string) error {
-	deleteVolStr := []string{"destroy", "-r", fullVolName}
+	deleteVolStr := []string{"destroy", "-R", fullVolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, deleteVolStr...)
 	if err != nil {
 		// If volume is missing then do not return error
