@@ -20,6 +20,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type CVRKey string
+
+const (
+	// CloneEnableKEY is used to enable/disable cloning for a cstorvolumereplica
+	CloneEnableKEY CVRKey = "openebs.io/cloned"
+
+	// SourceVolumeKey stores the name of source volume whose snapshot is used to
+	// create this cvr
+	SourceVolumeKey CVRKey = "openebs.io/source-volume"
+
+	// SnapshotNameKey stores the name of the snapshot being used to restore this replica
+	SnapshotNameKey CVRKey = "openebs.io/snapshot"
+)
+
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
