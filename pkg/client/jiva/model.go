@@ -21,6 +21,7 @@ const (
 	snapSuffix         = ".img"
 )
 
+// Volumes
 type Volumes struct {
 	Resource
 	Name         string `json:"name"`
@@ -28,17 +29,20 @@ type Volumes struct {
 	Endpoint     string `json:"endpoint"`
 }
 
+// VolumeCollection is a structure for holding different Volumes instances
 type VolumeCollection struct {
 	Collection
 	Data []Volumes `json:"data"`
 }
 
+// Replica
 type Replica struct {
 	Resource
 	Address string `json:"address"`
 	Mode    string `json:"mode"`
 }
 
+// InfoReplica
 type InfoReplica struct {
 	Resource
 	Dirty           bool                `json:"dirty"`
@@ -54,6 +58,7 @@ type InfoReplica struct {
 	RevisionCounter string              `json:"revisioncounter"`
 }
 
+// DiskInfo
 type DiskInfo struct {
 	Name        string   `json:"name"`
 	Parent      string   `json:"parent"`
@@ -64,11 +69,13 @@ type DiskInfo struct {
 	Size        string   `json:"size"`
 }
 
+// ReplicaCollection
 type ReplicaCollection struct {
 	Collection
 	Data []Replica `json:"data"`
 }
 
+// MarkDiskAsRemovedInput
 type MarkDiskAsRemovedInput struct {
 	Resource
 	Name string `json:"name"`
@@ -82,12 +89,14 @@ type ReplicaClient struct {
 	httpClient *http.Client
 }
 
+// ControllerClient
 type ControllerClient struct {
 	Address    string
 	Host       string
 	httpClient *http.Client
 }
 
+// RevertInput
 type RevertInput struct {
 	Resource
 	Name string `json:"name"`
@@ -103,10 +112,12 @@ type SnapshotInput struct {
 	Labels      map[string]string `json:"labels"`
 }
 
+// SnapshotOutput
 type SnapshotOutput struct {
 	Resource
 }
 
+// Resource
 type Resource struct {
 	Id      string            `json:"id,omitempty"`
 	Type    string            `json:"type,omitempty"`
@@ -114,6 +125,7 @@ type Resource struct {
 	Actions map[string]string `json:"actions"`
 }
 
+// Collection
 type Collection struct {
 	Type         string                 `json:"type,omitempty"`
 	ResourceType string                 `json:"resourceType,omitempty"`
@@ -126,17 +138,20 @@ type Collection struct {
 	Filters      map[string][]Condition `json:"filters,omitempty"`
 }
 
+// Sort
 type Sort struct {
 	Name    string `json:"name,omitempty"`
 	Order   string `json:"order,omitempty"`
 	Reverse string `json:"reverse,omitempty"`
 }
 
+// Condition
 type Condition struct {
 	Modifier string      `json:"modifier,omitempty"`
 	Value    interface{} `json:"value,omitempty"`
 }
 
+// Pagination
 type Pagination struct {
 	Marker   string `json:"marker,omitempty"`
 	First    string `json:"first,omitempty"`
@@ -147,6 +162,7 @@ type Pagination struct {
 	Partial  bool   `json:"partial,omitempty"`
 }
 
+// Filter
 func Filter(list []string, check func(string) bool) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
@@ -157,6 +173,7 @@ func Filter(list []string, check func(string) bool) []string {
 	return result
 }
 
+// Contains
 func Contains(arr []string, val string) bool {
 	for _, a := range arr {
 		if a == val {
