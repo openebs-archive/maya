@@ -66,7 +66,7 @@ func (m *msg) GoString() string {
 // msgPredicate abstracts evaluation of a message condition
 type msgPredicate func(given *msg) bool
 
-// IsInfo returns true if given message's MType is InfoMsg
+// IsInfo returns true if given message is of type InfoMsg
 func IsInfo(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -74,7 +74,7 @@ func IsInfo(given *msg) (ok bool) {
 	return given.Mtype == InfoMsg
 }
 
-// IsWarn returns true if given message's MType is WarnMsg
+// IsWarn returns true if given message is of type WarnMsg
 func IsWarn(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -82,7 +82,7 @@ func IsWarn(given *msg) (ok bool) {
 	return given.Mtype == WarnMsg
 }
 
-// IsSkip returns true if given message's MType is SkipMsg
+// IsSkip returns true if given message is of type SkipMsg
 func IsSkip(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -90,12 +90,12 @@ func IsSkip(given *msg) (ok bool) {
 	return given.Mtype == SkipMsg
 }
 
-// IsNotInfo returns true if given message's MType is not InfoMsg
+// IsNotInfo returns true if given message is not of type InfoMsg
 func IsNotInfo(given *msg) (ok bool) {
 	return !IsInfo(given)
 }
 
-// IsErr returns true if given message's MType is ErrMsg
+// IsErr returns true if given message is of type ErrMsg
 func IsErr(given *msg) (ok bool) {
 	if given == nil {
 		return
@@ -103,7 +103,7 @@ func IsErr(given *msg) (ok bool) {
 	return given.Mtype == ErrMsg
 }
 
-// IsNotErr returns true if given message's MType is not ErrMsg
+// IsNotErr returns true if given message is not of type ErrMsg
 func IsNotErr(given *msg) (ok bool) {
 	return !IsErr(given)
 }
@@ -146,17 +146,17 @@ func (m Msgs) Log(l func(string, ...interface{})) {
 	}
 }
 
-// LogNonInfos logs all messages but ones with MType equal to InfoMsg
+// LogNonInfos logs all messages but ones of type InfoMsg
 func (m Msgs) LogNonInfos(l func(string, ...interface{})) {
 	m.Filter(IsNotInfo).Log(l)
 }
 
-// LogNonErrors logs all messages but ones with MType equal to ErrMsg
+// LogNonErrors logs all messages but ones of type ErrMsg
 func (m Msgs) LogNonErrors(l func(string, ...interface{})) {
 	m.Filter(IsNotErr).Log(l)
 }
 
-// LogErrors logs all messages with MType equal to ErrMsg
+// LogErrors logs all messages of type ErrMsg
 func (m Msgs) LogErrors(l func(string, ...interface{})) {
 	m.Filter(IsErr).Log(l)
 }
