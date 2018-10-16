@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package task
 package task
 
 import (
@@ -47,11 +48,11 @@ type K8sTaskSpecFetcher struct {
 	k8sClient *m_k8s_client.K8sClient
 }
 
-// FetchSpec returns specifications of a provided task in yaml
+// This is an implementation of TaskSpecFetcher interface
 // string format
 //
 // NOTE:
-//  This is an implementation of TaskSpecFetcher interface
+// Fetch returns specifications of a provided task in yaml
 func (f *K8sTaskSpecFetcher) Fetch(taskName string) (runtask *v1alpha1.RunTask, err error) {
 	rtGetter := defaultRunTaskGetter(getRunTaskSpec{
 		taskName:  taskName,

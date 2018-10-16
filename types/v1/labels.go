@@ -1,3 +1,4 @@
+// Package v1
 package v1
 
 // NomadEnvironmentVariable is a typed label that defines environment variables
@@ -29,6 +30,7 @@ const (
 // defaults
 type EnvironmentVariableDefaults string
 
+// const is used to define EnvironmentVariableDefaults
 const (
 	// Default value for environment variable context
 	EnvVariableContextDef EnvironmentVariableDefaults = "DEFAULT"
@@ -177,14 +179,13 @@ const (
 	OrchestratorInClusterEnvVarKey EnvironmentVariableKey = "_ORCHESTRATOR_IN_CLUSTER"
 )
 
-// OrchProviderProfileLabel is a typed label to determine orchestration provider
-// profile's values.
+// OrchProviderProfileLabel is a typed label to determine orchestration provider profile's values.
 type OrchProviderProfileLabel string
 
 const (
-	// Label / Tag for an orchestrator profile name
+	// OrchProfileNameLb1 is Label / Tag for an orchestrator profile name
 	OrchProfileNameLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/profile-name"
-	// Label / Tag for an orchestrator region
+	// OrchRegionLb1 is Label / Tag for an orchestrator region
 	OrchRegionLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/region"
 	// Label / Tag for an orchestrator datacenter
 	OrchDCLbl OrchProviderProfileLabel = "orchprovider.mapi.openebs.io/dc"
