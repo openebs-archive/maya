@@ -99,3 +99,4 @@ then
 
   # Push COMMIT tagged image - :COMMIT
   TagAndPushImage "${GITLAB_DIMAGE}" "${GITLAB_COMMIT}"
+fi;
