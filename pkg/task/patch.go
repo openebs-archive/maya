@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// TaskPatchType is a custom type that holds the patch type
 type TaskPatchType string
 
 const (
@@ -45,7 +46,7 @@ var taskPatchTypes = map[TaskPatchType]types.PatchType{
 	StrategicTPT: types.StrategicMergePatchType,
 }
 
-// TaskPatches will consist of patches that gets applied
+// TaskPatch will consist of patch that gets applied
 // against the task object
 type TaskPatch struct {
 	// Type determines the type of patch to be applied
