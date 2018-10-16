@@ -26,7 +26,7 @@ var (
 	}
 )
 
-// CmdSnaphotOptions holds informations of snapshots being operated
+// CmdSnaphotOptions holds information of snapshots being operated
 type CmdSnaphotOptions struct {
 	volName   string
 	snapName  string

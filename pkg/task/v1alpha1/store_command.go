@@ -160,7 +160,7 @@ type storeCommand struct {
 	cond      RunCondition  // flag that determines if run command will execute or not
 	id        string        // unique identification of run command
 	cmd       *RunCommand   // current command to execute
-	*msg.Msgs               // store and retrieve info, warns, errors, etc occured during execution
+	*msg.Msgs               // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // StoreCommand returns a new instance of storeCommand

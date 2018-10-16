@@ -82,7 +82,7 @@ func (sl *Lease) Hold() error {
 	}
 	// If leaseValue is empty acquire lease.
 	// If leaseValue is empty check whether it is expired.
-	// If leaseValue is not emtpy and not expired check wether the holder is live.
+	// If leaseValue is not empty and not expired check whether the holder is live.
 	if strings.TrimSpace(leaseValue) == "" || isLeaseExpired(leaseValueObj) || !sl.isLeaderLive(leaseValueObj) {
 		err := sl.Update(sl.getPodName())
 		if err != nil {

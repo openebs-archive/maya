@@ -99,7 +99,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 
 		return deleteEvent, err
 	default:
-		// opeartion with tag other than add,update and delete are ignored.
+		// operation with tag other than add,update and delete are ignored.
 		return ignoreEvent, nil
 	}
 }

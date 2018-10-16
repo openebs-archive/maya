@@ -21,7 +21,7 @@
 
 # Adding the generators here allows us to vendor the code-generator package
 # This is required since code-generator is not directly or transitively
-# dependant
+# dependent
 required = [
   "k8s.io/code-generator/cmd/deepcopy-gen",
   "k8s.io/code-generator/cmd/client-gen",

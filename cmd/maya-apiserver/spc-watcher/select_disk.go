@@ -49,7 +49,7 @@ type nodeDisk struct {
 // maxPool field of the storagepoolclaim and return a list of selected disks from
 // those selected nodes.
 
-// For exapmle, if maxPool=5 and minPool=3, it will try to search for 5 nodes that will qualify for
+// For example, if maxPool=5 and minPool=3, it will try to search for 5 nodes that will qualify for
 // pool provisioning. At least 3 node should qualify else pool will not be provisioned and pool creation
 // will be aborted gracefully with proper log messages.
 
@@ -87,9 +87,9 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 	// gotAllotment is the count of nodes where storagepool can be provisioned
 	gotAllotment := cp.MaxPools - pendingAllotment
 	if gotAllotment < cp.MinPools {
-		return nil, fmt.Errorf("not enough nodes qualified for pool:only %d node could be alloted but required is %d", gotAllotment, cp.MinPools)
+		return nil, fmt.Errorf("not enough nodes qualified for pool:only %d node could be allotted but required is %d", gotAllotment, cp.MinPools)
 	}
-	// if alloted node was less than the maxPool that means partial allotment is done and
+	// if allotted node was less than the maxPool that means partial allotment is done and
 	// some allotment is still pending.
 	if gotAllotment < cp.MaxPools {
 		glog.Warning("partial node allotment done:pending node allotment:", pendingAllotment)
@@ -176,7 +176,7 @@ func diskSelector(nodeDiskMap map[string]*nodeDisk, poolType string) []string {
 	// minimum number of node qualifies
 	var selectedDisk []string
 
-	// requiredDiskCount will hold the required number of disk that should be selcted from a qualified
+	// requiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	var requiredDiskCount int
 	// If pool type is striped, 1 disk should be selected

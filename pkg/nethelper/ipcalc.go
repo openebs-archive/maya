@@ -73,7 +73,7 @@ type Pong struct {
 	Alive bool
 }
 
-// ping does a network ping of the ip that it recives in its channel
+// ping does a network ping of the ip that it receives in its channel
 // i.e. pingChannel. The result of this ping is built as a Pong structure &
 // pushed into another channel i.e. pongChannel
 //

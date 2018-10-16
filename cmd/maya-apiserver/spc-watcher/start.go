@@ -74,7 +74,7 @@ func Start() error {
 	go kubeInformerFactory.Start(stopCh)
 	go spcInformerFactory.Start(stopCh)
 
-	// Threadiness defines the nubmer of workers to be launched in Run function
+	// Threadiness defines the number of workers to be launched in Run function
 	return controller.Run(2, stopCh)
 }
 

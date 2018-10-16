@@ -45,7 +45,7 @@ type DiskSpec struct {
 
 // DiskStatus provides current state of the disk (Active/Inactive)
 type DiskStatus struct {
-	State string `json:"state"` 
+	State string `json:"state"`
 }
 
 // DiskCapacity provides disk size in byte
@@ -60,7 +60,7 @@ type DiskDetails struct {
 	Vendor string `json:"vendor"` // Vendor is vendor of disk
 }
 
-// DiskDevLink holds the maping between type and links like by-id type or by-path type link
+// DiskDevlink holds the mapping between type and links like by-id type or by-path type link
 type DiskDevLink struct {
 	Kind  string   `json:"kind,omitempty"`  // Kind is the type of link like by-id or by-path.
 	Links []string `json:"links,omitempty"` // Links are the soft links of Type type
