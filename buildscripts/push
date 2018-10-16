@@ -48,6 +48,7 @@ function TagAndPushImage() {
   sudo docker push ${IMAGE_URI};
 }
 
+
 if [ ! -z "${DNAME}" ] && [ ! -z "${DPASS}" ];
 then
   sudo docker login -u "${DNAME}" -p "${DPASS}";
@@ -58,7 +59,6 @@ then
   # Push unique tagged image - :master-<uuid> or :branch-<uuid>
   # This unique/build image will be pushed to corresponding ci repo.
   TagAndPushImage "${DIMAGE}-ci" "${BUILD_TAG}"
-
 
   if [ ! -z "${TRAVIS_TAG}" ] ;
   then
@@ -92,3 +92,18 @@ else
   echo "No docker credentials provided. Skip uploading ${DIMAGE} to quay";
 fi;
 
+#Push image to run openebs-e2e based on git commit
+function GitlabCommit() {
+  REPO="$1"
+
+  IMAGE_URI="${REPO}:${COMMIT}";
+  sudo docker tag ${IMAGEID} ${IMAGE_URI};
+  echo " push ${IMAGE_URI}";
+  sudo docker push ${IMAGE_URI};
+}
+if [ ! -z "${COMMIT}" ];
+then
+  sudo docker login -u "${DNAMEGL}" -p "${DPASSGL}";
+
+  # Push COMMIT tagged image - :COMMIT
+  GitlabCommit "${DIMAGE}" "${COMMIT}"
