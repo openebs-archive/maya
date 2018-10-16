@@ -156,13 +156,13 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// cas template to create a cas volume
-	castName := getCreateCASTemplate(sc)
-	if len(castName) == 0 {
+	createCastName := getCreateCASTemplate(sc)
+	if len(createCastName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
 	}
 
 	// fetch CASTemplate specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	cast, err := v.k8sClient.GetOEV1alpha1CAST(createCastName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +200,15 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
+	// find cast for other operations
+	readCastName := getReadCASTemplate(sc)
+	deleteCastName := getDeleteCASTemplate(sc)
+
+	// set all cast to volume's annotation
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = createCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = readCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = deleteCastName
+
 	return vol, nil
 }
 
@@ -214,20 +223,23 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// get the storage class name corresponding to this volume
-	scName := pv.Spec.StorageClassName
-	if len(scName) == 0 {
-		return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
-	}
-
-	// fetch the storage class specifications
-	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	castName := getDeleteCASTemplate(sc)
+	castName := pv.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
+		// get the storage class name corresponding to this volume
+		scName := pv.Spec.StorageClassName
+		if len(scName) == 0 {
+			return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
+		}
+
+		sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		castName = getDeleteCASTemplate(sc)
+		if len(castName) == 0 {
+			return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
+		}
 	}
 
 	// fetch delete cas template specifications
@@ -271,31 +283,35 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
-	// check if sc name is already present, if not then extract it
+	castName := ""
+	var sc *v1_storage.StorageClass
+
+	// extract scName if present in label
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
-	if len(scName) == 0 {
-		// fetch the pv specification
-		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
+
+	// find the pv for this volume if it exist
+	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		// if scName also does not exist then error out
+		if len(scName) == 0 {
+			return nil, fmt.Errorf("unable to read volume '%s': missing storage class name", v.volume.Name)
+		}
+	}
+
+	// if pv is not empty check annotation for cast name
+	// if cast name not found then use storage class
+	if pv != nil {
+		castName = pv.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
+	}
+
+	if castName == "" {
+		sc, err = v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
-
-		// extract the sc name
-		scName = strings.TrimSpace(pv.Spec.StorageClassName)
+		castName = getReadCASTemplate(sc)
 	}
 
-	if len(scName) == 0 {
-		return nil, fmt.Errorf("unable to read volume '%s': missing storage class name", v.volume.Name)
-	}
-
-	// fetch the sc specification
-	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	// extract read cas template name from sc annotation
-	castName := getReadCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
