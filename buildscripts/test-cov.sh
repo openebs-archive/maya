@@ -3,7 +3,7 @@
 set -e
 echo "" > coverage.txt
 
-for d in $(go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated'); do
+for d in $(go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|integration-tests'); do
     #TODO - Include -race while creating the coverage profile.
     go test -coverprofile=profile.out -covermode=atomic $d
     if [ -f profile.out ]; then
