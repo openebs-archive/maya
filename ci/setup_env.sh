@@ -7,8 +7,8 @@ export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 export KUBECONFIG=$HOME/.kube/config
 
 MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
-CSTORVOL=$(kubectl get pv -o jsonpath='{range.items[0]}{.metadata.name}{"\n"}{end}')
-JIVAVOL=$(kubectl get pv -o jsonpath='{range.items[1]}{.metadata.name}{"\n"}{end}')
+CSTORVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="cstor")].metadata.name}')
+JIVAVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="jiva")].metadata.name}')
 
 echo "*************** Running mayactl volume list *******************************"
 ${MAYACTL} volume list
