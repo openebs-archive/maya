@@ -98,4 +98,4 @@ then
   sudo docker login -u "${DNAMEGL}" -p "${DPASSGL}";
 
   # Push COMMIT tagged image - :COMMIT
-  TagAndPushImage "${DIMAGE}" "${COMMIT}"
+  TagAndPushImage "${GITLAB_DIMAGE}" "${GITLAB_COMMIT}"
