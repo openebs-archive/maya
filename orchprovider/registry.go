@@ -13,7 +13,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
-// OrchProviderFactory type is used as provider's instance creating function
+// OrchProviderFactory is the factory implementation of OrchProvider
 type OrchProviderFactory func(label v1.NameLabel, name v1.OrchProviderRegistry) (OrchestratorInterface, error)
 
 // Registration is managed in a safe manner via these variables
