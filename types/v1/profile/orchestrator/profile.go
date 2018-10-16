@@ -8,7 +8,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
-// VolumeProvisionerProfile abstracts & exposes a persistent volume provisioner's
+// OrchProviderProfile abstracts & exposes an orchestration provider's
 // runtime features.
 //
 // NOTE:
