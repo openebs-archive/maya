@@ -6,14 +6,18 @@ import (
 )
 
 const (
-	// OpenEBS can be used as a persistence mechanism for
+	// AnyInstance stands for OpenEBS
+	// being able to act as a persistence mechanism for
 	// any type of compute instance
 	AnyInstance = "any-compute"
 
+	// AnyZone specifies OpenEBS' availability zone
 	// TODO We shall see how to construct an Availability Zone
 	AnyZone = "any-zone"
 )
 
+// MetaSpecificRequest is a handler responsible for performing
+// validation and meta variable substition into request paths
 func (s *HTTPServer) MetaSpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 
 	path := strings.TrimPrefix(req.URL.Path, "/latest/meta-data")
