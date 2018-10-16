@@ -219,6 +219,8 @@ type ObjectMeta struct {
 	ClusterName string `json:"clusterName,omitempty" protobuf:"bytes,15,opt,name=clusterName"`
 }
 
+// Labels are key/value pairs related to objects  - such as K8s and volumes -
+// identifying unique, relevant attributes attached to such objects
 type Labels struct {
 	// OldVolumeLabels contains all the volume policy keys that ensures
 	// backward compatibility
@@ -273,10 +275,13 @@ type LabelSelectorRequirement struct {
 type LabelSelectorOperator string
 
 const (
-	//LabelSelectorOpIn : LabelSelectorOperator for In
+	// LabelSelectorOpIn : LabelSelectorOperator for In
 	LabelSelectorOpIn           LabelSelectorOperator = "In"
+	// LabelSelectorOpNotIn : LabelSelectorOperator for NotIn
 	LabelSelectorOpNotIn        LabelSelectorOperator = "NotIn"
+	// LabelSelectorOpExists : LabelSelectorOperator for Exists
 	LabelSelectorOpExists       LabelSelectorOperator = "Exists"
+	// LabelSelectorOpDoesNotExist : LabelSelectorOperator for DoesNotExist
 	LabelSelectorOpDoesNotExist LabelSelectorOperator = "DoesNotExist"
 )
 
