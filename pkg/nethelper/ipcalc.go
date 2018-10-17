@@ -1,7 +1,6 @@
-/*
-This is an adaptation of below gist:
-    https://gist.github.com/kotakanbe/d3059af990252ba89a82
-*/
+// This is an adaptation of below gist:
+//
+//  https://gist.github.com/kotakanbe/d3059af990252ba89a82
 
 package nethelper
 
