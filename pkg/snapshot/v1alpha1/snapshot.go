@@ -77,20 +77,22 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
-	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to create snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
-	}
-
-	// fetch the storage class specifications
-	sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	castName := GetCreateCASTemplate(sc)
+	castName := pv.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)]
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.snapOptions.Name)
+		scName := pv.Spec.StorageClassName
+		if len(scName) == 0 {
+			return nil, errors.Errorf("unable to create snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
+		}
+		// fetch the storage class specifications
+		sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		castName = GetCreateCASTemplate(sc)
+		if len(castName) == 0 {
+			return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.snapOptions.Name)
+		}
 	}
 
 	// fetch read cas template specifications
@@ -143,20 +145,22 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
-	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to read snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
-	}
-
-	// fetch the storage class specifications
-	sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	castName := GetReadCASTemplate(sc)
+	castName := pv.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)]
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.snapOptions.Name)
+		scName := pv.Spec.StorageClassName
+		if len(scName) == 0 {
+			return nil, errors.Errorf("unable to read snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
+		}
+		// fetch the storage class specifications
+		sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		castName = GetReadCASTemplate(sc)
+		if len(castName) == 0 {
+			return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.snapOptions.Name)
+		}
 	}
 
 	// fetch read cas template specifications
@@ -207,20 +211,22 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
-	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to delete snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
-	}
-
-	// fetch the storage class specifications
-	sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	castName := GetDeleteCASTemplate(sc)
+	castName := pv.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)]
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
+		scName := pv.Spec.StorageClassName
+		if len(scName) == 0 {
+			return nil, errors.Errorf("unable to delete snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
+		}
+		// fetch the storage class specifications
+		sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		castName = GetDeleteCASTemplate(sc)
+		if len(castName) == 0 {
+			return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
+		}
 	}
 
 	// fetch read cas template specifications
@@ -269,20 +275,22 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
-	if len(scName) == 0 {
-		return nil, errors.Errorf("unable to list snapshot: missing storage class in PV %s", s.snapOptions.VolumeName)
-	}
-
-	// fetch the storage class specifications
-	sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	castName := GetListCASTemplate(sc)
+	castName := pv.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)]
 	if len(castName) == 0 {
-		return nil, errors.Errorf("unable to list snapshots: missing cas template for list snapshot")
+		scName := pv.Spec.StorageClassName
+		if len(scName) == 0 {
+			return nil, errors.Errorf("unable to list snapshot: missing storage class in PV %s", s.snapOptions.VolumeName)
+		}
+		// fetch the storage class specifications
+		sc, err := s.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		castName = GetListCASTemplate(sc)
+		if len(castName) == 0 {
+			return nil, errors.Errorf("unable to list snapshots: missing cas template for list snapshot")
+		}
 	}
 
 	// fetch read cas template specifications
