@@ -59,7 +59,7 @@ func DestroySnapshot(ip, volName, snapName string) (*v1alpha1.VolumeSnapDeleteRe
 	var conn *grpc.ClientConn
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
-		return nil, errors.Errorf("Unable to dial gRPC server on port %d error : %s", err)
+		return nil, errors.Errorf("Unable to dial gRPC server on port error : %s", err)
 	}
 	defer conn.Close()
 
