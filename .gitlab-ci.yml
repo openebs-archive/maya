@@ -13,7 +13,7 @@ build-maya:
      - go env
      - ls $GOPATH
      - cd ${HOME}/go/src/github.com/openebs/maya
-     - find . -name 'push' -exec sed -i -e "s/CI_TAG/COMMIT/g" {} \;
+
      - make bootstrap
      - make format
   # Download kubectl, which is a requirement for using minikube.
