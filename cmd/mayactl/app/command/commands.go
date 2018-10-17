@@ -51,6 +51,7 @@ func NewMayaCommand() *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		NewCmdCompletion(cmd),
 		NewCmdVersion(),
 		NewCmdVolume(),
 		snapshot.NewCmdSnapshot(),
