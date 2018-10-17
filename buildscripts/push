@@ -95,8 +95,8 @@ fi;
 #Push image to run openebs-e2e based on git commit
 if [ ! -z "${COMMIT}" ];
 then
-  sudo docker login -u "${DNAMEGL}" -p "${DPASSGL}";
+  sudo docker login -u "${GITLAB_DNAME}" -p "${GITLAB_DPASS}";
 
   # Push COMMIT tagged image - :COMMIT
-  TagAndPushImage "${GITLAB_DIMAGE}" "${GITLAB_COMMIT}"
+  TagAndPushImage "${DIMAGE}" "${COMMIT}"
 fi;
