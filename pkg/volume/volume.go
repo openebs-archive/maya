@@ -29,6 +29,7 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -156,13 +157,13 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// cas template to create a cas volume
-	createCastName := getCreateCASTemplate(sc)
-	if len(createCastName) == 0 {
+	createVolCastName := getCreateCASTemplate(sc)
+	if len(createVolCastName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
 	}
 
 	// fetch CASTemplate specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(createCastName, mach_apis_meta_v1.GetOptions{})
+	cast, err := v.k8sClient.GetOEV1alpha1CAST(createVolCastName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -201,13 +202,22 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	// find cast for other operations
-	readCastName := getReadCASTemplate(sc)
-	deleteCastName := getDeleteCASTemplate(sc)
+	readVolCastName := getReadCASTemplate(sc)
+	deleteVolCastName := getDeleteCASTemplate(sc)
 
+	createSnapCastName := snapshot.GetCreateCASTemplate(sc)
+	readSnapCastName := snapshot.GetReadCASTemplate(sc)
+	deleteSnapCastName := snapshot.GetDeleteCASTemplate(sc)
+	listSnapCastName := snapshot.GetListCASTemplate(sc)
 	// set all cast to volume's annotation
-	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = createCastName
-	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = readCastName
-	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = deleteCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = createVolCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = readVolCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = deleteVolCastName
+	// add annotation of snapshot cast
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)] = createSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)] = deleteSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)] = readSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)] = listSnapCastName
 
 	return vol, nil
 }

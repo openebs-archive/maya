@@ -88,7 +88,7 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getCreateCASTemplate(sc)
+	castName := GetCreateCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.snapOptions.Name)
 	}
@@ -154,7 +154,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getReadCASTemplate(sc)
+	castName := GetReadCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.snapOptions.Name)
 	}
@@ -218,7 +218,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getDeleteCASTemplate(sc)
+	castName := GetDeleteCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
 	}
@@ -280,7 +280,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	castName := getListCASTemplate(sc)
+	castName := GetListCASTemplate(sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to list snapshots: missing cas template for list snapshot")
 	}
@@ -320,7 +320,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 	return snapList, nil
 }
 
-func getReadCASTemplate(sc *v1_storage.StorageClass) string {
+func GetReadCASTemplate(sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
@@ -336,7 +336,7 @@ func getReadCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
+func GetCreateCASTemplate(sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
@@ -352,7 +352,7 @@ func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getDeleteCASTemplate(sc *v1_storage.StorageClass) string {
+func GetDeleteCASTemplate(sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
@@ -368,7 +368,7 @@ func getDeleteCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getListCASTemplate(sc *v1_storage.StorageClass) string {
+func GetListCASTemplate(sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {

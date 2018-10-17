@@ -61,7 +61,7 @@ func TestGetCreateCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToCreateCStorSnapshotENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToCreateJivaSnapshotENVK), test.envJivaCAST)
 
-			castName := getCreateCASTemplate(sc)
+			castName := GetCreateCASTemplate(sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
@@ -122,7 +122,7 @@ func TestGetReadCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToReadCStorSnapshotENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToReadJivaSnapshotENVK), test.envJivaCAST)
 
-			castName := getReadCASTemplate(sc)
+			castName := GetReadCASTemplate(sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
@@ -183,7 +183,7 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToDeleteCStorSnapshotENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToDeleteJivaSnapshotENVK), test.envJivaCAST)
 
-			castName := getDeleteCASTemplate(sc)
+			castName := GetDeleteCASTemplate(sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
