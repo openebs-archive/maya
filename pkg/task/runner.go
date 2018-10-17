@@ -58,10 +58,12 @@ type TaskGroupRunner struct {
 	rollbacks []*taskExecutor
 }
 
+// NewTaskGroupRunner returns a new task group.
 func NewTaskGroupRunner() *TaskGroupRunner {
 	return &TaskGroupRunner{}
 }
 
+// AddRunTask adds a task to the list of tasks to be run by this group runner.
 func (m *TaskGroupRunner) AddRunTask(runtask *v1alpha1.RunTask) (err error) {
 	if runtask == nil {
 		err = fmt.Errorf("nil runtask: failed to add run task")
