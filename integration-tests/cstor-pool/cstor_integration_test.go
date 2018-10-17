@@ -19,13 +19,14 @@ package cstorpoolit
 import (
 	"testing"
 
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/CITF"
 	"github.com/openebs/CITF/citf_options"
 	apis "github.com/openebs/CITF/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // TestIntegrationCstorPool function instantiate the cstor pool test suite.
@@ -60,7 +61,7 @@ var citfInstance, err = citf.NewCITF(&citfoptions.CreateOptions{
 // ToDo: Reset cluster environment after every test cases that will be run  ( i.e postRunHook)
 var _ = Describe("Integration Test", func() {
 	// Test Case #1 (sparse-striped-auto-spc). Type : Positive
-	When("We apply sparse-striped-auto spc yaml with maxPool count euqal to 3 on a k8s cluster having at least 3 capable node", func() {
+	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
 		It("pool resources count should be 3 with no error and online status", func() {
 			// TODO: Create a generic util function in utils.go to convert yaml into go object.
 			// ToDo: More POC regarding this util converter function.
@@ -102,7 +103,6 @@ var _ = Describe("Integration Test", func() {
 					break
 				}
 				time.Sleep(time.Second * 5)
-				maxRetry--
 			}
 			Expect(cspCount).To(Equal(3))
 			// We expect 3 pool deployments.
@@ -117,7 +117,6 @@ var _ = Describe("Integration Test", func() {
 					break
 				}
 				time.Sleep(time.Second * 5)
-				maxRetry--
 			}
 			Expect(cspCount).To(Equal(3))
 			// We expect 3 storagePool objects.
@@ -132,7 +131,6 @@ var _ = Describe("Integration Test", func() {
 					break
 				}
 				time.Sleep(time.Second * 5)
-				maxRetry--
 			}
 			Expect(spCount).To(Equal(3))
 
@@ -148,14 +146,13 @@ var _ = Describe("Integration Test", func() {
 					break
 				}
 				time.Sleep(time.Second * 5)
-				maxRetry--
 			}
 			Expect(onlineCspCount).To(Equal(3))
 
 		})
 	})
 	// Test Case #2 (sparse-mirrored-auto-spc) Type:positive
-	/*When("We apply sparse-mirrored-auto spc yaml with maxPool count euqal to 3 on a k8s cluster having at least 3 capable node", func() {
+	/*When("We apply sparse-mirrored-auto spc yaml with maxPool count equal to 3 on a k8s cluster having at least 3 capable node", func() {
 		It("pool resources count should be 3 with no error and online status", func() {
 			// Create a storage pool claim object
 			// Call CITF to create StoragePoolClaim in k8s.
