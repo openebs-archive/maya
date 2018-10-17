@@ -94,7 +94,7 @@ type CmdStartOptions struct {
 	httpServer *server.HTTPServer
 }
 
-// NewCmdStart creates start command for maya-apiserver.
+// NewCmdStart creates start command for maya-apiserver
 func NewCmdStart() *cobra.Command {
 	options := CmdStartOptions{}
 
