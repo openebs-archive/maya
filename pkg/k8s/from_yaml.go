@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package k8s
 package k8s
 
 import (
@@ -35,6 +36,8 @@ type DeploymentYml struct {
 	YmlInBytes []byte
 }
 
+
+// NewDeploymentYml is used to check for new ymls.
 func NewDeploymentYml(context, yml string, values map[string]interface{}) (*DeploymentYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -85,6 +88,7 @@ type ServiceYml struct {
 	YmlInBytes []byte
 }
 
+// NewServiceYml creates a service yaml.
 func NewServiceYml(context, yml string, values map[string]interface{}) (*ServiceYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -133,6 +137,7 @@ type StoragePoolYml struct {
 	YmlInBytes []byte
 }
 
+// NewCStorPoolYml provides new c store pool for yml.
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -144,6 +149,7 @@ func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStor
 	}, nil
 }
 
+// NewStoragePoolYml provides new storage pool for yml. 
 func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*StoragePoolYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -155,6 +161,8 @@ func NewStoragePoolYml(context, yml string, values map[string]interface{}) (*Sto
 	}, nil
 }
 
+
+// NewCStorVolumeYml provides new c store volume for yml.
 func NewCStorVolumeYml(context, yml string, values map[string]interface{}) (*CStorVolumeYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
@@ -221,6 +229,8 @@ type CStorVolumeReplicaYml struct {
 	YmlInBytes []byte
 }
 
+
+// NewCStorVolumeReplicaYml provides utility methods to generate new c store volume replica's for yml.
 func NewCStorVolumeReplicaYml(context, yml string, values map[string]interface{}) (*CStorVolumeReplicaYml, error) {
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
