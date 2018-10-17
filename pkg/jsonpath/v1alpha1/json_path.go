@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1aplpha1 for creating aliases.
 package v1alpha1
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	. "github.com/openebs/maya/pkg/msg/v1alpha1"
+	"github.com/openebs/maya/pkg/msg/v1alpha1"
 	ft "k8s.io/client-go/third_party/forked/golang/template"
 	jp "k8s.io/client-go/util/jsonpath"
 	"reflect"
