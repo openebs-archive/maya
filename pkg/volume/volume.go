@@ -19,6 +19,8 @@ package volume
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
 	"github.com/openebs/maya/types/v1"
 	v1_storage "k8s.io/api/storage/v1"
 
@@ -209,6 +211,10 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	readSnapCastName := snapshot.GetReadCASTemplate(sc)
 	deleteSnapCastName := snapshot.GetDeleteCASTemplate(sc)
 	listSnapCastName := snapshot.GetListCASTemplate(sc)
+
+	if vol.Annotations == nil {
+		vol.Annotations = make(map[string]string)
+	}
 	// set all cast to volume's annotation
 	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = createVolCastName
 	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = readVolCastName
@@ -219,6 +225,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)] = readSnapCastName
 	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)] = listSnapCastName
 
+	glog.Infof("CASVolume created %+v", vol)
 	return vol, nil
 }
 
@@ -293,7 +300,15 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
-	castName := ""
+	readVolCastName := ""
+	createVolCastName := ""
+	deleteVolCastName := ""
+
+	createSnapCastName := ""
+	readSnapCastName := ""
+	deleteSnapCastName := ""
+	listSnapCastName := ""
+
 	var sc *v1_storage.StorageClass
 
 	// extract scName if present in label
@@ -311,23 +326,32 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	// if pv is not empty check annotation for cast name
 	// if cast name not found then use storage class
 	if pv != nil {
-		castName = pv.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
+		readVolCastName = pv.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	}
 
-	if castName == "" {
+	if readVolCastName == "" {
 		sc, err = v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
-		castName = getReadCASTemplate(sc)
+		// if pv does not exist or the annotations are not present in PV
+		// then extract the annotations from sc
+		readVolCastName = getReadCASTemplate(sc)
+		createVolCastName = getCreateCASTemplate(sc)
+		deleteVolCastName = getDeleteCASTemplate(sc)
+		createSnapCastName = snapshot.GetCreateCASTemplate(sc)
+		readSnapCastName = snapshot.GetReadCASTemplate(sc)
+		deleteSnapCastName = snapshot.GetDeleteCASTemplate(sc)
+		listSnapCastName = snapshot.GetListCASTemplate(sc)
+
 	}
 
-	if len(castName) == 0 {
+	if len(readVolCastName) == 0 {
 		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
 
 	// fetch read cas template specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	cast, err := v.k8sClient.GetOEV1alpha1CAST(readVolCastName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -357,6 +381,19 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if vol.Annotations == nil {
+		vol.Annotations = make(map[string]string)
+	}
+	// set all cast to volume's annotation
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = createVolCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = readVolCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = deleteVolCastName
+	// add annotation of snapshot cast
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)] = createSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)] = deleteSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)] = readSnapCastName
+	vol.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)] = listSnapCastName
 
 	return vol, nil
 }
