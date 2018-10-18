@@ -13,7 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// // This is extracted from k8s.io/apimachinery/pkg/api/resource/amount.go
 package v1
 
 import (
@@ -34,18 +33,28 @@ func (s Scale) infScale() inf.Scale {
 }
 
 const (
-	Nano  Scale = -9
+	// Nano is 10^-9
+	Nano Scale = -9
+	// Micro is 10^-6
 	Micro Scale = -6
+	// Milli is 10^-3
 	Milli Scale = -3
-	Kilo  Scale = 3
-	Mega  Scale = 6
-	Giga  Scale = 9
-	Tera  Scale = 12
-	Peta  Scale = 15
-	Exa   Scale = 18
+	// Kilo is 10^3
+	Kilo Scale = 3
+	// Mega is 10^6
+	Mega Scale = 6
+	// Giga is 10^9
+	Giga Scale = 9
+	// Tera is 10^12
+	Tera Scale = 12
+	// Peta is 10^15
+	Peta Scale = 15
+	// Exa is 10^18
+	Exa Scale = 18
 )
 
 var (
+	// Zero is an empty int64Amount
 	Zero = int64Amount{}
 
 	// Used by quantity strings - treat as read only
