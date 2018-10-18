@@ -17,8 +17,8 @@ import (
 )*/
 
 // Snapshot will create the snapshot of a given volume name 'volname' with name of
-// snapshot 'snapname'. If there is no name provided for snapshot, an auto genrated
-// string will be genrated for this.
+// snapshot 'snapname'. If there is no name provided for snapshot, an auto generated
+// string will be generated for this.
 func Snapshot(snapname string, controllerIP string, labels map[string]string) (client.SnapshotOutput, error) {
 	output := client.SnapshotOutput{}
 	var c ControllerClient

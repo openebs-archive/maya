@@ -324,7 +324,7 @@ func (k *k8sOrchestrator) AddStorage(volProProfile volProfile.VolumeProvisionerP
 //    This also handles the cases where creation failed mid-flight, and bail
 // out requires calling delete function.
 func (k *k8sOrchestrator) DeleteStorage(volProProfile volProfile.VolumeProvisionerProfile) (bool, error) {
-	// Assume the presence of atleast one VSM object
+	// Assume the presence of at least one VSM object
 	// Set this flag to false initially
 	var hasAtleastOneVSMObj bool
 
@@ -645,7 +645,7 @@ func (k *k8sOrchestrator) listStorageByNS(vol *v1.Volume) (*v1.VolumeList, error
 	// for K8s list operation
 	//
 	// Note: Here volume acts as a placeholder for namespace &
-	// doesnot necessarily represent a volume
+	// doesn't necessarily represent a volume
 	dl, err := k.getVSMDeployments(&k8sUtil{
 		volume: vol,
 	})
@@ -880,7 +880,7 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 	//  to determine if quorum is available for making volume as read-write.
 	//  For example,
 	//   - if replication factor is 1, volume will be marked as RW when one replica connects
-	//   - if replication factor is 3, volume will be marked as RW when when atleast 2 replica connect
+	//   - if replication factor is 3, volume will be marked as RW when when at least 2 replica connect
 	//  Similar logic will be applied to turn the volume into RO, when qorum is lost.
 	//Note: When kubectl scale up/down is done for replica deployment,
 	// this ENV on controller deployment needs to be patched.
@@ -1131,7 +1131,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 		//(a) Deploy the application using a statefulset where application has single replica
 		//    In this case, an application label to use as key is specified.
 		//(b) Deploy the replicas of a single application need to be spread out.
-		//    In this case, there is no need to specify a seperate the application label.
+		//    In this case, there is no need to specify a separate the application label.
 		//    Use the auto generated id.
 		if appLV != "" {
 			repAntiAffinityLabelSpec[string(v1.ApplicationSelectorKey)] = appLV

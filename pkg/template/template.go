@@ -432,7 +432,7 @@ func keyMap(destinationFields string, destination map[string]interface{}, given 
 // nestedKeyMap builds a nested map from the given string(s). Each string item is
 // split as per the provided set of delimiters and is transformed into a
 // hierarchical path that is used to set the value. Value here implies the last
-// resulting split item once all the splits are perfomed. The resulting map is
+// resulting split item once all the splits are performed. The resulting map is
 // then set into the provided destination object.
 //
 // NOTE:

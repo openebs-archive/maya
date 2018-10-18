@@ -152,7 +152,7 @@ func (pp *defVolProProfile) Name() v1.VolumeProvisionerProfileRegistry {
 // Volume provides the volume associated with this profile.
 //
 // NOTE:
-//    This method provides a convinient way to access volume. In other words
+//    This method provides a convenient way to access volume. In other words
 // volume provisioner profile acts as a wrapper over volume.
 func (pp *defVolProProfile) Volume() (*v1.Volume, error) {
 	return pp.vol, nil

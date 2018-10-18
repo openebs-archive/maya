@@ -131,7 +131,7 @@ func (c *Cstor) set(m *Metrics) error {
 		newResp v1.VolumeStats
 		// parse JSON response (string) into appropriate type
 		// (float64, int64 etc).JSON can only handle the data
-		// upto 53 bits precision, so this needs to be converted
+		// up to 53 bits precision, so this needs to be converted
 		// into string.
 		volStats VolumeStats
 		err      error

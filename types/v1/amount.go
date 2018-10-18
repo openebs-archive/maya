@@ -203,8 +203,9 @@ func (a *int64Amount) Sub(b int64Amount) bool {
 	return a.Add(int64Amount{value: -b.value, scale: b.scale})
 }
 
-// AsScale adjusts this amount to set a minimum scale, rounding up, and returns true iff no precision
-// was lost. (1.1e5).AsScale(5) would return 1.1e5, but (1.1e5).AsScale(6) would return 1e6.
+// AsScale adjusts this amount to set a minimum scale, rounding up, and returns
+// true if and only if no precision was lost. (1.1e5).AsScale(5) would return
+// 1.1e5, but (1.1e5).AsScale(6) would return 1e6.
 func (a int64Amount) AsScale(scale Scale) (int64Amount, bool) {
 	if a.scale >= scale {
 		return a, true
@@ -260,8 +261,9 @@ type infDecAmount struct {
 	*inf.Dec
 }
 
-// AsScale adjusts this amount to set a minimum scale, rounding up, and returns true iff no precision
-// was lost. (1.1e5).AsScale(5) would return 1.1e5, but (1.1e5).AsScale(6) would return 1e6.
+// AsScale adjusts this amount to set a minimum scale, rounding up, and returns
+// true if and only if no precision was lost. (1.1e5).AsScale(5) would return
+// 1.1e5, but (1.1e5).AsScale(6) would return 1e6.
 func (a infDecAmount) AsScale(scale Scale) (infDecAmount, bool) {
 	tmp := &inf.Dec{}
 	tmp.Round(a.Dec, scale.infScale(), inf.RoundUp)

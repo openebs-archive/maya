@@ -28,7 +28,7 @@ type NomadOrchestrator struct {
 	name string
 
 	// The region where this orchestrator is deployed
-	// This is set during the initilization time.
+	// This is set during the initialization time.
 	region string
 
 	// nStorApis represents an instance capable of invoking
