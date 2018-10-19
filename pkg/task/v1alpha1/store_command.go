@@ -17,12 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
-	"time"
 )
-
 
 var (
 	// ErrorCanNotRunDueToFailedCondition is an error object that indicates that command could not be executed due to failed condition.
@@ -32,15 +32,14 @@ var (
 // StoreKey represents supported keys to store run command's execution results
 type StoreKey string
 
-
 const (
 	// ResultStoreKey stores the run commands results
-	ResultStoreKey    StoreKey = "result"
+	ResultStoreKey StoreKey = "result"
 	//DebugStoreKey stores the debug results
-	DebugStoreKey     StoreKey = "debug"
+	DebugStoreKey StoreKey = "debug"
 	//ErrorStoreKey stores the errors after the run command
-	ErrorStoreKey     StoreKey = "error"
-	//RootcauseStoreKey stores the rootCause of the errors
+	ErrorStoreKey StoreKey = "error"
+	//RootCauseStoreKey stores the rootCause of the errors
 	RootCauseStoreKey StoreKey = "rootCause"
 )
 
