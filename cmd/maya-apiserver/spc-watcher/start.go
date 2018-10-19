@@ -38,6 +38,7 @@ var (
 	kubeconfig string
 )
 
+// QueueLoad struct holds object to be pushed in workqueue
 type QueueLoad struct {
 	Key       string
 	Operation string
@@ -74,7 +75,7 @@ func Start() error {
 	go kubeInformerFactory.Start(stopCh)
 	go spcInformerFactory.Start(stopCh)
 
-	// Threadiness defines the nubmer of workers to be launched in Run function
+	// Threadiness defines the number of workers to be launched in Run function
 	return controller.Run(2, stopCh)
 }
 
