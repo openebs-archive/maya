@@ -361,7 +361,7 @@ var _ = Describe("Integration Test", func() {
 					Type:     "sparse",
 					MaxPools: 5,
 					PoolSpec: apis.CStorPoolAttr{
-						PoolType: "striped",
+						PoolType: "mirrored",
 					},
 				},
 			}
