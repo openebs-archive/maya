@@ -24,8 +24,28 @@ VERSION="$(cat $GOPATH/src/github.com/openebs/maya/VERSION)"
 VERSION_META="$(cat $GOPATH/src/github.com/openebs/maya/BUILDMETA)"
 
 # Determine the arch/os combos we're building for
-XC_ARCH=${XC_ARCH:-"386 amd64"}
-XC_OS=${XC_OS:-"linux"}
+UNAME=$(uname)
+ARCH=$(uname -m)
+if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
+    echo "Sorry, this OS is not supported yet via this installer."
+    exit 1
+fi
+
+if [ "$UNAME" = "Darwin" ] ; then
+  XC_OS="darwin"
+elif [ "$UNAME" = "Linux" ] ; then
+  XC_OS="linux"
+fi
+
+if [ "${ARCH}" = "i686" ] ; then
+    XC_ARCH='386'
+elif [ "${ARCH}" = "x86_64" ] ; then
+    XC_ARCH='amd64'
+else
+    echo "Unusable architecture: ${ARCH}"
+    exit 1
+fi
+
 
 XC_ARCHS=(${XC_ARCH// / })
 XC_OSS=(${XC_OS// / })
