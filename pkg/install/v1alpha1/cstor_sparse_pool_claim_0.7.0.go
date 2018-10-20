@@ -77,7 +77,7 @@ spec:
 ---
 `
 
-// IsCstorSparsePoolEnabled reads from env variable to check wether cstor sparse pool
+// IsCstorSparsePoolEnabled reads from env variable to check whether cstor sparse pool
 // should be created by default or not.
 func IsCstorSparsePoolEnabled() (enabled bool) {
 	enabled, _ = strconv.ParseBool(menv.Get(DefaultCstorSparsePool))

@@ -8,7 +8,7 @@ cleanUp()
 {
     kubectlDelete app.yaml
     kubectlDelete pvc.yaml
-    # sleep as pvc deleteion is dependent on sc
+    # sleep as pvc deletion is dependent on sc
     sleep 5
     kubectlDelete sc.yaml
     sleep 5

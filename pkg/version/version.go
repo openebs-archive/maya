@@ -31,7 +31,7 @@ var (
 	// Version show the version number,fill in by the compiler
 	Version string
 
-	// VersionPrerelease is a pre-release marker for the version. If this is "" (empty string)
+	// VersionMeta is a pre-release marker for the version. If this is "" (empty string)
 	// then it means that it is a final release. Otherwise, this is a pre-release
 	// such as "dev" (in development), "beta", "rc1", etc.
 	VersionMeta string
@@ -40,6 +40,8 @@ var (
 	buildMetaFile = "/src/github.com/openebs/maya/BUILDMETA"
 )
 
+// GetVersion returns the version from the global Version variable.
+// If Version is unset then from the VERSION file at the root of the repo.
 func GetVersion() string {
 	if Version != "" {
 		return Version
@@ -53,6 +55,8 @@ func GetVersion() string {
 	return strings.TrimSpace(string(vBytes))
 }
 
+// GetBuildMeta returns the build type from the global VersionMeta variable.
+// If VersionMeta is unset then from the BUILDMETA file at the root of the repo.
 func GetBuildMeta() string {
 	if VersionMeta != "" {
 		return "-" + VersionMeta
@@ -66,6 +70,8 @@ func GetBuildMeta() string {
 	return "-" + strings.TrimSpace(string(vBytes))
 }
 
+// GetGitCommit returns the Git commit SHA-1 from the global GitCommit variable.
+// If GitCommit is unset then by calling Git directly.
 func GetGitCommit() string {
 	if GitCommit != "" {
 		return GitCommit

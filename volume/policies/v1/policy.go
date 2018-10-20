@@ -60,7 +60,7 @@ func VolumeAddPolicy() (*Policy, error) {
 	}, nil
 }
 
-// VolumeDeletePolicy provides a policy instance that enforces
+// VolumeGenericPolicy provides a policy instance that enforces
 // policies during some of the volume operations other than
 // provisioning
 func VolumeGenericPolicy() (*Policy, error) {
@@ -76,6 +76,7 @@ func VolumeGenericPolicy() (*Policy, error) {
 	}, nil
 }
 
+// Enforce will enforce policies against the volume instance
 func (p *Policy) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 	p.volume = volume
 

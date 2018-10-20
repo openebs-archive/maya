@@ -8,7 +8,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
-// VolumeProvisionerProfile abstracts & exposes a persistent volume provisioner's
+// OrchProviderProfile abstracts & exposes an orchestration provider's
 // runtime features.
 //
 // NOTE:
@@ -130,7 +130,7 @@ func (op *pvcOrchProviderProfile) Name() v1.OrchProviderProfileRegistry {
 // PVC provides the persistent volume claim associated with this profile.
 //
 // NOTE:
-//    This method provides a convinient way to access pvc. In other words
+//    This method provides a convenient way to access pvc. In other words
 // orchestration provider profile acts as a wrapper over pvc.
 func (op *pvcOrchProviderProfile) PVC() (*v1.Volume, error) {
 	return op.vol, nil

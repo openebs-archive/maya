@@ -2,6 +2,7 @@
 //
 //    1. Generic orchprovider &
 //    2. Nomad orchprovider
+
 package v1
 
 import (
@@ -27,7 +28,7 @@ type NomadOrchestrator struct {
 	name string
 
 	// The region where this orchestrator is deployed
-	// This is set during the initilization time.
+	// This is set during the initialization time.
 	region string
 
 	// nStorApis represents an instance capable of invoking
@@ -51,15 +52,15 @@ func NewNomadOrchestrator(label v1.NameLabel, name v1.OrchProviderRegistry) (orc
 	}
 
 	// Get a new instance of Nomad API
-	nApi, err := newNomadApi()
+	nAPI, err := newNomadApi()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get Nomad's storage specific API provider
-	nStorApis, ok := nApi.StorageApis()
+	nStorApis, ok := nAPI.StorageApis()
 	if !ok {
-		return nil, fmt.Errorf("Storage APIs not supported in nomad api instance '%s'", nApi.Name())
+		return nil, fmt.Errorf("Storage APIs not supported in nomad api instance '%s'", nAPI.Name())
 	}
 
 	// build the orchestrator instance
@@ -91,6 +92,8 @@ func (n *NomadOrchestrator) Region() string {
 	return n.region
 }
 
+// PolicyOps provides the policy ops where this orchestrator is running.
+// This is an implementation of the orchprovider.OrchestratorInterface interface.
 func (n *NomadOrchestrator) PolicyOps(vol *v1.Volume) (orchprovider.PolicyOps, bool, error) {
 	return nil, false, nil
 }

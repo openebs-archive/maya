@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This is extracted from k8s.io/apimachinery/pkg/api/resource/suffix.go
+// Package v1 is extracted from k8s.io/apimachinery/pkg/api/resource/suffix.go
 package v1
 
 import (

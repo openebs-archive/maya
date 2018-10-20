@@ -201,7 +201,7 @@ func CheckSnapshotExist(snapshot string, controllerIP string) error {
 
 // getNameAndIndex get the name and index value based on the existence of
 // snapshot. If snapshot is already exists the index value will be -1
-// if not then any possitive number
+// if not then any positive number
 func getNameAndIndex(chain []string, snapshot string) (string, int) {
 	index := find(chain, snapshot)
 

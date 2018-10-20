@@ -124,7 +124,7 @@ const (
 	// be transformed to.
 	K8sTargetKindVK VolumeKey = "openebs.io/k8s-target-kind"
 
-	// ReplicaImageVK is the key to fetch the jiva replica image
+	// JivaReplicaImageVK is the key to fetch the jiva replica image
 	JivaReplicaImageVK VolumeKey = "openebs.io/jiva-replica-image"
 
 	// JivaControllerImageVK is the key to fetch the jiva controller image

@@ -233,7 +233,7 @@ Replica Count     :   {{.ReplicaCount}}
 		// making a map of replica ip and their respective status,index and mode
 		replicaIPStatus := make(map[string]*Value)
 
-		// Creating a map of address and mode. The IP is chosed as key so that the status of that corresponding replica can be merged in linear time complexity
+		// Creating a map of address and mode. The IP is chosen as key so that the status of that corresponding replica can be merged in linear time complexity
 		for index, IP := range addressIPStrings {
 			if strings.Contains(IP, "nil") {
 				// appending address with index to avoid same key conflict as the IP is returned as `nil` in case of error

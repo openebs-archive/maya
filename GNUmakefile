@@ -1,5 +1,5 @@
 # list only our namespaced directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated')
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|integration-tests')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -202,7 +202,7 @@ cstor-volume-mgmt:
 #Use this to build cstor-volume-grpc
 cstor-volume-grpc:
 	@echo "----------------------------"
-	@echo "--> cstor-volume-grpc           "            
+	@echo "--> cstor-volume-grpc           "
 	@echo "----------------------------"
 	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
     -I${GOPATH}/src \
@@ -253,6 +253,17 @@ apiserver-image: mayactl apiserver
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
+
+rhel-apiserver-image: mayactl apiserver
+	@echo "----------------------------"
+	@echo "--> rhel based apiserver image"
+	@echo "----------------------------"
+	@cp bin/apiserver/${APISERVER} buildscripts/apiserver/
+	@cp bin/maya/${MAYACTL} buildscripts/apiserver/
+	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
+	@rm buildscripts/apiserver/${APISERVER}
+	@rm buildscripts/apiserver/${MAYACTL}
+
 
 # Push images
 deploy-images:

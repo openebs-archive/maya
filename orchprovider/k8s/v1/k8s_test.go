@@ -445,7 +445,7 @@ func (m *mockSvcOps) ProxyGet(scheme, name, port, path string, params map[string
 	return nil
 }
 
-// okVsmNameVolumeProfile focusses on NOT returning any error during invocation
+// okVsmNameVolumeProfile focuses on NOT returning any error during invocation
 // of VSMName() method
 type okVsmNameVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile
@@ -476,7 +476,7 @@ func (e *okVsmNameVolumeProfile) IsReplicaNodeSelectors() ([]string, bool, error
 	return []string{"k=v"}, true, nil
 }
 
-// okCtrlImgVolumeProfile focusses on not returning any error during invocation
+// okCtrlImgVolumeProfile focuses on not returning any error during invocation
 // of ControllerImage() method
 type okCtrlImgVolumeProfile struct {
 	okVsmNameVolumeProfile
@@ -502,7 +502,7 @@ func (e *okCtrlImgVolumeProfile) IsReplicaNodeSelectors() ([]string, bool, error
 	return []string{"k=v"}, true, nil
 }
 
-// errVsmNameVolumeProfile focusses on returning error during invocation of
+// errVsmNameVolumeProfile focuses on returning error during invocation of
 // VSMName() method
 type errVsmNameVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile
@@ -531,7 +531,7 @@ func TestCreateControllerDeploymentReturnsErrVsmName(t *testing.T) {
 	}
 }
 
-// errCtrlImgVolumeProfile focusses on returning error during invocation of
+// errCtrlImgVolumeProfile focuses on returning error during invocation of
 // ControllerImage() method
 type errCtrlImgVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile
@@ -564,7 +564,7 @@ func TestCreateControllerDeploymentReturnsErrCtrlImg(t *testing.T) {
 	}
 }
 
-// noSupportCtrlImgVolumeProfile focusses on returning not supported during
+// noSupportCtrlImgVolumeProfile focuses on returning not supported during
 // invocation of ControllerImage() method
 type noSupportCtrlImgVolumeProfile struct {
 	volProfile.VolumeProvisionerProfile

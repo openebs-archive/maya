@@ -11,7 +11,7 @@ type BlockDeviceInfo struct {
 	Blockdevices []Blockdevice `json:"blockdevices"`
 }
 
-//Blockdevices has block disk fields
+// Blockdevice has block disk fields
 type Blockdevice struct {
 	Name       string        `json:"name"`               //block device name
 	Majmin     string        `json:"maj:min"`            //major and minor block device number

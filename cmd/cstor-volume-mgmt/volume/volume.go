@@ -42,8 +42,8 @@ var FileOperatorVar util.FileOperator
 //UnixSockVar is used for communication through Unix Socket
 var UnixSockVar util.UnixSock
 
-// CreateVolume creates a new cStor volume istgt config.
-func CreateVolume(cStorVolume *apis.CStorVolume) error {
+// CreateVolumeTarget creates a new cStor volume istgt config.
+func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	// create conf file
 	text := CreateIstgtConf(cStorVolume)
 	err := FileOperatorVar.Write(IstgtConfPath, text, 0644)
