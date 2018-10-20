@@ -25,6 +25,7 @@ import (
 // RunTaskKind represents type of runtask operation
 type RunTaskKind string
 
+// CommandKind is a runtask operation of type Command
 const (
 	CommandKind RunTaskKind = "Command"
 )
