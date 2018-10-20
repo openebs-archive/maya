@@ -34,7 +34,7 @@ func EnvList(v version) (l *envList, err error) {
 	default:
 		return
 	}
-	return
+	
 }
 
 // envInstallConfig returns a list of environment variable info specific to
