@@ -219,6 +219,7 @@ type ObjectMeta struct {
 	ClusterName string `json:"clusterName,omitempty" protobuf:"bytes,15,opt,name=clusterName"`
 }
 
+// Labels is a collection of volume labels which contain all the volume policy keys
 type Labels struct {
 	// OldVolumeLabels contains all the volume policy keys that ensures
 	// backward compatibility
@@ -273,10 +274,16 @@ type LabelSelectorRequirement struct {
 type LabelSelectorOperator string
 
 const (
-	//LabelSelectorOpIn : LabelSelectorOperator for In
-	LabelSelectorOpIn           LabelSelectorOperator = "In"
-	LabelSelectorOpNotIn        LabelSelectorOperator = "NotIn"
-	LabelSelectorOpExists       LabelSelectorOperator = "Exists"
+	// LabelSelectorOpIn : LabelSelectorOperator for In
+	LabelSelectorOpIn LabelSelectorOperator = "In"
+
+	// LabelSelectorOpNotIn : LabelSelectorOperator for NotIn
+	LabelSelectorOpNotIn LabelSelectorOperator = "NotIn"
+
+	// LabelSelectorOpExists : LabelSelectorOperator for Exists
+	LabelSelectorOpExists LabelSelectorOperator = "Exists"
+
+	// LabelSelectorOpDoesNotExist : LabelSelectorOperator for DoesNotExist
 	LabelSelectorOpDoesNotExist LabelSelectorOperator = "DoesNotExist"
 )
 
