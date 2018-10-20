@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eo pipefail
 
 # Create a temp dir and clean it up on exit
 TEMPDIR=`mktemp -d -t maya-test.XXX`
