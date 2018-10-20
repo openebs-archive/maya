@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-const openEBSCRDYamls070 = `
+const openEBSCRDYamls = `
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -204,17 +206,19 @@ spec:
 ---
 `
 
-// OpenEBSCRDArtifactsFor070 returns the CRDs required for version 0.7.0
-func OpenEBSCRDArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(openEBSCRDYamlsFor070)...)
+// OpenEBSCRDArtifacts returns the CRDs required for latest version
+func OpenEBSCRDArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(openEBSCRDs{})...)
 	return
 }
 
-// openEBSCRDYamlsFor070 returns all the CRD yamls related to 0.7.0
+type openEBSCRDs struct{}
+
+// FetchYamls returns all the CRD yamls related to 0.7.0
 // in a string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func openEBSCRDYamlsFor070() string {
-	return openEBSCRDYamls070
+func (o openEBSCRDs) FetchYamls() string {
+	return openEBSCRDYamls
 }

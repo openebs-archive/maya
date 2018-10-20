@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-const cstorVolumeYamls070 = `
+const cstorVolumeYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-volume-create-default-0.7.0
+  name: cstor-volume-create-default
 spec:
   defaultConfig:
   - name: VolumeControllerImage
@@ -69,18 +71,18 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-create-listclonecstorvolumecr-default-0.7.0
-    - cstor-volume-create-listcstorpoolcr-default-0.7.0
-    - cstor-volume-create-puttargetservice-default-0.7.0
-    - cstor-volume-create-putcstorvolumecr-default-0.7.0
-    - cstor-volume-create-puttargetdeployment-default-0.7.0
-    - cstor-volume-create-putcstorvolumereplicacr-default-0.7.0
-  output: cstor-volume-create-output-default-0.7.0
+    - cstor-volume-create-listclonecstorvolumecr-default
+    - cstor-volume-create-listcstorpoolcr-default
+    - cstor-volume-create-puttargetservice-default
+    - cstor-volume-create-putcstorvolumecr-default
+    - cstor-volume-create-puttargetdeployment-default
+    - cstor-volume-create-putcstorvolumereplicacr-default
+  output: cstor-volume-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-volume-delete-default-0.7.0
+  name: cstor-volume-delete-default
 spec:
   defaultConfig:
   - name: RunNamespace
@@ -88,20 +90,20 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-delete-listcstorvolumecr-default-0.7.0
-    - cstor-volume-delete-listtargetservice-default-0.7.0
-    - cstor-volume-delete-listtargetdeployment-default-0.7.0
-    - cstor-volume-delete-listcstorvolumereplicacr-default-0.7.0
-    - cstor-volume-delete-deletetargetservice-default-0.7.0
-    - cstor-volume-delete-deletetargetdeployment-default-0.7.0
-    - cstor-volume-delete-deletecstorvolumereplicacr-default-0.7.0
-    - cstor-volume-delete-deletecstorvolumecr-default-0.7.0
-  output: cstor-volume-delete-output-default-0.7.0
+    - cstor-volume-delete-listcstorvolumecr-default
+    - cstor-volume-delete-listtargetservice-default
+    - cstor-volume-delete-listtargetdeployment-default
+    - cstor-volume-delete-listcstorvolumereplicacr-default
+    - cstor-volume-delete-deletetargetservice-default
+    - cstor-volume-delete-deletetargetdeployment-default
+    - cstor-volume-delete-deletecstorvolumereplicacr-default
+    - cstor-volume-delete-deletecstorvolumecr-default
+  output: cstor-volume-delete-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-volume-read-default-0.7.0
+  name: cstor-volume-read-default
 spec:
   defaultConfig:
   - name: RunNamespace
@@ -109,16 +111,16 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-read-listtargetservice-default-0.7.0
-    - cstor-volume-read-listcstorvolumecr-default-0.7.0
-    - cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
-    - cstor-volume-read-listtargetpod-default-0.7.0
-  output: cstor-volume-read-output-default-0.7.0
+    - cstor-volume-read-listtargetservice-default
+    - cstor-volume-read-listcstorvolumecr-default
+    - cstor-volume-read-listcstorvolumereplicacr-default
+    - cstor-volume-read-listtargetpod-default
+  output: cstor-volume-read-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-volume-list-default-0.7.0
+  name: cstor-volume-list-default
 spec:
   defaultConfig:
   - name: RunNamespace
@@ -126,16 +128,16 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-list-listtargetservice-default-0.7.0
-    - cstor-volume-list-listtargetpod-default-0.7.0
-    - cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
-  output: cstor-volume-list-output-default-0.7.0
+    - cstor-volume-list-listtargetservice-default
+    - cstor-volume-list-listtargetpod-default
+    - cstor-volume-list-listcstorvolumereplicacr-default
+  output: cstor-volume-list-output-default
 ---
 # runTask to list cvrs if this is a clone volume
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-listclonecstorvolumecr-default-0.7.0
+  name: cstor-volume-create-listclonecstorvolumecr-default
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
@@ -159,7 +161,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-listcstorpoolcr-default-0.7.0
+  name: cstor-volume-create-listcstorpoolcr-default
 spec:
   meta: |
     id: cvolcreatelistpool
@@ -193,7 +195,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-puttargetservice-default-0.7.0
+  name: cstor-volume-create-puttargetservice-default
 spec:
   meta: |
     apiVersion: v1
@@ -213,6 +215,8 @@ spec:
         openebs.io/storage-engine-type: cstor
         openebs.io/cas-type: cstor
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
       name: {{ .Volume.owner }}
     spec:
       ports:
@@ -237,7 +241,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-putcstorvolumecr-default-0.7.0
+  name: cstor-volume-create-putcstorvolumecr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -259,6 +263,8 @@ spec:
         openebs.io/lun: {{ .Config.Lun.value }}
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
       capacity: {{ .Volume.capacity }}
@@ -274,7 +280,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-puttargetdeployment-default-0.7.0
+  name: cstor-volume-create-puttargetdeployment-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -303,6 +309,8 @@ spec:
         openebs.io/target: cstor-target
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
@@ -418,7 +426,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-putcstorvolumereplicacr-default-0.7.0
+  name: cstor-volume-create-putcstorvolumereplicacr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -457,6 +465,8 @@ spec:
         cstorpool.openebs.io/uid: {{ .ListItems.currentRepeatResource }}
         cstorvolume.openebs.io/name: {{ .Volume.owner }}
         openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
         {{- if ne $isClone "false" }}
         openebs.io/cloned: true
         {{- end }}
@@ -483,7 +493,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-output-default-0.7.0
+  name: cstor-volume-create-output-default
 spec:
   meta: |
     action: output
@@ -495,6 +505,9 @@ spec:
     apiVersion: v1alpha1
     metadata:
       name: {{ .Volume.owner }}
+      labels:
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       capacity: {{ .Volume.capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
@@ -508,7 +521,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-list-listtargetservice-default-0.7.0
+  name: cstor-volume-list-listtargetservice-default
 spec:
   meta: |
     {{- /*
@@ -539,7 +552,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-list-listtargetpod-default-0.7.0
+  name: cstor-volume-list-listtargetpod-default
 spec:
   meta: |
     {{- $nss := .Config.RunNamespace.value | default "" | splitList ", " -}}
@@ -565,7 +578,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-list-listcstorvolumereplicacr-default-0.7.0
+  name: cstor-volume-list-listcstorvolumereplicacr-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -581,7 +594,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-list-output-default-0.7.0
+  name: cstor-volume-list-output-default
 spec:
   meta: |
     id : listoutput
@@ -626,7 +639,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-listtargetservice-default-0.7.0
+  name: cstor-volume-read-listtargetservice-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -645,7 +658,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-listcstorvolumecr-default-0.7.0
+  name: cstor-volume-read-listcstorvolumecr-default
 spec:
   meta: |
     id: readlistcv
@@ -661,13 +674,11 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistcv.fsType" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/lun}" | trim | default "0" | int | saveAs "readlistcv.lun" .TaskResult | noop -}}
 ---
-# runTask to list cStor volume target pods
-apiVersion: openebs.io/v1alpha1
-# runTask to list all replicas of a volume
+# runTask to list all replica crs of a volume
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-listcstorvolumereplicacr-default-0.7.0
+  name: cstor-volume-read-listcstorvolumereplicacr-default
 spec:
   meta: |
     id: readlistrep
@@ -688,7 +699,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-listtargetpod-default-0.7.0
+  name: cstor-volume-read-listtargetpod-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -709,7 +720,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-output-default-0.7.0
+  name: cstor-volume-read-output-default
 spec:
   meta: |
     id : readoutput
@@ -746,7 +757,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-listcstorvolumecr-default-0.7.0
+  name: cstor-volume-delete-listcstorvolumecr-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -765,7 +776,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-listtargetservice-default-0.7.0
+  name: cstor-volume-delete-listtargetservice-default
 spec:
   meta: |
     id: deletelistsvc
@@ -788,7 +799,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-listtargetdeployment-default-0.7.0
+  name: cstor-volume-delete-listtargetdeployment-default
 spec:
   meta: |
     id: deletelistctrl
@@ -807,7 +818,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-listcstorvolumereplicacr-default-0.7.0
+  name: cstor-volume-delete-listcstorvolumereplicacr-default
 spec:
   meta: |
     id: deletelistcvr
@@ -830,7 +841,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-deletetargetservice-default-0.7.0
+  name: cstor-volume-delete-deletetargetservice-default
 spec:
   meta: |
     id: deletedeletesvc
@@ -844,7 +855,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-deletetargetdeployment-default-0.7.0
+  name: cstor-volume-delete-deletetargetdeployment-default
 spec:
   meta: |
     id: deletedeletectrl
@@ -858,7 +869,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-deletecstorvolumereplicacr-default-0.7.0
+  name: cstor-volume-delete-deletecstorvolumereplicacr-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -872,7 +883,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-deletecstorvolumecr-default-0.7.0
+  name: cstor-volume-delete-deletecstorvolumecr-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -887,7 +898,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-delete-output-default-0.7.0
+  name: cstor-volume-delete-output-default
 spec:
   meta: |
     id: deleteoutput
@@ -902,18 +913,20 @@ spec:
 ---
 `
 
-// CstorVolumeArtifactsFor070 returns the cstor volume related artifacts
-// corresponding to version 0.7.0
-func CstorVolumeArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorVolumeYamlsFor070)...)
+// CstorVolumeArtifacts returns the cstor volume related artifacts
+// corresponding to latest version
+func CstorVolumeArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorVolumes{})...)
 	return
 }
 
-// cstorVolumeYamlsFor070 returns all the yamls related to cstor volume in a
-// string format
+type cstorVolumes struct{}
+
+// FetchYamls returns all the yamls related to cstor volume in a string
+// format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func cstorVolumeYamlsFor070() string {
-	return cstorVolumeYamls070
+func (c cstorVolumes) FetchYamls() string {
+	return cstorVolumeYamls
 }

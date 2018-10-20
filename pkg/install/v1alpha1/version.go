@@ -14,10 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Remove this file if no longer required by installer !!
+
 package v1alpha1
 
 import (
-	mver "github.com/openebs/maya/pkg/version"
+	ver "github.com/openebs/maya/pkg/version"
 )
 
 type version string
@@ -27,9 +30,9 @@ const (
 	invalidVersion version = "invalid.version"
 )
 
-// CurrentVersion returns the version of the calling instance
+// CurrentVersion returns openebs version
 func CurrentVersion() version {
-	return version(mver.GetVersion())
+	return version(ver.Current())
 }
 
 // Version returns the version in version type if present

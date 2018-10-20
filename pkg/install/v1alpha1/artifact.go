@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
 	"github.com/pkg/errors"
@@ -64,53 +63,40 @@ func IsNotRunTask(given *Artifact) bool {
 	return given != nil && !strings.Contains(given.Doc, string(RunTaskArtifact))
 }
 
+func (a *Artifact) Template(values map[string]interface{}, t template.Templater) (u *Artifact, err error) {
+	if a == nil {
+		err = errors.New("nil artifact instance: failed to template the artifact")
+		return
+	}
+	if t == nil {
+		err = errors.Errorf("nil templater instance: failed to template the artifact '%s'", a.Doc)
+		return
+	}
+	templated, err := t("artifact", a.Doc, values)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to template the artifact '%s' with values '%+v'", a.Doc, values)
+		return
+	}
+	u = &Artifact{Doc: templated}
+	return
+}
+
 // ArtifactTemplater updates an artifact instance by templating it and returns
 // the resulting templated instance
 func ArtifactTemplater(values map[string]interface{}, t template.Templater) ArtifactMiddleware {
 	return func(given *Artifact) (updated *Artifact, err error) {
-		if given == nil {
-			err = fmt.Errorf("nil artifact instance: failed to template the artifact")
-			return
-		}
-
-		if t == nil {
-			err = fmt.Errorf("nil templater instance: failed to template the artifact '%s'", given.Doc)
-			return
-		}
-
-		templated, err := t("artifact", given.Doc, values)
-		if err != nil {
-			err = errors.Wrapf(err, "failed to template the artifact '%s' with values '%+v'", given.Doc, values)
-			return
-		}
-
-		updated = &Artifact{Doc: templated}
-		return
+		return given.Template(values, t)
 	}
 }
 
-// ArtifactList is the list of artifacts that will be installed or uninstalled
-type ArtifactList struct {
+// artifactList represents a list of artifacts to install
+type artifactList struct {
 	Items []*Artifact
-}
-
-// VersionArtifactLister abstracts fetching a list of artifacts based on
-// provided version
-type VersionArtifactLister func(v version) (ArtifactList, error)
-
-// ListArtifactsByVersion returns artifacts based on the provided version
-func ListArtifactsByVersion(v version) (ArtifactList, error) {
-	switch v {
-	case version070:
-		return RegisteredArtifactsFor070(), nil
-	default:
-		return ArtifactList{}, fmt.Errorf("invalid version '%+v': failed to list artifacts by version", v)
-	}
 }
 
 // MapIf will execute the ArtifactMiddleware conditionally based on
 // ArtifactPredicate
-func (l ArtifactList) MapIf(m ArtifactMiddleware, p ArtifactPredicate) (filtered ArtifactList, errs []error) {
+func (l artifactList) MapIf(m ArtifactMiddleware, p ArtifactPredicate) (u artifactList, errs []error) {
 	var err error
 	for _, artifact := range l.Items {
 		err = nil
@@ -121,28 +107,26 @@ func (l ArtifactList) MapIf(m ArtifactMiddleware, p ArtifactPredicate) (filtered
 			errs = append(errs, err)
 			continue
 		}
-		filtered.Items = append(filtered.Items, artifact)
+		u.Items = append(u.Items, artifact)
 	}
 	return
 }
 
-// UnstructuredList transforms this ArtifactList to corresponding list of
+// ToUnstructuredList transforms this ArtifactList to corresponding list of
 // unstructured instances
-func (l ArtifactList) UnstructuredList() (ul k8s.UnstructList, errs []error) {
+func (l artifactList) ToUnstructuredList() (ul k8s.UnstructedList, errs []error) {
 	return l.UnstructuredListC(k8s.CreateUnstructuredFromYaml)
 }
 
 // UnstructuredListC transforms this ArtifactList to corresponding list of
 // unstructured instances by making use of unstructured creator instance
-func (l ArtifactList) UnstructuredListC(c k8s.UnstructuredCreator) (ul k8s.UnstructList, errs []error) {
+func (l artifactList) UnstructuredListC(c k8s.UnstructuredCreator) (ul k8s.UnstructedList, errs []error) {
 	for _, artifact := range l.Items {
-
 		unstructured, err := c(artifact.Doc)
 		if err != nil {
 			errs = append(errs, errors.Wrap(err, "failed to transform artifact into unstructured instance"))
 			continue
 		}
-
 		ul.Items = append(ul.Items, unstructured)
 	}
 	return

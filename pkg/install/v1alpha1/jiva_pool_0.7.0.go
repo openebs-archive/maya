@@ -14,9 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-const jivaPoolYamls070 = `
+const jivaPoolYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: StoragePool
@@ -52,18 +54,20 @@ provisioner: openebs.io/provisioner-iscsi
 ---
 `
 
-// JivaPoolArtifactsFor070 returns the default jiva pool and storage
-// class related artifacts corresponding to version 0.7.0
-func JivaPoolArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPoolYamlsFor070)...)
+// JivaPoolArtifacts returns the default jiva pool and storage
+// class related artifacts corresponding to latest version
+func JivaPoolArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaPools{})...)
 	return
 }
 
-// jivaPoolYamlsFor070 returns all the yamls related to jiva pool and
-// storage class in a string format
+type jivaPools struct{}
+
+// FetchYamls returns all the yamls related to jiva pool in a string
+// format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func jivaPoolYamlsFor070() string {
-	return jivaPoolYamls070
+func (j jivaPools) FetchYamls() string {
+	return jivaPoolYamls
 }

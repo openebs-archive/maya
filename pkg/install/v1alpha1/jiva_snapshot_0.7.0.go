@@ -14,42 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-// JivaSnapshotArtifactsFor070 returns the jiva snapshot related artifacts
-// corresponding to version 0.7.0
-func JivaSnapshotArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaSnapshotYamlsFor070)...)
-	return
-}
-
-// jivaSnapshotYamlsFor070 returns all the yamls related to jiva snapshot in a
-// string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func jivaSnapshotYamlsFor070() string {
-	return jivaSnapshotYamls070
-}
-
-const jivaSnapshotYamls070 = `
+const jivaSnapshotYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: jiva-snapshot-create-default-0.7.0
+  name: jiva-snapshot-create-default
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-snapshot-create-listsourcetargetservice-default-0.7.0
-    - jiva-snapshot-create-invokehttp-default-0.7.0
-  output: jiva-snapshot-create-output-default-0.7.0
+    - jiva-snapshot-create-listsourcetargetservice-default
+    - jiva-snapshot-create-invokehttp-default
+  output: jiva-snapshot-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-snapshot-create-listsourcetargetservice-default-0.7.0
+  name: jiva-snapshot-create-listsourcetargetservice-default
 spec:
   meta: |
     id: readSourceSvc
@@ -67,7 +53,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-snapshot-create-invokehttp-default-0.7.0
+  name: jiva-snapshot-create-invokehttp-default
 spec:
   meta: |
     id: createJivaSnap
@@ -87,7 +73,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-snapshot-create-output-default-0.7.0
+  name: jiva-snapshot-create-output-default
 spec:
   meta: |
     action: output
@@ -104,3 +90,20 @@ spec:
       volumeName: {{ .Snapshot.volumeName }}
 ---
 `
+
+// JivaSnapshotArtifacts returns the jiva snapshot related artifacts
+// corresponding to latest version
+func JivaSnapshotArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaSnapshots{})...)
+	return
+}
+
+type jivaSnapshots struct{}
+
+// FetchYamls returns all the yamls related to jiva snapshot in a string format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func (j jivaSnapshots) FetchYamls() string {
+	return jivaSnapshotYamls
+}

@@ -17,8 +17,6 @@ limitations under the License.
 package snapshot
 
 import (
-	"strings"
-
 	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -28,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // options contains the options with respect to
@@ -99,18 +98,14 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	snapshotLables := map[string]interface{}{
+	snapshotLabels := map[string]interface{}{
 		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
 		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 	}
 
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
-	cc, err := SnapshotEngine(
-		cast,
-		string(v1alpha1.SnapshotTLP),
-		snapshotLables,
-	)
+	cc, err := SnapshotEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -165,24 +160,20 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	snapshotLables := map[string]interface{}{
+	snapshotLabels := map[string]interface{}{
 		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
 		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
 	// read cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
-		cast,
-		string(v1alpha1.SnapshotTLP),
-		snapshotLables,
-	)
+	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
 
-	// read the cas snapshot
-	data, err := engine.Read()
+	// read cas snapshot by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -229,24 +220,20 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	snapshotLables := map[string]interface{}{
+	snapshotLabels := map[string]interface{}{
 		string(v1alpha1.OwnerVTP):        s.snapOptions.Name,
 		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
 	// delete cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
-		cast,
-		string(v1alpha1.SnapshotTLP),
-		snapshotLables,
-	)
+	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
 
-	// read the cas snapshot
-	data, err := engine.Delete()
+	// delete cas snapshot by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -291,23 +278,19 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	snapshotLables := map[string]interface{}{
+	snapshotLabels := map[string]interface{}{
 		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
 	// list cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
-		cast,
-		string(v1alpha1.SnapshotTLP),
-		snapshotLables,
-	)
+	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
 
-	// list the cas snapshots
-	data, err := engine.List()
+	// list cas snapshots by executing the engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}

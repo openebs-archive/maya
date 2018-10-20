@@ -133,7 +133,7 @@ func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync 
 	// so that it can be used.
 
 	// Fill spc annotations to CasPool
-	casTemplateName := spcGot.Annotations[string(v1alpha1.SPCreateCASTemplateCK)]
+	casTemplateName := spcGot.Annotations[string(v1alpha1.CreatePoolCASTemplateKey)]
 
 	pool := &v1alpha1.CasPool{}
 	pool.StoragePoolClaim = spcGot.Name

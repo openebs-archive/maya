@@ -18,19 +18,16 @@ package volume
 
 import (
 	"fmt"
-
-	"github.com/openebs/maya/types/v1"
-	v1_storage "k8s.io/api/storage/v1"
-
-	"strings"
-
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
+	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // OperationOptions contains the options with respect to
@@ -176,7 +173,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	runtimeVolumeValues := util.MergeMaps(volumeLables, cloneLabels)
 
 	// provision CAS volume via CAS volume specific CAS template engine
-	cc, err := NewCASVolumeEngine(
+	cc, err := NewVolumeEngine(
 		casConfigPVC,
 		casConfigSC,
 		cast,
@@ -237,7 +234,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// delete cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := engine.New(
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
@@ -249,8 +246,8 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// delete the cas volume
-	data, err := engine.Delete()
+	// delete cas volume by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +304,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := engine.New(
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
@@ -319,8 +316,8 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// read the volume details
-	data, err := engine.Read()
+	// read volume details by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +380,7 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 		}
 
 		// read cas volume via cas template engine
-		engine, err := engine.NewCASEngine(
+		engine, err := engine.New(
 			cast,
 			string(v1alpha1.VolumeTLP),
 			map[string]interface{}{
@@ -394,8 +391,8 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 			return nil, err
 		}
 
-		// read the volume details
-		data, err := engine.List()
+		// list volume details by executing engine
+		data, err := engine.Run()
 		if err != nil {
 			return nil, err
 		}

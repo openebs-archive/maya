@@ -87,7 +87,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 		return nil, err
 	}
 	// provision cas storagepool via cas template engine
-	cc, err := NewCASStoragePoolEngine(
+	cc, err := NewStoragePoolEngine(
 		cast,
 		openebsConfig,
 		string(v1alpha1.StoragePoolTLP),
@@ -137,7 +137,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 	}
 
 	// delete storagepool via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := engine.New(
 		cast,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
@@ -148,8 +148,8 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 		return nil, err
 	}
 
-	// delete the CasPool
-	data, err := engine.Delete()
+	// delete CasPool by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}

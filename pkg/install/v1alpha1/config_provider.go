@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,39 +29,45 @@ type ConfigProvider interface {
 	Provide() (ic *InstallConfig, err error)
 }
 
-type configFromK8s struct {
+// configmap provides install config
+type configmap struct {
 	namespace string              // namespace of install config
 	name      string              // name of install config
-	provider  k8s.ConfigMapGetter // kubernetes cluster provides the install config
+	getter    k8s.ConfigMapGetter // kubernetes config map has the install config embedded in it
 }
 
-// Config returns a new instance of ConfigProvider
-func Config(namespace, name string) ConfigProvider {
-	return &configFromK8s{name: name, namespace: namespace, provider: k8s.ConfigMap(namespace, name)}
+// String is an implementation of Stringer interface
+func (c configmap) String() string {
+	return fmt.Sprintf("--namespace='%s' --name='%s'", c.namespace, c.name)
+}
+
+// ConfigMap returns a new instance of ConfigProvider
+func ConfigMap(namespace, name string) ConfigProvider {
+	return &configmap{name: name, namespace: namespace, getter: k8s.ConfigMap(namespace, name)}
 }
 
 // Provide provides the install config instance
-func (c *configFromK8s) Provide() (ic *InstallConfig, err error) {
+func (c *configmap) Provide() (ic *InstallConfig, err error) {
 	if len(strings.TrimSpace(c.name)) == 0 {
-		err = errors.Errorf("missing config name: failed to provide install config from config map: namespace %s", c.namespace)
+		err = errors.Errorf("missing config name: failed to provide install config: %s", c)
 		return
 	}
-	if c.provider == nil {
-		err = errors.Errorf("nil config provider: failed to provide install config from config map %s %s", c.namespace, c.name)
+	if c.getter == nil {
+		err = errors.Errorf("nil configmap getter: failed to provide install config: %s", c)
 		return
 	}
-	cm, err := c.provider.Get(metav1.GetOptions{})
+	cm, err := c.getter.Get(metav1.GetOptions{})
 	if err != nil {
-		err = errors.Wrapf(err, "failed to provide install config from config map %s %s", c.namespace, c.name)
+		err = errors.Wrapf(err, "failed to provide install config: %s", c)
 		return
 	}
 	if cm == nil {
-		err = errors.Errorf("nil config map instance found: failed to provide install config %s %s", c.namespace, c.name)
+		err = errors.Errorf("nil configmap instance: failed to provide install config: %s", c)
 		return
 	}
 	install := cm.Data["install"]
 	if len(strings.TrimSpace(install)) == 0 {
-		err = errors.Errorf("missing install config specs: failed to provide install config from config map %s %s", c.namespace, c.name)
+		err = errors.Errorf("missing install config specs: failed to provide install config: %s", c)
 		return
 	}
 	return UnmarshallConfig(install)
