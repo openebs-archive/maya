@@ -15,20 +15,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package util provides functions based on k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.
+// Package util provides functions based on k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
 // They are copied here to make them exported.
 //
 // TODO
-// Check if it makes sense to have the entire unstructured package of
-// k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
-// It might be required to put the entire thing into maya/pkg/unstructured
+// Check if it makes sense to import the entire unstructured package of
+// k8s.io/apimachinery/pkg/apis/meta/v1/unstructured versus. copying
+//
+// TODO
+// Move to maya/pkg/unstructured/v1alpha1 as helpers.go
 package util
 
 import (
 	"fmt"
-	"strings"
-
 	"k8s.io/apimachinery/pkg/util/json"
+	"strings"
 )
 
 // GetNestedField returns a nested field from the provided map
@@ -66,11 +67,9 @@ func GetNestedString(obj map[string]interface{}, fields ...string) string {
 	if obj == nil {
 		return ""
 	}
-
 	if str, ok := GetNestedField(obj, fields...).(string); ok {
 		return str
 	}
-
 	return ""
 }
 
@@ -134,7 +133,6 @@ func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]strin
 // SetNestedField sets a nested field into the provided map
 func SetNestedField(obj map[string]interface{}, value interface{}, fields ...string) {
 	if len(fields) == 0 || obj == nil {
-		// changes can not be done to the obj
 		return
 	}
 
@@ -154,7 +152,6 @@ func SetNestedField(obj map[string]interface{}, value interface{}, fields ...str
 // DeleteNestedField deletes a nested field from the provided map
 func DeleteNestedField(obj map[string]interface{}, fields ...string) {
 	if len(fields) == 0 || obj == nil {
-		// changes can not be done to the obj
 		return
 	}
 

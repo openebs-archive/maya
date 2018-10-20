@@ -117,7 +117,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.CasPool) ([]string, error) {
 
 func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, spc string, pendingAllotment int) (map[string]*nodeDisk, int, error) {
 
-	usedDiskMap, err  := k.getUsedDiskMap()
+	usedDiskMap, err := k.getUsedDiskMap()
 	if err != nil {
 		return nil, pendingAllotment, err
 	}

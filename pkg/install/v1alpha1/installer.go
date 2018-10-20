@@ -14,15 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Installer should execute as per install config specifications
+// Installer should execute even if install config is not available by
+// defaulting to a suitable install specifications
+
+// TODO
+// Make use of pkg/msg instead of errorList
+
 package v1alpha1
 
 import (
-	"fmt"
 	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -36,20 +43,77 @@ type Installer interface {
 // NOTE:
 //  This is an implementation of Installer
 type simpleInstaller struct {
-	configProvider    ConfigProvider
-	artifactLister    VersionArtifactLister
 	artifactTemplater ArtifactMiddleware
-	namespaceUpdater  k8s.UnstructuredMiddleware
 	envLister         EnvLister
 	errorList
 }
 
 func (i *simpleInstaller) preInstall() (errs []error) {
-	// set the env for installer to work
-	elist := envInstallConfig().SetP("installer", isEnvNotPresent)
-	glog.Infof("%+v", elist.Infos())
+	// set the env for install config
+	l, _ := EnvInstallConfig().List()
+	u := l.SetIf("installer", isEnvNotPresent)
+	glog.Infof("%+v", u.Infos())
 
-	return elist.Errors()
+	return u.Errors()
+}
+
+func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
+	elist, err := i.envLister.List()
+	if err != nil {
+		i.addError(err)
+	}
+
+	// set the environments conditionally required for install
+	eslist := elist.SetIf(string(CurrentVersion()), isEnvNotPresent)
+	glog.Infof("%+v", eslist.Infos())
+	i.addErrors(eslist.Errors())
+
+	// list the artifacts w.r.t latest version
+	al := RegisteredArtifacts()
+	// run the list of artifacts through templating if it is not a RunTask
+	al, errs := al.MapIf(i.artifactTemplater, IsNotRunTask)
+	if len(errs) != 0 {
+		i.addErrors(errs)
+	}
+
+	// get list of unstructured instances from list of artifacts
+	ulist, errs := al.ToUnstructuredList()
+	if len(errs) != 0 {
+		i.addErrors(errs)
+	}
+	return ulist
+}
+
+// setRules sets the install rules against the artifacts
+func (i *simpleInstaller) setRules(ulist k8s.UnstructedList) (ul []*unstructured.Unstructured) {
+	// order of list of middlewares is crucial as each middleware will mutate the
+	// unstructured instance
+	nlist := ulist.MapAllIfAny([]k8s.UnstructuredMiddleware{
+		k8s.UnstructuredMap(
+			k8s.UpdateLabels(map[string]string{
+				string(v1alpha1.VersionKey): menv.Get(menv.OpenEBSVersion),
+			}, false),
+			k8s.IsNameUnVersioned,
+		),
+		k8s.SuffixNameWithVersion(),
+		k8s.UnstructuredMapAll([]k8s.UnstructuredMiddleware{
+			k8s.SuffixWithVersionAtPath("spec.run.tasks"),
+			k8s.SuffixWithVersionAtPath("spec.output"),
+		},
+			k8s.IsCASTemplate,
+		),
+		k8s.UnstructuredMap(
+			k8s.UpdateNamespace(menv.Get(menv.OpenEBSNamespace)),
+			k8s.IsNamespaceScoped,
+		),
+		k8s.UnstructuredMap(
+			k8s.AddNameToLabels(string(v1alpha1.CASTNameKey), false),
+			k8s.IsCASTemplate,
+		),
+	}, k8s.IsCASTemplate, k8s.IsRunTask)
+
+	ul = append(ul, nlist.Items...)
+	return
 }
 
 // Install the resources specified in the install config
@@ -57,66 +121,13 @@ func (i *simpleInstaller) preInstall() (errs []error) {
 // NOTE:
 //  This is an implementation of Installer interface
 func (i *simpleInstaller) Install() []error {
-	var (
-		allUnstructured []*unstructured.Unstructured
-	)
-
 	errs := i.preInstall()
 	if len(errs) != 0 {
 		return errs
 	}
-
-	if i.configProvider == nil {
-		return i.addError(fmt.Errorf("nil config provider: simple installer failed"))
-	}
-
-	config, err := i.configProvider.Provide()
-	if err != nil {
-		return i.addError(errors.Wrap(err, "simple installer failed"))
-	}
-
-	for _, install := range config.Spec.Install {
-		// fetch the environments required for this install version
-		elist, err := i.envLister(Version(install.Version))
-		if err != nil {
-			i.addError(err)
-		}
-
-		// set the environments required for this install version
-		eslist := elist.SetP(install.Version, isEnvNotPresent)
-		glog.Infof("%+v", eslist.Infos())
-		i.addErrors(eslist.Errors())
-
-		// list the artifacts w.r.t install version
-		list, err := i.artifactLister(Version(install.Version))
-		if err != nil {
-			i.addError(errors.Wrapf(err, "simple installer failed to list artifacts for version '%s'", install.Version))
-			continue
-		}
-
-		// run the list of artifacts through templating if it is a CASTemplate
-		list, errs := list.MapIf(i.artifactTemplater, IsNotRunTask)
-		if len(errs) != 0 {
-			i.addErrors(errs)
-		}
-
-		// get list of unstructured instances from list of artifacts
-		ulist, errs := list.UnstructuredList()
-		if len(errs) != 0 {
-			i.addErrors(errs)
-		}
-
-		ulist = ulist.MapAll([]k8s.UnstructuredMiddleware{
-			i.namespaceUpdater,
-			k8s.UpdateLabels(k8s.UnstructuredOptions{
-				Labels: map[string]string{"openebs.io/version": install.Version},
-			}),
-		})
-
-		allUnstructured = append(allUnstructured, ulist.Items...)
-	}
-
-	for _, unstruct := range allUnstructured {
+	ulist := i.prepareResources()
+	ul := i.setRules(ulist)
+	for _, unstruct := range ul {
 		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
 		u, err := cu.Apply(unstruct)
 		if err == nil {
@@ -125,37 +136,19 @@ func (i *simpleInstaller) Install() []error {
 			i.addError(err)
 		}
 	}
-
 	return i.errors
 }
 
 // SimpleInstaller returns a new instance of simpleInstaller
 func SimpleInstaller() Installer {
-	// this is the namespace of the pod where this binary is running i.e.
-	// namespace that is configured for this openebs component
-	openebsNS := menv.Get(menv.OpenEBSNamespace)
-
-	// config provider to fetch install config i.e. a config map
-	p := Config(openebsNS, menv.Get(InstallerConfigName))
-
 	// templater to template the artifacts before installation
-	t := ArtifactTemplater(NewTemplateKeyValueList().Values(), template.TextTemplate)
+	t := ArtifactTemplater(map[string]interface{}{}, template.TextTemplate)
 
-	// a condition based namespace updater
-	uOpts := k8s.UnstructuredOptions{Namespace: openebsNS}
-	nu := k8s.UpdateNamespaceP(uOpts, k8s.IsNamespaceScoped)
-
-	// lister to list artifacts for install
-	l := ListArtifactsByVersion
-
-	// env lister to list environment objects
-	e := EnvList
+	// env variables required for install
+	e := EnvInstall()
 
 	return &simpleInstaller{
-		configProvider:    p,
-		artifactLister:    l,
 		artifactTemplater: t,
-		namespaceUpdater:  nu,
 		envLister:         e,
 	}
 }

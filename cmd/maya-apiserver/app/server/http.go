@@ -23,8 +23,8 @@ import (
 
 const (
 	// ErrInvalidMethod is used if the HTTP method is not supported
-	ErrInvalidMethod     = "Invalid method"
-	// ErrGetMethodRequired is used if the HTTP GET method is required" 
+	ErrInvalidMethod = "Invalid method"
+	// ErrGetMethodRequired is used if the HTTP GET method is required"
 	ErrGetMethodRequired = "GET method required"
 	// ErrPutMethodRequired is used if the HTTP PUT/POST method is required"
 	ErrPutMethodRequired = "PUT/POST method required"

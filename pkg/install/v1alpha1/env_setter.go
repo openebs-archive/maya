@@ -20,6 +20,8 @@ import (
 	"fmt"
 
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	ver "github.com/openebs/maya/pkg/version"
+	"strings"
 )
 
 // EnvStatus represents the status of operation against an env instance
@@ -46,7 +48,7 @@ type env struct {
 // the name of evaluation along with result of evaluation
 type envPredicate func(given *env) (name string, success bool)
 
-// isEnvNotPresent returns true if env in not set
+// isEnvNotPresent returns true if env in not set previously
 func isEnvNotPresent(given *env) (name string, success bool) {
 	name = "isEnvNotPresent"
 	if given == nil {
@@ -107,29 +109,27 @@ func EnvUpdateSuccess(context string) envMiddleware {
 	}
 }
 
-// envSetP executes set operation conditionally on the given env instance
-func envSetP(ctx string, p envPredicate) envMiddleware {
-	return func(given *env) (updated *env) {
-		pCtx, pOk := p(given)
-		if !pOk {
-			return EnvUpdateStatus(ctx, pCtx+" predicate failed", EnvSetSkip)(given)
-		}
-		err := menv.Set(given.Key, given.Value)
-		if err != nil {
-			return EnvUpdateError(ctx, err)(given)
-		}
-		return EnvUpdateSuccess(ctx)(given)
+// SetIf executes set conditionally on the given env instance
+func (e *env) SetIf(ctx string, p envPredicate) (u *env) {
+	pCtx, pOk := p(e)
+	if !pOk {
+		return EnvUpdateStatus(ctx, pCtx+" predicate failed", EnvSetSkip)(e)
 	}
-}
-
-// SetP executes set operation conditionally on the given env instance
-func (e *env) SetP(ctx string, p envPredicate) (u *env) {
-	return envSetP(ctx, p)(e)
+	err := menv.Set(e.Key, e.Value)
+	if err != nil {
+		return EnvUpdateError(ctx, err)(e)
+	}
+	return EnvUpdateSuccess(ctx)(e)
 }
 
 // envList represents a list of environment variables
 type envList struct {
 	Items []*env
+}
+
+// EnvLister abstracts listing environment variables
+type EnvLister interface {
+	List() (l *envList, err error)
 }
 
 // Errors returns the list of errors present in env instances
@@ -159,28 +159,109 @@ func (l *envList) Infos() (msgs []string) {
 	return
 }
 
-// envListMiddleware abstracts updating of envList instance
-type envListMiddleware func(given *envList) (updated *envList)
-
-// envListSetP executes set operation conditionally on all the list of env
-// instances
-func envListSetP(ctx string, p envPredicate) envListMiddleware {
-	return func(given *envList) (updated *envList) {
-		if given == nil {
-			return
-		}
-		updated = &envList{}
-		for _, env := range given.Items {
-			if env == nil {
-				continue
-			}
-			updated.Items = append(updated.Items, env.SetP(ctx, p))
-		}
+// SetIf executes set conditionally on its env instances
+func (l *envList) SetIf(ctx string, p envPredicate) (u *envList) {
+	if l == nil {
 		return
 	}
+	u = &envList{}
+	for _, env := range l.Items {
+		if env == nil {
+			continue
+		}
+		u.Items = append(u.Items, env.SetIf(ctx, p))
+	}
+	return
 }
 
-// SetP executes set operation conditionally on all the list of env instances
-func (l *envList) SetP(ctx string, p envPredicate) (u *envList) {
-	return envListSetP(ctx, p)(l)
+// envInstall manages environment variables required for openebs install
+type envInstall struct{}
+
+// EnvInstall returns a new instance of envInstall
+func EnvInstall() *envInstall { return &envInstall{} }
+
+// List returns a list of env instances required for openebs install
+func (e *envInstall) List() (l *envList, err error) {
+	l = &envList{}
+	l.Items = append(l.Items, &env{
+		Key:   menv.OpenEBSVersion,
+		Value: ver.Current(),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   DefaultCstorSparsePool,
+		Value: "false",
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateFeatureGateENVK,
+		Value: "true",
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToCreateJivaVolumeENVK,
+		Value: ver.WithSuffix("jiva-volume-create-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToReadJivaVolumeENVK,
+		Value: ver.WithSuffix("jiva-volume-read-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToDeleteJivaVolumeENVK,
+		Value: ver.WithSuffix("jiva-volume-delete-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToCreateCStorVolumeENVK,
+		Value: ver.WithSuffix("cstor-volume-create-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToReadCStorVolumeENVK,
+		Value: ver.WithSuffix("cstor-volume-read-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToDeleteCStorVolumeENVK,
+		Value: ver.WithSuffix("cstor-volume-delete-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToCreatePoolENVK,
+		Value: ver.WithSuffix("cstor-pool-create-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToDeletePoolENVK,
+		Value: ver.WithSuffix("cstor-pool-delete-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key: menv.CASTemplateToListVolumeENVK,
+		Value: strings.Join(ver.WithSuffixesIf(
+			[]string{"jiva-volume-list-default-0.6.0", "jiva-volume-list-default", "cstor-volume-list-default"},
+			ver.IsNotVersioned), ","),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToCreateCStorSnapshotENVK,
+		Value: ver.WithSuffix("cstor-snapshot-create-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToDeleteCStorSnapshotENVK,
+		Value: ver.WithSuffix("cstor-snapshot-delete-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToCreateJivaSnapshotENVK,
+		Value: ver.WithSuffix("jiva-snapshot-create-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToDeleteJivaSnapshotENVK,
+		Value: ver.WithSuffix("jiva-snapshot-delete-default"),
+	})
+	return
+}
+
+// envInstallConfig manages environment variables required for openebs install
+// config
+type envInstallConfig struct{}
+
+// EnvInstallConfig returns a new instance of envInstallConfig
+func EnvInstallConfig() *envInstallConfig { return &envInstallConfig{} }
+
+// List returns the environment variables required for openebs install config
+func (e *envInstallConfig) List() (l *envList, err error) {
+	l = &envList{}
+	l.Items = append(l.Items, &env{Key: InstallerConfigName, Value: "maya-install-config-default-0.7.0"})
+	return
 }

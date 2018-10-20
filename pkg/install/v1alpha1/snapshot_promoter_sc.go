@@ -35,17 +35,18 @@ provisioner: volumesnapshot.external-storage.k8s.io/snapshot-promoter
 `
 
 // SnapshotPromoterSCArtifacts returns the snapshot(clone) provisioner related artifacts
-func SnapshotPromoterSCArtifacts() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(snapshotPromoterSCYaml)...)
+func SnapshotPromoterSCArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(snapshotPromoterSCs{})...)
 	return
 }
 
-// snapshotPromoterSCYaml returns all the yamls related to
-// snapshot promote (clone) provisioner SC in a string
-// format
+type snapshotPromoterSCs struct{}
+
+// FetchYamls returns all the yamls related to snapshot promote (clone)
+// provisioner SC in a string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func snapshotPromoterSCYaml() string {
+func (s snapshotPromoterSCs) FetchYamls() string {
 	return snapshotPromoterSCYamls
 }

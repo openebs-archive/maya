@@ -35,12 +35,75 @@ var (
 	// then it means that it is a final release. Otherwise, this is a pre-release
 	// such as "dev" (in development), "beta", "rc1", etc.
 	VersionMeta string
-
-	versionFile   = "/src/github.com/openebs/maya/VERSION"
-	buildMetaFile = "/src/github.com/openebs/maya/BUILDMETA"
 )
 
-// GetVersion returns the version from the global Version variable.
+const (
+	versionFile   string = "/src/github.com/openebs/maya/VERSION"
+	buildMetaFile string = "/src/github.com/openebs/maya/BUILDMETA"
+
+	// versionDelimiter is used as a delimiter to separate version info
+	versionDelimiter string = "-"
+
+	// versionChars consist of valid version characters
+	versionChars string = ".0123456789"
+)
+
+// IsNotVersioned returns true if the given string does not have version as its
+// suffix
+func IsNotVersioned(given string) bool {
+	return !IsVersioned(given)
+}
+
+// IsVersioned returns true if the given string has version as its suffix
+func IsVersioned(given string) bool {
+	a := strings.SplitAfter(given, versionDelimiter)
+	if len(a) == 0 {
+		return false
+	}
+	ver := a[len(a)-1]
+	return len(strings.Split(ver, ".")) == 3 && containsOnly(ver, versionChars)
+}
+
+// containsOnly returns true if provided string consists only of the provided
+// set
+func containsOnly(s string, set string) bool {
+	return strings.IndexFunc(s, func(r rune) bool {
+		return !strings.ContainsRune(set, r)
+	}) == -1
+}
+
+// WithSuffix appends current version to the provided string
+func WithSuffix(given string) (suffixed string) {
+	return given + versionDelimiter + Current()
+}
+
+// WithSuffixIf appends current version to the provided string if given predicate
+// succeeds
+func WithSuffixIf(given string, p func(string) bool) (suffixed string) {
+	if p(given) {
+		return WithSuffix(given)
+	}
+	return given
+}
+
+// WithSuffixesIf appends current version to the provided strings
+func WithSuffixesIf(given []string, p func(string) bool) (suffixed []string) {
+	for _, s := range given {
+		if p(s) {
+			suffixed = append(suffixed, WithSuffix(s))
+		} else {
+			suffixed = append(suffixed, s)
+		}
+	}
+	return
+}
+
+// Current returns the current version of maya
+func Current() string {
+	return GetVersion()
+}
+
+// GetVersion returns the current version from the global Version variable.
 // If Version is unset then from the VERSION file at the root of the repo.
 func GetVersion() string {
 	if Version != "" {
