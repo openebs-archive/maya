@@ -58,7 +58,6 @@ func empty(given interface{}) bool {
 	case reflect.Struct:
 		return false
 	}
-	return true
 }
 
 // VersionMismatchError represents an error due to version mismatch
@@ -118,7 +117,6 @@ func isLen(expected int, given interface{}) bool {
 	case reflect.Array, reflect.Slice, reflect.Map, reflect.String:
 		return g.Len() == expected
 	}
-	return false
 }
 
 // jsonPath returns the value at a given jsonpath of a json doc. This resulting
