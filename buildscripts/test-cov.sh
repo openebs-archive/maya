@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -eo pipefail
 echo "" > coverage.txt
 
 for d in $(go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|integration-tests'); do
