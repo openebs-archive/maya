@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -ex
+set -exo pipefail
 
 MAYA_AGENT_NETWORK=$1
 
