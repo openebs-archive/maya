@@ -12,7 +12,7 @@
 
 # concurrent.Map
 
-because sync.Map is only available in go 1.9, we can use concurrent.Map to make code portable
+Because sync.Map is only available in go 1.9, we can use concurrent.Map to make code portable.
 
 ```go
 m := concurrent.NewMap()
@@ -43,7 +43,7 @@ executor.StopAndWaitForever()
 fmt.Println("executor stopped")
 ```
 
-attach goroutine to executor instance, so that we can
+Attach goroutine to executor instance, so that we can:
 
-* cancel it by stop the executor with Stop/StopAndWait/StopAndWaitForever
-* handle panic by callback: the default behavior will no longer crash your application
+* Cancel it by stop the executor with Stop/StopAndWait/StopAndWaitForever
+* Handle panic by callback: the default behavior will no longer crash your application
