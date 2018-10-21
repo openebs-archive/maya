@@ -14,7 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package snapshot has snapshot specific implementation of cas template engine
+// This file has snapshot specific implementation of cas template engine
+
 package snapshot
 
 import (
