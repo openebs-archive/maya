@@ -77,7 +77,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			return common.CVStatusOffline, err
 		}
 
-		err = volume.CreateVolume(cStorVolumeGot)
+		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
 			return common.CVStatusFailed, err
 		}
@@ -89,7 +89,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			return common.CVStatusInvalid, err
 		}
 
-		err = volume.CreateVolume(cStorVolumeGot)
+		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
 			return common.CVStatusFailed, err
 		}

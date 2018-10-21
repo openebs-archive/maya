@@ -82,7 +82,7 @@ func (p *JivaPolicies) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 	return p.volume, nil
 }
 
-// init intializes volume structure w.r.t jiva volume type
+// init initializes volume structure w.r.t jiva volume type
 func (p *JivaPolicies) init() {
 	if len(p.volume.Specs) == 0 {
 		p.isNoSpecs = true

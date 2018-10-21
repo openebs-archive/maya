@@ -28,6 +28,7 @@ type ClientsetGetter interface {
 
 type clientset struct{}
 
+// Clientset returns a pointer to clientset struct
 func Clientset() *clientset {
 	return &clientset{}
 }

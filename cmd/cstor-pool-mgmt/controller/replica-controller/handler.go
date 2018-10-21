@@ -163,7 +163,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeR
 
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(cVR) || IsPendingStatus(cVR) {
-		err := volumereplica.CreateVolume(cVR, fullVolName)
+		err := volumereplica.CreateVolumeReplica(cVR, fullVolName)
 		if err != nil {
 			glog.Errorf("cVR creation failure: %v", err.Error())
 			return string(apis.CVRStatusOffline), err

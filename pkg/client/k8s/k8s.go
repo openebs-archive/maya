@@ -71,28 +71,33 @@ const (
 	PersistentVolumeKK K8sKind = "PersistentVolume"
 	// PersistentVolumeClaimKK is a K8s PersistentVolumeClaim Kind
 	PersistentVolumeClaimKK K8sKind = "PersistentVolumeClaim"
-	// CstorPoolCRKK is a K8s CR of kind CStorPool
+	// CStorPoolCRKK is a K8s CR of kind CStorPool
 	CStorPoolCRKK K8sKind = "CStorPool"
 	// DiskCRKK is a K8s CR of kind Disk
 	DiskCRKK K8sKind = "Disk"
-	// CstorVolumeCRKK is a K8s CR of kind CStorVolume
+	// CStorVolumeCRKK is a K8s CR of kind CStorVolume
 	CStorVolumeCRKK K8sKind = "CStorVolume"
-	// CstorVolumeReplicaCRKK is a K8s CR of kind CStorVolumeReplica
+	// CStorVolumeReplicaCRKK is a K8s CR of kind CStorVolumeReplica
 	CStorVolumeReplicaCRKK K8sKind = "CStorVolumeReplica"
 )
 
-//
+// K8sAPIVersion is the type declaration for API version information
 type K8sAPIVersion string
 
 const (
+	// ExtensionsV1Beta1KA is the extensions/v1beta API
 	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
 
+	// AppsV1B1KA is the apps/v1beta1 API
 	AppsV1B1KA K8sAPIVersion = "apps/v1beta1"
 
+	// CoreV1KA is the v1 API
 	CoreV1KA K8sAPIVersion = "v1"
 
+	// OEV1alpha1KA is the openebs.io/v1alpha1 API
 	OEV1alpha1KA K8sAPIVersion = "openebs.io/v1alpha1"
 
+	// StorageV1KA is the storage.k8s.io/v1 API
 	StorageV1KA K8sAPIVersion = "storage.k8s.io/v1"
 )
 
@@ -182,6 +187,7 @@ type K8sClient struct {
 	insecure   bool
 }
 
+// NewK8sClient creates a new K8sClient
 func NewK8sClient(ns string) (*K8sClient, error) {
 	// get the appropriate clientset
 	cs, err := getInClusterCS()
@@ -202,7 +208,7 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 	}, nil
 }
 
-// GetOECS() is a getter method for fetching openebs clientset as
+// GetOECS is a getter method for fetching openebs clientset as
 // the openebs clientset is not exported.
 func (k *K8sClient) GetOECS() *openebs.Clientset {
 	return k.oecs
@@ -900,7 +906,7 @@ func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchTy
 	return
 }
 
-// PatchExtnV1B1Deployment patches the K8s Deployment with the provided patches
+// PatchExtnV1B1DeploymentAsRaw patches the K8s Deployment with the provided patches
 func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
 	result, err = k.cs.ExtensionsV1beta1().RESTClient().Patch(patchType).
 		Namespace(k.ns).
@@ -980,7 +986,7 @@ func (k *K8sClient) DeleteOEV1alpha1CSV(name string) error {
 	})
 }
 
-// DeleteOEV1alpha1CSV deletes the CStorVolumeReplica with the provided name
+// DeleteOEV1alpha1CVR deletes the CStorVolumeReplica with the provided name
 func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 	cvrops := k.oeV1alpha1CVROps()
 	// ensure all the dependants are deleted

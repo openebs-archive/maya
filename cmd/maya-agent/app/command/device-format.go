@@ -5,7 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//NewSubCmdFormatAndMount formats the specified disk
+// NewSubCmdFormat formats the specified disk
 func NewSubCmdFormat() *cobra.Command {
 	var disk string
 	var ftype string

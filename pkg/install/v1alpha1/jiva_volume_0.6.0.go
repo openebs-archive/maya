@@ -124,7 +124,7 @@ spec:
     options: |-
       labelSelector: openebs/replica=jiva-replica
   post: |
-    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.namespace}/{@.metadata.labels.vsm},replicaIP={@.status.podIP},replicaStatus={@.status.containerStatuses[*].ready},capacity=Uknown;{end}" | trim | default "" | splitList ";" -}}
+    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.namespace}/{@.metadata.labels.vsm},replicaIP={@.status.podIP},replicaStatus={@.status.containerStatuses[*].ready},capacity=Unknown;{end}" | trim | default "" | splitList ";" -}}
     {{- $replicaPairs | keyMap "volumeList" .ListItems | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1

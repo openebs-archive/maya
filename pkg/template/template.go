@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
-	. "github.com/openebs/maya/pkg/task/v1alpha1"
+	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"reflect"
 	"strings"
@@ -432,7 +432,7 @@ func keyMap(destinationFields string, destination map[string]interface{}, given 
 // nestedKeyMap builds a nested map from the given string(s). Each string item is
 // split as per the provided set of delimiters and is transformed into a
 // hierarchical path that is used to set the value. Value here implies the last
-// resulting split item once all the splits are perfomed. The resulting map is
+// resulting split item once all the splits are performed. The resulting map is
 // then set into the provided destination object.
 //
 // NOTE:
@@ -570,7 +570,7 @@ func addTo(fields string, values map[string]interface{}, value string) string {
 func saveAs(fields string, destination map[string]interface{}, given interface{}) interface{} {
 	fieldsArr := strings.Split(fields, ".")
 	// save the run task command result in specific way
-	r, ok := given.(RunCommandResult)
+	r, ok := given.(v1alpha1.RunCommandResult)
 	if ok {
 		resultpath := append(fieldsArr, "result")
 		util.SetNestedField(destination, r.Result(), resultpath...)

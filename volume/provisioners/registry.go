@@ -2,6 +2,7 @@
 //
 // NOTE:
 //    This is the new file w.r.t the deprecated volume/plugins.go file
+
 package provisioners
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
+// VolumeProvisionerFactory is the factory implementation for volume provisioner
 type VolumeProvisionerFactory func(label, name string) (VolumeInterface, error)
 
 // Registration is managed in a safe manner via these variables

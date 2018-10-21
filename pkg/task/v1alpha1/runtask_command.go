@@ -54,7 +54,7 @@ const (
 )
 
 // RunCommandCategory represents the category of the run command. It helps
-// in determing the exact entity or feature this run command is targeting.
+// in determining the exact entity or feature this run command is targeting.
 //
 // NOTE:
 //  A run command can have more than one categories to determine an entity
@@ -344,7 +344,7 @@ type RunCommand struct {
 	Category  RunCommandCategoryList // classification of run command
 	Data      RunCommandDataMap      // input data required to execute run command
 	Selects   SelectPaths            // paths whose values will be retrieved after run command execution
-	*msg.Msgs                        // store and retrieve info, warns, errors, etc occured during execution
+	*msg.Msgs                        // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // SelfInfo returns this instance of RunCommand as a string format

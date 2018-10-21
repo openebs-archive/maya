@@ -14,6 +14,7 @@ limitations under the License.
 */
 
 // This is extracted from k8s.io/apimachinery/pkg/api/resource/scale_int.go
+
 package v1
 
 import (

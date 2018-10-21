@@ -58,7 +58,7 @@ type Controller struct {
 	// spcSynced is used for caches sync to get populated
 	spcSynced cache.InformerSynced
 
-	// deletedIndexer holds deleted resource to be retreived after workqueue
+	// deletedIndexer holds deleted resource to be retrieved after workqueue
 	deletedIndexer cache.Indexer
 
 	// workqueue is a rate limited work queue. This is used to queue work to be

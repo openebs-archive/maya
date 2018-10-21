@@ -43,6 +43,7 @@ func GetNestedField(obj map[string]interface{}, fields ...string) interface{} {
 	return val
 }
 
+// GetNestedFieldInto converts a nested field to requested type from the provided map
 func GetNestedFieldInto(out interface{}, obj map[string]interface{}, fields ...string) error {
 	objMap := GetNestedField(obj, fields...)
 	if objMap == nil {
@@ -60,6 +61,7 @@ func GetNestedFieldInto(out interface{}, obj map[string]interface{}, fields ...s
 	return nil
 }
 
+// GetNestedString returns a nested string from the provided map
 func GetNestedString(obj map[string]interface{}, fields ...string) string {
 	if obj == nil {
 		return ""
@@ -72,6 +74,7 @@ func GetNestedString(obj map[string]interface{}, fields ...string) string {
 	return ""
 }
 
+// GetNestedArray returns an nested array from the provided map
 func GetNestedArray(obj map[string]interface{}, fields ...string) []interface{} {
 	if arr, ok := GetNestedField(obj, fields...).([]interface{}); ok {
 		return arr
@@ -79,6 +82,7 @@ func GetNestedArray(obj map[string]interface{}, fields ...string) []interface{} 
 	return nil
 }
 
+// GetNestedInt64 returns an nested int64 from the provided map
 func GetNestedInt64(obj map[string]interface{}, fields ...string) int64 {
 	if str, ok := GetNestedField(obj, fields...).(int64); ok {
 		return str
@@ -86,6 +90,7 @@ func GetNestedInt64(obj map[string]interface{}, fields ...string) int64 {
 	return 0
 }
 
+// GetNestedInt64Pointer returns a nested int64 pointer from the provided map
 func GetNestedInt64Pointer(obj map[string]interface{}, fields ...string) *int64 {
 	nested := GetNestedField(obj, fields...)
 	switch n := nested.(type) {
@@ -98,6 +103,7 @@ func GetNestedInt64Pointer(obj map[string]interface{}, fields ...string) *int64 
 	}
 }
 
+// GetNestedSlice returns a nested slice from the provided map
 func GetNestedSlice(obj map[string]interface{}, fields ...string) []string {
 	if m, ok := GetNestedField(obj, fields...).([]interface{}); ok {
 		strSlice := make([]string, 0, len(m))
@@ -111,6 +117,7 @@ func GetNestedSlice(obj map[string]interface{}, fields ...string) []string {
 	return nil
 }
 
+// GetNestedMap returns a nested map from the provided map
 func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]string {
 	if m, ok := GetNestedField(obj, fields...).(map[string]interface{}); ok {
 		strMap := make(map[string]string, len(m))
@@ -124,6 +131,7 @@ func GetNestedMap(obj map[string]interface{}, fields ...string) map[string]strin
 	return nil
 }
 
+// SetNestedField sets a nested field into the provided map
 func SetNestedField(obj map[string]interface{}, value interface{}, fields ...string) {
 	if len(fields) == 0 || obj == nil {
 		// changes can not be done to the obj
@@ -143,6 +151,7 @@ func SetNestedField(obj map[string]interface{}, value interface{}, fields ...str
 	m[fields[len(fields)-1]] = value
 }
 
+// DeleteNestedField deletes a nested field from the provided map
 func DeleteNestedField(obj map[string]interface{}, fields ...string) {
 	if len(fields) == 0 || obj == nil {
 		// changes can not be done to the obj
@@ -161,6 +170,7 @@ func DeleteNestedField(obj map[string]interface{}, fields ...string) {
 	delete(m, fields[len(fields)-1])
 }
 
+// SetNestedSlice sets a nested slice from the provided map
 func SetNestedSlice(obj map[string]interface{}, value []string, fields ...string) {
 	m := make([]interface{}, 0, len(value))
 	for _, v := range value {
@@ -169,6 +179,7 @@ func SetNestedSlice(obj map[string]interface{}, value []string, fields ...string
 	SetNestedField(obj, m, fields...)
 }
 
+// SetNestedMap sets a nested map from the provided map
 func SetNestedMap(obj map[string]interface{}, value map[string]string, fields ...string) {
 	m := make(map[string]interface{}, len(value))
 	for k, v := range value {

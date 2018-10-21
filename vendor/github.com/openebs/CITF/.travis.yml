@@ -1,0 +1,29 @@
+language: go
+
+go:
+  - 1.10.4
+
+sudo: required
+
+install:
+  - make bootstrap
+  - if [ "$TRAVIS_BUILD_DIR" != "$GOPATH/src/github.com/openebs/CITF" ]; then
+      mkdir -p $GOPATH/src/github.com/openebs/;
+      mv $TRAVIS_BUILD_DIR $GOPATH/src/github.com/openebs;
+      cd $GOPATH/src/github.com/openebs/CITF;
+    fi
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.9.4/bin/linux/amd64/kubectl
+  - sudo chmod +x ./kubectl
+  - sudo mv ./kubectl /usr/local/bin/
+  - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.25.0/minikube-linux-amd64
+  - sudo chmod +x minikube
+  - sudo mv minikube /usr/local/bin/
+
+script:
+  - make
+  - make gocyclo
+  - make test
+  - make integration-test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"

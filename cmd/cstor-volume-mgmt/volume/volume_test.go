@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// TestCreateVolume is to test cStorVolume creation.
-func TestCreateVolume(t *testing.T) {
+// TestCreateVolumeTarget is to test cStorVolume creation.
+func TestCreateVolumeTarget(t *testing.T) {
 	testVolumeResource := map[string]struct {
 		expectedError error
 		test          *apis.CStorVolume
@@ -36,7 +36,7 @@ func TestCreateVolume(t *testing.T) {
 	}
 	FileOperatorVar = util.TestFileOperator{}
 	UnixSockVar = util.TestUnixSock{}
-	obtainedErr := CreateVolume(testVolumeResource["img1VolumeResource"].test)
+	obtainedErr := CreateVolumeTarget(testVolumeResource["img1VolumeResource"].test)
 	if testVolumeResource["img1VolumeResource"].expectedError != obtainedErr {
 		t.Fatalf("Expected: %v, Got: %v", testVolumeResource["img1VolumeResource"].expectedError, obtainedErr)
 	}
