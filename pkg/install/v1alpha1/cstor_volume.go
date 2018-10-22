@@ -134,6 +134,10 @@ spec:
   output: cstor-volume-list-output-default
 ---
 # runTask to list cvrs if this is a clone volume
+# this run task will list all the cvrs that belong to
+# the source volume. If this is not a cloned volume
+# then we ignore the cvrs using non existent label
+# openebs.io/ignore
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
@@ -149,6 +153,8 @@ spec:
     options: |-
     {{- if ne $isClone "false" }}
       labelSelector: openebs.io/persistent-volume={{ .Volume.sourceVolume }}
+    {{- else }}
+      labelSelector: openebs.io/ignore=false
     {{- end }}
   post: |
     {{- $poolsList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.labels.cstorpool\\.openebs\\.io/uid}={@.metadata.labels.cstorpool\\.openebs\\.io/name};{end}" | trim | default "" | splitListTrim ";" -}}
