@@ -219,7 +219,7 @@ type ObjectMeta struct {
 	ClusterName string `json:"clusterName,omitempty" protobuf:"bytes,15,opt,name=clusterName"`
 }
 
-// Labels are key/value pairs related to objects  - such as K8s and volumes -
+// Labels are key/value pairs related to k8s objects
 // identifying unique, relevant attributes attached to such objects
 type Labels struct {
 	// OldVolumeLabels contains all the volume policy keys that ensures
