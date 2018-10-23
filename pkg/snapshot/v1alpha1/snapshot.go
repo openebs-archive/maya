@@ -77,7 +77,7 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName
@@ -148,7 +148,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName
@@ -217,7 +217,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName
@@ -284,7 +284,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName

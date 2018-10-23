@@ -214,7 +214,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	// get the storage class name corresponding to this volume
 	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
 	// get the storage engine type
-	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
 
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName
@@ -291,7 +291,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		scName = strings.TrimSpace(pv.Spec.StorageClassName)
 
 		// extract the storage engine
-		storageEngine = pv.Labels[string(v1alpha1.CASConfigKey)]
+		storageEngine = pv.Labels[string(v1alpha1.CASTypeKey)]
 	}
 
 	if len(scName) == 0 {
