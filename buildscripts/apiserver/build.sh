@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
 # This script builds the application from source for multiple platforms.
+
+#exit on error
 set -eo pipefail
 
 # Get the parent directory of where this script is.
