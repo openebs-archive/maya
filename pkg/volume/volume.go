@@ -135,13 +135,13 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	}
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 
-	// if cloneLabels[string(v1alpha1.StorageClassVTP)] != "" {
-	// 	// get the storage class name corresponding to this volume
-	// 	scName = cloneLabels[string(v1alpha1.StorageClassVTP)].(string)
-	// }
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing storage class")
 	}
+
+	// scName might not be initialized in getCloneLabels
+	// assign the latest available scName
+	cloneLabels[string(v1alpha1.StorageClassVTP)] = scName
 
 	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
