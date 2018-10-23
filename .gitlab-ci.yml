@@ -59,8 +59,10 @@ baseline-image:
      - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
      - curl -X POST -F token=$AWS -F ref=master https://gitlab.openebs.ci/api/v4/projects/7/trigger/pipeline
      - curl -X POST -F token=$GCP -F ref=master https://gitlab.openebs.ci/api/v4/projects/9/trigger/pipeline
-     - curl -X POST -F token=$AZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
-     - curl -X POST -F token=$PACKET-F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
+     - curl -X POST -F token=$AZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
+     - curl -X POST -F token=$PACKET -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
+     - curl -X POST -F token=$EKS -F ref=REF_NAME https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+     - curl -X POST -F token=$GKE -F ref=REF_NAME https://gitlab.openebs.ci/api/v4/projects/24/trigger/pipeline 
 clean-maya:
   stage: cleanup
   script:
