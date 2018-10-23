@@ -245,7 +245,7 @@ func (c *CASEngine) prepareOutputTask() (err error) {
 }
 
 // prepareFallback prepares the taskGroupRunner instance with the
-// fallback template which is used incase of specific errors e.g. version
+// fallback template which is used in case of specific errors e.g. version
 // mismatch error
 func (c *CASEngine) prepareFallback() {
 	f := c.casTemplate.Spec.Fallback

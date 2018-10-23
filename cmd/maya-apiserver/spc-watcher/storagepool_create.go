@@ -45,7 +45,7 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 	} else {
 		glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
 	}
-	// Check wether the spc object has been processed for storagepool creation
+	// Check whether the spc object has been processed for storagepool creation
 	if spcGot.Status.Phase == onlineStatus && !reSync {
 		glog.Infof("Storagepool already exists since the status on storagepoolclaim object %s is Online", spcGot.Name)
 		return nil
