@@ -18,12 +18,14 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 // EnvStatus represents the status of operation against an env instance
 type EnvStatus string
 
+// env set completion statuses
 const (
 	EnvSetSuccess EnvStatus = "set env succeeded"
 	EnvSetErr     EnvStatus = "set env failed"
