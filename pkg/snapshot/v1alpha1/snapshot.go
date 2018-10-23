@@ -77,7 +77,12 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
+	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+
 	if len(scName) == 0 {
 		return nil, errors.Errorf("unable to create snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
@@ -88,7 +93,7 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getCreateCASTemplate(sc)
+	castName := getCreateCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to create snapshot %s: missing cas template for create snapshot", s.snapOptions.Name)
 	}
@@ -143,7 +148,12 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
+	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+
 	if len(scName) == 0 {
 		return nil, errors.Errorf("unable to read snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
@@ -154,7 +164,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getReadCASTemplate(sc)
+	castName := getReadCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to read snapshot %s: missing cas template for read snapshot", s.snapOptions.Name)
 	}
@@ -207,7 +217,12 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
+	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+
 	if len(scName) == 0 {
 		return nil, errors.Errorf("unable to delete snapshot %s: missing storage class in PV %s", s.snapOptions.Name, s.snapOptions.VolumeName)
 	}
@@ -218,7 +233,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		return nil, err
 	}
 
-	castName := getDeleteCASTemplate(sc)
+	castName := getDeleteCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to delete snapshot %s: missing cas template for delete snapshot", s.snapOptions.Name)
 	}
@@ -269,7 +284,12 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	scName := pv.Spec.StorageClassName
+	storageEngine := pv.Labels[string(v1alpha1.CASConfigKey)]
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+
 	if len(scName) == 0 {
 		return nil, errors.Errorf("unable to list snapshot: missing storage class in PV %s", s.snapOptions.VolumeName)
 	}
@@ -280,7 +300,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 		return nil, err
 	}
 
-	castName := getListCASTemplate(sc)
+	castName := getListCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, errors.Errorf("unable to list snapshots: missing cas template for list snapshot")
 	}
@@ -320,11 +340,15 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 	return snapList, nil
 }
 
-func getReadCASTemplate(sc *v1_storage.StorageClass) string {
+func getReadCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotRead)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for casType, if cstor, set read cas template to cstor,
 		// if jiva or absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
@@ -336,11 +360,15 @@ func getReadCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
+func getCreateCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotCreate)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for casType, if cstor, set create cas template to cstor,
 		// if jiva or absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
@@ -352,11 +380,15 @@ func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getDeleteCASTemplate(sc *v1_storage.StorageClass) string {
+func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotDelete)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for casType, if cstor, set delete cas template to cstor,
 		// if jiva or absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
@@ -368,11 +400,15 @@ func getDeleteCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getListCASTemplate(sc *v1_storage.StorageClass) string {
+func getListCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForSnapshotList)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for casType, if cstor, set list cas template to cstor,
 		// if jiva or absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
