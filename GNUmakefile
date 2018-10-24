@@ -56,13 +56,13 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image
 
 dev: format
-	@MAYACTL=${MAYACTL} MAYA_DEV=1 sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
+	@PNAME="maya" MAYACTL=${MAYACTL} DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
 
 mayactl:
 	@echo "----------------------------"
 	@echo "--> mayactl                    "
 	@echo "----------------------------"
-	@MAYACTL=${MAYACTL} sh -c "'$(PWD)/buildscripts/mayactl/build.sh'"
+	@PNAME="maya" CTLNAME=${MAYACTL} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 initialize: bootstrap
 
@@ -182,7 +182,7 @@ cstor-pool-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-pool-mgmt           "
 	@echo "----------------------------"
-	@CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/cstor-pool-mgmt/build.sh'"
+	@PNAME="cstor-pool-mgmt" CTLNAME=${POOL_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 pool-mgmt-image: cstor-pool-mgmt
 	@echo "----------------------------"
@@ -197,7 +197,7 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt           "
 	@echo "----------------------------"
-	@CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/cstor-volume-mgmt/build.sh'"
+	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 #Use this to build cstor-volume-grpc
 cstor-volume-grpc:
@@ -224,7 +224,7 @@ exporter:
 	@echo "----------------------------"
 	@echo "--> maya-exporter              "
 	@echo "----------------------------"
-	@CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/exporter/build.sh'"
+	@PNAME=${EXPORTER} CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 # m-exporter image. This is going to be decoupled soon.
 exporter-image: exporter
@@ -240,7 +240,7 @@ apiserver:
 	@echo "----------------------------"
 	@echo "--> maya-apiserver               "
 	@echo "----------------------------"
-	@CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/apiserver/build.sh'"
+	@PNAME="apiserver" CTLNAME=${APISERVER} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 # Currently both mayactl & apiserver binaries are pushed into
 # m-apiserver image. This is going to be decoupled soon.
