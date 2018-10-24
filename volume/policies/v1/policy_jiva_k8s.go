@@ -25,6 +25,7 @@ limitations under the License.
 // It will be ideal to reuse these files for both the
 // volume types. Hence, remove jiva from variable name, method
 // name, logging, etc
+
 package v1
 
 import (
@@ -55,6 +56,8 @@ type JivaK8sPolicies struct {
 	spSpec oe_api_v1alpha1.StoragePoolSpec
 }
 
+// NewJivaK8sPolicies returns an instance of JivaK8sPolicies
+// with the K8sPolicyOps set in the struct
 func NewJivaK8sPolicies() (PolicyInterface, error) {
 	k8sPolOps, err := NewK8sPolicyOps()
 	if err != nil {
