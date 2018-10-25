@@ -22,7 +22,11 @@ var (
 	// localSchemeBuilder and AddToScheme will stay in k8s.io/kubernetes.
 	localSchemeBuilder = &SchemeBuilder
 	// AddToScheme initialization
-	AddToScheme = localSchemeBuilder.AddToScheme
+	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
+	SchemeBuilder = runtime.NewSchemeBuilder
+	// AddToScheme is a global function that registers this API group & version to a scheme
+	AddToScheme = SchemeBuilder.AddToScheme
+
 )
 
 func init() {
