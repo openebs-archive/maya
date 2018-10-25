@@ -44,11 +44,24 @@ func (c *cstorSnapshotCommand) instance() (r Runner) {
 	return
 }
 
+// TODO
+// cstorSnapshotCommand specific properties e.g. ip, snapName, volName etc
+// if made available as fields to cstorSnapshotCommand can be set in this
+// method
+//
 // Run executes various cstor volume related operations
 func (c *cstorSnapshotCommand) Run() (r RunCommandResult) {
 	return c.instance().Run()
 }
 
+// TODO
+// Check if the properties like ip, volName, snapName should be present as
+// fields in cstorSnapshotCommand?
+//
+// TODO
+// Errors be returned with more info e.g.
+// return errors.Errorf("missing ip address: validation failed: %s", c.SelfInfo())
+//
 // validateOptions checks if the required params are missing
 func (c *cstorSnapshotCommand) validateOptions() error {
 	ip, _ := c.Data["ip"].(string)
@@ -68,6 +81,13 @@ func (c *cstorSnapshotCommand) validateOptions() error {
 	return nil
 }
 
+// TODO
+// If volumename, snapname & others can be fields of cstorSnapshotCommand
+// then these fields need not be extracted on every method call
+//
+// TODO
+// Does toCASSnapshot() sound a better method name?
+//
 // casSnapshot returns a filled object of CASSnapshot
 func (c *cstorSnapshotCommand) casSnapshot() *apis.CASSnapshot {
 	volName, _ := c.Data["volname"].(string)

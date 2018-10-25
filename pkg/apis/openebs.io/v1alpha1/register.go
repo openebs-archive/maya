@@ -17,10 +17,12 @@ func Resource(resource string) schema.GroupResource {
 }
 
 var (
-	// localSchemeBuilder and AddToScheme will stay in k8s.io/kubernetes.
-	SchemeBuilder      runtime.SchemeBuilder
+	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
+	SchemeBuilder runtime.SchemeBuilder
+
 	localSchemeBuilder = &SchemeBuilder
-	AddToScheme        = localSchemeBuilder.AddToScheme
+	// AddToScheme is a global function that registers this API group & version to a scheme
+	AddToScheme = localSchemeBuilder.AddToScheme
 )
 
 func init() {

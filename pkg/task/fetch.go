@@ -47,7 +47,7 @@ type K8sTaskSpecFetcher struct {
 	k8sClient *m_k8s_client.K8sClient
 }
 
-// FetchSpec returns specifications of a provided task in yaml
+// Fetch returns specifications of a provided task in yaml
 // string format
 //
 // NOTE:

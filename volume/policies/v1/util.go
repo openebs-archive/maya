@@ -32,6 +32,7 @@ type K8sPolicyOps struct {
 	orch orchprovider.OrchestratorInterface
 }
 
+// NewK8sPolicyOps returns a new instance of K8sPolicyOps
 func NewK8sPolicyOps() (*K8sPolicyOps, error) {
 	orch, err := k8s_v1.NewK8sOrchProvider()
 	if err != nil {

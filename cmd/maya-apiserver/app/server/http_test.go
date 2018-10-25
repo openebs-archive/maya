@@ -92,7 +92,7 @@ func BenchmarkHTTPRequests(b *testing.B) {
 	defer s.Cleanup()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-		// TODO we are returing a num;
+		// TODO we are returning a num;
 		// instead return some big payload i.e. big array of any structure
 		return 1000, nil
 	}

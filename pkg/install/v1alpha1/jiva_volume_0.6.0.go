@@ -22,6 +22,8 @@ apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
   name: jiva-volume-read-default-0.6.0
+  labels:
+    version: "0.6.0"
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
@@ -36,6 +38,8 @@ apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
   name: jiva-volume-delete-default-0.6.0
+  labels:
+    version: "0.6.0"
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
@@ -52,6 +56,8 @@ apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
   name: jiva-volume-list-default-0.6.0
+  labels:
+    version: "0.6.0"
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
@@ -124,7 +130,7 @@ spec:
     options: |-
       labelSelector: openebs/replica=jiva-replica
   post: |
-    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.namespace}/{@.metadata.labels.vsm},replicaIP={@.status.podIP},replicaStatus={@.status.containerStatuses[*].ready},capacity=Uknown;{end}" | trim | default "" | splitList ";" -}}
+    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.namespace}/{@.metadata.labels.vsm},replicaIP={@.status.podIP},replicaStatus={@.status.containerStatuses[*].ready},capacity=Unknown;{end}" | trim | default "" | splitList ";" -}}
     {{- $replicaPairs | keyMap "volumeList" .ListItems | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
@@ -258,16 +264,18 @@ spec:
 
 // JivaVolumeArtifactsFor060 returns the jiva volume related artifacts
 // corresponding to version 0.6.0
-func JivaVolumeArtifactsFor060() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumeYamlsFor060)...)
+func JivaVolumeArtifactsFor060() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumes060{})...)
 	return
 }
 
-// jivaVolumeYamlsFor060 returns all the yamls related to jiva volume in a
-// string format
+type jivaVolumes060 struct{}
+
+// FetchYamls returns all the yamls related to jiva volume w.r.t version 0.6.0
+// in a string format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func jivaVolumeYamlsFor060() string {
+func (j jivaVolumes060) FetchYamls() string {
 	return jivaVolumeYamls060
 }

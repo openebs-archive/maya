@@ -83,7 +83,7 @@ func (p *K8sPolicies) Enforce(volume *v1.Volume) (*v1.Volume, error) {
 	return p.volume, nil
 }
 
-// initSC intializes the storage class
+// initSC initializes the storage class
 func (p *K8sPolicies) initSC() {
 	// There is no volume specific property for
 	// storage class. Hence, Labels' based property
@@ -112,7 +112,7 @@ func (p *K8sPolicies) initSC() {
 	}
 }
 
-// initSC intializes the storage class
+// initSC initializes the storage class
 func (p *K8sPolicies) initNS() {
 	// The volume property will prevail over others
 	p.ns = p.volume.Namespace
@@ -133,7 +133,7 @@ func (p *K8sPolicies) initNS() {
 	}
 }
 
-// initSC intializes the storage class
+// initSC initializes the storage class
 func (p *K8sPolicies) initOutCluster() {
 	// There is no volume specific property for
 	// out cluster. Hence, Labels' based property

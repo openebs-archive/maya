@@ -16,58 +16,22 @@ limitations under the License.
 
 package v1alpha1
 
+// TODO
+// Move to pkg/apis/openebs.io/v1alpha1
+
+// TODO
+// Rename InstallConfig to Install
+
+// Option represent a install option that influences the installation
+// workflow
+type Option string
+
+// InstallConfig is the config for installation workflow
 type InstallConfig struct {
 	Spec InstallConfigSpec `json:"spec"`
 }
 
 type InstallConfigSpec struct {
-	// Install caters to installation of artifacts that are understood by
-	// installer
-	//
-	// NOTE:
-	//  Only specific artifacts can be installed
-	Install []Install `json:"install"`
-	// Uninstall caters to un-installation of artifacts that are understood
-	// by installer
-	//
-	// NOTE:
-	//  Only specific resources can be un-installed
-	Uninstall []Uninstall `json:"uninstall"`
-}
-
-// Install provides metadata information about one or more artifacts that
-// need to be installed
-type Install struct {
-	// Version to be considered to install
-	Version string `json:"version"`
-	// SetOptions will override the defaults of this install version
-	SetOptions SetOptions `json:"set"`
-}
-
-// SetOptions will override this install version resource(s) with these values
-type SetOptions struct {
-	// Namespace to be set against the artifacts before install
-	Namespace string `json:"namespace"`
-	// Labels to be set against the artifacts before install
-	Labels map[string]string `json:"labels"`
-	// Annotations to be set against the artifacts before install
-	Annotations map[string]string `json:"annotations"`
-}
-
-// Uninstall provides metadata information about one or more artifacts that
-// need to be un-installed
-type Uninstall struct {
-	// Version to be considered to un-install
-	Version string `json:"version"`
-	// FilterOptions will filter the resources to be un-installed
-	FilterOptions FilterOptions `json:"filter"`
-}
-
-// FilterOptions is used to filter the resources based on the values specified
-// in this structure
-type FilterOptions struct {
-	// Namespace to be considered
-	Namespace string `json:"namespace"`
-	// LabelSelector to be considered
-	LabelSelector string `json:"labelSelector"`
+	// Options provides a ordered list of install related options
+	Options []Option `json:"options"`
 }

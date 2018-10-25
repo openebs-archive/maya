@@ -17,13 +17,15 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	msg "github.com/openebs/maya/pkg/msg/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
-	"time"
 )
 
 var (
+	// ErrorCanNotRunDueToFailedCondition is an error object that indicates that command could not be executed due to failed condition.
 	ErrorCanNotRunDueToFailedCondition = errors.New("run condition failed: can not execute run command")
 )
 
@@ -31,9 +33,13 @@ var (
 type StoreKey string
 
 const (
-	ResultStoreKey    StoreKey = "result"
-	DebugStoreKey     StoreKey = "debug"
-	ErrorStoreKey     StoreKey = "error"
+	// ResultStoreKey stores the run commands results
+	ResultStoreKey StoreKey = "result"
+	//DebugStoreKey stores the debug results
+	DebugStoreKey StoreKey = "debug"
+	//ErrorStoreKey stores the errors after the run command
+	ErrorStoreKey StoreKey = "error"
+	//RootCauseStoreKey stores the rootCause of the errors
 	RootCauseStoreKey StoreKey = "rootCause"
 )
 
@@ -91,7 +97,7 @@ func (kv *kvStore) SetBucket(b string) {
 
 // IsBucketTaken flags if the given bucket is already in use
 func (kv *kvStore) IsBucketTaken(bucket string) bool {
-	for b, _ := range kv.MStore {
+	for b := range kv.MStore {
 		if b == bucket {
 			return true
 		}
@@ -153,7 +159,7 @@ type storeCommand struct {
 	cond      RunCondition  // flag that determines if run command will execute or not
 	id        string        // unique identification of run command
 	cmd       *RunCommand   // current command to execute
-	*msg.Msgs               // store and retrieve info, warns, errors, etc occured during execution
+	*msg.Msgs               // store and retrieve info, warns, errors, etc occurred during execution
 }
 
 // StoreCommand returns a new instance of storeCommand

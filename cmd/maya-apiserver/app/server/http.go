@@ -23,8 +23,10 @@ import (
 
 const (
 	// ErrInvalidMethod is used if the HTTP method is not supported
-	ErrInvalidMethod     = "Invalid method"
+	ErrInvalidMethod = "Invalid method"
+	// ErrGetMethodRequired is used if the HTTP GET method is required"
 	ErrGetMethodRequired = "GET method required"
+	// ErrPutMethodRequired is used if the HTTP PUT/POST method is required"
 	ErrPutMethodRequired = "PUT/POST method required"
 )
 
@@ -149,9 +151,9 @@ type HTTPServer struct {
 	addr     string
 }
 
-// init registers Prometheus metrics.It's good to register these varibles here
+// init registers Prometheus metrics.It's good to register these variables here
 // otherwise you need to register it before you are going to use it. So you will
-// have to register it everytime unnecessarily, instead initialize it once and
+// have to register it every time unnecessarily, instead initialize it once and
 // use anywhere at anytime through the code.
 func init() {
 	prometheus.MustRegister(latestOpenEBSVolumeRequestDuration)
@@ -291,6 +293,7 @@ type HTTPCodedError interface {
 	Code() int
 }
 
+// CodedError is used to provide the HTTP Code error
 func CodedError(c int, s string) HTTPCodedError {
 	return &codedError{s, c}
 }
@@ -461,13 +464,13 @@ func setHeaders(resp http.ResponseWriter, headers map[string]string) {
 //func parseWait(resp http.ResponseWriter, req *http.Request, qo *structs.QueryOptions) bool {
 //	query := req.URL.Query()
 //	if wait := query.Get("wait"); wait != "" {
-//		dur, err := time.ParseDuration(wait)
+//		duration, err := time.ParseDuration(wait)
 //		if err != nil {
 //			resp.WriteHeader(400)
 //			resp.Write([]byte("Invalid wait time"))
 //			return true
 //		}
-//		qo.MaxQueryTime = dur
+//		qo.MaxQueryTime = duration
 //	}
 //	if idx := query.Get("index"); idx != "" {
 //		index, err := strconv.ParseUint(idx, 10, 64)

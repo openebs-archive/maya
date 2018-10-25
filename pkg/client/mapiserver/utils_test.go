@@ -37,7 +37,7 @@ func TestGetURL(t *testing.T) {
 			envaddr:        "192.168.0.2",
 			expectedoutput: "192.168.0.2",
 		},
-		"Environment vaiable not set": {
+		"Environment variable not set": {
 			addr:           "192.168.0.1",
 			port:           "5656",
 			expectedoutput: "http://192.168.0.1:5656",

@@ -24,11 +24,13 @@ import (
 	"github.com/openebs/maya/pkg/storagepool"
 )
 
+// DeleteStoragePool receives StoragePoolClaim delete event and calls
+// the required handlers to delete other pool related resources.
 func DeleteStoragePool(spcGot *v1alpha1.StoragePoolClaim) error {
 	// Business logic for deletion of storagepool
 	glog.Infof("Storagepool delete event received for storagepoolclaim %s", spcGot.Name)
 
-	casTemplateName := spcGot.Annotations[string(v1alpha1.SPDeleteCASTemplateCK)]
+	casTemplateName := spcGot.Annotations[string(v1alpha1.DeletePoolCASTemplateKey)]
 
 	// Create an empty  CasPool object
 	pool := &v1alpha1.CasPool{}

@@ -1,6 +1,7 @@
 // This is an adaptation of below gist:
 //
 //  https://gist.github.com/kotakanbe/d3059af990252ba89a82
+
 package nethelper
 
 import (
@@ -68,12 +69,13 @@ func inc(ip net.IP) {
 	}
 }
 
+// Pong is a structure to hold the results of the network ping of an ip
 type Pong struct {
-	Ip    string
+	IP    string
 	Alive bool
 }
 
-// ping does a network ping of the ip that it recives in its channel
+// ping does a network ping of the ip that it receives in its channel
 // i.e. pingChannel. The result of this ping is built as a Pong structure &
 // pushed into another channel i.e. pongChannel
 //
@@ -93,7 +95,7 @@ func ping(pingChan <-chan string, pongChan chan<- Pong) {
 			alive = true
 		}
 
-		pongChan <- Pong{Ip: ip, Alive: alive}
+		pongChan <- Pong{IP: ip, Alive: alive}
 	}
 }
 
@@ -108,7 +110,7 @@ func filterAlives(maxAttempts int, pongChan <-chan Pong, doneChan chan<- []strin
 	for i := 0; i < maxAttempts; i++ {
 		pong := <-pongChan
 		if pong.Alive {
-			alives = append(alives, pong.Ip)
+			alives = append(alives, pong.IP)
 		}
 	}
 
@@ -129,7 +131,7 @@ func filterAvails(maxAttempts int, reqdAttempts int, pongChan <-chan Pong, doneC
 	for i := 0; i < maxAttempts; i++ {
 		pong := <-pongChan
 		if !pong.Alive {
-			avails = append(avails, pong.Ip)
+			avails = append(avails, pong.IP)
 		}
 
 		if len(avails) >= reqdAttempts {

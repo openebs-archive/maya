@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Constants defined here are the dafault value of the flags. Which can be
+// Constants defined here are the default value of the flags. Which can be
 // changed while running the binary.
 const (
 	// listenAddress is the address where exporter listens for the rest api

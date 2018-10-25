@@ -1,0 +1,72 @@
+stages:
+  - build
+  - baseline
+  - cleanup
+build-maya:
+   stage: build
+   before_script:
+     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - export GOPATH=$HOME/go
+     - export PATH=$HOME/go/bin:$PATH
+     - mkdir -p $HOME/go/src/github.com/openebs/maya
+     - rsync -az --delete ${CI_PROJECT_DIR}/ ${HOME}/go/src/github.com/openebs/maya/ #CI_PROJECT_DIR is full path where project is cloned
+     - go env
+     - ls $GOPATH
+     - cd ${HOME}/go/src/github.com/openebs/maya
+
+     - make bootstrap
+     - make format
+  # Download kubectl, which is a requirement for using minikube.
+     - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+  # Download minikube.
+     - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.28.2/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+     - export MINIKUBE_WANTUPDATENOTIFICATION=false
+     - export MINIKUBE_WANTREPORTERRORPROMPT=false
+     - export MINIKUBE_HOME=$HOME
+     - export CHANGE_MINIKUBE_NONE_USER=true
+     - mkdir $HOME/.kube || true
+     - touch $HOME/.kube/config
+     - export KUBECONFIG=$HOME/.kube/config
+     - sudo minikube start --vm-driver=none --bootstrapper=localkube --kubernetes-version=v1.10.0 --extra-config=apiserver.Authorization.Mode=RBAC --feature-gates=MountPropagation=false
+  # Fix the kubectl context, as it's often stale.
+     -  sudo minikube update-context
+  # Wait for Kubernetes to be up and ready.
+     - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+   script: 
+    - echo "Building Maya"
+    - kubectl cluster-info
+    - kubectl get deployment -n openebs
+    - sleep 20
+    - make all
+    - ./ci/travis-ci.sh
+    - make deploy-images
+
+baseline-image:
+  stage: baseline
+  script:
+     - pwd
+     - export BRANCH=${CI_COMMIT_REF_NAME}
+     - echo $BRANCH
+     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - echo $COMMIT
+     - git clone https://github.com/openebs/e2e-infrastructure.git
+     - cd e2e-infrastructure/baseline
+     - ansible-playbook commit-writer.yml --extra-vars "branch=$BRANCH repo=$CI_PROJECT_NAME commit=$COMMIT"
+     - git status
+     - git add baseline
+     - git status
+     - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
+     - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
+     - curl -X POST -F token=$AWS -F ref=master https://gitlab.openebs.ci/api/v4/projects/7/trigger/pipeline
+     - curl -X POST -F token=$GCP -F ref=master https://gitlab.openebs.ci/api/v4/projects/9/trigger/pipeline
+     - curl -X POST -F token=$AZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
+     - curl -X POST -F token=$PACKET -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
+     - curl -X POST -F token=$EKS -F ref=REF_NAME https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+     - curl -X POST -F token=$GKE -F ref=REF_NAME https://gitlab.openebs.ci/api/v4/projects/24/trigger/pipeline 
+clean-maya:
+  stage: cleanup
+  script:
+    - sudo minikube delete
+    - sudo rm -r ~/go
+    - sudo docker images 
+    - sudo docker image prune -a

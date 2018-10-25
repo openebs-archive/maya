@@ -38,10 +38,9 @@ type CASTemplate struct {
 // CASTemplateSpec is the specifications for a CASTemplate resource
 type CASTemplateSpec struct {
 	// Defaults are a list of default configurations that may be applied
-	// during provisioning of a CAS volume
+	// during execution of CAS template
 	Defaults []Config `json:"defaultConfig"`
-	// TaskNamespace is the namespace where the tasks
-	// are expected to be found
+	// TaskNamespace is the namespace where the tasks are expected to be found
 	TaskNamespace string `json:"taskNamespace"`
 	// RunTasks refers to a set of tasks to be run
 	RunTasks RunTasks `json:"run"`

@@ -2,6 +2,7 @@
 //
 // NOTE:
 //    This is the new file w.r.t the deprecated plugins.go file
+
 package orchprovider
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
+// OrchProviderFactory is the factory implementation of OrchProvider
 type OrchProviderFactory func(label v1.NameLabel, name v1.OrchProviderRegistry) (OrchestratorInterface, error)
 
 // Registration is managed in a safe manner via these variables

@@ -21,7 +21,7 @@
 
 # Adding the generators here allows us to vendor the code-generator package
 # This is required since code-generator is not directly or transitively
-# dependant
+# dependent
 required = [
   "k8s.io/code-generator/cmd/deepcopy-gen",
   "k8s.io/code-generator/cmd/client-gen",
@@ -52,6 +52,27 @@ required = [
 [[constraint]]
   name = "k8s.io/code-generator"
   version = "kubernetes-1.11.0"
+
+[[constraint]]
+  name = "github.com/onsi/ginkgo"
+  version = "v1.5.0"
+
+[[constraint]]
+  name = "github.com/onsi/gomega"
+  version = "v1.4.0"
+
+[[constraint]]
+  name = "github.com/openebs/CITF"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = "v0.8.0"
+
+# Apply workaround from https://github.com/golang/dep/issues/1799
+[[override]]
+  source = "https://github.com/fsnotify/fsnotify/archive/v1.4.7.tar.gz"
+  name = "gopkg.in/fsnotify.v1"
 
 [prune]
   unused-packages = true
