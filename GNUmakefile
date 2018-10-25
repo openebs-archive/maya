@@ -224,7 +224,7 @@ exporter:
 	@echo "----------------------------"
 	@echo "--> maya-exporter              "
 	@echo "----------------------------"
-	@PNAME=${EXPORTER} CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@PNAME="exporter" CTLNAME=${EXPORTER} sh -c "'$(PWD)/buildscripts/build.sh'"
 
 # m-exporter image. This is going to be decoupled soon.
 exporter-image: exporter
