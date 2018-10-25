@@ -31,7 +31,7 @@ package v1alpha1
 type TopLevelProperty string
 
 const (
-	// CASTOptionsTLP is a top level property supported by CAS template engine. 
+	// CASTOptionsTLP is a top level property supported by CAS template engine.
 	// CAS template specific options are placed here
 	CASTOptionsTLP TopLevelProperty = "CAST"
 
@@ -40,7 +40,7 @@ const (
 	// The policy specific properties are placed with ConfigTLP as the
 	// top level property
 	ConfigTLP TopLevelProperty = "Config"
-	
+
 	// VolumeTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with VolumeTLP
@@ -51,7 +51,7 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
-	
+
 	// SnapshotTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with SnapshotTLP
@@ -62,7 +62,7 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	SnapshotTLP TopLevelProperty = "Snapshot"
-	
+
 	// StoragePoolTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with StoragePoolTLP

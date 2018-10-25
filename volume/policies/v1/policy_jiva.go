@@ -107,10 +107,10 @@ func (p *JivaPolicies) init() {
 func (p *JivaPolicies) enforce() {
 	if p.isNoSpecs {
 		p.volume.Specs = []v1.VolumeSpec{
-			v1.VolumeSpec{
+			{
 				Context: v1.ControllerVolumeContext,
 			},
-			v1.VolumeSpec{
+			{
 				Context: v1.ReplicaVolumeContext,
 			},
 		}

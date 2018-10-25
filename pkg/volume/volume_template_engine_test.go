@@ -76,21 +76,21 @@ func TestMergeConfig(t *testing.T) {
 	}{
 		"merge config - +ve test case - all elements are exclusive": {
 			highPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "3",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:0.5.4",
 				},
 			},
 			lowPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ControllerImage",
 					Value: "openebs.io/jiva:0.5.4",
 				},
@@ -99,21 +99,21 @@ func TestMergeConfig(t *testing.T) {
 		},
 		"merge config - +ve test case - all elements are common": {
 			highPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "3",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:0.5.4",
 				},
 			},
 			lowPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "2",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:2.0.0",
 				},
@@ -122,21 +122,21 @@ func TestMergeConfig(t *testing.T) {
 		},
 		"merge config - +ve test case - some elements are common": {
 			highPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "3",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:0.5.4",
 				},
 			},
 			lowPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "2",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "1",
 				},
@@ -146,11 +146,11 @@ func TestMergeConfig(t *testing.T) {
 		"merge config - +ve test case - empty high priority config": {
 			highPriorityConfig: nil,
 			lowPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "2",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "1",
 				},
@@ -159,11 +159,11 @@ func TestMergeConfig(t *testing.T) {
 		},
 		"merge config - +ve test case - empty low priority config": {
 			highPriorityConfig: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "3",
 				},
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:0.5.4",
 				},
@@ -206,19 +206,19 @@ func TestPrepareFinalConfig(t *testing.T) {
 	}{
 		"prepare final config - +ve test case - all configs are exclusive": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "3",
 				},
 			},
 			configSC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaImage",
 					Value: "openebs.io/jiva:0.5.5",
 				},
 			},
 			configPVC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "1",
 				},
@@ -229,19 +229,19 @@ func TestPrepareFinalConfig(t *testing.T) {
 		},
 		"prepare final config - +ve test case - all configs are common": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},
 			},
 			configSC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "2",
 				},
 			},
 			configPVC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "1",
 				},
@@ -252,19 +252,19 @@ func TestPrepareFinalConfig(t *testing.T) {
 		},
 		"prepare final config - +ve test case - some configs are common": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},
 			},
 			configSC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "2",
 				},
 			},
 			configPVC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "1",
 				},
@@ -275,13 +275,13 @@ func TestPrepareFinalConfig(t *testing.T) {
 		},
 		"prepare final config - +ve test case - pvc configs is empty": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},
 			},
 			configSC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "2",
 				},
@@ -293,14 +293,14 @@ func TestPrepareFinalConfig(t *testing.T) {
 		},
 		"prepare final config - +ve test case - sc config is empty": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},
 			},
 			configSC: nil,
 			configPVC: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ReplicaCount",
 					Value: "1",
 				},
@@ -311,7 +311,7 @@ func TestPrepareFinalConfig(t *testing.T) {
 		},
 		"prepare final config - +ve test case - pvc and sc configs are empty": {
 			configDefault: []v1alpha1.Config{
-				v1alpha1.Config{
+				{
 					Name:  "ControllerCount",
 					Value: "3",
 				},

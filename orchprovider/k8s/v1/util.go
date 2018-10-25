@@ -511,7 +511,7 @@ var monSideCarTpl = k8sApiV1.Container{
 		"-c=http://__TARGET_IP__:9501",
 	},
 	Ports: []k8sApiV1.ContainerPort{
-		k8sApiV1.ContainerPort{
+		{
 			ContainerPort: 9500,
 		},
 	},
