@@ -47,9 +47,6 @@ else
 fi
 
 
-XC_ARCHS=(${XC_ARCH// / })
-XC_OSS=(${XC_OS// / })
-
 if [ -z "${PNAME}" ];
 then
     echo "Project name not defined"
@@ -75,34 +72,30 @@ fi
 
 # Build!
 echo "==> Building ${CTLNAME} using $(go version)... "
-for GOOS in "${XC_OSS[@]}"
-do
-    for GOARCH in "${XC_ARCHS[@]}"
-    do
-        output_name="bin/${PNAME}/"$GOOS"_"$GOARCH"/"$CTLNAME
 
-        if [ $GOOS = "windows" ]; then
-            output_name+='.exe'
-        fi
-        env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-            "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
-            -X main.CtlName='${CTLNAME}' \
-            -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
-            -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
-            -o $output_name\
-            ./cmd/${CTLNAME}
-        if [ "${PNAME}" = "cstor-volume-mgmt" ]; then
-            env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-            "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
-                -X main.CtlName='cstor-volume-grpc' \
-                -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
-                -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
-                -o "bin/cstor-volume-mgmt/"$GOOS"_"$GOARCH"/cstor-volume-grpc"\
-                ./cmd/cstor-volume-grpc
-        fi
-    done
+GOOS="${XC_OS}"
+GOARCH="${XC_ARCH}"
+output_name="bin/${PNAME}/"$GOOS"_"$GOARCH"/"$CTLNAME
 
-done
+if [ $GOOS = "windows" ]; then
+    output_name+='.exe'
+fi
+env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+    "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+    -X main.CtlName='${CTLNAME}' \
+    -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
+    -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
+    -o $output_name\
+    ./cmd/${CTLNAME}
+if [ "${PNAME}" = "cstor-volume-mgmt" ]; then
+    env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
+    "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
+        -X main.CtlName='cstor-volume-grpc' \
+        -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
+        -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
+        -o "bin/cstor-volume-mgmt/"$GOOS"_"$GOARCH"/cstor-volume-grpc"\
+        ./cmd/cstor-volume-grpc
+fi
 
 echo ""
 
