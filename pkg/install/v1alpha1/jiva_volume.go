@@ -14,36 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-// JivaVolumeArtifactsFor070 returns the jiva volume related artifacts
-// corresponding to version 0.7.0
-func JivaVolumeArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumeYamlsFor070)...)
-	return
-}
-
-const jivaVolumeYamls070 = `
+const jivaVolumeYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: jiva-volume-read-default-0.7.0
+  name: jiva-volume-read-default
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-volume-isvalidversion-default-0.7.0
-    - jiva-volume-read-listtargetservice-default-0.7.0
-    - jiva-volume-read-listtargetpod-default-0.7.0
-    - jiva-volume-read-listreplicapod-default-0.7.0
-  output: jiva-volume-read-output-default-0.7.0
+    - jiva-volume-isvalidversion-default
+    - jiva-volume-read-listtargetservice-default
+    - jiva-volume-read-listtargetpod-default
+    - jiva-volume-read-listreplicapod-default
+  output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: jiva-volume-create-default-0.7.0
+  name: jiva-volume-create-default
 spec:
   defaultConfig:
   - name: ControllerImage
@@ -191,49 +186,49 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-volume-create-getstorageclass-default-0.7.0
-    - jiva-volume-create-getpvc-default-0.7.0
-    - jiva-volume-create-puttargetservice-default-0.7.0
-    - jiva-volume-create-getstoragepoolcr-default-0.7.0
-    - jiva-volume-create-putreplicadeployment-default-0.7.0
-    - jiva-volume-create-puttargetdeployment-default-0.7.0
-  output: jiva-volume-create-output-default-0.7.0
+    - jiva-volume-create-getstorageclass-default
+    - jiva-volume-create-getpvc-default
+    - jiva-volume-create-puttargetservice-default
+    - jiva-volume-create-getstoragepoolcr-default
+    - jiva-volume-create-putreplicadeployment-default
+    - jiva-volume-create-puttargetdeployment-default
+  output: jiva-volume-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: jiva-volume-delete-default-0.7.0
+  name: jiva-volume-delete-default
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-volume-isvalidversion-default-0.7.0
-    - jiva-volume-delete-listtargetservice-default-0.7.0
-    - jiva-volume-delete-listtargetdeployment-default-0.7.0
-    - jiva-volume-delete-listreplicadeployment-default-0.7.0
-    - jiva-volume-delete-deletetargetservice-default-0.7.0
-    - jiva-volume-delete-deletetargetdeployment-default-0.7.0
-    - jiva-volume-delete-deletereplicadeployment-default-0.7.0
-  output: jiva-volume-delete-output-default-0.7.0
+    - jiva-volume-isvalidversion-default
+    - jiva-volume-delete-listtargetservice-default
+    - jiva-volume-delete-listtargetdeployment-default
+    - jiva-volume-delete-listreplicadeployment-default
+    - jiva-volume-delete-deletetargetservice-default
+    - jiva-volume-delete-deletetargetdeployment-default
+    - jiva-volume-delete-deletereplicadeployment-default
+  output: jiva-volume-delete-output-default
   fallback: jiva-volume-delete-default-0.6.0
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: jiva-volume-list-default-0.7.0
+  name: jiva-volume-list-default
 spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-volume-list-listtargetservice-default-0.7.0
-    - jiva-volume-list-listtargetpod-default-0.7.0
-    - jiva-volume-list-listreplicapod-default-0.7.0
-  output: jiva-volume-list-output-default-0.7.0
+    - jiva-volume-list-listtargetservice-default
+    - jiva-volume-list-listtargetpod-default
+    - jiva-volume-list-listreplicapod-default
+  output: jiva-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-isvalidversion-default-0.7.0
+  name: jiva-volume-isvalidversion-default
 spec:
   meta: |
     id: is070jivavolume
@@ -250,7 +245,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-list-listtargetservice-default-0.7.0
+  name: jiva-volume-list-listtargetservice-default
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -272,7 +267,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-list-listtargetpod-default-0.7.0
+  name: jiva-volume-list-listtargetpod-default
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -294,7 +289,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-list-listreplicapod-default-0.7.0
+  name: jiva-volume-list-listreplicapod-default
 spec:
   meta: |
     {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
@@ -316,7 +311,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-list-output-default-0.7.0
+  name: jiva-volume-list-output-default
 spec:
   meta: |
     id : listoutput
@@ -372,7 +367,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-read-listtargetservice-default-0.7.0
+  name: jiva-volume-read-listtargetservice-default
 spec:
   meta: |
     id: readlistsvc
@@ -390,7 +385,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-read-listtargetpod-default-0.7.0
+  name: jiva-volume-read-listtargetpod-default
 spec:
   meta: |
     id: readlistctrl
@@ -412,7 +407,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-read-listreplicapod-default-0.7.0
+  name: jiva-volume-read-listreplicapod-default
 spec:
   meta: |
     id: readlistrep
@@ -432,7 +427,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-read-output-default-0.7.0
+  name: jiva-volume-read-output-default
 spec:
   meta: |
     id : readoutput
@@ -480,7 +475,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-puttargetservice-default-0.7.0
+  name: jiva-volume-create-puttargetservice-default
 spec:
   meta: |
     id: createputsvc
@@ -502,6 +497,8 @@ spec:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         pvc: {{ .Volume.pvc }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
       name: {{ .Volume.owner }}-ctrl-svc
     spec:
       ports:
@@ -520,7 +517,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-getstoragepoolcr-default-0.7.0
+  name: jiva-volume-create-getstoragepoolcr-default
 spec:
   meta: |
     id: creategetpath
@@ -534,7 +531,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-getstorageclass-default-0.7.0
+  name: jiva-volume-create-getstorageclass-default
 spec:
   meta: |
     id: creategetsc
@@ -549,7 +546,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-getpvc-default-0.7.0
+  name: jiva-volume-create-getpvc-default
 spec:
   meta: |
     id: creategetpvc
@@ -565,7 +562,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-listreplicapod-default-0.7.0
+  name: jiva-volume-create-listreplicapod-default
 spec:
   meta: |
     id: createlistrep
@@ -586,7 +583,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-patchreplicadeployment-default-0.7.0
+  name: jiva-volume-create-patchreplicadeployment-default
 spec:
   meta: |
     id: createpatchrep
@@ -643,7 +640,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-puttargetdeployment-default-0.7.0
+  name: jiva-volume-create-puttargetdeployment-default
 spec:
   meta: |
     id: createputctrl
@@ -675,6 +672,8 @@ spec:
         openebs.io/controller: jiva-controller
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
@@ -780,7 +779,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-putreplicadeployment-default-0.7.0
+  name: jiva-volume-create-putreplicadeployment-default
 spec:
   meta: |
     id: createputrep
@@ -812,6 +811,8 @@ spec:
         openebs.io/replica: jiva-replica
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
@@ -919,7 +920,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-create-output-default-0.7.0
+  name: jiva-volume-create-output-default
 spec:
   meta: |
     id: createoutput
@@ -945,7 +946,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-listtargetservice-default-0.7.0
+  name: jiva-volume-delete-listtargetservice-default
 spec:
   meta: |
     id: deletelistsvc
@@ -963,7 +964,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-listtargetdeployment-default-0.7.0
+  name: jiva-volume-delete-listtargetdeployment-default
 spec:
   meta: |
     id: deletelistctrl
@@ -981,7 +982,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-listreplicadeployment-default-0.7.0
+  name: jiva-volume-delete-listreplicadeployment-default
 spec:
   meta: |
     id: deletelistrep
@@ -999,7 +1000,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-deletetargetservice-default-0.7.0
+  name: jiva-volume-delete-deletetargetservice-default
 spec:
   meta: |
     id: deletedeletesvc
@@ -1012,7 +1013,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-deletetargetdeployment-default-0.7.0
+  name: jiva-volume-delete-deletetargetdeployment-default
 spec:
   meta: |
     id: deletedeletectrl
@@ -1025,7 +1026,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-deletereplicadeployment-default-0.7.0
+  name: jiva-volume-delete-deletereplicadeployment-default
 spec:
   meta: |
     id: deletedeleterep
@@ -1038,7 +1039,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-delete-output-default-0.7.0
+  name: jiva-volume-delete-output-default
 spec:
   meta: |
     id: deleteoutput
@@ -1053,11 +1054,20 @@ spec:
 ---
 `
 
-// jivaVolumeYamlsFor070 returns all the yamls related to jiva volume in a
-// string format
+// JivaVolumeArtifacts returns the jiva volume related artifacts corresponding
+// to latest version
+func JivaVolumeArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(jivaVolumes{})...)
+	return
+}
+
+type jivaVolumes struct{}
+
+// FetchYamls returns all the yamls related to jiva volume in a string
+// format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func jivaVolumeYamlsFor070() string {
-	return jivaVolumeYamls070
+func (j jivaVolumes) FetchYamls() string {
+	return jivaVolumeYamls
 }

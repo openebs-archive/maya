@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-const cstorPoolYamls070 = `
+const cstorPoolYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-pool-create-default-0.7.0
+  name: cstor-pool-create-default
 spec:
   defaultConfig:
   # CstorPoolImage is the container image that executes zpool replication and
@@ -70,17 +72,17 @@ spec:
     tasks:
     # Following are the list of run tasks executed in this order to
     # create a cstor storage pool
-    - cstor-pool-create-getspcinfo-default-0.7.0
-    - cstor-pool-create-listnode-default-0.7.0
-    - cstor-pool-create-putcstorpoolcr-default-0.7.0
-    - cstor-pool-create-putcstorpooldeployment-default-0.7.0
-    - cstor-pool-create-putstoragepoolcr-default-0.7.0
-    - cstor-pool-create-patchstoragepoolclaim-default-0.7.0
+    - cstor-pool-create-getspcinfo-default
+    - cstor-pool-create-listnode-default
+    - cstor-pool-create-putcstorpoolcr-default
+    - cstor-pool-create-putcstorpooldeployment-default
+    - cstor-pool-create-putstoragepoolcr-default
+    - cstor-pool-create-patchstoragepoolclaim-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: cstor-pool-delete-default-0.7.0
+  name: cstor-pool-delete-default
 spec:
   defaultConfig:
     # RunNamespace is the namespace to use to delete pool resources
@@ -90,17 +92,17 @@ spec:
   run:
     tasks:
     # Following are run tasks executed in this order to delete a storage pool
-    - cstor-pool-delete-listcstorpoolcr-default-0.7.0
-    - cstor-pool-delete-deletecstorpoolcr-default-0.7.0
-    - cstor-pool-delete-listcstorpooldeployment-default-0.7.0
-    - cstor-pool-delete-deletecstorpooldeployment-default-0.7.0
-    - cstor-pool-delete-liststoragepoolcr-default-0.7.0
-    - cstor-pool-delete-deletestoragepoolcr-default-0.7.0
+    - cstor-pool-delete-listcstorpoolcr-default
+    - cstor-pool-delete-deletecstorpoolcr-default
+    - cstor-pool-delete-listcstorpooldeployment-default
+    - cstor-pool-delete-deletecstorpooldeployment-default
+    - cstor-pool-delete-liststoragepoolcr-default
+    - cstor-pool-delete-deletestoragepoolcr-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-getspcinfo-default-0.7.0
+  name: cstor-pool-create-getspcinfo-default
 spec:
   meta: |
     id: getspcinfo
@@ -117,7 +119,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-listnode-default-0.7.0
+  name: cstor-pool-create-listnode-default
 spec:
   meta: |
     id: listnode
@@ -155,7 +157,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putcstorpoolcr-default-0.7.0
+  name: cstor-pool-create-putcstorpoolcr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -179,6 +181,8 @@ spec:
       labels:
         openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
         diskList: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeDiskdevlinkMap.node }}
@@ -192,7 +196,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putcstorpooldeployment-default-0.7.0
+  name: cstor-pool-create-putcstorpooldeployment-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -222,6 +226,8 @@ spec:
         openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last}}
         app: cstor-pool
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       replicas: 1
       selector:
@@ -326,7 +332,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putstoragepoolcr-default-0.7.0
+  name: cstor-pool-create-putstoragepoolcr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -350,6 +356,8 @@ spec:
         openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last}}
         openebs.io/cas-type: cstor
         kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
         diskList: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeDiskMap.node }}
@@ -361,7 +369,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-patchstoragepoolclaim-default-0.7.0
+  name: cstor-pool-create-patchstoragepoolclaim-default
 spec:
   meta: |
     id: patchstoragepoolclaim
@@ -379,7 +387,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-listcstorpoolcr-default-0.7.0
+  name: cstor-pool-delete-listcstorpoolcr-default
 spec:
   meta: |
     id: listcstorpoolcr
@@ -397,7 +405,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-deletecstorpoolcr-default-0.7.0
+  name: cstor-pool-delete-deletecstorpoolcr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -410,7 +418,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-listcstorpooldeployment-default-0.7.0
+  name: cstor-pool-delete-listcstorpooldeployment-default
 spec:
   meta: |
     id: listcstorpooldeployment
@@ -429,7 +437,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-deletecstorpooldeployment-default-0.7.0
+  name: cstor-pool-delete-deletecstorpooldeployment-default
 spec:
   meta: |
     id: deletecstorpooldeployment
@@ -443,7 +451,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-liststoragepoolcr-default-0.7.0
+  name: cstor-pool-delete-liststoragepoolcr-default
 spec:
   meta: |
     id: liststoragepoolcr
@@ -461,7 +469,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-delete-deletestoragepoolcr-default-0.7.0
+  name: cstor-pool-delete-deletestoragepoolcr-default
 spec:
   meta: |
     id: deletestoragepoolcr
@@ -472,18 +480,20 @@ spec:
 ---
 `
 
-// CstorPoolArtifactsFor070 returns the cstor pool related artifacts
-// corresponding to version 0.7.0
-func CstorPoolArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorPoolYamlsFor070)...)
+// CstorPoolArtifacts returns the cstor pool related artifacts corresponding to
+// latest version
+func CstorPoolArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorPools{})...)
 	return
 }
 
-// cstorPoolYamlsFor070 returns all the yamls related to cstor pool in a string
+type cstorPools struct{}
+
+// FetchYamls returns all the yamls related to cstor pool in a string
 // format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func cstorPoolYamlsFor070() string {
-	return cstorPoolYamls070
+func (c cstorPools) FetchYamls() string {
+	return cstorPoolYamls
 }

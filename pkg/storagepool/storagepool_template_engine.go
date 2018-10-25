@@ -19,144 +19,63 @@ package storagepool
 
 import (
 	"fmt"
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
-	"github.com/openebs/maya/pkg/util"
 	"strings"
 )
 
-// casStoragePoolEngine is capable of creating a storagepool via CAS template
+// storagePoolEngine is capable of creating a storagepool via CAS template
 //
 // It implements following interfaces:
 // - engine.CASCreator
 //
 // NOTE:
-//  It overrides the Create method exposed by generic CASEngine
-type casStoragePoolEngine struct {
-	// casEngine exposes generic CAS template operations
-	casEngine *engine.CASEngine
-	// defaultConfig is the default cas storagepool configurations found
-	// in the CASTemplate
-	defaultConfig []v1alpha1.Config
-	// openebsConfig is the configurations that can be passes
-	openebsConfig []v1alpha1.Config
+//  It overrides the Create method exposed by generic engine
+type storagePoolEngine struct {
+	engine        engine.Interface  // generic CAS template engine
+	defaultConfig []v1alpha1.Config // default cas storagepool config found in CASTemplate
+	openebsConfig []v1alpha1.Config // openebsConfig is the config that is provided
 }
 
-func unMarshallToConfig(config string) (configs []v1alpha1.Config, err error) {
-	err = yaml.Unmarshal([]byte(config), &configs)
-	return
-}
-
-// NewCASStoragePoolEngine returns a new instance of casStoragePoolEngine based on
-// the provided cas configs & runtime storagepool values
-func NewCASStoragePoolEngine(
-	casTemplate *v1alpha1.CASTemplate,
+// NewStoragePoolEngine returns a new instance of storagePoolEngine
+func NewStoragePoolEngine(
+	cast *v1alpha1.CASTemplate,
 	openebsConfig string,
-	runtimeKey string,
-	runtimeStoragePoolValues map[string]interface{}) (storagePoolEngine *casStoragePoolEngine, err error) {
+	key string,
+	storagePoolValues map[string]interface{}) (e *storagePoolEngine, err error) {
 
-	if len(strings.TrimSpace(runtimeKey)) == 0 {
-		err = fmt.Errorf("Failed to create cas template engine: nil runtime storagepool key was provided")
+	if len(strings.TrimSpace(key)) == 0 {
+		err = fmt.Errorf("Failed to create cas template engine: nil storagepool key was provided")
 		return
 	}
-
-	if len(runtimeStoragePoolValues) == 0 {
-		err = fmt.Errorf("Failed to create cas template engine: nil runtime storagepool values was provided")
+	if len(storagePoolValues) == 0 {
+		err = fmt.Errorf("Failed to create cas template engine: nil storagepool values was provided")
 		return
 	}
-	// CAS config from  storagepoolclaim
-	openebsConf, err := unMarshallToConfig(openebsConfig)
+	openebsConf, err := engine.UnMarshallToConfig(openebsConfig)
 	if err != nil {
 		return
 	}
-	// make use of the generic CAS template engine
-	cEngine, err := engine.NewCASEngine(casTemplate, runtimeKey, runtimeStoragePoolValues)
+	cEngine, err := engine.New(cast, key, storagePoolValues)
 	if err != nil {
 		return
 	}
-
-	storagePoolEngine = &casStoragePoolEngine{
-		casEngine:     cEngine,
-		defaultConfig: casTemplate.Spec.Defaults,
+	e = &storagePoolEngine{
+		engine:        cEngine,
+		defaultConfig: cast.Spec.Defaults,
 		openebsConfig: openebsConf,
 	}
-
 	return
-}
-
-// mergeConfig will merge the unique configuration elements of lowPriorityConfig
-// into highPriorityConfig and return the result
-func mergeConfig(highPriorityConfig, lowPriorityConfig []v1alpha1.Config) (final []v1alpha1.Config) {
-	var prioritized []string
-
-	for _, pc := range highPriorityConfig {
-		final = append(final, pc)
-		prioritized = append(prioritized, strings.TrimSpace(pc.Name))
-	}
-
-	for _, lc := range lowPriorityConfig {
-		if !util.ContainsString(prioritized, strings.TrimSpace(lc.Name)) {
-			final = append(final, lc)
-		}
-	}
-
-	return
-}
-func (c *casStoragePoolEngine) prepareFinalConfig() (final []v1alpha1.Config) {
-	// merge unique config elements from SC with config from PVC
-	final = mergeConfig(c.openebsConfig, c.defaultConfig)
-	return
-}
-
-// addConfigToConfigTLP will add final cas storagepool configurations to ConfigTLP.
-//
-// NOTE:
-//  This will enable templating a run task template as follows:
-//
-// {{ .Config.<ConfigName>.enabled }}
-// {{ .Config.<ConfigName>.value }}
-//
-// NOTE:
-//  Above parsing scheme is translated by running `go template` against the run
-// task template
-func (c *casStoragePoolEngine) addConfigToConfigTLP() error {
-	var configName string
-	allConfigsHierarchy := map[string]interface{}{}
-	allConfigs := c.prepareFinalConfig()
-
-	for _, config := range allConfigs {
-		configName = strings.TrimSpace(config.Name)
-		if len(configName) == 0 {
-			return fmt.Errorf("Failed to merge config '%#v': missing config name", config)
-		}
-
-		configHierarchy := map[string]interface{}{
-			configName: map[string]string{
-				string(v1alpha1.EnabledPTP): config.Enabled,
-				string(v1alpha1.ValuePTP):   config.Value,
-			},
-		}
-
-		isMerged := util.MergeMapOfObjects(allConfigsHierarchy, configHierarchy)
-		if !isMerged {
-			return fmt.Errorf("Failed to merge config: unable to add config '%s' to config hierarchy", configName)
-		}
-	}
-
-	// update merged config as the top level property
-	c.casEngine.SetConfig(allConfigsHierarchy)
-	return nil
 }
 
 // Create creates a storagepool
-func (c *casStoragePoolEngine) Create() ([]byte, error) {
-	// set customized CAS config as a top level property
-	err := c.addConfigToConfigTLP()
+func (c *storagePoolEngine) Create() (op []byte, err error) {
+	m, err := engine.ConfigToMap(engine.MergeConfig(c.openebsConfig, c.defaultConfig))
 	if err != nil {
-		return nil, err
+		return
 	}
-
+	// set customized config
+	c.engine.SetConfig(m)
 	// delegate to generic cas template engine
-	return c.casEngine.Run()
+	return c.engine.Run()
 }

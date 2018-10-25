@@ -14,44 +14,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
-// CstorSnapshotArtifactsFor070 returns the cstor snapshot related artifacts
-// corresponding to version 0.7.0
-func CstorSnapshotArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorSnapshotYamlsFor070)...)
-	return
-}
-
-// cstorSnapshotYamlsFor070 returns all the yamls related to cstor snapshot in a
-// string format
-//
-// NOTE:
-//  This is an implementation of MultiYamlFetcher
-func cstorSnapshotYamlsFor070() string {
-	return `
+const cstorSnapshotYamls = `
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  labels:
-    openebs.io/version: 0.7.0
-  name: cstor-snapshot-create-default-0.7.0
+  name: cstor-snapshot-create-default
 spec:
   defaultConfig:
   - name: RunNamespace
     value: {{env "OPENEBS_NAMESPACE"}}
-  output: cstor-snapshot-create-output-default-0.7.0
+  output: cstor-snapshot-create-output-default
   run:
     tasks:
-    - cstor-snapshot-create-listtargetservice-default-0.7.0
-    - cstor-snapshot-create-createsnapshot-default-0.7.0
+    - cstor-snapshot-create-listtargetservice-default
+    - cstor-snapshot-create-createsnapshot-default
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-create-listtargetservice-default-0.7.0
+  name: cstor-snapshot-create-listtargetservice-default
 spec:
   meta: |
     runNamespace: {{ .Config.RunNamespace.value }}
@@ -69,7 +56,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-create-createsnapshot-default-0.7.0
+  name: cstor-snapshot-create-createsnapshot-default
 spec:
   meta: |
     id: createcstorsnap
@@ -84,7 +71,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-create-output-default-0.7.0
+  name: cstor-snapshot-create-output-default
 spec:
   meta: |
     action: output
@@ -96,6 +83,9 @@ spec:
     apiVersion: v1alpha1
     metadata:
       name: {{ .Snapshot.owner }}
+      labels:
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       casType: cstor
       volumeName: {{ .Snapshot.volumeName }}
@@ -103,24 +93,22 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  labels:
-    openebs.io/version: 0.7.0
-  name: cstor-snapshot-delete-default-0.7.0
+  name: cstor-snapshot-delete-default
 spec:
   defaultConfig:
   - name: RunNamespace
     value: {{env "OPENEBS_NAMESPACE"}}
-  output: cstor-snapshot-delete-output-default-0.7.0
+  output: cstor-snapshot-delete-output-default
   run:
     tasks:
-    - cstor-snapshot-delete-listtargetservice-default-0.7.0
-    - cstor-snapshot-delete-deletesnapshot-default-0.7.0
+    - cstor-snapshot-delete-listtargetservice-default
+    - cstor-snapshot-delete-deletesnapshot-default
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-delete-listtargetservice-default-0.7.0
+  name: cstor-snapshot-delete-listtargetservice-default
 spec:
   meta: |
     runNamespace: {{ .Config.RunNamespace.value }}
@@ -138,7 +126,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-delete-deletesnapshot-default-0.7.0
+  name: cstor-snapshot-delete-deletesnapshot-default
 spec:
   meta: |
     id: deletecstorsnap
@@ -153,7 +141,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-snapshot-delete-output-default-0.7.0
+  name: cstor-snapshot-delete-output-default
 spec:
   meta: |
     action: output
@@ -169,4 +157,21 @@ spec:
       casType: cstor
       volumeName: {{ .Snapshot.volumeName }}
 ---`
+
+// CstorSnapshotArtifacts returns the cstor snapshot related artifacts
+// corresponding to latest version
+func CstorSnapshotArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamls(cstorSnapshots{})...)
+	return
+}
+
+type cstorSnapshots struct{}
+
+// FetchYamls returns all the yamls related to cstor snapshots in a string
+// format
+//
+// NOTE:
+//  This is an implementation of MultiYamlFetcher
+func (s cstorSnapshots) FetchYamls() string {
+	return cstorSnapshotYamls
 }

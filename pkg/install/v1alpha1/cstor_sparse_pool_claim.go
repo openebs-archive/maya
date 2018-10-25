@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
 import (
-	"strconv"
-
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	"strconv"
 )
 
-const cstorSparsePoolSpcArtifacts070 = `
+const cstorSparsePoolYamls = `
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -84,19 +85,20 @@ func IsCstorSparsePoolEnabled() (enabled bool) {
 	return
 }
 
-// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim
-// and storageclass yaml corresponding to version 0.7.0 if cstor
-// sparse pool creation is enabled as a part of openebs installation
-func CstorSparsePoolSpcArtifactsFor070() (list ArtifactList) {
-	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcArtifactsFor070, IsCstorSparsePoolEnabled)...)
+// CstorSparsePoolArtifacts returns sparse pool artifacts corresponding to
+// latest version if cstor sparse pool creation is enabled
+func CstorSparsePoolArtifacts() (list artifactList) {
+	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlsIf(cstorSparsePools{}, IsCstorSparsePoolEnabled)...)
 	return
 }
 
-// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring
-// a stoaragepoolclaim and storageclass in string format
+type cstorSparsePools struct{}
+
+// FetchYamls returns all the yamls related to cstor snapshots in a string
+// format
 //
 // NOTE:
 //  This is an implementation of MultiYamlFetcher
-func cstorSparsePoolSpcArtifactsFor070() string {
-	return cstorSparsePoolSpcArtifacts070
+func (s cstorSparsePools) FetchYamls() string {
+	return cstorSparsePoolYamls
 }

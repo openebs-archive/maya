@@ -13,6 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// TODO
+// Rename this file by removing the version suffix information
 package v1alpha1
 
 import (
@@ -120,7 +123,7 @@ func TestCstorSparsePoolSpc070(t *testing.T) {
 				t.Fatalf("Test '%s' failed %+v", name, err)
 			}
 
-			l := CstorSparsePoolSpcArtifactsFor070()
+			l := CstorSparsePoolArtifacts()
 			actual := len(l.Items)
 			if actual != mock.expected {
 				t.Fatalf("Test '%s' failed: expected '%d' actual '%d'", name, mock.expected, actual)

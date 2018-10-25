@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// CVRKey represents the properties of a cstorvolumereplica
 type CVRKey string
 
 const (

@@ -18,19 +18,16 @@ package volume
 
 import (
 	"fmt"
-
-	"github.com/openebs/maya/types/v1"
-	v1_storage "k8s.io/api/storage/v1"
-
-	"strings"
-
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
+	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 // OperationOptions contains the options with respect to
@@ -97,7 +94,7 @@ func (v *Operation) getCloneLabels() (map[string]interface{}, error) {
 		// extract and assign relevant clone spec fields to cloneLabels
 		cloneLabels[string(v1alpha1.SnapshotNameVTP)] = v.volume.CloneSpec.SnapshotName
 		cloneLabels[string(v1alpha1.SourceVolumeTargetIPVTP)] = strings.TrimSpace(strings.Split(pv.Spec.ISCSI.TargetPortal, ":")[0])
-		cloneLabels[string(v1alpha1.StorageClassVTP)] = pv.Spec.StorageClassName
+		cloneLabels[string(v1alpha1.StorageClassVTP)] = v.volume.Labels[string(v1alpha1.StorageClassKey)]
 		cloneLabels[string(v1alpha1.SourceVolumeVTP)] = v.volume.CloneSpec.SourceVolume
 	}
 	return cloneLabels, nil
@@ -135,13 +132,10 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	}
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 
-	if cloneLabels[string(v1alpha1.StorageClassVTP)] != "" {
-		// get the storage class name corresponding to this volume
-		scName = cloneLabels[string(v1alpha1.StorageClassVTP)].(string)
-	}
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing storage class")
 	}
+
 	// scName might not be initialized in getCloneLabels
 	// assign the latest available scName
 	cloneLabels[string(v1alpha1.StorageClassVTP)] = scName
@@ -156,7 +150,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// cas template to create a cas volume
-	castName := getCreateCASTemplate(sc)
+	castName := getCreateCASTemplate("", sc)
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to create volume: missing create cas template at '%s'", v1alpha1.CASTemplateKeyForVolumeCreate)
 	}
@@ -176,7 +170,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	runtimeVolumeValues := util.MergeMaps(volumeLables, cloneLabels)
 
 	// provision CAS volume via CAS volume specific CAS template engine
-	cc, err := NewCASVolumeEngine(
+	cc, err := NewVolumeEngine(
 		casConfigPVC,
 		casConfigSC,
 		cast,
@@ -215,7 +209,14 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// get the storage class name corresponding to this volume
-	scName := pv.Spec.StorageClassName
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	// get the storage engine type
+	storageEngine := pv.Labels[string(v1alpha1.CASTypeKey)]
+
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
 	}
@@ -225,7 +226,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-	castName := getDeleteCASTemplate(sc)
+	castName := getDeleteCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
 	}
@@ -237,7 +238,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// delete cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := engine.New(
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
@@ -249,8 +250,8 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// delete the cas volume
-	data, err := engine.Delete()
+	// delete cas volume by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +272,9 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
+	// storage engine type
+	storageEngine := ""
+
 	// check if sc name is already present, if not then extract it
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 	if len(scName) == 0 {
@@ -282,6 +286,9 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 
 		// extract the sc name
 		scName = strings.TrimSpace(pv.Spec.StorageClassName)
+
+		// extract the storage engine
+		storageEngine = pv.Labels[string(v1alpha1.CASTypeKey)]
 	}
 
 	if len(scName) == 0 {
@@ -295,7 +302,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// extract read cas template name from sc annotation
-	castName := getReadCASTemplate(sc)
+	castName := getReadCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
 		return nil, fmt.Errorf("unable to read volume '%s': missing cas template for read '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeRead)
 	}
@@ -307,7 +314,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := engine.New(
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
@@ -319,8 +326,8 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// read the volume details
-	data, err := engine.Read()
+	// read volume details by executing engine
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +390,7 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 		}
 
 		// read cas volume via cas template engine
-		engine, err := engine.NewCASEngine(
+		engine, err := engine.New(
 			cast,
 			string(v1alpha1.VolumeTLP),
 			map[string]interface{}{
@@ -394,8 +401,8 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 			return nil, err
 		}
 
-		// read the volume details
-		data, err := engine.List()
+		// list volume details by executing engine
+		data, err := engine.Run()
 		if err != nil {
 			return nil, err
 		}
@@ -412,11 +419,15 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 	return vols, nil
 }
 
-func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
+func getCreateCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
@@ -428,11 +439,15 @@ func getCreateCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getReadCASTemplate(sc *v1_storage.StorageClass) string {
+func getReadCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {
@@ -444,11 +459,15 @@ func getReadCASTemplate(sc *v1_storage.StorageClass) string {
 	return castName
 }
 
-func getDeleteCASTemplate(sc *v1_storage.StorageClass) string {
+func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
 	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)]
 	// if cas template for the given operation is empty then fetch from environment variables
 	if len(castName) == 0 {
 		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
 		if casType == string(v1.CStorVolumeType) {

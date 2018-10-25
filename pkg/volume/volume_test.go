@@ -1,11 +1,12 @@
 package volume
 
 import (
+	"os"
+	"testing"
+
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	v1_storage "k8s.io/api/storage/v1"
-	"os"
-	"testing"
 )
 
 func TestGetCreateCASTemplate(t *testing.T) {
@@ -14,6 +15,7 @@ func TestGetCreateCASTemplate(t *testing.T) {
 	tests := map[string]struct {
 		scCreateCASAnnotation string
 		scCASTypeAnnotation   string
+		defaultCasType        string
 		envJivaCAST           string
 		envCStorCAST          string
 		expectedCAST          string
@@ -23,11 +25,13 @@ func TestGetCreateCASTemplate(t *testing.T) {
 			"",
 			"",
 			"",
+			"",
 			"cast-create-from-annotation",
 		},
-		"CAST annotation is absent/empty and cas type is cstor": {
+		"CAST annotation is absent/empty and cas type is cstor, defaultCasType is jiva": {
 			"",
 			"cstor",
+			"jiva",
 			"",
 			"cast-cstor-create-from-env",
 			"cast-cstor-create-from-env",
@@ -35,18 +39,34 @@ func TestGetCreateCASTemplate(t *testing.T) {
 		"CAST annotation is absent/empty and cas type is jiva": {
 			"",
 			"jiva",
+			"",
 			"cast-jiva-create-from-env",
 			"",
 			"cast-jiva-create-from-env",
 		},
+		"CAST annotation is absent/empty and cas type is missing, defaultCasType is cstor": {
+			"",
+			"",
+			"cstor",
+			"",
+			"cast-cstor-create-from-env",
+			"cast-cstor-create-from-env",
+		},
 		"CAST annotation is absent/empty and cas type unknown": {
 			"",
 			"unknown",
+			"",
 			"cast-jiva-create-from-env",
 			"cast-cstor-create-from-env",
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToCreateCStorVolumeENVK))
+		os.Unsetenv(string(menv.CASTemplateToCreateJivaVolumeENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeCreate)] = test.scCreateCASAnnotation
@@ -54,7 +74,7 @@ func TestGetCreateCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToCreateCStorVolumeENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToCreateJivaVolumeENVK), test.envJivaCAST)
 
-			castName := getCreateCASTemplate(sc)
+			castName := getCreateCASTemplate(test.defaultCasType, sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
@@ -69,6 +89,7 @@ func TestGetReadCASTemplate(t *testing.T) {
 	tests := map[string]struct {
 		scReadCASAnnotation string
 		scCASTypeAnnotation string
+		defaultCasType      string
 		envJivaCAST         string
 		envCStorCAST        string
 		expectedCAST        string
@@ -78,11 +99,13 @@ func TestGetReadCASTemplate(t *testing.T) {
 			"",
 			"",
 			"",
+			"",
 			"cast-read-from-annotation",
 		},
-		"CAST annotation is absent/empty and cas type is cstor": {
+		"CAST annotation is absent/empty and cas type is cstor, defaultCasType is jiva": {
 			"",
 			"cstor",
+			"jiva",
 			"",
 			"cast-cstor-read-from-env",
 			"cast-cstor-read-from-env",
@@ -90,18 +113,34 @@ func TestGetReadCASTemplate(t *testing.T) {
 		"CAST annotation is absent/empty and cas type is jiva": {
 			"",
 			"jiva",
+			"",
 			"cast-jiva-read-from-env",
 			"",
 			"cast-jiva-read-from-env",
 		},
+		"CAST annotation is absent/empty and cas type is missing, defaultCasType is cstor": {
+			"",
+			"",
+			"cstor",
+			"",
+			"cast-cstor-read-from-env",
+			"cast-cstor-read-from-env",
+		},
 		"CAST annotation is absent/empty and cas type unknown": {
 			"",
 			"unknown",
+			"",
 			"cast-jiva-read-from-env",
 			"cast-cstor-read-from-env",
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToCreateCStorVolumeENVK))
+		os.Unsetenv(string(menv.CASTemplateToCreateJivaVolumeENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeRead)] = test.scReadCASAnnotation
@@ -109,7 +148,7 @@ func TestGetReadCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToReadCStorVolumeENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToReadJivaVolumeENVK), test.envJivaCAST)
 
-			castName := getReadCASTemplate(sc)
+			castName := getReadCASTemplate(test.defaultCasType, sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
@@ -124,39 +163,58 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 	tests := map[string]struct {
 		scDeleteCASAnnotation string
 		scCASTypeAnnotation   string
+		defaultCasType        string
 		envJivaCAST           string
 		envCStorCAST          string
 		expectedCAST          string
 	}{
 		"CAST annotation is present": {
-			"cast-read-from-annotation",
+			"cast-delete-from-annotation",
 			"",
 			"",
 			"",
-			"cast-read-from-annotation",
+			"",
+			"cast-delete-from-annotation",
 		},
-		"CAST annotation is absent/empty and cas type is cstor": {
+		"CAST annotation is absent/empty and cas type is cstor, defaultCasType is jiva": {
 			"",
 			"cstor",
+			"jiva",
 			"",
-			"cast-cstor-read-from-env",
-			"cast-cstor-read-from-env",
+			"cast-cstor-delete-from-env",
+			"cast-cstor-delete-from-env",
 		},
 		"CAST annotation is absent/empty and cas type is jiva": {
 			"",
 			"jiva",
+			"",
 			"cast-jiva-read-from-env",
 			"",
 			"cast-jiva-read-from-env",
+		},
+		"CAST annotation is absent/empty and cas type is missing, defaultCasType is cstor": {
+			"",
+			"",
+			"cstor",
+			"",
+			"cast-cstor-delete-from-env",
+			"cast-cstor-delete-from-env",
 		},
 		"CAST annotation is absent/empty and cas type unknown": {
 			"",
 			"unknown",
-			"cast-jiva-read-from-env",
-			"cast-cstor-read-from-env",
+			"",
+			"cast-jiva-delete-from-env",
+			"cast-cstor-delete-from-env",
 			"",
 		},
 	}
+
+	defer func() {
+		os.Unsetenv(string(menv.CASTemplateToCreateCStorVolumeENVK))
+		os.Unsetenv(string(menv.CASTemplateToCreateJivaVolumeENVK))
+	}()
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeDelete)] = test.scDeleteCASAnnotation
@@ -164,7 +222,7 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 			os.Setenv(string(menv.CASTemplateToDeleteCStorVolumeENVK), test.envCStorCAST)
 			os.Setenv(string(menv.CASTemplateToDeleteJivaVolumeENVK), test.envJivaCAST)
 
-			castName := getDeleteCASTemplate(sc)
+			castName := getDeleteCASTemplate(test.defaultCasType, sc)
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)

@@ -33,7 +33,7 @@ type cstorSnapshotCreate struct {
 func (c *cstorSnapshotCreate) Run() (r RunCommandResult) {
 	err := c.validateOptions()
 	if err != nil {
-		c.AddError(errors.Errorf("failed to create cstor snapshot: %s", err)).Result(nil)
+		return c.AddError(errors.Errorf("failed to create cstor snapshot: %s", err)).Result(nil)
 	}
 	ip, _ := c.Data["ip"].(string)
 

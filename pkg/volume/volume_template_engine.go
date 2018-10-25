@@ -19,48 +19,21 @@ package volume
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/engine"
-	"github.com/openebs/maya/pkg/util"
+	"strings"
 )
 
-func unMarshallToConfig(config string) (configs []v1alpha1.Config, err error) {
-	err = yaml.Unmarshal([]byte(config), &configs)
-	return
-}
-
-// mergeConfig will merge the unique configuration elements of lowPriorityConfig
-// into highPriorityConfig and return the result
-func mergeConfig(highPriorityConfig, lowPriorityConfig []v1alpha1.Config) (final []v1alpha1.Config) {
-	var prioritized []string
-
-	for _, pc := range highPriorityConfig {
-		final = append(final, pc)
-		prioritized = append(prioritized, strings.TrimSpace(pc.Name))
-	}
-
-	for _, lc := range lowPriorityConfig {
-		if !util.ContainsString(prioritized, strings.TrimSpace(lc.Name)) {
-			final = append(final, lc)
-		}
-	}
-
-	return
-}
-
-// casVolumeEngine is capable of creating a CAS volume via CAS template
+// volumeEngine is capable of creating a CAS volume via CAS template
 //
 // It implements following interfaces:
 // - engine.CASCreator
 //
 // NOTE:
-//  It overrides the Create method exposed by generic CASEngine
-type casVolumeEngine struct {
-	// casEngine exposes generic CAS template operations
-	casEngine *engine.CASEngine
+//  It overrides the Create method exposed by generic engine
+type volumeEngine struct {
+	// engine exposes generic CAS template operations
+	engine engine.Interface
 	// defaultConfig is the default cas volume configurations found
 	// in the CASTemplate
 	defaultConfig []v1alpha1.Config
@@ -70,82 +43,72 @@ type casVolumeEngine struct {
 	casConfigPVC []v1alpha1.Config
 }
 
-// NewCASVolumeEngine returns a new instance of casVolumeEngine based on
+// NewVolumeEngine returns a new instance of casVolumeEngine based on
 // the provided cas configs & runtime volume values
 //
 // NOTE:
 //  runtime volume values set at **runtime** by openebs storage provisioner
 // (a kubernetes dynamic storage provisioner)
-func NewCASVolumeEngine(
+func NewVolumeEngine(
 	casConfigPVC string,
 	casConfigSC string,
-	casTemplate *v1alpha1.CASTemplate,
-	runtimeKey string,
-	runtimeVolumeValues map[string]interface{}) (volumeEngine engine.CASCreator, err error) {
+	cast *v1alpha1.CASTemplate,
+	key string,
+	volumeValues map[string]interface{}) (e *volumeEngine, err error) {
 
-	if len(strings.TrimSpace(runtimeKey)) == 0 {
-		err = fmt.Errorf("failed to create cas template engine: nil runtime volume key was provided")
+	if len(strings.TrimSpace(key)) == 0 {
+		err = fmt.Errorf("failed to create cas template engine: nil volume key was provided")
 		return
 	}
-
-	if len(runtimeVolumeValues) == 0 {
-		err = fmt.Errorf("failed to create cas template engine: nil runtime volume values was provided")
+	if len(volumeValues) == 0 {
+		err = fmt.Errorf("failed to create cas template engine: nil volume values was provided")
 		return
 	}
-
 	// CAS config from  PersistentVolumeClaim
-	casConfPVC, err := unMarshallToConfig(casConfigPVC)
+	casConfPVC, err := engine.UnMarshallToConfig(casConfigPVC)
 	if err != nil {
 		return
 	}
-
 	// CAS config from StorageClass
-	casConfSC, err := unMarshallToConfig(casConfigSC)
+	casConfSC, err := engine.UnMarshallToConfig(casConfigSC)
 	if err != nil {
 		return
 	}
-
 	// make use of the generic CAS template engine
-	cEngine, err := engine.NewCASEngine(casTemplate, runtimeKey, runtimeVolumeValues)
+	cEngine, err := engine.New(cast, key, volumeValues)
 	if err != nil {
 		return
 	}
-
-	volumeEngine = &casVolumeEngine{
-		casEngine:     cEngine,
-		defaultConfig: casTemplate.Spec.Defaults,
+	e = &volumeEngine{
+		engine:        cEngine,
+		defaultConfig: cast.Spec.Defaults,
 		casConfigSC:   casConfSC,
 		casConfigPVC:  casConfPVC,
 	}
-
 	return
 }
 
-// prepareFinalConfig returns the final config which is a result of merge
-// of CAS configs from PersistentVolumeClaim, StorageClass & CAS Template's
-// default config.
+// prepareFinalConfig returns the merge of CAS configs from
+// PersistentVolumeClaim, StorageClass & CAS Template's default config
 //
 // NOTE:
 //  The priority of config merge is as follows:
 //  PersistentVolumeClaim >> StorageClass >> CAS Template Default Config
-func (c *casVolumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
+func (c *volumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	// merge unique config elements from SC with config from PVC
-	mc := mergeConfig(c.casConfigPVC, c.casConfigSC)
-
+	mc := engine.MergeConfig(c.casConfigPVC, c.casConfigSC)
 	// merge above resulting config with default config from CASTemplate
-	final = mergeConfig(mc, c.defaultConfig)
-
-	return
+	return engine.MergeConfig(mc, c.defaultConfig)
 }
 
 // Create creates a CAS volume
-func (c *casVolumeEngine) Create() ([]byte, error) {
-	// set customized CAS config as a top level property
-	err := c.casEngine.AddConfigToConfigTLP(c.prepareFinalConfig())
+func (c *volumeEngine) Create() (op []byte, err error) {
+	m, err := engine.ConfigToMap(c.prepareFinalConfig())
 	if err != nil {
-		return nil, err
+		return
 	}
-
+	// set customized config
+	c.engine.SetConfig(m)
 	// delegate to generic cas template engine
-	return c.casEngine.Run()
+	return c.engine.Run()
 }

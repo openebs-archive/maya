@@ -22,19 +22,19 @@ import (
 
 // MultiYamlFetcher abstracts aggregating and returning multiple yaml documents
 // as a string
-type MultiYamlFetcher func() string
+type MultiYamlFetcher interface {
+	FetchYamls() string
+}
 
 // ArtifactListPredicate abstracts evaluating a condition against the provided
 // artifact list
 type ArtifactListPredicate func() bool
 
-// ParseArtifactListFromMultipleYamlConditional will help in adding a list of yamls that should be installed
-// by the installer
-// ParseArtifactListFromMultipleYamlConditional acts on ArtifactListPredicate return value, if true the yaml
-// gets added to installation list else it is not added.
-func ParseArtifactListFromMultipleYamlConditional(multipleYamls MultiYamlFetcher, p ArtifactListPredicate) (artifacts []*Artifact) {
+// ParseArtifactListFromMultipleYamlsIf generates a list of Artifacts from
+// yaml documents if predicate evaluation succeeds
+func ParseArtifactListFromMultipleYamlsIf(m MultiYamlFetcher, p ArtifactListPredicate) (artifacts []*Artifact) {
 	if p() {
-		return ParseArtifactListFromMultipleYamls(multipleYamls)
+		return ParseArtifactListFromMultipleYamls(m)
 	}
 	return
 }
@@ -44,44 +44,41 @@ func ParseArtifactListFromMultipleYamlConditional(multipleYamls MultiYamlFetcher
 //
 // NOTE:
 //  Each YAML document is assumed to be separated via "---"
-func ParseArtifactListFromMultipleYamls(multipleYamls MultiYamlFetcher) (artifacts []*Artifact) {
-	docs := strings.Split(multipleYamls(), "---")
+func ParseArtifactListFromMultipleYamls(m MultiYamlFetcher) (artifacts []*Artifact) {
+	docs := strings.Split(m.FetchYamls(), "---")
 	for _, doc := range docs {
 		doc = strings.TrimSpace(doc)
 		if len(doc) == 0 {
 			continue
 		}
-
 		artifacts = append(artifacts, &Artifact{Doc: doc})
 	}
 	return
 }
 
-// RegisteredArtifactsFor070 returns the list of 0.7.0 Artifacts that will get
+// RegisteredArtifacts returns the list of latest Artifacts that will get
 // installed
-func RegisteredArtifactsFor070() (list ArtifactList) {
-
+func RegisteredArtifacts() (list artifactList) {
 	//Note: CRDs have to be installed first. Keep this at top of the list.
-	list.Items = append(list.Items, OpenEBSCRDArtifactsFor070().Items...)
+	list.Items = append(list.Items, OpenEBSCRDArtifacts().Items...)
 
-	list.Items = append(list.Items, JivaVolumeArtifactsFor070().Items...)
+	list.Items = append(list.Items, JivaVolumeArtifacts().Items...)
 	//Contains the read/list/delete CAST for supporting older volumes
-	//The CAST defined here are provided as fallback options to corresponding
-	//0.7.0 CAST
+	//The CAST defined here are provided as fallback options to latest CAST
 	list.Items = append(list.Items, JivaVolumeArtifactsFor060().Items...)
-	list.Items = append(list.Items, JivaPoolArtifactsFor070().Items...)
+	list.Items = append(list.Items, JivaPoolArtifacts().Items...)
 
-	list.Items = append(list.Items, CstorPoolArtifactsFor070().Items...)
-	list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
-	list.Items = append(list.Items, CstorSnapshotArtifactsFor070().Items...)
-	list.Items = append(list.Items, CstorSparsePoolSpcArtifactsFor070().Items...)
+	list.Items = append(list.Items, CstorPoolArtifacts().Items...)
+	list.Items = append(list.Items, CstorVolumeArtifacts().Items...)
+	list.Items = append(list.Items, CstorSnapshotArtifacts().Items...)
+	list.Items = append(list.Items, CstorSparsePoolArtifacts().Items...)
 
 	//Contains the SC to help with provisioning from clone.
 	//This is generic for release till K8s supports native way of cloning.
 	list.Items = append(list.Items, SnapshotPromoterSCArtifacts().Items...)
 
 	// snapshots
-	list.Items = append(list.Items, JivaSnapshotArtifactsFor070().Items...)
+	list.Items = append(list.Items, JivaSnapshotArtifacts().Items...)
 
 	return
 }

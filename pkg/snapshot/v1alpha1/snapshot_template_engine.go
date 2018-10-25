@@ -34,10 +34,7 @@ import (
 //  It overrides the Create method exposed by generic CASEngine
 type snapshotEngine struct {
 	// engine exposes generic CAS template operations
-	engine *engine.CASEngine
-	// defaultConfig is the default cas snapshot configurations found
-	// in the CASTemplate
-	defaultConfig []v1alpha1.Config
+	engine engine.Interface
 }
 
 // SnapshotEngine returns a new instance of snapshotEngine based on
@@ -48,41 +45,29 @@ type snapshotEngine struct {
 // (a kubernetes dynamic storage provisioner)
 func SnapshotEngine(
 	casTemplate *v1alpha1.CASTemplate,
-	runtimeKey string,
-	runtimeSnapshotValues map[string]interface{}) (snapEngine *snapshotEngine, err error) {
+	key string,
+	snapshotValues map[string]interface{}) (snapEngine *snapshotEngine, err error) {
 
-	if len(strings.TrimSpace(runtimeKey)) == 0 {
-		err = errors.New("failed to create cas template engine: nil runtime snapshot key was provided")
+	if len(strings.TrimSpace(key)) == 0 {
+		err = errors.New("failed to create cas template engine: nil snapshot key was provided")
 		return
 	}
-
-	if len(runtimeSnapshotValues) == 0 {
-		err = errors.New("failed to create cas template engine: nil runtime snapshot values was provided")
+	if len(snapshotValues) == 0 {
+		err = errors.New("failed to create cas template engine: nil snapshot values was provided")
 		return
 	}
 
 	// make use of the generic CAS template engine
-	cEngine, err := engine.NewCASEngine(casTemplate, runtimeKey, runtimeSnapshotValues)
+	cEngine, err := engine.New(casTemplate, key, snapshotValues)
 	if err != nil {
 		return
 	}
 
-	snapEngine = &snapshotEngine{
-		engine:        cEngine,
-		defaultConfig: casTemplate.Spec.Defaults,
-	}
-
+	snapEngine = &snapshotEngine{engine: cEngine}
 	return
 }
 
 // Create creates a CAS snapshot
 func (c *snapshotEngine) Create() ([]byte, error) {
-	// set customized CAS config as a top level property
-	err := c.engine.AddConfigToConfigTLP(c.defaultConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// delegate to generic cas template engine
 	return c.engine.Run()
 }

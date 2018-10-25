@@ -27,6 +27,9 @@ import (
 type ENVKey string
 
 const (
+	// OpenEBSVersion is the environment variable to get openebs version
+	OpenEBSVersion ENVKey = "OPENEBS_IO_VERSION"
+
 	// OpenEBSNamespace is the environment variable to get openebs namespace
 	//
 	// This environment variable is set via kubernetes downward API

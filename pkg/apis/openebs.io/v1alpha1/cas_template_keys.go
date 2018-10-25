@@ -16,19 +16,6 @@ limitations under the License.
 
 package v1alpha1
 
-// CasKey is used for all cas specific annotation keys
-type CasKey string
-
-const (
-	// SPCreateCASTemplateCK is the cas template annotation whose value is the name of
-	// cas template that will be used to provision a storagepool
-	SPCreateCASTemplateCK CasKey = "cas.openebs.io/create-pool-template"
-
-	// SPDeleteCASTemplateCK is the cas template annotation whose value is the name of
-	// cas template that will be used to delete a storagepool
-	SPDeleteCASTemplateCK CasKey = "cas.openebs.io/delete-pool-template"
-)
-
 // TopLevelProperty represents the top level property that
 // is a starting point to represent a hierarchical chain of
 // properties.
@@ -44,11 +31,16 @@ const (
 type TopLevelProperty string
 
 const (
+	// CASTOptionsTLP is a top level property supported by CAS template engine. 
+	// CAS template specific options are placed here
+	CASTOptionsTLP TopLevelProperty = "CAST"
+
 	// ConfigTLP is a top level property supported by CAS template engine
 	//
 	// The policy specific properties are placed with ConfigTLP as the
 	// top level property
 	ConfigTLP TopLevelProperty = "Config"
+	
 	// VolumeTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with VolumeTLP
@@ -59,6 +51,7 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	VolumeTLP TopLevelProperty = "Volume"
+	
 	// SnapshotTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with SnapshotTLP
@@ -69,6 +62,7 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	SnapshotTLP TopLevelProperty = "Snapshot"
+	
 	// StoragePoolTLP is a top level property supported by CAS template engine
 	//
 	// The properties provided by the caller are placed with StoragePoolTLP
@@ -79,6 +73,7 @@ const (
 	// runtime properties that are provided as inputs to CAS template
 	// engine.
 	StoragePoolTLP TopLevelProperty = "Storagepool"
+
 	// TaskResultTLP is a top level property supported by CAS template engine
 	//
 	// The specific results after the execution of a task are placed with
@@ -88,10 +83,12 @@ const (
 	//  This is typically used to feed inputs of a task's execution
 	// result to **next task** before the later's execution
 	TaskResultTLP TopLevelProperty = "TaskResult"
+
 	// CurrentJSONResultTLP is a top level property supported by CAS template engine
 	// The result of the current task's execution is stored in this top
 	// level property.
 	CurrentJSONResultTLP TopLevelProperty = "JsonResult"
+
 	// ListItemsTLP is a top level property supported by CAS template engine
 	//
 	// Results of one or more tasks' execution can be saved in this property.
@@ -120,6 +117,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Storagepool.owner }}
 	OwnerCTP StoragePoolTLPProperty = "owner"
+
 	// DiskListCTP indicates the list of disks
 	DiskListCTP StoragePoolTLPProperty = "diskList"
 )
@@ -136,22 +134,26 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Volume.owner }}
 	OwnerVTP VolumeTLPProperty = "owner"
+
 	// RunNamespaceVTP is the namespace where this policy is
 	// supposed to run
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Volume.runNamespace }}
 	RunNamespaceVTP VolumeTLPProperty = "runNamespace"
+
 	// CapacityVTP is the capacity of the volume
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Volume.capacity }}
 	CapacityVTP VolumeTLPProperty = "capacity"
+
 	// PersistentVolumeClaimVTP is the PVC of the volume
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Volume.pvc }}
 	PersistentVolumeClaimVTP VolumeTLPProperty = "pvc"
+
 	// StorageClassVTP is the StorageClass of the volume
 	//
 	// NOTE:
@@ -166,11 +168,14 @@ type CloneTLPProperty string
 const (
 	// SnapshotNameVTP is the snapshot name
 	SnapshotNameVTP CloneTLPProperty = "snapshotName"
+
 	// SourceVolumeTargetIPVTP is source volume target IP
 	SourceVolumeTargetIPVTP CloneTLPProperty = "sourceVolumeTargetIP"
+
 	// IsCloneEnableVTP is a bool value for clone operations
 	// for a volume
 	IsCloneEnableVTP CloneTLPProperty = "isCloneEnable"
+
 	// SourceVolumeVTP is the name of the source volume
 	SourceVolumeVTP CloneTLPProperty = "sourceVolume"
 )
@@ -193,11 +198,13 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Policy.<PolicyName>.enabled }}
 	EnabledPTP PolicyTLPProperty = "enabled"
+
 	// ValuePTP is the value property of the policy
 	// NOTE:
 	//  The corresponding value will be accessed as
 	// {{ .Policy.<PolicyName>.value }}
 	ValuePTP PolicyTLPProperty = "value"
+
 	// DataPTP is the data property of the policy
 	// NOTE:
 	//  The corresponding value will be accessed as
@@ -220,6 +227,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .Task.<TaskIdentity>.apiVersion }}
 	APIVersionTTP TaskTLPProperty = "apiVersion"
+
 	// KindTTP is the kind property of the task
 	// NOTE:
 	//  The corresponding value will be accessed as
@@ -239,6 +247,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.objectName }}
 	ObjectNameTRTP TaskResultTLPProperty = "objectName"
+
 	// AnnotationsTRTP is the annotations property of the
 	// TaskResultTLP
 	//
@@ -246,6 +255,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.annotations }}
 	AnnotationsTRTP TaskResultTLPProperty = "annotations"
+
 	// TaskResultVerifyErrTRTP is a property of TaskResultTLP
 	//
 	// First error found after **verification** checks done against the result of
@@ -255,6 +265,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.verifyErr }}
 	TaskResultVerifyErrTRTP TaskResultTLPProperty = "verifyErr"
+
 	// TaskResultNotFoundErrTRTP is a property of TaskResultTLP
 	//
 	// First error found after **not found** checks done against the result of
@@ -264,6 +275,7 @@ const (
 	//  The corresponding value will be accessed as
 	// {{ .TaskResult.<TaskIdentity>.notFoundErr }}
 	TaskResultNotFoundErrTRTP TaskResultTLPProperty = "notFoundErr"
+
 	// TaskResultVersionMismatchErrTRTP is a property of TaskResultTLP
 	//
 	// First error found after **version mismatch** checks done against the
