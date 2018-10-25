@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"github.com/openebs/maya/pkg/apis/openebs.io"
 )
 
 // SchemeGroupVersion is group version used to register these objects
@@ -17,10 +18,9 @@ func Resource(resource string) schema.GroupResource {
 var (
 	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
 	SchemeBuilder runtime.SchemeBuilder
-	// localSchemeBuilder and AddToScheme will stay in k8s.io/kubernetes.
-	localSchemeBuilder = &SchemeBuilder
 	// AddToScheme is a global function that registers this API group & version to a scheme
-	AddToScheme = SchemeBuilder.AddToScheme
+	AddToScheme        = SchemeBuilder.AddToScheme
+	localSchemeBuilder = &SchemeBuilder
 )
 
 func init() {
