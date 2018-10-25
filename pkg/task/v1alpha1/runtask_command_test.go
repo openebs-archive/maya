@@ -150,12 +150,12 @@ func TestSelectsQueryCommandResultV2(t *testing.T) {
 		Items []*cas.CStorVolumeReplica
 	}{
 		Items: []*cas.CStorVolumeReplica{
-			&cas.CStorVolumeReplica{
+			{
 				ObjectMeta: v1.ObjectMeta{Name: "my-cstor-rep"},
 				Spec:       cas.CStorVolumeReplicaSpec{TargetIP: "20.10.10.10", Capacity: "40Gi"},
 				Status:     cas.CStorVolumeReplicaStatus{Phase: "Online"},
 			},
-			&cas.CStorVolumeReplica{
+			{
 				ObjectMeta: v1.ObjectMeta{Name: "my-cstor-rep-2"},
 				Spec:       cas.CStorVolumeReplicaSpec{TargetIP: "20.1.1.1", Capacity: "20Gi"},
 				Status:     cas.CStorVolumeReplicaStatus{Phase: "Offline"},

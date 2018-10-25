@@ -161,7 +161,7 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 		Meta: jobMeta,
 		TaskGroups: []*api.TaskGroup{
 			// jiva frontend
-			&api.TaskGroup{
+			{
 				Name:  helper.StringToPtr(feTaskGroup),
 				Count: helper.IntToPtr(1),
 				RestartPolicy: &api.RestartPolicy{
@@ -171,21 +171,21 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 					Mode:     helper.StringToPtr("delay"),
 				},
 				Tasks: []*api.Task{
-					&api.Task{
+					{
 						Name:   feTaskName,
 						Driver: "raw_exec",
 						Resources: &api.Resources{
 							CPU:      helper.IntToPtr(50),
 							MemoryMB: helper.IntToPtr(50),
 							Networks: []*api.NetworkResource{
-								&api.NetworkResource{
+								{
 									MBits: helper.IntToPtr(50),
 								},
 							},
 						},
 						Env: feEnv,
 						Artifacts: []*api.TaskArtifact{
-							&api.TaskArtifact{
+							{
 								GetterSource: helper.StringToPtr("https://raw.githubusercontent.com/openebs/jiva/master/scripts/launch-jiva-ctl-with-ip"),
 								RelativeDest: helper.StringToPtr("local/"),
 							},
@@ -201,7 +201,7 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 				},
 			},
 			// jiva replica group
-			&api.TaskGroup{
+			{
 				Name: helper.StringToPtr(beTaskGroup),
 				// Replica count
 				Count: helper.IntToPtr(iJivaBECount),
@@ -218,21 +218,21 @@ func VolToJob(vol *v1.Volume) (*api.Job, error) {
 				},
 				// This has multiple replicas as tasks
 				Tasks: []*api.Task{
-					&api.Task{
+					{
 						Name:   beTaskName,
 						Driver: "raw_exec",
 						Resources: &api.Resources{
 							CPU:      helper.IntToPtr(50),
 							MemoryMB: helper.IntToPtr(50),
 							Networks: []*api.NetworkResource{
-								&api.NetworkResource{
+								{
 									MBits: helper.IntToPtr(50),
 								},
 							},
 						},
 						Env: beEnv,
 						Artifacts: []*api.TaskArtifact{
-							&api.TaskArtifact{
+							{
 								GetterSource: helper.StringToPtr("https://raw.githubusercontent.com/openebs/jiva/master/scripts/launch-jiva-rep-with-ip"),
 								RelativeDest: helper.StringToPtr("local/"),
 							},

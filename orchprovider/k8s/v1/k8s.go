@@ -908,25 +908,25 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 					// If we don't specify the following explicitly, then k8s will
 					// add a toleration of 300 seconds.
 					Tolerations: []k8sApiV1.Toleration{
-						k8sApiV1.Toleration{
+						{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
 							Key:               "node.alpha.kubernetes.io/notReady",
 							Operator:          k8sApiV1.TolerationOpExists,
 							TolerationSeconds: &tolerationSeconds,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
 							Key:               "node.alpha.kubernetes.io/unreachable",
 							Operator:          k8sApiV1.TolerationOpExists,
 							TolerationSeconds: &tolerationSeconds,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
 							Key:               "node.kubernetes.io/not-ready",
 							Operator:          k8sApiV1.TolerationOpExists,
 							TolerationSeconds: &tolerationSeconds,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:            k8sApiV1.TaintEffectNoExecute,
 							Key:               "node.kubernetes.io/unreachable",
 							Operator:          k8sApiV1.TolerationOpExists,
@@ -934,11 +934,11 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 						},
 					},
 					Containers: []k8sApiV1.Container{
-						k8sApiV1.Container{
+						{
 							Name:  vsm + string(v1.ControllerSuffix) + string(v1.ContainerSuffix),
 							Image: cImg,
 							Env: []k8sApiV1.EnvVar{
-								k8sApiV1.EnvVar{
+								{
 									Name:  string(v1.ReplicationFactorEnvKey),
 									Value: strconv.Itoa(int(*rCount)),
 								},
@@ -946,10 +946,10 @@ func (k *k8sOrchestrator) createControllerDeployment(volProProfile volProfile.Vo
 							Command: v1.JivaCtrlCmd,
 							Args:    v1.MakeOrDefJivaControllerArgs(vsm, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
-								k8sApiV1.ContainerPort{
+								{
 									ContainerPort: v1.DefaultJivaISCSIPort(),
 								},
-								k8sApiV1.ContainerPort{
+								{
 									ContainerPort: v1.DefaultJivaAPIPort(),
 								},
 							},
@@ -1168,52 +1168,52 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 					// Note: this will be replaced by CAS templates, which provide the
 					//   flexibility of using either Statefulset or DaemonSet in future.
 					Tolerations: []k8sApiV1.Toleration{
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.alpha.kubernetes.io/notReady",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.alpha.kubernetes.io/unreachable",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/not-ready",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/unreachable",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/out-of-disk",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/memory-pressure",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/disk-pressure",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/network-unavailable",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.kubernetes.io/unschedulable",
 							Operator: k8sApiV1.TolerationOpExists,
 						},
-						k8sApiV1.Toleration{
+						{
 							Effect:   k8sApiV1.TaintEffectNoExecute,
 							Key:      "node.cloudprovider.kubernetes.io/uninitialized",
 							Operator: k8sApiV1.TolerationOpExists,
@@ -1223,7 +1223,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 						// Inter-pod anti-affinity rule to spread the replicas across K8s minions
 						PodAntiAffinity: &k8sApiV1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []k8sApiV1.PodAffinityTerm{
-								k8sApiV1.PodAffinityTerm{
+								{
 									LabelSelector: &metav1.LabelSelector{
 										MatchLabels: repAntiAffinityLabelSpec,
 									},
@@ -1253,7 +1253,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 						},
 					},
 					Containers: []k8sApiV1.Container{
-						k8sApiV1.Container{
+						{
 							// -- if manual replica addition
 							//Name:    vsm + string(v1.ReplicaSuffix) + string(v1.ContainerSuffix) + strconv.Itoa(rcIndex),
 							Name:    vsm + string(v1.ReplicaSuffix) + string(v1.ContainerSuffix),
@@ -1261,18 +1261,18 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 							Command: v1.JivaReplicaCmd,
 							Args:    v1.MakeOrDefJivaReplicaArgs(vol, clusterIP),
 							Ports: []k8sApiV1.ContainerPort{
-								k8sApiV1.ContainerPort{
+								{
 									ContainerPort: v1.DefaultJivaReplicaPort1(),
 								},
-								k8sApiV1.ContainerPort{
+								{
 									ContainerPort: v1.DefaultJivaReplicaPort2(),
 								},
-								k8sApiV1.ContainerPort{
+								{
 									ContainerPort: v1.DefaultJivaReplicaPort3(),
 								},
 							},
 							VolumeMounts: []k8sApiV1.VolumeMount{
-								k8sApiV1.VolumeMount{
+								{
 									Name:      v1.DefaultJivaMountName(),
 									MountPath: v1.DefaultJivaMountPath(),
 								},
@@ -1280,7 +1280,7 @@ func (k *k8sOrchestrator) createReplicaDeployment(volProProfile volProfile.Volum
 						},
 					},
 					Volumes: []k8sApiV1.Volume{
-						k8sApiV1.Volume{
+						{
 							Name: v1.DefaultJivaMountName(),
 							VolumeSource: k8sApiV1.VolumeSource{
 								HostPath: &k8sApiV1.HostPathVolumeSource{

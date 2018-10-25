@@ -881,10 +881,10 @@ value: {{ .Values.TaskResult.tskId.kind }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind: "Pod",
 						},
-						MockJson{
+						{
 							Kind: "Deployment",
 						},
 					},
@@ -913,10 +913,10 @@ value: Pod Deployment`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind: "",
 						},
-						MockJson{
+						{
 							Kind: "",
 						},
 					},
@@ -944,10 +944,10 @@ value: Pod Deployment`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind: "",
 						},
-						MockJson{
+						{
 							Kind: "Deployment",
 						},
 					},
@@ -1151,12 +1151,12 @@ kindTwo: {{ .Values.default.mydeploy.kind }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "Pod",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "Deployment",
 							Namespace: "default",
 							Name:      "mydeploy",
@@ -1194,17 +1194,17 @@ kindTwo: {{ .Values.default.mydeploy.kind }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "Service",
 							Namespace: "openebs",
 							Name:      "myapp",
 						},
-						MockJson{
+						{
 							Kind:      "Pod",
 							Namespace: "openebs",
 							Name:      "myapp",
 						},
-						MockJson{
+						{
 							Kind:      "Deployment",
 							Namespace: "default",
 							Name:      "mydeploy",
@@ -1241,12 +1241,12 @@ kindTwo: Deployment`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "Pod",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "Deployment",
 							Namespace: "default",
 							Name:      "mydeploy",
@@ -1326,7 +1326,7 @@ items:
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Labels: map[string]string{
 								"openebs.io/pv":                 "pvc-1234-abc",
 								"openebs.io/controller-service": "jiva-controller-svc",
@@ -1335,7 +1335,7 @@ items:
 							Kind:  "Service",
 							Name:  "myservice",
 						},
-						MockJson{
+						{
 							Labels: map[string]string{
 								"openebs.io/pv":         "pvc-1234-abc",
 								"openebs.io/controller": "jiva-controller",
@@ -1344,7 +1344,7 @@ items:
 							Kind:  "Pod",
 							Name:  "mypod",
 						},
-						MockJson{
+						{
 							Labels: map[string]string{
 								"openebs.io/pv":         "pvc-1234-abc-def",
 								"openebs.io/controller": "jiva-controller-deploy",
@@ -1454,12 +1454,12 @@ bool: {{ .Values.TaskResult.tskId.iskindempty }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "yourpod",
@@ -1491,12 +1491,12 @@ show: {{ .Values.TaskResult.tskId.iskindlenzero }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "yourpod",
@@ -1525,12 +1525,12 @@ show: {{ .Values.TaskResult.tskId.kinds }}`,
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "",
 							Namespace: "openebs",
 							Name:      "yourpod",
@@ -1561,12 +1561,12 @@ count: {{ .Values.TaskResult.tskId.kinds | splitList " " | len }}
 				"JsonDoc": mockJsonListMarshal(&MockJsonList{
 					ApiVersion: "v1beta1",
 					Items: []MockJson{
-						MockJson{
+						{
 							Kind:      "Pod",
 							Namespace: "openebs",
 							Name:      "mypod",
 						},
-						MockJson{
+						{
 							Kind:      "Pod",
 							Namespace: "openebs",
 							Name:      "yourpod",
