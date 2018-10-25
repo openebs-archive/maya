@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/types/v1"
@@ -157,15 +156,16 @@ func (c *Cstor) set(m *Metrics) error {
 	m.sectorSize.Set(volStats.sectorSize)
 	m.totalReadBytes.Set(volStats.totalReadBytes)
 	m.totalWriteBytes.Set(volStats.totalWriteBytes)
+	m.totalReadBlockCount.Set(volStats.totalReadBlockCount)
+	m.totalWriteBlockCount.Set(volStats.totalWriteBlockCount)
+	m.totalReadTime.Set(volStats.totalReadTime)
+	m.totalWriteTime.Set(volStats.totalWriteTime)
 	m.sizeOfVolume.Set(volStats.size)
 	m.actualUsed.Set(volStats.actualSize)
 	volName := strings.TrimPrefix(newResp.Iqn, "iqn.2017-08.OpenEBS.cstor:")
-	// currently volumeUpTime, portal address is not available
+	// currently portal address is not available
 	// from the cstor.
-	// TODO : Update the volumeUpTime from 0 to the exact value
-	// and add portal address and remove hardcoded value.
-	now := time.Now()
-	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost", "cstor").Set(float64(now.Second()))
+	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost", "cstor").Set(volStats.uptime)
 	return nil
 }
 
@@ -179,6 +179,11 @@ func (c *Cstor) parser(stats v1.VolumeStats) VolumeStats {
 	volStats.totalReadBytes, _ = stats.TotalReadBytes.Float64()
 	volStats.totalWriteBytes, _ = stats.TotalWriteBytes.Float64()
 	volStats.sectorSize, _ = stats.SectorSize.Float64()
+	volStats.totalReadTime, _ = stats.TotalReadTime.Float64()
+	volStats.totalWriteTime, _ = stats.TotalWriteTime.Float64()
+	volStats.totalReadBlockCount, _ = stats.TotalReadBlockCount.Float64()
+	volStats.totalWriteBlockCount, _ = stats.TotalWriteBlockCount.Float64()
+	volStats.uptime, _ = stats.CstorUptime.Float64()
 	aUsed, _ := stats.UsedLogicalBlocks.Float64()
 	aUsed = aUsed * volStats.sectorSize
 	volStats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)

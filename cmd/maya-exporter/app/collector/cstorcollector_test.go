@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }"
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotatWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }"
 	NilCstorResponse             = "OK IOSTATS\r\n"
-	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }\r\nOK IOSTATS\r\n"
-	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }"
-	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\" }\r\nOK IOSTATS\r\n`
+	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotatWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }\r\nOK IOSTATS\r\n"
+	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotatWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }"
+	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotatWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }\r\nOK IOSTATS\r\n`
 )
 
 func TestNewResponse(t *testing.T) {
@@ -34,14 +34,19 @@ func TestNewResponse(t *testing.T) {
 		"[Success]Unmarshal Response into Metrics struct": {
 			response: JSONFormatedResponse,
 			output: v1.VolumeStats{
-				Size:              "10737418240",
-				Iqn:               "iqn.2017-08.OpenEBS.cstor:vol1",
-				Writes:            "0",
-				Reads:             "0",
-				TotalReadBytes:    "0",
-				TotalWriteBytes:   "0",
-				UsedLogicalBlocks: "19",
-				SectorSize:        "512",
+				Size:                 "10737418240",
+				Iqn:                  "iqn.2017-08.OpenEBS.cstor:vol1",
+				Writes:               "0",
+				Reads:                "0",
+				TotalReadBytes:       "0",
+				TotalWriteBytes:      "0",
+				UsedLogicalBlocks:    "19",
+				SectorSize:           "512",
+				TotalReadBlockCount:  "12",
+				TotalWriteBlockCount: "15",
+				TotalReadTime:        "13",
+				TotalWriteTime:       "132",
+				CstorUptime:          "20",
 			},
 		},
 		"[Failure]Unmarshal Response returns empty Metrics": {
@@ -59,7 +64,7 @@ func TestNewResponse(t *testing.T) {
 	}
 }
 
-func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup) {
+func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup, response string) {
 	go func() {
 		// start the server
 		t.Log("fake unix server started")
@@ -74,12 +79,12 @@ func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup) {
 			if err != nil {
 				t.Fatal("Accept error: ", err)
 			}
-			go sendFakeResponse(t, fd)
+			go sendFakeResponse(t, fd, response)
 		}
 	}()
 }
 
-func sendFakeResponse(t *testing.T, c net.Conn) {
+func sendFakeResponse(t *testing.T, c net.Conn, resp string) {
 	for {
 		buf := make([]byte, 512)
 		_, err := c.Read(buf)
@@ -87,7 +92,7 @@ func sendFakeResponse(t *testing.T, c net.Conn) {
 			return
 		}
 
-		data := CstorResponse
+		data := resp
 		_, err = c.Write([]byte(data))
 		if err != nil {
 			panic("Write: " + err.Error())
@@ -108,103 +113,68 @@ func TestCstorCollector(t *testing.T) {
 	// Unlink the existing socket connection /tmp/go.sock if exists
 	// else ignore.
 	Unlink(t)
-	for _, tt := range []struct {
-		input          string
-		response       string
-		match, unmatch []*regexp.Regexp
+	cases := map[string]struct {
+		expectedResponse string
+		match, unmatch   []*regexp.Regexp
 	}{
-		// this is the input we are passing for positive testing
-		// match will expect similar output from response.
-		{
-			input: `
-{
-	"stats": {
-		"reads": 0,
-		"read_time": 0,
-		"total_read_bytes": 0,
-		"writes": 0,
-		"write_time": 0,
-		"total_write_bytes": 0,
-		"size_of_volume": 10,
-	}
-}`,
-			response: CstorResponse,
+		"[Success] istgt is reachable and giving expected stats": {
+			expectedResponse: CstorResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
 				regexp.MustCompile(`openebs_reads 0`),
-				regexp.MustCompile(`openebs_read_time 0`),
 				regexp.MustCompile(`openebs_total_read_bytes 0`),
 				regexp.MustCompile(`openebs_writes 0`),
-				regexp.MustCompile(`openebs_write_time 0`),
 				regexp.MustCompile(`openebs_total_write_bytes 0`),
 				regexp.MustCompile(`openebs_size_of_volume 10`),
+				regexp.MustCompile(`openebs_read_block_count 12`),
+				regexp.MustCompile(`openebs_write_block_count 15`),
+				regexp.MustCompile(`openebs_read_time 13`),
+				regexp.MustCompile(`openebs_write_time 132`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
 			unmatch: []*regexp.Regexp{},
 		},
-		{
-			input: `
-			{
-				"stats": {
-				"reads": 0,
-				"read_time": 0,
-				"total_read_bytes": 0,
-				"writes": 0,
-				"write_time": 0,
-				"total_write_bytes": 0,
-				"size_of_volume": 0,
-			}
-
-			}`,
-			response: NilCstorResponse,
+		"[Failure] istgt is not reachable and expected stats is null": {
+			expectedResponse: "OK IOSTATS\r\n",
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
 				regexp.MustCompile(`openebs_reads 0`),
-				regexp.MustCompile(`openebs_read_time 0`),
 				regexp.MustCompile(`openebs_total_read_bytes 0`),
 				regexp.MustCompile(`openebs_writes 0`),
-				regexp.MustCompile(`openebs_write_time 0`),
 				regexp.MustCompile(`openebs_total_write_bytes 0`),
 				regexp.MustCompile(`openebs_size_of_volume 0`),
+				regexp.MustCompile(`openebs_read_block_count 0`),
+				regexp.MustCompile(`openebs_write_block_count 0`),
+				regexp.MustCompile(`openebs_read_time 0`),
+				regexp.MustCompile(`openebs_write_time 0`),
 			},
 			// unmatch is used for negative test, but this use case is for
 			// positive test, so passing default value.
 			unmatch: []*regexp.Regexp{},
 		},
-		{
-			// this is the input we are passing for negative test.
-			// unmatch will match the response with this input.
-			input: `
-{
-	"stats": {
-	"reads": 0,
-	"read_time": 0,
-	"total_read_bytes": 0,
-	"writes": 0,
-	"write_time": 0,
-	"total_write_bytes": 0,
-	"size_of_volume": 0,
-}`,
-			response: CstorResponse,
-			match:    []*regexp.Regexp{},
+		"[Failure] istgt is reachable and giving valid stats but compare with incorrect output": {
+			expectedResponse: CstorResponse,
+			match:            []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
 				regexp.MustCompile(`openebs_reads `),
-				regexp.MustCompile(`openebs_read_time `),
 				regexp.MustCompile(`openebs_total_read_bytes `),
 				regexp.MustCompile(`openebs_writes `),
-				regexp.MustCompile(`openebs_write_time `),
 				regexp.MustCompile(`openebs_total_write_bytes `),
 				regexp.MustCompile(`openebs_size_of_volume `),
+				regexp.MustCompile(`openebs_read_block_count `),
+				regexp.MustCompile(`openebs_write_block_count `),
+				regexp.MustCompile(`openebs_read_time `),
+				regexp.MustCompile(`openebs_write_time `),
 			},
 		},
-	} {
-		func() {
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
 			var wg sync.WaitGroup
-			CstorResponse = tt.response
 			wg.Add(1)
-			runFakeUnixServer(t, &wg)
+			runFakeUnixServer(t, &wg, tt.expectedResponse)
 			wg.Wait()
 			conn, err := net.Dial("unix", "/tmp/go.sock")
 			if err != nil {
@@ -216,10 +186,8 @@ func TestCstorCollector(t *testing.T) {
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
-			defer prometheus.Unregister(col)
 
 			server := httptest.NewServer(promhttp.Handler())
-			defer server.Close()
 
 			client := http.DefaultClient
 			client.Timeout = 5 * time.Second
@@ -233,7 +201,6 @@ func TestCstorCollector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed reading server response: %s", err)
 			}
-
 			for _, re := range tt.match {
 				if !re.Match(buf) {
 					t.Errorf("failed matching: %q", re)
@@ -247,9 +214,12 @@ func TestCstorCollector(t *testing.T) {
 			}
 			// unlink the socketpath
 			Unlink(t)
-		}()
+			prometheus.Unregister(col)
+			server.Close()
+		})
 	}
 }
+
 func TestCstorStatsCollector(t *testing.T) {
 	// Unlink the existing socket connection /tmp/go.sock if exists
 	// else ignore.
@@ -287,7 +257,7 @@ func TestCstorStatsCollector(t *testing.T) {
 			if tt.fakeUnixServer {
 				var wg sync.WaitGroup
 				wg.Add(1)
-				runFakeUnixServer(t, &wg)
+				runFakeUnixServer(t, &wg, CstorResponse)
 				wg.Wait()
 				conn, err := net.Dial("unix", "/tmp/go.sock")
 				if err != nil {
@@ -349,28 +319,25 @@ func TestReadHeader(t *testing.T) {
 				// making the connection.
 				Conn: nil,
 			},
-			err:            nil,
-			fakeUnixServer: true,
-			header:         "iSCSI Target Controller version istgt:0.5.20121028:15:21:49:Jun  8 2018 on  from \r\n",
+			err:    nil,
+			header: "iSCSI Target Controller version istgt:0.5.20121028:15:21:49:Jun  8 2018 on  from \r\n",
 		},
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			if tt.fakeUnixServer {
-				var wg sync.WaitGroup
-				wg.Add(1)
-				runFakeUnixServer(t, &wg)
-				wg.Wait()
-				conn, err := net.Dial("unix", "/tmp/go.sock")
-				if err != nil {
-					t.Fatal("err in dial :", err)
-				}
-				// overwrite the value of conn from nil to
-				// expected value.
-				tt.cstor.Conn = conn
-				CstorResponse = tt.header
-				tt.cstor.writer()
+			var wg sync.WaitGroup
+			wg.Add(1)
+			runFakeUnixServer(t, &wg, tt.header)
+			wg.Wait()
+			conn, err := net.Dial("unix", "/tmp/go.sock")
+			if err != nil {
+				t.Fatal("err in dial :", err)
 			}
+			// overwrite the value of conn from nil to
+			// expected value.
+			tt.cstor.Conn = conn
+			tt.cstor.writer()
+			//			}
 			got := tt.cstor.ReadHeader()
 			if !reflect.DeepEqual(got, tt.err) {
 				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.cstor.Conn, tt.err, got)
