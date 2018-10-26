@@ -49,12 +49,14 @@ type VolumeStats struct {
 	Name              string      `json:"Name"`
 }
 
+// VolStatus stores the status of a volume.
 type VolStatus struct {
 	Resource        Resource
 	ReplicaCounter  int64  `json:"replicacounter"`
 	RevisionCounter string `json:"revisioncounter"`
 }
 
+// Resource stores information about a resources.
 type Resource struct {
 	Id      string            `json:"id,omitempty"`
 	Type    string            `json:"type,omitempty"`
@@ -62,6 +64,7 @@ type Resource struct {
 	Actions map[string]string `json:"actions"`
 }
 
+// Annotation stores information about an iSCSI volume.
 type Annotation struct {
 	IQN    string `json:"Iqn"`
 	Volume string `json:"Volume"`
@@ -69,6 +72,7 @@ type Annotation struct {
 	Size   string `json:"Size"`
 }
 
+// StatsJSON stores the statistics of an iSCSI volume.
 type StatsJSON struct {
 	IQN    string `json:"Iqn"`
 	Volume string `json:"Volume"`
