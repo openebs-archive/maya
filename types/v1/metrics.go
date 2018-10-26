@@ -16,7 +16,7 @@ type VolumeMetrics struct {
 
 	WriteIOPS            string `json:"WriteIOPS"`
 	TotalWriteTime       string `json:"TotalWriteTime"`
-	TotalWriteBlockCount string `json:"TotatWriteBlockCount"`
+	TotalWriteBlockCount string `json:"TotalWriteBlockCount"`
 
 	UsedLogicalBlocks string  `json:"UsedLogicalBlocks"`
 	UsedBlocks        string  `json:"UsedBlocks"`
@@ -38,7 +38,7 @@ type VolumeStats struct {
 
 	Writes               json.Number `json:"WriteIOPS"`
 	TotalWriteTime       json.Number `json:"TotalWriteTime"`
-	TotalWriteBlockCount json.Number `json:"TotatWriteBlockCount"`
+	TotalWriteBlockCount json.Number `json:"TotalWriteBlockCount"`
 	TotalWriteBytes      json.Number `json:"TotalWriteBytes"`
 
 	UsedLogicalBlocks json.Number `json:"UsedLogicalBlocks"`
