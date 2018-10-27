@@ -22,6 +22,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	citf "github.com/openebs/CITF"
+	citfoptions "github.com/openebs/CITF/citf_options"
 	apis "github.com/openebs/CITF/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
