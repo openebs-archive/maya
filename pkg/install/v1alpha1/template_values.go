@@ -17,7 +17,7 @@ limitations under the License.
 // TODO
 // Check if this file is required !!! Remove if not required
 
-// TODO
+//Package v1alpha1 - TODO
 // Move this to pkg/template/v1alpha1 and rename appropriately if required
 package v1alpha1
 
