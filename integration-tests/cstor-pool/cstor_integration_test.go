@@ -336,12 +336,12 @@ var _ = Describe("Integration Test", func() {
 			Expect(onlineCspCount).To(Equal(3))
 
 		})
-	})*/
+	})
 
 	// TODo: Add more test cases. Refer to following design doc
 	// https://docs.google.com/document/d/1QAYK-Bsehc7v66kscXCiMJ7_pTIjzNmwyl43tF92gWA/edit
 
-	When("We apply sparse-striped-auto spc yaml with maxPool count equal to 5 on a k8s cluster having at least 5 capable node", func() {
+	When("We apply sparse-mirrored-auto spc yaml with maxPool count equal to 5 on a k8s cluster having at least 5 capable node", func() {
 		It("pool resources count should be 5 with no error and online status", func() {
 			// TODO: Create a generic util function in utils.go to convert yaml into go object.
 			// ToDo: More POC regarding this util converter function.
