@@ -46,6 +46,7 @@ type VolumeStats struct {
 	SectorSize        json.Number `json:"SectorSize"`
 	Size              json.Number `json:"Size"`
 	UpTime            float64     `json:"UpTime"`
+	CstorUptime       json.Number `json:"Uptime"`
 	Name              string      `json:"Name"`
 }
 
