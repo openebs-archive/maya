@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	fakeResponse          = `{"Name":"vol","ReadIOPS":"1","ReplicaCounter":6,"RevisionCounter":100,"SCSIIOCount":null,"SectorSize":"4096","Size":"1073741824","TotalReadBlockCount":"10","TotalReadTime":"10","TotalWriteTime":"15","TotatWriteBlockCount":"10","UpTime":10,"UsedBlocks":"1048576","UsedLogicalBlocks":"1048576","WriteIOPS":"15","actions":{},"links":{"self":"http://localhost:9501/v1/stats"},"type":"stats"}`
 	controllerResponse    = `{"Name":"vol1","ReadIOPS":"0","ReplicaCounter":0,"RevisionCounter":0,"SCSIIOCount":{},"SectorSize":"4096","Size":"1073741824","TotalReadBlockCount":"0","TotalReadTime":"0","TotalWriteTime":"0","TotatWriteBlockCount":"0","UpTime":158.667823193,"UsedBlocks":"5","UsedLogicalBlocks":"0","WriteIOPS":"0","actions":{},"links":{"self":"http://10.42.0.1:9501/v1/stats"},"type":"stats"}`
 	validControllerResp   = `{"Name":"vol1","ReadIOPS":"5","ReplicaCounter":2,"RevisionCounter":10,"SCSIIOCount":{},"SectorSize":"4096","Size":"1073741824","TotalReadBlockCount":"25","TotalReadTime":"45","TotalWriteTime":"30","TotatWriteBlockCount":"6","UpTime":158.667823193,"UsedBlocks":"5","UsedLogicalBlocks":"23","WriteIOPS":"11","actions":{},"links":{"self":"http://10.42.0.1:9501/v1/stats"},"type":"stats"}`
 	invalidControllerResp = `404 Page not found`
@@ -27,30 +28,18 @@ var (
 // TestCollector tests collector.go
 func TestJivaCollector(t *testing.T) {
 
-	for _, tt := range []struct {
+	cases := map[string]struct {
 		input          string
 		match, unmatch []*regexp.Regexp
 	}{
 		// this is the input we are passing for positive testing
 		// match will expect similar output from response.
-		{
-			input: `
-{
-	"stats": {
-		"actual_used": 4,
-		"logical_size": 4,
-		"sector_size": 4096,
-		"reads": 1,
-		"read_time": 10,
-		"read_block_count": 10,
-		"writes": 15,
-		"write_time": 15,
-		"write_block_count": 10,
-		"size_of_volume": 1073741824,
-	}
-}`,
+		"[Success] controller is reachable and giving expected stats": {
+			input: fakeResponse,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
+				// these regex are the actual expected output from exporter
+				// based on the fakeResponse
 				regexp.MustCompile(`openebs_actual_used 4`),
 				regexp.MustCompile(`openebs_logical_size 4`),
 				regexp.MustCompile(`openebs_sector_size 4096`),
@@ -66,24 +55,31 @@ func TestJivaCollector(t *testing.T) {
 			// positive test, so passing default value.
 			unmatch: []*regexp.Regexp{},
 		},
-		{
+		"[Failure] controller is not reachable and expected stats is null": {
+			input: invalidControllerResp,
+			// match matches the response with the expected input.
+			match: []*regexp.Regexp{
+				// these regex are the actual expected output from exporter
+				// based on the fakeResponse
+				regexp.MustCompile(`openebs_actual_used 0`),
+				regexp.MustCompile(`openebs_logical_size 0`),
+				regexp.MustCompile(`openebs_sector_size 0`),
+				regexp.MustCompile(`openebs_reads 0`),
+				regexp.MustCompile(`openebs_read_time 0`),
+				regexp.MustCompile(`openebs_read_block_count 0`),
+				regexp.MustCompile(`openebs_writes 0`),
+				regexp.MustCompile(`openebs_write_time 0`),
+				regexp.MustCompile(`openebs_write_block_count 0`),
+				regexp.MustCompile(`openebs_size_of_volume 0`),
+			},
+			// unmatch is used for negative test, but this use case is for
+			// positive test, so passing default value.
+			unmatch: []*regexp.Regexp{},
+		},
+		"[Failure] controller is reachable and giving valid stats but compare with incorrect output": {
 			// this is the input we are passing for negative test.
 			// unmatch will match the response with this input.
-			input: `
-				{
-					"stats": {
-						"actual_used": 4,
-						"logical_size": 4,
-						"sector_size": 4096,
-						"reads": 1,
-						"total_read_time": 10,
-						"total_read_block_count": 10,
-						"writes": 15,
-						"total_write_time": 15,
-						"total_write_block_count": 10,
-						"size_of_volume": 1073741824,
-					}
-				}`,
+			input: fakeResponse,
 			match: []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
@@ -99,14 +95,13 @@ func TestJivaCollector(t *testing.T) {
 				regexp.MustCompile(`openebs_size_of_volume`),
 			},
 		},
-	} {
-		func() {
-			// response is the response expected from the test server.
-			var response = `{"Name":"vol","ReadIOPS":"1","ReplicaCounter":6,"RevisionCounter":100,"SCSIIOCount":null,"SectorSize":"4096","Size":"1073741824","TotalReadBlockCount":"10","TotalReadTime":"10","TotalWriteTime":"15","TotatWriteBlockCount":"10","UpTime":10,"UsedBlocks":"1048576","UsedLogicalBlocks":"1048576","WriteIOPS":"15","actions":{},"links":{"self":"http://localhost:9501/v1/stats"},"type":"stats"}`
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
 			// This is dummy server which gives response in json format and it
 			// is used to map the response with the fields of struct VolumeMetrics.
 			controller := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintln(w, response)
+				fmt.Fprintln(w, tt.input)
 			}))
 
 			defer controller.Close()
@@ -137,7 +132,7 @@ func TestJivaCollector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed reading server response: %s", err)
 			}
-			//fmt.Println(string(buf))
+
 			for _, re := range tt.match {
 				if !re.Match(buf) {
 					t.Errorf("failed matching: %q", re)
@@ -149,8 +144,7 @@ func TestJivaCollector(t *testing.T) {
 					t.Errorf("failed unmatching: %q", re)
 				}
 			}
-
-		}()
+		})
 	}
 }
 
