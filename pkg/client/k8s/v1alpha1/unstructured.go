@@ -67,7 +67,6 @@ func (k kind) resource() (resource string) {
 	default:
 		return resource + "s"
 	}
-	return
 }
 
 // isNamespaced flags if the kind is namespaced or not
@@ -96,7 +95,6 @@ func (k kind) isNamespaced() (no bool) {
 	default:
 		return !no
 	}
-	return !no
 }
 
 // GroupVersionResourceFromGVK returns the GroupVersionResource of the provided
