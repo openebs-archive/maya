@@ -133,11 +133,10 @@ spec:
     - cstor-volume-list-listcstorvolumereplicacr-default
   output: cstor-volume-list-output-default
 ---
-# runTask to list cvrs if this is a clone volume
-# this run task will list all the cvrs that belong to
-# the source volume. If this is not a cloned volume
-# then we ignore the cvrs using non existent label
-# openebs.io/ignore
+# This RunTask is meant to be run only during clone create requests.
+# However, clone & volume creation follow the same CASTemplate specifications.
+# As of today, RunTask can not be run based on conditions. Hence, it contains
+# a logic which will list empty pools
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
