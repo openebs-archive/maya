@@ -5,7 +5,10 @@
 package command
 
 import (
+	"encoding/json"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,10 +34,25 @@ func Initialize(options *VolumeExporterOptions) string {
 // info.
 
 // StartMayaExporter starts an HTTP server that exposes the metrics on
-// "/metrics" endpoint.
+// <clusterIP>:9500/metrics endpoint and for getting the metrics in json
+// the "type=json" action can be used. e.g <clusterIP>:9500/metrics/?type=json
 func (options *VolumeExporterOptions) StartMayaExporter() error {
 	glog.Info("Starting http server....")
 	http.Handle(options.MetricsPath, promhttp.Handler())
+	http.HandleFunc(options.MetricsPath+"/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery == "type=json" {
+			mfs, err := prometheus.DefaultGatherer.Gather()
+			if err != nil {
+				glog.Error(err)
+			}
+
+			err = json.NewEncoder(w).Encode(mfs)
+			if err != nil {
+				http.Error(w, "error encoding metric family: \n\n"+err.Error(), http.StatusInternalServerError)
+			}
+		}
+	})
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		homepage := `<html>
 <head><title>OpenEBS Exporter</title></head>
