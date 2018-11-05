@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }"
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\" }"
 	NilCstorResponse             = "OK IOSTATS\r\n"
-	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }\r\nOK IOSTATS\r\n"
-	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }"
-	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"Uptime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\" }\r\nOK IOSTATS\r\n`
+	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\" }\r\nOK IOSTATS\r\n"
+	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\" }"
+	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\" }\r\nOK IOSTATS\r\n`
 )
 
 func TestNewResponse(t *testing.T) {
@@ -46,7 +46,9 @@ func TestNewResponse(t *testing.T) {
 				TotalWriteBlockCount: "15",
 				TotalReadTime:        "13",
 				TotalWriteTime:       "132",
-				CstorUptime:          "20",
+				UpTime:               "20",
+				ReplicaCounter:       "3",
+				RevisionCounter:      "1000",
 			},
 		},
 		"[Failure]Unmarshal Response returns empty Metrics": {

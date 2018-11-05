@@ -88,6 +88,8 @@ func (j *Jiva) set(m *Metrics) error {
 	m.totalReadTime.Set(volStats.totalReadTime)
 	m.writes.Set(volStats.writes)
 	m.totalWriteTime.Set(volStats.totalWriteTime)
+	m.totalReadBytes.Set(volStats.totalReadBytes)
+	m.totalWriteBytes.Set(volStats.totalWriteBytes)
 	m.totalReadBlockCount.Set(volStats.totalReadBlockCount)
 	m.totalWriteBlockCount.Set(volStats.totalWriteBlockCount)
 	m.sectorSize.Set(volStats.sectorSize)
@@ -97,7 +99,12 @@ func (j *Jiva) set(m *Metrics) error {
 	url := j.VolumeControllerURL
 	url = strings.TrimSuffix(url, ":9501/v1/stats")
 	url = strings.TrimPrefix(url, "http://")
-	m.volumeUpTime.WithLabelValues(volStatsJSON.Name, "iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name, url, "jiva").Set(volStatsJSON.UpTime)
+	m.volumeUpTime.WithLabelValues(
+		volStats.name,
+		"iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name,
+		url,
+		"jiva",
+	).Set(volStats.uptime)
 	return nil
 }
 
@@ -105,6 +112,8 @@ func (j *Jiva) parser(stats v1.VolumeStats) VolumeStats {
 	volStats := VolumeStats{}
 	volStats.reads, _ = stats.Reads.Float64()
 	volStats.writes, _ = stats.Writes.Float64()
+	volStats.totalReadBytes, _ = stats.TotalReadBytes.Float64()
+	volStats.totalWriteBytes, _ = stats.TotalWriteBytes.Float64()
 	volStats.totalReadTime, _ = stats.TotalReadTime.Float64()
 	volStats.totalWriteTime, _ = stats.TotalWriteTime.Float64()
 	volStats.totalReadBlockCount, _ = stats.TotalReadBlockCount.Float64()
@@ -120,5 +129,9 @@ func (j *Jiva) parser(stats v1.VolumeStats) VolumeStats {
 	volStats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
 	size, _ := stats.Size.Float64()
 	volStats.size, _ = v1.DivideFloat64(size, v1.BytesToGB)
+	volStats.replicaCount, _ = stats.ReplicaCounter.Float64()
+	volStats.revisionCount, _ = stats.RevisionCounter.Float64()
+	volStats.uptime, _ = stats.UpTime.Float64()
+	volStats.name = stats.Name
 	return volStats
 }
