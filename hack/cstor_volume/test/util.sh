@@ -11,6 +11,8 @@ prefixedFileNames()
         shift
     done
 
+    # printing the following for N no of files passed as argument
+    # -f file1 -f file2 -f file3 ... -f fileN
     echo $filesToApply
 }
 
