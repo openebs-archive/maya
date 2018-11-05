@@ -134,6 +134,9 @@ type VolumeStats struct {
 	logicalSize          float64
 	actualSize           float64
 	uptime               float64
+	revisionCount        float64
+	replicaCount         float64
+	name                 string
 }
 
 // MetricsInitializer returns the Metrics instance used for registration

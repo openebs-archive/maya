@@ -162,10 +162,12 @@ func (c *Cstor) set(m *Metrics) error {
 	m.totalWriteTime.Set(volStats.totalWriteTime)
 	m.sizeOfVolume.Set(volStats.size)
 	m.actualUsed.Set(volStats.actualSize)
-	volName := strings.TrimPrefix(newResp.Iqn, "iqn.2017-08.OpenEBS.cstor:")
-	// currently portal address is not available
-	// from the cstor.
-	m.volumeUpTime.WithLabelValues(volName, newResp.Iqn, "localhost", "cstor").Set(volStats.uptime)
+	m.volumeUpTime.WithLabelValues(
+		volStats.name,
+		newResp.Iqn,
+		"localhost",
+		"cstor",
+	).Set(volStats.uptime)
 	return nil
 }
 
@@ -183,13 +185,18 @@ func (c *Cstor) parser(stats v1.VolumeStats) VolumeStats {
 	volStats.totalWriteTime, _ = stats.TotalWriteTime.Float64()
 	volStats.totalReadBlockCount, _ = stats.TotalReadBlockCount.Float64()
 	volStats.totalWriteBlockCount, _ = stats.TotalWriteBlockCount.Float64()
-	volStats.uptime, _ = stats.CstorUptime.Float64()
+	volStats.uptime, _ = stats.UpTime.Float64()
+	volStats.replicaCount, _ = stats.ReplicaCounter.Float64()
+	volStats.revisionCount, _ = stats.RevisionCounter.Float64()
 	aUsed, _ := stats.UsedLogicalBlocks.Float64()
 	aUsed = aUsed * volStats.sectorSize
 	volStats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
 	size, _ := stats.Size.Float64()
 	size, _ = v1.DivideFloat64(size, v1.BytesToGB)
 	volStats.size = size
+	result := strings.Split(stats.Iqn, ":")
+	volName := result[1]
+	volStats.name = volName
 	return volStats
 }
 
