@@ -1,10 +1,9 @@
 package command
 
 import (
-	"errors"
-	"net"
-	"reflect"
 	"testing"
+
+	"github.com/openebs/maya/pkg/client/http/v1alpha1"
 )
 
 func TestInitialize(t *testing.T) {
@@ -41,39 +40,44 @@ func TestInitialize(t *testing.T) {
 	}
 }
 func TestStartMayaExporter(t *testing.T) {
-	ErrorMessage := make(chan error)
 	cases := map[string]struct {
 		cmdOptions *VolumeExporterOptions
 		err        error
+		targetURL  string
 	}{
-		"If port is busy and path is `/metrics`": {
-			cmdOptions: &VolumeExporterOptions{
-				ControllerAddress: "localhost:9501",
-				MetricsPath:       "/metrics",
-				ListenAddress:     ":9500",
-			},
-			err: errors.New("listen tcp :9500: bind: address already in use"),
+		"Check for metrics": {
+			err:       nil,
+			targetURL: "http://localhost:9500/metrics",
+		},
+		"Check for json": {
+			err:       nil,
+			targetURL: "http://localhost:9500/metrics/?type=json",
 		},
 	}
+
+	options := &VolumeExporterOptions{
+		ControllerAddress: "localhost:9501",
+		MetricsPath:       "/metrics",
+		ListenAddress:     ":9500",
+	}
+
+	go func() {
+		err := options.StartMayaExporter()
+		if err != nil {
+			t.Logf("Unable to start server: %v", err)
+		}
+
+	}()
+
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			startTestServer(t, tt.cmdOptions, ErrorMessage)
-			msg := <-ErrorMessage
-			if !reflect.DeepEqual(msg.Error(), tt.err.Error()) {
-				t.Fatalf("StartMayaExporter() : expected %v, got %v", tt.err, msg)
+			_, err := v1alpha1.URL("", tt.targetURL)
+			if (err == nil && tt.err != nil) || (err != nil && tt.err == nil) || (err != nil && tt.err != nil && err.Error() != tt.err.Error()) {
+				t.Logf("first:	%v", (err != nil && tt.err != nil && err.Error() != tt.err.Error()))
+				t.Fatalf("Test Name: %v Wanted: %v Got: %v", name, tt.err, tt.err)
+
 			}
+
 		})
 	}
-}
-
-func startTestServer(t *testing.T, options *VolumeExporterOptions, errMsg chan error) {
-	go func() {
-		//Block port 9500 and attempt to start http server at 9500.
-		listener, err := net.Listen("tcp", "localhost:9500")
-		defer listener.Close()
-		if err != nil {
-			t.Log(err)
-		}
-		errMsg <- options.StartMayaExporter()
-	}()
 }
