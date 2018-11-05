@@ -510,6 +510,10 @@ spec:
         port: 9501
         protocol: TCP
         targetPort: 9501
+      - name: exporter
+        port: 9500
+        protocol: TCP
+        targetPort: 9500
       selector:
         openebs.io/controller: jiva-controller
         openebs.io/persistent-volume: {{ .Volume.owner }}

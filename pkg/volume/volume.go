@@ -18,8 +18,11 @@ package volume
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	http_client "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -27,7 +30,6 @@ import (
 	"github.com/openebs/maya/types/v1"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // OperationOptions contains the options with respect to
@@ -486,4 +488,43 @@ func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		}
 	}
 	return castName
+}
+
+func (v *Operation) ReadStats() ([]byte, error) {
+	if len(v.volume.Name) == 0 {
+		return nil, fmt.Errorf("unable to read volume: volume name not provided")
+	}
+
+	castName := "casvolume-stats-read-default"
+
+	// fetch read cas template specifications
+	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := engine.New(
+		cast,
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
+			string(v1alpha1.OwnerVTP):        v.volume.Name,
+			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := engine.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	targetURL := string(data)
+	if len(targetURL) == 0 {
+		return nil, fmt.Errorf("Volume not found at given namespace")
+	}
+
+	r, err := http_client.URL("", "http://"+targetURL+":9500/metrics/?type=json")
+	return r, err
 }

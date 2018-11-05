@@ -21,13 +21,17 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"net/http"
+	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -327,4 +331,20 @@ func (volInfo *VolumeInfo) GetControllerNode() string {
 		return val
 	}
 	return ""
+}
+
+func print(format string, obj interface{}) error {
+	// New Instance of tabwriter
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+	// New Instance of template
+	tmpl, err := template.New("ReplicaStats").Parse(format)
+	if err != nil {
+		return fmt.Errorf("Error in parsing replica template, found error : %v", err)
+	}
+	// Parse struct with template
+	err = tmpl.Execute(w, obj)
+	if err != nil {
+		return fmt.Errorf("Error in executing replica template, found error : %v", err)
+	}
+	return w.Flush()
 }

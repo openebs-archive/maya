@@ -237,6 +237,10 @@ spec:
         port: 6060
         targetPort: 6060
         protocol: TCP
+      - name: exporter
+        port: 9500
+        targetPort: 9500
+        protocol: TCP
       selector:
         app: cstor-volume-manager
         openebs.io/target: cstor-target
