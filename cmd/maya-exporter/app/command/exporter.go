@@ -39,26 +39,15 @@ func Initialize(options *VolumeExporterOptions) string {
 func (options *VolumeExporterOptions) StartMayaExporter() error {
 	glog.Info("Starting http server....")
 	http.Handle(options.MetricsPath, promhttp.Handler())
-	http.HandleFunc(options.MetricsPath+"/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.RawQuery == "type=json" {
-			mfs, err := prometheus.DefaultGatherer.Gather()
-			if err != nil {
-				glog.Error(err)
-			}
-
-			err = json.NewEncoder(w).Encode(mfs)
-			if err != nil {
-				http.Error(w, "error encoding metric family: \n\n"+err.Error(), http.StatusInternalServerError)
-			}
-		}
-	})
+	http.HandleFunc(options.MetricsPath+"json/", jsonHandler)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		homepage := `<html>
-<head><title>OpenEBS Exporter</title></head>
+		homepage := `
+<html>
+	<head><title>OpenEBS Exporter</title></head>
 <body>
-<h1>OpenEBS Exporter</h1>
-<p><a href="` + options.MetricsPath + `">Metrics</a></p>
+	<h1>OpenEBS Exporter</h1>
+	<p><a href="` + options.MetricsPath + `">Metrics</a></p>
 </body>
 </html>
 `
@@ -69,4 +58,16 @@ func (options *VolumeExporterOptions) StartMayaExporter() error {
 		glog.Error(err)
 	}
 	return err
+}
+
+func jsonHandler(w http.ResponseWriter, r *http.Request) {
+	metricsFamily, err := prometheus.DefaultGatherer.Gather()
+	if err != nil {
+		http.Error(w, "Error fetching metrics : \n\n"+err.Error(), http.StatusInternalServerError)
+	}
+
+	err = json.NewEncoder(w).Encode(metricsFamily)
+	if err != nil {
+		http.Error(w, "Error encoding metric family: \n\n"+err.Error(), http.StatusInternalServerError)
+	}
 }

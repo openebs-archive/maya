@@ -20,7 +20,7 @@ const (
 	// calls.
 	listenAddress = ":9500"
 	// metricsPath is the endpoint of exporter.
-	metricsPath = "/metrics"
+	metricsPath = "/metrics/"
 	// controllerAddress is the address where jiva controller listens.
 	controllerAddress = "http://localhost:9501"
 	// casType is the type of container attached storage (CAS) from which
