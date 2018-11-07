@@ -39,7 +39,7 @@ func Initialize(options *VolumeExporterOptions) string {
 func (options *VolumeExporterOptions) StartMayaExporter() error {
 	glog.Info("Starting http server....")
 	http.Handle(options.MetricsPath, promhttp.Handler())
-	http.HandleFunc(options.MetricsPath+"json/", jsonHandler)
+	http.HandleFunc(options.jsonMetricsPath, jsonHandler)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		homepage := `

@@ -2,13 +2,11 @@ package command
 
 import (
 	"errors"
-	"log"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
-
-	"github.com/openebs/maya/pkg/client/http/v1alpha1"
 )
 
 func TestInitialize(t *testing.T) {
@@ -84,35 +82,29 @@ func startTestServer(t *testing.T, options *VolumeExporterOptions, errMsg chan e
 
 func TestJsonHandler(t *testing.T) {
 	cases := map[string]struct {
-		targetURL string
-		err       error
+		httpErr int
 	}{
 		"When URL is correct": {
-			targetURL: "http://localhost:9500" + metricsPath + "json/",
-			err:       nil,
+			httpErr: http.StatusOK,
 		},
 	}
 
-	srv := &http.Server{Addr: ":9500"}
-	http.HandleFunc(metricsPath+"json/", jsonHandler)
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			// cannot panic, because this probably is an intentional close
-			log.Printf("Httpserver: ListenAndServe() error: %s", err)
-		}
-	}()
-
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			_, err := v1alpha1.URL("", tt.targetURL)
-			if !reflect.DeepEqual(err, tt.err) {
-				t.Fatalf("TestName: %v jsonHandler() : expected %v, got %v", name, tt.err, err)
+			req, err := http.NewRequest("GET", "/json", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(jsonHandler)
+
+			handler.ServeHTTP(rr, req)
+
+			if status := rr.Code; status != tt.httpErr {
+				t.Fatalf("handler returned wrong status code: got %v want %v",
+					status, http.StatusOK)
 			}
 		})
-	}
-
-	if err := srv.Shutdown(nil); err != nil {
-		t.Fatalf("Shutting down server failded: %v", err)
 	}
 
 }
