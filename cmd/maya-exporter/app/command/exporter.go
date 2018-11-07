@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/golang/glog"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // Initialize returns the valid flags such as jiva and cstor and returns
@@ -38,9 +37,8 @@ func Initialize(options *VolumeExporterOptions) string {
 // the "type=json" action can be used. e.g <clusterIP>:9500/metrics/?type=json
 func (options *VolumeExporterOptions) StartMayaExporter() error {
 	glog.Info("Starting http server....")
-	http.Handle(options.MetricsPath, promhttp.Handler())
-	http.HandleFunc(options.jsonMetricsPath, jsonHandler)
-
+	http.HandleFunc(options.MetricsPath, metricsHandler) // For backward compatibility
+	http.HandleFunc(options.MetricsPath+"/", metricsHandler)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		homepage := `
 <html>
@@ -60,14 +58,27 @@ func (options *VolumeExporterOptions) StartMayaExporter() error {
 	return err
 }
 
-func jsonHandler(w http.ResponseWriter, r *http.Request) {
+func metricsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.RawQuery == "format=json" {
+		jsonHandler().ServeHTTP(w, r)
+	} else {
+		prometheus.Handler().ServeHTTP(w, r)
+	}
+}
+
+func jsonHandler() http.Handler {
+	return http.HandlerFunc(jsonHandleFunc)
+}
+
+func jsonHandleFunc(w http.ResponseWriter, r *http.Request) {
 	metricsFamily, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
-		http.Error(w, "Error fetching metrics : \n\n"+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error fetching metrics : "+err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	err = json.NewEncoder(w).Encode(metricsFamily)
 	if err != nil {
-		http.Error(w, "Error encoding metric family: \n\n"+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error encoding metric family: "+err.Error(), http.StatusInternalServerError)
 	}
 }

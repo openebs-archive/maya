@@ -96,7 +96,7 @@ func TestJsonHandler(t *testing.T) {
 				t.Fatal(err)
 			}
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(jsonHandler)
+			handler := http.HandlerFunc(jsonHandleFunc)
 
 			handler.ServeHTTP(rr, req)
 
@@ -106,5 +106,38 @@ func TestJsonHandler(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestMetricHandler(t *testing.T) {
+	cases := map[string]struct {
+		targetURL string
+		httpErr   int
+	}{
+		"When metrics is requested protobuf format": {
+			targetURL: "/metrics/",
+			httpErr:   http.StatusOK,
+		},
+		"When metrics is requested in json format": {
+			targetURL: "/metrics/?format=json",
+			httpErr:   http.StatusOK,
+		},
+	}
+
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			req, err := http.NewRequest("GET", tt.targetURL, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(metricsHandler)
+
+			handler.ServeHTTP(rr, req)
+
+			if status := rr.Code; status != tt.httpErr {
+				t.Fatalf("handler returned wrong status code: got %v want %v",
+					status, tt.httpErr)
+			}
+		})
+	}
 }
