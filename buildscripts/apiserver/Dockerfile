@@ -15,7 +15,8 @@ RUN apk add --no-cache \
     net-tools \
     mii-tool \
     procps \
-    libc6-compat
+    libc6-compat \
+    ca-certificates
 RUN mkdir -p /etc/apiserver/orchprovider
 RUN mkdir -p /etc/apiserver/specs
 

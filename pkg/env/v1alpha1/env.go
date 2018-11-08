@@ -27,6 +27,10 @@ import (
 type ENVKey string
 
 const (
+	// OpenEBSEnableAnalytics is the environment variable to get user's consent to
+	// send usage data to OpenEBS core-developers using the Google Analytics platform
+	OpenEBSEnableAnalytics ENVKey = "OPENEBS_IO_ENABLE_ANALYTICS"
+
 	// OpenEBSVersion is the environment variable to get openebs version
 	OpenEBSVersion ENVKey = "OPENEBS_IO_VERSION"
 

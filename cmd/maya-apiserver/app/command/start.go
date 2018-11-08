@@ -32,7 +32,10 @@ import (
 
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
+	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
+	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 
@@ -178,10 +181,16 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	// Output the header that the server has started
 	glog.Info("Maya api server started! Log data will stream in below:\n")
 
+	if env.Truthy(env.OpenEBSEnableAnalytics) {
+		clusterSize, _ := k8sapi.NumberOfNodes()
+		event := usage.NewEvent("install", "running", "nodes", int64(clusterSize))
+		event.Send()
+	}
 	// Wait for exit
 	if c.handleSignals(mconfig) > 0 {
 		return errors.New("Ungraceful exit ...")
 	}
+
 	return nil
 }
 

@@ -19,7 +19,8 @@ ENV MAYA_API_SERVER_NETWORK="eth0"
 RUN yum update -y && \
     yum install -y net-tools \
     curl \
-    iproute && \
+    iproute \
+    ca-certificates && \
     yum clean all
 
 COPY maya-apiserver /usr/local/bin/
