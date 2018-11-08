@@ -18,9 +18,12 @@ package volume
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"strings"
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -29,11 +32,14 @@ import (
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
 const (
-	VolumeOperator   = "iscsi"
-	IstgtConfPath    = "/usr/local/etc/istgt/istgt.conf"
-	IstgtStatusCmd   = "STATUS"
-	IstgtRefreshCmd  = "REFRESH"
-	WaitTimeForIscsi = 3 * time.Second
+	VolumeOperator       = "iscsi"
+	IstgtConfPath        = "/usr/local/etc/istgt/istgt.conf"
+	IstgtStatusCmd       = "STATUS"
+	IstgtRefreshCmd      = "REFRESH"
+	IstgtReplicaCmd      = "REPLICA"
+	IstgtExecuteQuietCmd = "-q"
+	ReplicaStatus        = "Replica status"
+	WaitTimeForIscsi     = 3 * time.Second
 )
 
 //FileOperatorVar is used for doing File Operations
@@ -60,6 +66,49 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	glog.Info("Creating Iscsi Volume Successful")
 	return nil
 
+}
+
+// GetReplicaStatus retrieves an array of replica statuses.
+func GetReplicaStatus(cStorVolume *apis.CStorVolume) ([]string, error) {
+	// send replica command to istgt and read the response
+	statuses, err := UnixSockVar.SendCommand(IstgtReplicaCmd)
+	if err != nil {
+		glog.Errorf("Failed to list replicas.")
+		return nil, err
+	}
+	stringResp := fmt.Sprintf("%s", statuses)
+	// Here it is assumed that the arrays statuses contains only one json and
+	// the chars '}' and '{' are present only in the json string.
+	// Therefore, the json string begins with '{' and ends with '}'
+	//
+	// TODO: Find a better approach
+	jsonBeginIndex := strings.Index(stringResp, "{")
+	jsonEndIndex := strings.LastIndex(stringResp, "}")
+	if jsonBeginIndex >= jsonEndIndex {
+		return nil, nil
+	}
+	return extractReplicaStatusFromJSON(cStorVolume.Name, stringResp[jsonBeginIndex:jsonEndIndex+1])
+}
+
+// extractReplicaStatusFromJSON recieves a volume name and a json string.
+// It then extracts and returns an array of replica statuses.
+func extractReplicaStatusFromJSON(volName, str string) ([]string, error) {
+	jsonStr := map[string]interface{}{}
+	err := json.Unmarshal([]byte(str), &jsonStr)
+	if err != nil {
+		return nil, err
+	}
+	replicaMap := (jsonStr[ReplicaStatus].([]interface{})[0]).(map[string]interface{})
+
+	if replicaMap[volName] == nil {
+		return nil, nil
+	}
+	volumeList := replicaMap[volName].([]interface{})
+	states := []string{}
+	for _, replica := range volumeList {
+		states = append(states, (replica.(map[string]interface{}))["status"].(string))
+	}
+	return states, nil
 }
 
 // CreateIstgtConf creates istgt.conf file
