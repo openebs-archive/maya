@@ -74,16 +74,18 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 		// CheckValidVolume is to check if volume attributes are correct.
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
-			return common.CVStatusOffline, err
+			return common.CVStatusInvalid, err
 		}
 
 		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
-			return common.CVStatusFailed, err
+			return common.CVStatusError, err
 		}
-		break
+
+		return common.CVStatusInit, nil
 
 	case common.QOpModify:
+		// Make changes here to run zrepl command and update the data
 		err := volume.CheckValidVolume(cStorVolumeGot)
 		if err != nil {
 			return common.CVStatusInvalid, err
@@ -91,14 +93,57 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 
 		err = volume.CreateVolumeTarget(cStorVolumeGot)
 		if err != nil {
-			return common.CVStatusFailed, err
+			return common.CVStatusError, err
 		}
 		break
+
+	case common.QOpPeriodicSync:
+		err := volume.CheckValidVolume(cStorVolumeGot)
+		if err != nil {
+			return common.CVStatusInvalid, err
+		}
+
+		statuses, err := volume.GetReplicaStatus(cStorVolumeGot)
+		if err != nil {
+			return common.CVStatusError, err
+		}
+
+		glog.Infof("Replica statuses for volume %s are: %v", cStorVolumeGot.Name, statuses)
+
+		healthyReplicas := 0
+		for _, val := range statuses {
+			if val == "HEALTHY" {
+				healthyReplicas++
+			}
+		}
+
+		glog.Infof("Healthy replicas for volume %s are: %v", cStorVolumeGot.Name, healthyReplicas)
+
+		// if no replicas connected yet then this is init state
+		// verbose code for better understanding
+		if totalReplicas := len(statuses); totalReplicas == 0 {
+			return common.CVStatusInit, nil
+		}
+
+		if healthyReplicas == 0 {
+			return common.CVStatusError, nil
+		}
+
+		if healthyReplicas >= cStorVolumeGot.Spec.ReplicationFactor {
+			return common.CVStatusRunning, nil
+		}
+
+		if healthyReplicas >= cStorVolumeGot.Spec.ConsistencyFactor {
+			return common.CVStatusDegraded, nil
+		}
+
+		return common.CVStatusRO, nil
 
 	case common.QOpDestroy:
 		return common.CVStatusIgnore, nil
 	}
 
+	glog.Infof("Ignoring changes for volume %s", cStorVolumeGot.Name)
 	return common.CVStatusIgnore, nil
 }
 

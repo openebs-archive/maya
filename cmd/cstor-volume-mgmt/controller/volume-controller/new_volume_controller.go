@@ -119,14 +119,13 @@ func NewCStorVolumeController(
 			// Periodic resync will send update events for all known CStorVolume.
 			// Two different versions of the same CStorVolume will always have different RVs.
 			if newCStorVolume.ResourceVersion == oldCStorVolume.ResourceVersion {
-				return
-			}
-
-			if IsOnlyStatusChange(oldCStorVolume, newCStorVolume) {
+				q.Operation = common.QOpPeriodicSync
+				glog.Infof("cStorVolume periodic sync event : %v %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.SuccessSynced))
+			} else if IsOnlyStatusChange(oldCStorVolume, newCStorVolume) {
 				glog.Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				return
-			}
-			if IsDestroyEvent(newCStorVolume) {
+			} else if IsDestroyEvent(newCStorVolume) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))

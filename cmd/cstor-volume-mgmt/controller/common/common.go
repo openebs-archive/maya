@@ -94,13 +94,15 @@ const (
 	// volume is getting initialized
 	CVStatusInit CStorVolumeStatus = "Init"
 	// volume is up and running
-	CVStatusOnline CStorVolumeStatus = "Online"
-	// initial volume controller config generation did not happen and the volume is offline
-	CVStatusOffline CStorVolumeStatus = "Offline"
+	CVStatusRunning CStorVolumeStatus = "Running"
+	// volume only satisfies consistency factor
+	CVStatusDegraded CStorVolumeStatus = "Degraded"
+	// volume does not satisfies consistency factor but has atleast one replica
+	CVStatusRO CStorVolumeStatus = "ReadOnly"
+	// Volume is offline
+	CVStatusError CStorVolumeStatus = "Error"
 	// volume controller config generation failed due to invalid parameters
 	CVStatusInvalid CStorVolumeStatus = "Invalid"
-	// volume controller config generation failed
-	CVStatusFailed CStorVolumeStatus = "Failed"
 	// CR event ignored
 	CVStatusIgnore CStorVolumeStatus = "Ignore"
 )
@@ -124,9 +126,10 @@ type QueueOperation string
 
 //Different type of operations on the controller
 const (
-	QOpAdd     QueueOperation = "add"
-	QOpDestroy QueueOperation = "destroy"
-	QOpModify  QueueOperation = "modify"
+	QOpAdd          QueueOperation = "add"
+	QOpDestroy      QueueOperation = "destroy"
+	QOpModify       QueueOperation = "modify"
+	QOpPeriodicSync QueueOperation = "sync"
 )
 
 // namespace defines kubernetes namespace specified for cvr.
