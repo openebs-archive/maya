@@ -44,7 +44,8 @@ const (
 	MessageModifySynced EventReason = "Received Resource modify event"
 	// MessageDestroySynced holds message for corresponding destroy request sync.
 	MessageDestroySynced EventReason = "Received Resource destroy event"
-
+	// StatusSynced holds message for corresponding status request sync.
+	StatusSynced EventReason = "Resource status sync event"
 	// SuccessCreated holds status for corresponding created resource.
 	SuccessCreated EventReason = "Created"
 	// MessageResourceCreated holds message for corresponding created resource.
@@ -64,7 +65,10 @@ const (
 	FailureImport EventReason = "FailImport"
 	// MessageResourceFailImport holds message for corresponding failed import resource.
 	MessageResourceFailImport EventReason = "Resource import failed"
-
+	// FailureStatusSync holds status for corresponding failed status sync of resource.
+	FailureStatusSync EventReason = "FailStatusSync"
+	// MessageResourceFailStatusSync holds message for corresponding failed status sync of resource.
+	MessageResourceFailStatusSync EventReason = "Resource status sync failed"
 	// FailureDestroy holds status for corresponding failed destroy resource.
 	FailureDestroy EventReason = "FailDestroy"
 	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
@@ -129,6 +133,8 @@ const (
 	QOpAdd     QueueOperation = "add"
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
+	// QOpStatusSync is the operation for updating the status on cstor pool object.
+	QOpStatusSync QueueOperation = "statusSync"
 )
 
 // namespace defines kubernetes namespace specified for cvr.

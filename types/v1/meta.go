@@ -276,11 +276,11 @@ type LabelSelectorOperator string
 
 const (
 	// LabelSelectorOpIn : LabelSelectorOperator for In
-	LabelSelectorOpIn           LabelSelectorOperator = "In"
+	LabelSelectorOpIn LabelSelectorOperator = "In"
 	// LabelSelectorOpNotIn : LabelSelectorOperator for NotIn
-	LabelSelectorOpNotIn        LabelSelectorOperator = "NotIn"
+	LabelSelectorOpNotIn LabelSelectorOperator = "NotIn"
 	// LabelSelectorOpExists : LabelSelectorOperator for Exists
-	LabelSelectorOpExists       LabelSelectorOperator = "Exists"
+	LabelSelectorOpExists LabelSelectorOperator = "Exists"
 	// LabelSelectorOpDoesNotExist : LabelSelectorOperator for DoesNotExist
 	LabelSelectorOpDoesNotExist LabelSelectorOperator = "DoesNotExist"
 )

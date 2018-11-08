@@ -84,8 +84,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 
 	case common.QOpDestroy:
 		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
-
 		status, err := c.cStorPoolDestroyEventHandler(cStorPoolGot)
+		return status, err
+	case common.QOpStatusSync:
+		glog.Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
+		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
 	}
 	return string(apis.CStorPoolStatusInvalid), nil
@@ -217,6 +220,17 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 	}
 	return "", nil
 
+}
+
+//  getPoolStatus is a wrapper that fetches the status of cstor pool.
+func (c *CStorPoolController) getPoolStatus(cStorPoolGot *apis.CStorPool) (string, error) {
+	poolStatus, err := pool.PoolStatus(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
+	if err != nil {
+		// ToDO : Put error in event recorder
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureStatusSync), string(common.MessageResourceFailStatusSync))
+		return "", err
+	}
+	return poolStatus, nil
 }
 
 // getPoolResource returns object corresponding to the resource key

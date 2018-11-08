@@ -30,6 +30,12 @@ import (
 const (
 	PoolOperator           = "zpool"
 	StatusNoPoolsAvailable = "no pools available"
+	ZpoolStatusDegraded    = "DEGRADED"
+	ZpoolStatusFaulted     = "FAULTED"
+	ZpoolStatusOffline     = "OFFLINE"
+	ZpoolStatusOnline      = "ONLINE"
+	ZpoolStatusRemoved     = "REMOVED"
+	ZpoolStatusUnavail     = "UNAVAIL"
 )
 
 //PoolAddEventHandled is a flag representing if the pool has been initially imported or created
@@ -38,7 +44,7 @@ var PoolAddEventHandled = false
 // PoolNamePrefix is a typed string to store pool name prefix
 type PoolNamePrefix string
 
-// PoolPrefix is prefix for pool name 
+// PoolPrefix is prefix for pool name
 const (
 	PoolPrefix PoolNamePrefix = "cstor-"
 )
@@ -154,6 +160,49 @@ func DeletePool(poolName string) error {
 		return err
 	}
 	return nil
+}
+
+// PoolStatus finds the status of the pool.
+func PoolStatus(poolName string) (string, error) {
+	statusPoolStr := []string{"status", poolName}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, statusPoolStr...)
+	if err != nil {
+		glog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
+		return "", err
+	}
+	// The ouptut of command executed is as follows:
+
+	/*
+			  pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
+		 state: ONLINE
+		  scan: none requested
+		config:
+
+			NAME                                        STATE     READ WRITE CKSUM
+			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
+			  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
+
+		errors: No known data errors
+	*/
+
+	outputStr := strings.Split(string(stdoutStderr), "\n")[1]
+	poolStatus := strings.TrimSpace(strings.Split(outputStr, ":")[1])
+	if poolStatus == ZpoolStatusDegraded {
+		return string(apis.CStorPoolStatusDegraded), nil
+	} else if poolStatus == ZpoolStatusFaulted {
+		return string(apis.CStorPoolStatusFaulted), nil
+	} else if poolStatus == ZpoolStatusOffline {
+		return string(apis.CStorPoolStatusOffline), nil
+	} else if poolStatus == ZpoolStatusOnline {
+		return string(apis.CStorPoolStatusOnline), nil
+	} else if poolStatus == ZpoolStatusRemoved {
+		return string(apis.CStorPoolStatusRemoved), nil
+	} else if poolStatus == ZpoolStatusUnavail {
+		return string(apis.CStorPoolStatusUnavail), nil
+	} else {
+		return string(apis.CStorPoolStatusUnknown), nil
+	}
+	return poolStatus, nil
 }
 
 // SetCachefile is to set the cachefile for pool.
