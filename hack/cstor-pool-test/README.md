@@ -1,4 +1,5 @@
 **Test script for striped dynamic cstor pool provisioning for sparse and disk type storage pool claim.**
+docker.com
 
 ```test.sh``` is the script that should be used to run tests.
 
