@@ -326,6 +326,13 @@
   version = "v1.0"
 
 [[projects]]
+  digest = "1:289a0aeeff2a467506d6faacb71c783a8610e53639e8f065e1997a569e622d6b"
+  name = "github.com/jpillora/go-ogle-analytics"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "14b04e0594ef6a9fd943363b135656f0ec8c9d0e"
+
+[[projects]]
   digest = "1:3e551bbb3a7c0ab2a2bf4660e7fcad16db089fdcfbb44b0199e62838038623ea"
   name = "github.com/json-iterator/go"
   packages = ["."]
@@ -1073,6 +1080,7 @@
     "github.com/hashicorp/nomad/api",
     "github.com/hashicorp/nomad/helper",
     "github.com/hashicorp/nomad/nomad/structs",
+    "github.com/jpillora/go-ogle-analytics",
     "github.com/mitchellh/mapstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
@@ -1117,6 +1125,7 @@
     "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/kubernetes/typed/extensions/v1beta1",
     "k8s.io/client-go/kubernetes/typed/storage/v1",
+    "k8s.io/client-go/pkg/version",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/testing",
     "k8s.io/client-go/third_party/forked/golang/template",

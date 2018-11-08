@@ -77,3 +77,7 @@ required = [
 [prune]
   unused-packages = true
   go-tests = true
+
+[[constraint]]
+  name = "github.com/jpillora/go-ogle-analytics"
+  revision = "14b04e0594ef6a9fd943363b135656f0ec8c9d0e"
