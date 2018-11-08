@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	. "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	"testing"
+
+	. "github.com/openebs/maya/pkg/client/http/v1alpha1"
 )
 
 var _ Runner = &httpCommand{}
@@ -417,6 +418,42 @@ func TestHttpPatchRun(t *testing.T) {
 
 			if result.Result() != nil {
 				t.Fatalf("Test '%s' failed: expected nil result: actual '%#v'", name, result.Result())
+			}
+		})
+	}
+}
+
+func TestWithunmarshal(t *testing.T) {
+	tests := map[string]struct {
+		command        *httpCommand
+		expectedOutput bool
+	}{
+		"When unmarshal options is invoked": {
+			command: &httpCommand{
+				RunCommand: &RunCommand{
+					Data: RunCommandDataMap{
+						"unmarshal": false,
+					},
+				},
+			},
+			expectedOutput: false,
+		},
+		"When unmarshal options not invoked": {
+			command: &httpCommand{
+				RunCommand: &RunCommand{
+					Data: RunCommandDataMap{},
+				},
+			},
+			expectedOutput: true,
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			c := mock.command.withUnmarshal()
+
+			if c.doUnmarshal != mock.expectedOutput {
+				t.Fatalf("Test Name: %v Expected: %v Got: %v", name, mock.expectedOutput, c.doUnmarshal)
 			}
 		})
 	}

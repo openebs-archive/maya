@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"encoding/json"
+
 	rest "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	"github.com/pkg/errors"
 )
@@ -32,11 +33,12 @@ import (
 //  This is an implementation of Runner
 type httpCommand struct {
 	*RunCommand
-	url  string
-	rest *rest.Rest
-	name string
-	verb rest.HttpVerb
-	body interface{}
+	url         string
+	rest        *rest.Rest
+	name        string
+	verb        rest.HttpVerb
+	body        interface{}
+	doUnmarshal bool
 }
 
 // HttpCommand returns a new instance of httpCommand
@@ -73,6 +75,17 @@ func (c *httpCommand) withVerb(v rest.HttpVerb) *httpCommand {
 func (c *httpCommand) withBody() *httpCommand {
 	b, _ := c.Data["body"]
 	c.body = b
+	return c
+}
+
+// withUnmarshal is used to do unmarshal of response
+func (c *httpCommand) withUnmarshal() *httpCommand {
+	u, p := c.Data["unmarshal"].(bool)
+	if p {
+		c.doUnmarshal = u
+	} else {
+		c.doUnmarshal = true
+	}
 	return c
 }
 
@@ -131,11 +144,16 @@ func (c *httpCommand) invoke(verb rest.HttpVerb) (r RunCommandResult) {
 	if err != nil {
 		return c.AddError(err).Result(nil)
 	}
-	err = json.Unmarshal(b, &res)
-	if err != nil {
-		return c.AddError(errors.Wrap(err, "failed to invoke http command")).Result(nil)
+
+	if c.doUnmarshal {
+		err = json.Unmarshal(b, &res)
+		if err != nil {
+			return c.AddError(errors.Wrap(err, "failed to invoke http command")).Result(nil)
+		}
+		return c.Result(res)
 	}
-	return c.Result(res)
+
+	return c.Result(b)
 }
 
 // Run executes various jiva volume related operations
@@ -187,7 +205,7 @@ func (p *httpPost) Run() (r RunCommandResult) {
 	if err != nil {
 		return p.AddError(errors.Wrap(err, "failed to invoke http post command")).Result(nil)
 	}
-	return p.withREST(robj).withName().withVerb(rest.PostAction).withBody().do()
+	return p.withREST(robj).withName().withVerb(rest.PostAction).withBody().withUnmarshal().do()
 }
 
 // httpPut represents a PUT http invocation command
