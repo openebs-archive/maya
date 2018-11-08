@@ -38,7 +38,7 @@ var PoolAddEventHandled = false
 // PoolNamePrefix is a typed string to store pool name prefix
 type PoolNamePrefix string
 
-// PoolPrefix is prefix for pool name 
+// PoolPrefix is prefix for pool name
 const (
 	PoolPrefix PoolNamePrefix = "cstor-"
 )
