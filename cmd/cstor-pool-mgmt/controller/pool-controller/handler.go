@@ -224,7 +224,7 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 
 //  getPoolStatus is a wrapper that fetches the status of cstor pool.
 func (c *CStorPoolController) getPoolStatus(cStorPoolGot *apis.CStorPool) (string, error) {
-	poolStatus, err := pool.PoolStatus(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
+	poolStatus, err := pool.Status(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
 	if err != nil {
 		// ToDO : Put error in event recorder
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureStatusSync), string(common.MessageResourceFailStatusSync))

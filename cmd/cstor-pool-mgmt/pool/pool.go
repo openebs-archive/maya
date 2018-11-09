@@ -163,7 +163,8 @@ func DeletePool(poolName string) error {
 }
 
 // PoolStatus finds the status of the pool.
-func PoolStatus(poolName string) (string, error) {
+func Status(poolName string) (string, error) {
+	var poolStatus string
 	statusPoolStr := []string{"status", poolName}
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, statusPoolStr...)
 	if err != nil {
@@ -185,8 +186,7 @@ func PoolStatus(poolName string) (string, error) {
 		errors: No known data errors
 	*/
 
-	outputStr := strings.Split(string(stdoutStderr), "\n")[1]
-	poolStatus := strings.TrimSpace(strings.Split(outputStr, ":")[1])
+	poolStatus = poolStatusOutputParser(string(stdoutStderr))
 	if poolStatus == ZpoolStatusDegraded {
 		return string(apis.CStorPoolStatusDegraded), nil
 	} else if poolStatus == ZpoolStatusFaulted {
@@ -203,6 +203,23 @@ func PoolStatus(poolName string) (string, error) {
 		return string(apis.CStorPoolStatusUnknown), nil
 	}
 	return poolStatus, nil
+}
+
+// poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.
+// ToDo: Need to find some better way e.g contract for zpool command outputs.
+func poolStatusOutputParser(output string) string {
+	var outputStr []string
+	var poolStatus string
+	if strings.TrimSpace(string(output)) != "" {
+		outputStr = strings.Split(string(output), "\n")
+		if !(len(outputStr) < 2) {
+			poolStatusArr := strings.Split(outputStr[1], ":")
+			if !(len(outputStr) < 2) {
+				poolStatus = strings.TrimSpace(poolStatusArr[1])
+			}
+		}
+	}
+	return poolStatus
 }
 
 // SetCachefile is to set the cachefile for pool.
