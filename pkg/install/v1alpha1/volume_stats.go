@@ -21,18 +21,18 @@ const volumeStatsYaml = `
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
-  name: casvolume-stats-read-default
+  name: cas-volume-stats-default
 spec:
-  taskNamespace: "openebs"
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-      - volume-stats-read-default
-  output: volume-stats-output-default
+      - cas-volume-stats-default
+  output: cas-volume-stats-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata: 
-  name: volume-stats-read-default
+  name: cas-volume-stats-default
 spec:
   meta: |
     id: readvolumesvc
@@ -44,11 +44,15 @@ spec:
       labelSelector: openebs.io/persistent-volume={{ .Volume.owner }}
   post: |
       {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readvolumesvc.svcIP" .TaskResult | noop -}}
+      {{- $url:= print "http://" .TaskResult.readvolumesvc.svcIP ":9500/metrics/?format=json" -}}
+      {{- $store := storeAt .TaskResult -}}
+      {{- $runner := storeRunner $store -}}
+      {{- get http | withoption "url" $url | withoption "unmarshal" false | runas "getStats" $runner -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata: 
-  name: volume-stats-output-default
+  name: cas-volume-stats-output-default
 spec:
   meta: |
     action: output
@@ -56,7 +60,7 @@ spec:
     kind: CASStats
     apiVersion: v1alpha1
   task: |
-      {{- .TaskResult.readvolumesvc.svcIP -}}
+      {{ .TaskResult.getStats.result | toString }}
 `
 
 // VolumeStatsArtifacts returns the CRDs required for latest version

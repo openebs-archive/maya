@@ -10,6 +10,7 @@ const (
 	statsVolumePath = "/latest/volumes/stats/"
 )
 
+// VolumeStats returns the VolumeMetrics fetched from apisever endpoint
 func VolumeStats(volName, namespace string) (v1.VolumeMetrics, error) {
 	stats := v1.VolumeMetrics{}
 	body, err := getRequest(GetURL()+statsVolumePath+volName, namespace, false)

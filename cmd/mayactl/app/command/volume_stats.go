@@ -18,6 +18,7 @@ package command
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/types/v1"
@@ -84,11 +85,13 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 	statsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		fmt.Printf("%v", err)
-		return fmt.Errorf("Internal Server Error")
+		return err
 	}
+	time.Sleep(time.Second)
 	statsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
-		return fmt.Errorf("Internal Server Error")
+		fmt.Printf("%v", err)
+		return err
 	}
 
 	stats, err := processStats(statsi, statsf)
@@ -100,7 +103,6 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 }
 
 func processStats(stats1, stats2 v1.VolumeMetrics) (stats v1.StatsJSON, err error) {
-
 	if len(stats1) != len(stats2) {
 		return stats, fmt.Errorf("Invalid Response")
 	}

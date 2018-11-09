@@ -22,7 +22,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	http_client "github.com/openebs/maya/pkg/client/http/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -495,7 +494,7 @@ func (v *Operation) ReadStats() ([]byte, error) {
 		return nil, fmt.Errorf("unable to read volume: volume name not provided")
 	}
 
-	castName := "casvolume-stats-read-default"
+	castName := menv.Get(menv.CASTemplateToReadVolumeStatsENVK)
 
 	// fetch read cas template specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
@@ -520,11 +519,5 @@ func (v *Operation) ReadStats() ([]byte, error) {
 		return nil, err
 	}
 
-	targetURL := string(data)
-	if len(targetURL) == 0 {
-		return nil, fmt.Errorf("Volume not found at given namespace")
-	}
-
-	r, err := http_client.URL("", "http://"+targetURL+":9500/metrics/?type=json")
-	return r, err
+	return data, err
 }

@@ -241,7 +241,7 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 }
 
 func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error) {
-	glog.Infof("CASTemplate based stats request received")
+	glog.Infof("CASTemplate based volume stats request received")
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
 	hdrNS := ""
@@ -284,6 +284,7 @@ func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error)
 		return nil, CodedError(500, err.Error())
 	}
 
+	// pipelining the response
 	v.resp.Write(stats)
 	glog.Infof("cas template based volume stats read successful '%s'", volumeName)
 	return nil, err

@@ -142,8 +142,8 @@ func TestRunVolumeInfo(t *testing.T) {
 			defer server.Close()
 		})
 	}
-
 }
+
 func TestDisplayVolumeInfo(t *testing.T) {
 	validInfo := map[string]struct {
 		cmdOptions *CmdVolumeOptions

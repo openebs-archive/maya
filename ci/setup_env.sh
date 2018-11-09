@@ -39,6 +39,14 @@ if [[ $rc != 0 ]]; then
 	exit $rc;
 fi
 
+echo "************** Running Cstor mayactl volume stats *************************"
+${MAYACTL} volume stats --volname  $CSTORVOL -n openebs
+rc=$?;
+if [[ $rc != 0 ]]; then
+	kubectl logs --tail=10 $MAPIPOD -n openebs
+	exit $rc;
+fi
+
 #sleep 60
 #echo "************** Running Jiva mayactl snapshot create **********************"
 #${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap1

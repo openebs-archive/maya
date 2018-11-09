@@ -19,9 +19,10 @@ package v1alpha1
 import (
 	"fmt"
 
+	"strings"
+
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	ver "github.com/openebs/maya/pkg/version"
-	"strings"
 )
 
 // EnvStatus represents the status of operation against an env instance
@@ -248,6 +249,10 @@ func (e *envInstall) List() (l *envList, err error) {
 	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeleteJivaSnapshotENVK,
 		Value: ver.WithSuffix("jiva-snapshot-delete-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToReadVolumeStatsENVK,
+		Value: ver.WithSuffix("cas-volume-stats-default"),
 	})
 	return
 }

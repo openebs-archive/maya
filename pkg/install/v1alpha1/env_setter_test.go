@@ -28,7 +28,7 @@ func TestEnvInstallCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedCount int
 	}{
-		"101": {16},
+		"101": {17},
 	}
 
 	for name, mock := range tests {
