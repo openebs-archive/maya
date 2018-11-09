@@ -53,7 +53,12 @@ func (e *Event) Send() error {
 	if err != nil {
 		return err
 	}
+	nodeInfo, err := k8sapi.GetOSAndKernelVersion()
+	if err != nil {
+		return err
+	}
 	glog.Infof("Kubernetes version: %s", k8sversion.GitVersion)
+	glog.Infof("Node type: %s", nodeInfo)
 	// anonymous user identifying
 	// client-id - uid of default namespace
 	gaClient.ClientID(uuid).
@@ -63,7 +68,7 @@ func (e *Event) Send() error {
 		// K8s version
 
 		// TODO: Find k8s Environment type
-		// DataSource().
+		DataSource(nodeInfo).
 		ApplicationName(k8sversion.Platform).
 		ApplicationInstallerID(k8sversion.GitVersion).
 		DocumentTitle(uuid)

@@ -67,3 +67,15 @@ func NumberOfNodes() (int, error) {
 		return len(nodes.Items), nil
 	}
 }
+
+// GetOSAndKernelVersion gets us the OS,Kernel version
+func GetOSAndKernelVersion() (string, error) {
+	nodes := Node()
+	// get a single node
+	firstNode, err := nodes.List(metav1.ListOptions{Limit: 1})
+	if err != nil {
+		return "unknown, unknown", errors.Wrapf(err, "failed to get the os kernel/arch")
+	}
+	nodedetails := firstNode.Items[0].Status.NodeInfo
+	return nodedetails.OSImage + ", " + nodedetails.KernelVersion, nil
+}
