@@ -38,7 +38,7 @@ type httpCommand struct {
 	name        string
 	verb        rest.HttpVerb
 	body        interface{}
-	doUnmarshal bool
+	isUnmarshal bool
 }
 
 // HttpCommand returns a new instance of httpCommand
@@ -79,13 +79,13 @@ func (c *httpCommand) withBody() *httpCommand {
 }
 
 // withUnmarshal is used to do unmarshal of response
-func (c *httpCommand) withUnmarshal() *httpCommand {
-	u, p := c.Data["unmarshal"].(bool)
-	if p {
-		c.doUnmarshal = u
-	} else {
-		c.doUnmarshal = true
+func (c *httpCommand) withIsUnmarshal() *httpCommand {
+	unmarshalKey, isPresent := c.Data["unmarshal"].(bool)
+	if isPresent {
+		c.isUnmarshal = unmarshalKey
+		return c
 	}
+	c.isUnmarshal = true
 	return c
 }
 
@@ -145,7 +145,7 @@ func (c *httpCommand) invoke(verb rest.HttpVerb) (r RunCommandResult) {
 		return c.AddError(err).Result(nil)
 	}
 
-	if c.doUnmarshal {
+	if c.isUnmarshal {
 		err = json.Unmarshal(b, &res)
 		if err != nil {
 			return c.AddError(errors.Wrap(err, "failed to invoke http command")).Result(nil)
@@ -162,7 +162,7 @@ func (c *httpCommand) Run() (r RunCommandResult) {
 	if len(url) == 0 {
 		return c.AddError(errors.New("missing url: failed to invoke http command")).Result(nil)
 	}
-	return c.withURL(url).instance().Run()
+	return c.withURL(url).withIsUnmarshal().instance().Run()
 }
 
 // httpDelete represents a delete http invocation command
@@ -205,7 +205,7 @@ func (p *httpPost) Run() (r RunCommandResult) {
 	if err != nil {
 		return p.AddError(errors.Wrap(err, "failed to invoke http post command")).Result(nil)
 	}
-	return p.withREST(robj).withName().withVerb(rest.PostAction).withBody().withUnmarshal().do()
+	return p.withREST(robj).withName().withVerb(rest.PostAction).withBody().do()
 }
 
 // httpPut represents a PUT http invocation command

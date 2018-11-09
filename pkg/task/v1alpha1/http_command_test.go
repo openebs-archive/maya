@@ -450,10 +450,10 @@ func TestWithunmarshal(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := mock.command.withUnmarshal()
+			c := mock.command.withIsUnmarshal()
 
-			if c.doUnmarshal != mock.expectedOutput {
-				t.Fatalf("Test Name: %v Expected: %v Got: %v", name, mock.expectedOutput, c.doUnmarshal)
+			if c.isUnmarshal != mock.expectedOutput {
+				t.Fatalf("Test Name: %v Expected: %v Got: %v", name, mock.expectedOutput, c.isUnmarshal)
 			}
 		})
 	}
