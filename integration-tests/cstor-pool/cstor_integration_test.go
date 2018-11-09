@@ -431,4 +431,110 @@ var _ = Describe("Integration Test", func() {
 
 		})
 	})
+
+	// TODo: Add more test cases. Refer to following design doc
+	// https://docs.google.com/document/d/1QAYK-Bsehc7v66kscXCiMJ7_pTIjzNmwyl43tF92gWA/edit
+
+	// Test Case #10 (sparse-mirrored-auto-spc). Type : Positive
+	When("We apply sparse-mirrored-auto spc yaml with maxPool count equal to 3 & min count equal to 1 on a k8s cluster having at least 1 capable node", func() {
+		It("pool resources count should be less than equal 3 to & greater than equal to 1 with no error and online status", func() {
+			// TODO: Create a generic util function in utils.go to convert yaml into go object.
+			// ToDo: More POC regarding this util converter function.
+			// Functions generic to both cstor-pool and cstor-vol should go inside common directory
+
+			// 1.Read SPC yaml form a file.
+			// 2.Convert SPC yaml to json.
+			// 3.Marshall json to SPC go object.
+
+			// Create a storage pool claim object
+			spcObject := &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "disk-claim-auto",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Name:     "sparse-claim-auto",
+					Type:     "sparse",
+					MaxPools: 3,
+					MinPools: 1,
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: "stripped",
+					},
+				},
+			}
+			// Call CITF to create StoragePoolClaim in k8s.
+			spcGot, err := citfInstance.K8S.CreateStoragePoolClaim(spcObject)
+			Expect(err).To(BeNil())
+			// We expect nil error.
+
+			// We expect atleast 1 cstorPool objects.
+			var maxRetry int
+			var cspCount int
+			maxRetry = 10
+			for i := 0; i < maxRetry; i++ {
+				cspCount, err = getCstorPoolCount(spcGot.Name, citfInstance)
+				if err != nil {
+					break
+				}
+				if cspCount == 3 {
+					break
+				}
+				time.Sleep(time.Second * 5)
+			}
+
+			Expect(cspCount).Should(BeNumerically("<=", 3))
+			Expect(cspCount).Should(BeNumerically(">=", 1))
+
+			// We expect 3 pool deployments.
+			var deployCount int
+			maxRetry = 10
+			for i := 0; i < maxRetry; i++ {
+				deployCount, err = getPoolDeployCount(spcGot.Name, citfInstance)
+				if err != nil {
+					break
+				}
+				if deployCount == 3 {
+					break
+				}
+				time.Sleep(time.Second * 5)
+			}
+
+			Expect(deployCount).Should(BeNumerically("<=", 3))
+			Expect(deployCount).Should(BeNumerically(">=", 1))
+
+			// We expect 3 storagePool objects.
+			var spCount int
+			maxRetry = 10
+			for i := 0; i < maxRetry; i++ {
+				spCount, err = getStoragePoolCount(spcGot.Name, citfInstance)
+				if err != nil {
+					break
+				}
+				if spCount == 3 {
+					break
+				}
+				time.Sleep(time.Second * 5)
+			}
+
+			Expect(spCount).Should(BeNumerically("<=", 3))
+			Expect(spCount).Should(BeNumerically(">=", 1))
+
+			// We expect 'online' status on all the three cstorPool objects(i.e. 3 online counts)
+			var onlineCspCount int
+			maxRetry = 10
+			for i := 0; i < maxRetry; i++ {
+				onlineCspCount, err = getCstorPoolStatus(spcGot.Name, citfInstance)
+				if err != nil {
+					break
+				}
+				if onlineCspCount == 3 {
+					break
+				}
+				time.Sleep(time.Second * 5)
+			}
+
+			Expect(onlineCspCount).Should(BeNumerically("<=", 3))
+			Expect(onlineCspCount).Should(BeNumerically(">=", 1))
+
+		})
+	})
 })
