@@ -20,7 +20,6 @@ if [[ $rc != 0 ]]; then
 fi
 
 printf "\n\n"
-
 echo "************** Running Jiva mayactl volume info **************************"
 ${MAYACTL} volume info --volname $JIVAVOL
 rc=$?;
@@ -28,10 +27,9 @@ if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
-
-printf "\n\n"
 sleep 5
 
+printf "\n\n"
 echo "************** Running Jiva mayactl volume stats *************************"
 ${MAYACTL} volume stats --volname  $JIVAVOL
 rc=$?;
@@ -39,8 +37,8 @@ if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
-
 sleep 60
+
 echo "************** Running Jiva mayactl snapshot create **********************"
 ${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap1
 rc=$?;
@@ -48,48 +46,55 @@ if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
-
-printf "\n\n"
 sleep 30
 
 ${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap2
+rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
-
 sleep 30
 
+printf "\n\n"
 echo "************** Running Jiva mayactl snapshot list ************************"
 ${MAYACTL} snapshot list --volname $JIVAVOL
+rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
+sleep 30
 
 printf "\n\n"
-sleep 30
 echo "************** Running Jiva mayactl snapshot revert **********************"
 ${MAYACTL} snapshot revert --volname $JIVAVOL --snapname snap1
+rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
-printf "\n\n"
 sleep 10
 
+printf "\n\n"
 echo "************** Running Jiva mayactl snapshot list after revert ************"
 ${MAYACTL} snapshot list --volname $JIVAVOL
+rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
 fi
+
+printf "\n\n"
 echo "************** Running Jiva mayactl volume delete ************************"
 ${MAYACTL} volume delete --volname $JIVAVOL
+rc=$?;
 if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
+	kubectl logs --tail=100 $MAPIPOD -n openebs
 	exit $rc;
 fi
+sleep 30
+
 
 printf "\n\n"
 echo "************** Running Cstor mayactl volume info *************************"
@@ -100,3 +105,15 @@ if [[ $rc != 0 ]]; then
 	exit $rc;
 fi
 
+printf "\n\n"
+echo "************** Check if jiva replica data is cleared *************************"
+if [ -f /var/openebs/$JIVAVOL/volume.meta ]; then
+	#Check if the job is in progress. 
+	printf "\n"
+	ls -lR /var/openebs
+	printf "\n"
+	kubectl get jobs
+	printf "\n"
+	kubectl get pods
+	printf "\n"
+fi
