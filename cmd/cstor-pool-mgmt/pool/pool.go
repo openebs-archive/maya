@@ -163,6 +163,21 @@ func DeletePool(poolName string) error {
 }
 
 // PoolStatus finds the status of the pool.
+// The ouptut of command(`zpool status <pool-name>`) executed is as follows:
+
+/*
+		  pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
+	 state: ONLINE
+	  scan: none requested
+	config:
+
+		NAME                                        STATE     READ WRITE CKSUM
+		cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
+		  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
+
+	errors: No known data errors
+*/
+// The output is then parsed by poolStatusOutputParser function to get the status of the pool
 func Status(poolName string) (string, error) {
 	var poolStatus string
 	statusPoolStr := []string{"status", poolName}
@@ -171,21 +186,6 @@ func Status(poolName string) (string, error) {
 		glog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
 		return "", err
 	}
-	// The ouptut of command executed is as follows:
-
-	/*
-			  pool: cstor-530c9c4f-e0df-11e8-94a8-42010a80013b
-		 state: ONLINE
-		  scan: none requested
-		config:
-
-			NAME                                        STATE     READ WRITE CKSUM
-			cstor-530c9c4f-e0df-11e8-94a8-42010a80013b  ONLINE       0     0     0
-			  scsi-0Google_PersistentDisk_ashu-disk2    ONLINE       0     0     0
-
-		errors: No known data errors
-	*/
-
 	poolStatus = poolStatusOutputParser(string(stdoutStderr))
 	if poolStatus == ZpoolStatusDegraded {
 		return string(apis.CStorPoolStatusDegraded), nil
