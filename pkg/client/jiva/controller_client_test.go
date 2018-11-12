@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/openebs/maya/types/v1"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/types/v1"
 
 	utiltesting "k8s.io/client-go/util/testing"
 )

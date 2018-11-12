@@ -75,7 +75,7 @@ func RegisteredArtifactsFor070() (list ArtifactList) {
 	list.Items = append(list.Items, CstorVolumeArtifactsFor070().Items...)
 	list.Items = append(list.Items, CstorSparsePoolSpcArtifactsFor070().Items...)
 
-	//Contains the SC to help with provisioning from clone. 
+	//Contains the SC to help with provisioning from clone.
 	//This is generic for release till K8s supports native way of cloning.
 	list.Items = append(list.Items, SnapshotPromoterSCArtifacts().Items...)
 

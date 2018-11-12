@@ -28,15 +28,15 @@ func IsCstorSparsePoolEnabled() (enabled bool) {
 	return
 }
 
-// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim 
-// and storageclass yaml corresponding to version 0.7.0 if cstor 
+// CstorSparsePoolSpcArtifactsFor070 returns the default storagepoolclaim
+// and storageclass yaml corresponding to version 0.7.0 if cstor
 // sparse pool creation is enabled as a part of openebs installation
 func CstorSparsePoolSpcArtifactsFor070() (list ArtifactList) {
 	list.Items = append(list.Items, ParseArtifactListFromMultipleYamlConditional(cstorSparsePoolSpcArtifactsFor070, IsCstorSparsePoolEnabled)...)
 	return
 }
 
-// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring 
+// cstorPoolSpcForArtifacts070 returns all the yamls related to configuring
 // a stoaragepoolclaim and storageclass in string format
 //
 // NOTE:
