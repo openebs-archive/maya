@@ -49,6 +49,12 @@ type VolumeStats struct {
 	ReplicaCounter    json.Number `json:"ReplicaCounter"`
 	UpTime            json.Number `json:"UpTime"`
 	Name              string      `json:"Name"`
+	Replicas          []Replica   `json:"Replicas"`
+	TargetStatus      string      `json:"Status"`
+}
+
+type Replica struct {
+	Address, Mode string
 }
 
 // VolStatus stores the status of a volume.

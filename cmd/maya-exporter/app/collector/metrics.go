@@ -3,6 +3,7 @@ package collector
 import (
 	"net"
 
+	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -116,6 +117,7 @@ type Metrics struct {
 	volumeUpTime           *prometheus.CounterVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
+	replicaCounter         *prometheus.GaugeVec
 }
 
 // VolumeStats keep the values of read/write I/O's and
@@ -137,6 +139,8 @@ type VolumeStats struct {
 	revisionCount        float64
 	replicaCount         float64
 	name                 string
+	replicas             []v1.Replica
+	status               string
 }
 
 // MetricsInitializer returns the Metrics instance used for registration
@@ -234,7 +238,7 @@ func MetricsInitializer(casType string) *Metrics {
 				Name:      "volume_uptime",
 				Help:      "Time since volume has registered",
 			},
-			[]string{"volName", "iqn", "portal", "castype"},
+			[]string{"volName", "iqn", "portal", "castype", "status"},
 		),
 
 		connectionRetryCounter: prometheus.NewCounterVec(
@@ -253,6 +257,15 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Total no of connection errors",
 			},
 			[]string{"err"},
+		),
+
+		replicaCounter: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "replica_count",
+				Help:      "Total no of replicas",
+			},
+			[]string{"address", "mode"},
 		),
 	}
 }
@@ -281,6 +294,7 @@ func (v *VolumeStatsExporter) countersList() []prometheus.Collector {
 		v.volumeUpTime,
 		v.connectionErrorCounter,
 		v.connectionRetryCounter,
+		v.replicaCounter,
 	}
 }
 
