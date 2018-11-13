@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/openebs/maya/cmd/mayactl/app/command/pool"
 	"github.com/openebs/maya/cmd/mayactl/app/command/snapshot"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/spf13/cobra"
@@ -55,6 +56,7 @@ func NewMayaCommand() *cobra.Command {
 		NewCmdVersion(),
 		NewCmdVolume(),
 		snapshot.NewCmdSnapshot(),
+		pool.NewCmdPool(),
 	)
 
 	// add the glog flags

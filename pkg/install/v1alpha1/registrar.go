@@ -79,6 +79,7 @@ func RegisteredArtifacts() (list artifactList) {
 
 	// snapshots
 	list.Items = append(list.Items, JivaSnapshotArtifacts().Items...)
+	list.Items = append(list.Items, StoragePoolArtifacts().Items...)
 
 	return
 }

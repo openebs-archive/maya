@@ -139,6 +139,14 @@ const (
 	// CASTemplateToDeleteCStorSnapshotENVK is the ENV key that specifies the CAS Template
 	// to delete cstor cas snapshot
 	CASTemplateToDeleteCStorSnapshotENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_DELETE_SNAPSHOT"
+
+	// CASTemplateToListStoragePoolENVK is the ENV key that specifies the CAS Template
+	// to list cas sto
+	CASTemplateToListStoragePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_STORAGE_POOL"
+
+	// CASTemplateToReadStoragePoolENVK is the ENV key that specifies the CAS Template
+	// to read storagepool
+	CASTemplateToReadStoragePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_STORAGE_POOL"
 )
 
 // EnvironmentSetter abstracts setting of environment variable
