@@ -124,11 +124,6 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(newCStorPool) {
 				return
 			}
-			// Periodic resync will send update events for all known CStorPool.
-			// Two different versions of the same CStorPool will always have different RVs.
-			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
-				return
-			}
 			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
 				glog.Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
@@ -136,7 +131,14 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
 				return
 			}
-			if IsDestroyEvent(newCStorPool) {
+			// Periodic resync will send update events for all known CStorPool.
+			// Two different versions of the same CStorPool will always have different RVs.
+			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
+				// Synchronize Cstor pool status
+				q.Operation = common.QOpStatusSync
+				glog.Infof("cStorPool status sync event for %s", newCStorPool.ObjectMeta.Name)
+				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
+			} else if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
