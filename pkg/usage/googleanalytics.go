@@ -28,6 +28,16 @@ type Event struct {
 	value int64
 }
 
+// versionSet is a struct which stores (sort of) fixed information about a
+// k8s environment
+type versionSet struct {
+	id             string
+	k8sVersion     string
+	k8sArch        string
+	openebsVersion string
+	nodeType       string
+}
+
 // NewEvent returns an Event struct with eventCategory, eventAction,
 // eventLabel, eventValue fields
 func NewEvent(c, a, l string, v int64) *Event {
@@ -39,39 +49,52 @@ func NewEvent(c, a, l string, v int64) *Event {
 	}
 }
 
+// fetchVersion consumes the Kubernetes API to get environment constants
+// and returns a versionSet struct
+func fetchVersion() (versionSet, error) {
+	v := versionSet{}
+	var err error
+
+	v.id, err = getUUIDbyNS("default")
+	if err != nil {
+		return v, err
+	}
+
+	k8s, err := k8sapi.GetServerVersion()
+	if err != nil {
+		return v, err
+	}
+	// eg. linux/amd64
+	v.k8sArch = k8s.Platform
+	v.k8sVersion = k8s.GitVersion
+	v.nodeType, err = k8sapi.GetOSAndKernelVersion()
+	if err != nil {
+		return v, err
+	}
+	v.openebsVersion = openebsversion.GetVersionDetails()
+	return v, nil
+}
+
 // Send sends a single event to Google Analytics
 func (e *Event) Send() error {
-	uuid, err := getUUIDbyNS("default")
-	if err != nil {
-		return err
-	}
+	version, err := fetchVersion()
 	gaClient, err := analytics.NewClient(GAclientID)
 	if err != nil {
 		return err
 	}
-	k8sversion, err := k8sapi.GetServerVersion()
-	if err != nil {
-		return err
-	}
-	nodeInfo, err := k8sapi.GetOSAndKernelVersion()
-	if err != nil {
-		return err
-	}
-	glog.Infof("Kubernetes version: %s", k8sversion.GitVersion)
-	glog.Infof("Node type: %s", nodeInfo)
 	// anonymous user identifying
 	// client-id - uid of default namespace
-	gaClient.ClientID(uuid).
+	gaClient.ClientID(version.id).
 		// OpenEBS version details
 		ApplicationID("OpenEBS").
-		ApplicationVersion(openebsversion.GetVersion()).
+		ApplicationVersion(version.openebsVersion).
 		// K8s version
 
 		// TODO: Find k8s Environment type
-		DataSource(nodeInfo).
-		ApplicationName(k8sversion.Platform).
-		ApplicationInstallerID(k8sversion.GitVersion).
-		DocumentTitle(uuid)
+		DataSource(version.nodeType).
+		ApplicationName(version.k8sArch).
+		ApplicationInstallerID(version.k8sVersion).
+		DocumentTitle(version.id)
 
 	event := analytics.NewEvent(e.category, e.action)
 	event.Label(e.label)
