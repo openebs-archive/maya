@@ -1,7 +1,6 @@
 package usage
 
 import (
-	"github.com/golang/glog"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	openebsversion "github.com/openebs/maya/pkg/version"
@@ -28,7 +27,6 @@ type versionSet struct {
 // fetchAndSetVersion consumes the Kubernetes API to get environment constants
 // and returns a versionSet struct
 func (v *versionSet) fetchAndSetVersion() error {
-	glog.Infof("FetchAndSetVersion")
 	var err error
 	v.id, err = getUUIDbyNS("default")
 	if err != nil {
@@ -57,7 +55,6 @@ func (v *versionSet) fetchAndSetVersion() error {
 
 // getVersion is a wrapper over fetchAndSetVersion
 func (v *versionSet) getVersion() error {
-	glog.Infof("GetVersion")
 	// If ENVs aren't set, fetch the required values from the
 	// K8s APIserver
 	if _, present := env.Lookup(openEBSversion); !present {
