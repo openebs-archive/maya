@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2017 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,28 +14,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package pool
 
 import (
-	"testing"
+	"github.com/spf13/cobra"
 )
 
-var _ EnvLister = &envInstall{}
+var (
+	poolCommandHelpText = `
+Command provides operations related to a storage pools.
 
-func TestEnvInstallCount(t *testing.T) {
-	tests := map[string]struct {
-		expectedCount int
-	}{
-		"101": {19},
+Usage: mayactl pool <subcommand> [options] [args]
+
+Examples:
+  # Lists pool:
+    $ mayactl pool list 
+`
+)
+
+// NewCmdPool adds command for operating on snapshot
+func NewCmdPool() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pool",
+		Short: "Provides operations related to a storage pool",
+		Long:  poolCommandHelpText,
 	}
 
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			e := EnvInstall()
-			l, _ := e.List()
-			if len(l.Items) != mock.expectedCount {
-				t.Fatalf("Test '%s' failed: expected env variables count '%d': actual '%d'", name, mock.expectedCount, len(l.Items))
-			}
-		})
-	}
+	cmd.AddCommand(
+		NewCmdPoolList(),
+	)
+	return cmd
 }

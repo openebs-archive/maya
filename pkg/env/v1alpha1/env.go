@@ -143,6 +143,14 @@ const (
 	// CASTemplateToReadVolumeStatsENVK is the ENV key that specifies the CAS Template
 	// to read volume stats
 	CASTemplateToReadVolumeStatsENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_CAS_VOLUME_STATS"
+
+	// CASTemplateToListStoragePoolENVK is the ENV key that specifies the CAS Template
+	// to list cas sto
+	CASTemplateToListStoragePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_LIST_STORAGE_POOL"
+
+	// CASTemplateToReadStoragePoolENVK is the ENV key that specifies the CAS Template
+	// to read storagepool
+	CASTemplateToReadStoragePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_STORAGE_POOL"
 )
 
 // EnvironmentSetter abstracts setting of environment variable

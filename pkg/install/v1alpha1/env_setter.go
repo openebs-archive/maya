@@ -253,5 +253,13 @@ func (e *envInstall) List() (l *envList, err error) {
 		Key:   menv.CASTemplateToReadVolumeStatsENVK,
 		Value: ver.WithSuffix("cas-volume-stats-default"),
 	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToListStoragePoolENVK,
+		Value: ver.WithSuffix("storage-pool-list-default"),
+	})
+	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToReadStoragePoolENVK,
+		Value: ver.WithSuffix("storage-pool-read-default"),
+	})
 	return
 }

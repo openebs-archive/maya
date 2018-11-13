@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2017 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,28 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package mapiserver
 
 import (
-	"testing"
+	"encoding/json"
+
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-var _ EnvLister = &envInstall{}
+const poolPath = "/latest/pools/"
 
-func TestEnvInstallCount(t *testing.T) {
-	tests := map[string]struct {
-		expectedCount int
-	}{
-		"101": {19},
-	}
+// ListPools and return them as obj
+func ListPools() (*v1alpha1.StoragePoolList, error) {
 
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			e := EnvInstall()
-			l, _ := e.List()
-			if len(l.Items) != mock.expectedCount {
-				t.Fatalf("Test '%s' failed: expected env variables count '%d': actual '%d'", name, mock.expectedCount, len(l.Items))
-			}
-		})
+	body, err := getRequest(GetURL()+poolPath, "", false)
+	if err != nil {
+		return nil, err
 	}
+	pools := v1alpha1.StoragePoolList{}
+	err = json.Unmarshal(body, &pools)
+	return &pools, err
 }
