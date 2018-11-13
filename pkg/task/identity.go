@@ -82,6 +82,10 @@ func (i taskIdentifier) isDeployment() bool {
 	return i.identity.Kind == string(m_k8s_client.DeploymentKK)
 }
 
+func (i taskIdentifier) isJob() bool {
+	return i.identity.Kind == string(m_k8s_client.JobKK)
+}
+
 func (i taskIdentifier) isService() bool {
 	return i.identity.Kind == string(m_k8s_client.ServiceKK)
 }
@@ -108,6 +112,10 @@ func (i taskIdentifier) isPV() bool {
 
 func (i taskIdentifier) isExtnV1B1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.ExtensionsV1Beta1KA)
+}
+
+func (i taskIdentifier) isBatchV1() bool {
+	return i.identity.APIVersion == string(m_k8s_client.BatchV1KA)
 }
 
 func (i taskIdentifier) isAppsV1B1() bool {
@@ -160,6 +168,10 @@ func (i taskIdentifier) isOEV1alpha1CSP() bool {
 
 func (i taskIdentifier) isExtnV1B1Deploy() bool {
 	return i.isExtnV1B1() && i.isDeployment()
+}
+
+func (i taskIdentifier) isBatchV1Job() bool {
+	return i.isBatchV1() && i.isJob()
 }
 
 func (i taskIdentifier) isAppsV1B1Deploy() bool {

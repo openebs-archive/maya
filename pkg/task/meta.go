@@ -302,6 +302,10 @@ func (m *metaTaskExecutor) isPutExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isPutBatchV1Job() bool {
+	return m.identifier.isBatchV1Job() && m.isPut()
+}
+
 func (m *metaTaskExecutor) isPatchExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPatch()
 }
@@ -356,6 +360,14 @@ func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
 
 func (m *metaTaskExecutor) isGetStorageV1SC() bool {
 	return m.identifier.isStorageV1SC() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isGetBatchV1Job() bool {
+	return m.identifier.isBatchV1Job() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isDeleteBatchV1Job() bool {
+	return m.identifier.isBatchV1Job() && m.isDelete()
 }
 
 func (m *metaTaskExecutor) isGetOEV1alpha1Disk() bool {
