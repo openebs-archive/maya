@@ -199,7 +199,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				   {
 					  "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233":[
 						 {
-							"replica":-5523611450015704000,
+							"replica":"5523611450015704000",
 							"status":"HEALTHY",
 							"checkpointed_io_seq":0,
 							"inflight_read":0,
@@ -208,7 +208,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 							"connected since(in seconds)":1275
 						 },
 						 {
-							"replica":-23523553,
+							"replica":"23523553",
 							"status":"BAD",
 							"checkpointed_io_seq":0,
 							"inflight_read":0,
@@ -221,7 +221,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				]
 			 }`,
 			"pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
-			[]string{"HEALTHY", "BAD"},
+			[]string{"5523611450015704000:HEALTHY", "23523553:BAD"},
 			false,
 		},
 		"One replica with HEALTHY status": {
@@ -230,7 +230,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				   {
 					  "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233":[
 						 {
-							"replica":-5523611450015704000,
+							"replica":"5523611450015704",
 							"status":"HEALTHY",
 							"checkpointed_io_seq":0,
 							"inflight_read":0,
@@ -243,7 +243,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				]
 			 }`,
 			"pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
-			[]string{"HEALTHY"},
+			[]string{"5523611450015704:HEALTHY"},
 			false,
 		},
 		"Missing replicas": {
