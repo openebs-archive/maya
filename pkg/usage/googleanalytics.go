@@ -4,12 +4,11 @@ import (
 	"github.com/golang/glog"
 	analytics "github.com/jpillora/go-ogle-analytics"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	openebsversion "github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// GAClientID is the unique code of OpenEBS project in Google Analytics
+	// GAclientID is the unique code of OpenEBS project in Google Analytics
 	GAclientID = "UA-127388617-1"
 )
 
@@ -28,16 +27,6 @@ type Event struct {
 	value int64
 }
 
-// versionSet is a struct which stores (sort of) fixed information about a
-// k8s environment
-type versionSet struct {
-	id             string
-	k8sVersion     string
-	k8sArch        string
-	openebsVersion string
-	nodeType       string
-}
-
 // NewEvent returns an Event struct with eventCategory, eventAction,
 // eventLabel, eventValue fields
 func NewEvent(c, a, l string, v int64) *Event {
@@ -49,52 +38,27 @@ func NewEvent(c, a, l string, v int64) *Event {
 	}
 }
 
-// fetchVersion consumes the Kubernetes API to get environment constants
-// and returns a versionSet struct
-func fetchVersion() (versionSet, error) {
-	v := versionSet{}
-	var err error
-
-	v.id, err = getUUIDbyNS("default")
-	if err != nil {
-		return v, err
-	}
-
-	k8s, err := k8sapi.GetServerVersion()
-	if err != nil {
-		return v, err
-	}
-	// eg. linux/amd64
-	v.k8sArch = k8s.Platform
-	v.k8sVersion = k8s.GitVersion
-	v.nodeType, err = k8sapi.GetOSAndKernelVersion()
-	if err != nil {
-		return v, err
-	}
-	v.openebsVersion = openebsversion.GetVersionDetails()
-	return v, nil
-}
-
 // Send sends a single event to Google Analytics
 func (e *Event) Send() error {
-	version, err := fetchVersion()
+	v := &versionSet{}
+	err := v.getVersion()
 	gaClient, err := analytics.NewClient(GAclientID)
 	if err != nil {
 		return err
 	}
 	// anonymous user identifying
 	// client-id - uid of default namespace
-	gaClient.ClientID(version.id).
+	gaClient.ClientID(v.id).
 		// OpenEBS version details
 		ApplicationID("OpenEBS").
-		ApplicationVersion(version.openebsVersion).
+		ApplicationVersion(v.openebsVersion).
 		// K8s version
 
 		// TODO: Find k8s Environment type
-		DataSource(version.nodeType).
-		ApplicationName(version.k8sArch).
-		ApplicationInstallerID(version.k8sVersion).
-		DocumentTitle(version.id)
+		DataSource(v.nodeType).
+		ApplicationName(v.k8sArch).
+		ApplicationInstallerID(v.k8sVersion).
+		DocumentTitle(v.id)
 
 	event := analytics.NewEvent(e.category, e.action)
 	event.Label(e.label)
