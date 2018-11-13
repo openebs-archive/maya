@@ -19,7 +19,6 @@ package k8s
 import (
 	"encoding/json"
 
-	//openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 
 	"k8s.io/client-go/kubernetes"
@@ -27,7 +26,9 @@ import (
 
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	api_oe_old "github.com/openebs/maya/types/v1"
+
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
+	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	api_storage_v1 "k8s.io/api/storage/v1"
@@ -35,7 +36,6 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	//typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/clientset/versioned/typed/openebs/v1alpha1"
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/typed/openebs.io/v1alpha1"
 
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
@@ -51,37 +51,54 @@ import (
 type K8sKind string
 
 const (
+	// JobKK is a Kubernetes Job kind
+	JobKK K8sKind = "Job"
+
 	// StorageClassKK is a K8s StorageClass Kind
 	StorageClassKK K8sKind = "StorageClass"
+
 	// PodKK is a K8s Pod Kind
 	PodKK K8sKind = "Pod"
+
 	// DeploymentKK is a K8s Deployment Kind
 	DeploymentKK K8sKind = "Deployment"
+
 	// ConfigMapKK is a K8s ConfigMap Kind
 	ConfigMapKK K8sKind = "ConfigMap"
+
 	// ServiceKK is a K8s Service Kind
 	ServiceKK K8sKind = "Service"
+
 	// CRDKK is a K8s CustomResourceDefinition Kind
 	CRDKK K8sKind = "CustomResourceDefinition"
+
 	// StroagePoolCRKK is a K8s CR of kind StoragePool
 	StroagePoolCRKK K8sKind = "StoragePool"
+
 	// StroagePoolClaimCRKK is a K8s CR of kind StoragePool
 	StroagePoolClaimCRKK K8sKind = "StoragePoolClaim"
+
 	// PersistentVolumeKK is K8s PersistentVolume Kind
 	PersistentVolumeKK K8sKind = "PersistentVolume"
+
 	// PersistentVolumeClaimKK is a K8s PersistentVolumeClaim Kind
 	PersistentVolumeClaimKK K8sKind = "PersistentVolumeClaim"
-	// CStorPoolCRKK is a K8s CR of kind CStorPool
+
+	// CstorPoolCRKK is a K8s CR of kind CStorPool
 	CStorPoolCRKK K8sKind = "CStorPool"
+
 	// DiskCRKK is a K8s CR of kind Disk
 	DiskCRKK K8sKind = "Disk"
-	// CStorVolumeCRKK is a K8s CR of kind CStorVolume
+
+	// CstorVolumeCRKK is a K8s CR of kind CStorVolume
 	CStorVolumeCRKK K8sKind = "CStorVolume"
-	// CStorVolumeReplicaCRKK is a K8s CR of kind CStorVolumeReplica
+
+	// CstorVolumeReplicaCRKK is a K8s CR of kind CStorVolumeReplica
 	CStorVolumeReplicaCRKK K8sKind = "CStorVolumeReplica"
 )
 
-// K8sAPIVersion is the type declaration for API version information
+// K8sAPIVersion represents valid kubernetes api version of a native or custom
+// resource
 type K8sAPIVersion string
 
 const (
@@ -99,6 +116,8 @@ const (
 
 	// StorageV1KA is the storage.k8s.io/v1 API
 	StorageV1KA K8sAPIVersion = "storage.k8s.io/v1"
+
+	BatchV1KA K8sAPIVersion = "batch/v1"
 )
 
 // K8sClient provides the necessary utility to operate over
@@ -241,6 +260,16 @@ func (k *K8sClient) GetStorageV1SCAsRaw(name string) (result []byte, err error) 
 		DoRaw()
 
 	return
+}
+
+// GetBatchV1JobAsRaw returns a Job instance
+func (k *K8sClient) GetBatchV1JobAsRaw(name string) (result []byte, err error) {
+	return k.cs.BatchV1().RESTClient().
+		Get().
+		Resource("jobs").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
 }
 
 // oeV1alpha1SPCOps is a utility function that provides a instance capable of
@@ -792,6 +821,14 @@ func (k *K8sClient) DeleteCoreV1Service(name string) error {
 	})
 }
 
+// DeleteBatchV1Job deletes a K8s job
+func (k *K8sClient) DeleteBatchV1Job(name string) error {
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return k.cs.BatchV1().Jobs(k.ns).Delete(
+		name,
+		&mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
+}
+
 // TODO deprecate
 //
 // deploymentOps is a utility function that provides a instance capable of
@@ -926,6 +963,15 @@ func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
+}
+
+// CreateBatchV1JobAsRaw creates a kubernetes Job
+func (k *K8sClient) CreateBatchV1JobAsRaw(j *api_batch_v1.Job) ([]byte, error) {
+	job, err := k.cs.BatchV1().Jobs(k.ns).Create(j)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(job)
 }
 
 // appsV1B1DeploymentOps is a utility function that provides a instance capable of

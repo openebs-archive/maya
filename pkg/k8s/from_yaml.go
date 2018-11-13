@@ -24,9 +24,39 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
+	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 )
+
+// JobYml helps generating kubernetes Job object
+type JobYml struct {
+	YmlInBytes []byte // YmlInBytes represents a K8s Job in yaml format
+}
+
+// NewJobYml returns a new instance of JobYml
+func NewJobYml(context, yml string, values map[string]interface{}) (*JobYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+	return &JobYml{
+		YmlInBytes: b,
+	}, nil
+}
+
+// AsBatchV1Job returns a batch/v1 Job instance
+func (m *JobYml) AsBatchV1Job() (*api_batch_v1.Job, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("Missing yaml")
+	}
+	job := &api_batch_v1.Job{}
+	err := yaml.Unmarshal(m.YmlInBytes, job)
+	if err != nil {
+		return nil, err
+	}
+	return job, nil
+}
 
 // DeploymentYml provides utility methods to generate K8s Deployment objects
 type DeploymentYml struct {
