@@ -29,6 +29,7 @@ import (
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
+	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 )
@@ -375,6 +376,12 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getStorageV1SC()
 	} else if m.metaTaskExec.isGetCoreV1PV() {
 		err = m.getCoreV1PV()
+	} else if m.metaTaskExec.isDeleteBatchV1Job() {
+		err = m.deleteBatchV1Job()
+	} else if m.metaTaskExec.isGetBatchV1Job() {
+		err = m.getBatchV1Job()
+	} else if m.metaTaskExec.isPutBatchV1Job() {
+		err = m.putBatchV1Job()
 	} else {
 		err = fmt.Errorf("un-supported task operation: failed to execute task: '%+v'", m.metaTaskExec.getMetaInfo())
 	}
@@ -404,6 +411,15 @@ func (m *taskExecutor) asRollbackInstance(objectName string) (*taskExecutor, err
 	return &taskExecutor{
 		metaTaskExec: mte,
 	}, nil
+}
+
+// asBatchV1Job generates a K8s Job object out of the embedded yaml
+func (m *taskExecutor) asBatchV1Job() (*api_batch_v1.Job, error) {
+	j, err := m_k8s.NewJobYml("BatchV1Job", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+	return j.AsBatchV1Job()
 }
 
 // asAppsV1B1Deploy generates a K8s Deployment object
@@ -481,6 +497,20 @@ func (m *taskExecutor) asCoreV1Svc() (*api_core_v1.Service, error) {
 	}
 
 	return s.AsCoreV1Service()
+}
+
+// putBatchV1Job will put a Job object
+func (m *taskExecutor) putBatchV1Job() (err error) {
+	j, err := m.asBatchV1Job()
+	if err != nil {
+		return
+	}
+	job, err := m.getK8sClient().CreateBatchV1JobAsRaw(j)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, job, string(v1alpha1.CurrentJsonResultTLP))
+	return
 }
 
 // putAppsV1B1Deploy will put (i.e. apply to a kubernetes cluster) a Deployment
@@ -730,6 +760,28 @@ func (m *taskExecutor) getCoreV1PV() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, pv, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// getBatchV1Job will get the Job as specified in the RunTask
+func (m *taskExecutor) getBatchV1Job() (err error) {
+	job, err := m.getK8sClient().GetBatchV1JobAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, job, string(v1alpha1.CurrentJsonResultTLP))
+	return
+}
+
+// deleteBatchV1Job will delete one or more Jobs specified in the RunTask
+func (m *taskExecutor) deleteBatchV1Job() (err error) {
+	jobs := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
+	for _, name := range jobs {
+		err = m.getK8sClient().DeleteBatchV1Job(strings.TrimSpace(name))
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
