@@ -77,14 +77,18 @@ type MetaTaskProps struct {
 	// RunNamespace is the namespace where task will get
 	// executed
 	RunNamespace string `json:"runNamespace"`
+
 	// Owner represents the owner of this task
 	Owner string `json:"owner"`
+
 	// ObjectName is the name of the resource that gets
 	// created or will get operated by this task
 	ObjectName string `json:"objectName"`
+
 	// Options is a set of selectors that can be used for
 	// tasks that are get or list based actions
 	Options string `json:"options"`
+
 	// Retry specifies the no. of times this particular task (i.e. all properties
 	// remains same) can be re-tried. This is typically used along with task
 	// result verify options for get or list related actions.
@@ -94,6 +98,9 @@ type MetaTaskProps struct {
 	// # max of 10 attempts in 20 seconds interval
 	// retry: "10,20s"
 	Retry string `json:"retry"`
+
+	// Disable will disable execution of this task
+	Disable bool `json:"disable"`
 }
 
 // toString returns a string representation of MetaTaskProps structure. In this
@@ -103,12 +110,13 @@ type MetaTaskProps struct {
 // Example:
 //  runNamespace=default::objectName=MySvc::retry=3,20s
 func (m MetaTaskProps) toString() string {
-	return fmt.Sprintf("runNamespace=%s::owner=%s::objectName=%s::options=%s::retry=%s",
+	return fmt.Sprintf("runNamespace=%s::owner=%s::objectName=%s::options=%s::retry=%s::disable=%t",
 		m.RunNamespace,
 		m.Owner,
 		m.ObjectName,
 		m.Options,
-		m.Retry)
+		m.Retry,
+		m.Disable)
 }
 
 // selectOverride will override the current meta task properties from the given
@@ -134,6 +142,7 @@ func (m MetaTaskProps) selectOverride(given MetaTaskProps) MetaTaskProps {
 	if len(retry) != 0 {
 		m.Retry = retry
 	}
+	m.Disable = given.Disable
 
 	return m
 }
@@ -222,6 +231,10 @@ func (m *metaTaskExecutor) getMetaInfo() MetaTaskSpec {
 
 func (m *metaTaskExecutor) getRepeatExecutor() repeatExecutor {
 	return m.repeater
+}
+
+func (m *metaTaskExecutor) isDisabled() bool {
+	return m.metaTask.Disable
 }
 
 func (m *metaTaskExecutor) getIdentity() string {

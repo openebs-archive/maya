@@ -271,6 +271,9 @@ func (m *taskExecutor) retryOnVerificationError() (err error) {
 // Execute executes a runtask by following the directives specified in the
 // runtask's meta specifications and other conditions like presence of VerifyErr
 func (m *taskExecutor) Execute() (err error) {
+	if m.metaTaskExec.isDisabled() {
+		return
+	}
 	return m.repeatWith()
 }
 
