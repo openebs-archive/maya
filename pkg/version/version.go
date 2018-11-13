@@ -147,3 +147,7 @@ func GetGitCommit() string {
 	}
 	return strings.TrimSpace(string(output))
 }
+
+func GetVersionDetails() string {
+	return strings.Join([]string{GetVersion(), GetGitCommit()[0:7]}, "-")
+}
