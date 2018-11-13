@@ -106,7 +106,9 @@ func extractReplicaStatusFromJSON(volName, str string) ([]string, error) {
 	volumeList := replicaMap[volName].([]interface{})
 	states := []string{}
 	for _, replica := range volumeList {
-		states = append(states, (replica.(map[string]interface{}))["status"].(string))
+		rep := replica.(map[string]interface{})
+		states = append(states, rep["replica"].(string)+":"+rep["status"].(string))
+
 	}
 	return states, nil
 }

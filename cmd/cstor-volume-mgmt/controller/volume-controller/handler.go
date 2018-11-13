@@ -21,6 +21,8 @@ import (
 	"os"
 	"reflect"
 
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
@@ -98,47 +100,49 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 		break
 
 	case common.QOpPeriodicSync:
-		err := volume.CheckValidVolume(cStorVolumeGot)
-		if err != nil {
-			return common.CVStatusInvalid, err
-		}
-
+		replicaStatuses := []apis.ReplicaStatus{}
+		healthyReplicas := 0
 		statuses, err := volume.GetReplicaStatus(cStorVolumeGot)
 		if err != nil {
-			return common.CVStatusError, err
-		}
+			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusError)
+		} else {
+			glog.Infof("Replica statuses for volume %s are: %v", cStorVolumeGot.Name, statuses)
+			for _, val := range statuses {
+				statusAr := strings.Split(val, ":")
+				if statusAr[1] == "HEALTHY" {
+					healthyReplicas++
+					// replace HEALTHY with Running
+					statusAr[1] = string(common.CVStatusRunning)
+				} else {
+					// if not healthy then replace with Degraded
+					statusAr[1] = string(common.CVStatusDegraded)
+				}
+				replicaStatuses = append(replicaStatuses, apis.ReplicaStatus{
+					GUID: statusAr[0], Status: statusAr[1],
+				})
+			}
+			glog.Infof("Healthy replicas for volume %s are: %v", cStorVolumeGot.Name, healthyReplicas)
 
-		glog.Infof("Replica statuses for volume %s are: %v", cStorVolumeGot.Name, statuses)
-
-		healthyReplicas := 0
-		for _, val := range statuses {
-			if val == "HEALTHY" {
-				healthyReplicas++
+			// if no replicas connected yet then this is init state
+			// verbose code for better understanding
+			if totalReplicas := len(statuses); totalReplicas == 0 {
+				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusInit)
+			} else if healthyReplicas == 0 {
+				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusError)
+			} else if healthyReplicas >= cStorVolumeGot.Spec.ReplicationFactor {
+				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusRunning)
+			} else if healthyReplicas >= cStorVolumeGot.Spec.ConsistencyFactor {
+				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusDegraded)
+			} else {
+				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusRO)
 			}
 		}
+		cStorVolumeGot.Status.ReplicaStatuses = replicaStatuses
+		c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 
-		glog.Infof("Healthy replicas for volume %s are: %v", cStorVolumeGot.Name, healthyReplicas)
-
-		// if no replicas connected yet then this is init state
-		// verbose code for better understanding
-		if totalReplicas := len(statuses); totalReplicas == 0 {
-			return common.CVStatusInit, nil
-		}
-
-		if healthyReplicas == 0 {
-			return common.CVStatusError, nil
-		}
-
-		if healthyReplicas >= cStorVolumeGot.Spec.ReplicationFactor {
-			return common.CVStatusRunning, nil
-		}
-
-		if healthyReplicas >= cStorVolumeGot.Spec.ConsistencyFactor {
-			return common.CVStatusDegraded, nil
-		}
-
-		return common.CVStatusRO, nil
-
+		// Update already made above with latest status. We return ignore from here so that
+		// caller does not re-attempt to update status with older resource version
+		return common.CVStatusIgnore, nil
 	case common.QOpDestroy:
 		return common.CVStatusIgnore, nil
 	}

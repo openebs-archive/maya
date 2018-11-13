@@ -51,7 +51,14 @@ type CStorVolumePhase string
 
 // CStorVolumeStatus is for handling status of cvr.
 type CStorVolumeStatus struct {
-	Phase CStorVolumePhase `json:"phase"`
+	Phase           CStorVolumePhase `json:"phase"`
+	ReplicaStatuses []ReplicaStatus  `json:"replicaStatuses,omitempty"`
+}
+
+// ReplicaStatus represents the status of a volume replica
+type ReplicaStatus struct {
+	GUID   string `json:"guid"`
+	Status string `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
