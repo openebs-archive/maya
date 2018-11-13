@@ -4,12 +4,11 @@ import (
 	"github.com/golang/glog"
 	analytics "github.com/jpillora/go-ogle-analytics"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	openebsversion "github.com/openebs/maya/pkg/version"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// GAClientID is the unique code of OpenEBS project in Google Analytics
+	// GAclientID is the unique code of OpenEBS project in Google Analytics
 	GAclientID = "UA-127388617-1"
 )
 
@@ -41,37 +40,25 @@ func NewEvent(c, a, l string, v int64) *Event {
 
 // Send sends a single event to Google Analytics
 func (e *Event) Send() error {
-	uuid, err := getUUIDbyNS("default")
-	if err != nil {
-		return err
-	}
+	v := &versionSet{}
+	err := v.getVersion()
 	gaClient, err := analytics.NewClient(GAclientID)
 	if err != nil {
 		return err
 	}
-	k8sversion, err := k8sapi.GetServerVersion()
-	if err != nil {
-		return err
-	}
-	nodeInfo, err := k8sapi.GetOSAndKernelVersion()
-	if err != nil {
-		return err
-	}
-	glog.Infof("Kubernetes version: %s", k8sversion.GitVersion)
-	glog.Infof("Node type: %s", nodeInfo)
 	// anonymous user identifying
 	// client-id - uid of default namespace
-	gaClient.ClientID(uuid).
+	gaClient.ClientID(v.id).
 		// OpenEBS version details
 		ApplicationID("OpenEBS").
-		ApplicationVersion(openebsversion.GetVersion()).
+		ApplicationVersion(v.openebsVersion).
 		// K8s version
 
 		// TODO: Find k8s Environment type
-		DataSource(nodeInfo).
-		ApplicationName(k8sversion.Platform).
-		ApplicationInstallerID(k8sversion.GitVersion).
-		DocumentTitle(uuid)
+		DataSource(v.nodeType).
+		ApplicationName(v.k8sArch).
+		ApplicationInstallerID(v.k8sVersion).
+		DocumentTitle(v.id)
 
 	event := analytics.NewEvent(e.category, e.action)
 	event.Label(e.label)
