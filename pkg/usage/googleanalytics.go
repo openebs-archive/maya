@@ -38,37 +38,37 @@ func NewEvent(c, a, l string, v int64) *Event {
 	}
 }
 
-// Send sends a single event to Google Analytics
-func (e *Event) Send() error {
-	v := &versionSet{}
-	err := v.getVersion()
-	gaClient, err := analytics.NewClient(GAclientID)
-	if err != nil {
-		return err
-	}
-	// anonymous user identifying
-	// client-id - uid of default namespace
-	gaClient.ClientID(v.id).
-		// OpenEBS version details
-		ApplicationID("OpenEBS").
-		ApplicationVersion(v.openebsVersion).
-		// K8s version
+// Send starts a goroutine to send a single event to Google Analytics
+func (e *Event) Send() {
+	go func() {
+		v := &versionSet{}
+		if err := v.getVersion(); err != nil {
+			glog.Error(err)
+			return
+		}
+		// anonymous user identifying
+		// client-id - uid of default namespace
+		gaClient, _ := analytics.NewClient(GAclientID)
+		gaClient.ClientID(v.id).
+			// OpenEBS version details
+			ApplicationID("OpenEBS").
+			ApplicationVersion(v.openebsVersion).
+			// K8s version
 
-		// TODO: Find k8s Environment type
-		DataSource(v.nodeType).
-		ApplicationName(v.k8sArch).
-		ApplicationInstallerID(v.k8sVersion).
-		DocumentTitle(v.id)
+			// TODO: Find k8s Environment type
+			DataSource(v.nodeType).
+			ApplicationName(v.k8sArch).
+			ApplicationInstallerID(v.k8sVersion).
+			DocumentTitle(v.id)
 
-	event := analytics.NewEvent(e.category, e.action)
-	event.Label(e.label)
-	event.Value(e.value)
-	if sendSuccessErr := gaClient.Send(event); sendSuccessErr != nil {
-		glog.Errorf(string(sendSuccessErr.Error()))
-		return sendSuccessErr
-	}
-	glog.Infof("Event %s:%s fired", e.category, e.action)
-	return nil
+		event := analytics.NewEvent(e.category, e.action)
+		event.Label(e.label)
+		event.Value(e.value)
+		if err := gaClient.Send(event); err != nil {
+			glog.Error(err)
+		}
+		glog.V(4).Infof("Event %s:%s sent", e.category, e.action)
+	}()
 }
 
 // getUUIDbyNS returns the metadata.object.uid of a namespace in Kubernetes
