@@ -24,13 +24,8 @@ import (
 	"strings"
 )
 
-// volumeEngine is capable of creating a CAS volume via CAS template
-//
-// It implements following interfaces:
-// - engine.CASCreator
-//
-// NOTE:
-//  It overrides the Create method exposed by generic engine
+// volumeEngine is capable of executing a CAS volume related operation via
+// CAS template
 type volumeEngine struct {
 	// engine exposes generic CAS template operations
 	engine engine.Interface
@@ -101,8 +96,8 @@ func (c *volumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	return engine.MergeConfig(mc, c.defaultConfig)
 }
 
-// Create creates a CAS volume
-func (c *volumeEngine) Create() (op []byte, err error) {
+// Run executes a CAS volume related operation
+func (c *volumeEngine) Run() (op []byte, err error) {
 	m, err := engine.ConfigToMap(c.prepareFinalConfig())
 	if err != nil {
 		return
