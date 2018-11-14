@@ -144,6 +144,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 		if err != nil {
 			glog.Errorf("Error updating cStorVolume object: %s", err)
+			return common.CVStatusIgnore, nil
 		}
 		eventName := cStorVolumeGot.Name + "." + string(cStorVolumeGot.Status.Phase)
 		err = c.createSyncUpdateEvent(updatedCstorVolume, eventName, "Volume is in "+string(cStorVolumeGot.Status.Phase)+" state")
@@ -162,8 +163,8 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 }
 
 // createSyncUpdateEvent tries to get the event of given name in cstorvolume's namespace
-// if present then it updates the lastTimestamp to current time and increases count by one,
-// if absent then creates a new event
+// if present, it updates the lastTimestamp to current time and increases count by one,
+// if absent, creates a new event
 func (c *CStorVolumeController) createSyncUpdateEvent(cstorVolume *apis.CStorVolume, name, msg string) (err error) {
 	client := c.kubeclientset
 	event, err := client.CoreV1().Events(cstorVolume.Namespace).Get(name, metav1.GetOptions{})
@@ -193,9 +194,9 @@ func (c *CStorVolumeController) createSyncUpdateEvent(cstorVolume *apis.CStorVol
 			LastTimestamp:  metav1.Time{Time: time.Now()},
 			Count:          1,
 			Message:        msg,
-			Reason:         "synced",
-			Type:           "normal",
-			Source:         v1.EventSource{Component: "Target Deployment"},
+			Reason:         string(common.SuccessSynced),
+			Type:           v1.EventTypeNormal,
+			Source:         v1.EventSource{Component: "target-deployment"},
 		}
 		// create above event
 		event, err = client.CoreV1().Events(cstorVolume.Namespace).Create(event)
