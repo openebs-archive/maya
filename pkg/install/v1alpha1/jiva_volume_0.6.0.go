@@ -32,7 +32,7 @@ spec:
     - jiva-volume-read-listtargetservice-default-0.6.0
     - jiva-volume-read-listtargetpod-default-0.6.0
     - jiva-volume-read-listreplicapod-default-0.6.0
-  output: jiva-volume-read-output-default-0.7.0
+  output: jiva-volume-read-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -47,10 +47,10 @@ spec:
     - jiva-volume-delete-listtargetservice-default-0.6.0
     - jiva-volume-delete-listtargetdeployment-default-0.6.0
     - jiva-volume-delete-listreplicadeployment-default-0.6.0
-    - jiva-volume-delete-deletetargetservice-default-0.7.0
-    - jiva-volume-delete-deletetargetdeployment-default-0.7.0
-    - jiva-volume-delete-deletereplicadeployment-default-0.7.0
-  output: jiva-volume-delete-output-default-0.7.0
+    - jiva-volume-delete-deletetargetservice-default
+    - jiva-volume-delete-deletetargetdeployment-default
+    - jiva-volume-delete-deletereplicadeployment-default
+  output: jiva-volume-delete-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -65,7 +65,7 @@ spec:
     - jiva-volume-list-listtargetservice-default-0.6.0
     - jiva-volume-list-listtargetpod-default-0.6.0
     - jiva-volume-list-listreplicapod-default-0.6.0
-  output: jiva-volume-list-output-default-0.7.0
+  output: jiva-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
