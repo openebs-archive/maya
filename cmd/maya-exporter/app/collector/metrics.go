@@ -114,7 +114,7 @@ type Metrics struct {
 	totalWriteBlockCount   prometheus.Gauge
 	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
-	volumeUpTime           *prometheus.CounterVec
+	volumeUpTime           *prometheus.GaugeVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
 	replicaCounter         *prometheus.GaugeVec
@@ -232,8 +232,8 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Write Block count of volume",
 			}),
 
-		volumeUpTime: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		volumeUpTime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "volume_uptime",
 				Help:      "Time since volume has registered",
