@@ -80,4 +80,5 @@ required = [
 
 [[constraint]]
   name = "github.com/jpillora/go-ogle-analytics"
-  revision = "14b04e0594ef6a9fd943363b135656f0ec8c9d0e"
+  source = "github.com/openebs/go-ogle-analytics"
+  revision = "694492144d734d1500dfb877b47fb2f32a4ec53f"
