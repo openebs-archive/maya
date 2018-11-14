@@ -85,10 +85,12 @@ fi
 #fi
 echo "************** Running Jiva mayactl volume delete ************************"
 ${MAYACTL} volume delete --volname $JIVAVOL
+rc=$?;
 if [[ $rc != 0 ]]; then
-	kubectl logs --tail=10 $MAPIPOD -n openebs
+	kubectl logs --tail=100 $MAPIPOD -n openebs
 	exit $rc;
 fi
+sleep 30
 
 printf "\n\n"
 echo "************** Running Cstor mayactl volume describe *************************"
@@ -97,5 +99,18 @@ rc=$?;
 if [[ $rc != 0 ]]; then
 	kubectl logs --tail=10 $MAPIPOD -n openebs
 	exit $rc;
+fi
+
+printf "\n\n"
+echo "************** Check if jiva replica data is cleared *************************"
+if [ -f /var/openebs/$JIVAVOL/volume.meta ]; then
+	#Check if the job is in progress. 
+	printf "\n"
+	ls -lR /var/openebs
+	printf "\n"
+	kubectl get jobs
+	printf "\n"
+	kubectl get pods
+	printf "\n"
 fi
 

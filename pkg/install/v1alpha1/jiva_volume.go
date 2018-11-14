@@ -199,6 +199,11 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-delete-default
 spec:
+  defaultConfig:
+  # RetainReplicaData specifies whether jiva replica data folder 
+  # should be cleared or retained. 
+  - name: RetainReplicaData
+    enabled: "false"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -208,7 +213,9 @@ spec:
     - jiva-volume-delete-listreplicadeployment-default
     - jiva-volume-delete-deletetargetservice-default
     - jiva-volume-delete-deletetargetdeployment-default
+    - jiva-volume-delete-listreplicapod-default
     - jiva-volume-delete-deletereplicadeployment-default
+    - jiva-volume-delete-putreplicascrub-default
   output: jiva-volume-delete-output-default
   fallback: jiva-volume-delete-default-0.6.0
 ---
@@ -1026,6 +1033,24 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-delete-listreplicapod-default
+spec:
+  meta: |
+    id: deletelistreppods
+    runNamespace: {{ .Volume.runNamespace }}
+    disable: {{ .Config.RetainReplicaData.enabled }}
+    apiVersion: v1
+    kind: Pod
+    action: list
+    options: |-
+      labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- $nodesList := jsonpath .JsonResult "{range .items[*]}pkey=nodes,{@.spec.nodeName}={@.spec.volumes[?(@.name=='openebs')].hostPath.path};{end}" | trim | default "" | splitListTrim ";" -}}
+    {{- $nodesList | keyMap "nodeJRPathList" .ListItems | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-delete-deletereplicadeployment-default
 spec:
   meta: |
@@ -1035,6 +1060,57 @@ spec:
     kind: Deployment
     action: delete
     objectName: {{ .TaskResult.deletelistrep.names }}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-delete-putreplicascrub-default
+spec:
+  meta: |
+    apiVersion: batch/v1
+    runNamespace: {{ .Volume.runNamespace }}
+    disable: {{ .Config.RetainReplicaData.enabled }}
+    kind: Job
+    action: put
+    id: jivavolumedelreplicascrub
+    {{- $nodeNames := keys .ListItems.nodeJRPathList.nodes }}
+    repeatWith:
+      resources:
+      {{- range $k, $v := $nodeNames }}
+      - {{ $v | quote }}
+      {{- end }}
+  task: |
+    kind: Job
+    apiVersion: batch/v1
+    metadata:
+      name: sjr-{{ .Volume.owner }}-{{randAlphaNum 4 |lower }}
+      labels:
+        openebs.io/persistent-volume: {{ .Volume.owner }}
+        openebs.io/cas-type: jiva
+    spec:
+      backoffLimit: 4
+      template:
+        spec:
+          restartPolicy: Never
+          nodeSelector:
+            kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+          volumes:
+          - name: replica-path
+            hostPath:
+              path: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeJRPathList.nodes | first }}
+              type: ""
+          containers:
+          - name: sjr
+            image: quay.io/openebs/openebs-tools:3.8
+            command: 
+            - sh
+            - -c
+            - 'rm -rf /mnt/replica/*; sync; date > /mnt/replica/scrubbed.txt; sync;'
+            volumeMounts:
+            - mountPath: /mnt/replica
+              name: replica-path
+  post: |
+    {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "jivavolumedelreplicascrub.objectName" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
