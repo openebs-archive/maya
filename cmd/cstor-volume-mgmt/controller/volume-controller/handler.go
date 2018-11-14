@@ -196,7 +196,10 @@ func (c *CStorVolumeController) createSyncUpdateEvent(cstorVolume *apis.CStorVol
 			Message:        msg,
 			Reason:         string(common.SuccessSynced),
 			Type:           v1.EventTypeNormal,
-			Source:         v1.EventSource{Component: "target-deployment"},
+			Source: v1.EventSource{
+				Component: os.Getenv("POD_NAME"),
+				Host:      os.Getenv("NODE_NAME"),
+			},
 		}
 		// create above event
 		event, err = client.CoreV1().Events(cstorVolume.Namespace).Create(event)
