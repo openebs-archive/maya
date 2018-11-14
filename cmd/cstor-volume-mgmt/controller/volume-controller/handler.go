@@ -147,7 +147,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			return common.CVStatusIgnore, nil
 		}
 		eventName := cStorVolumeGot.Name + "." + string(cStorVolumeGot.Status.Phase)
-		err = c.createSyncUpdateEvent(updatedCstorVolume, eventName, "Volume is in "+string(cStorVolumeGot.Status.Phase)+" state")
+		err = c.createSyncUpdateEvent(updatedCstorVolume, eventName, fmt.Sprintf(common.EventMsgFormatter, cStorVolumeGot.Status.Phase))
 		if err != nil {
 			glog.Errorf("Error creating event %q in namespace %q: %s", eventName, cStorVolumeGot.Namespace, err.Error())
 		}

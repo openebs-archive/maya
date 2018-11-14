@@ -25,9 +25,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// CStor controllers to be watched
 const (
+	// CStorVolume is the controller to be watched
 	CStorVolume = "cStorVolume"
+	// EventMsgFormatter is the format string for event message generation
+	EventMsgFormatter = "Volume is in %s state"
 )
 
 //EventReason is used as part of the Event reason when a resource goes through different phases
