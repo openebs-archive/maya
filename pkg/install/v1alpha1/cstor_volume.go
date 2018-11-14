@@ -407,6 +407,14 @@ spec:
             env:
             - name: OPENEBS_IO_CSTOR_VOLUME_ID
               value: {{ .TaskResult.cvolcreateputvolume.cstorid }}
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             securityContext:
               privileged: true
             volumeMounts:
