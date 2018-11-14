@@ -132,12 +132,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	if mconfig == nil {
 		return errors.New("Unable to load the configuration.")
 	}
-	go func() {
-		err := spc.Start()
-		if err != nil {
-			glog.Errorf("Could not start controller: %s", err.Error())
-		}
-	}()
+
 	//TODO Setup Log Level
 
 	// Setup Maya server
@@ -181,11 +176,20 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	// Output the header that the server has started
 	glog.Info("Maya api server started! Log data will stream in below:\n")
 
+	// start storage pool controller
+	go func() {
+		err := spc.Start()
+		if err != nil {
+			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
+		}
+	}()
+
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
 		clusterSize, _ := k8sapi.NumberOfNodes()
 		event := usage.NewEvent("install", "running", "nodes", int64(clusterSize))
 		event.Send()
 	}
+
 	// Wait for exit
 	if c.handleSignals(mconfig) > 0 {
 		return errors.New("Ungraceful exit ...")
