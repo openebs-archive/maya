@@ -51,13 +51,7 @@ func mergeConfig(highPriorityConfig, lowPriorityConfig []v1alpha1.Config) (final
 	return
 }
 
-// casVolumeEngine is capable of creating a CAS volume via CAS template
-//
-// It implements following interfaces:
-// - engine.CASCreator
-//
-// NOTE:
-//  It overrides the Create method exposed by generic CASEngine
+// casVolumeEngine is capable of execution a CAS volume operation via CAS template
 type casVolumeEngine struct {
 	// casEngine exposes generic CAS template operations
 	casEngine *engine.CASEngine
@@ -138,8 +132,8 @@ func (c *casVolumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	return
 }
 
-// Create creates a CAS volume
-func (c *casVolumeEngine) Create() ([]byte, error) {
+// Run executes a CAS volume operation
+func (c *casVolumeEngine) Run() ([]byte, error) {
 	// set customized CAS config as a top level property
 	err := c.casEngine.AddConfigToConfigTLP(c.prepareFinalConfig())
 	if err != nil {

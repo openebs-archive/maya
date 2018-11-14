@@ -165,17 +165,17 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-	volumeLables := map[string]interface{}{
+	volumeLabels := map[string]interface{}{
 		string(v1alpha1.OwnerVTP):                 v.volume.Name,
 		string(v1alpha1.CapacityVTP):              capacity,
 		string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
 		string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
 	}
 
-	runtimeVolumeValues := util.MergeMaps(volumeLables, cloneLabels)
+	runtimeVolumeValues := util.MergeMaps(volumeLabels, cloneLabels)
 
 	// provision CAS volume via CAS volume specific CAS template engine
-	cc, err := NewCASVolumeEngine(
+	engine, err := NewCASVolumeEngine(
 		casConfigPVC,
 		casConfigSC,
 		cast,
@@ -187,12 +187,12 @@ func (v *VolumeOperation) Create() (*v1alpha1.CASVolume, error) {
 	}
 
 	// create the volume
-	data, err := cc.Create()
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
 
-	// unmarshall into openebs volume
+	// unmarshall result into openebs volume
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
@@ -206,36 +206,47 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, fmt.Errorf("unable to delete volume: volume name not provided")
 	}
-	// fetch the pv specifications
+	// pv details
 	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	// get the storage class name corresponding to this volume
+	// sc details
 	scName := pv.Spec.StorageClassName
 	if len(scName) == 0 {
-		return nil, fmt.Errorf("unable to delete volume %s: missing storage class in PV object", v.volume.Name)
+		return nil, fmt.Errorf("failed to delete volume '%s': missing storage class in PV object", v.volume.Name)
 	}
-
-	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
-	castName := getDeleteCASTemplate(sc)
-	if len(castName) == 0 {
-		return nil, fmt.Errorf("unable to delete volume %s: missing cas template for delete volume at annotation '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeDelete)
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
+
+	// pvc details
+	var casConfigPVC string
+	if pv.Spec.ClaimRef != nil {
+		pvc, err := v.k8sClient.GetPVC(pv.Spec.ClaimRef.Name, mach_apis_meta_v1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		casConfigPVC = pvc.Annotations[string(v1alpha1.CASConfigKey)]
 	}
 
-	// fetch delete cas template specifications
+	// cas template details
+	castName := getDeleteCASTemplate(sc)
+	if len(castName) == 0 {
+		return nil, fmt.Errorf("failed to delete volume '%s': missing cas template", v.volume.Name)
+	}
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// delete cas volume via cas template engine
-	engine, err := engine.NewCASEngine(
+	engine, err := NewCASVolumeEngine(
+		casConfigPVC,
+		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
@@ -248,7 +259,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	// delete the cas volume
-	data, err := engine.Delete()
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
