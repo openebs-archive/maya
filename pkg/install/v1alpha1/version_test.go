@@ -46,11 +46,15 @@ func TestVersion(t *testing.T) {
 		inputVersion    string
 		expectedVersion version
 	}{
-		"case1": {
+		"case 1": {
 			inputVersion:    "0.7.0",
 			expectedVersion: "0.7.0",
 		},
 		"case 2": {
+			inputVersion:    "0.8.0",
+			expectedVersion: "0.8.0",
+		},
+		"case 3": {
 			inputVersion:    "",
 			expectedVersion: "invalid.version",
 		},
@@ -64,5 +68,4 @@ func TestVersion(t *testing.T) {
 			}
 		})
 	}
-
 }

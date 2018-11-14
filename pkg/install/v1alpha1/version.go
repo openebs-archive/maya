@@ -27,6 +27,7 @@ type version string
 
 const (
 	version070     version = "0.7.0"
+	version080     version = "0.8.0"
 	invalidVersion version = "invalid.version"
 )
 
@@ -40,6 +41,8 @@ func Version(version string) version {
 	switch version {
 	case "0.7.0":
 		return version070
+	case "0.8.0":
+		return version080
 	default:
 		return invalidVersion
 	}
