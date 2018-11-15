@@ -2,7 +2,9 @@ package collector
 
 import (
 	"net"
+	"strings"
 
+	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -113,9 +115,10 @@ type Metrics struct {
 	totalWriteBlockCount   prometheus.Gauge
 	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
-	volumeUpTime           *prometheus.CounterVec
+	volumeUpTime           *prometheus.GaugeVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
+	replicaCounter         *prometheus.GaugeVec
 }
 
 // VolumeStats keep the values of read/write I/O's and
@@ -137,6 +140,8 @@ type VolumeStats struct {
 	revisionCount        float64
 	replicaCount         float64
 	name                 string
+	replicas             []v1.Replica
+	status               string
 }
 
 // MetricsInitializer returns the Metrics instance used for registration
@@ -228,13 +233,13 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Write Block count of volume",
 			}),
 
-		volumeUpTime: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		volumeUpTime: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "volume_uptime",
 				Help:      "Time since volume has registered",
 			},
-			[]string{"volName", "iqn", "portal", "castype"},
+			[]string{"volName", "iqn", "portal", "castype", "status"},
 		),
 
 		connectionRetryCounter: prometheus.NewCounterVec(
@@ -254,6 +259,29 @@ func MetricsInitializer(casType string) *Metrics {
 			},
 			[]string{"err"},
 		),
+
+		replicaCounter: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "replica_count",
+				Help:      "Total no of replicas",
+			},
+			[]string{"address", "mode"},
+		),
+	}
+}
+
+// buildStringof build comma separated string addr and mode from
+// replica address and replica modes respectively.
+func (v VolumeStats) buildStringof(addr, mode *strings.Builder) {
+	count := int(v.replicaCount)
+	for i := 0; i < count; i++ {
+		addr.WriteString(v.replicas[i].Address)
+		mode.WriteString(string(v.replicas[i].Mode))
+		if i < count-1 {
+			addr.WriteString(",")
+			mode.WriteString(",")
+		}
 	}
 }
 
@@ -281,6 +309,7 @@ func (v *VolumeStatsExporter) countersList() []prometheus.Collector {
 		v.volumeUpTime,
 		v.connectionErrorCounter,
 		v.connectionRetryCounter,
+		v.replicaCounter,
 	}
 }
 
@@ -326,9 +355,9 @@ func (v *VolumeStatsExporter) Collect(ch chan<- prometheus.Metric) {
 	// issues or anything else.
 	switch v.CASType {
 	case "cstor":
-		_ = v.Cstor.collector(&v.Metrics)
+		v.Cstor.collector(&v.Metrics)
 	case "jiva":
-		_ = v.Jiva.collector(&v.Metrics)
+		v.Jiva.collector(&v.Metrics)
 	}
 
 	// collect the metrics extracted by collect method

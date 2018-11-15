@@ -132,8 +132,9 @@ func (c *Cstor) set(m *Metrics) error {
 		// (float64, int64 etc).JSON can only handle the data
 		// up to 53 bits precision, so this needs to be converted
 		// into string.
-		volStats VolumeStats
-		err      error
+		volStats                    VolumeStats
+		replicaAddress, replicaMode strings.Builder
+		err                         error
 	)
 	if err := c.writer(); err != nil {
 		return err
@@ -167,7 +168,16 @@ func (c *Cstor) set(m *Metrics) error {
 		newResp.Iqn,
 		"localhost",
 		"cstor",
+		volStats.status,
 	).Set(volStats.uptime)
+
+	volStats.buildStringof(&replicaAddress, &replicaMode)
+
+	m.replicaCounter.WithLabelValues(
+		replicaAddress.String(),
+		replicaMode.String(),
+	).Set(volStats.replicaCount)
+
 	return nil
 }
 
@@ -197,6 +207,8 @@ func (c *Cstor) parser(stats v1.VolumeStats) VolumeStats {
 	result := strings.Split(stats.Iqn, ":")
 	volName := result[1]
 	volStats.name = volName
+	volStats.replicas = stats.Replicas
+	volStats.status = stats.TargetStatus
 	return volStats
 }
 

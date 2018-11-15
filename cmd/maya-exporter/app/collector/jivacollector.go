@@ -75,7 +75,8 @@ func (j *Jiva) set(m *Metrics) error {
 		// JSON response from jiva controller
 		volStatsJSON v1.VolumeStats
 		// parse JSON response into appropriate type.
-		volStats VolumeStats
+		volStats                    VolumeStats
+		replicaAddress, replicaMode strings.Builder
 	)
 
 	err := j.getVolumeStats(&volStatsJSON)
@@ -97,14 +98,25 @@ func (j *Jiva) set(m *Metrics) error {
 	m.actualUsed.Set(volStats.actualSize)
 	m.sizeOfVolume.Set(volStats.size)
 	url := j.VolumeControllerURL
+
 	url = strings.TrimSuffix(url, ":9501/v1/stats")
 	url = strings.TrimPrefix(url, "http://")
+
 	m.volumeUpTime.WithLabelValues(
 		volStats.name,
 		"iqn.2016-09.com.openebs.jiva:"+volStatsJSON.Name,
 		url,
 		"jiva",
+		volStats.status,
 	).Set(volStats.uptime)
+
+	volStats.buildStringof(&replicaAddress, &replicaMode)
+
+	m.replicaCounter.WithLabelValues(
+		replicaAddress.String(),
+		replicaMode.String(),
+	).Set(volStats.replicaCount)
+
 	return nil
 }
 
@@ -133,5 +145,7 @@ func (j *Jiva) parser(stats v1.VolumeStats) VolumeStats {
 	volStats.revisionCount, _ = stats.RevisionCounter.Float64()
 	volStats.uptime, _ = stats.UpTime.Float64()
 	volStats.name = stats.Name
+	volStats.replicas = stats.Replicas
+	volStats.status = stats.TargetStatus
 	return volStats
 }
