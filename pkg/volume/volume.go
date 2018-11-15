@@ -223,16 +223,6 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
-	// pvc details
-	var casConfigPVC string
-	if pv.Spec.ClaimRef != nil {
-		pvc, err := v.k8sClient.GetPVC(pv.Spec.ClaimRef.Name, mach_apis_meta_v1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-		casConfigPVC = pvc.Annotations[string(v1alpha1.CASConfigKey)]
-	}
-
 	// cas template details
 	castName := getDeleteCASTemplate(sc)
 	if len(castName) == 0 {
@@ -245,7 +235,7 @@ func (v *VolumeOperation) Delete() (*v1alpha1.CASVolume, error) {
 
 	// delete cas volume via cas template engine
 	engine, err := NewCASVolumeEngine(
-		casConfigPVC,
+		"",
 		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),
