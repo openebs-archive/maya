@@ -1,3 +1,19 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -14,10 +30,10 @@ type poolAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
-// volumeV1alpha1SpecificRequest is a http handler to handle HTTP
-// requests to a OpenEBS volume.
+// poolV1alpha1SpecificRequest is a http handler to handle HTTP
+// requests to a OpenEBS pool.
 func (s *HTTPServer) poolV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("cas template based pool request was received: method '%s'", req.Method)
+	glog.Infof("Cas template based pool request was received: method '%s'", req.Method)
 
 	if req == nil {
 		return nil, CodedError(400, "nil http request was received")
@@ -42,10 +58,7 @@ func (p *poolAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	if path == "/" {
 		return p.list()
 	}
-
-	poolName := strings.TrimPrefix(path, "/")
-	glog.Infof(poolName)
-	return p.read(poolName)
+	return nil, nil
 }
 
 func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
@@ -62,24 +75,6 @@ func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("cas template based pools were listed successfully")
+	glog.Infof("Cas template based pools were listed successfully")
 	return pools, nil
-}
-
-func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.StoragePool, error) {
-	glog.Infof("CAS template based storage pool read request was received")
-
-	sOps, err := pool.NewStoragePoolOperation(poolName)
-	if err != nil {
-		return nil, CodedError(400, err.Error())
-	}
-
-	pool, err := sOps.Read()
-	if err != nil {
-		glog.Errorf("failed to read cas template based pools error: '%s'", err.Error())
-		return nil, CodedError(500, err.Error())
-	}
-
-	glog.Infof("cas template based pools were readed successfully")
-	return pool, nil
 }
