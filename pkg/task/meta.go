@@ -484,8 +484,9 @@ func getRollbackMetaInstances(given MetaTaskSpec, objectName string) (m MetaTask
 //  The bool return with value as `false` implies there is no
 // need for a rollback
 func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecutor, bool, error) {
+	// there is no rollback when task is disabled
 	// there is no rollback when original action is not put
-	if !m.isPut() {
+	if m.isDisabled() || !m.isPut() {
 		return nil, false, nil
 	}
 
