@@ -5,21 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
-
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-
-	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -161,64 +153,92 @@ func TestIsValidCStorVolumeMgmtNegative(t *testing.T) {
 	}
 }
 
-func TestCreateSyncUpdateEvent(t *testing.T) {
-	tests := map[string]struct {
-		client      kubernetes.Interface
-		cstorVolume *apis.CStorVolume
-		event       *v1.Event
-		name, msg   string
-		wantErr     bool
-	}{
-		"event does not exist": {
-			client: fake.NewSimpleClientset(),
-			cstorVolume: &apis.CStorVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "csv-1",
-					UID:       types.UID("abcd"),
-					Namespace: string(common.DefaultNameSpace),
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CstorVolume",
-					APIVersion: "v1alpha1",
-				},
-			},
-			name: "csv-1.Init",
-			msg:  "Volume is in Init state",
-		},
-		"event already created": {
-			cstorVolume: &apis.CStorVolume{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "csv-1",
-					UID:       types.UID("abcd"),
-					Namespace: string(common.DefaultNameSpace),
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "CstorVolume",
-					APIVersion: "v1alpha1",
-				},
-			},
-			client: fake.NewSimpleClientset(),
-			event: &v1.Event{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "csv-1.Init",
-					Namespace: string(common.DefaultNameSpace),
-				},
-			},
-			name: "csv-1.Init",
-			msg:  "Volume is in Init state",
-		},
-	}
+// func TestCreateSyncUpdateEvent(t *testing.T) {
+// 	tests := map[string]struct {
+// 		client      kubernetes.Interface
+// 		cstorVolume *apis.CStorVolume
+// 		event       *v1.Event
+// 		name, msg   string
+// 		wantErr     bool
+// 	}{
+// 		"event does not exist": {
+// 			client: fake.NewSimpleClientset(),
+// 			cstorVolume: &apis.CStorVolume{
+// 				ObjectMeta: metav1.ObjectMeta{
+// 					Name:      "csv-1",
+// 					UID:       types.UID("abcd"),
+// 					Namespace: string(common.DefaultNameSpace),
+// 				},
+// 				TypeMeta: metav1.TypeMeta{
+// 					Kind:       "CstorVolume",
+// 					APIVersion: "v1alpha1",
+// 				},
+// 			},
+// 			name: "csv-1.Init",
+// 			msg:  "Volume is in Init state",
+// 		},
+// 		"event already created": {
+// 			cstorVolume: &apis.CStorVolume{
+// 				ObjectMeta: metav1.ObjectMeta{
+// 					Name:      "csv-1",
+// 					UID:       types.UID("abcd"),
+// 					Namespace: string(common.DefaultNameSpace),
+// 				},
+// 				TypeMeta: metav1.TypeMeta{
+// 					Kind:       "CstorVolume",
+// 					APIVersion: "v1alpha1",
+// 				},
+// 			},
+// 			client: fake.NewSimpleClientset(),
+// 			event: &v1.Event{
+// 				ObjectMeta: metav1.ObjectMeta{
+// 					Name:      "csv-1.Init",
+// 					Namespace: string(common.DefaultNameSpace),
+// 				},
+// 			},
+// 			name: "csv-1.Init",
+// 			msg:  "Volume is in Init state",
+// 		},
+// 	}
 
-	for desc, ut := range tests {
-		t.Run(desc, func(t *testing.T) {
-			if ut.event != nil {
-				ut.client.CoreV1().Events(ut.cstorVolume.Namespace).Create(ut.event)
-			}
-			cvController := CStorVolumeController{kubeclientset: ut.client}
-			err := cvController.createSyncUpdateEvent(ut.cstorVolume, ut.name, ut.msg)
-			if (err != nil) != ut.wantErr {
-				t.Errorf("Error creating event, wantErr=%v gotErr=%v", ut.wantErr, err != nil)
-			}
-		})
-	}
-}
+// 	for desc, ut := range tests {
+// 		t.Run(desc, func(t *testing.T) {
+// 			if ut.event != nil {
+// 				ut.client.CoreV1().Events(ut.cstorVolume.Namespace).Create(ut.event)
+// 			}
+// 			cvController := CStorVolumeController{kubeclientset: ut.client}
+// 			err := cvController.createSyncUpdateEvent(ut.cstorVolume, ut.name, ut.msg)
+// 			if (err != nil) != ut.wantErr {
+// 				t.Errorf("Error creating event, wantErr=%v gotErr=%v", ut.wantErr, err != nil)
+// 			}
+// 		})
+// 	}
+// }
+
+// func TestCreateEventObj(t *testing.T) {
+// 	type fields struct {
+// 		cstorVolume *apis.CStorVolume
+// 	}
+// 	tests := []struct {
+// 		name   string
+// 		fields fields
+// 		args   args
+// 		want   *v1.Event
+// 	}{
+// 		// TODO: Add test cases.
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			c := &CStorVolumeController{
+// 				kubeclientset:     tt.fields.kubeclientset,
+// 				clientset:         tt.fields.clientset,
+// 				cStorVolumeSynced: tt.fields.cStorVolumeSynced,
+// 				workqueue:         tt.fields.workqueue,
+// 				recorder:          tt.fields.recorder,
+// 			}
+// 			if got := c.createEventObj(tt.args.cstorVolume); !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("CStorVolumeController.createEventObj() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
