@@ -17,6 +17,8 @@ limitations under the License.
 package volumecontroller
 
 import (
+	"os"
+
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	kubeinformers "k8s.io/client-go/informers"
@@ -85,7 +87,7 @@ func NewCStorVolumeController(
 	// event handler function. The return value can be ignored or used to stop recording, if
 	// desired. Events("") denotes empty namespace
 	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
-	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: volumeControllerName})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: os.Getenv("POD_NAME"), Host: os.Getenv("NODE_NAME")})
 
 	controller := &CStorVolumeController{
 		kubeclientset:     kubeclientset,
