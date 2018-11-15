@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 	utiltesting "k8s.io/client-go/util/testing"
 )
@@ -130,28 +130,28 @@ func TestRunVolumeStats(t *testing.T) {
 
 func TestProcessStats(t *testing.T) {
 	tests := map[string]struct {
-		stats1, stats2 v1.VolumeMetrics
-		Output         v1.StatsJSON
+		stats1, stats2 v1alpha1.VolumeMetrics
+		Output         v1alpha1.StatsJSON
 		err            error
 	}{
 		"When length of stats1 is not equal to stat2": {
-			stats1: v1.VolumeMetrics{
+			stats1: v1alpha1.VolumeMetrics{
 				{}, {},
 			},
-			stats2: v1.VolumeMetrics{
+			stats2: v1alpha1.VolumeMetrics{
 				{},
 			},
-			Output: v1.StatsJSON{},
+			Output: v1alpha1.StatsJSON{},
 			err:    errors.New("Invalid Response"),
 		},
 		"When length of stats1 is  equal to stat2": {
-			stats1: v1.VolumeMetrics{
+			stats1: v1alpha1.VolumeMetrics{
 				{}, {},
 			},
-			stats2: v1.VolumeMetrics{
+			stats2: v1alpha1.VolumeMetrics{
 				{}, {},
 			},
-			Output: v1.StatsJSON{},
+			Output: v1alpha1.StatsJSON{},
 			err:    nil,
 		},
 	}

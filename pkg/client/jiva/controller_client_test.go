@@ -22,7 +22,7 @@ func TestGetVolumeStats(t *testing.T) {
 		replicaClient    *ReplicaClient
 		controllerClient *ControllerClient
 		replicaStatus    v1.VolStatus
-		controllerStatus v1.VolumeMetricsOld
+		controllerStatus v1.VolumeMetrics
 	)
 
 	tests := map[string]struct {

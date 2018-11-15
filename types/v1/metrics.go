@@ -126,28 +126,3 @@ type Annotation struct {
 	Portal string `json:"Portal"`
 	Size   string `json:"Size"`
 }
-
-// StatsJSON stores the statistics of an iSCSI volume.
-type StatsJSON struct {
-	IQN     string `json:"Iqn"`
-	Volume  string `json:"Volume"`
-	Portal  string `json:"Portal"`
-	Size    string `json:"Size"`
-	CASType string `json:"CASType"`
-
-	ReadIOPS  int64 `json:"ReadIOPS"`
-	WriteIOPS int64 `json:"WriteIOPS"`
-
-	ReadThroughput  float64 `json:"ReadThroughput"`
-	WriteThroughput float64 `json:"WriteThroughput"`
-
-	ReadLatency  float64 `json:"ReadLatency"`
-	WriteLatency float64 `json:"WriteLatency"`
-
-	AvgReadBlockSize  int64 `json:"AvgReadBlockSize"`
-	AvgWriteBlockSize int64 `json:"AvgWriteBlockSize"`
-
-	SectorSize  float64 `json:"SectorSize"`
-	ActualUsed  float64 `json:"ActualUsed"`
-	LogicalSize float64 `json:"LogicalSize"`
-}

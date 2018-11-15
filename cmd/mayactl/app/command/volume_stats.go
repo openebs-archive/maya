@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/types/v1"
 
@@ -102,21 +103,21 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 	return print(statsTemplate, stats)
 }
 
-func processStats(stats1, stats2 v1.VolumeMetrics) (stats v1.StatsJSON, err error) {
+func processStats(stats1, stats2 v1alpha1.VolumeMetrics) (stats v1alpha1.StatsJSON, err error) {
 	if len(stats1) != len(stats2) {
 		return stats, fmt.Errorf("Invalid Response")
 	}
 
-	statsi, statsf := make(map[string]v1.MetricsFamily), make(map[string]v1.MetricsFamily)
+	statsi, statsf := make(map[string]v1alpha1.MetricsFamily), make(map[string]v1alpha1.MetricsFamily)
 	for i := 0; i < len(stats1); i++ {
 		if len(stats1[i].Metric) == 0 {
-			statsi[stats1[i].Name] = v1.MetricsFamily{}
+			statsi[stats1[i].Name] = v1alpha1.MetricsFamily{}
 		} else {
 			statsi[stats1[i].Name] = stats1[i].Metric[0]
 		}
 
 		if len(stats2[i].Metric) == 0 {
-			statsf[stats2[i].Name] = v1.MetricsFamily{}
+			statsf[stats2[i].Name] = v1alpha1.MetricsFamily{}
 		} else {
 			statsf[stats2[i].Name] = stats2[i].Metric[0]
 		}
@@ -163,7 +164,7 @@ func processStats(stats1, stats2 v1.VolumeMetrics) (stats v1.StatsJSON, err erro
 	return stats, nil
 }
 
-func getValue(key string, m map[string]v1.MetricsFamily) float64 {
+func getValue(key string, m map[string]v1alpha1.MetricsFamily) float64 {
 	if val, p := m[key]; p {
 		return val.Gauge.Value
 	}
