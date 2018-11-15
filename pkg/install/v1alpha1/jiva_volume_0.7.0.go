@@ -569,8 +569,10 @@ spec:
     objectName: {{ .Volume.pvc }}
     action: get
   post: |
-    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | default "none" -}}
-    {{- trim $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
+    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | trim | default "none" -}}
+    {{- $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
+    {{- $targetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/target-affinity}" | trim | default "none" -}}
+    {{- $targetAffinity | saveAs "creategetpvc.targetAffinity" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -673,6 +675,7 @@ spec:
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
+    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
     apiVersion: extensions/v1beta1
     Kind: Deployment
     metadata:
@@ -718,6 +721,18 @@ spec:
               {{ $sK }}: {{ $sV }}
             {{- end }}
           {{- end}}
+          {{- if ne $targetAffinityVal "none" }}
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: openebs.io/target-affinity
+                    operator: In
+                    values:
+                    - {{ $targetAffinityVal }}
+                topologyKey: kubernetes.io/hostname
+          {{- end }}
           containers:
           - args:
             - controller
