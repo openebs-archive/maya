@@ -58,7 +58,8 @@ func (p *poolAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	if path == "/" {
 		return p.list()
 	}
-	return nil, nil
+	poolName := strings.TrimSpace(strings.TrimPrefix(path, "/"))
+	return p.read(poolName)
 }
 
 func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
@@ -76,5 +77,23 @@ func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
 	}
 
 	glog.Infof("Cas template based pools were listed successfully")
+	return pools, nil
+}
+
+func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.StoragePool, error) {
+	glog.Infof("CAS template based storage pool read request was received")
+
+	sOps, err := pool.NewStoragePoolOperation(poolName)
+	if err != nil {
+		return nil, CodedError(400, err.Error())
+	}
+
+	pools, err := sOps.Read()
+	if err != nil {
+		glog.Errorf("failed to list cas template based pools error: '%s'", err.Error())
+		return nil, CodedError(500, err.Error())
+	}
+
+	glog.Infof("Cas template based pools were readed successfully")
 	return pools, nil
 }

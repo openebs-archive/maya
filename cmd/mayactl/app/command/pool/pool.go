@@ -30,7 +30,14 @@ Examples:
   # Lists pool:
     $ mayactl pool list 
 `
+
+	options = &CmdPoolOptions{}
 )
+
+// CmdPoolOptions holds information of pool being operated
+type CmdPoolOptions struct {
+	poolName string
+}
 
 // NewCmdPool adds command for operating on snapshot
 func NewCmdPool() *cobra.Command {
@@ -42,6 +49,7 @@ func NewCmdPool() *cobra.Command {
 
 	cmd.AddCommand(
 		NewCmdPoolList(),
+		NewCmdPoolDescribe(),
 	)
 	return cmd
 }

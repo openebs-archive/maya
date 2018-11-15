@@ -65,3 +65,56 @@ func TestListPool(t *testing.T) {
 		})
 	}
 }
+
+func TestReadPool(t *testing.T) {
+	tests := map[string]*struct {
+		fakeHandler utiltesting.FakeHandler
+		err         error
+		addr        string
+		poolName    string
+	}{
+		"StatusOK": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: `{"apiVersion":"openebs.io/v1alpha1","kind":"StoragePool","metadata":{"labels":{"openebs.io/cstor-pool":"cstor-sparse-pool-qte1","openebs.io/storage-pool-claim":"cstor-sparse-pool","kubernetes.io/hostname":"127.0.0.1","openebs.io/cas-template-name":"cstor-pool-create-default-0.8.0","openebs.io/cas-type":"cstor"},"name":"cstor-sparse-pool-qte1","uid":"b5a62c11-e8eb-11e8-9ec2-b4b686bd0cff"},"spec":{"disks":{"diskList":["sparse-5a92ced3e2ee21eac7b930f670b5eab5"]},"format":"","message":"","mountpoint":"","name":"cstor-sparse-pool-qte1","nodename":"127.0.0.1","path":"","poolSpec":{"cacheFile":"","overProvisioning":false,"poolType":"striped"}}}`,
+				T:            t,
+			},
+			err:      nil,
+			addr:     "MAPI_ADDR",
+			poolName: "cstor-sparse-pool-qte1",
+		},
+		"BadRequest": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   404,
+				ResponseBody: "HTTP Error 404 : Not Found",
+				T:            t,
+			},
+			err:      fmt.Errorf("Server status error: Not Found"),
+			addr:     "MAPI_ADDR",
+			poolName: "cstor-sparse-pool-qte1",
+		},
+		"EmptyResponse": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode: 200,
+				T:          t,
+			},
+			err:      fmt.Errorf("unexpected end of JSON input"),
+			addr:     "MAPI_ADDR",
+			poolName: "cstor-sparse-pool-qte1",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(&tt.fakeHandler)
+			os.Setenv(tt.addr, server.URL)
+			defer os.Unsetenv(tt.addr)
+			defer server.Close()
+			_, got := ReadPool(tt.poolName)
+
+			if !checkErr(got, tt.err) {
+				t.Fatalf("TestName: %v | ListVolumes() => Got: %v | Want: %v ", name, got, tt.err)
+			}
+		})
+	}
+}

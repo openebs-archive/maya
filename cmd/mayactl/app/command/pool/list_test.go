@@ -31,7 +31,7 @@ func TestNewCmdPoolList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got := NewCmdPoolList()
 			if (got.Use != tt.expectedCmd.Use) || (got.Short != tt.expectedCmd.Short) || (got.Long != tt.expectedCmd.Long) || (got.Example != tt.expectedCmd.Example) {
-				t.Fatalf("TestName: %v | processStats() => Got: %v | Want: %v \n", name, got, tt.expectedCmd)
+				t.Fatalf("TestName: %v | NewCmdPoolList() => Got: %v | Want: %v \n", name, got, tt.expectedCmd)
 			}
 		})
 	}
@@ -119,7 +119,7 @@ func TestRunPoolList(t *testing.T) {
 			defer server.Close()
 			got := tt.cmdPoolOptions.runPoolList(tt.cmd)
 			if !checkErr(got, tt.err) {
-				t.Fatalf("TestName: %v | runVolumeStats() => Got: %v | Want: %v \n", name, got, tt.err)
+				t.Fatalf("TestName: %v | runPoolList() => Got: %v | Want: %v \n", name, got, tt.err)
 			}
 		})
 	}

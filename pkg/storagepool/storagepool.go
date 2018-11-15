@@ -222,3 +222,45 @@ func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
 	}
 	return sPool, nil
 }
+
+// Read returns the list of storagepools
+func (s *StoragePoolOperation) Read() (*v1alpha1.StoragePool, error) {
+	if s.k8sClient == nil {
+		return nil, fmt.Errorf("unable to fetch K8s client")
+	}
+
+	// get CATemplate name from env
+	castName := menv.Get(menv.CASTemplateToReadStoragePoolENVK)
+
+	// fetch read cas template specifications
+	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// create new instance on CASEngine
+	engine, err := engine.New(
+		cast,
+		string(v1alpha1.StoragePoolTLP),
+		map[string]interface{}{
+			string(v1alpha1.OwnerCTP): s.poolName,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch data from engine execution
+	data, err := engine.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshall into StoragePool
+	sPool := &v1alpha1.StoragePool{}
+	err = json.Unmarshal(data, sPool)
+	if err != nil {
+		return nil, err
+	}
+	return sPool, nil
+}

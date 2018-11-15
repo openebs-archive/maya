@@ -28,11 +28,6 @@ type pool struct {
 	Name, Node, PoolType string
 }
 
-// CmdPoolOptions holds information of pool being operated
-type CmdPoolOptions struct {
-	poolName string
-}
-
 var (
 	poolListCommandHelpText = `
 This command displays available pools.
@@ -41,8 +36,6 @@ Usage: mayactl pool list
 
 $ mayactl pool list
 `
-
-	options = &CmdPoolOptions{}
 )
 
 const poolListTemplate = `
@@ -51,7 +44,7 @@ const poolListTemplate = `
 {{ printf "%v\t" $value.Name }} {{ printf "%v\t" $value.Node }} {{ printf "%v\t" $value.PoolType }} {{end}}
 `
 
-// NewCmdPoolList displays list of volumes
+// NewCmdPoolList displays list of pools
 func NewCmdPoolList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",

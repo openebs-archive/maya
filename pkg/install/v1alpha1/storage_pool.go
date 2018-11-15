@@ -42,7 +42,7 @@ spec:
     options: |-
       labelSelector: openebs.io/cas-type=cstor
   post: |
-    {{- .JsonResult | saveAs "liststoragepool.list" .TaskResult | noop -}}
+    {{- .JsonResult | toString | saveAs "liststoragepool.list" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -54,8 +54,46 @@ spec:
     action: output
     kind: CASStoragePoolList
     apiVersion: v1alpha1
-  task: | 
-    {{ .TaskResult.liststoragepool.list | toString }}
+  task: |
+    {{ .TaskResult.liststoragepool.list }}
+---
+apiVersion: openebs.io/v1alpha1
+kind: CASTemplate
+metadata:
+  name: storage-pool-read-default
+spec: 
+  taskNamespace: {{ env "OPENEBS_NAMESPACE" }}
+  run:
+    tasks:
+    - storage-pool-read-default
+  output: storage-pool-read-output-default
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: storage-pool-read-default
+spec: 
+  meta: |
+    id: readstoragepool
+    apiVersion: openebs.io/v1alpha1
+    kind: StoragePool
+    action: get
+    objectName: {{ .Storagepool.owner }}
+  post: |
+      {{- .JsonResult | toString | saveAs "readstoragepool.read" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: storage-pool-read-output-default
+spec:
+  meta: |
+    id: readstoragepooloutput
+    action: output
+    kind: CASStoragePoolRead
+    apiVersion: v1alpha1
+  task: |
+    {{ .TaskResult.readstoragepool.read }}
 `
 
 // StoragePoolArtifacts returns the CRDs required for latest version

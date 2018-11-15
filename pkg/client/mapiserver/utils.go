@@ -219,7 +219,7 @@ func Print(format string, obj interface{}) error {
 	// New Instance of tabwriter
 	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
 	// New Instance of template
-	tmpl, err := template.New("ReplicaStats").Parse(format)
+	tmpl, err := template.New("Template").Parse(format)
 	if err != nil {
 		return fmt.Errorf("Error in parsing replica template, found error : %v", err)
 	}
