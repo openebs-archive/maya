@@ -2,6 +2,7 @@ package collector
 
 import (
 	"net"
+	"strings"
 
 	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
@@ -270,6 +271,20 @@ func MetricsInitializer(casType string) *Metrics {
 	}
 }
 
+// buildStringof build comma separated string addr and mode from
+// replica address and replica modes respectively.
+func (v VolumeStats) buildStringof(addr, mode *strings.Builder) {
+	count := int(v.replicaCount)
+	for i := 0; i < count; i++ {
+		addr.WriteString(v.replicas[i].Address)
+		mode.WriteString(string(v.replicas[i].Mode))
+		if i < count-1 {
+			addr.WriteString(",")
+			mode.WriteString(",")
+		}
+	}
+}
+
 // gaugeList returns the list of the registered gauge variables
 func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
 	return []prometheus.Gauge{
@@ -340,9 +355,9 @@ func (v *VolumeStatsExporter) Collect(ch chan<- prometheus.Metric) {
 	// issues or anything else.
 	switch v.CASType {
 	case "cstor":
-		_ = v.Cstor.collector(&v.Metrics)
+		v.Cstor.collector(&v.Metrics)
 	case "jiva":
-		_ = v.Jiva.collector(&v.Metrics)
+		v.Jiva.collector(&v.Metrics)
 	}
 
 	// collect the metrics extracted by collect method

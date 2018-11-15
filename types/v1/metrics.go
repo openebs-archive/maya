@@ -2,8 +2,13 @@ package v1
 
 import "encoding/json"
 
+// ReplicaMode is the mode of replica.In jiva it can be either RO
+// or RW and HEALTHY or DEGRADED for cstor respectively
+type ReplicaMode string
+
 // VolumeMetrics is used to store the collected metrics
 // all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
+// This structure is depricated. Use VolumeStats instead of this one
 type VolumeMetrics struct {
 	Resource        Resource
 	RevisionCounter int64         `json:"RevisionCounter"`
@@ -94,10 +99,9 @@ type VolumeStats struct {
 // connected to the target.
 type Replica struct {
 	// Address is the address of the replica
-	Address string
-	// Mode is the mode of replica. (RW/RO for jiva and HEALTHY/
-	// DEGRADED for istgt)
-	Mode string
+	Address string `json:"Address"`
+	// Mode is the mode of replica.
+	Mode ReplicaMode `json:"Mode"`
 }
 
 // VolStatus stores the status of a volume.

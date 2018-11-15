@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -172,10 +171,7 @@ func (c *Cstor) set(m *Metrics) error {
 		volStats.status,
 	).Set(volStats.uptime)
 
-	for i := 0; i < int(volStats.replicaCount); i++ {
-		fmt.Fprintf(&replicaAddress, "%s,", volStats.replicas[i].Address)
-		fmt.Fprintf(&replicaMode, "%s,", volStats.replicas[i].Mode)
-	}
+	volStats.buildStringof(&replicaAddress, &replicaMode)
 
 	m.replicaCounter.WithLabelValues(
 		replicaAddress.String(),
