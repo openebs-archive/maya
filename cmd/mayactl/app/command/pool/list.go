@@ -18,13 +18,9 @@ package pool
 
 import (
 	"fmt"
-	"html/template"
-	"os"
-	"text/tabwriter"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +34,7 @@ type CmdPoolOptions struct {
 }
 
 var (
-	snapshotListCommandHelpText = `
+	poolListCommandHelpText = `
 This command displays available pools.
 
 Usage: mayactl pool list
@@ -60,9 +56,9 @@ func NewCmdPoolList() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Lists all the pools",
-		Long:  snapshotListCommandHelpText,
+		Long:  poolListCommandHelpText,
 		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.RunPoolList(cmd), util.Fatal)
+			util.CheckErr(options.runPoolList(cmd), util.Fatal)
 		},
 	}
 
@@ -70,7 +66,7 @@ func NewCmdPoolList() *cobra.Command {
 }
 
 // RunPoolList makes pool-list API request to maya-apiserver
-func (c *CmdPoolOptions) RunPoolList(cmd *cobra.Command) error {
+func (c *CmdPoolOptions) runPoolList(cmd *cobra.Command) error {
 	resp, err := mapiserver.ListPools()
 	if err != nil {
 		return fmt.Errorf("Error listing pools: %v", err)
@@ -87,22 +83,5 @@ func (c *CmdPoolOptions) RunPoolList(cmd *cobra.Command) error {
 			PoolType: p.Spec.PoolSpec.PoolType,
 		})
 	}
-	print(poolListTemplate, pools)
-	return nil
-}
-
-func print(format string, obj interface{}) error {
-	// New Instance of tabwriter
-	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-	// New Instance of template
-	tmpl, err := template.New("ReplicaStats").Parse(format)
-	if err != nil {
-		return fmt.Errorf("Error in parsing replica template, found error : %v", err)
-	}
-	// Parse struct with template
-	err = tmpl.Execute(w, obj)
-	if err != nil {
-		return fmt.Errorf("Error in executing replica template, found error : %v", err)
-	}
-	return w.Flush()
+	return mapiserver.Print(poolListTemplate, pools)
 }

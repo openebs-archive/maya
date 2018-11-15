@@ -120,6 +120,8 @@ var (
 		[]string{"code", "method"},
 	)
 
+	// latestOpenEBSPoolRequestDuration Collects the response time since
+	// a request has been made on /latest/pool/
 	latestOpenEBSPoolRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "latest_openebs_pool_request_duration_seconds",
@@ -148,10 +150,11 @@ var (
 		[]string{"code", "method"},
 	)
 
+	// Count the no of request Since a request has been made on /latest/pools/
 	latestOpenEBSPoolRequestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "latest_openebs_pool_requests_total",
-			Help: "Total number of /latest/pool requests.",
+			Help: "Total number of /latest/pools/ requests.",
 		},
 		[]string{"code", "method"},
 	)
@@ -280,6 +283,9 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	s.mux.HandleFunc("/latest/meta-data/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSMetaDataRequestDuration, s.MetaSpecificRequest))
 
+	// Request w.r.t to storage pools is handled here
+	s.mux.HandleFunc("/latest/pools/", s.wrap(latestOpenEBSPoolRequestCounter, latestOpenEBSPoolRequestDuration, s.poolV1alpha1SpecificRequest))
+
 	// Request w.r.t to a single VSM entity is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.volumeSpecificRequest))
@@ -304,8 +310,6 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and the custom metrics created.
 	s.mux.Handle("/metrics", promhttp.Handler())
-
-	s.mux.HandleFunc("/latest/pools/", s.wrap(latestOpenEBSPoolRequestCounter, latestOpenEBSPoolRequestDuration, s.poolV1alpha1SpecificRequest))
 }
 
 // HTTPCodedError is used to provide the HTTP error code
