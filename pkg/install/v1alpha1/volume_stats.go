@@ -44,6 +44,7 @@ spec:
       labelSelector: openebs.io/persistent-volume={{ .Volume.owner }}
   post: |
       {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readvolumesvc.svcIP" .TaskResult | noop -}}
+      {{- .TaskResult.readvolumesvc.svcIP | notFoundErr "Volume not found" | saveIf "readstoragepool.notFoundErr" .TaskResult | noop -}}
       {{- $url:= print "http://" .TaskResult.readvolumesvc.svcIP ":9500/metrics/?format=json" -}}
       {{- $store := storeAt .TaskResult -}}
       {{- $runner := storeRunner $store -}}

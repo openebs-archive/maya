@@ -85,14 +85,12 @@ func NewCmdVolumeStats() *cobra.Command {
 func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 	statsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
-		fmt.Printf("%v", err)
-		return err
+		return fmt.Errorf("Volume not found")
 	}
 	time.Sleep(time.Second)
 	statsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
-		fmt.Printf("%v", err)
-		return err
+		return fmt.Errorf("Volume not found")
 	}
 
 	stats, err := processStats(statsi, statsf)
