@@ -48,7 +48,7 @@ Over Provisioning  : {{ .Spec.PoolSpec.OverProvisioning }}
 
 Disk List :
 -----------
-{{ if eq (len .Spec.Disks.DiskList) 0 }}No disks present{{ else }}{{range $item := .Spec.Disks.DiskList }}{{ $item }}{{ end }}{{ end }}
+{{ if eq (len .Spec.Disks.DiskList) 0 }}No disks present{{ else }}{{range $item := .Spec.Disks.DiskList }}{{ printf "%s\n" $item }}{{ end }}{{ end }}
 `
 
 // NewCmdPoolDescribe displays info of pool

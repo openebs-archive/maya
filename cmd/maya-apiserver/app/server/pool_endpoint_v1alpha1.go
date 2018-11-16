@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -48,7 +49,7 @@ func (s *HTTPServer) poolV1alpha1SpecificRequest(resp http.ResponseWriter, req *
 	case "GET":
 		return poolOp.httpGet()
 	default:
-		return nil, CodedError(405, ErrInvalidMethod)
+		return nil, CodedError(405, http.StatusText(405))
 	}
 }
 
@@ -72,7 +73,7 @@ func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
 
 	pools, err := sOps.List()
 	if err != nil {
-		glog.Errorf("failed to list cas template based pools error: '%s'", err.Error())
+		glog.Errorf("failed to list cas template based pools : error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
@@ -90,7 +91,10 @@ func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.StoragePool, error
 
 	pools, err := sOps.Read()
 	if err != nil {
-		glog.Errorf("failed to list cas template based pools error: '%s'", err.Error())
+		glog.Errorf("failed to read cas template based pools: error '%s'", err.Error())
+		if isNotFound(err) {
+			return nil, CodedError(404, fmt.Sprintf("Pool '%s' not found", poolName))
+		}
 		return nil, CodedError(500, err.Error())
 	}
 
