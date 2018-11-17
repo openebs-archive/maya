@@ -7,6 +7,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// returns true when both errors are true or else returns false
+func checkErr(err1, err2 error) bool {
+	if (err1 != nil && err2 == nil) || (err1 == nil && err2 != nil) || (err1 != nil && err2 != nil && err1.Error() != err2.Error()) {
+		return false
+	}
+	return true
+}
+
 func TestGetCASType(t *testing.T) {
 	tests := map[string]struct {
 		expectedOutput string

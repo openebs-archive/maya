@@ -17,19 +17,14 @@ limitations under the License.
 package command
 
 import (
-	"encoding/json"
 	"fmt"
-	"html/template"
-	"os"
-	"strconv"
-	"strings"
-	"text/tabwriter"
 	"time"
 
-	client "github.com/openebs/maya/pkg/client/jiva"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
-	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/types/v1"
+
+	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +35,27 @@ This command queries the statisics of a volume.
 Usage: mayactl volume stats --volname <vol> [-size <size>]
 `
 )
+
+const statsTemplate = ` 
+Portal Details :
+---------------
+IQN     :   {{.IQN}}
+Volume  :   {{.Volume}}
+Portal  :   {{.Portal}}
+Size    :   {{.Size}}
+
+Performance Stats :
+--------------------
+{{ printf "r/s\t w/s\t r(MB/s)\t w(MB/s)\t rLat(ms)\t wLat(ms)" }}
+{{ printf "----\t ----\t --------\t --------\t ---------\t ---------" }}
+{{ printf "%d\t" .ReadIOPS }} {{ printf "%d\t" .WriteIOPS }} {{ printf "%.3f\t" .ReadThroughput }} {{ printf "%.3f\t" .WriteThroughput }} {{ printf "%.3f\t" .ReadLatency }} {{printf "%.3f\t" .WriteLatency }}
+
+Capacity Stats :
+---------------
+{{ printf "LOGICAL(GB)\t USED(GB)" }}
+{{ printf "------------\t ---------" }}
+{{ printf "%.3f\t" .LogicalSize }} {{ printf "%.3f\t" .ActualUsed }}
+`
 
 // ReplicaStats keep info about the replicas.
 type ReplicaStats struct {
@@ -54,284 +70,101 @@ func NewCmdVolumeStats() *cobra.Command {
 		Use:     "stats",
 		Short:   "Displays the runtime statisics of Volume",
 		Long:    volumeStatsCommandHelpText,
-		Example: ` mayactl volume stats --volname=vol -j=json`,
+		Example: ` mayactl volume stats --volname=vol`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
-			util.CheckErr(options.RunVolumeStats(cmd), util.Fatal)
+			util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
 		},
 	}
 
 	cmd.Flags().StringVarP(&options.volName, "volname", "", options.volName,
 		"unique volume name.")
-	cmd.Flags().StringVarP(&options.json, "json", "j", options.json, "display output in JSON.")
 	return cmd
 }
 
-// RunVolumeStats runs stats command and display the outputs in standard
-// I/O or in json format.
-func (c *CmdVolumeOptions) RunVolumeStats(cmd *cobra.Command) error {
-	fmt.Println("Executing volume stats...")
-	var (
-		status         v1.VolStatus
-		stats1, stats2 v1.VolumeMetrics
-	)
-	// Filling the volumeInfo structure with response from mayapi server
-	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
+func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
+	statsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
-		return nil
+		return fmt.Errorf("Volume not found")
 	}
-
-	controllerStatus := strings.Split(volumeInfo.GetControllerStatus(), ",")
-	for i := range controllerStatus {
-		if controllerStatus[i] != controllerStatusOk {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
-			return nil
-		}
-	}
-
-	replicas := strings.Split(volumeInfo.GetReplicaIP(), ",")
-	replicaStatus := strings.Split(volumeInfo.GetReplicaStatus(), ",")
-	replicaStats := make(map[int]*ReplicaStats)
-	for i, replica := range replicas {
-		replicaClient := client.ReplicaClient{}
-		respStatus, err := replicaClient.GetVolumeStats(replica+v1.ReplicaPort, &status)
-		if err != nil {
-			if respStatus == 500 || strings.Contains(err.Error(), "EOF") {
-				replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], "Unknown"}
-			} else {
-				replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], "Unknown"}
-			}
-		} else {
-			replicaStats[i] = &ReplicaStats{replica, replicaStatus[i], status.RevisionCounter}
-		}
-	}
-
-	controllerClient := client.ControllerClient{}
-	// Fetching volume stats from replica controller
-	respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats1)
+	time.Sleep(time.Second)
+	statsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
-		if (respStatus == 500) || (respStatus == 503) || err != nil {
-			fmt.Println("Volume not Reachable\n", err)
-			return nil
-		}
-	} else {
-		time.Sleep(1 * time.Second)
-		respStatus, err := controllerClient.GetVolumeStats(volumeInfo.GetClusterIP()+v1.ControllerPort, v1.StatsAPI, &stats2)
-		if err != nil {
-			if respStatus == 500 || respStatus == 503 || err != nil {
-				fmt.Println("Volume not Reachable\n", err)
-				return nil
-			}
-		} else {
-			err := displayStats(volumeInfo, c, replicaStats, stats1, stats2)
-			if err != nil {
-				fmt.Println("Can't display stats\n", err)
-				return nil
-			}
-		}
+		return fmt.Errorf("Volume not found")
 	}
-	return nil
+
+	stats, err := processStats(statsi, statsf)
+	if err != nil {
+		return err
+	}
+
+	return print(statsTemplate, stats)
 }
 
-// displayStats displays the volume stats as standard output and in json format.
-// By default it displays in standard output format, if flag json has passed
-// displays stats in json format.
-func displayStats(v *VolumeInfo, c *CmdVolumeOptions, replicaStats map[int]*ReplicaStats, stats1 v1.VolumeMetrics, stats2 v1.VolumeMetrics) error {
-
-	var (
-		ReadLatency          int64
-		WriteLatency         int64
-		AvgReadBlockCountPS  int64
-		AvgWriteBlockCountPS int64
-	)
-
-	const (
-		portalTemplate = `
-Portal Details :
----------------
-IQN     :   {{.IQN}}
-Volume  :   {{.Volume}}
-Portal  :   {{.Portal}}
-Size    :   {{.Size}}
-
-`
-		replicaTemplate = `
-Replica Stats :
-----------------
-{{ printf "REPLICA\t STATUS\t DATAUPDATEINDEX" }}
-{{ printf "--------\t -------\t ----------------" }} {{range $key, $value := .}}
-{{ printf "%s\t" $value.Replica }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.DataUpdateIndex }} {{end}}
-
-`
-		performanceTemplate = `
-Performance Stats :
---------------------
-{{ printf "r/s\t w/s\t r(MB/s)\t w(MB/s)\t rLat(ms)\t wLat(ms)" }}
-{{ printf "----\t ----\t --------\t --------\t ---------\t ---------" }}
-{{ printf "%d\t" .ReadIOPS }} {{ printf "%d\t" .WriteIOPS }} {{ printf "%.3f\t" .ReadThroughput }} {{ printf "%.3f\t" .WriteThroughput }} {{ printf "%.3f\t" .ReadLatency }} {{printf "%.3f\t" .WriteLatency }}
-
-`
-		capicityTemplate = `
-Capacity Stats :
----------------
-{{ printf "LOGICAL(GB)\t USED(GB)" }}
-{{ printf "------------\t ---------" }}
-{{ printf "%.3f\t" .LogicalSize }} {{ printf "%.3f\t" .ActualUsed }}
-`
-	)
-
-	// 10 and 64 represents decimal and bits respectively
-	iReadIOPS, _ := strconv.ParseInt(stats1.ReadIOPS, 10, 64) // Initial
-	fReadIOPS, _ := strconv.ParseInt(stats2.ReadIOPS, 10, 64) // Final
-	readIOPS, _ := v1.SubstractInt64(fReadIOPS, iReadIOPS)
-
-	iReadTimePS, _ := strconv.ParseInt(stats1.TotalReadTime, 10, 64)
-	fReadTimePS, _ := strconv.ParseInt(stats2.TotalReadTime, 10, 64)
-	readTimePS, _ := v1.SubstractInt64(fReadTimePS, iReadTimePS)
-
-	iReadBlockCountPS, _ := strconv.ParseInt(stats1.TotalReadBlockCount, 10, 64)
-	fReadBlockCountPS, _ := strconv.ParseInt(stats2.TotalReadBlockCount, 10, 64)
-	readBlockCountPS, _ := v1.SubstractInt64(fReadBlockCountPS, iReadBlockCountPS)
-
-	rThroughput := readBlockCountPS
-	if readIOPS != 0 {
-		ReadLatency, _ = v1.DivideInt64(readTimePS, readIOPS)
-		AvgReadBlockCountPS, _ = v1.DivideInt64(readBlockCountPS, readIOPS)
-	} else {
-		ReadLatency = 0
-		AvgReadBlockCountPS = 0
+func processStats(stats1, stats2 v1alpha1.VolumeMetrics) (stats v1alpha1.StatsJSON, err error) {
+	if len(stats1) != len(stats2) {
+		return stats, fmt.Errorf("Invalid Response")
 	}
 
-	iWriteIOPS, _ := strconv.ParseInt(stats1.WriteIOPS, 10, 64)
-	fWriteIOPS, _ := strconv.ParseInt(stats2.WriteIOPS, 10, 64)
-	writeIOPS, _ := v1.SubstractInt64(fWriteIOPS, iWriteIOPS)
+	statsi, statsf := make(map[string]v1alpha1.MetricsFamily), make(map[string]v1alpha1.MetricsFamily)
+	for i := 0; i < len(stats1); i++ {
+		if len(stats1[i].Metric) == 0 {
+			statsi[stats1[i].Name] = v1alpha1.MetricsFamily{}
+		} else {
+			statsi[stats1[i].Name] = stats1[i].Metric[0]
+		}
 
-	iWriteTimePS, _ := strconv.ParseInt(stats1.TotalWriteTime, 10, 64)
-	fWriteTimePS, _ := strconv.ParseInt(stats2.TotalWriteTime, 10, 64)
-	writeTimePS, _ := v1.SubstractInt64(fWriteTimePS, iWriteTimePS)
-
-	iWriteBlockCountPS, _ := strconv.ParseInt(stats1.TotalWriteBlockCount, 10, 64)
-	fWriteBlockCountPS, _ := strconv.ParseInt(stats2.TotalWriteBlockCount, 10, 64)
-	writeBlockCountPS, _ := v1.SubstractInt64(fWriteBlockCountPS, iWriteBlockCountPS)
-
-	wThroughput := writeBlockCountPS
-	if writeIOPS != 0 {
-		WriteLatency, _ = v1.DivideInt64(writeTimePS, writeIOPS)
-		AvgWriteBlockCountPS, _ = v1.DivideInt64(writeBlockCountPS, writeIOPS)
-	} else {
-		WriteLatency = 0
-		AvgWriteBlockCountPS = 0
+		if len(stats2[i].Metric) == 0 {
+			statsf[stats2[i].Name] = v1alpha1.MetricsFamily{}
+		} else {
+			statsf[stats2[i].Name] = stats2[i].Metric[0]
+		}
 	}
 
-	sectorSize, _ := strconv.ParseFloat(stats2.SectorSize, 64) // Sector Size
+	// Calculate Read stats
+	stats.ReadIOPS = int64(getValue("openebs_read", statsf) - getValue("openebs_read", statsi))
+	rTimePS := getValue("openebs_read_time", statsf) - getValue("openebs_read_time", statsi)
+	stats.ReadThroughput = getValue("openebs_read_block_count", statsf) - getValue("openebs_read_block_count", statsi)
+	stats.ReadLatency, _ = v1.DivideFloat64(rTimePS, float64(stats.ReadIOPS))
+	stats.AvgReadBlockSize, _ = v1.DivideInt64(int64(stats.ReadThroughput), stats.ReadIOPS)
+	stats.AvgReadBlockSize = stats.AvgReadBlockSize / v1.BytesToKB
+	stats.ReadThroughput = stats.ReadLatency / v1.BytesToMB
 
-	logicalSize, _ := strconv.ParseFloat(stats2.UsedBlocks, 64) // Logical Size
-	logicalSize = logicalSize * sectorSize
+	// Calculate Write stats
+	stats.WriteIOPS = int64(getValue("openebs_write", statsf) - getValue("openebs_write", statsi))
+	wTimePS := getValue("openebs_write_time", statsf) - getValue("openebs_write_time", statsi)
+	stats.WriteThroughput = getValue("openebs_write_block_count", statsf) - getValue("openebs_write_block_count", statsi)
+	stats.WriteLatency, _ = v1.DivideFloat64(wTimePS, float64(stats.WriteIOPS))
+	stats.AvgWriteBlockSize, _ = v1.DivideInt64(int64(stats.WriteThroughput), stats.WriteIOPS)
+	stats.AvgWriteBlockSize = stats.AvgWriteBlockSize / v1.BytesToKB
+	stats.WriteThroughput = stats.WriteLatency / v1.BytesToMB
 
-	actualUsed, _ := strconv.ParseFloat(stats2.UsedLogicalBlocks, 64) // Actual Used
-	actualUsed = actualUsed * sectorSize
+	stats.SectorSize = getValue("openebs_sector_size", statsf)
+	stats.LogicalSize = (getValue("openebs_logical_size", statsf) * stats.SectorSize) / v1.BytesToGB
+	stats.ActualUsed = (getValue("openebs_actual_used", statsf) * stats.SectorSize) / v1.BytesToGB
 
-	annotation := v1.Annotation{
-		IQN:    v.GetIQN(),
-		Volume: v.GetVolumeName(),
-		Portal: v.GetTargetPortal(),
-		Size:   v.GetVolumeSize(),
+	stats.Size = fmt.Sprintf("%f", getValue("openebs_size_of_volume", statsf))
+
+	if val, p := statsf["openebs_volume_uptime"]; p {
+		for _, v := range val.Label {
+			if v.Name == "iqn" {
+				stats.IQN = v.Value
+			} else if v.Name == "portal" {
+				stats.Portal = v.Value
+			} else if v.Name == "volName" {
+				stats.Volume = v.Value
+			} else if v.Name == "castype" {
+				stats.CASType = v.Value
+			}
+		}
 	}
 
-	stat1 := v1.StatsJSON{
+	return stats, nil
+}
 
-		IQN:    v.GetIQN(),
-		Volume: v.GetVolumeName(),
-		Portal: v.GetTargetPortal(),
-		Size:   v.GetVolumeSize(),
-
-		ReadIOPS:  readIOPS,
-		WriteIOPS: writeIOPS,
-
-		ReadThroughput:  float64(rThroughput) / v1.BytesToMB, // bytes to MB
-		WriteThroughput: float64(wThroughput) / v1.BytesToMB,
-
-		ReadLatency:  float64(ReadLatency) / v1.MicSec, // Microsecond
-		WriteLatency: float64(WriteLatency) / v1.MicSec,
-
-		AvgReadBlockSize:  AvgReadBlockCountPS / v1.BytesToKB, // Bytes to KB
-		AvgWriteBlockSize: AvgWriteBlockCountPS / v1.BytesToKB,
-
-		SectorSize:  sectorSize,
-		ActualUsed:  actualUsed / v1.BytesToGB,
-		LogicalSize: logicalSize / v1.BytesToGB,
+func getValue(key string, m map[string]v1alpha1.MetricsFamily) float64 {
+	if val, p := m[key]; p {
+		return val.Gauge.Value
 	}
-
-	if c.json == "json" {
-
-		data, err := json.MarshalIndent(stat1, "", "\t")
-		if err != nil {
-			fmt.Println("Can't Marshal the data ", err)
-		}
-
-		os.Stdout.Write(data)
-		fmt.Println()
-
-	} else {
-		tmpl, err := template.New("VolumeStats").Parse(portalTemplate)
-		if err != nil {
-			fmt.Println("Error in parsing portal template, found error : ", err)
-			return nil
-		}
-		err = tmpl.Execute(os.Stdout, annotation)
-		if err != nil {
-			fmt.Println("Error in executing portal template, found error :", err)
-			return nil
-		}
-
-		replicaCount, err := strconv.Atoi(v.GetReplicaCount())
-		if err != nil {
-			fmt.Println("Can't convert to int, found error", err)
-			return nil
-		}
-		// This case will occur only if user has manually specified zero replica.
-		if replicaCount == 0 {
-			fmt.Println("None of the replicas are running, please check the volume pod's status by running [kubectl describe pod -l=openebs/replica --all-namespaces] or try again later.")
-			return nil
-		}
-
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-		// Updating the templates
-		tmpl, err = template.New("ReplicaStats").Parse(replicaTemplate)
-		if err != nil {
-			fmt.Println("Error in parsing replica template, found error : ", err)
-			return nil
-		}
-		err = tmpl.Execute(w, replicaStats)
-		if err != nil {
-			fmt.Println("Error in executing replica template, found error :", err)
-			return nil
-		}
-		w.Flush()
-
-		tmpl, err = template.New("PerformanceStats").Parse(performanceTemplate)
-		if err != nil {
-			fmt.Println("Error in parsing performance template, found error : ", err)
-			return nil
-		}
-		err = tmpl.Execute(w, stat1)
-		if err != nil {
-			fmt.Println("Error in executing performance template, found error :", err)
-			return nil
-		}
-		w.Flush()
-
-		tmpl, err = template.New("CapacityStats").Parse(capicityTemplate)
-		if err != nil {
-			fmt.Println("Error in parsing capacity template, found error : ", err)
-			return nil
-		}
-		err = tmpl.Execute(w, stat1)
-		if err != nil {
-			fmt.Println("Error in executing capacity template, found error :", err)
-			return nil
-		}
-		w.Flush()
-	}
-	return nil
+	return 0
 }

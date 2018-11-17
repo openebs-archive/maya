@@ -55,10 +55,11 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	// Extract name of volume from path after trimming
 	path := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes"))
-
 	// list cas volumes
 	if path == "/" {
 		return v.list()
+	} else if strings.Contains(path, "/stats/") {
+		return v.readStats(strings.TrimPrefix(path, "/stats/"))
 	}
 
 	// read a cas volume
@@ -237,4 +238,54 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	glog.Infof("cas template based volumes were listed successfully: namespaces '%s'", vols.Namespace)
 	return cvols, nil
+}
+
+func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error) {
+	glog.Infof("CASTemplate based volume stats request received")
+	vol := &v1alpha1.CASVolume{}
+	// hdrNS will store namespace from http header
+	hdrNS := ""
+
+	// get volume related details from http request
+	if v.req != nil {
+		decodeBody(v.req, vol)
+		hdrNS = v.req.Header.Get(NamespaceKey)
+	}
+
+	vol.Name = volumeName
+
+	// volume name is expected
+	if len(vol.Name) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to read volume: missing volume name '%v'", vol))
+	}
+
+	// use namespace from req headers if volume ns is still not set
+	if len(vol.Namespace) == 0 {
+		vol.Namespace = hdrNS
+	}
+
+	// use StorageClass name from header if present
+	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassHeaderKey)))
+	// add the StorageClass name to volume's labels
+	vol.Labels = map[string]string{
+		string(v1alpha1.StorageClassKey): scName,
+	}
+
+	vOps, err := volume.NewOperation(vol)
+	if err != nil {
+		return nil, CodedError(400, err.Error())
+	}
+	stats, err := vOps.ReadStats()
+	if err != nil {
+		glog.Errorf("failed to read cas template based volume: error '%s'", err.Error())
+		if isNotFound(err) {
+			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+		}
+		return nil, CodedError(500, err.Error())
+	}
+
+	// pipelining the response
+	v.resp.Write(stats)
+	glog.Infof("cas template based volume stats read successful '%s'", volumeName)
+	return nil, err
 }

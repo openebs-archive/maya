@@ -1,930 +1,167 @@
 package command
 
 import (
+	"errors"
+	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/types/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/openebs/maya/pkg/util"
+	"github.com/spf13/cobra"
+	utiltesting "k8s.io/client-go/util/testing"
 )
 
-func TestDisplayStats(t *testing.T) {
-	validStats := map[string]struct {
-		cmdOptions   *CmdVolumeOptions
-		replicaStats map[int]*ReplicaStats
-		initialStats v1.VolumeMetrics
-		finalStats   v1.VolumeMetrics
-		output       error
-		replicaCount int
-		volume       VolumeInfo
+func TestNewCmdVolumeStats(t *testing.T) {
+	tests := map[string]*struct {
+		expectedCmd *cobra.Command
 	}{
-		"StatsStdWhenReplicaIs0": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: nil,
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       0,
-				RevisionCounter:      0,
-				SectorSize:           "0",
-				Size:                 "0",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "0",
-				UsedLogicalBlocks:    "0",
-				WriteIOPS:            "0",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       0,
-				RevisionCounter:      0,
-				SectorSize:           "0",
-				Size:                 "0",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "0",
-				UsedLogicalBlocks:    "0",
-				WriteIOPS:            "0",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
+		"NewCmdVolumeStats": {
+			expectedCmd: &cobra.Command{
+				Use:     "stats",
+				Short:   "Displays the runtime statisics of Volume",
+				Long:    volumeStatsCommandHelpText,
+				Example: ` mayactl volume stats --volname=vol`,
+				Run: func(cmd *cobra.Command, args []string) {
+					util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
+					util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
 				},
 			},
-			output: nil,
-		},
-
-		"StatsStdWhenReplicaIs1": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       2,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       2,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsStdWhenReplicaIs2": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       2,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       2,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsJSONWhenReplicaIs3": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "json",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       2,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       3,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsStdWhenReplicaIs4": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-				3: {
-					Replica:         "10.10.10.12",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsStdWhenReplicaIs4AndOneErrorPullBack": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "ErrImagePull",
-					DataUpdateIndex: "Unknown",
-				},
-				3: {
-					Replica:         "10.10.10.12",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsStdWhenReplicaIs4AndOneCrashLoopBackOff": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "CrashLoopBackOff",
-					DataUpdateIndex: "Unknown",
-				},
-				3: {
-					Replica:         "10.10.10.12",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       4,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "0",
-				TotalReadTime:        "0",
-				TotalWriteTime:       "0",
-				TotalWriteBlockCount: "0",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"StatsStd": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "4",
-				TotalReadTime:        "12",
-				TotalWriteTime:       "16",
-				TotalWriteBlockCount: "15",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"ReadIOPSIsNotZero": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "10",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "4",
-				TotalReadTime:        "12",
-				TotalWriteTime:       "16",
-				TotalWriteBlockCount: "15",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "20",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
-		},
-		"WriteIOPSIsZero": {
-			cmdOptions: &CmdVolumeOptions{
-				json:    "",
-				volName: "vol1",
-			},
-			replicaStats: map[int]*ReplicaStats{
-				0: {
-					Replica:         "10.10.10.10",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				1: {
-					Replica:         "10.10.10.11",
-					Status:          "Online",
-					DataUpdateIndex: "1",
-				},
-				2: {
-					Replica:         "nil",
-					Status:          "Offline",
-					DataUpdateIndex: "Unknown",
-				},
-			},
-			initialStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "0",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "3",
-				TotalReadTime:        "10",
-				TotalWriteTime:       "15",
-				TotalWriteBlockCount: "10",
-				UpTime:               13162.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			finalStats: v1.VolumeMetrics{
-				Name:                 "vol1",
-				ReadIOPS:             "10",
-				ReplicaCounter:       6,
-				RevisionCounter:      100,
-				SectorSize:           "4096",
-				Size:                 "1073741824",
-				TotalReadBlockCount:  "4",
-				TotalReadTime:        "12",
-				TotalWriteTime:       "16",
-				TotalWriteBlockCount: "15",
-				UpTime:               13170.971420756,
-				UsedBlocks:           "1048576",
-				UsedLogicalBlocks:    "1048576",
-				WriteIOPS:            "15",
-			},
-			volume: VolumeInfo{
-				Volume: v1alpha1.CASVolume{
-					ObjectMeta: metav1.ObjectMeta{
-						Annotations: map[string]string{
-							"vsm.openebs.io/controller-ips":    "10.48.1.17",
-							"vsm.openebs.io/iqn":               "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/cluster-ips":           "10.51.242.184",
-							"openebs.io/iqn":                   "iqn.2016-09.com.openebs.jiva:default-testclaimjiva",
-							"openebs.io/replica-status":        "running, running, running",
-							"vsm.openebs.io/cluster-ips":       "10.51.242.184",
-							"vsm.openebs.io/replica-status":    "running, running, running",
-							"vsm.openebs.io/volume-size":       "5G",
-							"openebs.io/controller-ips":        "10.48.1.17",
-							"openebs.io/volume-size":           "5G",
-							"vsm.openebs.io/replica-count":     "3",
-							"vsm.openebs.io/replica-ips":       "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/controller-status":     "running,running",
-							"openebs.io/replica-count":         "3",
-							"vsm.openebs.io/controller-status": "running,running",
-							"openebs.io/replica-ips":           "10.48.0.7, 10.48.1.18, 10.48.2.7",
-							"openebs.io/targetportals":         "10.51.242.184:3260",
-							"vsm.openebs.io/targetportals":     "10.51.242.184:3260",
-						},
-					},
-					Spec: v1alpha1.CASVolumeSpec{
-						Capacity:     "5G",
-						CasType:      "jiva",
-						Iqn:          "iqn.2016-09.com.openebs.jiva:<no value>",
-						Replicas:     "1",
-						TargetIP:     "<no value>",
-						TargetPort:   "3260",
-						TargetPortal: "<no value>:3260",
-					},
-				},
-			},
-			output: nil,
 		},
 	}
-	for name, tt := range validStats {
+
+	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			if got := displayStats(&tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats); got != tt.output {
-				t.Fatalf("displayStats(%v,%v, %v, %v, %v) => %v, want %v", &tt.volume, tt.cmdOptions, tt.replicaStats, tt.initialStats, tt.finalStats, got, tt.output)
+			got := NewCmdVolumeStats()
+			if (got.Use != tt.expectedCmd.Use) || (got.Short != tt.expectedCmd.Short) || (got.Long != tt.expectedCmd.Long) || (got.Example != tt.expectedCmd.Example) {
+				t.Fatalf("TestName: %v | processStats() => Got: %v | Want: %v \n", name, got, tt.expectedCmd)
 			}
 		})
 	}
+}
 
+func TestRunVolumeStats(t *testing.T) {
+	options := CmdVolumeOptions{}
+	cmd := &cobra.Command{
+		Use:     "stats",
+		Short:   "Displays the runtime statisics of Volume",
+		Long:    volumeStatsCommandHelpText,
+		Example: ` mayactl volume stats --volname=vol`,
+		Run: func(cmd *cobra.Command, args []string) {
+			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
+			util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
+		},
+	}
+
+	tests := map[string]*struct {
+		cmdVolumeOptions *CmdVolumeOptions
+		cmd              *cobra.Command
+		fakeHandler      utiltesting.FakeHandler
+		err              error
+		addr             string
+	}{
+		"StatusOK": {
+			cmd: cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: `[{"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":2,"metric":[{"summary":{"sample_count":0,"sample_sum":0,"quantile":[{"quantile":0,"value":0},{"quantile":0.25,"value":0},{"quantile":0.5,"value":0},{"quantile":0.75,"value":0},{"quantile":1,"value":0}]}}]},{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":1,"metric":[{"gauge":{"value":12}}]},{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_alloc_bytes_total","help":"Total number of bytes allocated, even if freed.","type":0,"metric":[{"counter":{"value":1221368}}]},{"name":"go_memstats_buck_hash_sys_bytes","help":"Number of bytes used by the profiling bucket hash table.","type":1,"metric":[{"gauge":{"value":2792}}]},{"name":"go_memstats_frees_total","help":"Total number of frees.","type":0,"metric":[{"counter":{"value":431}}]},{"name":"go_memstats_gc_sys_bytes","help":"Number of bytes used for garbage collection system metadata.","type":1,"metric":[{"gauge":{"value":169984}}]},{"name":"go_memstats_heap_alloc_bytes","help":"Number of heap bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_heap_idle_bytes","help":"Number of heap bytes waiting to be used.","type":1,"metric":[{"gauge":{"value":237568}}]},{"name":"go_memstats_heap_inuse_bytes","help":"Number of heap bytes that are in use.","type":1,"metric":[{"gauge":{"value":2318336}}]},{"name":"go_memstats_heap_objects","help":"Number of allocated objects.","type":1,"metric":[{"gauge":{"value":7375}}]},{"name":"go_memstats_heap_released_bytes_total","help":"Total number of heap bytes released to OS.","type":0,"metric":[{"counter":{"value":0}}]},{"name":"go_memstats_heap_sys_bytes","help":"Number of heap bytes obtained from system.","type":1,"metric":[{"gauge":{"value":2555904}}]},{"name":"go_memstats_last_gc_time_seconds","help":"Number of seconds since 1970 of last garbage collection.","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"go_memstats_lookups_total","help":"Total number of pointer lookups.","type":0,"metric":[{"counter":{"value":24}}]},{"name":"go_memstats_mallocs_total","help":"Total number of mallocs.","type":0,"metric":[{"counter":{"value":7806}}]},{"name":"go_memstats_mcache_inuse_bytes","help":"Number of bytes in use by mcache structures.","type":1,"metric":[{"gauge":{"value":13888}}]},{"name":"go_memstats_mcache_sys_bytes","help":"Number of bytes used for mcache structures obtained from system.","type":1,"metric":[{"gauge":{"value":16384}}]},{"name":"go_memstats_mspan_inuse_bytes","help":"Number of bytes in use by mspan structures.","type":1,"metric":[{"gauge":{"value":32832}}]},{"name":"go_memstats_mspan_sys_bytes","help":"Number of bytes used for mspan structures obtained from system.","type":1,"metric":[{"gauge":{"value":49152}}]},{"name":"go_memstats_next_gc_bytes","help":"Number of heap bytes when next garbage collection will take place.","type":1,"metric":[{"gauge":{"value":4473924}}]},{"name":"go_memstats_other_sys_bytes","help":"Number of bytes used for other system allocations.","type":1,"metric":[{"gauge":{"value":1305880}}]},{"name":"go_memstats_stack_inuse_bytes","help":"Number of bytes in use by the stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_stack_sys_bytes","help":"Number of bytes obtained from system for stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_sys_bytes","help":"Number of bytes obtained by system. Sum of all system allocations.","type":1,"metric":[{"gauge":{"value":4689920}}]},{"name":"http_request_duration_microseconds","help":"The HTTP request latencies in microseconds.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":16749.686,"quantile":[{"quantile":0.5,"value":16749.686},{"quantile":0.9,"value":16749.686},{"quantile":0.99,"value":16749.686}]}}]},{"name":"http_request_size_bytes","help":"The HTTP request sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":65,"quantile":[{"quantile":0.5,"value":65},{"quantile":0.9,"value":65},{"quantile":0.99,"value":65}]}}]},{"name":"http_requests_total","help":"Total number of HTTP requests made.","type":0,"metric":[{"label":[{"name":"code","value":"200"},{"name":"handler","value":"prometheus"},{"name":"method","value":"get"}],"counter":{"value":1}}]},{"name":"http_response_size_bytes","help":"The HTTP response sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":7948,"quantile":[{"quantile":0.5,"value":7948},{"quantile":0.9,"value":7948},{"quantile":0.99,"value":7948}]}}]},{"name":"openebs_actual_used","help":"Actual volume size used","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_logical_size","help":"Logical size of volume","type":1,"metric":[{"gauge":{"value":0.0000152587890625}}]},{"name":"openebs_read_block_count","help":"Read Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_read_time","help":"Read time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_reads","help":"Read Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_sector_size","help":"sector size of volume","type":1,"metric":[{"gauge":{"value":4096}}]},{"name":"openebs_size_of_volume","help":"Size of the volume requested","type":1,"metric":[{"gauge":{"value":5}}]},{"name":"openebs_total_read_bytes","help":"Total read bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_total_write_bytes","help":"Total write bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_volume_uptime","help":"Time since volume has registered","type":0,"metric":[{"label":[{"name":"castype","value":"jiva"},{"name":"iqn","value":"iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"},{"name":"portal","value":"127.0.0.1"},{"name":"volName","value":"pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}],"counter":{"value":104.436802}}]},{"name":"openebs_write_block_count","help":"Write Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_write_time","help":"Write time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_writes","help":"Write Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"process_cpu_seconds_total","help":"Total user and system CPU time spent in seconds.","type":0,"metric":[{"counter":{"value":0.05}}]},{"name":"process_max_fds","help":"Maximum number of open file descriptors.","type":1,"metric":[{"gauge":{"value":1048576}}]},{"name":"process_open_fds","help":"Number of open file descriptors.","type":1,"metric":[{"gauge":{"value":8}}]},{"name":"process_resident_memory_bytes","help":"Resident memory size in bytes.","type":1,"metric":[{"gauge":{"value":6705152}}]},{"name":"process_start_time_seconds","help":"Start time of the process since unix epoch in seconds.","type":1,"metric":[{"gauge":{"value":1542187608.82}}]},{"name":"process_virtual_memory_bytes","help":"Virtual memory size in bytes.","type":1,"metric":[{"gauge":{"value":13996032}}]}]`,
+				T:            t,
+			},
+			err:  nil,
+			addr: "MAPI_ADDR",
+		},
+		"Invalid Response": {
+			cmd: cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   200,
+				ResponseBody: `"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":2,"metric":[{"summary":{"sample_count":0,"sample_sum":0,"quantile":[{"quantile":0,"value":0},{"quantile":0.25,"value":0},{"quantile":0.5,"value":0},{"quantile":0.75,"value":0},{"quantile":1,"value":0}]}}]},{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":1,"metric":[{"gauge":{"value":12}}]},{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_alloc_bytes_total","help":"Total number of bytes allocated, even if freed.","type":0,"metric":[{"counter":{"value":1221368}}]},{"name":"go_memstats_buck_hash_sys_bytes","help":"Number of bytes used by the profiling bucket hash table.","type":1,"metric":[{"gauge":{"value":2792}}]},{"name":"go_memstats_frees_total","help":"Total number of frees.","type":0,"metric":[{"counter":{"value":431}}]},{"name":"go_memstats_gc_sys_bytes","help":"Number of bytes used for garbage collection system metadata.","type":1,"metric":[{"gauge":{"value":169984}}]},{"name":"go_memstats_heap_alloc_bytes","help":"Number of heap bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_heap_idle_bytes","help":"Number of heap bytes waiting to be used.","type":1,"metric":[{"gauge":{"value":237568}}]},{"name":"go_memstats_heap_inuse_bytes","help":"Number of heap bytes that are in use.","type":1,"metric":[{"gauge":{"value":2318336}}]},{"name":"go_memstats_heap_objects","help":"Number of allocated objects.","type":1,"metric":[{"gauge":{"value":7375}}]},{"name":"go_memstats_heap_released_bytes_total","help":"Total number of heap bytes released to OS.","type":0,"metric":[{"counter":{"value":0}}]},{"name":"go_memstats_heap_sys_bytes","help":"Number of heap bytes obtained from system.","type":1,"metric":[{"gauge":{"value":2555904}}]},{"name":"go_memstats_last_gc_time_seconds","help":"Number of seconds since 1970 of last garbage collection.","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"go_memstats_lookups_total","help":"Total number of pointer lookups.","type":0,"metric":[{"counter":{"value":24}}]},{"name":"go_memstats_mallocs_total","help":"Total number of mallocs.","type":0,"metric":[{"counter":{"value":7806}}]},{"name":"go_memstats_mcache_inuse_bytes","help":"Number of bytes in use by mcache structures.","type":1,"metric":[{"gauge":{"value":13888}}]},{"name":"go_memstats_mcache_sys_bytes","help":"Number of bytes used for mcache structures obtained from system.","type":1,"metric":[{"gauge":{"value":16384}}]},{"name":"go_memstats_mspan_inuse_bytes","help":"Number of bytes in use by mspan structures.","type":1,"metric":[{"gauge":{"value":32832}}]},{"name":"go_memstats_mspan_sys_bytes","help":"Number of bytes used for mspan structures obtained from system.","type":1,"metric":[{"gauge":{"value":49152}}]},{"name":"go_memstats_next_gc_bytes","help":"Number of heap bytes when next garbage collection will take place.","type":1,"metric":[{"gauge":{"value":4473924}}]},{"name":"go_memstats_other_sys_bytes","help":"Number of bytes used for other system allocations.","type":1,"metric":[{"gauge":{"value":1305880}}]},{"name":"go_memstats_stack_inuse_bytes","help":"Number of bytes in use by the stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_stack_sys_bytes","help":"Number of bytes obtained from system for stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_sys_bytes","help":"Number of bytes obtained by system. Sum of all system allocations.","type":1,"metric":[{"gauge":{"value":4689920}}]},{"name":"http_request_duration_microseconds","help":"The HTTP request latencies in microseconds.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":16749.686,"quantile":[{"quantile":0.5,"value":16749.686},{"quantile":0.9,"value":16749.686},{"quantile":0.99,"value":16749.686}]}}]},{"name":"http_request_size_bytes","help":"The HTTP request sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":65,"quantile":[{"quantile":0.5,"value":65},{"quantile":0.9,"value":65},{"quantile":0.99,"value":65}]}}]},{"name":"http_requests_total","help":"Total number of HTTP requests made.","type":0,"metric":[{"label":[{"name":"code","value":"200"},{"name":"handler","value":"prometheus"},{"name":"method","value":"get"}],"counter":{"value":1}}]},{"name":"http_response_size_bytes","help":"The HTTP response sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":7948,"quantile":[{"quantile":0.5,"value":7948},{"quantile":0.9,"value":7948},{"quantile":0.99,"value":7948}]}}]},{"name":"openebs_actual_used","help":"Actual volume size used","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_logical_size","help":"Logical size of volume","type":1,"metric":[{"gauge":{"value":0.0000152587890625}}]},{"name":"openebs_read_block_count","help":"Read Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_read_time","help":"Read time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_reads","help":"Read Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_sector_size","help":"sector size of volume","type":1,"metric":[{"gauge":{"value":4096}}]},{"name":"openebs_size_of_volume","help":"Size of the volume requested","type":1,"metric":[{"gauge":{"value":5}}]},{"name":"openebs_total_read_bytes","help":"Total read bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_total_write_bytes","help":"Total write bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_volume_uptime","help":"Time since volume has registered","type":0,"metric":[{"label":[{"name":"castype","value":"jiva"},{"name":"iqn","value":"iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"},{"name":"portal","value":"127.0.0.1"},{"name":"volName","value":"pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}],"counter":{"value":104.436802}}]},{"name":"openebs_write_block_count","help":"Write Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_write_time","help":"Write time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_writes","help":"Write Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"process_cpu_seconds_total","help":"Total user and system CPU time spent in seconds.","type":0,"metric":[{"counter":{"value":0.05}}]},{"name":"process_max_fds","help":"Maximum number of open file descriptors.","type":1,"metric":[{"gauge":{"value":1048576}}]},{"name":"process_open_fds","help":"Number of open file descriptors.","type":1,"metric":[{"gauge":{"value":8}}]},{"name":"process_resident_memory_bytes","help":"Resident memory size in bytes.","type":1,"metric":[{"gauge":{"value":6705152}}]},{"name":"process_start_time_seconds","help":"Start time of the process since unix epoch in seconds.","type":1,"metric":[{"gauge":{"value":1542187608.82}}]},{"name":"process_virtual_memory_bytes","help":"Virtual memory size in bytes.","type":1,"metric":[{"gauge":{"value":13996032}}]}]`,
+				T:            t,
+			},
+			err:  errors.New("Volume not found"),
+			addr: "MAPI_ADDR",
+		},
+		"BadRequest": {
+			cmd: cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   404,
+				ResponseBody: "",
+				T:            t,
+			},
+			err:  errors.New("Volume not found"),
+			addr: "MAPI_ADDR",
+		},
+		"Response code 500": {
+			cmd: cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{
+				volName: "vol1",
+			},
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   500,
+				ResponseBody: "",
+				T:            t,
+			},
+			err:  errors.New("Volume not found"),
+			addr: "MAPI_ADDR",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			server := httptest.NewServer(&tt.fakeHandler)
+			os.Setenv(tt.addr, server.URL)
+			defer os.Unsetenv(tt.addr)
+			defer server.Close()
+			got := tt.cmdVolumeOptions.runVolumeStats(tt.cmd)
+			if !checkErr(got, tt.err) {
+				t.Fatalf("TestName: %v | runVolumeStats() => Got: %v | Want: %v \n", name, got, tt.err)
+			}
+		})
+	}
+}
+
+func TestProcessStats(t *testing.T) {
+	tests := map[string]struct {
+		stats1, stats2 v1alpha1.VolumeMetrics
+		Output         v1alpha1.StatsJSON
+		err            error
+	}{
+		"When length of stats1 is not equal to stat2": {
+			stats1: v1alpha1.VolumeMetrics{
+				{}, {},
+			},
+			stats2: v1alpha1.VolumeMetrics{
+				{},
+			},
+			Output: v1alpha1.StatsJSON{},
+			err:    errors.New("Invalid Response"),
+		},
+		"When length of stats1 is  equal to stat2": {
+			stats1: v1alpha1.VolumeMetrics{
+				{}, {},
+			},
+			stats2: v1alpha1.VolumeMetrics{
+				{}, {},
+			},
+			Output: v1alpha1.StatsJSON{},
+			err:    nil,
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := processStats(tt.stats1, tt.stats2)
+			if !checkErr(err, tt.err) {
+				t.Fatalf("TestName: %v | processStats() => Got: %v | Want: %v \n", name, err, tt.err)
+			}
+		})
+	}
 }
