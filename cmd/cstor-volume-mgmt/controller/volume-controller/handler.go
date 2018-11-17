@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"time"
 
 	"strings"
 
@@ -27,6 +28,8 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/client/k8s"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -84,7 +87,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			return common.CVStatusError, err
 		}
 
-		return common.CVStatusInit, nil
+		return common.CVStatusIgnore, nil
 
 	case common.QOpModify:
 		// Make changes here to run zrepl command and update the data
@@ -100,6 +103,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 		break
 
 	case common.QOpPeriodicSync:
+		lastKnownPhase := cStorVolumeGot.Status.Phase
 		replicaStatuses := []apis.ReplicaStatus{}
 		healthyReplicas := 0
 		statuses, err := volume.GetReplicaStatus(cStorVolumeGot)
@@ -138,8 +142,19 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			}
 		}
 		cStorVolumeGot.Status.ReplicaStatuses = replicaStatuses
-		c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
+		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
+		if err != nil {
+			glog.Errorf("Error updating cStorVolume object: %s", err)
+			return common.CVStatusIgnore, nil
+		}
 
+		// if there is no change in the phase of the cv only then create event
+		if lastKnownPhase != updatedCstorVolume.Status.Phase {
+			err = c.createSyncUpdateEvent(c.createEventObj(updatedCstorVolume))
+			if err != nil {
+				glog.Errorf("Error creating event : %s", err.Error())
+			}
+		}
 		// Update already made above with latest status. We return ignore from here so that
 		// caller does not re-attempt to update status with older resource version
 		return common.CVStatusIgnore, nil
@@ -149,6 +164,67 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 
 	glog.Infof("Ignoring changes for volume %s", cStorVolumeGot.Name)
 	return common.CVStatusIgnore, nil
+}
+
+// getEventType returns the event type based on the passed CStorVolumeStatus
+func getEventType(phase common.CStorVolumeStatus) string {
+	// It is normal event only when phase is Running or Degraded
+	if phase == common.CVStatusInit || phase == common.CVStatusRunning || phase == common.CVStatusDegraded {
+		return v1.EventTypeNormal
+	}
+	return v1.EventTypeWarning
+}
+
+// createEventObj creates an object of v1.Event based on the CstorVolume
+func (c *CStorVolumeController) createEventObj(cstorVolume *apis.CStorVolume) *v1.Event {
+	return &v1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cstorVolume.Name + "." + string(cstorVolume.Status.Phase),
+			Namespace: cstorVolume.Namespace,
+		},
+		InvolvedObject: v1.ObjectReference{
+			Kind:            string(k8s.CStorVolumeCRKK),
+			APIVersion:      string(k8s.OEV1alpha1KA),
+			Name:            cstorVolume.Name,
+			Namespace:       cstorVolume.Namespace,
+			UID:             cstorVolume.UID,
+			ResourceVersion: cstorVolume.ResourceVersion,
+		},
+		FirstTimestamp: metav1.Time{Time: time.Now()},
+		LastTimestamp:  metav1.Time{Time: time.Now()},
+		Count:          1,
+		Message:        fmt.Sprintf(common.EventMsgFormatter, cstorVolume.Status.Phase),
+		Reason:         string(cstorVolume.Status.Phase),
+		Type:           getEventType(common.CStorVolumeStatus(cstorVolume.Status.Phase)),
+		Source: v1.EventSource{
+			Component: os.Getenv("POD_NAME"),
+			Host:      os.Getenv("NODE_NAME"),
+		},
+	}
+}
+
+// createSyncUpdateEvent tries to get the eventGot if present it updates
+// the lastTimestamp to current time and increases count by one,
+// if absent, creates the given eventGot
+func (c *CStorVolumeController) createSyncUpdateEvent(eventGot *v1.Event) (err error) {
+	client := c.kubeclientset
+	event, err := client.CoreV1().Events(eventGot.Namespace).Get(eventGot.Name, metav1.GetOptions{})
+	// error could be due to missing object or some other reason
+	// we ignore error if it is due to missing object
+	if err != nil && !strings.Contains(err.Error(), "not found") {
+		return err
+	}
+	// checking name as sometimes we receive an empty event object instead of nil
+	if event == nil || len(event.Name) == 0 {
+		// create event
+		event, err = client.CoreV1().Events(eventGot.Namespace).Create(eventGot)
+	} else {
+		event.Count = event.Count + 1
+		event.LastTimestamp = metav1.Time{Time: time.Now()}
+		// update the event with increased count and new timestamp
+		_, err = client.CoreV1().Events(eventGot.Namespace).Update(event)
+	}
+	return
 }
 
 // enqueueCstorVolume takes a CStorVolume resource and converts it into a namespace/name
