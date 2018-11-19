@@ -32,7 +32,6 @@ import (
 
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
-	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
@@ -130,7 +129,7 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	// Read and merge with default configuration
 	mconfig := c.readMayaConfig()
 	if mconfig == nil {
-		return errors.New("Unable to load the configuration.")
+		return errors.New("Unable to load the configuration")
 	}
 
 	//TODO Setup Log Level
@@ -185,14 +184,12 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
-		clusterSize, _ := k8sapi.NumberOfNodes()
-		event := usage.NewEvent("install", "running", "nodes", int64(clusterSize))
-		event.Send()
+		usage.New().Build().InstallBuilder().Send()
 	}
 
 	// Wait for exit
 	if c.handleSignals(mconfig) > 0 {
-		return errors.New("Ungraceful exit ...")
+		return errors.New("Ungraceful exit")
 	}
 
 	return nil

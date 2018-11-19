@@ -1,9 +1,26 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package usage
 
 import (
+	"github.com/golang/glog"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	openebsversion "github.com/openebs/maya/pkg/version"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -22,6 +39,11 @@ type versionSet struct {
 	k8sArch        string // OPENEBS_IO_K8S_ARCH
 	openebsVersion string // OPENEBS_IO_VERSION_TAG
 	nodeType       string // OPENEBS_IO_NODE_TYPE
+}
+
+// NewVersion returns a new versionSet struct
+func NewVersion() *versionSet {
+	return &versionSet{}
 }
 
 // fetchAndSetVersion consumes the Kubernetes API to get environment constants
@@ -59,6 +81,7 @@ func (v *versionSet) getVersion() error {
 	// K8s APIserver
 	if _, present := env.Lookup(openEBSversion); !present {
 		if err := v.fetchAndSetVersion(); err != nil {
+			glog.Error(err.Error())
 			return err
 		}
 	}
@@ -69,4 +92,17 @@ func (v *versionSet) getVersion() error {
 	v.nodeType = env.Get(nodeType)
 	v.openebsVersion = env.Get(openEBSversion)
 	return nil
+}
+
+// getUUIDbyNS returns the metadata.object.uid of a namespace in Kubernetes
+func getUUIDbyNS(namespace string) (string, error) {
+	ns := k8sapi.Namespace()
+	NSstruct, err := ns.Get(namespace, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if NSstruct != nil {
+		return string(NSstruct.GetObjectMeta().GetUID()), nil
+	}
+	return "", nil
 }

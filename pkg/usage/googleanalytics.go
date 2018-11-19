@@ -1,86 +1,50 @@
+/*
+Copyright 2018 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package usage
 
 import (
 	"github.com/golang/glog"
 	analytics "github.com/jpillora/go-ogle-analytics"
-	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	// GAclientID is the unique code of OpenEBS project in Google Analytics
-	GAclientID = "UA-127388617-1"
-)
-
-// Event is a represents usage of OpenEBS
-// Event contains all the query param fields when hits is of type='event'
-// Ref: https://developers.google.com/analytics/devguides/collection/protocol/v1/parameters#ec
-type Event struct {
-	// (Required) Event Category, ec
-	category string
-	// (Required) Event Action, ea
-	action string
-	// (Optional) Event Label, el
-	label string
-	// (Optional) Event vallue, ev
-	// Non negative
-	value int64
-}
-
-// NewEvent returns an Event struct with eventCategory, eventAction,
-// eventLabel, eventValue fields
-func NewEvent(c, a, l string, v int64) *Event {
-	return &Event{
-		category: c,
-		action:   a,
-		label:    l,
-		value:    v,
-	}
-}
-
-// Send sends a single event to Google Analytics
-func (e *Event) Send() error {
-	v := &versionSet{}
-	err := v.getVersion()
-	gaClient, err := analytics.NewClient(GAclientID)
-	if err != nil {
-		return err
-	}
-	// anonymous user identifying
-	// client-id - uid of default namespace
-	gaClient.ClientID(v.id).
-		// OpenEBS version details
-		ApplicationID("OpenEBS").
-		ApplicationVersion(v.openebsVersion).
-		// K8s version
-
-		// TODO: Find k8s Environment type
-		DataSource(v.nodeType).
-		ApplicationName(v.k8sArch).
-		ApplicationInstallerID(v.k8sVersion).
-		DocumentTitle(v.id)
-
-	event := analytics.NewEvent(e.category, e.action)
-	event.Label(e.label)
-	event.Value(e.value)
-	if sendSuccessErr := gaClient.Send(event); sendSuccessErr != nil {
-		glog.Errorf(string(sendSuccessErr.Error()))
-		return sendSuccessErr
-	}
-	glog.Infof("Event %s:%s fired", e.category, e.action)
-	return nil
-}
-
-// getUUIDbyNS returns the metadata.object.uid of a namespace in Kubernetes
-func getUUIDbyNS(namespace string) (string, error) {
-	ns := k8sapi.Namespace()
-	NSstruct, err := ns.Get(namespace, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	if NSstruct != nil {
-		return string(NSstruct.GetObjectMeta().GetUID()), nil
-	}
-	return "", nil
-
+// Send sends a single usage metric to Google Analytics with some
+// compulsory fields defined in Google Analytics API
+// bindings(jpillora/go-ogle-analytics)
+func (u *Usage) Send() {
+	// Instantiate a Gclient with the tracking ID
+	go func() {
+		// Un-wrap the gaClient struct back here
+		gaClient, err := analytics.NewClient(u.Gclient.trackID)
+		if err != nil {
+			return
+		}
+		gaClient.ClientID(u.clientID).
+			ApplicationID(u.appID).
+			ApplicationVersion(u.appVersion).
+			DataSource(u.dataSource).
+			ApplicationName(u.appName).
+			ApplicationInstallerID(u.appInstallerID).
+			DocumentTitle(u.documentTitle)
+		// Un-wrap the Event struct back here
+		event := analytics.NewEvent(u.category, u.action)
+		event.Label(u.label)
+		event.Value(u.value)
+		if err := gaClient.Send(event); err != nil {
+			glog.Errorf(err.Error())
+			return
+		}
+	}()
 }
