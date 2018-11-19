@@ -21,10 +21,6 @@ import (
 )
 
 const (
-	// InstallerConfigName is the environment variable to get the the name of
-	// install config
-	InstallerConfigName menv.ENVKey = "OPENEBS_IO_INSTALL_CONFIG_NAME"
-
 	// DefaultCstorSparsePool is the environment variable that flags if default
 	// cstor pool should be configured or not
 	//

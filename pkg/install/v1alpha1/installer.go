@@ -15,11 +15,6 @@ limitations under the License.
 */
 
 // TODO
-// Installer should execute as per install config specifications
-// Installer should execute even if install config is not available by
-// defaulting to a suitable install specifications
-
-// TODO
 // Make use of pkg/msg instead of errorList
 
 package v1alpha1
@@ -30,6 +25,7 @@ import (
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
+	"github.com/openebs/maya/pkg/version"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -48,15 +44,6 @@ type simpleInstaller struct {
 	errorList
 }
 
-func (i *simpleInstaller) preInstall() (errs []error) {
-	// set the env for install config
-	l, _ := EnvInstallConfig().List()
-	u := l.SetIf("installer", isEnvNotPresent)
-	glog.Infof("%+v", u.Infos())
-
-	return u.Errors()
-}
-
 func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
 	elist, err := i.envLister.List()
 	if err != nil {
@@ -64,7 +51,7 @@ func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
 	}
 
 	// set the environments conditionally required for install
-	eslist := elist.SetIf(string(CurrentVersion()), isEnvNotPresent)
+	eslist := elist.SetIf(version.Current(), isEnvNotPresent)
 	glog.Infof("%+v", eslist.Infos())
 	i.addErrors(eslist.Errors())
 
@@ -121,10 +108,6 @@ func (i *simpleInstaller) setRules(ulist k8s.UnstructedList) (ul []*unstructured
 // NOTE:
 //  This is an implementation of Installer interface
 func (i *simpleInstaller) Install() []error {
-	errs := i.preInstall()
-	if len(errs) != 0 {
-		return errs
-	}
 	ulist := i.prepareResources()
 	ul := i.setRules(ulist)
 	for _, unstruct := range ul {

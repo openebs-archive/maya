@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"fmt"
-
 	"strings"
 
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
@@ -254,19 +253,5 @@ func (e *envInstall) List() (l *envList, err error) {
 		Key:   menv.CASTemplateToReadVolumeStatsENVK,
 		Value: ver.WithSuffix("cas-volume-stats-default"),
 	})
-	return
-}
-
-// envInstallConfig manages environment variables required for openebs install
-// config
-type envInstallConfig struct{}
-
-// EnvInstallConfig returns a new instance of envInstallConfig
-func EnvInstallConfig() *envInstallConfig { return &envInstallConfig{} }
-
-// List returns the environment variables required for openebs install config
-func (e *envInstallConfig) List() (l *envList, err error) {
-	l = &envList{}
-	l.Items = append(l.Items, &env{Key: InstallerConfigName, Value: "maya-install-config-default-0.7.0"})
 	return
 }
