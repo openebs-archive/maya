@@ -12,6 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
+const (
+	// NamespaceKey is used in request headers to get the
+	// namespace
+	NamespaceKey string = "namespace"
+)
+
 func isNotFound(err error) bool {
 	if _, ok := err.(*template.NotFoundError); ok {
 		return ok

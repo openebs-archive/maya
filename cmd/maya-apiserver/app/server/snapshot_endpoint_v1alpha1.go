@@ -15,8 +15,8 @@ type snapshotAPIOps struct {
 	resp http.ResponseWriter
 }
 
-// SnapshotSpecificRequest deals with snapshot API request w.r.t a Volume
-func (s *HTTPServer) snapshotRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+// snapshotV1alpha1SpecificRequest deals with snapshot API requests
+func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	snapOp := &snapshotAPIOps{
 		req:  req,
 		resp: resp,

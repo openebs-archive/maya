@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
 )
@@ -44,8 +43,6 @@ maya-apiserver version
 			fmt.Printf("GO Version: %s\n", runtime.Version())
 			fmt.Printf("GO ARCH: %s\n", runtime.GOARCH)
 			fmt.Printf("GO OS: %s\n", runtime.GOOS)
-
-			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
 		},
 	}
 

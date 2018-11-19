@@ -66,32 +66,12 @@ var (
 		[]string{"code", "method"},
 	)
 
-	openEBSVolumeRequestDurationV1alpha1 = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "openebs_volume_v1alpha1_request_duration_seconds",
-			Help:    "Request response time of the /v1alpha1/volumes.",
-			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, .5, 1, 2.5, 5, 10},
-		},
-		// code is http code and method is http method returned by
-		// endpoint "/latest/volumes"
-		[]string{"code", "method"},
-	)
-
 	// latestOpenEBSVolumeRequestCounter Count the no of request Since a
 	// request has been made on /latest/volumes
 	latestOpenEBSVolumeRequestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "latest_openebs_volume_requests_total",
 			Help: "Total number of /latest/volumes requests.",
-		},
-		[]string{"code", "method"},
-	)
-	// openEBSVolumeRequestCounterV1alpha1 counts the no of requests since
-	// a request has been made on /v1alpha1/volumes/
-	openEBSVolumeRequestCounterV1alpha1 = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "openebs_volume_v1alpha1_requests_total",
-			Help: "Total number of /v1alpha1/volumes requests.",
 		},
 		[]string{"code", "method"},
 	)
@@ -158,9 +138,6 @@ type HTTPServer struct {
 func init() {
 	prometheus.MustRegister(latestOpenEBSVolumeRequestDuration)
 	prometheus.MustRegister(latestOpenEBSVolumeRequestCounter)
-
-	prometheus.MustRegister(openEBSVolumeRequestDurationV1alpha1)
-	prometheus.MustRegister(openEBSVolumeRequestCounterV1alpha1)
 
 	prometheus.MustRegister(latestOpenEBSMetaDataRequestDuration)
 	prometheus.MustRegister(latestOpenEBSMetaDataRequestCounter)
@@ -249,41 +226,26 @@ func (s *HTTPServer) Shutdown() {
 }
 
 // registerHandlers is used to attach handlers to the mux
+//
+// NOTE - The curried func (due to wrap) is set as mux handler
+// NOTE - The original handler is passed as a func to the wrap method
+// NOTE - For every endpoint you need to create a Counter and a Duration
+//        variable to capture the response. These variables will store
+//        the response time and no of times they are requested.
 func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) {
-
-	// NOTE - The curried func (due to wrap) is set as mux handler
-	// NOTE - The original handler is passed as a func to the wrap method
-
-	// NOTE - For every endpoint you need to create a Counter and a Duration
-	//        variable to capture the response. These variables will store
-	//        the response time and no of times they are requested.
-
 	s.mux.HandleFunc("/latest/meta-data/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSMetaDataRequestDuration, s.MetaSpecificRequest))
 
-	// Request w.r.t to a single VSM entity is handled here
+	// Request w.r.t cas volume is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
-		latestOpenEBSVolumeRequestDuration, s.volumeSpecificRequest))
+		latestOpenEBSVolumeRequestDuration, s.volumeV1alpha1SpecificRequest))
 
-	// TODO
-	//
-	// It remains to be decided if this commented code should be removed or
-	// brought back when versions at API level are introduced.
-	//
-	// Request w.r.t to a single VSM entity is handled here
-	//s.mux.HandleFunc("/v1alpha1/volumes/", s.wrap(openEBSVolumeRequestCounterV1alpha1,
-	//	openEBSVolumeRequestDurationV1alpha1, s.volumeV1alpha1SpecificRequest))
-
+	// Request w.r.t cas snapshot is handled here
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSSnapshotRequestCounter,
-		latestOpenEBSSnapshotRequestDuration, s.snapshotSpecificRequest))
+		latestOpenEBSSnapshotRequestDuration, s.snapshotV1alpha1SpecificRequest))
 
-	// TODO
-	//
-	// It remains to be decided if this commented code should be removed or
-	// brought back when versions at API level are introduced.
-	//
 	// request for metrics is handled here. It displays metrics related to
-	// garbage collection, process, cpu...etc, and the custom metrics created.
+	// garbage collection, process, cpu...etc, and other custom metrics
 	s.mux.Handle("/metrics", promhttp.Handler())
 }
 
