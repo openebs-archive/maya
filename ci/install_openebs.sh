@@ -6,8 +6,8 @@ sleep 5
 CI_BRANCH="master"
 CI_TAG="ci"
 
-#Images from this repo are always tagged as ci 
-#The downloaded operator file will may contain a non-ci tag name 
+#Images from this repo are always tagged as ci
+#The downloaded operator file will may contain a non-ci tag name
 # depending on when and from where it is being downloaded. For ex:
 # - during the release time, the image tags can be versioned like 0.7.0-RC..
 # - from a branch, the image tags can be the branch names like v0.7.x-ci
@@ -30,7 +30,7 @@ kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/
 function waitForDeployment() {
   DEPLOY=$1
   NS=$2
-  
+
   for i in $(seq 1 50) ; do
     kubectl get deployment -n ${NS} ${DEPLOY}
     replicas=$(kubectl get deployment -n ${NS} ${DEPLOY} -o json | jq ".status.readyReplicas")
@@ -86,7 +86,8 @@ echo "--------------- Maya apiserver later logs -----------------------------"
 dumpMayaAPIServerLogs 200
 
 echo "--------------- Create Cstor and Jiva PersistentVolume ------------------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
+#kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/demo/pvc-single-replica-jiva.yaml
 sleep 10
 kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-sparse-claim-cstor.yaml
 
@@ -97,11 +98,11 @@ kubectl get pods --all-namespaces
 
 kubectl get deploy -l openebs.io/controller=jiva-controller
 JIVACTRL=$(kubectl get deploy -l openebs.io/controller=jiva-controller --no-headers | awk {'print $1'})
-waitForDeployment ${JIVACTRL} default 
+waitForDeployment ${JIVACTRL} default
 
 kubectl get deploy -l openebs.io/replica=jiva-replica
 JIVAREP=$(kubectl get deploy -l openebs.io/replica=jiva-replica --no-headers | awk {'print $1'})
-waitForDeployment ${JIVAREP} default 
+waitForDeployment ${JIVAREP} default
 
 kubectl get deploy -n openebs -l openebs.io/target=cstor-target
 CSTORTARGET=$(kubectl get deploy -n openebs -l openebs.io/target=cstor-target --no-headers | awk {'print $1'})
