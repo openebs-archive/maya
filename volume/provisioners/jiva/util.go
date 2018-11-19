@@ -14,7 +14,8 @@ import (
 	"github.com/openebs/maya/types/v1"
 	vProfile "github.com/openebs/maya/volume/profiles"
 )
-// JivaInterface abstracts the jiva specific configurations for jiva storage engine. 
+
+// JivaInterface abstracts the jiva specific configurations for jiva storage engine.
 type JivaInterface interface {
 	// Name provides the name of the JivaInterface implementor
 	Name() string

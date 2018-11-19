@@ -22,8 +22,6 @@ import (
 
 var _ EnvLister = &envInstall{}
 
-var _ EnvLister = &envInstallConfig{}
-
 func TestEnvInstallCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedCount int
@@ -34,24 +32,6 @@ func TestEnvInstallCount(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			e := EnvInstall()
-			l, _ := e.List()
-			if len(l.Items) != mock.expectedCount {
-				t.Fatalf("Test '%s' failed: expected env variables count '%d': actual '%d'", name, mock.expectedCount, len(l.Items))
-			}
-		})
-	}
-}
-
-func TestEnvInstallConfigCount(t *testing.T) {
-	tests := map[string]struct {
-		expectedCount int
-	}{
-		"101": {1},
-	}
-
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			e := EnvInstallConfig()
 			l, _ := e.List()
 			if len(l.Items) != mock.expectedCount {
 				t.Fatalf("Test '%s' failed: expected env variables count '%d': actual '%d'", name, mock.expectedCount, len(l.Items))
