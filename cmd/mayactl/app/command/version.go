@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/openebs/maya/orchprovider"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/version"
 	"github.com/spf13/cobra"
@@ -48,8 +47,6 @@ maya version
 
 			fmt.Println("m-apiserver url: ", mapiserver.GetURL())
 			fmt.Println("m-apiserver status: ", mapiserver.GetConnectionStatus())
-
-			fmt.Println("Provider: ", orchprovider.DetectOrchProviderFromEnv())
 		},
 	}
 
