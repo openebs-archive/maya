@@ -20,9 +20,25 @@ import (
 	analytics "github.com/jpillora/go-ogle-analytics"
 )
 
-// Send sends a single usage metric to Google Analytics
-func (u *Usage) Send(gaClient *analytics.Client) {
+// Send sends a single usage metric to Google Analytics with some
+// compulsory fields defined in Google Analytics API
+// bindings(jpillora/go-ogle-analytics)
+func (u *Usage) Send() {
+	// Instantiate a Gclient with the tracking ID
 	go func() {
+		// Un-wrap the gaClient struct back here
+		gaClient, err := analytics.NewClient(u.Gclient.trackID)
+		if err != nil {
+			return
+		}
+		gaClient.ClientID(u.clientID).
+			ApplicationID(u.appID).
+			ApplicationVersion(u.appVersion).
+			DataSource(u.dataSource).
+			ApplicationName(u.appName).
+			ApplicationInstallerID(u.appInstallerID).
+			DocumentTitle(u.documentTitle)
+		// Un-wrap the Event struct back here
 		event := analytics.NewEvent(u.category, u.action)
 		event.Label(u.label)
 		event.Value(u.value)
