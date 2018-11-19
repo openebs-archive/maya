@@ -82,3 +82,7 @@ required = [
   name = "github.com/jpillora/go-ogle-analytics"
   source = "github.com/openebs/go-ogle-analytics"
   revision = "694492144d734d1500dfb877b47fb2f32a4ec53f"
+
+[[constraint]]
+  name = "github.com/docker/go-units"
+  version = "0.3.3"
