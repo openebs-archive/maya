@@ -8,6 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+type volumeStatus int
+
 const (
 	// SocketPath is path from where connection has to be created.
 	SocketPath = "/var/run/istgt_ctl_sock"
@@ -23,6 +25,25 @@ const (
 	Command = "IOSTATS"
 	// BufSize is the size of response from cstor.
 	BufSize = 256
+)
+
+const (
+	_ volumeStatus = iota
+	// Offline is the status of volume when no io's have been served
+	// or volume may be in RO state (only for jiva)
+	Offline
+	// DisabledFeatures is the status of volume when volume is
+	// performing in degraded mode but all features might be disabled
+	DisabledFeatures
+	// DegradedPerformance is the status of volume when volume is
+	// performing in degraded mode but all features may available
+	DegradedPerformance
+	// Healthy is the status of volume when volume is serving io's
+	// and all features are available or volume may be in RW state
+	// (for jiva)
+	Healthy
+	// Unknown is the status of volume when no info is available
+	Unknown
 )
 
 // Exporter interface defines the interfaces that has methods to be
@@ -115,6 +136,7 @@ type Metrics struct {
 	totalWriteBlockCount   prometheus.Gauge
 	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
+	volumeStatus           prometheus.Gauge
 	volumeUpTime           *prometheus.GaugeVec
 	connectionRetryCounter *prometheus.CounterVec
 	connectionErrorCounter *prometheus.CounterVec
@@ -233,6 +255,13 @@ func MetricsInitializer(casType string) *Metrics {
 				Help:      "Write Block count of volume",
 			}),
 
+		volumeStatus: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "volume_status",
+				Help:      "Status of volume: (1, 2, 3, 4, 5) = {Offline, DisabledFeatures, DegradedPerformance, Healthy, Unknown}",
+			}),
+
 		volumeUpTime: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
@@ -285,6 +314,21 @@ func (v VolumeStats) buildStringof(addr, mode *strings.Builder) {
 	}
 }
 
+func (v VolumeStats) getVolumeStatus() volumeStatus {
+	switch v.status {
+	case "RO", "Offline":
+		return Offline
+	case "RW", "Healthy":
+		return Healthy
+	case "DisabledFeatures":
+		return DisabledFeatures
+	case "DegradedPerformance":
+		return DegradedPerformance
+	default:
+		return Unknown
+	}
+}
+
 // gaugeList returns the list of the registered gauge variables
 func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
 	return []prometheus.Gauge{
@@ -300,6 +344,7 @@ func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
 		v.logicalSize,
 		v.sectorSize,
 		v.sizeOfVolume,
+		v.volumeStatus,
 	}
 }
 
