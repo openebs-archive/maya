@@ -16,7 +16,6 @@ limitations under the License.
 package usage
 
 import (
-	analytics "github.com/jpillora/go-ogle-analytics"
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 )
 
@@ -151,6 +150,30 @@ func (u *Usage) SetClientID(userID string) *Usage {
 	return u
 }
 
+// SetCategory sets the category of an event
+func (u *Usage) SetCategory(c string) *Usage {
+	u.category = c
+	return u
+}
+
+// SetAction sets the action of an event
+func (u *Usage) SetAction(a string) *Usage {
+	u.action = a
+	return u
+}
+
+// SetLabel sets the label for an event
+func (u *Usage) SetLabel(l string) *Usage {
+	u.label = l
+	return u
+}
+
+// SetValue sets the value for an event's label
+func (u *Usage) SetValue(v int64) *Usage {
+	u.value = v
+	return u
+}
+
 // Build is a builder method for Usage struct
 func (u *Usage) Build() *Usage {
 	// Default ApplicationID for openebs project is OpenEBS
@@ -165,7 +188,7 @@ func (u *Usage) Build() *Usage {
 }
 
 // InstallBuilder is a concrete builder for install events
-func (u *Usage) InstallBuilder() *analytics.Client {
+func (u *Usage) InstallBuilder() *Usage {
 	v := NewVersion()
 	clusterSize, _ := k8sapi.NumberOfNodes()
 	v.getVersion()
@@ -176,32 +199,5 @@ func (u *Usage) InstallBuilder() *analytics.Client {
 		SetDocumentTitle(v.id).
 		SetApplicationID("OpenEBS").
 		NewEvent("install", "running", "nodes", int64(clusterSize))
-
-	gaClient, _ := analytics.NewClient(GAclientID)
-	// anonymous user identifying
-	// client-id - uid of default namespace
-	gaClient.ClientID(u.clientID).
-		// OpenEBS version details
-		ApplicationID(u.appID).
-		ApplicationVersion(u.appVersion).
-		// K8s version
-
-		// TODO: Find k8s Environment type
-		DataSource(u.dataSource).
-		ApplicationName(u.appName).
-		// ^ This needs to be cstor or jiva later
-		ApplicationInstallerID(u.appInstallerID).
-		DocumentTitle(u.documentTitle)
-	// Update it to volume uuid if this is a volume-event
-	// (optional) Application ID
-	if u.appID != "" {
-		gaClient.ApplicationID(u.appID)
-	}
-
-	//event := New()
-	//event.SetCategory(u.category).
-	//	SetAction(u.action).
-	//	SetLabel(u.label).
-	// SetValue(u.value)
-	return gaClient
+	return u
 }
