@@ -17,15 +17,37 @@ limitations under the License.
 package spc
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
+	"github.com/openebs/maya/pkg/patch"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"strings"
 )
+
+const (
+	NodePhaseOnline  = "Online"
+	NodePhaseOffline = "Offline"
+)
+
+// PatchPayloadCSP struct is ussed to patch CSP object.
+// Similarly, for other objects (if required to patch) we can have structs for them
+// to have a implementation if patch function.
+type PatchPayloadCSP struct {
+	// 'Object' is the object which needs to be patched.
+	Object *apis.CStorPool
+	// PatchPayloadCSP is the payload to patch CSP.
+	PatchPayload []patch.Patch
+	//ClientSet    patch.ClientSet
+	K8sClientSet *patch.ClientSet
+}
 
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
@@ -144,12 +166,6 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 }
 
 func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
-	if len(spcGot.Spec.Disks.DiskList) > 0 {
-		// TODO : reconciliation for manual storagepool provisioning
-		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
-		return nil
-	}
-	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
 	newK8sClient, err := k8s.NewK8sClient("")
@@ -159,6 +175,18 @@ func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
 	// the openebs clientset is not exported.
 	newOecsClient := newK8sClient.GetOECS()
+	// Update CSP statuses, as part of the resync activity.
+	c.updateCspStatus(spcGot)
+	if err != nil {
+		return fmt.Errorf("unable to update csp status in resync event:%s", err.Error())
+	}
+
+	if len(spcGot.Spec.Disks.DiskList) > 0 {
+		// TODO : reconciliation for manual storagepool provisioning
+		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
+		return nil
+	}
+	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
 
 	// Get the current count of provisioned pool for the storagepool claim
 	spList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
@@ -179,4 +207,99 @@ func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 		}
 	}
 	return nil
+}
+
+// updateCspStatus update statuses on csp by patching the csp object.
+func (c *Controller) updateCspStatus(spcGot *apis.StoragePoolClaim) {
+	// List all the CSPs for the given SPC.
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
+	if err != nil {
+		glog.Errorf("Unable to list cstor pool cr for spc '%s': %v", err, spcGot.Name)
+	}
+	// Iterate over CSP and patch it to update status.
+	for _, csp := range cspList.Items {
+		// nodePhase is the state of the node corresponding to CSP.
+		var nodePhase string
+		// nodeName is the name of node corresponding to CSP.
+		var nodeName string
+		// If there is no label on csp, node name cannot be extracted, hence throw proper error message.
+		if csp.Labels == nil {
+			glog.Errorf("Node name not found on CSP object %s as no labels are present on CSP", csp.Name)
+		}
+		// Extract the node name from the label of CSP object.
+		nodeName = csp.Labels[string(apis.HostNameCPK)]
+		// Check for empty node name.
+		if strings.TrimSpace(nodeName) == "" {
+			glog.Errorf("Node name not found on CSP object %s", csp.Name)
+		}
+		// Get the phase of the node.
+		// ToDo: NodePhase has been deprecated in k8s upstream. Need to decide some node phases or states.
+		// ToDo: The states/phases can then be mapped to the several node conditions present on node object.
+		nodePhase = c.getNodePhase(nodeName)
+		// Throw a warning if node phase is empty.
+		if strings.TrimSpace(nodePhase) == "" {
+			glog.Warningf("Got empty value for node phase for CSP %s", csp.Name)
+		}
+		// Form the object that will be patched to update the node status on CSP.
+		nodePhasePayload := &apis.NodeStatus{
+			nodeName,
+			v1.NodePhase(nodePhase),
+		}
+		// Get the patch payload
+		cspPatch, err := c.NewPatchPayloadCSP(nodePhasePayload, &csp)
+		if err != nil {
+			glog.Error("Unable to form payload to patch csp:", err)
+		}
+		_, err = cspPatch.Patch("", types.JSONPatchType)
+		if err != nil {
+			glog.Errorf("Unable to patch csp %s in resync event:%v", csp.Name, err)
+		}
+	}
+}
+
+// getNodePhase get the Network status of a node and if network is available it returns online else offline.
+// If it does not get the network status from node object it will return empty.
+func (c *Controller) getNodePhase(nodeName string) string {
+	var nodePhase string
+	getNode, err := c.kubeclientset.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+	if err != nil {
+		glog.Error("Error in getting node phase:", err)
+	}
+	for _, conditions := range getNode.Status.Conditions {
+		if conditions.Type == v1.NodeNetworkUnavailable {
+			if conditions.Status == v1.ConditionFalse {
+				nodePhase = string(NodePhaseOnline)
+			} else {
+				nodePhase = string(NodePhaseOffline)
+			}
+			break
+		}
+	}
+	return nodePhase
+}
+
+// NewPatchPayloadCSP constructs payload to patch csp.
+func (c *Controller) NewPatchPayloadCSP(patchValue interface{}, csp *apis.CStorPool) (patch.Patcher, error) {
+	var cspPatch patch.Patcher
+	cspPatchPayload := patch.NewPatchPayload("add", "/status/nodeStatus", patchValue)
+	cspPatch = &PatchPayloadCSP{
+		Object:       csp,
+		PatchPayload: cspPatchPayload,
+		K8sClientSet: &patch.ClientSet{
+			c.kubeclientset,
+			c.clientset,
+		},
+	}
+	return cspPatch, nil
+}
+
+// Patch is the specific implementation if Patch() interface for patching CSP objects.
+// Similarly, we can have for other objects, if required.
+func (payload *PatchPayloadCSP) Patch(namesapce string, patchType types.PatchType) (interface{}, error) {
+	PatchJSON, err := json.Marshal(payload.PatchPayload)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to marshal patch payload for csp :%v", err)
+	}
+	cspObject, err := payload.K8sClientSet.PatchCsp(payload.Object.Name, patchType, PatchJSON)
+	return cspObject, err
 }

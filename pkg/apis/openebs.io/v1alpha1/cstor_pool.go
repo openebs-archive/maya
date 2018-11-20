@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/api/core/v1"
 )
 
 // +genclient
@@ -86,7 +87,25 @@ const (
 
 // CStorPoolStatus is for handling status of pool.
 type CStorPoolStatus struct {
-	Phase CStorPoolPhase `json:"phase"`
+	Phase         CStorPoolPhase  `json:"phase"`
+	DisksStatuses []DisksStatuses `json:"diskStatuses"`
+	NodeStatus    NodeStatus    `json:"nodeStatus"`
+}
+
+// DisksStatuses contains details for the current status of disks associated to this CSP.
+type DisksStatuses struct {
+	// Name of the disk.
+	Name string `json:"name"`
+	// Details about the disk's current status.
+	Status DiskStatus `json:"state"`
+}
+
+// NodeStatus contains details for the current status of the node to which the CSP is associated.
+type NodeStatus struct {
+	// Name of the node
+	Name string `json:"name"`
+	// Details about the node's current phase.
+	Phase v1.NodePhase `json:"phase"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
