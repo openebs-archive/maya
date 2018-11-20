@@ -190,17 +190,17 @@ func Status(poolName string) (string, error) {
 	if poolStatus == ZpoolStatusDegraded {
 		return string(apis.CStorPoolStatusDegraded), nil
 	} else if poolStatus == ZpoolStatusFaulted {
-		return string(apis.CStorPoolStatusFaulted), nil
+		return string(apis.CStorPoolStatusOffline), nil
 	} else if poolStatus == ZpoolStatusOffline {
 		return string(apis.CStorPoolStatusOffline), nil
 	} else if poolStatus == ZpoolStatusOnline {
 		return string(apis.CStorPoolStatusOnline), nil
 	} else if poolStatus == ZpoolStatusRemoved {
-		return string(apis.CStorPoolStatusRemoved), nil
+		return string(apis.CStorPoolStatusDegraded), nil
 	} else if poolStatus == ZpoolStatusUnavail {
-		return string(apis.CStorPoolStatusUnavail), nil
+		return string(apis.CStorPoolStatusOffline), nil
 	} else {
-		return string(apis.CStorPoolStatusUnknown), nil
+		return string(apis.CStorPoolStatusError), nil
 	}
 	return poolStatus, nil
 }

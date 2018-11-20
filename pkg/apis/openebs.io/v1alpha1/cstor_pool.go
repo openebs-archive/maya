@@ -61,7 +61,7 @@ const (
 	// CStorPoolStatusEmpty ensures the create operation is to be done, if import fails.
 	CStorPoolStatusEmpty CStorPoolPhase = ""
 	// CStorPoolStatusOnline signifies that the pool is online.
-	CStorPoolStatusOnline CStorPoolPhase = "Online"
+	CStorPoolStatusOnline CStorPoolPhase = "Healthy"
 	// CStorPoolStatusOffline signifies that the pool is offline.
 	CStorPoolStatusOffline CStorPoolPhase = "Offline"
 	// CStorPoolStatusDegraded signifies that the pool is degraded.
@@ -73,7 +73,7 @@ const (
 	// CStorPoolStatusUnavail signifies that the pool is not available.
 	CStorPoolStatusUnavail CStorPoolPhase = "Unavail"
 	// CStorPoolStatusDeletionFailed signifies that the pool status could not be fetched.
-	CStorPoolStatusUnknown CStorPoolPhase = "Unknown"
+	CStorPoolStatusError CStorPoolPhase = "Error"
 	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
 	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"
 	// CStorPoolStatusInvalid ensures invalid resource.

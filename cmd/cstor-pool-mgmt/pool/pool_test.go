@@ -633,7 +633,7 @@ func TestPoolStatus(t *testing.T) {
 		"#1 OnlinePoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusOnline,
-			expectedStatus:   "Online",
+			expectedStatus:   "Healthy",
 		},
 		"#2 OfflinePoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
@@ -643,17 +643,17 @@ func TestPoolStatus(t *testing.T) {
 		"#3 UnavailPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusUnavail,
-			expectedStatus:   "Unavail",
+			expectedStatus:   "Offline",
 		},
 		"#4 RemovedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusRemoved,
-			expectedStatus:   "Removed",
+			expectedStatus:   "Degraded",
 		},
 		"#5 FaultedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
 			mockedOutputType: ZpoolStatusFaulted,
-			expectedStatus:   "Faulted",
+			expectedStatus:   "Offline",
 		},
 		"#6 DegradedPoolStatus": {
 			poolName:         "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
