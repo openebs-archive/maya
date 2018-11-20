@@ -33,19 +33,21 @@ import (
 )
 
 const (
-	NodePhaseOnline  = "Online"
+	// NodePhaseOnline is the status of Online node.
+	NodePhaseOnline = "Online"
+	// NodePhaseOffline is the status of Offline node.
 	NodePhaseOffline = "Offline"
 )
 
 // PatchPayloadCSP struct is ussed to patch CSP object.
 // Similarly, for other objects (if required to patch) we can have structs for them
-// to have a implementation if patch function.
+// to have a implementation of patch interface.
 type PatchPayloadCSP struct {
 	// 'Object' is the object which needs to be patched.
 	Object *apis.CStorPool
 	// PatchPayloadCSP is the payload to patch CSP.
 	PatchPayload []patch.Patch
-	//ClientSet    patch.ClientSet
+	//K8sClientSet    is the kubernetes and openebs clientset.
 	K8sClientSet *patch.ClientSet
 }
 
@@ -177,10 +179,6 @@ func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 	newOecsClient := newK8sClient.GetOECS()
 	// Update CSP statuses, as part of the resync activity.
 	c.updateCspStatus(spcGot)
-	if err != nil {
-		return fmt.Errorf("unable to update csp status in resync event:%s", err.Error())
-	}
-
 	if len(spcGot.Spec.Disks.DiskList) > 0 {
 		// TODO : reconciliation for manual storagepool provisioning
 		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
@@ -212,6 +210,7 @@ func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 // updateCspStatus update statuses on csp by patching the csp object.
 func (c *Controller) updateCspStatus(spcGot *apis.StoragePoolClaim) {
 	// List all the CSPs for the given SPC.
+	glog.V(1).Infof("Syncing node status on CSP object for storagepoolclaim %s", spcGot.Name)
 	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
 	if err != nil {
 		glog.Errorf("Unable to list cstor pool cr for spc '%s': %v", err, spcGot.Name)

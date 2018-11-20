@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// ClientSet struct holds kubernetes and openebs clientsets.
 type ClientSet struct {
 	// kubeclientset is a standard kubernetes clientset
 	Kubeclientset kubernetes.Interface
@@ -49,7 +50,7 @@ type Patch struct {
 	Value interface{} `json:"value"`
 }
 
-// Patcher interface has Patch functions which can be implemented for several objects that needs to be patched.
+// Patcher interface has Patch function which can be implemented for several objects that needs to be patched.
 type Patcher interface {
 	Patch(string, types.PatchType) (interface{}, error)
 }
@@ -63,6 +64,7 @@ func NewPatchPayload(operation string, path string, value interface{}) (payload 
 	return PatchPayload
 }
 
+// PatchCsp will patch the CSP object
 func (c *ClientSet) PatchCsp(cspName string, patchType types.PatchType, patches []byte) (*apis.CStorPool, error) {
 	csp, err := c.OpenebsClientset.OpenebsV1alpha1().CStorPools().Patch(cspName, patchType, patches)
 	return csp, err
