@@ -27,6 +27,12 @@ import (
 type ENVKey string
 
 const (
+	// KubeConfig is the ENV variable to fetch kubernetes kubeconfig
+	KubeConfig ENVKey = "OPENEBS_IO_KUBE_CONFIG"
+
+	// KubeMaster is the ENV variable to fetch kubernetes master's address
+	KubeMaster ENVKey = "OPENEBS_IO_K8S_MASTER"
+
 	// OpenEBSEnableAnalytics is the environment variable to get user's consent to
 	// send usage data to OpenEBS core-developers using the Google Analytics platform
 	OpenEBSEnableAnalytics ENVKey = "OPENEBS_IO_ENABLE_ANALYTICS"

@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	api_oe_old "github.com/openebs/maya/types/v1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
@@ -1043,8 +1043,8 @@ func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 }
 
 func getK8sConfig() (config *rest.Config, err error) {
-	k8sMaster := api_oe_old.K8sMasterENV()
-	kubeConfig := api_oe_old.KubeConfigENV()
+	k8sMaster := env.Get(env.KubeMaster)
+	kubeConfig := env.Get(env.KubeConfig)
 
 	if len(k8sMaster) != 0 || len(kubeConfig) != 0 {
 		// creates the config from k8sMaster or kubeConfig
