@@ -16,6 +16,17 @@ limitations under the License.
 
 package v1alpha1
 
+// CASVolumeType represents a valid cas volume
+type CASVolumeType string
+
+const (
+  // JivaVolume represents a volume based on jiva
+  JivaVolume CASVolumeType = "jiva"
+
+  // CstorVolume represents a volume based on cstor
+  CstorVolume CASVolumeType = "cstor"
+)
+
 // CASKey represents the key used either in resource annotation or label
 type CASKey string
 

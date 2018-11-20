@@ -26,7 +26,6 @@ import (
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -430,9 +429,9 @@ func getCreateCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToCreateCStorVolumeENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToCreateJivaVolumeENVK)
 		}
 	}
@@ -450,9 +449,9 @@ func getReadCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) stri
 		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToReadCStorVolumeENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToReadJivaVolumeENVK)
 		}
 	}
@@ -470,9 +469,9 @@ func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		}
 		// check for cas-type, if cstor, set create cas template to cstor,
 		// if jiva or for jiva and if absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToDeleteCStorVolumeENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToDeleteJivaVolumeENVK)
 		}
 	}

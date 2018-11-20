@@ -11,6 +11,16 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
+// RemoveItem removes the string passed as argument from the slice
+func RemoveItem(slice []string, str string) []string {
+	for index, value := range slice {
+		if value == str {
+			slice = append(slice[:index], slice[index+1:]...)
+		}
+	}
+	return slice
+}
+
 // NewCstorStatsExporter returns cstor's socket connection instance
 // for the registration collectors with prometheus.
 func NewCstorStatsExporter(conn net.Conn, casType string) *VolumeStatsExporter {
@@ -100,7 +110,7 @@ func (c *Cstor) reader() (string, error) {
 func splitter(resp string) string {
 	var result []string
 	result = strings.Split(resp, EOF)
-	result = v1.Remove(result, Footer)
+	result = RemoveItem(result, Footer)
 	if len(result[0]) == 0 {
 		return ""
 	}

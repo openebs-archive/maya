@@ -22,7 +22,6 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
-	"github.com/openebs/maya/types/v1"
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -334,9 +333,9 @@ func getReadCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) stri
 		}
 		// check for casType, if cstor, set read cas template to cstor,
 		// if jiva or absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToReadCStorSnapshotENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToReadJivaSnapshotENVK)
 		}
 	}
@@ -354,9 +353,9 @@ func getCreateCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		}
 		// check for casType, if cstor, set create cas template to cstor,
 		// if jiva or absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToCreateCStorSnapshotENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToCreateJivaSnapshotENVK)
 		}
 	}
@@ -374,9 +373,9 @@ func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		}
 		// check for casType, if cstor, set delete cas template to cstor,
 		// if jiva or absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToDeleteCStorSnapshotENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToDeleteJivaSnapshotENVK)
 		}
 	}
@@ -394,9 +393,9 @@ func getListCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) stri
 		}
 		// check for casType, if cstor, set list cas template to cstor,
 		// if jiva or absent then default to jiva
-		if casType == string(v1.CStorVolumeType) {
+		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToListCStorSnapshotENVK)
-		} else if casType == string(v1.JivaVolumeType) || casType == "" {
+		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToListJivaSnapshotENVK)
 		}
 	}
