@@ -187,6 +187,25 @@ func (u *Usage) Build() *Usage {
 	return u
 }
 
+// Application builder is used for adding k8s&openebs environment detail
+// for non install events
+func (u *Usage) ApplicationBuilder() *Usage {
+	v := NewVersion()
+	v.getVersion()
+	u.SetApplicationVersion(v.openebsVersion).
+		SetApplicationName(v.k8sArch).
+		SetApplicationInstallerID(v.k8sVersion).
+		SetDataSource(v.nodeType)
+	return u
+}
+
+// SetVolumeCapacity sets the storage capacity of the volume for a volume event
+func (u *Usage) SetVolumeCapacity(volCapG string) *Usage {
+	s, _ := toGigaUnits(volCapG)
+	u.SetValue(s)
+	return u
+}
+
 // InstallBuilder is a concrete builder for install events
 func (u *Usage) InstallBuilder() *Usage {
 	v := NewVersion()
