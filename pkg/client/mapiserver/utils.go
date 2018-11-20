@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"sort"
+	"text/tabwriter"
 	"time"
+
+	"github.com/openebs/maya/types/v1"
 )
 
 // MAPIAddr stores address of mapi server if passed through flag
@@ -208,4 +212,21 @@ func deleteRequest(url string, namespace string) error {
 	}
 
 	return nil
+}
+
+// Print binds the object with go template and executes it
+func Print(format string, obj interface{}) error {
+	// New Instance of tabwriter
+	w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
+	// New Instance of template
+	tmpl, err := template.New("Template").Parse(format)
+	if err != nil {
+		return fmt.Errorf("Error in parsing replica template, found error : %v", err)
+	}
+	// Parse struct with template
+	err = tmpl.Execute(w, obj)
+	if err != nil {
+		return fmt.Errorf("Error in executing replica template, found error : %v", err)
+	}
+	return w.Flush()
 }

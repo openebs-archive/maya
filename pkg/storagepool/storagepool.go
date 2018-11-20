@@ -17,6 +17,7 @@ limitations under the License.
 package storagepool
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ghodss/yaml"
@@ -161,4 +162,105 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 		return nil, err
 	}
 	return pool, nil
+}
+
+// StoragePoolOperation holds the instance of StoragePool related operations
+type StoragePoolOperation struct {
+	poolName  string
+	k8sClient *m_k8s_client.K8sClient
+}
+
+// NewStoragePoolOperation returns a new instance of StoragePoolOperation
+func NewStoragePoolOperation(poolName string) (*StoragePoolOperation, error) {
+	kc, err := m_k8s_client.NewK8sClient("")
+	if err != nil {
+		return nil, err
+	}
+	// Put pool object inside casPoolOperation object
+	return &StoragePoolOperation{
+		poolName:  poolName,
+		k8sClient: kc,
+	}, err
+}
+
+// List returns the list of storagepools
+func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
+	if s.k8sClient == nil {
+		return nil, fmt.Errorf("unable to fetch K8s client")
+	}
+
+	// get CATemplate name from env
+	castName := menv.Get(menv.CASTemplateToListStoragePoolENVK)
+
+	// fetch read cas template specifications
+	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// create new instance on CASEngine
+	engine, err := engine.New(
+		cast,
+		"",
+		map[string]interface{}{},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch data from engine execution
+	data, err := engine.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshall into StoragePoolList
+	sPool := &v1alpha1.StoragePoolList{}
+	err = json.Unmarshal(data, sPool)
+	if err != nil {
+		return nil, err
+	}
+	return sPool, nil
+}
+
+// Read returns the list of storagepools
+func (s *StoragePoolOperation) Read() (*v1alpha1.StoragePool, error) {
+	if s.k8sClient == nil {
+		return nil, fmt.Errorf("unable to fetch K8s client")
+	}
+
+	// get CATemplate name from env
+	castName := menv.Get(menv.CASTemplateToReadStoragePoolENVK)
+
+	// fetch read cas template specifications
+	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// create new instance on CASEngine
+	engine, err := engine.New(
+		cast,
+		string(v1alpha1.StoragePoolTLP),
+		map[string]interface{}{
+			string(v1alpha1.OwnerCTP): s.poolName,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// fetch data from engine execution
+	data, err := engine.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshall into StoragePool
+	sPool := &v1alpha1.StoragePool{}
+	err = json.Unmarshal(data, sPool)
+	if err != nil {
+		return nil, err
+	}
+	return sPool, nil
 }

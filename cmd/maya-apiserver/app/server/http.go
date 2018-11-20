@@ -100,6 +100,19 @@ var (
 		[]string{"code", "method"},
 	)
 
+	// latestOpenEBSPoolRequestDuration Collects the response time since
+	// a request has been made on /latest/pool/
+	latestOpenEBSPoolRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "latest_openebs_pool_request_duration_seconds",
+			Help:    "Request response time of the /latest/pool/.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
+		},
+		// code is http code and method is http method returned by
+		// endpoint "/latest/meta-data"
+		[]string{"code", "method"},
+	)
+
 	// Count the no of request Since a request has been made on /latest/meta-data
 	latestOpenEBSMetaDataRequestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -113,6 +126,15 @@ var (
 		prometheus.CounterOpts{
 			Name: "latest_openebs_snapshots_requests_total",
 			Help: "Total number of /latest/snapshots requests.",
+		},
+		[]string{"code", "method"},
+	)
+
+	// Count the no of request Since a request has been made on /latest/pools/
+	latestOpenEBSPoolRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "latest_openebs_pool_requests_total",
+			Help: "Total number of /latest/pools/ requests.",
 		},
 		[]string{"code", "method"},
 	)
@@ -236,7 +258,10 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	s.mux.HandleFunc("/latest/meta-data/", s.wrap(latestOpenEBSMetaDataRequestCounter,
 		latestOpenEBSMetaDataRequestDuration, s.MetaSpecificRequest))
 
-	// Request w.r.t cas volume is handled here
+	// Request w.r.t to storage pools is handled here
+	s.mux.HandleFunc("/latest/pools/", s.wrap(latestOpenEBSPoolRequestCounter, latestOpenEBSPoolRequestDuration, s.poolV1alpha1SpecificRequest))
+
+	// Request w.r.t to a single VSM entity is handled here
 	s.mux.HandleFunc("/latest/volumes/", s.wrap(latestOpenEBSVolumeRequestCounter,
 		latestOpenEBSVolumeRequestDuration, s.volumeV1alpha1SpecificRequest))
 

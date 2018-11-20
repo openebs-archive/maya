@@ -23,7 +23,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"text/tabwriter"
 
 	client "github.com/openebs/maya/pkg/client/jiva"
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
@@ -269,16 +268,7 @@ Replica Count     :   {{.ReplicaCount}}
 			fmt.Println("Error in getting specific information from K8s. Please try again.")
 		}
 
-		// parsing the information to replicastatus template
-		tmpl = template.New("ReplicaInfo")
-		tmpl = template.Must(tmpl.Parse(jivaReplicaTemplate))
-
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-		err = tmpl.Execute(w, replicaInfo)
-		if err != nil {
-			fmt.Println("Unable to display volume info, found error : ", err)
-		}
-		w.Flush()
+		return mapiserver.Print(jivaReplicaTemplate, replicaInfo)
 	} else if v.GetCASType() == string(CstorStorageEngine) {
 
 		// Converting replica count character to int
@@ -315,17 +305,7 @@ Replica Count     :   {{.ReplicaCount}}
 			})
 		}
 
-		// Parsing the information to cstorReplicaInfo template
-		cstorTemplate := template.New("CstorReplicaInfo")
-		cstorTemplate = template.Must(cstorTemplate.Parse(cstorReplicaTemplate))
-
-		//	Executing tabwriter on above template
-		w := tabwriter.NewWriter(os.Stdout, v1.MinWidth, v1.MaxWidth, v1.Padding, ' ', 0)
-		err = cstorTemplate.Execute(w, replicaInfo)
-		if err != nil {
-			fmt.Println("Unable to display volume info, found error : ", err)
-		}
-		w.Flush()
+		return mapiserver.Print(cstorReplicaTemplate, replicaInfo)
 	} else {
 		fmt.Println("Unsupported Volume Type")
 	}
