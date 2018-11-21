@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 	"strings"
+
+	install "github.com/openebs/maya/pkg/install/v1alpha1"
 )
 
 const (
@@ -48,8 +50,7 @@ func (s *HTTPServer) metaInstanceID(resp http.ResponseWriter, req *http.Request)
 	if req.Method != "GET" {
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
-
-	return AnyInstance, nil
+	return install.SimpleInstaller().GetInstalled(), nil
 }
 
 func (s *HTTPServer) metaAvailabilityZone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

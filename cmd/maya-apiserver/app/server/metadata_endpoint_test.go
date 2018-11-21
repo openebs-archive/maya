@@ -350,7 +350,7 @@ func TestMetaInstanceIDViaWrap(t *testing.T) {
 	// expectations
 	var expected bytes.Buffer
 	enc := codec.NewEncoder(&expected, jsonHandle)
-	err = enc.Encode(AnyInstance)
+	err = enc.Encode("Completed")
 
 	if err != nil {
 		t.Fatalf("err while encoding: %v", err)

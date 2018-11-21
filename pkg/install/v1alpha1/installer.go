@@ -26,12 +26,16 @@ import (
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	template "github.com/openebs/maya/pkg/template/v1alpha1"
 	"github.com/openebs/maya/pkg/version"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // Installer abstracts installation
 type Installer interface {
 	Install() (errors []error)
+	GetInstalled() string
 }
 
 // simpleInstaller installs artifacts by making use of install config
@@ -120,6 +124,23 @@ func (i *simpleInstaller) Install() []error {
 		}
 	}
 	return i.errors
+}
+
+// GetInstalled get the installed resources by the maya installer.
+// If all the resources are created it returns 'Completed' status,
+// if there are some resources which are not created yet returns
+// 'InProgress'
+func (i *simpleInstaller) GetInstalled() string {
+	ulist := i.prepareResources()
+	ul := i.setRules(ulist)
+	for _, unstruct := range ul {
+		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
+		_, err := cu.Get(unstruct.GetName(), metav1.GetOptions{})
+		if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
+			return "InProgress"
+		}
+	}
+	return "Completed"
 }
 
 // SimpleInstaller returns a new instance of simpleInstaller
