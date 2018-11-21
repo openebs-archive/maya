@@ -105,41 +105,22 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 	case common.QOpPeriodicSync:
 		lastKnownPhase := cStorVolumeGot.Status.Phase
 		replicaStatuses := []apis.ReplicaStatus{}
-		healthyReplicas := 0
-		statuses, err := volume.GetReplicaStatus(cStorVolumeGot)
+		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
 		if err != nil {
+			glog.Errorf("Error in getting volume status: %s", err.Error())
 			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusError)
 		} else {
-			glog.Infof("Replica statuses for volume %s are: %v", cStorVolumeGot.Name, statuses)
-			for _, val := range statuses {
-				statusAr := strings.Split(val, ":")
-				if statusAr[1] == "HEALTHY" {
-					healthyReplicas++
-					// replace HEALTHY with Running
-					statusAr[1] = string(common.CVStatusRunning)
-				} else {
-					// if not healthy then replace with Degraded
-					statusAr[1] = string(common.CVStatusDegraded)
-				}
-				replicaStatuses = append(replicaStatuses, apis.ReplicaStatus{
-					GUID: statusAr[0], Status: statusAr[1],
-				})
-			}
-			glog.Infof("Healthy replicas for volume %s are: %v", cStorVolumeGot.Name, healthyReplicas)
-
-			// if no replicas connected yet then this is init state
-			// verbose code for better understanding
-			if totalReplicas := len(statuses); totalReplicas == 0 {
+			cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(volStatus.Status)
+			// if replicas are zero set the status as init
+			if len(volStatus.ReplicaStatuses) == 0 {
 				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusInit)
-			} else if healthyReplicas == 0 {
-				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusError)
-			} else if healthyReplicas >= cStorVolumeGot.Spec.ReplicationFactor {
-				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusRunning)
-			} else if healthyReplicas >= cStorVolumeGot.Spec.ConsistencyFactor {
-				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusDegraded)
 			} else {
-				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusRO)
+				// fill replicaStatuses
+				for _, rep := range volStatus.ReplicaStatuses {
+					replicaStatuses = append(replicaStatuses, apis.ReplicaStatus{ID: rep.ID, Status: rep.Status})
+				}
 			}
+			glog.Infof("Replica statuses for volume %s is: %v", cStorVolumeGot.Name, replicaStatuses)
 		}
 		cStorVolumeGot.Status.ReplicaStatuses = replicaStatuses
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
@@ -147,7 +128,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			glog.Errorf("Error updating cStorVolume object: %s", err)
 			return common.CVStatusIgnore, nil
 		}
-
 		// if there is no change in the phase of the cv only then create event
 		if lastKnownPhase != updatedCstorVolume.Status.Phase {
 			err = c.createSyncUpdateEvent(c.createEventObj(updatedCstorVolume))
@@ -169,7 +149,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 // getEventType returns the event type based on the passed CStorVolumeStatus
 func getEventType(phase common.CStorVolumeStatus) string {
 	// It is normal event only when phase is Running or Degraded
-	if phase == common.CVStatusInit || phase == common.CVStatusRunning || phase == common.CVStatusDegraded {
+	if phase == common.CVStatusInit || phase == common.CVStatusHealthy || phase == common.CVStatusDegraded {
 		return v1.EventTypeNormal
 	}
 	return v1.EventTypeWarning

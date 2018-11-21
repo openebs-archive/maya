@@ -28,6 +28,7 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/pkg/errors"
 )
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
@@ -68,8 +69,8 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 
 }
 
-// GetReplicaStatus retrieves an array of replica statuses.
-func GetReplicaStatus(cStorVolume *apis.CStorVolume) ([]string, error) {
+// GetVolumeStatus retrieves an array of replica statuses.
+func GetVolumeStatus(cStorVolume *apis.CStorVolume) (*apis.CVStatus, error) {
 	// send replica command to istgt and read the response
 	statuses, err := UnixSockVar.SendCommand(IstgtReplicaCmd)
 	if err != nil {
@@ -87,30 +88,22 @@ func GetReplicaStatus(cStorVolume *apis.CStorVolume) ([]string, error) {
 	if jsonBeginIndex >= jsonEndIndex {
 		return nil, nil
 	}
-	return extractReplicaStatusFromJSON(cStorVolume.Name, stringResp[jsonBeginIndex:jsonEndIndex+1])
+	return extractReplicaStatusFromJSON(stringResp[jsonBeginIndex : jsonEndIndex+1])
 }
 
 // extractReplicaStatusFromJSON recieves a volume name and a json string.
 // It then extracts and returns an array of replica statuses.
-func extractReplicaStatusFromJSON(volName, str string) ([]string, error) {
-	jsonStr := map[string]interface{}{}
-	err := json.Unmarshal([]byte(str), &jsonStr)
+func extractReplicaStatusFromJSON(str string) (*apis.CVStatus, error) {
+	// Unmarshal json into CVStatusResponse
+	cvResponse := apis.CVStatusResponse{}
+	err := json.Unmarshal([]byte(str), &cvResponse)
 	if err != nil {
 		return nil, err
 	}
-	replicaMap := (jsonStr[ReplicaStatus].([]interface{})[0]).(map[string]interface{})
-
-	if replicaMap[volName] == nil {
-		return nil, nil
+	if len(cvResponse.CVStatuses) == 0 {
+		return nil, errors.Errorf("empty volume status from istgt")
 	}
-	volumeList := replicaMap[volName].([]interface{})
-	states := []string{}
-	for _, replica := range volumeList {
-		rep := replica.(map[string]interface{})
-		states = append(states, rep["replica"].(string)+":"+rep["status"].(string))
-
-	}
-	return states, nil
+	return &cvResponse.CVStatuses[0], nil
 }
 
 // CreateIstgtConf creates istgt.conf file

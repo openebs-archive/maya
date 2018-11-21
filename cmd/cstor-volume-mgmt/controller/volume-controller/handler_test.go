@@ -178,12 +178,12 @@ func TestCreateEventObj(t *testing.T) {
 					APIVersion: "v1alpha1",
 				},
 				Status: apis.CStorVolumeStatus{
-					Phase: apis.CStorVolumePhase(common.CVStatusRunning),
+					Phase: apis.CStorVolumePhase(common.CVStatusHealthy),
 				},
 			},
 			event: &v1.Event{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "csv-1.Running",
+					Name:      "csv-1.Healthy",
 					Namespace: string(common.DefaultNameSpace),
 				},
 				InvolvedObject: v1.ObjectReference{
@@ -197,9 +197,9 @@ func TestCreateEventObj(t *testing.T) {
 				FirstTimestamp: metav1.Time{Time: time.Now()},
 				LastTimestamp:  metav1.Time{Time: time.Now()},
 				Count:          1,
-				Message:        fmt.Sprintf(common.EventMsgFormatter, "Running"),
-				Reason:         "Running",
-				Type:           getEventType(common.CStorVolumeStatus("Running")),
+				Message:        fmt.Sprintf(common.EventMsgFormatter, "Healthy"),
+				Reason:         "Healthy",
+				Type:           getEventType(common.CStorVolumeStatus("Healthy")),
 				Source: v1.EventSource{
 					Component: "mypod",
 					Host:      "mynode",
@@ -251,12 +251,12 @@ func TestGetEventType(t *testing.T) {
 		phase     common.CStorVolumeStatus
 		eventType string
 	}{
-		"Normal event Init":      {phase: common.CVStatusInit, eventType: v1.EventTypeNormal},
-		"Normal event Running":   {phase: common.CVStatusRunning, eventType: v1.EventTypeNormal},
-		"Normal event Degraded":  {phase: common.CVStatusDegraded, eventType: v1.EventTypeNormal},
-		"Warning event Error":    {phase: common.CVStatusError, eventType: v1.EventTypeWarning},
-		"Warning event Invalid":  {phase: common.CVStatusInvalid, eventType: v1.EventTypeWarning},
-		"Warning event ReadOnly": {phase: common.CVStatusRO, eventType: v1.EventTypeWarning},
+		"Normal event Init":     {phase: common.CVStatusInit, eventType: v1.EventTypeNormal},
+		"Normal event Healthy":  {phase: common.CVStatusHealthy, eventType: v1.EventTypeNormal},
+		"Normal event Degraded": {phase: common.CVStatusDegraded, eventType: v1.EventTypeNormal},
+		"Warning event Error":   {phase: common.CVStatusError, eventType: v1.EventTypeWarning},
+		"Warning event Invalid": {phase: common.CVStatusInvalid, eventType: v1.EventTypeWarning},
+		"Warning event Offline": {phase: common.CVStatusOffline, eventType: v1.EventTypeWarning},
 	}
 	for desc, ut := range tests {
 		t.Run(desc, func(t *testing.T) {
