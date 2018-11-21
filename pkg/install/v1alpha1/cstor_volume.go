@@ -182,17 +182,12 @@ spec:
     If clone is not enabled then override changes of previous runtask
     */}}
     {{- if eq $isClone "false" }}
-    {{/*
-    Check if enough online pools are present to create replicas.
-    If pools are not present error out.
-    Save the cstorpool's uid:name into .ListItems.cvolPoolList otherwise
-    */}}
     {{- $replicaCount := int64 .Config.ReplicaCount.value | saveAs "rc" .ListItems -}}
-    {{- $poolsList := jsonpath .JsonResult "{range .items[?(@.status.phase=='Online')]}pkey=pools,{@.metadata.uid}={@.metadata.name};{end}" | trim | default "" | splitListTrim ";" -}}
+    {{- $poolsList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.uid}={@.metadata.name};{end}" | trim | default "" | splitListTrim ";" -}}
     {{- $poolsList | saveAs "pl" .ListItems -}}
     {{- len $poolsList | gt $replicaCount | verifyErr "not enough pools available to create replicas" | saveAs "cvolcreatelistpool.verifyErr" .TaskResult | noop -}}
     {{- $poolsList | keyMap "cvolPoolList" .ListItems | noop -}}
-    {{- $poolsNodeList := jsonpath .JsonResult "{range .items[?(@.status.phase=='Online')]}pkey=pools,{@.metadata.uid}={@.metadata.labels.kubernetes\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
+    {{- $poolsNodeList := jsonpath .JsonResult "{range .items[*]}pkey=pools,{@.metadata.uid}={@.metadata.labels.kubernetes\\.io/hostname};{end}" | trim | default "" | splitList ";" -}}
     {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
     {{- end }}
 ---
