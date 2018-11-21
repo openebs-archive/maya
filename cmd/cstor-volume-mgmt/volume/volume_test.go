@@ -206,7 +206,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 							"inflightRead":"0",
 							"inflightWrite":"0",
 							"inflightSync":"0",
-							"upTime":"1275"
+							"upTime":1275
 						},
 						{
 							"replicaId":"23523553",
@@ -215,7 +215,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 							"inflightRead":"0",
 							"inflightWrite":"0",
 							"inflightSync":"0",
-							"upTime":"1375"
+							"upTime":1375
 						}
 					  ]
 				   }
@@ -232,7 +232,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 						InflightRead:      "0",
 						InflightWrite:     "0",
 						InflightSync:      "0",
-						UpTime:            "1275",
+						UpTime:            1275,
 					},
 					{
 						ID:                "23523553",
@@ -241,21 +241,61 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 						InflightRead:      "0",
 						InflightWrite:     "0",
 						InflightSync:      "0",
-						UpTime:            "1375",
+						UpTime:            1375,
 					},
 				},
 			},
 			false,
 		},
+		"incorrect value in replicaId": {
+			`{
+				"volumeStatus":[
+				   {
+						"name" : "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+						"status": "Healthy",
+						"replicaStatus" : [
+						{
+							"replicaId":5523611450015704000,
+							"status":"HEALTHY",
+							"checkpointedIOSeq":"0",
+							"inflightRead":"0",
+							"inflightWrite":"0",
+							"inflightSync":"0",
+							"upTime":1275
+						},
+					  ]
+				   }
+				]
+			 }`,
+			&apis.CVStatus{
+				Name:   "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+				Status: "Healthy",
+				ReplicaStatuses: []apis.CVReplicaStatus{
+					{
+						ID:                "5523611450015704000",
+						Status:            "HEALTHY",
+						CheckpointedIOSeq: "0",
+						InflightRead:      "0",
+						InflightWrite:     "0",
+						InflightSync:      "0",
+						UpTime:            1275,
+					},
+				},
+			},
+			true,
+		},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := extractReplicaStatusFromJSON(mock.str)
-			if (err != nil) != mock.wantErr {
-				t.Errorf("extractReplicaStatusFromJSON() error = %v, wantErr %v", err != nil, mock.wantErr)
-			}
-			if !reflect.DeepEqual(got, mock.resp) {
-				t.Errorf("extractReplicaStatusFromJSON() = %v, want %v", got, mock.resp)
+			if err != nil {
+				if !mock.wantErr {
+					t.Errorf("extractReplicaStatusFromJSON() error = %v, wantErr %v", err != nil, mock.wantErr)
+				}
+			} else {
+				if !reflect.DeepEqual(got, mock.resp) {
+					t.Errorf("extractReplicaStatusFromJSON() = %v, want %v", got, mock.resp)
+				}
 			}
 		})
 	}

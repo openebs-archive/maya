@@ -95,13 +95,13 @@ type CStorVolumeStatus string
 const (
 	// volume is getting initialized
 	CVStatusInit CStorVolumeStatus = "Init"
-	// volume is up and running
-	CVStatusRunning CStorVolumeStatus = "Running"
+	// volume allows IOs and snapshot
+	CVStatusHealthy CStorVolumeStatus = "Healthy"
 	// volume only satisfies consistency factor
 	CVStatusDegraded CStorVolumeStatus = "Degraded"
-	// volume does not satisfies consistency factor but has atleast one replica
-	CVStatusRO CStorVolumeStatus = "ReadOnly"
 	// Volume is offline
+	CVStatusOffline CStorVolumeStatus = "Offline"
+	// Error in retrieving volume details
 	CVStatusError CStorVolumeStatus = "Error"
 	// volume controller config generation failed due to invalid parameters
 	CVStatusInvalid CStorVolumeStatus = "Invalid"

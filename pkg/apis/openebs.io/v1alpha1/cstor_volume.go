@@ -93,5 +93,5 @@ type CVReplicaStatus struct {
 	InflightRead      string `json:"inflightRead"`
 	InflightWrite     string `json:"inflightWrite"`
 	InflightSync      string `json:"inflightSync"`
-	UpTime            string `json:"upTime"`
+	UpTime            int    `json:"upTime"`
 }

@@ -128,7 +128,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			glog.Errorf("Error updating cStorVolume object: %s", err)
 			return common.CVStatusIgnore, nil
 		}
-		glog.Infof("[debug] lastKnown phase and current phase: %s, %s", lastKnownPhase, updatedCstorVolume.Status.Phase)
 		// if there is no change in the phase of the cv only then create event
 		if lastKnownPhase != updatedCstorVolume.Status.Phase {
 			err = c.createSyncUpdateEvent(c.createEventObj(updatedCstorVolume))
@@ -150,7 +149,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 // getEventType returns the event type based on the passed CStorVolumeStatus
 func getEventType(phase common.CStorVolumeStatus) string {
 	// It is normal event only when phase is Running or Degraded
-	if phase == common.CVStatusInit || phase == common.CVStatusRunning || phase == common.CVStatusDegraded {
+	if phase == common.CVStatusInit || phase == common.CVStatusHealthy || phase == common.CVStatusDegraded {
 		return v1.EventTypeNormal
 	}
 	return v1.EventTypeWarning
