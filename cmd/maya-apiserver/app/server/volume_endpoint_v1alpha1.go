@@ -7,7 +7,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
+	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/volume"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -31,11 +33,22 @@ type volumeAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
+func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
+	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
+		usage.New().Build().ApplicationBuilder().
+			SetApplicationName(cvol.Spec.CasType).
+			SetDocumentTitle(cvol.ObjectMeta.Name).
+			SetLabel("capacity").
+			SetAction("replica:" + cvol.Spec.Replicas).
+			SetCategory(method).
+			SetVolumeCapacity(cvol.Spec.Capacity).Send()
+	}
+}
+
 // volumeV1alpha1SpecificRequest is a http handler to handle HTTP
 // requests to a OpenEBS volume.
 func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	glog.Infof("cas template based volume request was received: method '%s'", req.Method)
-
 	if req == nil {
 		return nil, CodedError(400, "nil http request was received")
 	}
@@ -88,7 +101,6 @@ func (v *volumeAPIOpsV1alpha1) httpDelete() (interface{}, error) {
 
 func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	glog.Infof("cas template based volume create request was received")
-
 	vol := &v1alpha1.CASVolume{}
 	err := decodeBody(v.req, vol)
 	if err != nil {
@@ -111,12 +123,13 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	}
 
 	cvol, err := vOps.Create()
+	volumeEvents(cvol, "volume-provision")
 	if err != nil {
 		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
-
 	glog.Infof("cas template based volume created successfully: name '%s'", cvol.Name)
+
 	return cvol, nil
 }
 
@@ -201,6 +214,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	}
 
 	cvol, err := vOps.Delete()
+	volumeEvents(cvol, "volume-deprovision")
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
