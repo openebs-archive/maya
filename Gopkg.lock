@@ -27,14 +27,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ef5b0622d834c139454148b8fd0c92bb314828900532b267ae62da9fec109866"
-  name = "github.com/armon/go-metrics"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "f0300d1749da6fa982027e449ec0c7a145510c3c"
-
-[[projects]]
-  branch = "master"
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -146,14 +138,6 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:e3f17aa0eb8c151426d23cb767ae50f5b42c46533db3424761ee639b56ab9041"
-  name = "github.com/gorhill/cronexpr"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "a557574d6c024ed6e36acc8b610f5f211c91568a"
-  version = "1.0.0"
-
-[[projects]]
   branch = "master"
   digest = "1:86c1210529e69d69860f2bb3ee9ccce0b595aa3f9165e7dd1388e5c612915888"
   name = "github.com/gregjones/httpcache"
@@ -165,14 +149,6 @@
   revision = "9cad4c3443a7200dd6400aef47183728de563a38"
 
 [[projects]]
-  digest = "1:662f988f80b8e4208a0004d1e9d67543602fdd00b7106a857b8339e3d276ae1e"
-  name = "github.com/hashicorp/consul"
-  packages = ["api"]
-  pruneopts = "UT"
-  revision = "e8757838a49feeb682c7e6ad6b78694a78b2096b"
-  version = "v1.3.0"
-
-[[projects]]
   digest = "1:0ade334594e69404d80d9d323445d2297ff8161637f9b2d347cc6973d2d6f05b"
   name = "github.com/hashicorp/errwrap"
   packages = ["."]
@@ -181,51 +157,11 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:f47d6109c2034cb16bd62b220e18afd5aa9d5a1630fe5d937ad96a4fb7cbb277"
-  name = "github.com/hashicorp/go-cleanhttp"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "e8ab9daed8d1ddd2d3c4efba338fe2eeae2e4f18"
-  version = "v0.5.0"
-
-[[projects]]
-  digest = "1:2be5a35f0c5b35162c41bb24971e5dcf6ce825403296ee435429cdcc4e1e847e"
-  name = "github.com/hashicorp/go-immutable-radix"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "27df80928bb34bb1b0d6d0e01b9e679902e7a6b5"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:b8ba23b0b493e601d5ebaf21079bd3433eb304a5d73c0fb40b8aea526e94f46b"
-  name = "github.com/hashicorp/go-msgpack"
-  packages = ["codec"]
-  pruneopts = "UT"
-  revision = "fa3f63826f7c23912c15263591e65d54d080b458"
-
-[[projects]]
   digest = "1:f668349b83f7d779567c880550534addeca7ebadfdcf44b0b9c39be61864b4b7"
   name = "github.com/hashicorp/go-multierror"
   packages = ["."]
   pruneopts = "UT"
   revision = "886a7fbe3eb1c874d46f623bfa70af45f425b3d1"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:45aad874d3c7d5e8610427c81870fb54970b981692930ec2a319ce4cb89d7a00"
-  name = "github.com/hashicorp/go-rootcerts"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "6bb64b370b90e7ef1fa532be9e591a81c3493e00"
-
-[[projects]]
-  digest = "1:77395dd3847dac9c45118c668f5dab85aedf0163dc3b38aea6578c5cf0d502f9"
-  name = "github.com/hashicorp/go-version"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "b5a281d3160aa11950a6182bd9a9dc2cb1e02d50"
   version = "v1.0.0"
 
 [[projects]]
@@ -256,36 +192,6 @@
   pruneopts = "UT"
   revision = "8cb6e5b959231cc1119e43259c4a608f9c51a241"
   version = "v1.0.0"
-
-[[projects]]
-  digest = "1:19d618c8c1abaaeeca71ff08243142f1c01907567e864c441c27c9f7ae239c84"
-  name = "github.com/hashicorp/nomad"
-  packages = [
-    "api",
-    "helper",
-    "helper/args",
-    "helper/flatmap",
-    "nomad/structs",
-  ]
-  pruneopts = "UT"
-  revision = "4cd2cf1c3c9ed6dbd0b8261f9bad0e375c182d7f"
-  version = "v0.5.6"
-
-[[projects]]
-  digest = "1:56f26733346010e935b1ddb0e1ffa00bb054133b3ddb3f481261d27a7ae914df"
-  name = "github.com/hashicorp/raft"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "6d14f0c70869faabd9e60ba7ed88a6cbbd6a661f"
-  version = "v1.0.0"
-
-[[projects]]
-  digest = "1:0dd7b7b01769f9df356dc99f9e4144bdbabf6c79041ea7c0892379c5737f3c44"
-  name = "github.com/hashicorp/serf"
-  packages = ["coordinate"]
-  pruneopts = "UT"
-  revision = "d6574a5bb1226678d7010325fb6c985db20ee458"
-  version = "v0.8.1"
 
 [[projects]]
   digest = "1:a1038ef593beb4771c8f0f9c26e8b00410acd800af5c6864651d9bf160ea1813"
@@ -350,44 +256,12 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:09ca328575f38b80969ccf857f6d7302f2ce09d53778ea7aaba526cfd2cec739"
-  name = "github.com/mitchellh/copystructure"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "9a1b6f44e8da0e0e374624fb0a825a231b00c537"
-  version = "v1.0.0"
-
-[[projects]]
-  digest = "1:78bbb1ba5b7c3f2ed0ea1eab57bdd3859aec7e177811563edc41198a760b06af"
-  name = "github.com/mitchellh/go-homedir"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "ae18d6b8b3205b561c79e8e5f69bff09736185f4"
-  version = "v1.0.0"
-
-[[projects]]
-  digest = "1:61332bb44d05257bbf0356d8400a8b30fe0b9fdc3b72b8b55661da8f0a4f39ae"
-  name = "github.com/mitchellh/hashstructure"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "a38c50148365edc8df43c1580c48fb2b3a1e9cd7"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   pruneopts = "UT"
   revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
   version = "v1.1.2"
-
-[[projects]]
-  digest = "1:bcc07ad6f62e6d8958692ff89c8ac1c64eb92de66330f98b7e9bdb72cc017a84"
-  name = "github.com/mitchellh/reflectwalk"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "eecee6c969c02c8cc2ae48e1e269843ae8590796"
-  version = "v1.0.0"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -1078,9 +952,6 @@
     "github.com/hashicorp/go-multierror",
     "github.com/hashicorp/hcl",
     "github.com/hashicorp/hcl/hcl/ast",
-    "github.com/hashicorp/nomad/api",
-    "github.com/hashicorp/nomad/helper",
-    "github.com/hashicorp/nomad/nomad/structs",
     "github.com/jpillora/go-ogle-analytics",
     "github.com/mitchellh/mapstructure",
     "github.com/onsi/ginkgo",
@@ -1099,9 +970,9 @@
     "google.golang.org/grpc",
     "gopkg.in/inf.v0",
     "k8s.io/api/apps/v1beta1",
+    "k8s.io/api/batch/v1",
     "k8s.io/api/core/v1",
     "k8s.io/api/extensions/v1beta1",
-    "k8s.io/api/policy/v1beta1",
     "k8s.io/api/storage/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
