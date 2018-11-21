@@ -33,25 +33,16 @@ type volumeAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
-func volumeEvents(cvol *v1alpha1.CASVolume, method string, err error) {
+func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) {
-		sendObj := usage.New().Build().ApplicationBuilder().
+		usage.New().Build().ApplicationBuilder().
 			SetApplicationName(cvol.Spec.CasType).
 			SetDocumentTitle(cvol.ObjectMeta.Name).
-			SetLabel("Capacity")
-		if method == "create" {
-			sendObj.SetCategory("volume-provision-replica-count:" + cvol.Spec.Replicas)
-		} else if method == "delete" {
-			sendObj.SetCategory("volume-deprovision-replica-count:" + cvol.Spec.Replicas)
-		}
-		if err != nil {
-			sendObj.SetAction(err.Error())
-		} else {
-			sendObj.SetAction("success")
-		}
-		sendObj.SetVolumeCapacity(cvol.Spec.Capacity).Send()
+			SetLabel("capacity").
+			SetAction("replica:" + cvol.Spec.Replicas).
+			SetCategory(method).
+			SetVolumeCapacity(cvol.Spec.Capacity).Send()
 	}
-
 }
 
 // volumeV1alpha1SpecificRequest is a http handler to handle HTTP
@@ -132,7 +123,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	}
 
 	cvol, err := vOps.Create()
-	volumeEvents(cvol, "create", err)
+	volumeEvents(cvol, "volume-provision")
 	if err != nil {
 		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -223,7 +214,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	}
 
 	cvol, err := vOps.Delete()
-	volumeEvents(cvol, "delete", err)
+	volumeEvents(cvol, "volume-deprovision")
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
