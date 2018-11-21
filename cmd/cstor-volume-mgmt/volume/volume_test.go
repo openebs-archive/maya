@@ -224,7 +224,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 			&apis.CVStatus{
 				Name:   "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
 				Status: "Healthy",
-				ReplicaStatuses: []apis.CVReplicaStatus{
+				ReplicaStatuses: []apis.ReplicaStatus{
 					{
 						ID:                "5523611450015704000",
 						Status:            "HEALTHY",
@@ -270,7 +270,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 			&apis.CVStatus{
 				Name:   "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
 				Status: "Healthy",
-				ReplicaStatuses: []apis.CVReplicaStatus{
+				ReplicaStatuses: []apis.ReplicaStatus{
 					{
 						ID:                "5523611450015704000",
 						Status:            "HEALTHY",

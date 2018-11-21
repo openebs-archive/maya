@@ -55,12 +55,6 @@ type CStorVolumeStatus struct {
 	ReplicaStatuses []ReplicaStatus  `json:"replicaStatuses,omitempty"`
 }
 
-// ReplicaStatus represents the status of a volume replica
-type ReplicaStatus struct {
-	ID     string `json:"replicaId"`
-	Status string `json:"status"`
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=cstorvolume
 
@@ -80,13 +74,13 @@ type CVStatusResponse struct {
 
 // CVStatus stores the status of a CstorVolume obtained from response
 type CVStatus struct {
-	Name            string            `json:"name"`
-	Status          string            `json:"status"`
-	ReplicaStatuses []CVReplicaStatus `json:"replicaStatus"`
+	Name            string          `json:"name"`
+	Status          string          `json:"status"`
+	ReplicaStatuses []ReplicaStatus `json:"replicaStatus"`
 }
 
 // ReplicaStatus stores the status of replicas
-type CVReplicaStatus struct {
+type ReplicaStatus struct {
 	ID                string `json:"replicaId"`
 	Status            string `json:"status"`
 	CheckpointedIOSeq string `json:"checkpointedIOSeq"`
