@@ -57,7 +57,7 @@ type CStorVolumeStatus struct {
 
 // ReplicaStatus represents the status of a volume replica
 type ReplicaStatus struct {
-	GUID   string `json:"guid"`
+	ID     string `json:"replicaId"`
 	Status string `json:"status"`
 }
 
@@ -70,4 +70,28 @@ type CStorVolumeList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []CStorVolume `json:"items"`
+}
+
+// CVStatusResponse stores the reponse of istgt replica command output
+// It may contain several volumes
+type CVStatusResponse struct {
+	CVStatuses []CVStatus `json:"volumeStatus"`
+}
+
+// CVStatus stores the status of a CstorVolume obtained from response
+type CVStatus struct {
+	Name            string            `json:"name"`
+	Status          string            `json:"status"`
+	ReplicaStatuses []CVReplicaStatus `json:"replicaStatus"`
+}
+
+// ReplicaStatus stores the status of replicas
+type CVReplicaStatus struct {
+	ID                string `json:"replicaId"`
+	Status            string `json:"status"`
+	CheckpointedIOSeq string `json:"checkpointedIOSeq"`
+	InflightRead      string `json:"inflightRead"`
+	InflightWrite     string `json:"inflightWrite"`
+	InflightSync      string `json:"inflightSync"`
+	UpTime            string `json:"upTime"`
 }
