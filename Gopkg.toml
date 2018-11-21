@@ -30,10 +30,6 @@ required = [
   ]
 
 [[constraint]]
-  name = "github.com/hashicorp/nomad"
-  version = "0.5.5"
-
-[[constraint]]
   name = "github.com/ryanuber/columnize"
   version = "2.1.0"
 
