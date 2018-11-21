@@ -104,7 +104,6 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 
 	case common.QOpPeriodicSync:
 		lastKnownPhase := cStorVolumeGot.Status.Phase
-		replicaStatuses := []apis.ReplicaStatus{}
 		volStatus, err := volume.GetVolumeStatus(cStorVolumeGot)
 		if err != nil {
 			glog.Errorf("Error in getting volume status: %s", err.Error())
@@ -114,15 +113,9 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 			// if replicas are zero set the status as init
 			if len(volStatus.ReplicaStatuses) == 0 {
 				cStorVolumeGot.Status.Phase = apis.CStorVolumePhase(common.CVStatusInit)
-			} else {
-				// fill replicaStatuses
-				for _, rep := range volStatus.ReplicaStatuses {
-					replicaStatuses = append(replicaStatuses, apis.ReplicaStatus{ID: rep.ID, Status: rep.Status})
-				}
 			}
-			glog.Infof("Replica statuses for volume %s is: %v", cStorVolumeGot.Name, replicaStatuses)
 		}
-		cStorVolumeGot.Status.ReplicaStatuses = replicaStatuses
+		cStorVolumeGot.Status.ReplicaStatuses = volStatus.ReplicaStatuses
 		updatedCstorVolume, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 		if err != nil {
 			glog.Errorf("Error updating cStorVolume object: %s", err)
