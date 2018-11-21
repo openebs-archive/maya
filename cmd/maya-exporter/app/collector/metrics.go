@@ -32,12 +32,9 @@ const (
 	// Offline is the status of volume when no io's have been served
 	// or volume may be in RO state (only for jiva)
 	Offline
-	// DisabledFeatures is the status of volume when volume is
-	// performing in degraded mode but all features might be disabled
-	DisabledFeatures
-	// DegradedPerformance is the status of volume when volume is
+	// Degraded is the status of volume when volume is
 	// performing in degraded mode but all features may available
-	DegradedPerformance
+	Degraded
 	// Healthy is the status of volume when volume is serving io's
 	// and all features are available or volume may be in RW state
 	// (for jiva)
@@ -259,7 +256,7 @@ func MetricsInitializer(casType string) *Metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "volume_status",
-				Help:      "Status of volume: (1, 2, 3, 4, 5) = {Offline, DisabledFeatures, DegradedPerformance, Healthy, Unknown}",
+				Help:      "Status of volume: (1, 2, 3, 4) = {Offline, Degraded, Healthy, Unknown}",
 			}),
 
 		volumeUpTime: prometheus.NewGaugeVec(
@@ -320,10 +317,8 @@ func (v VolumeStats) getVolumeStatus() volumeStatus {
 		return Offline
 	case "RW", "Healthy":
 		return Healthy
-	case "DisabledFeatures":
-		return DisabledFeatures
-	case "DegradedPerformance":
-		return DegradedPerformance
+	case "Degraded":
+		return Degraded
 	default:
 		return Unknown
 	}
