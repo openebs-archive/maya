@@ -25,7 +25,9 @@ sudo docker tag openebs/cstor-pool-mgmt:ci quay.io/openebs/cstor-pool-mgmt:${CI_
 sudo docker tag openebs/cstor-volume-mgmt:ci quay.io/openebs/cstor-volume-mgmt:${CI_TAG}
 
 
-kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/k8s/openebs-operator.yaml
+#kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/${CI_BRANCH}/k8s/openebs-operator.yaml
+#TODO Use the following to overwrite to stable images
+kubectl apply -f $GOPATH/src/github.com/openebs/maya/ci/yamls/openebs-operator.yaml
 
 function waitForDeployment() {
   DEPLOY=$1
@@ -55,7 +57,7 @@ function dumpMayaAPIServerLogs() {
 
 waitForDeployment maya-apiserver openebs
 waitForDeployment openebs-provisioner openebs
-dumpMayaAPIServerLogs 200
+dumpMayaAPIServerLogs 20
 
 kubectl get pods --all-namespaces
 
@@ -83,7 +85,12 @@ kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sa
 sleep 10
 
 echo "--------------- Maya apiserver later logs -----------------------------"
-dumpMayaAPIServerLogs 200
+dumpMayaAPIServerLogs 20
+
+
+echo "---DEBUG---"
+kubectl describe pods -n openebs
+kubectl get pods -n openebs
 
 echo "--------------- Create Cstor and Jiva PersistentVolume ------------------"
 #kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml

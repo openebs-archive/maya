@@ -40,7 +40,9 @@ else
   export BASE_TAG
 endif
 
-CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
+#CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
+#TODO: Remove this after the ci base images is made stable.
+CSTOR_BASE_IMAGE= openebs/cstor-base-ci:zfs-0.7-release-0.7.0-32-g22c5177
 
 # Specify the name for the binaries
 MAYACTL=mayactl
