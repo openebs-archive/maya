@@ -16,6 +16,10 @@ import (
 	"github.com/openebs/maya/types/v1"
 )
 
+const (
+	defaultTimeOut = 10 * time.Second
+)
+
 // MAPIAddr stores address of mapi server if passed through flag
 var MAPIAddr string
 
@@ -152,7 +156,7 @@ func getRequest(url string, namespace string, chkbody bool) ([]byte, error) {
 	}
 
 	c := &http.Client{
-		Timeout: timeoutVolumeDelete,
+		Timeout: defaultTimeOut,
 	}
 
 	resp, err := c.Do(req)
@@ -196,7 +200,7 @@ func deleteRequest(url string, namespace string) error {
 	}
 
 	c := &http.Client{
-		Timeout: timeoutVolumeDelete,
+		Timeout: defaultTimeOut,
 	}
 
 	resp, err := c.Do(req)

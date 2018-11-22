@@ -1,12 +1,6 @@
 package mapiserver
 
-import (
-	"time"
-)
-
 const (
-	timeoutVolumeDelete = 5 * time.Second
-
 //	deleteVolumePath    = "/latest/volumes/delete/"
 )
 
