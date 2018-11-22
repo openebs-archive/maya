@@ -17,6 +17,98 @@ function dumpMayaAPIServerLogs() {
   printf "\n\n"
 }
 
+echo "++++++++++++++++ Waiting for MAYA API's to get ready ++++++++++++++++++++++"
+printf "\n\n"
+echo "---------------- Checking Volume API \"/latest/volume\" -------------------"
+
+for i in `seq 1 100`; do
+    sleep 2
+    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/`
+    echo "Response Code from ApiServer: $responseCode"
+    if [ $responseCode -ne 200 ]; then
+        echo "Retrying.... $i"
+        printf "Logs of api-server: \n\n"
+        kubectl logs --tail=20 $MAPIPOD -n openebs
+        printf "\n\n"
+    else
+        break
+    fi
+done
+
+printf "\n\n"
+
+echo "---------------- Checking Volume API \for jiva volume -------------------"
+for i in `seq 1 100`; do
+    sleep 2
+    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$JIVAVOL -H "namespace:default"`
+    echo "Response Code from ApiServer: $responseCode"
+    if [ $responseCode -ne 200 ]; then
+        echo "Retrying.... $i"
+        printf "Logs of api-server: \n\n"
+        kubectl logs --tail=20 $MAPIPOD -n openebs
+        printf "\n\n"
+    else
+        break
+    fi
+done
+
+printf "\n\n"
+
+echo "---------------- Checking Volume API \for cstor volume -------------------"
+for i in `seq 1 100`; do
+    sleep 2
+    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$CSTORVOL -H "namespace:openebs"`
+    echo "Response Code from ApiServer: $responseCode"
+    if [ $responseCode -ne 200 ]; then
+        echo "Retrying.... $i"
+        printf "Logs of api-server: \n\n"
+        kubectl logs --tail=20 $MAPIPOD -n openebs
+        printf "\n\n"
+    else
+        break
+    fi
+done
+
+printf "\n\n"
+
+echo "------------ Checking Volume STATS API \for cstor volume -----------------"
+for i in `seq 1 100`; do
+    sleep 2
+    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$CSTORVOL -H "namespace:openebs"`
+    echo "Response Code from ApiServer: $responseCode"
+    if [ $responseCode -ne 200 ]; then
+        echo "Retrying.... $i"
+        printf "Logs of api-server: \n\n"
+        kubectl logs --tail=20 $MAPIPOD -n openebs
+        printf "\n\n"
+    else
+        break
+    fi
+done
+
+printf "\n\n"
+
+echo "------------ Checking Volume STATS API \for jiva volume -----------------"
+for i in `seq 1 100`; do
+    sleep 2
+    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$JIVAVOL -H "namespace:default"`
+    echo "Response Code from ApiServer: $responseCode"
+    if [ $responseCode -ne 200 ]; then
+        echo "Retrying.... $i"
+        printf "Logs of api-server: \n\n"
+        kubectl logs --tail=20 $MAPIPOD -n openebs
+        printf "\n\n"
+    else
+        break
+    fi
+done
+
+printf "\n\n"
+
+echo "+++++++++++++++++++++ MAYA API's are ready ++++++++++++++++++++++++++++++++"
+
+printf "\n\n"
+
 echo "*************** Running mayactl volume list *******************************"
 ${MAYACTL} volume list
 rc=$?;
@@ -26,6 +118,7 @@ if [[ $rc != 0 ]]; then
 fi
 
 printf "\n\n"
+
 
 echo "************** Running Jiva mayactl volume describe **************************"
 ${MAYACTL} volume describe --volname $JIVAVOL
