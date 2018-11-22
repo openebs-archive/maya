@@ -131,3 +131,48 @@ func TestgetEnv(t *testing.T) {
 		})
 	}
 }
+
+func TestMatches(t *testing.T) {
+	testCases := map[string]struct {
+		key         ENVKey
+		value       string
+		pattern     ENVValue
+		expectValue bool
+	}{
+		"Missing env variable": {
+			key:         "",
+			value:       "",
+			pattern:     DebugProfileCPUENVKV,
+			expectValue: false,
+		},
+		"Present env variable with matching value": {
+			key:         "_MY_PRESENT_TEST_KEY_",
+			value:       "CPU",
+			pattern:     DebugProfileCPUENVKV,
+			expectValue: true,
+		},
+		"Present env variable with matching value as substr": {
+			key:         "_MY_PRESENT_TEST_KEY_",
+			value:       "cpu,memory",
+			pattern:     DebugProfileCPUENVKV,
+			expectValue: true,
+		},
+		"Present env variable with unmatched value": {
+			key:         "_MY_PRESENT_TEST_KEY_W_EMPTY_VALUE",
+			value:       "bar",
+			pattern:     DebugProfileCPUENVKV,
+			expectValue: false,
+		},
+	}
+	for tname, tc := range testCases {
+		t.Run(tname, func(t *testing.T) {
+			os.Setenv(string(tc.key), tc.value)
+			defer os.Unsetenv(string(tc.key))
+
+			feature := Matches(tc.key, tc.pattern)
+			if !reflect.DeepEqual(feature, tc.expectValue) {
+				t.Errorf("Expected %v, got %v", tc.expectValue, feature)
+			}
+		})
+	}
+}

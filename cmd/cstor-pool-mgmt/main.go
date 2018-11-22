@@ -20,10 +20,17 @@ import (
 	"os"
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/app/command"
+	"github.com/openebs/maya/pkg/debug"
 	cstorlogger "github.com/openebs/maya/pkg/logs"
+	"github.com/pkg/profile"
 )
 
 func main() {
+	//Enable CPU profiling.
+	if debug.EnableCPUProfiling() {
+		defer profile.Start(profile.ProfilePath(debug.GetProfilePath())).Stop()
+	}
+
 	if err := run(); err != nil {
 		os.Exit(1)
 	}

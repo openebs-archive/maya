@@ -385,6 +385,14 @@
   version = "v0.8.0"
 
 [[projects]]
+  digest = "1:cfa0d7741863a0e1d30e0ccdd4b48a96a471cdb47892303de8b92c3713af3e77"
+  name = "github.com/pkg/profile"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5b67d428864e92711fcbd2f8629456121a56d91f"
+  version = "v1.2.1"
+
+[[projects]]
   digest = "1:d14a5f4bfecf017cb780bdde1b6483e5deb87e12c332544d2c430eda58734bcb"
   name = "github.com/prometheus/client_golang"
   packages = [
@@ -969,6 +977,7 @@
     "github.com/openebs/CITF/citf_options",
     "github.com/openebs/CITF/pkg/apis/openebs.io/v1alpha1",
     "github.com/pkg/errors",
+    "github.com/pkg/profile",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "github.com/ryanuber/columnize",

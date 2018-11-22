@@ -26,6 +26,9 @@ import (
 // binary
 type ENVKey string
 
+// ENVValue is a typed string to represent some constant values set on ENVKey
+type ENVValue string
+
 const (
 	// KubeConfig is the ENV variable to fetch kubernetes kubeconfig
 	KubeConfig ENVKey = "OPENEBS_IO_KUBE_CONFIG"
@@ -157,6 +160,17 @@ const (
 	// CASTemplateToReadStoragePoolENVK is the ENV key that specifies the CAS Template
 	// to read storagepool
 	CASTemplateToReadStoragePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_READ_STORAGE_POOL"
+
+	// DebugProfile is the ENV key that specifies what profiles need to be enabled on startup
+	// The value when present will be comma seperate list like cpu, memory
+	DebugProfileENVK ENVKey = "OPENEBS_IO_DEBUG_PROFILE"
+
+	// DebugProfileCPU is one of the valid values for ENV key DebugProfileENVK
+	DebugProfileCPUENVKV ENVValue = "cpu"
+
+	// DebugProfileOutputPath is the ENV key that specifies the location where the profile output
+	// will be dumped after the binary is stopped. Defaults to a temporary file
+	DebugProfilePathENVK ENVKey = "OPENEBS_IO_DEBUG_PROFILE_PATH"
 )
 
 // EnvironmentSetter abstracts setting of environment variable
@@ -190,6 +204,18 @@ func Get(envKey ENVKey) (value string) {
 //  This is an implementation of EnvironmentLookup
 func Lookup(envKey ENVKey) (value string, present bool) {
 	return lookupEnv(string(envKey))
+}
+
+// Matches returns boolean based on the presence of key in the
+// environment variable's value
+//
+// The lookup value can be empty or a comma seperated string
+func Matches(envKey ENVKey, pattern ENVValue) (truth bool) {
+	v, found := Lookup(envKey)
+	if !found {
+		return
+	}
+	return strings.Contains(strings.ToLower(v), string(pattern))
 }
 
 // Truthy returns boolean based on the environment variable's value
