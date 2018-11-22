@@ -34,6 +34,26 @@ import (
 type snapshotEngine struct {
 	// engine exposes generic CAS template operations
 	engine engine.Interface
+	// defaultConfig is the default cas volume configurations found
+	// in the CASTemplate
+	defaultConfig []v1alpha1.Config
+	// casConfigSC is the cas volume config found in the StorageClass
+	casConfigSC []v1alpha1.Config
+	// casConfigSnap is the cas volume config found in the PersistentVolumeClaim
+	casConfigSnap []v1alpha1.Config
+}
+
+// prepareFinalConfig returns the merge of CAS configs from
+// VolumeSnapshot, StorageClass & CAS Template's default config
+//
+// NOTE:
+//  The priority of config merge is as follows:
+//  VolumeSnapshot >> StorageClass >> CAS Template Default Config
+func (c *snapshotEngine) prepareFinalConfig() (final []v1alpha1.Config) {
+	// merge unique config elements from SC with config from PVC
+	mc := engine.MergeConfig(c.casConfigSnap, c.casConfigSC)
+	// merge above resulting config with default config from CASTemplate
+	return engine.MergeConfig(mc, c.defaultConfig)
 }
 
 // SnapshotEngine returns a new instance of snapshotEngine based on
@@ -43,6 +63,8 @@ type snapshotEngine struct {
 //  runtime snapshot values set at **runtime** by openebs storage provisioner
 // (a kubernetes dynamic storage provisioner)
 func SnapshotEngine(
+	casConfigSC string,
+	casConfigSnap string,
 	casTemplate *v1alpha1.CASTemplate,
 	key string,
 	snapshotValues map[string]interface{}) (snapEngine *snapshotEngine, err error) {
@@ -55,6 +77,17 @@ func SnapshotEngine(
 		err = errors.New("failed to create cas template engine: nil snapshot values was provided")
 		return
 	}
+	// CAS config from StorageClass
+	casConfSC, err := engine.UnMarshallToConfig(casConfigSC)
+	if err != nil {
+		return
+	}
+
+	// CAS config from VolumeSnapshot
+	casConfSnap, err := engine.UnMarshallToConfig(casConfigSnap)
+	if err != nil {
+		return
+	}
 
 	// make use of the generic CAS template engine
 	cEngine, err := engine.New(casTemplate, key, snapshotValues)
@@ -62,11 +95,23 @@ func SnapshotEngine(
 		return
 	}
 
-	snapEngine = &snapshotEngine{engine: cEngine}
+	snapEngine = &snapshotEngine{
+		engine:        cEngine,
+		casConfigSC:   casConfSC,
+		casConfigSnap: casConfSnap,
+		defaultConfig: casTemplate.Spec.Defaults,
+	}
 	return
 }
 
-// Create creates a CAS snapshot
-func (c *snapshotEngine) Create() ([]byte, error) {
+// Run executes a CAS volume related operation
+func (c *snapshotEngine) Run() (op []byte, err error) {
+	m, err := engine.ConfigToMap(c.prepareFinalConfig())
+	if err != nil {
+		return
+	}
+	// set customized config
+	c.engine.SetConfig(m)
+	// delegate to generic cas template engine
 	return c.engine.Run()
 }
