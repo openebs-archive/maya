@@ -311,9 +311,11 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 	// read cas volume via cas template engine
-	engine, err := engine.New(
+	engine, err := NewVolumeEngine(
+		"",
+		casConfigSC,
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{

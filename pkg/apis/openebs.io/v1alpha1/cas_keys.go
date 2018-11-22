@@ -65,6 +65,10 @@ const (
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
 	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
 
+	// PVCOperatorAccountKey is the key to fetch the service acount to be
+	// used by volume target deployment in PVC's namespace
+	PVCOperatorAccountKey CASKey = "openebs.io/pvc-operator-account"
+
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 

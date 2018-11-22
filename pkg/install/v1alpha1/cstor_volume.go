@@ -144,8 +144,13 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: cvolcreatelistclonecvr
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolumeReplica
     action: list
@@ -198,11 +203,17 @@ metadata:
   name: cstor-volume-create-puttargetservice-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     apiVersion: v1
     kind: Service
     action: put
     id: cvolcreateputsvc
-    runNamespace: {{.Config.RunNamespace.value}}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "cvolcreateputsvc.objectName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.spec.clusterIP}" | trim | saveAs "cvolcreateputsvc.clusterIP" .TaskResult | noop -}}
@@ -248,10 +259,16 @@ metadata:
   name: cstor-volume-create-putcstorvolumecr-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
     id: cvolcreateputvolume
-    runNamespace: {{.Config.RunNamespace.value}}
     action: put
   post: |
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | saveAs "cvolcreateputvolume.cstorid" .TaskResult | noop -}}
@@ -287,7 +304,13 @@ metadata:
   name: cstor-volume-create-puttargetdeployment-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     apiVersion: apps/v1beta1
     kind: Deployment
     action: put
@@ -295,7 +318,7 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "cvolcreateputctrl.objectName" .TaskResult | noop -}}
   task: |
-    {{- $isMonitor := .Config.VolumeMonitor.enabled | default "true" | lower -}}
+    {{- $isMonitor := .Config.VolumeMonitorImage.enabled | default "true" | lower -}}
     {{- $setResourceRequests := .Config.TargetResourceRequests.value | default "none" -}}
     {{- $resourceRequestsVal := fromYaml .Config.TargetResourceRequests.value -}}
     {{- $setResourceLimits := .Config.TargetResourceLimits.value | default "none" -}}
@@ -338,7 +361,7 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         spec:
-          serviceAccountName: {{ .Config.ServiceAccountName.value }}
+          serviceAccountName: {{ .Config.PVCServiceAccount.value | default .Config.ServiceAccountName.value }}
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
@@ -390,7 +413,7 @@ spec:
               mountPath: /var/run
             - name: conf
               mountPath: /usr/local/etc/istgt
-          {{- end}}
+          {{- end }}
           - name: cstor-volume-mgmt
             image: {{ .Config.VolumeControllerImage.value }}
             {{- if ne $setAuxResourceLimits "none" }}
@@ -536,11 +559,9 @@ metadata:
   name: cstor-volume-list-listtargetservice-default
 spec:
   meta: |
-    {{- /*
-    Create and save list of namespaces to $nss.
-    Iterate over each namespace and perform list task
-    */ -}}
-    {{- $nss := .Config.RunNamespace.value | default "" | splitList ", " -}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := printf "%s, %s" .Config.RunNamespace.value .Volume.runNamespace -}}
+    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
     repeatWith:
       metas:
@@ -567,7 +588,9 @@ metadata:
   name: cstor-volume-list-listtargetpod-default
 spec:
   meta: |
-    {{- $nss := .Config.RunNamespace.value | default "" | splitList ", " -}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
     repeatWith:
       metas:
@@ -654,7 +677,13 @@ metadata:
   name: cstor-volume-read-listtargetservice-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     apiVersion: v1
     id: readlistsvc
     kind: Service
@@ -673,8 +702,14 @@ metadata:
   name: cstor-volume-read-listcstorvolumecr-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: readlistcv
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
     action: list
@@ -714,7 +749,13 @@ metadata:
   name: cstor-volume-read-listtargetpod-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -772,7 +813,13 @@ metadata:
   name: cstor-volume-delete-listcstorvolumecr-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletelistcsv
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
@@ -791,8 +838,14 @@ metadata:
   name: cstor-volume-delete-listtargetservice-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletelistsvc
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: v1
     kind: Service
     action: list
@@ -814,8 +867,14 @@ metadata:
   name: cstor-volume-delete-listtargetdeployment-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletelistctrl
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: apps/v1beta1
     kind: Deployment
     action: list
@@ -856,8 +915,14 @@ metadata:
   name: cstor-volume-delete-deletetargetservice-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletedeletesvc
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: v1
     kind: Service
     action: delete
@@ -870,8 +935,14 @@ metadata:
   name: cstor-volume-delete-deletetargetdeployment-default
 spec:
   meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletedeletectrl
-    runNamespace: {{.Config.RunNamespace.value}}
     apiVersion: apps/v1beta1
     kind: Deployment
     action: delete
@@ -898,7 +969,13 @@ metadata:
   name: cstor-volume-delete-deletecstorvolumecr-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- if ne .Config.PVCServiceAccount.value "" }}
+    runNamespace: {{ .Volume.runNamespace }}
+    {{ else }}
+    runNamespace: {{ $runNamespace }}
+    {{- end }}
     id: deletedeletecsv
     action: delete
     apiVersion: openebs.io/v1alpha1
