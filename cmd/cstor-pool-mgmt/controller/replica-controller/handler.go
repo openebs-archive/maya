@@ -133,6 +133,13 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 			return string(apis.CVRStatusOffline), err
 		}
 		return "", nil
+	case common.QOpStatusSync:
+		glog.Infof("Synchronizing CstorVolumeReplica status for pool %s", cVR.ObjectMeta.Name)
+		status, err := c.getCVRStatus(cVR)
+		if err != nil {
+			glog.Errorf("Unable to get volume status:%s", err.Error())
+		}
+		return status, err
 	}
 	return string(apis.CVRStatusInvalid), nil
 }
@@ -283,4 +290,19 @@ func IsErrorDuplicate(cVR *apis.CStorVolumeReplica) bool {
 	}
 	glog.V(4).Infof("Not error duplicate status: %v", string(cVR.ObjectMeta.UID))
 	return false
+}
+
+//  getCVRStatus is a wrapper that fetches the status of cstor volume.
+func (c *CStorVolumeReplicaController) getCVRStatus(cVR *apis.CStorVolumeReplica) (string, error) {
+	volumeName, err := volumereplica.GetVolumeName(cVR)
+	if err != nil {
+		return "", fmt.Errorf("unable to get volume name:%s", err.Error())
+	}
+	poolStatus, err := volumereplica.Status(volumeName)
+	if err != nil {
+		// ToDO : Put error in event recorder
+		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureStatusSync), string(common.MessageResourceFailStatusSync))
+		return "", err
+	}
+	return poolStatus, nil
 }
