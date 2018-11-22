@@ -71,7 +71,7 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-create-listclonecstorvolumecr-default
+    - cstor-volume-create-listclonecstorvolumereplicacr-default
     - cstor-volume-create-listcstorpoolcr-default
     - cstor-volume-create-puttargetservice-default
     - cstor-volume-create-putcstorvolumecr-default
@@ -140,17 +140,11 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-create-listclonecstorvolumecr-default
+  name: cstor-volume-create-listclonecstorvolumereplicacr-default
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .Config.RunNamespace.value }}
     id: cvolcreatelistclonecvr
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolumeReplica
