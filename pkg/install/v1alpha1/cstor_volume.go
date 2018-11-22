@@ -145,7 +145,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -205,7 +206,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -261,7 +263,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -306,7 +309,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -679,7 +683,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -704,7 +709,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -751,7 +757,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -815,7 +822,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -840,7 +848,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -869,7 +878,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -917,7 +927,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -937,7 +948,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
@@ -971,7 +983,8 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- if ne .Config.PVCServiceAccount.value "" }}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
     runNamespace: {{ .Volume.runNamespace }}
     {{ else }}
     runNamespace: {{ $runNamespace }}
