@@ -134,7 +134,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 		}
 		return "", nil
 	case common.QOpStatusSync:
-		glog.Infof("Synchronizing CstorVolumeReplica status for pool %s", cVR.ObjectMeta.Name)
+		glog.Infof("Synchronizing CstorVolumeReplica status for volume %s", cVR.ObjectMeta.Name)
 		status, err := c.getCVRStatus(cVR)
 		if err != nil {
 			glog.Errorf("Unable to get volume status:%s", err.Error())
