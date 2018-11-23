@@ -20,11 +20,11 @@ package v1alpha1
 type CASVolumeType string
 
 const (
-  // JivaVolume represents a volume based on jiva
-  JivaVolume CASVolumeType = "jiva"
+	// JivaVolume represents a volume based on jiva
+	JivaVolume CASVolumeType = "jiva"
 
-  // CstorVolume represents a volume based on cstor
-  CstorVolume CASVolumeType = "cstor"
+	// CstorVolume represents a volume based on cstor
+	CstorVolume CASVolumeType = "cstor"
 )
 
 // CASKey represents the key used either in resource annotation or label
@@ -64,10 +64,6 @@ const (
 
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
 	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
-
-	// PVCOperatorAccountKey is the key to fetch the service acount to be
-	// used by volume target deployment in PVC's namespace
-	PVCOperatorAccountKey CASKey = "openebs.io/pvc-operator-account"
 
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
