@@ -67,6 +67,12 @@ spec:
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
     value: "none"
+  # DebugProfile indicates the run time profiles to be enabled. 
+  # Valid values are : false or cpu.
+  # When enabled, the values will be passed as ENV to the 
+  # cstor-pool-mgmt container.
+  - name: DebugProfile
+    value: "false"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -218,6 +224,7 @@ spec:
     {{- $resourceLimitsVal := fromYaml .Config.PoolResourceLimits.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $debugProfileVal := .Config.DebugProfile.value | default "false" -}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     metadata:
@@ -308,6 +315,10 @@ spec:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
               value: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | first}}
+            {{- if ne $debugProfileVal "false" }}
+            - name: "OPENEBS_IO_DEBUG_PROFILE"
+              value: "{{- $debugProfileVal }}"
+            {{- end }}
           volumes:
           - name: device
             hostPath:

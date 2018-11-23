@@ -68,6 +68,12 @@ spec:
   # to iSCSI Volume (i.e OpenEBS Persistent Volume)
   - name: Lun
     value: "0"
+  # DebugProfile indicates the run time profiles to be enabled. 
+  # Valid values are : false or cpu.
+  # When enabled, the values will be passed as ENV to the 
+  # cstor-volume-mgmt container.
+  - name: DebugProfile
+    value: "false"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -302,6 +308,7 @@ spec:
     {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $debugProfileVal := .Config.DebugProfile.value | default "false" -}}
     apiVersion: apps/v1beta1
     Kind: Deployment
     metadata:
@@ -414,6 +421,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            {{- if ne $debugProfileVal "false" }}
+            - name: "OPENEBS_IO_DEBUG_PROFILE"
+              value: "{{- $debugProfileVal }}"
+            {{- end }}
             securityContext:
               privileged: true
             volumeMounts:
