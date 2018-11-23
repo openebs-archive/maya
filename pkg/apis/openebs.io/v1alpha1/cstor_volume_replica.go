@@ -72,13 +72,13 @@ const (
 	// CVRStatusRebuilding means that the volume status could not be found.
 	CVRStatusError CStorVolumeReplicaPhase = "Error"
 	// CVRStatusDeletionFailed ensures the resource deletion has failed.
-	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "Error"
 	// CVRStatusInvalid ensures invalid resource.
 	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
-	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "ErrorDuplicate"
+	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusPending ensures pending task of cvr resource.
-	CVRStatusPending CStorVolumeReplicaPhase = "Pending"
+	CVRStatusPending CStorVolumeReplicaPhase = "Init"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
