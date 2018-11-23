@@ -50,14 +50,14 @@ To configure your zsh shell to load completions for each session add to your zsh
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			RunCompletion(os.Stdout, rootCmd, args)
+			runCompletion(os.Stdout, rootCmd, args)
 		},
 	}
 
 	return cmd
 }
 
-func RunCompletion(out io.Writer, cmd *cobra.Command, args []string) {
+func runCompletion(out io.Writer, cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
 		fmt.Println("error: Shell not specified.")
 		return
@@ -67,22 +67,22 @@ func RunCompletion(out io.Writer, cmd *cobra.Command, args []string) {
 		return
 	}
 	if args[0] == "bash" {
-		RunCompletionBash(out, cmd)
+		runCompletionBash(out, cmd)
 		return
 	}
 	if args[0] == "zsh" {
-		RunCompletionZsh(out, cmd)
+		runCompletionZsh(out, cmd)
 		return
 	}
 	fmt.Printf("Unsupported shell type %q.\n", args[0])
 }
 
-func RunCompletionBash(out io.Writer, cmd *cobra.Command) {
+func runCompletionBash(out io.Writer, cmd *cobra.Command) {
 	cmd.GenBashCompletion(out)
 }
 
-func RunCompletionZsh(out io.Writer, cmd *cobra.Command) {
-	zsh_initialization := `
+func runCompletionZsh(out io.Writer, cmd *cobra.Command) {
+	zshInitialization := `
 __mayactl_bash_source() {
 	alias shopt=':'
 	alias _expand=_bash_expand
@@ -178,18 +178,18 @@ __mayactl_convert_bash_to_zsh() {
 	-e "s/\\\$(type${RWORD}/\$(__mayactl_type/g" \
 	<<'BASH_COMPLETION_EOF'
 `
-	out.Write([]byte(zsh_initialization))
+	out.Write([]byte(zshInitialization))
 
 	buf := new(bytes.Buffer)
 	cmd.GenBashCompletion(buf)
 	out.Write(buf.Bytes())
 
-	zsh_tail := `
+	zshTail := `
 BASH_COMPLETION_EOF
 }
 
 __mayactl_bash_source <(__mayactl_convert_bash_to_zsh)
 _complete mayactl 2>/dev/null
 `
-	out.Write([]byte(zsh_tail))
+	out.Write([]byte(zshTail))
 }

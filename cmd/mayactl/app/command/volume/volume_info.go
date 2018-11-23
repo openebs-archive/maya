@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors.
+Copyright 2018 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package command
+package volume
 
 import (
 	"errors"
@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	volumeInfoCommandHelpText = `
+	volumeDescribeCommandHelpText = `
 This command fetches information and status of the various
 aspects of a Volume such as ISCSI, Controller, and Replica.
 
@@ -78,12 +78,12 @@ type cstorReplicaInfo struct {
 	IP         string
 }
 
-// NewCmdVolumeInfo displays OpenEBS Volume information.
-func NewCmdVolumeInfo() *cobra.Command {
+// NewCmdVolumeDescribe displays OpenEBS Volume information.
+func NewCmdVolumeDescribe() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "describe",
 		Short:   "Displays Openebs Volume information",
-		Long:    volumeInfoCommandHelpText,
+		Long:    volumeDescribeCommandHelpText,
 		Example: `mayactl volume describe --volname <vol>`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)

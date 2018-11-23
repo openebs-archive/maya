@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The OpenEBS Authors.
+Copyright 2018 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package command
+package volume
 
 import (
 	"encoding/json"
@@ -114,7 +114,7 @@ func NewCmdVolume() *cobra.Command {
 		NewCmdVolumesList(),
 		NewCmdVolumeDelete(),
 		NewCmdVolumeStats(),
-		NewCmdVolumeInfo(),
+		NewCmdVolumeDescribe(),
 	)
 	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
 		"namespace name, required if volume is not in the default namespace")
@@ -130,17 +130,17 @@ func NewCmdVolume() *cobra.Command {
 func (c *CmdVolumeOptions) Validate(cmd *cobra.Command, snapshotnameverify, sourcenameverify, volnameverify bool) error {
 	if snapshotnameverify {
 		if len(c.snapshotName) == 0 {
-			return errors.New("error: --snapname not specified.")
+			return errors.New("error: --snapname not specified")
 		}
 	}
 	if sourcenameverify {
 		if len(c.sourceVolumeName) == 0 {
-			return errors.New("error: --sourcevol not specified.")
+			return errors.New("error: --sourcevol not specified")
 		}
 	}
 	if volnameverify {
 		if len(c.volName) == 0 {
-			return errors.New("error: --volname not specified.")
+			return errors.New("error: --volname not specified")
 		}
 	}
 	return nil
