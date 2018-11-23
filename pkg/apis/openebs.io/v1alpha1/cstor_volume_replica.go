@@ -42,10 +42,10 @@ const (
 
 // CStorVolumeReplica describes a cstor volume resource created as custom resource
 type CStorVolumeReplica struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CStorVolumeReplicaSpec   `json:"spec"`
-	Status            CStorVolumeReplicaStatus `json:"status"`
+	metav1.TypeMeta                 `json:",inline"`
+	metav1.ObjectMeta               `json:"metadata,omitempty"`
+	Spec   CStorVolumeReplicaSpec   `json:"spec"`
+	Status CStorVolumeReplicaStatus `json:"status"`
 }
 
 // CStorVolumeReplicaSpec is the spec for a CStorVolumeReplica resource
@@ -62,17 +62,23 @@ const (
 	// CVRStatusEmpty ensures the create operation is to be done, if import fails.
 	CVRStatusEmpty CStorVolumeReplicaPhase = ""
 	// CVRStatusOnline ensures the resource is available.
-	CVRStatusOnline CStorVolumeReplicaPhase = "Online"
+	CVRStatusOnline CStorVolumeReplicaPhase = "Healthy"
 	// CVRStatusOffline ensures the resource is not available.
 	CVRStatusOffline CStorVolumeReplicaPhase = "Offline"
+	// CVRStatusDegraded means that the rebuilding has not yet started.
+	CVRStatusDegraded CStorVolumeReplicaPhase = "Degraded"
+	// CVRStatusRebuilding means that the volume is in re-building phase.
+	CVRStatusRebuilding CStorVolumeReplicaPhase = "Rebuilding"
+	// CVRStatusRebuilding means that the volume status could not be found.
+	CVRStatusError CStorVolumeReplicaPhase = "Error"
 	// CVRStatusDeletionFailed ensures the resource deletion has failed.
-	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "DeletionFailed"
+	CVRStatusDeletionFailed CStorVolumeReplicaPhase = "Error"
 	// CVRStatusInvalid ensures invalid resource.
 	CVRStatusInvalid CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusErrorDuplicate ensures error due to duplicate resource.
-	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "ErrorDuplicate"
+	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusPending ensures pending task of cvr resource.
-	CVRStatusPending CStorVolumeReplicaPhase = "Pending"
+	CVRStatusPending CStorVolumeReplicaPhase = "Init"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.

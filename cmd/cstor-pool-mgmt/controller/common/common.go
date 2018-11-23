@@ -92,7 +92,7 @@ const (
 	// PoolNameHandlerInterval is used when expected pool is not present.
 	PoolNameHandlerInterval = 5 * time.Second
 	// SharedInformerInterval is used to sync watcher controller.
-	SharedInformerInterval = 5 * time.Minute
+	SharedInformerInterval = 15 * time.Second
 	// ResourceWorkerInterval is used for resource sync.
 	ResourceWorkerInterval = time.Second
 	// InitialZreplRetryInterval is used while initially starting controller.

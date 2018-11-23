@@ -33,19 +33,24 @@ type TestRunner struct{}
 // RunCombinedOutput is to mock Real runner exec.
 func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
 	var cs []string
+	var env []string
 	var cmd *exec.Cmd
-	cs = append(cs, args...)
-	cmd = exec.Command(os.Args[0], cs...)
 	switch args[0] {
 	case "create":
 		cs = []string{"-test.run=TestCreaterProcess", "--"}
-		cmd.Env = []string{"createErr=nil"}
-		break
+		env = []string{"createErr=nil"}
 	case "destroy":
 		cs = []string{"-test.run=TestDestroyerProcess", "--"}
-		cmd.Env = []string{"destroyErr=nil"}
-		break
+		env = []string{"destroyErr=nil"}
+	case StatsCmd:
+		// Create command arguments
+		cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
+		// Set env varibles for the 'TestStatusHelperProcess' function which runs as a process.
+		env = []string{"GO_WANT_STATUS_HELPER_PROCESS=1", "StatusType=" + os.Getenv("StatusType")}
 	}
+	cs = append(cs, args...)
+	cmd = exec.Command(os.Args[0], cs...)
+	cmd.Env = env
 	stdout, err := cmd.CombinedOutput()
 	return stdout, err
 }
@@ -105,6 +110,108 @@ func TestDestroyerProcess(*testing.T) {
 	}
 	defer os.Exit(0)
 	fmt.Println(nil)
+}
+
+// TestStatusHelperProcess is a function that is run as a process to get the mocked std output
+func TestStatusHelperProcess(*testing.T) {
+	// Following constants are different mocked output for `zfs status` command for
+	// different statuses.
+	const (
+		mockedStatusOutputHealthy = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Healthy",
+      "rebuildStatus": "INIT",
+      "isIOAckSenderCreated": 0,
+      "isIOReceiverCreated": 0,
+      "runningIONum": 0,
+      "checkpointedIONum": 0,
+      "degradedCheckpointedIONum": 0,
+      "checkpointedTime": 0,
+      "rebuildBytes": 0,
+      "rebuildCnt": 0,
+      "rebuildDoneCnt": 0,
+      "rebuildFailedCnt": 0
+    }
+  ]
+}`
+		mockedStatusOutputOffline = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Offline",
+      "rebuildStatus": "INIT",
+      "isIOAckSenderCreated": 0,
+      "isIOReceiverCreated": 0,
+      "runningIONum": 0,
+      "checkpointedIONum": 0,
+      "degradedCheckpointedIONum": 0,
+      "checkpointedTime": 0,
+      "rebuildBytes": 0,
+      "rebuildCnt": 0,
+      "rebuildDoneCnt": 0,
+      "rebuildFailedCnt": 0
+    }
+  ]
+}`
+		mockedStatusOutputRebuilding = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Rebuilding",
+      "rebuildStatus": "INIT",
+      "isIOAckSenderCreated": 0,
+      "isIOReceiverCreated": 0,
+      "runningIONum": 0,
+      "checkpointedIONum": 0,
+      "degradedCheckpointedIONum": 0,
+      "checkpointedTime": 0,
+      "rebuildBytes": 0,
+      "rebuildCnt": 0,
+      "rebuildDoneCnt": 0,
+      "rebuildFailedCnt": 0
+    }
+  ]
+}`
+		mockedStatusOutputDegraded = `{
+  "stats": [
+    {
+      "name": "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+      "status": "Degraded",
+      "rebuildStatus": "INIT",
+      "isIOAckSenderCreated": 0,
+      "isIOReceiverCreated": 0,
+      "runningIONum": 0,
+      "checkpointedIONum": 0,
+      "degradedCheckpointedIONum": 0,
+      "checkpointedTime": 0,
+      "rebuildBytes": 0,
+      "rebuildCnt": 0,
+      "rebuildDoneCnt": 0,
+      "rebuildFailedCnt": 0
+    }
+  ]
+}`
+	)
+	if os.Getenv("GO_WANT_STATUS_HELPER_PROCESS") != "1" {
+		return
+	}
+	// Pick the mocked output as specified by the env variable.
+	if os.Getenv("StatusType") == ZfsStatusHealthy {
+		fmt.Fprint(os.Stdout, mockedStatusOutputHealthy)
+	}
+	if os.Getenv("StatusType") == ZfsStatusDegraded {
+		fmt.Fprint(os.Stdout, mockedStatusOutputDegraded)
+	}
+	if os.Getenv("StatusType") == ZfsStatusOffline {
+		fmt.Fprint(os.Stdout, mockedStatusOutputOffline)
+	}
+	if os.Getenv("StatusType") == ZfsStatusRebuilding {
+		fmt.Fprint(os.Stdout, mockedStatusOutputRebuilding)
+	}
+
+	defer os.Exit(0)
 }
 
 // TestCreateVolumeReplica is to test cStorVolumeReplica creation.
@@ -309,6 +416,63 @@ func TestParseCapacityUnit(t *testing.T) {
 			if gotVolumeCapacity != test.expectedVolumeCapacity {
 				t.Errorf("Test case failed as expected capacity '%v' but got '%v'", test.expectedVolumeCapacity, gotVolumeCapacity)
 			}
+		})
+	}
+}
+
+// TestPoolStatus tests Status function which retunr cvr status.
+func TestVolumeStatus(t *testing.T) {
+	testPoolResource := map[string]struct {
+		// cvrName holds the name of zfs volume(not the cvr object name).
+		volumeName string
+		// MockedOutputType holds the type for which the mocked output should be taken e.g.
+		// for 'ZfsStatusHealthy' type a mocked output of `zfs stats` command for Healthy type is taken.
+		mockedOutputType string
+		// expectedStatus is the status that is expected for the test case.
+		expectedStatus string
+	}{
+		// ToDo : Test case for error status.
+		"#1 OnlineVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: ZfsStatusHealthy,
+			expectedStatus:   "Healthy",
+		},
+		"#2 OfflineVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: ZfsStatusOffline,
+			expectedStatus:   "Offline",
+		},
+		"#3 DegradedVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: ZfsStatusDegraded,
+			expectedStatus:   "Degraded",
+		},
+		"#4 RebuildingVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: ZfsStatusRebuilding,
+			expectedStatus:   "Rebuilding",
+		},
+		"#5 ErrorVolumeStatus": {
+			volumeName:       "cstor-183f17c6-ed8b-11e8-87fd-42010a800087/pvc-9e91f938-ee23-11e8-87fd-42010a800087",
+			mockedOutputType: ZfsStatusRebuilding,
+			expectedStatus:   "Rebuilding",
+		},
+	}
+	for name, test := range testPoolResource {
+		t.Run(name, func(t *testing.T) {
+			// Set env variable "StatusType" to "mockedOutputType"
+			// It will help to decide which mocked output should be considered as a std output.
+			os.Setenv("StatusType", test.mockedOutputType)
+			RunnerVar = TestRunner{}
+			gotStatus, err := Status(test.volumeName)
+			if err != nil {
+				t.Fatal("Some error occured in getting volume status:", err)
+			}
+			if test.expectedStatus != gotStatus {
+				t.Errorf("Test case failed as expected status '%s' but got '%s'", test.expectedStatus, gotStatus)
+			}
+			// Unset the "StatusType" env variable
+			os.Unsetenv("StatusType")
 		})
 	}
 }

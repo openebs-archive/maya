@@ -20,20 +20,66 @@ import (
 	"fmt"
 	"strings"
 
+	"encoding/json"
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 )
 
-// VolumeReplicaOperator is the name of the tool that makes
-// volume-related operations.
 const (
-	VolumeReplicaOperator    = "zfs"
+	// VolumeReplicaOperator is the name of the tool that makes volume-related operations.
+	VolumeReplicaOperator = "zfs"
+	// BinaryCapacityUnitSuffix is the suffix for binary capacity unit.
 	BinaryCapacityUnitSuffix = "i"
-	VolumeTypeClone          = "clone"
-	CreateCmd                = "create"
-	CloneCmd                 = "clone"
+	// CreateCmd is the create command for zfs volume.
+	CreateCmd = "create"
+	// CloneCmd is the zfs volume clone command.
+	CloneCmd = "clone"
+	// StatsCmd is the zfs volume stats command.
+	StatsCmd = "stats"
+	// ZfsStatusDegraded is the degraded state of zfs volume.
+	ZfsStatusDegraded = "Degraded"
+	// ZfsStatusOffline is the offline state of zfs volume.
+	ZfsStatusOffline = "Offline"
+	// ZfsStatusHealthy is the healthy state of zfs volume.
+	ZfsStatusHealthy = "Healthy"
+	// ZpoolStatusRebuilding is the rebuilding state of zfs volume.
+	ZfsStatusRebuilding = "Rebuilding"
 )
+const (
+	// CStorPoolUIDKey is the key for csp object uid which is present in cvr labels.
+	CStorPoolUIDKey = "cstorpool.openebs.io/uid"
+	// PvNameKey is the key for pv object uid which is present in cvr labels.
+	PvNameKey = "cstorvolume.openebs.io/name"
+	// PoolPrefix is the prefix of zpool name.
+	PoolPrefix = "cstor-"
+)
+
+// CvrStats struct is zfs volume status output JSON contract.
+type CvrStats struct {
+	// Stats is an array which holds zfs volume related stats
+	Stats []Stats `json:"stats"`
+}
+
+// Stats contain the zfs volume related stats.
+type Stats struct {
+	// Name of the zfs volume.
+	Name string `json:"name"`
+	// Status of the zfs volume.
+	Status string `json:"status"`
+	// RebuildStatus of the zfs volume.
+	RebuildStatus             string `json:"rebuildStatus"`
+	IsIOAckSenderCreated      int    `json:"isIOAckSenderCreated"`
+	isIOReceiverCreated       int    `json:"isIOReceiverCreated"`
+	RunningIONum              int    `json:"runningIONum"`
+	CheckpointedIONum         int    `json:"checkpointedIONum"`
+	DegradedCheckpointedIONum int    `json:"degradedCheckpointedIONum"`
+	CheckpointedTime          int    `json:"checkpointedTime"`
+	RebuildBytes              int    `json:"rebuildBytes"`
+	RebuildCnt                int    `json:"rebuildCnt"`
+	RebuildDoneCnt            int    `json:"rebuildDoneCnt"`
+	RebuildFailedCnt          int    `json:"rebuildFailedCnt"`
+}
 
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
@@ -166,4 +212,62 @@ func parseCapacityUnit(capacity string) string {
 		return newCapacity
 	}
 	return capacity
+}
+
+// Status function gives the status of cvr which extracted and mapped to a set of cvr statuses
+// after getting the zfs volume status
+func Status(volumeName string) (string, error) {
+	statusPoolStr := []string{StatsCmd, volumeName}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, statusPoolStr...)
+	if err != nil {
+		glog.Errorf("Unable to get volume stats: %v", string(stdoutStderr))
+		return "", fmt.Errorf("Unable to get volume stats: %s", err.Error())
+	}
+	volumeStats := &CvrStats{}
+	err = json.Unmarshal(stdoutStderr, volumeStats)
+	if err != nil {
+		return "", fmt.Errorf("Unable to unmarshal volume stats:%s", err)
+	}
+	volumeStatus := volumeStats.Stats[0].Status
+	if strings.TrimSpace(volumeStatus) == "" {
+		glog.Warning("Empty status of volume on volume stats")
+	}
+	cvrStatus := ZfsToCvrStatusMapper(volumeStatus)
+	return cvrStatus, nil
+}
+
+// GetVolumeName finds the zctual zfs volume name for the given cvr.
+func GetVolumeName(cVR *apis.CStorVolumeReplica) (string, error) {
+	var volumeName string
+	// Get the corresponding CSP UID for this CVR
+	if cVR.Labels == nil {
+		return "", fmt.Errorf("no labels found on cvr object")
+	}
+	cspUID := cVR.Labels[CStorPoolUIDKey]
+	if strings.TrimSpace(cspUID) == "" {
+		return "", fmt.Errorf("csp uid not found on cvr label")
+	}
+	pvName := cVR.Labels[PvNameKey]
+	if strings.TrimSpace(pvName) == "" {
+		return "", fmt.Errorf("pv name not found on cvr label")
+	}
+	volumeName = PoolPrefix + cspUID + "/" + pvName
+	return volumeName, nil
+}
+
+// ZfsToCvrStatusMapper maps zfs status to defined cvr status.
+func ZfsToCvrStatusMapper(zfsstatus string) string {
+	if zfsstatus == ZfsStatusHealthy {
+		return string(apis.CVRStatusOnline)
+	}
+	if zfsstatus == ZfsStatusOffline {
+		return string(apis.CVRStatusOffline)
+	}
+	if zfsstatus == ZfsStatusDegraded {
+		return string(apis.CVRStatusDegraded)
+	}
+	if zfsstatus == ZfsStatusRebuilding {
+		return string(apis.CVRStatusRebuilding)
+	}
+	return string(apis.CVRStatusError)
 }

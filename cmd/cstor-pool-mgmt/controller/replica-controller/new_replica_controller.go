@@ -124,11 +124,6 @@ func NewCStorVolumeReplicaController(
 			if !IsRightCStorVolumeReplica(newCVR) {
 				return
 			}
-			// Periodic resync will send update events for all known cStorReplica.
-			// Two different versions of the same cStorReplica will always have different RVs.
-			if newCVR.ResourceVersion == oldCVR.ResourceVersion {
-				return
-			}
 			if IsOnlyStatusChange(oldCVR, newCVR) {
 				glog.Infof("Only cVR status change: %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
 				return
@@ -136,7 +131,13 @@ func NewCStorVolumeReplicaController(
 			if IsDeletionFailedBefore(newCVR) || IsErrorDuplicate(newCVR) {
 				return
 			}
-			if IsDestroyEvent(newCVR) {
+			// Periodic resync will send update events for all known cStorReplica.
+			// Two different versions of the same cStorReplica will always have different RVs.
+			if newCVR.ResourceVersion == oldCVR.ResourceVersion {
+				q.Operation = common.QOpStatusSync
+				glog.Infof("CstorVolumeReplica status sync event for %s", newCVR.ObjectMeta.Name)
+				controller.recorder.Event(newCVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
+			} else if IsDestroyEvent(newCVR) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorVolumeReplica Destroy event : %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
 				controller.recorder.Event(newCVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
