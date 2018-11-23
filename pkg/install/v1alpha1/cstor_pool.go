@@ -237,6 +237,7 @@ spec:
         metadata:
           labels:
             app: cstor-pool
+            openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           nodeSelector:
