@@ -86,8 +86,8 @@ func StartControllers(kubeconfig string) {
 	cStorVolumeController := volumecontroller.NewCStorVolumeController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
-	go startSharedInformerFactory(kubeInformerFactory, stopCh)
-	go startExternalVersionsInformerFactory(openebsInformerFactory, stopCh)
+	go kubeInformerFactory.Start(stopCh)
+	go openebsInformerFactory.Start(stopCh)
 
 	// Waitgroup for starting volume controller goroutines.
 	var wg sync.WaitGroup
@@ -101,18 +101,6 @@ func StartControllers(kubeconfig string) {
 		wg.Done()
 	}()
 	wg.Wait()
-}
-
-func startSharedInformerFactory(factory kubeinformers.SharedInformerFactory, stopCh <-chan struct{}) {
-	for {
-		factory.Start(stopCh)
-	}
-}
-
-func startExternalVersionsInformerFactory(factory informers.SharedInformerFactory, stopCh <-chan struct{}) {
-	for {
-		factory.Start(stopCh)
-	}
 }
 
 // GetClusterConfig return the config for k8s.
