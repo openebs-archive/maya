@@ -42,11 +42,11 @@ metadata:
 spec:
   meta: |
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Snapshot.runNamespace }}
+    runNamespace: {{ .Snapshot.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{- end }}
     apiVersion: v1
     id: readlistsvc
@@ -118,11 +118,11 @@ metadata:
 spec:
   meta: |
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Snapshot.runNamespace }}
+    runNamespace: {{ .Snapshot.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{- end }}
     apiVersion: v1
     id: readlistsvc

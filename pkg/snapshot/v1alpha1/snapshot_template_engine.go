@@ -34,6 +34,10 @@ import (
 type snapshotEngine struct {
 	// engine exposes generic CAS template operations
 	engine engine.Interface
+	// TODO:
+	// All the below fields are common to specific implementation
+	// of engine therefore it could be moved to core cast engine.
+
 	// defaultConfig is the default cas volume configurations found
 	// in the CASTemplate
 	defaultConfig []v1alpha1.Config
@@ -63,8 +67,8 @@ func (c *snapshotEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 //  runtime snapshot values set at **runtime** by openebs storage provisioner
 // (a kubernetes dynamic storage provisioner)
 func SnapshotEngine(
-	casConfigSC string,
 	casConfigSnap string,
+	casConfigSC string,
 	casTemplate *v1alpha1.CASTemplate,
 	key string,
 	snapshotValues map[string]interface{}) (snapEngine *snapshotEngine, err error) {

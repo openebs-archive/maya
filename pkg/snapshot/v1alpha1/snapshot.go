@@ -113,7 +113,7 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
-	engine, err := SnapshotEngine(casConfigSC, "", cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := SnapshotEngine("", casConfigSC, cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
-	engine, err := SnapshotEngine(casConfigSC, "", cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := SnapshotEngine("", casConfigSC, cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}

@@ -200,11 +200,11 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Volume.runNamespace | saveAs "cvolcreateputsvc.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace }}
+    runNamespace: {{ $runNamespace | saveAs "cvolcreateputsvc.derivedNS" .TaskResult }}
     {{- end }}
     apiVersion: v1
     kind: Service
@@ -256,13 +256,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.cvolcreateputsvc.derivedNS }}
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
     id: cvolcreateputvolume
@@ -302,13 +296,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.cvolcreateputsvc.derivedNS }}
     apiVersion: apps/v1beta1
     kind: Deployment
     action: put
@@ -359,7 +347,7 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         spec:
-          serviceAccountName: {{ .Config.PVCServiceAccount.value | default .Config.ServiceAccountName.value }}
+          serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
@@ -677,11 +665,11 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Volume.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
     {{- end }}
     apiVersion: v1
     id: readlistsvc
@@ -702,13 +690,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.readlistsvc.derivedNS }}
     id: readlistcv
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
@@ -750,13 +732,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.readlistsvc.derivedNS }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -816,11 +792,11 @@ spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Volume.runNamespace | saveAs "deletelistcsv.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace }}
+    runNamespace: {{ $runNamespace | saveAs "deletelistcsv.derivedNS" .TaskResult }}
     {{- end }}
     id: deletelistcsv
     apiVersion: openebs.io/v1alpha1
@@ -841,13 +817,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletelistsvc
     apiVersion: v1
     kind: Service
@@ -871,13 +841,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletelistctrl
     apiVersion: apps/v1beta1
     kind: Deployment
@@ -920,13 +884,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletedeletesvc
     apiVersion: v1
     kind: Service
@@ -941,13 +899,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletedeletectrl
     apiVersion: apps/v1beta1
     kind: Deployment
@@ -976,13 +928,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $pvcServiceAccount := .Config.PVCServiceAccount.value | default "" -}}
-    {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace }}
-    {{ else }}
-    runNamespace: {{ $runNamespace }}
-    {{- end }}
+    runNamespace: {{ .TaskResult.deletelistcsv.derivedNS }}
     id: deletedeletecsv
     action: delete
     apiVersion: openebs.io/v1alpha1
