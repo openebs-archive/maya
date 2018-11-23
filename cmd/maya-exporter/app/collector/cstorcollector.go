@@ -188,6 +188,8 @@ func (c *Cstor) set(m *Metrics) error {
 		replicaMode.String(),
 	).Set(volStats.replicaCount)
 
+	m.volumeStatus.Set(float64(volStats.getVolumeStatus()))
+
 	return nil
 }
 
