@@ -19,17 +19,26 @@ package main
 import (
 	"os"
 
+	"net/http"
+	_ "net/http/pprof"
+
+
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/app/command"
-	"github.com/openebs/maya/pkg/debug"
+	//"github.com/openebs/maya/pkg/debug"
 	cstorlogger "github.com/openebs/maya/pkg/logs"
-	"github.com/pkg/profile"
+	//"github.com/pkg/profile"
 )
 
 func main() {
 	//Enable CPU profiling.
-	if debug.EnableCPUProfiling() {
-		defer profile.Start(profile.ProfilePath(debug.GetProfilePath())).Stop()
-	}
+	//if debug.EnableCPUProfiling() {
+	//	defer profile.Start(profile.ProfilePath(debug.GetProfilePath())).Stop()
+	//}
+
+	go func() {
+		http.HandleFunc("/", serveHTTP)
+		http.ListenAndServe(":9664", nil)
+	}()
 
 	if err := run(); err != nil {
 		os.Exit(1)
@@ -50,4 +59,8 @@ func run() error {
 	}
 
 	return cmd.Execute()
+}
+
+func serveHTTP(w http.ResponseWriter, r *http.Request) {
+    w.Write([]byte("Hello, world"))
 }

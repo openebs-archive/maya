@@ -242,6 +242,10 @@ spec:
         port: 9500
         targetPort: 9500
         protocol: TCP
+      - name: debug
+        port: 9664
+        targetPort: 9664
+        protocol: TCP
       selector:
         app: cstor-volume-manager
         openebs.io/target: cstor-target
@@ -410,6 +414,8 @@ spec:
             imagePullPolicy: IfNotPresent
             ports:
             - containerPort: 80
+            - containerPort: 9664
+              protocol: TCP
             env:
             - name: OPENEBS_IO_CSTOR_VOLUME_ID
               value: {{ .TaskResult.cvolcreateputvolume.cstorid }}
