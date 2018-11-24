@@ -61,7 +61,7 @@ spec:
     kind: CASStats
     apiVersion: v1alpha1
   task: |
-      {{ .TaskResult.getStats.result | toString }}
+      {{ .TaskResult.getStats.result | default "" | toString }}
 `
 
 // VolumeStatsArtifacts returns the CRDs required for latest version
