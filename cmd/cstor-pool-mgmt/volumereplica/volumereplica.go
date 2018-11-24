@@ -228,9 +228,12 @@ func Status(volumeName string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Unable to unmarshal volume stats:%s", err)
 	}
-	volumeStatus := volumeStats.Stats[0].Status
+	var volumeStatus string
+	if volumeStats != nil && len(volumeStats.Stats) != 0 {
+		volumeStatus = volumeStats.Stats[0].Status
+	}
 	if strings.TrimSpace(volumeStatus) == "" {
-		glog.Warning("Empty status of volume on volume stats")
+		glog.Warningf("Empty volume status for volume stats: '%+v'", volumeStats)
 	}
 	cvrStatus := ZfsToCvrStatusMapper(volumeStatus)
 	return cvrStatus, nil
