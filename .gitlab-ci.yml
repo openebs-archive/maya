@@ -16,6 +16,19 @@ build-maya:
 
      - make bootstrap
      - make format
+
+  # Make sure you grab the latest version
+     - curl -OL https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip
+  # Unzip
+     - unzip protoc-3.2.0-linux-x86_64.zip -d protoc3
+  # Move protoc to /usr/local/bin/
+     - sudo mv protoc3/bin/* /usr/local/bin/
+  # Move protoc3/include to /usr/local/include/
+     - sudo mv protoc3/include/* /usr/local/include/
+  # Optional: change owner
+     - sudo chwon [user] /usr/local/bin/protoc
+     - sudo chwon -R [user] /usr/local/include/google
+
   # Download kubectl, which is a requirement for using minikube.
      - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
   # Download minikube.
