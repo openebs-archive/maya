@@ -42,31 +42,31 @@ function checkApi() {
 }
 
 printf "\n\n"
-echo "---------------- Checking Volume API \"/latest/volume\" -------------------"
+echo "---------------- Checking Volume list API -------------------"
 
 checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/"
 
 printf "\n\n"
 
-echo "---------------- Checking Volume API \for jiva volume -------------------"
+echo "---------------- Checking Volume API for jiva volume -------------------"
 
 checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$JIVAVOL -H namespace:default"
 
 printf "\n\n"
 
-echo "---------------- Checking Volume API \for cstor volume -------------------"
+echo "---------------- Checking Volume API for cstor volume -------------------"
 
 checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$CSTORVOL -H namespace:openebs"
 
 printf "\n\n"
 
-echo "------------ Checking Volume STATS API \for cstor volume -----------------"
+echo "------------ Checking Volume STATS API for cstor volume -----------------"
 
 checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$CSTORVOL -H namespace:openebs"
 
 printf "\n\n"
 
-echo "------------ Checking Volume STATS API \for jiva volume -----------------"
+echo "------------ Checking Volume STATS API for jiva volume -----------------"
 
 checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$JIVAVOL -H namespace:default"
 
