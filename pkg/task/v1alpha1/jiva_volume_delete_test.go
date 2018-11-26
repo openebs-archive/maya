@@ -27,8 +27,8 @@ func TestJivaVolumeDelete(t *testing.T) {
 	}{
 		"test 101": {url: "", iserr: true},
 		"test 102": {url: "http://", iserr: true},
-		"test 103": {url: "http://1.1.1.1", iserr: true},
-		"test 104": {url: "http://1.1.1.1:1010", iserr: true},
+		"test 103": {url: "http://0.0.0.0", iserr: true},
+		"test 104": {url: "http://0.0.0.0:1010", iserr: true},
 	}
 
 	for name, mock := range tests {

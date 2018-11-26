@@ -29,7 +29,7 @@ func TestCstorSnapshotCreate(t *testing.T) {
 		errMsg   string
 	}{
 		"test 101": {"", "vol1", "", true, "failed to create cstor snapshot: missing ip address"},
-		"test 102": {"1.1.1.1", "", "", true, "failed to create cstor snapshot: missing volume name"},
+		"test 102": {"0.0.0.0", "", "", true, "failed to create cstor snapshot: missing volume name"},
 	}
 
 	for name, mock := range tests {

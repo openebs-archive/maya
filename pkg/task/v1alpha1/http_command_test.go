@@ -74,8 +74,8 @@ func TestHttpCommandSetURL(t *testing.T) {
 		newURL      string
 		expectedURL string
 	}{
-		"101": {"", "http://1.1.1.1:1010", "http://1.1.1.1:1010"},
-		"102": {"http://", "http://1.1.1.1", "http://1.1.1.1"},
+		"101": {"", "http://0.0.0.0:1010", "http://0.0.0.0:1010"},
+		"102": {"http://", "http://0.0.0.0", "http://0.0.0.0"},
 	}
 
 	for name, mock := range tests {
