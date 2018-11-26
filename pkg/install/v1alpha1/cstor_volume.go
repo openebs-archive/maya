@@ -276,7 +276,7 @@ spec:
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
       targetPortal: {{ .TaskResult.cvolcreateputsvc.clusterIP }}:3260
       targetPort: 3260
-      status: ""
+      status: "Init"
       replicationFactor: {{ $replicaCount }}
       consistencyFactor: {{ div $replicaCount 2 | floor | add1 }}
 ---
