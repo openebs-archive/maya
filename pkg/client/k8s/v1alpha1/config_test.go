@@ -38,8 +38,8 @@ func TestConfigFromENV(t *testing.T) {
 	}{
 		"101": {"", "", true},
 		"102": {"", "/etc/config/kubeconfig", true},
-		"103": {"1.1.1.1", "", false},
-		"104": {"1.1.1.1", "/etc/config/config", true},
+		"103": {"0.0.0.0", "", false},
+		"104": {"0.0.0.0", "/etc/config/config", true},
 	}
 
 	// Sub tests is not used here as env key is set & unset to test. Since env

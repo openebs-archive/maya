@@ -256,7 +256,7 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 		"test 101": {`{{- delete jiva volume | run -}}`, mockval},
 		"test 102": {`{{- delete jiva volume | withoption "url" "" | run -}}`, mockval},
 		"test 103": {`{{- delete jiva volume | withoption "url" "http://" | run -}}`, mockval},
-		"test 104": {`{{- delete cstor volume | withoption "url" "http://1.1.1.1:1010/v1" | run -}}`, mockval},
+		"test 104": {`{{- delete cstor volume | withoption "url" "http://0.0.0.0:1010/v1" | run -}}`, mockval},
 	}
 
 	for name, mock := range tests {
@@ -295,15 +295,15 @@ func TestCreateCstorSnapshotCommand(t *testing.T) {
 		tvalues  map[string]interface{}
 	}{
 		"test 101": {`{{- create cstor snapshot | run -}}`, mockval},
-		"test 102": {`{{- create cstor snapshot | withoption "ip" "1.1.1.1" | withoption "volname" "vol1" | withoption "snapname" "" | run -}}`, mockval},
+		"test 102": {`{{- create cstor snapshot | withoption "ip" "0.0.0.0" | withoption "volname" "vol1" | withoption "snapname" "" | run -}}`, mockval},
 		"test 103": {`{{- create cstor snapshot | withoption "ip" "" | withoption "volname" "" | withoption "snapname" "snap1" | run -}}`, mockval},
-		"test 104": {`{{- create cstor snapshot | withoption "ip" "1.1.1.1" | run -}}`, mockval},
+		"test 104": {`{{- create cstor snapshot | withoption "ip" "0.0.0.0" | run -}}`, mockval},
 
 		// Commenting this test case, as go test times out
 		// TODO
 		// Need to push this to Integration Test
 		//
-		//"test 105": {`{{- $ip := "1.1.1.1" -}}
+		//"test 105": {`{{- $ip := "0.0.0.0" -}}
 		//			  {{- $volName := "vol1" -}}
 		//			  {{- $snapName := "s1" -}}
 		//   		  {{- $runCommandTemp := create cstor volume | withoption "ip" $ip | withoption "volname" $volName -}}
@@ -348,10 +348,10 @@ func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 		"102": {"102", `{{- delete jiva volume | withoption "url" "" | withoption "name" "" | run | saveas "102" .Values -}}`},
 		"103": {"103", `{{- delete jiva volume | withoption "url" "http://" | withoption "name" "ab" | run | saveas "103" .Values -}}`},
 		"104": {"104",
-			`{{- $url := "http://1.1.1.1:1010/v1" -}}
+			`{{- $url := "http://0.0.0.0:1010/v1" -}}
 		   {{- delete jiva volume | withoption "url" $url | withoption "name" "abcd" | run | saveas "104" .Values -}}`},
 		"105": {"105",
-			`{{- $url := "http://1.1.1.1:1010/v1/volumes" -}}
+			`{{- $url := "http://0.0.0.0:1010/v1/volumes" -}}
 		  {{- delete jiva volume | withoption "url" $url | withoption "name" "abcde" | run | saveas "105" .Values -}}`},
 	}
 
@@ -887,7 +887,7 @@ func TestCreateCstorSnapshotSaveAsVerifyError(t *testing.T) {
 	}{
 		// NOTE:
 		//  Name of the test case should equal to the key used by saveas & saveif
-		"t101": {`{{- $ip := "1.1.1.1" -}}
+		"t101": {`{{- $ip := "0.0.0.0" -}}
 					  {{- $volName := "vol1" -}}
 					  {{- $snapName := "s1" -}}
 					  {{- $runCmd := create cstor snapshot | withoption "ip" $ip | withoption "volname" $volName -}}
