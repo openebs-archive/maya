@@ -101,7 +101,7 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 	return print(statsTemplate, stats)
 }
 
-func processStats(stats1, stats2 v1alpha1.VolumeMetrics) (stats v1alpha1.StatsJSON, err error) {
+func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.StatsJSON, err error) {
 	if len(stats1) != len(stats2) {
 		return stats, fmt.Errorf("Invalid Response")
 	}
