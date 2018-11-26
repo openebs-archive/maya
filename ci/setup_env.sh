@@ -6,9 +6,11 @@ export KUBERNETES_SERVICE_HOST="127.0.0.1"
 export MAYACTL="$GOPATH/src/github.com/openebs/maya/bin/maya/mayactl"
 export KUBECONFIG=$HOME/.kube/config
 
+
 MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
 CSTORVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="cstor")].metadata.name}')
 JIVAVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="jiva")].metadata.name}')
+POOLNAME=$(kubectl get storagepools -o jsonpath='{.items[?(@.metadata.labels.openebs\.io/cas-type=="cstor")].metadata.name}')
 
 function dumpMayaAPIServerLogs() {
   LC=$1
@@ -106,6 +108,26 @@ done
 printf "\n\n"
 
 echo "+++++++++++++++++++++ MAYA API's are ready ++++++++++++++++++++++++++++++++"
+
+printf "\n\n"
+
+echo "*************** Running mayactl pool list *******************************"
+${MAYACTL} pool list
+rc=$?;
+if [[ $rc != 0 ]]; then
+	kubectl logs --tail=10 $MAPIPOD -n openebs
+	exit $rc;
+fi
+
+printf "\n\n"
+
+echo "*************** Running mayactl pool describe *******************************"
+${MAYACTL} pool describe --poolname $POOLNAME
+rc=$?;
+if [[ $rc != 0 ]]; then
+	kubectl logs --tail=10 $MAPIPOD -n openebs
+	exit $rc;
+fi
 
 printf "\n\n"
 
