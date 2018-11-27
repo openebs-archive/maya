@@ -203,6 +203,10 @@ func (m Msgs) Errors() (f Msgs) {
 	return m.Filter(IsErr)
 }
 
+func (m Msgs) HasError() bool {
+	return len(m.Errors().Items) != 0
+}
+
 func (m Msgs) NonErrors() (f Msgs) {
 	return m.Filter(IsNotErr)
 }

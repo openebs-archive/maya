@@ -26,7 +26,7 @@ import (
 func GetServerVersion() (*version.Info, error) {
 	cs, err := Clientset().Get()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get apiserver version:")
+		return nil, errors.Wrapf(err, "failed to get apiserver version")
 	}
 	return cs.Discovery().ServerVersion()
 }

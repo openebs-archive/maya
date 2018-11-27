@@ -25,6 +25,7 @@ import (
 	"github.com/ghodss/yaml"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	kubever "github.com/openebs/maya/pkg/version/kubernetes"
 	"reflect"
 	"strings"
 	"text/template"
@@ -791,6 +792,10 @@ func allCustomFuncs() template.FuncMap {
 	}
 	rc := runCommandFuncs()
 	for k, v := range rc {
+		f[k] = v
+	}
+	kVer := kubever.TemplateFunctions()
+	for k, v := range kVer {
 		f[k] = v
 	}
 	return f

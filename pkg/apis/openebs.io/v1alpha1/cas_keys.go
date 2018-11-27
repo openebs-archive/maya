@@ -43,19 +43,6 @@ const (
 	// OpenEBS
 	OpenEBSVersionKey CASKey = "openebs.io/version"
 
-	// VersionKey is the label key which provides the installed version of
-	// OpenEBS
-	//
-	// NOTE:
-	// This can be used for openebs specific custom resources where namespacing
-	// the key is not mandatory. The org specific namespace details is already
-	// present in the apiVersion itself. This also helps to parse version key
-	// easily.
-	VersionKey CASKey = "version"
-
-	// CASTNameKey is the key to fetch name of CAS template
-	CASTNameKey CASKey = "castName"
-
 	// CASConfigKey is the key to fetch configurations w.r.t a CAS entity
 	CASConfigKey CASKey = "cas.openebs.io/config"
 
@@ -74,6 +61,36 @@ const (
 	// StorageClassHeaderKey is the key to fetch name of StorageClass
 	// This key is present only in get request headers
 	StorageClassHeaderKey CASKey = "storageclass"
+)
+
+// CASPlainKey represents a openebs key used either in resource annotation 
+// or label
+//
+// NOTE:
+//  PlainKey (i.e. without 'openebs.io/' ) helps to parse key via 
+// go templating
+type CASPlainKey string
+
+const(
+	// OpenEBSVersionPlainKey is the label key which provides the installed 
+	// version of OpenEBS
+	OpenEBSVersionPlainKey CASPlainKey = "version"
+
+	// CASTNamePlainKey is the key to fetch name of CAS template
+	CASTNamePlainKey CASPlainKey = "castName"
+)
+
+// KubePlainKey represents a kubernetes key used either in resource annotation 
+// or label
+//
+// NOTE:
+//  PlainKey (i.e. without 'kubernetes.io/' ) helps to parse key via 
+// go templating
+type KubePlainKey string
+
+const (
+	// KubeServerVersionPlainKey is the key to fetch Kubernetes server version
+	KubeServerVersionPlainKey KubePlainKey = "kubeVersion"
 )
 
 // DeprecatedKey is a typed string to represent deprecated annotations' or
