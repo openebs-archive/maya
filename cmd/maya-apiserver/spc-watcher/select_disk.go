@@ -26,6 +26,10 @@ import (
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 )
 
+const (
+	DiskStateActive = "Active"
+)
+
 // clientset struct holds the interface of internalclientset
 // i.e. openebs.
 // This struct will be binded to method ListDisk and is useful in mocking
@@ -132,6 +136,10 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 
 		// If the disk is already being used, do not consider this as a part for provisioning pool
 		if usedDiskMap[value.Name] == 1 {
+			continue
+		}
+		// If the disk not Active, do not consider this as a part for provisioning pool
+		if value.Status.State != DiskStateActive {
 			continue
 		}
 		if usedNodeMap[value.Labels[string(v1alpha1.HostNameCPK)]] == 1 {

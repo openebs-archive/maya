@@ -60,6 +60,9 @@ func (focs *clientSet) FakeDiskCreator() {
 					"ndm.io/disk-type":       diskLabel,
 				},
 			},
+			Status: v1alpha1.DiskStatus{
+				State: DiskStateActive,
+			},
 		}
 		_, err := focs.oecs.OpenebsV1alpha1().Disks().Create(diskObjectList[diskListIndex])
 		if err != nil {
