@@ -365,9 +365,3 @@ if [ -f /var/openebs/$JIVAVOL/volume.meta ]; then
 else
    echo "Jiva replica data is cleared successfully"
 fi
-
-make generated_files
-rc=$?; if [[ $rc != 0 ]]; then echo "make generated_files failed"; exit $rc; fi
-
-make test
-rc=$?; if [[ $rc != 0 ]]; then echo "make test failed after make generated files"; exit $rc; fi
