@@ -38,8 +38,10 @@ package v1alpha1
 
 import (
 	"github.com/ghodss/yaml"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
+	kubever "github.com/openebs/maya/pkg/version/kubernetes"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -264,8 +266,59 @@ func UpdateNamespace(n string) UnstructuredMiddleware {
 	}
 }
 
+// AddKubeServerVersionToLabels adds kubernetes server version to instance's
+// labels
+//
+// TODO
+// Move this override flag to a Predicate. This will follow idiomatic Maya
+// convention to separate conditional(s) logic from core business logic. This
+// in turn helps in readability & maintainability of the codebase.
+//
+// e.g.
+// func IsLabelSet(key string) UnstructuredPredicate {...}
+// func IsLabelUnSet(key string) UnstructuredPredicate {...}
+func AddKubeServerVersionToLabels(override bool) UnstructuredMiddleware {
+	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
+		if given == nil {
+			return given
+		}
+		l := given.GetLabels()
+		if l == nil {
+			l = map[string]string{}
+		}
+		// TODO
+		// Nested if else clause is bad. This will get handled once IsLabelUnSet
+		// predicate is used.
+		if len(l[string(v1alpha1.KubeServerVersionPlainKey)]) == 0 || override {
+			// TODO
+			// error should not be ignored here
+			// Need to design a custom struct that wraps unstructured.Unstructured
+			// instance and has fields to accomodate error(s), warning(s), etc
+			//
+			// NOTE:
+			//  This will be done along with idiomatic maya refactorings
+			vInfo, err := GetServerVersion()
+			if err != nil {
+				return given
+			}
+			l[string(v1alpha1.KubeServerVersionPlainKey)] = kubever.AsLabelValue(vInfo.GitVersion)
+		}
+		given.SetLabels(l)
+		return given
+	}
+}
+
 // AddNameToLabels extracts the instance's name & adds it to the same instance's
 // labels mapped by the provided label key
+//
+// TODO
+// Move this override flag to a Predicate. This will follow idiomatic Maya
+// convention to separate conditional(s) logic from core business logic. This
+// in turn helps in readability & maintainability of the codebase.
+//
+// e.g.
+// func IsLabelSet(key string) UnstructuredPredicate {...}
+// func IsLabelUnSet(key string) UnstructuredPredicate {...}
 func AddNameToLabels(key string, override bool) UnstructuredMiddleware {
 	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
 		if given == nil || len(key) == 0 {
@@ -375,6 +428,15 @@ func SuffixWithVersionAtPath(path string) UnstructuredMiddleware {
 }
 
 // UpdateLabels updates the unstructured instance's labels
+//
+// TODO
+// Move this override flag to a Predicate. This will follow idiomatic Maya
+// convention to separate conditional(s) logic from core business logic. This
+// in turn helps in readability & maintainability of the codebase.
+//
+// e.g.
+// func IsLabelSet(key string) UnstructuredPredicate {...}
+// func IsLabelUnSet(key string) UnstructuredPredicate {...}
 func UpdateLabels(l map[string]string, override bool) UnstructuredMiddleware {
 	return func(given *unstructured.Unstructured) (updated *unstructured.Unstructured) {
 		if given == nil || len(l) == 0 {

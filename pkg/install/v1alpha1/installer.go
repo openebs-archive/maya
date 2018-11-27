@@ -75,29 +75,30 @@ func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
 func (i *simpleInstaller) setRules(ulist k8s.UnstructedList) (ul []*unstructured.Unstructured) {
 	// order of list of middlewares is crucial as each middleware will mutate the
 	// unstructured instance
-	nlist := ulist.MapAllIfAny([]k8s.UnstructuredMiddleware{
-		k8s.UnstructuredMap(
-			k8s.UpdateLabels(map[string]string{
-				string(v1alpha1.VersionKey): menv.Get(menv.OpenEBSVersion),
-			}, false),
-			k8s.IsNameUnVersioned,
-		),
-		k8s.SuffixNameWithVersion(),
-		k8s.UnstructuredMapAll([]k8s.UnstructuredMiddleware{
-			k8s.SuffixWithVersionAtPath("spec.run.tasks"),
-			k8s.SuffixWithVersionAtPath("spec.output"),
+	nlist := ulist.MapAllIfAny(
+		[]k8s.UnstructuredMiddleware{
+			k8s.UnstructuredMap(
+				k8s.UpdateLabels(map[string]string{string(v1alpha1.OpenEBSVersionPlainKey): menv.Get(menv.OpenEBSVersion)}, false),
+				k8s.IsNameUnVersioned,
+			),
+			k8s.SuffixNameWithVersion(),
+			k8s.UnstructuredMapAll(
+				[]k8s.UnstructuredMiddleware{
+					k8s.SuffixWithVersionAtPath("spec.run.tasks"),
+					k8s.SuffixWithVersionAtPath("spec.output"),
+					k8s.AddNameToLabels(string(v1alpha1.CASTNamePlainKey), false),
+					k8s.AddKubeServerVersionToLabels(false),
+				},
+				k8s.IsCASTemplate,
+			),
+			k8s.UnstructuredMap(
+				k8s.UpdateNamespace(menv.Get(menv.OpenEBSNamespace)),
+				k8s.IsNamespaceScoped,
+			),
 		},
-			k8s.IsCASTemplate,
-		),
-		k8s.UnstructuredMap(
-			k8s.UpdateNamespace(menv.Get(menv.OpenEBSNamespace)),
-			k8s.IsNamespaceScoped,
-		),
-		k8s.UnstructuredMap(
-			k8s.AddNameToLabels(string(v1alpha1.CASTNameKey), false),
-			k8s.IsCASTemplate,
-		),
-	}, k8s.IsCASTemplate, k8s.IsRunTask)
+		k8s.IsCASTemplate,
+		k8s.IsRunTask,
+	)
 
 	ul = append(ul, nlist.Items...)
 	return

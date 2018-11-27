@@ -19,11 +19,14 @@ limitations under the License.
 // into understanding the standard templating features used
 // by maya
 //
-// NOTE on templating:
+// Guides on go templating:
 //
-// BuiltIn funcs: https://golang.org/src/text/template/funcs.go
+// Built-in funcs:
+// - https://golang.org/src/text/template/funcs.go
+//
 // Custom template funcs:
 // - https://github.com/Masterminds/sprig/tree/master/docs
+//
 // Templating guides:
 // - https://github.com/kubernetes/helm/tree/master/docs/chart_template_guide
 // - https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
