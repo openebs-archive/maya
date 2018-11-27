@@ -107,3 +107,21 @@ waitForDeployment ${JIVAREP} default
 kubectl get deploy -n openebs -l openebs.io/target=cstor-target
 CSTORTARGET=$(kubectl get deploy -n openebs -l openebs.io/target=cstor-target --no-headers | awk {'print $1'})
 waitForDeployment ${CSTORTARGET} openebs
+
+echo "---------------Testing deployment in pvc namespace---------------"
+kubectl create -f ./ci/volume/cstor/service-account.yaml
+
+kubectl create -f ./ci/volume/cstor/sc.yaml
+
+echo "---------------Creating in pvc---------------"
+kubectl create -f ./ci/volume/cstor/pvc.yaml
+
+sleep 10
+
+kubectl get deploy -n openebs -l openebs.io/target=cstor-target
+kubectl get cstorvolume
+kubectl get service
+
+CSTORTARGET=$(kubectl get deploy -l openebs.io/persistent-volume-claim=openebs-pvc-in-custom-ns --no-headers | awk {'print $1'})
+echo $CSTORTARGET
+waitForDeployment ${CSTORTARGET} default
