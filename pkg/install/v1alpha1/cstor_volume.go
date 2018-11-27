@@ -71,6 +71,7 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - cstor-volume-create-getpvc-default
     - cstor-volume-create-listclonecstorvolumereplicacr-default
     - cstor-volume-create-listcstorpoolcr-default
     - cstor-volume-create-puttargetservice-default
@@ -132,6 +133,24 @@ spec:
     - cstor-volume-list-listtargetpod-default
     - cstor-volume-list-listcstorvolumereplicacr-default
   output: cstor-volume-list-output-default
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-create-getpvc-default
+spec:
+  meta: |
+    id: creategetpvc
+    apiVersion: v1
+    runNamespace: {{ .Volume.runNamespace }}
+    kind: PersistentVolumeClaim
+    objectName: {{ .Volume.pvc }}
+    action: get
+  post: |
+    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | trim | default "none" -}}
+    {{- $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
+    {{- $targetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/target-affinity}" | trim | default "none" -}}
+    {{- $targetAffinity | saveAs "creategetpvc.targetAffinity" .TaskResult | noop -}}
 ---
 # This RunTask is meant to be run only during clone create requests.
 # However, clone & volume creation follow the same CASTemplate specifications.
@@ -311,6 +330,7 @@ spec:
     {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
     apiVersion: apps/v1beta1
     Kind: Deployment
     metadata:
@@ -349,6 +369,19 @@ spec:
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         spec:
           serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
+          {{- if ne $targetAffinityVal "none" }}
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: openebs.io/target-affinity
+                    operator: In
+                    values:
+                    - {{ $targetAffinityVal }}
+                topologyKey: kubernetes.io/hostname
+                namespaces: [{{.Volume.runNamespace}}]
+          {{- end }}
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
