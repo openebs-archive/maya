@@ -41,7 +41,13 @@ metadata:
   name: cstor-snapshot-create-listtargetservice-default
 spec:
   meta: |
-    runNamespace: {{ .Config.RunNamespace.value }}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
+    runNamespace: {{ .Snapshot.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{ else }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{- end }}
     apiVersion: v1
     id: readlistsvc
     kind: Service
@@ -111,7 +117,13 @@ metadata:
   name: cstor-snapshot-delete-listtargetservice-default
 spec:
   meta: |
-    runNamespace: {{ .Config.RunNamespace.value }}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
+    runNamespace: {{ .Snapshot.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{ else }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{- end }}
     apiVersion: v1
     id: readlistsvc
     kind: Service

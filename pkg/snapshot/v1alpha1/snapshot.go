@@ -17,6 +17,8 @@ limitations under the License.
 package snapshot
 
 import (
+	"strings"
+
 	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -25,7 +27,6 @@ import (
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // options contains the options with respect to
@@ -108,14 +109,17 @@ func (s *snapshot) Create() (*v1alpha1.CASSnapshot, error) {
 		string(v1alpha1.RunNamespaceVTP): s.snapOptions.Namespace,
 	}
 
+	// extract the cas volume config from storage class
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
+
 	// provision CAS snapshot via CAS snapshot specific CAS template engine
-	cc, err := SnapshotEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := SnapshotEngine("", casConfigSC, cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
 
 	// create the snapshot
-	data, err := cc.Create()
+	data, err := engine.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -240,8 +244,11 @@ func (s *snapshot) Delete() (*v1alpha1.CASSnapshot, error) {
 		string(v1alpha1.VolumeSTP):       s.snapOptions.VolumeName,
 	}
 
-	// delete cas volume via cas template engine
-	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	// extract the cas volume config from storage class
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
+
+	// provision CAS snapshot via CAS snapshot specific CAS template engine
+	engine, err := SnapshotEngine("", casConfigSC, cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}

@@ -18,11 +18,12 @@ package engine
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/task"
 	"github.com/openebs/maya/pkg/util"
-	"strings"
 )
 
 // UnMarshallToConfig un-marshalls the given cas template config in a yaml
@@ -117,7 +118,7 @@ func initValues() (v map[string]interface{}) {
 		// list items is set as a top level property
 		string(v1alpha1.ListItemsTLP): map[string]interface{}{},
 		// task result is set as a top level property
-		string(v1alpha1.TaskResultTLP): nil,
+		string(v1alpha1.TaskResultTLP): map[string]interface{}{},
 	}
 }
 
