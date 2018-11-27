@@ -17,6 +17,10 @@
 SRC_REPO="$TRAVIS_BUILD_DIR"
 DST_REPO="$GOPATH/src/github.com/openebs/maya"
 
+function checkGitDiff() {
+	if [[ `git diff --shortstat | wc -l` != 0 ]]; then echo "Some files got changed after $1";printf "\n";git diff --shortstat;printf "\n"; exit 1; fi
+}
+
 if [ "$SRC_REPO" != "$DST_REPO" ];
 then
 	echo "Copying from $SRC_REPO to $DST_REPO"
@@ -33,8 +37,21 @@ fi
 #make golint-travis
 #rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
+echo "Running : make format"
+make format
+rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
+checkGitDiff "make format"
+printf "\n"
+
+echo "Running : make generated_files"
+make generated_files
+rc=$?; if [[ $rc != 0 ]]; then echo "make generated_files"; exit $rc; fi
+checkGitDiff "make generated_files"
+printf "\n"
+
 ./buildscripts/test-cov.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+checkGitDiff "make test"
 
 make all
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi

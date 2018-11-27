@@ -30,24 +30,24 @@ type VolumeMetrics struct {
 
 // MetricsFamily is used store the prometheus metric members
 type MetricsFamily struct {
-	Label   []LabelItems `json:"label"`
-	Counter Counter      `json:"counter"`
-	Summary Summary      `json:"summary"`
-	Gauge   Gauge        `json:"gauge"`
+	Label   []LabelItem `json:"label"`
+	Counter Counter     `json:"counter"`
+	Summary Summary     `json:"summary"`
+	Gauge   Gauge       `json:"gauge"`
 }
 
-// LabelItems stores the labels provided by prometheus
-type LabelItems struct {
+// LabelItem stores the labels provided by prometheus used for identifying the items
+type LabelItem struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
-// Counter stores the counters provided by the prometheus
+// Counter stores the counters provided by the prometheus and can be used for counting events that happen (e.g. total number of requests) and query using rate()
 type Counter struct {
 	Value float64 `json:"value"`
 }
 
-// Summary stores the summary provided by prometheus
+// Summary stores the summary provided by prometheus which can be used for pre-calculated quantiles on client side, but be mindful of calculation cost and aggregation limitations
 type Summary struct {
 	SampleCount float64    `json:"sample_count"`
 	SampleSum   float64    `json:"sample_sum"`
@@ -60,7 +60,7 @@ type Quantile struct {
 	Value    float64 `json:"value"`
 }
 
-// Gauge stores the gauge provided by the prometheus
+// Gauge stores the gauge provided by the prometheus which can be used to instrument the current state of a metric
 type Gauge struct {
 	Value float64 `json:"value"`
 }
