@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 # Copyright 2017 The OpenEBS Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,6 @@ printf "\n"
 
 ./buildscripts/test-cov.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
-checkGitDiff "make test"
 
 make all
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
