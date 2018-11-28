@@ -11,8 +11,8 @@ const (
 )
 
 // VolumeStats returns the VolumeMetrics fetched from apisever endpoint
-func VolumeStats(volName, namespace string) (v1alpha1.VolumeMetrics, error) {
-	stats := v1alpha1.VolumeMetrics{}
+func VolumeStats(volName, namespace string) (v1alpha1.VolumeMetricsList, error) {
+	stats := v1alpha1.VolumeMetricsList{}
 	body, err := getRequest(GetURL()+statsVolumePath+volName, namespace, false)
 	if err != nil {
 		return stats, err

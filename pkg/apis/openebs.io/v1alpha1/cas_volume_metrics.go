@@ -16,9 +16,12 @@ limitations under the License.
 
 package v1alpha1
 
-// VolumeMetrics is used to store the collected metrics
+// VolumeMetricsList is used to store the collected metrics
 // all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
-type VolumeMetrics []struct {
+type VolumeMetricsList []VolumeMetrics
+
+// VolumeMetrics stores the volume metrics proided by the prometheus
+type VolumeMetrics struct {
 	Name   string          `json:"name"`
 	Help   string          `json:"help"`
 	Type   int             `json:"type"`
@@ -27,24 +30,39 @@ type VolumeMetrics []struct {
 
 // MetricsFamily is used store the prometheus metric members
 type MetricsFamily struct {
-	Label []struct {
-		Name  string `json:"name"`
-		Value string `json:"value"`
-	} `json:"label"`
-	Counter struct {
-		Value float64 `json:"value"`
-	} `json:"counter"`
-	Summary struct {
-		SampleCount float64 `json:"sample_count"`
-		SampleSum   float64 `json:"sample_sum"`
-		Quantile    []struct {
-			Quantile float64 `json:"quantile"`
-			Value    float64 `json:"value"`
-		} `json:"quantile"`
-	} `json:"summary"`
-	Gauge struct {
-		Value float64 `json:"value"`
-	} `json:"gauge"`
+	Label   []LabelItem `json:"label"`
+	Counter Counter     `json:"counter"`
+	Summary Summary     `json:"summary"`
+	Gauge   Gauge       `json:"gauge"`
+}
+
+// LabelItem stores the labels provided by prometheus used for identifying the items
+type LabelItem struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// Counter stores the counters provided by the prometheus and can be used for counting events that happen (e.g. total number of requests) and query using rate()
+type Counter struct {
+	Value float64 `json:"value"`
+}
+
+// Summary stores the summary provided by prometheus which can be used for pre-calculated quantiles on client side, but be mindful of calculation cost and aggregation limitations
+type Summary struct {
+	SampleCount float64    `json:"sample_count"`
+	SampleSum   float64    `json:"sample_sum"`
+	Quantile    []Quantile `json:"quantile"`
+}
+
+// Quantile stores the quantile provided by the prometheus
+type Quantile struct {
+	Quantile float64 `json:"quantile"`
+	Value    float64 `json:"value"`
+}
+
+// Gauge stores the gauge provided by the prometheus which can be used to instrument the current state of a metric
+type Gauge struct {
+	Value float64 `json:"value"`
 }
 
 // StatsJSON stores the statistics of an iSCSI volume.

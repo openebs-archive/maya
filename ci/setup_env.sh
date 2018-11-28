@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# set -x
 
 MAPI_SVC_ADDR=`kubectl get service -n openebs maya-apiserver-service -o json | grep clusterIP | awk -F\" '{print $4}'`
 export MAPI_ADDR="http://${MAPI_SVC_ADDR}:5656"
@@ -20,90 +21,54 @@ function dumpMayaAPIServerLogs() {
 }
 
 echo "++++++++++++++++ Waiting for MAYA API's to get ready ++++++++++++++++++++++"
+
+function checkApi() {
+    printf "\n"
+    echo $1
+    printf "\n"
+    for i in `seq 1 100`; do
+        sleep 2
+        responseCode=$($1)
+        echo "Response Code from ApiServer: $responseCode"
+        if [ $responseCode -ne 200 ]; then
+            echo "Retrying.... $i"
+            printf "Logs of api-server: \n\n"
+            kubectl logs --tail=20 $MAPIPOD -n openebs
+            printf "\n\n"
+        else
+            break
+        fi
+    done
+}
+
 printf "\n\n"
-echo "---------------- Checking Volume API \"/latest/volume\" -------------------"
+echo "---------------- Checking Volume list API -------------------"
 
-for i in `seq 1 100`; do
-    sleep 2
-    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/`
-    echo "Response Code from ApiServer: $responseCode"
-    if [ $responseCode -ne 200 ]; then
-        echo "Retrying.... $i"
-        printf "Logs of api-server: \n\n"
-        kubectl logs --tail=20 $MAPIPOD -n openebs
-        printf "\n\n"
-    else
-        break
-    fi
-done
-
-printf "\n\n"
-
-echo "---------------- Checking Volume API \for jiva volume -------------------"
-for i in `seq 1 100`; do
-    sleep 2
-    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$JIVAVOL -H "namespace:default"`
-    echo "Response Code from ApiServer: $responseCode"
-    if [ $responseCode -ne 200 ]; then
-        echo "Retrying.... $i"
-        printf "Logs of api-server: \n\n"
-        kubectl logs --tail=20 $MAPIPOD -n openebs
-        printf "\n\n"
-    else
-        break
-    fi
-done
+checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/"
 
 printf "\n\n"
 
-echo "---------------- Checking Volume API \for cstor volume -------------------"
-for i in `seq 1 100`; do
-    sleep 2
-    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$CSTORVOL -H "namespace:openebs"`
-    echo "Response Code from ApiServer: $responseCode"
-    if [ $responseCode -ne 200 ]; then
-        echo "Retrying.... $i"
-        printf "Logs of api-server: \n\n"
-        kubectl logs --tail=20 $MAPIPOD -n openebs
-        printf "\n\n"
-    else
-        break
-    fi
-done
+echo "---------------- Checking Volume API for jiva volume -------------------"
+
+checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$JIVAVOL -H namespace:default"
 
 printf "\n\n"
 
-echo "------------ Checking Volume STATS API \for cstor volume -----------------"
-for i in `seq 1 100`; do
-    sleep 2
-    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$CSTORVOL -H "namespace:openebs"`
-    echo "Response Code from ApiServer: $responseCode"
-    if [ $responseCode -ne 200 ]; then
-        echo "Retrying.... $i"
-        printf "Logs of api-server: \n\n"
-        kubectl logs --tail=20 $MAPIPOD -n openebs
-        printf "\n\n"
-    else
-        break
-    fi
-done
+echo "---------------- Checking Volume API for cstor volume -------------------"
+
+checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/$CSTORVOL -H namespace:openebs"
 
 printf "\n\n"
 
-echo "------------ Checking Volume STATS API \for jiva volume -----------------"
-for i in `seq 1 100`; do
-    sleep 2
-    responseCode=`curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$JIVAVOL -H "namespace:default"`
-    echo "Response Code from ApiServer: $responseCode"
-    if [ $responseCode -ne 200 ]; then
-        echo "Retrying.... $i"
-        printf "Logs of api-server: \n\n"
-        kubectl logs --tail=20 $MAPIPOD -n openebs
-        printf "\n\n"
-    else
-        break
-    fi
-done
+echo "------------ Checking Volume STATS API for cstor volume -----------------"
+
+checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$CSTORVOL -H namespace:openebs"
+
+printf "\n\n"
+
+echo "------------ Checking Volume STATS API for jiva volume -----------------"
+
+checkApi "curl -X GET --write-out %{http_code} --silent --output /dev/null $MAPI_ADDR/latest/volumes/stats/$JIVAVOL -H namespace:default"
 
 printf "\n\n"
 
