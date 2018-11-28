@@ -250,7 +250,7 @@ cstor-2ebf8dd1-f2e2-11e8-87fd-42010a800087  size       9.94G  -
 cstor-2ebf8dd1-f2e2-11e8-87fd-42010a800087  free       9.94G  -
 cstor-2ebf8dd1-f2e2-11e8-87fd-42010a800087  allocated  83K    -
 
- */
+*/
 // capacityOutputParser parse output of `zpool iostats` command to extract the capacity of the pool.
 // ToDo: Need to find some better way e.g contract for zpool command outputs.
 func capacityOutputParser(output string) *apis.CStorPoolCapacityAttr {
