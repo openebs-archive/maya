@@ -130,25 +130,25 @@ func TestRunVolumeStats(t *testing.T) {
 
 func TestProcessStats(t *testing.T) {
 	tests := map[string]struct {
-		stats1, stats2 v1alpha1.VolumeMetrics
+		stats1, stats2 v1alpha1.VolumeMetricsList
 		Output         v1alpha1.StatsJSON
 		err            error
 	}{
 		"When length of stats1 is not equal to stat2": {
-			stats1: v1alpha1.VolumeMetrics{
+			stats1: v1alpha1.VolumeMetricsList{
 				{}, {},
 			},
-			stats2: v1alpha1.VolumeMetrics{
+			stats2: v1alpha1.VolumeMetricsList{
 				{},
 			},
 			Output: v1alpha1.StatsJSON{},
 			err:    errors.New("Invalid Response"),
 		},
 		"When length of stats1 is  equal to stat2": {
-			stats1: v1alpha1.VolumeMetrics{
+			stats1: v1alpha1.VolumeMetricsList{
 				{}, {},
 			},
-			stats2: v1alpha1.VolumeMetrics{
+			stats2: v1alpha1.VolumeMetricsList{
 				{}, {},
 			},
 			Output: v1alpha1.StatsJSON{},

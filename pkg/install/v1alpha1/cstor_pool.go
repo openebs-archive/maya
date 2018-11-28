@@ -229,6 +229,8 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
+      strategy:
+        type: Recreate
       replicas: 1
       selector:
         matchLabels:

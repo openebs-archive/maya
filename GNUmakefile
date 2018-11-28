@@ -131,6 +131,9 @@ bootstrap:
 	done
 
 # code generation for custom resources
+kubegen: deepcopy clientset lister informer
+
+# code generation for custom resources and protobuf
 generated_files: deepcopy clientset lister informer cstor-volume-grpc
 
 # builds vendored version of deepcopy-gen tool
@@ -272,4 +275,4 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen generated_files
