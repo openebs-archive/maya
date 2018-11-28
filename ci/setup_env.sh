@@ -225,9 +225,9 @@ kubectl get pvc,pv
 
 # Create the application
 echo "Creating busybox-jiva and busybox-cstor application pod"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/jiva/busybox.yaml
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/busybox.yaml
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/busybox_ns.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/jiva/busybox.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/busybox.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/busybox_ns.yaml
 
 for i in $(seq 1 100) ; do
     phaseJiva=$(kubectl get pods busybox-jiva --output="jsonpath={.status.phase}")
@@ -256,9 +256,9 @@ done
 dumpMayaAPIServerLogs 100
 
 echo "********************Creating volume snapshot*****************************"
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/jiva/snapshot.yaml
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/snapshot.yaml
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/snapshot_ns.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/jiva/snapshot.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/snapshot.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/snapshot_ns.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-controller
 
 # It might take some time for cstor snapshot to get created. Wait for snapshot to get created
@@ -280,11 +280,11 @@ kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapsh
 # Promote/restore snapshot as persistent volume
 sleep 30
 echo "*****************Promoting snapshot as new PVC***************************"
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/jiva/snapshot_claim.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/jiva/snapshot_claim.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/snapshot_claim.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/snapshot_claim.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
-kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/snapshot_claim_ns.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/snapshot_claim_ns.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
 
 sleep 30
@@ -304,9 +304,9 @@ done
 # Clone is in Alpha state, and kind of flaky sometimes, comment this integration test below for time being,
 # util its stable in backend storage engine
 echo "***************Creating busybox-clone-jiva application pod********************"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/jiva/busybox_clone.yaml
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/busybox_clone.yaml
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/snapshot/cstor/busybox_clone_ns.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/jiva/busybox_clone.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/busybox_clone.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/snapshot/cstor/busybox_clone_ns.yaml
 
 
 kubectl get pods --all-namespaces
