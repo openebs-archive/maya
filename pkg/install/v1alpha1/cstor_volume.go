@@ -324,6 +324,7 @@ spec:
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+        openebs.io/storage-pool-claim: {{ .Config.StoragePoolClaim.value }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
