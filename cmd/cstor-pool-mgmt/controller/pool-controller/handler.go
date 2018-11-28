@@ -45,6 +45,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	}
 	status, err := c.cStorPoolEventHandler(operation, cStorPoolGot)
 	if status == "" {
+		glog.Warning("Empty status recieved for csp status in sync handler")
 		return nil
 	}
 	cStorPoolGot.Status.Phase = apis.CStorPoolPhase(status)
@@ -58,9 +59,18 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 			string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
 		return err
 	}
+	// Synchronize cstor pool used and free capacity fields on CSP object.
+	// Any kind of sync activity should be done from here.
+	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
+	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
+	// ToDo: requried fields on CSP ( Some code re-organization will be required)
+	c.syncCsp(cStorPoolGot)
 	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
 	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
+	} else {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
 	}
 	glog.Infof("cStorPool:%v, %v; Status: %v", cStorPoolGot.Name,
 		string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
@@ -354,4 +364,16 @@ func IsDeletionFailedBefore(cStorPool *apis.CStorPool) bool {
 		return true
 	}
 	return false
+}
+
+// syncCsp updates field on CSP object after fetching the values from zpool utility.
+func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
+	// Get capacity of the pool.
+	capacity, err := pool.Capacity(string(pool.PoolPrefix) + string(cStorPool.ObjectMeta.UID))
+	if err != nil {
+		glog.Errorf("Unable to sync CSP capacity: %v", err)
+		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.FailureCapacitySync), string(common.MessageResourceFailCapacitySync))
+	} else {
+		cStorPool.Status.Capacity = *capacity
+	}
 }

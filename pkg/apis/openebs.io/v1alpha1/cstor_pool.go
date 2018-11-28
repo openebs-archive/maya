@@ -86,7 +86,14 @@ const (
 
 // CStorPoolStatus is for handling status of pool.
 type CStorPoolStatus struct {
-	Phase CStorPoolPhase `json:"phase"`
+	Phase    CStorPoolPhase        `json:"phase"`
+	Capacity CStorPoolCapacityAttr `json:"capacity"`
+}
+
+type CStorPoolCapacityAttr struct {
+	Total string `json:"total"`
+	Free  string `json:"free"`
+	Used  string `json:"used"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

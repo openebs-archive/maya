@@ -36,8 +36,11 @@ import (
 type EventReason string
 
 const (
-	// SuccessSynced is used as part of the Event 'reason' when a resource is synced
+	// ToDo: Improve the messages and event reason. ( Put these in a similar k8s style)
+	// SuccessSynced is used as part of the Event 'reason' when a resource is synced.
 	SuccessSynced EventReason = "Synced"
+	// FailedSynced is used as part of the Event 'reason' when resource sync fails.
+	FailedSynced EventReason = "FailedSync"
 	// MessageCreateSynced holds message for corresponding create request sync.
 	MessageCreateSynced EventReason = "Received Resource create event"
 	// MessageModifySynced holds message for corresponding modify request sync.
@@ -50,35 +53,34 @@ const (
 	SuccessCreated EventReason = "Created"
 	// MessageResourceCreated holds message for corresponding created resource.
 	MessageResourceCreated EventReason = "Resource created successfully"
-
 	// FailureCreate holds status for corresponding failed create resource.
 	FailureCreate EventReason = "FailCreate"
 	// MessageResourceFailCreate holds message for corresponding failed create resource.
 	MessageResourceFailCreate EventReason = "Resource creation failed"
-
 	// SuccessImported holds status for corresponding imported resource.
 	SuccessImported EventReason = "Imported"
 	// MessageResourceImported holds message for corresponding imported resource.
 	MessageResourceImported EventReason = "Resource imported successfully"
-
-	// FailureImport holds status for corresponding failed import resource.
-	FailureImport EventReason = "FailImport"
-	// MessageResourceFailImport holds message for corresponding failed import resource.
-	MessageResourceFailImport EventReason = "Resource import failed"
 	// FailureStatusSync holds status for corresponding failed status sync of resource.
 	FailureStatusSync EventReason = "FailStatusSync"
+	// FailureCapacitySync holds status for corresponding failed capacity sync of resource.
+	FailureCapacitySync EventReason = "FailCapacitySync"
 	// MessageResourceFailStatusSync holds message for corresponding failed status sync of resource.
 	MessageResourceFailStatusSync EventReason = "Resource status sync failed"
+	// MessageResourceFailCapacitySync holds message for corresponding failed capacity sync of resource.
+	MessageResourceFailCapacitySync EventReason = "Resource capacity sync failed"
+	// MessageResourceSyncSuccess holds message for corresponding successful sync of resource.
+	MessageResourceSyncSuccess EventReason = "Resource successfully synced"
+	// MessageResourceSyncFailure holds message for corresponding failed sync of resource.
+	MessageResourceSyncFailure EventReason = "Resource sync failed:"
 	// FailureDestroy holds status for corresponding failed destroy resource.
 	FailureDestroy EventReason = "FailDestroy"
 	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
 	MessageResourceFailDestroy EventReason = "Resource Destroy failed"
-
 	// FailureValidate holds status for corresponding failed validate resource.
 	FailureValidate EventReason = "FailValidate"
 	// MessageResourceFailValidate holds message for corresponding failed validate resource.
 	MessageResourceFailValidate EventReason = "Resource validation failed"
-
 	// AlreadyPresent holds status for corresponding already present resource.
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
