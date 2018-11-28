@@ -252,7 +252,7 @@ func TestStatusHelperProcess(*testing.T) {
 
 // TestCapacityHelperProcess is a function that is run as a process to get the mocked std output
 func TestCapacityHelperProcess(*testing.T) {
-	// Following constants are different mocked output for `zpool iostats` command for capacity.
+	// Following constants are different mocked output for `zpool get` command for capacity.
 	const (
 		mockedCapacityOutput = `NAME       PROPERTY   VALUE  SOURCE
 cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  size       9.94G  -
@@ -709,7 +709,7 @@ func TestPoolStatus(t *testing.T) {
 func TestPoolCapacity(t *testing.T) {
 	testPoolResource := map[string]struct {
 		// PoolName holds the name of pool. This name is the actual zpool name but not the spc name.
-		// However, pool name is trivial here as the the ouptut of zpool status is being mocked and
+		// However, pool name is trivial here as the the ouptut of 'zpool get' is being mocked and
 		// changing the pool name to any value won't effect but the pool name is required by function
 		// which is under test.
 		poolName string
