@@ -17,8 +17,6 @@ build-maya:
      - make bootstrap
      - make format
   
-  # Install protoc
-     - curl -OL https://github.com/google/protobuf/releases/download/v3.3.0/protoc-3.3.0-linux-x86_64.zip && sudo unzip -o protoc-3.3.0-linux-x86_64.zip -d /usr/local bin/protoc && rm -f protoc-3.3.0-linux-x86_64.zip
   # Download kubectl, which is a requirement for using minikube.
      - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
   # Download minikube.
