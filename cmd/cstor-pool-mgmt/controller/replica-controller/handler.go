@@ -85,7 +85,7 @@ func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.
 	// Any kind of sync activity should be done from here.
 	// ToDo: Move status sync (of cvr) here from cVREventHandler function.
 	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
-	// ToDo: requried fields on CVR ( Some code re-organization will be required)
+	// ToDo: required fields on CVR ( Some code re-organization will be required)
 	c.syncCvr(cVRGot)
 	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVRGot.Namespace).Update(cVRGot)
 	if err != nil {
@@ -321,7 +321,7 @@ func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 		glog.Errorf("Unable to sync CVR capacity: %v", err)
 		c.recorder.Event(cvr, corev1.EventTypeWarning, string(common.FailureCapacitySync), string(common.MessageResourceFailCapacitySync))
 	}
-	// Get capacity of the pool.
+	// Get capacity of the volume.
 	capacity, err := volumereplica.Capacity(volumeName)
 	if err != nil {
 		glog.Errorf("Unable to sync CVR capacity: %v", err)

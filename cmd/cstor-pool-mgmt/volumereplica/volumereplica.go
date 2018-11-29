@@ -43,7 +43,7 @@ const (
 	ZfsStatusOffline = "Offline"
 	// ZfsStatusHealthy is the healthy state of zfs volume.
 	ZfsStatusHealthy = "Healthy"
-	// ZpoolStatusRebuilding is the rebuilding state of zfs volume.
+	// ZfsStatusRebuilding is the rebuilding state of zfs volume.
 	ZfsStatusRebuilding = "Rebuilding"
 )
 const (

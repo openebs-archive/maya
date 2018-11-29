@@ -87,6 +87,7 @@ type CStorVolumeReplicaStatus struct {
 	Capacity CStorVolumeCapacityAttr `json:"capacity"`
 }
 
+// CStorVolumeCapacityAttr is for storing the volume capacity.
 type CStorVolumeCapacityAttr struct {
 	TotalAllocated string `json:"totalAllocated"`
 	Used           string `json:"used"`
