@@ -85,10 +85,10 @@ Examples:
    $ mayactl volume stats --volname <vol> --namespace test
 
  # Info of a Volume:
-   $ mayactl volume info --volname <vol>
+   $ mayactl volume describe --volname <vol>
 
  # Info of a Volume created in 'test' namespace:
-   $ mayactl volume info --volname <vol> --namespace test
+   $ mayactl volume describe --volname <vol> --namespace test
 
  # Delete a Volume:
    $ mayactl volume delete --volname <vol>
