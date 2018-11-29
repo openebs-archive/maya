@@ -315,7 +315,7 @@ func TestCreatePool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -353,7 +353,7 @@ func TestImportPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -374,7 +374,7 @@ func TestImportPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -562,7 +562,7 @@ func TestCheckValidPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -582,7 +582,7 @@ func TestCheckValidPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -602,7 +602,7 @@ func TestCheckValidPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
@@ -622,7 +622,7 @@ func TestCheckValidPool(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
