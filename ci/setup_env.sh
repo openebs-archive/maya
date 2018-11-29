@@ -9,9 +9,16 @@ export KUBECONFIG=$HOME/.kube/config
 
 
 MAPIPOD=$(kubectl get pods -o jsonpath='{.items[?(@.spec.containers[0].name=="maya-apiserver")].metadata.name}' -n openebs)
-CSTORVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="cstor")].metadata.name}')
+CSTORVOL=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="cstor-vol1-1r-claim")].metadata.name}')
+CSTORVOLNS=$(kubectl get pv -o jsonpath='{.items[?(@.spec.claimRef.name=="openebs-pvc-in-custom-ns")].metadata.name}')
 JIVAVOL=$(kubectl get pv -o jsonpath='{.items[?(@.metadata.annotations.openebs\.io/cas-type=="jiva")].metadata.name}')
 POOLNAME=$(kubectl get storagepools -o jsonpath='{.items[?(@.metadata.labels.openebs\.io/cas-type=="cstor")].metadata.name}')
+
+echo "------------------Extracted Pod names---------------------"
+echo MAPIPOD: $MAPIPOD
+echo CSTORVOL: $CSTORVOL
+echo CSTORVOLNS: $CSTORVOLNS
+echo JIVAVOL: $JIVAVOL
 
 function dumpMayaAPIServerLogs() {
   LC=$1
@@ -218,23 +225,29 @@ kubectl get pvc,pv
 
 # Create the application
 echo "Creating busybox-jiva and busybox-cstor application pod"
-kubectl create -f $GOPATH/src/github.com/openebs/maya/ci/snapshot/jiva/busybox.yaml
-kubectl create -f $GOPATH/src/github.com/openebs/maya/ci/snapshot/cstor/busybox.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/jiva/busybox.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/busybox.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/busybox_ns.yaml
 
 for i in $(seq 1 100) ; do
     phaseJiva=$(kubectl get pods busybox-jiva --output="jsonpath={.status.phase}")
     phaseCstor=$(kubectl get pods busybox-cstor --output="jsonpath={.status.phase}")
-    if [ "$phaseJiva" == "Running" ] && [ "$phaseCstor" == "Running" ]; then
+    phaseCstorNs=$(kubectl get pods busybox-cstor-ns --output="jsonpath={.status.phase}")
+    if [ "$phaseJiva" == "Running" ] && [ "$phaseCstor" == "Running" ] && [ "$phaseCstorNs" == "Running" ]; then
         break
 	else
         echo "busybox-jiva pod is in:" $phaseJiva
         echo "busybox-cstor pod is in:" $phaseCstor
+        echo "busybox-cstor-ns pod is in:" $phaseCstorNs
 
         if [ "$phaseJiva" != "Running" ]; then
            kubectl describe pods busybox-jiva
         fi
         if [ "$phaseCstor" != "Running" ]; then
            kubectl describe pods busybox-cstor
+        fi
+        if [ "$phaseCstorNs" != "Running" ]; then
+           kubectl describe pods busybox-cstor-ns
         fi
         sleep 10
     fi
@@ -243,8 +256,9 @@ done
 dumpMayaAPIServerLogs 100
 
 echo "********************Creating volume snapshot*****************************"
-kubectl create -f  $GOPATH/src/github.com/openebs/maya/ci/snapshot/jiva/snapshot.yaml
-kubectl create -f  $GOPATH/src/github.com/openebs/maya/ci/snapshot/cstor/snapshot.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/jiva/snapshot.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/snapshot.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/snapshot_ns.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-controller
 
 # It might take some time for cstor snapshot to get created. Wait for snapshot to get created
@@ -252,7 +266,7 @@ for i in $(seq 1 100) ; do
     kubectl get volumesnapshotdata
     count=$(kubectl get volumesnapshotdata | wc -l)
     # count should be 3 as one header line would also be present
-    if [ "$count" == "3" ]; then
+    if [ "$count" == "4" ]; then
         break
     else
         echo "snapshot/(s) not created yet"
@@ -266,9 +280,11 @@ kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapsh
 # Promote/restore snapshot as persistent volume
 sleep 30
 echo "*****************Promoting snapshot as new PVC***************************"
-kubectl create -f  $GOPATH/src/github.com/openebs/maya/ci/snapshot/jiva/snapshot_claim.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/jiva/snapshot_claim.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
-kubectl create -f  $GOPATH/src/github.com/openebs/maya/ci/snapshot/cstor/snapshot_claim.yaml
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/snapshot_claim.yaml
+kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
+kubectl create -f  https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/snapshot_claim_ns.yaml
 kubectl logs --tail=20 -n openebs deployment/openebs-snapshot-operator -c snapshot-provisioner
 
 sleep 30
@@ -288,8 +304,9 @@ done
 # Clone is in Alpha state, and kind of flaky sometimes, comment this integration test below for time being,
 # util its stable in backend storage engine
 echo "***************Creating busybox-clone-jiva application pod********************"
-kubectl create -f $GOPATH/src/github.com/openebs/maya/ci/snapshot/jiva/busybox_clone.yaml
-kubectl create -f $GOPATH/src/github.com/openebs/maya/ci/snapshot/cstor/busybox_clone.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/jiva/busybox_clone.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/busybox_clone.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/snapshot/cstor/busybox_clone_ns.yaml
 
 
 kubectl get pods --all-namespaces
@@ -298,17 +315,22 @@ kubectl get pvc --all-namespaces
 for i in $(seq 1 15) ; do
     phaseJiva=$(kubectl get pods busybox-clone-jiva --output="jsonpath={.status.phase}")
     phaseCstor=$(kubectl get pods busybox-clone-cstor --output="jsonpath={.status.phase}")
-    if [ "$phaseJiva" == "Running" ] && [ "$phaseCstor" == "Running" ]; then
+    phaseCstorNs=$(kubectl get pods busybox-clone-cstor-ns --output="jsonpath={.status.phase}")
+    if [ "$phaseJiva" == "Running" ] && [ "$phaseCstor" == "Running" ] && [ "$phaseCstorNs" == "Running" ]; then
         break
     else
         echo "busybox-clone-jiva pod is in:" $phaseJiva
         echo "busybox-clone-cstor pod is in:" $phaseCstor
+        echo "busybox-clone-cstor-ns pod is in:" $phaseCstorNs
 
         if [ "$phaseJiva" != "Running" ]; then
             kubectl describe pods busybox-clone-jiva
         fi
         if [ "$phaseCstor" != "Running" ]; then
             kubectl describe pods busybox-clone-cstor
+        fi
+        if [ "$phaseCstorNs" != "Running" ]; then
+            kubectl describe pods busybox-clone-cstor-ns
         fi
 		sleep 30
         fi
@@ -330,12 +352,17 @@ hashjiva2=$(kubectl exec busybox-clone-jiva -- md5sum /mnt/store2/date.txt | awk
 hashcstor1=$(kubectl exec busybox-cstor -- md5sum /mnt/store1/date.txt | awk '{print $1}')
 hashcstor2=$(kubectl exec busybox-clone-cstor -- md5sum /mnt/store2/date.txt | awk '{print $1}')
 
+hashcstorns1=$(kubectl exec busybox-cstor-ns -- md5sum /mnt/store1/date.txt | awk '{print $1}')
+hashcstorns2=$(kubectl exec busybox-clone-cstor-ns -- md5sum /mnt/store2/date.txt | awk '{print $1}')
+
 echo "busybox jiva hash: $hashjiva1"
 echo "busybox-clone-jiva hash: $hashjiva2"
 echo "busybox cstor hash: $hashcstor1"
 echo "busybox-clone-cstor hash: $hashcstor2"
+echo "busybox cstor ns hash: $hashcstorns1"
+echo "busybox-clone-cstor-ns hash: $hashcstorns2"
 
-if [ "$hashjiva1" != "" ] && [ "$hashcstor1" != "" ] && [ "$hashjiva1" == "$hashjiva2" ] && [ "$hashcstor1" == "$hashcstor2" ]; then
+if [ "$hashjiva1" != "" ] && [ "$hashcstor1" != "" ] && [ "$hashjiva1" == "$hashjiva2" ] && [ "$hashcstor1" == "$hashcstor2" ] && [ "$hashcstorns1" == "$hashcstorns2" ]; then
 	echo "Md5Sum Check: PASSED"
 else
     echo "Md5Sum Check: FAILED"; exit 1
