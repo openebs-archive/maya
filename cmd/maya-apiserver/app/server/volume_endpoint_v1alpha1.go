@@ -123,11 +123,11 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	}
 
 	cvol, err := vOps.Create()
-	volumeEvents(cvol, "volume-provision")
 	if err != nil {
 		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
+	volumeEvents(cvol, "volume-provision")
 	glog.Infof("cas template based volume created successfully: name '%s'", cvol.Name)
 
 	return cvol, nil
