@@ -162,6 +162,29 @@ func DeletePool(poolName string) error {
 	return nil
 }
 
+// Capacity finds the capacity of the pool.
+// The ouptut of command executed is as follows:
+/*
+root@cstor-sparse-pool-o8bw-6869f69cc8-jhs6c:/# zpool get size,free,allocated cstor-2ebe403a-f2e2-11e8-87fd-42010a800087
+NAME                                        PROPERTY   VALUE  SOURCE
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  size       9.94G  -
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  free       9.94G  -
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  allocated  202K   -
+*/
+func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
+	capacityPoolStr := []string{"get", "size,free,allocated", poolName}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, capacityPoolStr...)
+	if err != nil {
+		glog.Errorf("Unable to get pool capacity: %v", string(stdoutStderr))
+		return nil, err
+	}
+	poolCapacity := capacityOutputParser(string(stdoutStderr))
+	if strings.TrimSpace(poolCapacity.Used) == "" || strings.TrimSpace(poolCapacity.Free) == "" {
+		return nil, fmt.Errorf("Unable to get pool capacity from capacity parser")
+	}
+	return poolCapacity, nil
+}
+
 // PoolStatus finds the status of the pool.
 // The ouptut of command(`zpool status <pool-name>`) executed is as follows:
 
@@ -220,6 +243,32 @@ func poolStatusOutputParser(output string) string {
 		}
 	}
 	return poolStatus
+}
+
+// capacityOutputParser parse output of `zpool get` command to extract the capacity of the pool.
+// ToDo: Need to find some better way e.g contract for zpool command outputs.
+func capacityOutputParser(output string) *apis.CStorPoolCapacityAttr {
+	var outputStr []string
+	// Initialize capacity object.
+	capacity := &apis.CStorPoolCapacityAttr{
+		"",
+		"",
+		"",
+	}
+	if strings.TrimSpace(string(output)) != "" {
+		outputStr = strings.Split(string(output), "\n")
+		if !(len(outputStr) < 4) {
+			poolCapacityArrTotal := strings.Fields(outputStr[1])
+			poolCapacityArrFree := strings.Fields(outputStr[2])
+			poolCapacityArrAlloc := strings.Fields(outputStr[3])
+			if !(len(poolCapacityArrTotal) < 4 || len(poolCapacityArrFree) < 4) || len(poolCapacityArrAlloc) < 4 {
+				capacity.Total = strings.TrimSpace(poolCapacityArrTotal[2])
+				capacity.Free = strings.TrimSpace(poolCapacityArrFree[2])
+				capacity.Used = strings.TrimSpace(poolCapacityArrAlloc[2])
+			}
+		}
+	}
+	return capacity
 }
 
 // SetCachefile is to set the cachefile for pool.

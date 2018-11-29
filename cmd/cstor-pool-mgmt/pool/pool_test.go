@@ -65,6 +65,14 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 		cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
 		// Set env varibles for the 'TestStatusHelperProcess' function which runs as a process.
 		env = []string{"GO_WANT_STATUS_HELPER_PROCESS=1", "StatusType=" + os.Getenv("StatusType")}
+	case "get":
+		if len(r.expectedError) != 0 {
+			return []byte(r.expectedError), nil
+		}
+		// Create command arguments
+		cs = []string{"-test.run=TestCapacityHelperProcess", "--", command}
+		// Set env varibles for the 'TestCapacityHelperProcess' function which runs as a process.
+		env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 	case "set":
 		cs = []string{"-test.run=TestSetCachefileProcess", "--"}
 		env = []string{"SetErr=nil"}
@@ -239,6 +247,23 @@ func TestStatusHelperProcess(*testing.T) {
 	if os.Getenv("StatusType") == ZpoolStatusUnavail {
 		fmt.Fprint(os.Stdout, mockedStatusOutputUnavail)
 	}
+	defer os.Exit(0)
+}
+
+// TestCapacityHelperProcess is a function that is run as a process to get the mocked std output
+func TestCapacityHelperProcess(*testing.T) {
+	// Following constants are different mocked output for `zpool get` command for capacity.
+	const (
+		mockedCapacityOutput = `NAME       PROPERTY   VALUE  SOURCE
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  size       9.94G  -
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  free       9.94G  -
+cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  allocated  202K   -
+`
+	)
+	if os.Getenv("GO_WANT_CAPACITY_HELPER_PROCESS") != "1" {
+		return
+	}
+	fmt.Fprint(os.Stdout, mockedCapacityOutput)
 	defer os.Exit(0)
 }
 
@@ -676,6 +701,40 @@ func TestPoolStatus(t *testing.T) {
 			}
 			// Unset the "StatusType" env variable
 			os.Unsetenv("StatusType")
+		})
+	}
+}
+
+// TestPoolCapacity tests Capacity function.
+func TestPoolCapacity(t *testing.T) {
+	testPoolResource := map[string]struct {
+		// PoolName holds the name of pool. This name is the actual zpool name but not the spc name.
+		// However, pool name is trivial here as the the ouptut of 'zpool get' is being mocked and
+		// changing the pool name to any value won't effect but the pool name is required by function
+		// which is under test.
+		poolName string
+		// expectedCapacity is the capacity that is expected for the test case.
+		expectedCapacity *apis.CStorPoolCapacityAttr
+	}{
+		"#1 OnlinePoolStatus": {
+			poolName: "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
+			expectedCapacity: &apis.CStorPoolCapacityAttr{
+				"9.94G",
+				"9.94G",
+				"202K",
+			},
+		},
+	}
+	for name, test := range testPoolResource {
+		t.Run(name, func(t *testing.T) {
+			RunnerVar = TestRunner{}
+			gotCapacity, err := Capacity(test.poolName)
+			if err != nil {
+				t.Fatal("Some error occured in getting pool capacity:", err)
+			}
+			if !(reflect.DeepEqual(test.expectedCapacity, gotCapacity)) {
+				t.Errorf("Test case failed as expected object: %v but got object:%v", test.expectedCapacity, gotCapacity)
+			}
 		})
 	}
 }
