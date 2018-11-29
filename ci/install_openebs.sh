@@ -111,10 +111,10 @@ waitForDeployment ${CSTORTARGET} openebs
 echo "---------------Testing deployment in pvc namespace---------------"
 kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/volume/cstor/service-account.yaml
 
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/volume/cstor/sc.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/volume/cstor/sc_app_ns.yaml
 
 echo "---------------Creating in pvc---------------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/volume/cstor/pvc.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/ci/maya/volume/cstor/pvc_app_ns.yaml
 
 sleep 10
 
