@@ -313,7 +313,7 @@ func (c *CStorVolumeReplicaController) getCVRStatus(cVR *apis.CStorVolumeReplica
 	return poolStatus, nil
 }
 
-// syncCsp updates field on CSP object after fetching the values from zpool utility.
+// syncCvr updates field on CVR object after fetching the values from zfs utility.
 func (c *CStorVolumeReplicaController) syncCvr(cvr *apis.CStorVolumeReplica) {
 	// Get the zfs volume name corresponding to this cvr.
 	volumeName, err := volumereplica.GetVolumeName(cvr)

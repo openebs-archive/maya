@@ -231,7 +231,7 @@ func Capacity(volName string) (*apis.CStorVolumeCapacityAttr, error) {
 	}
 	poolCapacity := capacityOutputParser(string(stdoutStderr))
 	if strings.TrimSpace(poolCapacity.TotalAllocated) == "" || strings.TrimSpace(poolCapacity.Used) == "" {
-		return nil, fmt.Errorf("Unable to get volume capacity from capacity parser")
+		return nil, fmt.Errorf("unable to get volume capacity from capacity parser")
 	}
 	return poolCapacity, nil
 }
