@@ -66,9 +66,10 @@ baseline-image:
      - curl -X POST -F token=$EKS -F ref=master https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
      - curl -X POST -F token=$GKE -F ref=master https://gitlab.openebs.ci/api/v4/projects/24/trigger/pipeline 
 clean-maya:
+  when: always
   stage: cleanup
   script:
     - sudo minikube delete
     - sudo rm -r ~/go
     - sudo docker images 
-    - sudo docker image prune -a
+    - sudo docker image prune -a --force
