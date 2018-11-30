@@ -319,7 +319,9 @@ func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
 		if !(len(outputStr) < 3) {
 			poolCapacityArrAlloc := strings.Fields(outputStr[1])
 			poolCapacityArrUsed := strings.Fields(outputStr[2])
-			if !(len(poolCapacityArrAlloc) < 4 || len(poolCapacityArrUsed) < 4) {
+			// If the array 'poolCapacityArrAlloc' and 'poolCapacityArrUsed' is having elements greater than
+			// or less than 4 it might give wrong values and throw out of bound exception.
+			if len(poolCapacityArrAlloc) == 4 && len(poolCapacityArrUsed) == 4 {
 				capacity.TotalAllocated = strings.TrimSpace(poolCapacityArrAlloc[2])
 				capacity.Used = strings.TrimSpace(poolCapacityArrUsed[2])
 			}
