@@ -22,6 +22,7 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+
 	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 
@@ -64,7 +65,7 @@ func TestGetPoolResource(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},

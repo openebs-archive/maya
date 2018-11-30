@@ -107,14 +107,14 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	createAttr = append(createAttr, poolNameUID)
-
 	// To generate mirror disk0 disk1 mirror disk2 disk3 format.
 	for i, disk := range cStorPool.Spec.Disks.DiskList {
-		if cStorPool.Spec.PoolSpec.PoolType == "mirror" && i%2 == 0 {
+		if cStorPool.Spec.PoolSpec.PoolType == "mirrored" && i%2 == 0 {
 			createAttr = append(createAttr, "mirror")
 		}
 		createAttr = append(createAttr, disk)
 	}
+
 	return createAttr
 
 }
@@ -127,7 +127,7 @@ func CheckValidPool(cStorPool *apis.CStorPool) error {
 	if len(cStorPool.Spec.Disks.DiskList) < 1 {
 		return fmt.Errorf("Disk name(s) cannot be empty")
 	}
-	if cStorPool.Spec.PoolSpec.PoolType == "mirror" &&
+	if cStorPool.Spec.PoolSpec.PoolType == "mirrored" &&
 		len(cStorPool.Spec.Disks.DiskList)%2 != 0 {
 		return fmt.Errorf("Mirror poolType needs even number of disks")
 	}

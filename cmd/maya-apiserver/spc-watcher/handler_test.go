@@ -21,13 +21,14 @@ import (
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 
 	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
+	"testing"
+	"time"
+
 	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 // TestEnqueueSpc function test enqueueSpc function to check whether the queueload is
@@ -127,7 +128,7 @@ func TestGetSpcResource(t *testing.T) {
 					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirror",
+						PoolType:         "mirrored",
 						OverProvisioning: false,
 					},
 				},
