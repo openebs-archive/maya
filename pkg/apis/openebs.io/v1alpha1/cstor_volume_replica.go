@@ -83,7 +83,14 @@ const (
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
 type CStorVolumeReplicaStatus struct {
-	Phase CStorVolumeReplicaPhase `json:"phase"`
+	Phase    CStorVolumeReplicaPhase `json:"phase"`
+	Capacity CStorVolumeCapacityAttr `json:"capacity"`
+}
+
+// CStorVolumeCapacityAttr is for storing the volume capacity.
+type CStorVolumeCapacityAttr struct {
+	TotalAllocated string `json:"totalAllocated"`
+	Used           string `json:"used"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

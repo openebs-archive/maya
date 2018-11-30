@@ -19,7 +19,9 @@ package startcontroller
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	kubeinformers "k8s.io/client-go/informers"
@@ -31,6 +33,7 @@ import (
 	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
+
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
@@ -88,9 +91,9 @@ func StartControllers(kubeconfig string) {
 	common.CheckForCStorVolumeReplicaCRD(openebsClient)
 
 	// NewSharedInformerFactory constructs a new instance of k8s sharedInformerFactory.
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, common.SharedInformerInterval)
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
 	// openebsInformerFactory constructs a new instance of openebs sharedInformerFactory.
-	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, common.SharedInformerInterval)
+	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 
 	// Instantiate the cStor Pool and VolumeReplica controllers.
 	cStorPoolController := poolcontroller.NewCStorPoolController(kubeClient, openebsClient, kubeInformerFactory,
@@ -144,4 +147,16 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 		}
 	}
 	return cfg, err
+}
+
+// getSyncInterval gets the resync interval from environment variable.
+// If missing or zero then default to SharedInformerInterval
+// otherwise return the obtained value
+func getSyncInterval() time.Duration {
+	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
+	if err != nil || resyncInterval == 0 {
+		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.SharedInformerInterval)
+		return common.SharedInformerInterval
+	}
+	return time.Duration(resyncInterval) * time.Second
 }

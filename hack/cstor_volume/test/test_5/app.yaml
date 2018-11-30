@@ -1,0 +1,31 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+    openebs.io/target-affinity: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: nginx
+  template:
+    metadata:
+      labels:
+        name: nginx
+        openebs.io/target-affinity: nginx
+    spec:
+      containers:
+        - resources:
+            limits:
+              cpu: 0.1
+          name: nginx
+          image: nginx
+          volumeMounts:
+            - mountPath: /var/lib/openebsvol
+              name: demo-vol1
+      volumes:
+        - name: demo-vol1
+          persistentVolumeClaim:
+            claimName: openebs-pvc

@@ -67,6 +67,10 @@ spec:
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
     value: "none"
+  # ResyncInterval specifies duration after which a controller should
+  # resync the resource status
+  - name: ResyncInterval
+    value: "30"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -319,6 +323,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: RESYNC_INTERVAL
+              value: {{ .Config.ResyncInterval.value }}
           volumes:
           - name: device
             hostPath:

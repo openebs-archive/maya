@@ -103,6 +103,10 @@ func TestSelectsQueryCommandResult(t *testing.T) {
 		},
 		Status: cas.CStorVolumeReplicaStatus{
 			Phase: "Online",
+			Capacity: cas.CStorVolumeCapacityAttr{
+				"6K",
+				"6K",
+			},
 		},
 	}
 	r := NewRunCommandResult(result, AllMsgs{})
@@ -115,7 +119,7 @@ func TestSelectsQueryCommandResult(t *testing.T) {
 		"102": {[]string{}, nil},
 		"103": {[]string{"{.Name}"}, map[string]interface{}{"s0": "my-cstor-rep"}},
 		"104": {[]string{"{.Spec.TargetIP}", "{.Spec.Capacity}"}, map[string]interface{}{"s0": "20.10.10.10", "s1": "40Gi"}},
-		"105": {[]string{"{..TargetIP}", "{..Capacity}"}, map[string]interface{}{"s0": "20.10.10.10", "s1": "40Gi"}},
+		"105": {[]string{"{..TargetIP}", "{..Capacity}"}, map[string]interface{}{"s0": "20.10.10.10", "s1": []string{"40Gi", "{6K 6K}"}}},
 		"106": {[]string{"{.Status.Phase}", "{..Phase}"}, map[string]interface{}{"s0": "Online", "s1": "Online"}},
 		"107": {[]string{"{.Status.Phase} as phase", "{..Phase} as ph"}, map[string]interface{}{"phase": "Online", "ph": "Online"}},
 	}

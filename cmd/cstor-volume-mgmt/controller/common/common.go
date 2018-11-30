@@ -25,6 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// DefaultSharedInformerInterval is used to sync watcher controller.
+const DefaultSharedInformerInterval = 30 * time.Second
+
 const (
 	// CStorVolume is the controller to be watched
 	CStorVolume = "cStorVolume"

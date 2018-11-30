@@ -68,6 +68,10 @@ spec:
   # to iSCSI Volume (i.e OpenEBS Persistent Volume)
   - name: Lun
     value: "0"
+  # ResyncInterval specifies duration after which a controller should
+  # resync the resource status
+  - name: ResyncInterval
+    value: "30"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -449,6 +453,8 @@ spec:
             env:
             - name: OPENEBS_IO_CSTOR_VOLUME_ID
               value: {{ .TaskResult.cvolcreateputvolume.cstorid }}
+            - name: RESYNC_INTERVAL
+              value: {{ .Config.ResyncInterval.value }}
             - name: NODE_NAME
               valueFrom:
                 fieldRef:

@@ -42,6 +42,11 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 	case "destroy":
 		cs = []string{"-test.run=TestDestroyerProcess", "--"}
 		env = []string{"destroyErr=nil"}
+	case "get":
+		// Create command arguments
+		cs = []string{"-test.run=TestCapacityHelperProcess", "--", command}
+		// Set env varibles for the 'TestCapacityHelperProcess' function which runs as a process.
+		env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 	case StatsCmd:
 		// Create command arguments
 		cs = []string{"-test.run=TestStatusHelperProcess", "--", command}
@@ -212,6 +217,31 @@ func TestStatusHelperProcess(*testing.T) {
 	}
 
 	defer os.Exit(0)
+}
+
+// TestCapacityHelperProcess is a function that is run as a process to get the mocked std output
+func TestCapacityHelperProcess(*testing.T) {
+	// Following constants are different mocked output for `zfs get` command for capacity.
+	const (
+		mockedCapacityOutput = `NAME                                                PROPERTY     VALUE  SOURCE
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  used         10K     -
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  logicalused  6K     -
+`
+	)
+	if os.Getenv("GO_WANT_CAPACITY_HELPER_PROCESS") != "1" {
+		return
+	}
+	fmt.Fprint(os.Stdout, mockedCapacityOutput)
+	defer os.Exit(0)
+}
+
+// TestSetCachefileProcess mocks zpool set cachefile.
+func TestSetCachefileProcess(*testing.T) {
+	if os.Getenv("SetErr") != "nil" {
+		return
+	}
+	defer os.Exit(0)
+	fmt.Println(nil)
 }
 
 // TestCreateVolumeReplica is to test cStorVolumeReplica creation.
@@ -473,6 +503,39 @@ func TestVolumeStatus(t *testing.T) {
 			}
 			// Unset the "StatusType" env variable
 			os.Unsetenv("StatusType")
+		})
+	}
+}
+
+// TestVolumeCapacity tests Capacity function.
+func TestVolumeCapacity(t *testing.T) {
+	testVolumeResource := map[string]struct {
+		// volumeName holds the name of zfs volume. This name is the actual zfs volume name but not the cvr name.
+		// However, volume name is trivial here as the the ouptut of 'zfs get' is being mocked and
+		// changing the volume name to any value won't effect but the volume name is required by function
+		// which is under test.
+		volumeName string
+		// expectedCapacity is the capacity that is expected for the test case.
+		expectedCapacity *apis.CStorVolumeCapacityAttr
+	}{
+		"#1 VolumeCapacity": {
+			volumeName: "cstor-530c9c4f-e0df-11e8-94a8-42010a80013b",
+			expectedCapacity: &apis.CStorVolumeCapacityAttr{
+				"10K",
+				"6K",
+			},
+		},
+	}
+	for name, test := range testVolumeResource {
+		t.Run(name, func(t *testing.T) {
+			RunnerVar = TestRunner{}
+			gotCapacity, err := Capacity(test.volumeName)
+			if err != nil {
+				t.Fatal("Some error occured in getting volume capacity:", err)
+			}
+			if !(reflect.DeepEqual(test.expectedCapacity, gotCapacity)) {
+				t.Errorf("Test case failed as expected object: %v but got object:%v", test.expectedCapacity, gotCapacity)
+			}
 		})
 	}
 }

@@ -1,0 +1,12 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: openebs-pvc
+  labels:
+    openebs.io/target-affinity: nginx
+spec:
+  storageClassName: openebs-cstor-default-0.7.0
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 5G
