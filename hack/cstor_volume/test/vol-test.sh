@@ -6,7 +6,7 @@ source util.sh
 
 usage()
 {
-    echo bash vol-test.sh -o operator.yaml -o pool.yaml
+    echo bash vol-test.sh -o operator.yaml -p pool.yaml
 }
 
 runTest()
