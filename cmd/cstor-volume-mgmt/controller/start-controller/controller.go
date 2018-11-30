@@ -18,6 +18,8 @@ package startcontroller
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -77,11 +79,11 @@ func StartControllers(kubeconfig string) {
 	// Blocking call for checking status of CStorVolume CR.
 	common.CheckForCStorVolumeCRD(openebsClient)
 
-	//NewInformer returns a cache.Store and a controller for populating the store
+	// NewInformer returns a cache.Store and a controller for populating the store
 	// while also providing event notifications. It’s basically a controller with some
-	//boilerplate code to sync events from the FIFO queue to the downstream store.
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+	// boilerplate code to sync events from the FIFO queue to the downstream store.
+	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, getSyncInterval())
+	openebsInformerFactory := informers.NewSharedInformerFactory(openebsClient, getSyncInterval())
 
 	cStorVolumeController := volumecontroller.NewCStorVolumeController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
@@ -118,4 +120,16 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 		}
 	}
 	return cfg, err
+}
+
+// getSyncInterval gets the resync interval from environment variable.
+// If missing or zero then default to DefaultSharedInformerInterval
+// otherwise return the obtained value
+func getSyncInterval() time.Duration {
+	resyncInterval, err := strconv.Atoi(os.Getenv("RESYNC_INTERVAL"))
+	if err != nil || resyncInterval == 0 {
+		glog.Warningf("Incorrect resync interval %q obtained from env, defaulting to %q seconds", resyncInterval, common.DefaultSharedInformerInterval)
+		return common.DefaultSharedInformerInterval
+	}
+	return time.Duration(resyncInterval) * time.Second
 }
