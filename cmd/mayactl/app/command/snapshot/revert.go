@@ -62,7 +62,7 @@ func NewCmdSnapshotRevert() *cobra.Command {
 func (c *CmdSnaphotOptions) RunSnapshotRevert(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot revert ...")
 
-	resp := mapiserver.RevertSnapshot(c.volName, c.snapName, c.namespace)
+	resp := mapiserver.RevertSnapshot(c.volName, c.snapName, c.casType, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Snapshot revert failed: %v", resp)
 	}

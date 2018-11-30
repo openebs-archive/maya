@@ -23,6 +23,7 @@ import (
 var (
 	options = &CmdSnaphotOptions{
 		namespace: "default",
+		casType:   "jiva",
 	}
 )
 
@@ -31,6 +32,7 @@ type CmdSnaphotOptions struct {
 	volName   string
 	snapName  string
 	namespace string
+	casType   string
 }
 
 var (

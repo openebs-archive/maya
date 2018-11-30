@@ -89,6 +89,75 @@ spec:
       casType: jiva
       volumeName: {{ .Snapshot.volumeName }}
 ---
+apiVersion: openebs.io/v1alpha1
+kind: CASTemplate
+metadata:
+  name: jiva-snapshot-list-default
+spec:
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
+  run:
+    tasks:
+    - jiva-snapshot-list-listsourcetargetservice-default
+    - jiva-snapshot-list-listsnapshot-default
+  output: jiva-snapshot-list-output-default
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-snapshot-list-listsourcetargetservice-default
+spec:
+  meta: |
+    id: readSourceSvc
+    runNamespace: {{ .Snapshot.runNamespace }}
+    apiVersion: v1
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume={{ .Snapshot.volumeName }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readSourceSvc.name" .TaskResult | noop -}}
+    {{- .TaskResult.readSourceSvc.name | notFoundErr "source volume target service not found" | saveIf "readSourceSvc.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readSourceSvc.clusterIP" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-snapshot-list-listsnapshot-default
+spec:
+  meta: |
+    id: createJivaSnap
+    kind: Command
+  post: |
+    {{- $store :=  storeAt .TaskResult -}}
+    {{- $runner := storeRunner $store -}}
+    {{- $volsUrl := print "http://" .TaskResult.readSourceSvc.clusterIP ":9501/v1/volumes" -}}
+    {{- $volID := print "{.data[?(@.name=='" .Snapshot.volumeName "')].id} as id" -}}
+    {{- select $volID | get http | withoption "url" $volsUrl | runas "getVol" $runner -}}
+    {{- $snapUrl := print $volsUrl "/" .TaskResult.getVol.result.id "?action=snapshot" -}}
+    {{- $body := dict "name" .Snapshot.owner | toJsonObj -}}
+    {{- post http | withoption "url" $snapUrl | withoption "body" $body | runas "createSnap" $runner -}}
+    {{- $err := .TaskResult.createSnap.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "createJivaSnap.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-snapshot-list-output-default
+spec:
+  meta: |
+    action: output
+    id: cstorsnapshotoutput
+    kind: CASSnapshotList
+    apiVersion: v1alpha1
+  task: |-
+    kind: CASSnapshotList
+    apiVersion: v1alpha1
+    metadata:
+      name: {{ .Snapshot.owner }}
+    spec:
+      casType: jiva
+      volumeName: {{ .Snapshot.volumeName }}
+---
 `
 
 // JivaSnapshotArtifacts returns the jiva snapshot related artifacts

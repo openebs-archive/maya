@@ -250,6 +250,10 @@ func (e *envInstall) List() (l *envList, err error) {
 		Value: ver.WithSuffix("jiva-snapshot-delete-default"),
 	})
 	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToListJivaSnapshotENVK,
+		Value: ver.WithSuffix("jiva-snapshot-list-default"),
+	})
+	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToReadVolumeStatsENVK,
 		Value: ver.WithSuffix("cas-volume-stats-default"),
 	})

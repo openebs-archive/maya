@@ -218,6 +218,54 @@ func deleteRequest(url string, namespace string) error {
 	return nil
 }
 
+// getSnapshotRequest snapshot get request to a url and returns the response
+func getSnapshotRequest(url, volName, castype, namespace string, chkbody bool) ([]byte, error) {
+	if len(url) == 0 {
+		return nil, errors.New("Invalid URL")
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+
+	// Add query params
+	q := req.URL.Query()
+	q.Add("volume", volName)
+	q.Add("namespace", namespace)
+	q.Add("casType", castype)
+
+	// Add query params to req
+	req.URL.RawQuery = q.Encode()
+
+	if err != nil {
+		return nil, err
+	}
+
+	c := &http.Client{
+		Timeout: defaultTimeOut,
+	}
+
+	resp, err := c.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	code := resp.StatusCode
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if chkbody && err == nil && code != http.StatusOK {
+		return nil, fmt.Errorf(string(body))
+	}
+
+	if code != http.StatusOK {
+		return nil, fmt.Errorf("Server status error: %v", http.StatusText(code))
+	}
+
+	return body, nil
+}
+
 // Print binds the object with go template and executes it
 func Print(format string, obj interface{}) error {
 	// New Instance of tabwriter

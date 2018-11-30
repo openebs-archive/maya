@@ -72,7 +72,7 @@ func (c *CmdSnaphotOptions) Validate(cmd *cobra.Command) error {
 func (c *CmdSnaphotOptions) RunSnapshotCreate(cmd *cobra.Command) error {
 	fmt.Println("Executing volume snapshot create...")
 
-	resp := mapiserver.CreateSnapshot(c.volName, c.snapName, c.namespace)
+	resp := mapiserver.CreateSnapshot(c.volName, c.snapName, c.casType, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Snapshot creation failed: %v", resp)
 	}

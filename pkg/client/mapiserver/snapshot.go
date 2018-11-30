@@ -25,16 +25,18 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	client "github.com/openebs/maya/pkg/client/jiva"
 	"github.com/openebs/maya/types/v1"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	httpTimeout        = 5 * time.Second
-	snapshotCreatePath = "/latest/snapshots/create/"
-	snapshotRevertPath = "/latest/snapshots/revert/"
-	snapshotListPath   = "/latest/snapshots/list/"
-	snapshotTemplate   = `
+	httpTimeout         = 5 * time.Second
+	snapshotRequestPath = "/latest/snapshots/"
+	snapshotRevertPath  = "/latest/snapshots/revert/"
+	snapshotTemplate    = `
 Snapshot Details:
 ------------------
 {{ printf "NAME\t CREATED AT\t SIZE(in MB)\t PARENT\t CHILDREN" }}
@@ -55,40 +57,35 @@ type SnapshotInfo struct {
 }
 
 // CreateSnapshot creates a snapshot of volume by API request to m-apiserver
-func CreateSnapshot(volName string, snapName string, namespace string) error {
-	snap := v1.VolumeSnapshot{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "VolumeSnapshot",
-			APIVersion: "v1",
+func CreateSnapshot(volName, snapName, castype, namespace string) error {
+	snap := v1alpha1.CASSnapshot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      snapName,
+			Namespace: namespace,
 		},
-		Metadata: v1.ObjectMeta{
-			Name: snapName,
-		},
-		Spec: v1.VolumeSnapshotSpec{
+		Spec: v1alpha1.SnapshotSpec{
+			CasType:    castype,
 			VolumeName: volName,
 		},
 	}
-
 	// Marshal serializes the values
 	jsonValue, err := json.Marshal(snap)
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
+	_, err = postRequest(GetURL()+snapshotRequestPath, jsonValue, namespace, true)
 	return err
 }
 
 // RevertSnapshot reverts a snapshot of volume by API request to m-apiserver
-func RevertSnapshot(volName string, snapName string, namespace string) error {
-	snap := v1.VolumeSnapshot{
-		TypeMeta: v1.TypeMeta{
-			Kind:       "VolumeSnapshot",
-			APIVersion: "v1",
+func RevertSnapshot(volName, snapName, castype, namespace string) error {
+	snap := v1alpha1.CASSnapshot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      snapName,
+			Namespace: namespace,
 		},
-		Metadata: v1.ObjectMeta{
-			Name: snapName,
-		},
-		Spec: v1.VolumeSnapshotSpec{
+		Spec: v1alpha1.SnapshotSpec{
+			CasType:    castype,
 			VolumeName: volName,
 		},
 	}
@@ -103,9 +100,9 @@ func RevertSnapshot(volName string, snapName string, namespace string) error {
 }
 
 // ListSnapshot lists snapshots of volume by API request to m-apiserver
-func ListSnapshot(volName string, namespace string) error {
+func ListSnapshot(volName, castype, namespace string) error {
 
-	body, err := getRequest(GetURL()+snapshotListPath+volName, namespace, false)
+	body, err := getSnapshotRequest(GetURL()+snapshotRequestPath, volName, castype, namespace, false)
 	if err != nil {
 		return err
 	}

@@ -64,7 +64,7 @@ func (c *CmdSnaphotOptions) ValidateList(cmd *cobra.Command) error {
 // RunSnapshotList makes snapshot-list API request to maya-apiserver
 func (c *CmdSnaphotOptions) RunSnapshotList(cmd *cobra.Command) error {
 
-	resp := mapiserver.ListSnapshot(c.volName, c.namespace)
+	resp := mapiserver.ListSnapshot(c.volName, c.casType, c.namespace)
 	if resp != nil {
 		return fmt.Errorf("Error list available snapshot: %v", resp)
 	}
