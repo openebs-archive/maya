@@ -43,7 +43,7 @@ const (
 	ZfsStatusOffline = "Offline"
 	// ZfsStatusHealthy is the healthy state of zfs volume.
 	ZfsStatusHealthy = "Healthy"
-	// ZpoolStatusRebuilding is the rebuilding state of zfs volume.
+	// ZfsStatusRebuilding is the rebuilding state of zfs volume.
 	ZfsStatusRebuilding = "Rebuilding"
 )
 const (
@@ -214,6 +214,28 @@ func parseCapacityUnit(capacity string) string {
 	return capacity
 }
 
+// Capacity finds the capacity of the volume.
+// The ouptut of command executed is as follows:
+/*
+root@cstor-sparse-pool-6dft-5b5c78ccc7-dls8s:/# zfs get used,logicalused cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087
+NAME                                                                                 PROPERTY     VALUE  SOURCE
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  used         6K     -
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  logicalused  6K     -
+*/
+func Capacity(volName string) (*apis.CStorVolumeCapacityAttr, error) {
+	capacityVolStr := []string{"get", "used,logicalused", volName}
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, capacityVolStr...)
+	if err != nil {
+		glog.Errorf("Unable to get volume capacity: %v", string(stdoutStderr))
+		return nil, err
+	}
+	poolCapacity := capacityOutputParser(string(stdoutStderr))
+	if strings.TrimSpace(poolCapacity.TotalAllocated) == "" || strings.TrimSpace(poolCapacity.Used) == "" {
+		return nil, fmt.Errorf("unable to get volume capacity from capacity parser")
+	}
+	return poolCapacity, nil
+}
+
 // Status function gives the status of cvr which extracted and mapped to a set of cvr statuses
 // after getting the zfs volume status
 func Status(volumeName string) (string, error) {
@@ -273,4 +295,37 @@ func ZfsToCvrStatusMapper(zfsstatus string) string {
 		return string(apis.CVRStatusRebuilding)
 	}
 	return string(apis.CVRStatusError)
+}
+
+/*
+root@cstor-sparse-pool-6dft-5b5c78ccc7-dls8s:/# zfs get used,logicalused cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087
+NAME                                                                                 PROPERTY     VALUE  SOURCE
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  used         6K     -
+cstor-d82bd105-f3a8-11e8-87fd-42010a800087/pvc-1b2a7d4b-f3a9-11e8-87fd-42010a800087  logicalused  6K     -
+*/
+// capacityOutputParser parse output of `zfs get` command to extract the capacity of the pool.
+// ToDo: Need to find some better way e.g contract for zfs command outputs.
+func capacityOutputParser(output string) *apis.CStorVolumeCapacityAttr {
+	var outputStr []string
+	// Initialize capacity object.
+	// 'TotalAllocated' value(on cvr) is filled from the value of 'used' property in 'zfs get' output.
+	// 'Used' value(on cvr) is filled from the value of 'logicalused' property in 'zfs get' output.
+	capacity := &apis.CStorVolumeCapacityAttr{
+		"",
+		"",
+	}
+	if strings.TrimSpace(string(output)) != "" {
+		outputStr = strings.Split(string(output), "\n")
+		if !(len(outputStr) < 3) {
+			poolCapacityArrAlloc := strings.Fields(outputStr[1])
+			poolCapacityArrUsed := strings.Fields(outputStr[2])
+			// If the array 'poolCapacityArrAlloc' and 'poolCapacityArrUsed' is having elements greater than
+			// or less than 4 it might give wrong values and throw out of bound exception.
+			if len(poolCapacityArrAlloc) == 4 && len(poolCapacityArrUsed) == 4 {
+				capacity.TotalAllocated = strings.TrimSpace(poolCapacityArrAlloc[2])
+				capacity.Used = strings.TrimSpace(poolCapacityArrUsed[2])
+			}
+		}
+	}
+	return capacity
 }
