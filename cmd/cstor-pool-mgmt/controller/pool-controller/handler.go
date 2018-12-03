@@ -110,7 +110,16 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 		status, err := c.cStorPoolDestroyEventHandler(cStorPoolGot)
 		return status, err
-	case common.QOpStatusSync:
+	case common.QOpSync:
+		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
+		// try to import/create pool gere as part of resync.
+		if IsPendingStatus(cStorPoolGot) {
+			common.SyncResources.Mux.Lock()
+			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+			common.SyncResources.Mux.Unlock()
+			pool.PoolAddEventHandled = true
+			return status, err
+		}
 		glog.Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err

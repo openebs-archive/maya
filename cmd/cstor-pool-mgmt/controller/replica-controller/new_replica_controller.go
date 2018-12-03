@@ -134,7 +134,7 @@ func NewCStorVolumeReplicaController(
 			// Periodic resync will send update events for all known cStorReplica.
 			// Two different versions of the same cStorReplica will always have different RVs.
 			if newCVR.ResourceVersion == oldCVR.ResourceVersion {
-				q.Operation = common.QOpStatusSync
+				q.Operation = common.QOpSync
 				glog.Infof("CstorVolumeReplica status sync event for %s", newCVR.ObjectMeta.Name)
 				controller.recorder.Event(newCVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
 			} else if IsDestroyEvent(newCVR) {

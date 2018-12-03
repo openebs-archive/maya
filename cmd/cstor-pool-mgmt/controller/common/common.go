@@ -135,8 +135,8 @@ const (
 	QOpAdd     QueueOperation = "add"
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
-	// QOpStatusSync is the operation for updating the status on cstor pool object.
-	QOpStatusSync QueueOperation = "statusSync"
+	// QOpSync is the operation for syncing(reconciling) on cstor pool object.
+	QOpSync QueueOperation = "Sync"
 )
 
 // namespace defines kubernetes namespace specified for cvr.
