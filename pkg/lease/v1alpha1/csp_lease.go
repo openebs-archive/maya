@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package lease
 
 import (
@@ -166,12 +167,17 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 		if errors.IsNotFound(err) {
 			return false
 		}
+		glog.Warningf("Could not fetch the pod which have acquired the lease on CSP:%s", err)
 		return true
 	}
 	if pod == nil {
 		return false
 	}
 	podStatus := pod.Status.Phase
+	if string(podStatus) == string(v1.PodUnknown) {
+		glog.Warning("Could not get the pod status which have acquired the lease on CSP")
+		return true
+	}
 	if string(podStatus) != string(v1.PodRunning) {
 		return false
 	}
