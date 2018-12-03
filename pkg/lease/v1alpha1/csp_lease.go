@@ -23,6 +23,7 @@ import (
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/patch/v1alpha1"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -33,12 +34,15 @@ const (
 	// CspLeaseKey is the key that will be used to acquire lease on csp object.
 	// It will be present in csp annotations.
 	// If key has an empty value, that means no one has acquired a lease on csp object.
+	//TODO : Evaluate if openebs.io/lease be a better label.
 	CspLeaseKey = "openebs.io/csp-lease"
 	// PatchOperation is the strategy of patch operation.
 	PatchOperation = "replace"
 	// PatchPath is the path to the field on csp object which need to be patched.
 	PatchPath = "/metadata/annotations/openebs.io~1csp-lease"
-	PodName   = "POD_NAME"
+	// PodName is the name of the pool pod.
+	PodName = "POD_NAME"
+	// NameSpace is the namespace where pool pod is running.
 	NameSpace = "NAMESPACE"
 )
 
@@ -66,7 +70,7 @@ func (sl *Lease) Hold() (interface{}, error) {
 	// If leaseValue is empty acquire lease.
 	// If leaseValue is empty check whether it is expired.
 	// If leaseValue is not empty and not expired check whether the holder is live.
-	if strings.TrimSpace(leaseValue) == "" || isLeaseExpired(leaseValueObj) || !sl.isLeaderLive(leaseValueObj) {
+	if strings.TrimSpace(leaseValue) == "" || isLeaseExpired(leaseValueObj) || !sl.isLeaderALive(leaseValueObj) {
 		podName, err := sl.getPodName()
 		if err != nil {
 			return nil, err
@@ -147,15 +151,23 @@ func (sl *Lease) patchCspLeaseAnnotation() error {
 }
 
 // isLeaderLive checks whether the holder of lease is live or not
-// If the holder is not live or does not exists the function will return true.
+// If the holder is not live or does not exists the function will return false.
 
 // If the holder of lease is not live or does not exists the lease can be acquired
 // by the other contestant(i.e. pool pod)
-func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
+func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 	holderName := leaseValueObj.Holder
 	podDetails := strings.Split(holderName, "/")
-	// Check whether the holder is live or not
-	pod, _ := sl.Kubeclientset.CoreV1().Pods(podDetails[0]).Get(podDetails[1], meta_v1.GetOptions{})
+	// Check whether the holder is live or not.
+	pod, err := sl.Kubeclientset.CoreV1().Pods(podDetails[0]).Get(podDetails[1], meta_v1.GetOptions{})
+	if err != nil {
+		// If the pod does not exist, an error will be thrown and if it is a not found error
+		// meaning pod does not exist, we should return false.
+		if errors.IsNotFound(err) {
+			return false
+		}
+		return true
+	}
 	if pod == nil {
 		return false
 	}
@@ -163,7 +175,6 @@ func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
 	if string(podStatus) != string(v1.PodRunning) {
 		return false
 	}
-
 	return true
 }
 
