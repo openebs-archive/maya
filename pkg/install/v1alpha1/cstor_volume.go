@@ -371,6 +371,12 @@ spec:
             openebs.io/target: cstor-target
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+          {{- if eq $isMonitor "true" }}
+          annotations:
+            prometheus.io/path: /metrics
+            prometheus.io/port: "9500"
+            prometheus.io/scrape: "true"
+          {{- end}}
         spec:
           serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
           {{- if ne $targetAffinityVal "none" }}

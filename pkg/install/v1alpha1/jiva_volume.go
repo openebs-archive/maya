@@ -714,6 +714,11 @@ spec:
           annotations:
             openebs.io/fs-type: {{ .Config.FSType.value }}
             openebs.io/lun: {{ .Config.Lun.value }}
+            {{- if eq $isMonitor "true" }}
+            prometheus.io/path: /metrics
+            prometheus.io/port: "9500"
+            prometheus.io/scrape: "true"
+            {{- end}}
         spec:
           {{- if ne $hasNodeSelector "none" }}
           nodeSelector:
