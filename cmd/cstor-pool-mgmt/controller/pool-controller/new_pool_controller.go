@@ -135,8 +135,8 @@ func NewCStorPoolController(
 			// Two different versions of the same CStorPool will always have different RVs.
 			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
 				// Synchronize Cstor pool status
-				q.Operation = common.QOpStatusSync
-				glog.Infof("cStorPool status sync event for %s", newCStorPool.ObjectMeta.Name)
+				q.Operation = common.QOpSync
+				glog.Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
 			} else if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy

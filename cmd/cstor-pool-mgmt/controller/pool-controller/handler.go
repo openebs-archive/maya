@@ -27,6 +27,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -43,20 +44,33 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	if err != nil {
 		return err
 	}
-	status, err := c.cStorPoolEventHandler(operation, cStorPoolGot)
+	var newCspLease lease.Leaser
+	newCspLease = &lease.Lease{cStorPoolGot, lease.CspLeaseKey, c.clientset, c.kubeclientset}
+	csp, err := newCspLease.Hold()
+	cspObject, ok := csp.(*apis.CStorPool)
+	if !ok {
+		fmt.Errorf("expected csp object but got %#v", cspObject)
+	}
+	if err != nil {
+		glog.Errorf("Could not acquire lease on csp object:%v", err)
+		return err
+	}
+	glog.Infof("Lease acquired successfully on csp %s ", cspObject.Name)
+
+	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
 		glog.Warning("Empty status recieved for csp status in sync handler")
 		return nil
 	}
-	cStorPoolGot.Status.Phase = apis.CStorPoolPhase(status)
+	cspObject.Status.Phase = apis.CStorPoolPhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
-		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
+		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 		if err != nil {
 			return err
 		}
-		glog.Infof("cStorPool:%v, %v; Status: %v", cStorPoolGot.Name,
-			string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
+		glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
+			string(cspObject.GetUID()), cspObject.Status.Phase)
 		return err
 	}
 	// Synchronize cstor pool used and free capacity fields on CSP object.
@@ -64,16 +78,16 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	// ToDo: Move status sync (of csp) here from cStorPoolEventHandler function.
 	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
 	// ToDo: requried fields on CSP ( Some code re-organization will be required)
-	c.syncCsp(cStorPoolGot)
-	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cStorPoolGot)
+	c.syncCsp(cspObject)
+	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 	if err != nil {
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
+		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
 	} else {
-		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
+		c.recorder.Event(cspObject, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
 	}
-	glog.Infof("cStorPool:%v, %v; Status: %v", cStorPoolGot.Name,
-		string(cStorPoolGot.GetUID()), cStorPoolGot.Status.Phase)
+	glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
+		string(cspObject.GetUID()), cspObject.Status.Phase)
 	return nil
 }
 
@@ -96,7 +110,16 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		glog.Infof("Processing cStorPool Destroy event %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 		status, err := c.cStorPoolDestroyEventHandler(cStorPoolGot)
 		return status, err
-	case common.QOpStatusSync:
+	case common.QOpSync:
+		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
+		// try to import/create pool gere as part of resync.
+		if IsPendingStatus(cStorPoolGot) {
+			common.SyncResources.Mux.Lock()
+			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+			common.SyncResources.Mux.Unlock()
+			pool.PoolAddEventHandled = true
+			return status, err
+		}
 		glog.Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
