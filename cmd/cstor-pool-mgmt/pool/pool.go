@@ -116,7 +116,6 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	}
 
 	return createAttr
-
 }
 
 // CheckValidPool checks for validity of CStorPool resource.
