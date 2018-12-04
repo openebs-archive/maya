@@ -103,6 +103,44 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 
 func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.StatsJSON, err error) {
 	if len(stats1) != len(stats2) {
+		test1, test2 := make([]string, 0), make([]string, 0)
+
+		for _, t := range stats1 {
+			test1 = append(test1, t.Name)
+		}
+
+		for _, t := range stats2 {
+			test2 = append(test2, t.Name)
+		}
+
+		if len(test1) > len(test2) {
+			for _, t1 := range test1 {
+				flag := true
+				for _, t2 := range test2 {
+					if t1 == t2 {
+						flag = false
+						break
+					}
+				}
+				if flag {
+					fmt.Printf("+++++++%v+++++++++\n", t1)
+				}
+			}
+		} else {
+			for _, t1 := range test2 {
+				flag := true
+				for _, t2 := range test1 {
+					if t1 == t2 {
+						flag = false
+						break
+					}
+				}
+				if flag {
+					fmt.Printf("+++++++%v+++++++++\n", t1)
+				}
+			}
+		}
+
 		return stats, fmt.Errorf("Invalid Response")
 	}
 
