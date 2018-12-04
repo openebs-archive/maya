@@ -122,26 +122,30 @@ func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.Sta
 	}
 
 	// Calculate Read stats
-	stats.ReadIOPS = int64(getValue("openebs_read", statsf) - getValue("openebs_read", statsi))
+	stats.ReadIOPS = int64(getValue("openebs_reads", statsf) - getValue("openebs_reads", statsi))
 	rTimePS := getValue("openebs_read_time", statsf) - getValue("openebs_read_time", statsi)
 	stats.ReadThroughput = getValue("openebs_read_block_count", statsf) - getValue("openebs_read_block_count", statsi)
 	stats.ReadLatency, _ = v1.DivideFloat64(rTimePS, float64(stats.ReadIOPS))
+	// Convert from nanosec to milliseconds
+	stats.ReadLatency = stats.ReadLatency / v1.MicSec
 	stats.AvgReadBlockSize, _ = v1.DivideInt64(int64(stats.ReadThroughput), stats.ReadIOPS)
+	stats.ReadThroughput = stats.ReadThroughput / v1.BytesToMB
 	stats.AvgReadBlockSize = stats.AvgReadBlockSize / v1.BytesToKB
-	stats.ReadThroughput = stats.ReadLatency / v1.BytesToMB
 
 	// Calculate Write stats
-	stats.WriteIOPS = int64(getValue("openebs_write", statsf) - getValue("openebs_write", statsi))
+	stats.WriteIOPS = int64(getValue("openebs_writes", statsf) - getValue("openebs_writes", statsi))
 	wTimePS := getValue("openebs_write_time", statsf) - getValue("openebs_write_time", statsi)
 	stats.WriteThroughput = getValue("openebs_write_block_count", statsf) - getValue("openebs_write_block_count", statsi)
 	stats.WriteLatency, _ = v1.DivideFloat64(wTimePS, float64(stats.WriteIOPS))
+	// Convert from nanosec to milliseconds
+	stats.WriteLatency = stats.WriteLatency / v1.MicSec
 	stats.AvgWriteBlockSize, _ = v1.DivideInt64(int64(stats.WriteThroughput), stats.WriteIOPS)
+	stats.WriteThroughput = stats.WriteThroughput / v1.BytesToMB
 	stats.AvgWriteBlockSize = stats.AvgWriteBlockSize / v1.BytesToKB
-	stats.WriteThroughput = stats.WriteLatency / v1.BytesToMB
 
 	stats.SectorSize = getValue("openebs_sector_size", statsf)
-	stats.LogicalSize = (getValue("openebs_logical_size", statsf) * stats.SectorSize) / v1.BytesToGB
-	stats.ActualUsed = (getValue("openebs_actual_used", statsf) * stats.SectorSize) / v1.BytesToGB
+	stats.LogicalSize = getValue("openebs_logical_size", statsf)
+	stats.ActualUsed = getValue("openebs_actual_used", statsf)
 
 	stats.Size = fmt.Sprintf("%f", getValue("openebs_size_of_volume", statsf))
 
