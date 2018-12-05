@@ -19,11 +19,6 @@ import (
 	k8sapi "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 )
 
-const (
-	// GAclientID is the unique code of OpenEBS project in Google Analytics
-	GAclientID = "UA-127388617-1"
-)
-
 // Usage struct represents all information about a usage metric sent to
 // Google Analytics with respect to the application
 type Usage struct {
@@ -178,8 +173,8 @@ func (u *Usage) SetValue(v int64) *Usage {
 func (u *Usage) Build() *Usage {
 	// Default ApplicationID for openebs project is OpenEBS
 	v := NewVersion()
-	v.getVersion()
-	u.SetApplicationID("OpenEBS").
+	v.getVersion(false)
+	u.SetApplicationID(AppName).
 		SetTrackingID(GAclientID).
 		SetClientID(v.id)
 	// TODO: Add condition for version over-ride
@@ -191,7 +186,7 @@ func (u *Usage) Build() *Usage {
 // for non install events
 func (u *Usage) ApplicationBuilder() *Usage {
 	v := NewVersion()
-	v.getVersion()
+	v.getVersion(false)
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
@@ -206,17 +201,33 @@ func (u *Usage) SetVolumeCapacity(volCapG string) *Usage {
 	return u
 }
 
+// Wrapper for setting replica count for volume events
+// NOTE: This doesn't get the replica count in a volume de-provision event.
+// TODO: Pick the current value of replica-count from the CAS-engine
+func (u *Usage) SetReplicaCount(count, method string) *Usage {
+	if method == VolumeProvision && count == "" {
+		// Case: When volume-provision the replica count isn't specified
+		// it is set to three by default by the m-apiserver
+		u.SetAction(DefaultReplicaCount)
+	} else {
+		// Catch all case for volume-deprovision event and
+		// volume-provision event with an overriden replica-count
+		u.SetAction(Replica + count)
+	}
+	return u
+}
+
 // InstallBuilder is a concrete builder for install events
-func (u *Usage) InstallBuilder() *Usage {
+func (u *Usage) InstallBuilder(override bool) *Usage {
 	v := NewVersion()
 	clusterSize, _ := k8sapi.NumberOfNodes()
-	v.getVersion()
+	v.getVersion(override)
 	u.SetApplicationVersion(v.openebsVersion).
 		SetApplicationName(v.k8sArch).
 		SetApplicationInstallerID(v.k8sVersion).
 		SetDataSource(v.nodeType).
 		SetDocumentTitle(v.id).
-		SetApplicationID("OpenEBS").
-		NewEvent("install", "running", "nodes", int64(clusterSize))
+		SetApplicationID(AppName).
+		NewEvent(InstallEvent, RunningStatus, EventLabelNode, int64(clusterSize))
 	return u
 }

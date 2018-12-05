@@ -33,13 +33,14 @@ type volumeAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
+// volumeEvents sends anonymous volume (de)-provision events
 func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
 		usage.New().Build().ApplicationBuilder().
 			SetApplicationName(cvol.Spec.CasType).
 			SetDocumentTitle(cvol.ObjectMeta.Name).
-			SetLabel("capacity").
-			SetAction("replica:" + cvol.Spec.Replicas).
+			SetLabel(usage.EventLabelCapacity).
+			SetReplicaCount(cvol.Spec.Replicas, method).
 			SetCategory(method).
 			SetVolumeCapacity(cvol.Spec.Capacity).Send()
 	}
@@ -122,7 +123,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 		return nil, CodedError(400, err.Error())
 	}
 	cvol, err := vOps.Create()
-	volumeEvents(vol, "volume-provision")
+	volumeEvents(vol, usage.VolumeProvision)
 	if err != nil {
 		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -213,7 +214,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	}
 
 	cvol, err := vOps.Delete()
-	volumeEvents(vol, "volume-deprovision")
+	volumeEvents(vol, usage.VolumeDeprovision)
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {

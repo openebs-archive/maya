@@ -19,6 +19,7 @@ package usage
 import units "github.com/docker/go-units"
 
 // toGigaUnits converts a size from xB to bytes where x={k,m,g,t,p...}
+// and return the number of Gigabytes as an integer
 // 1 gigabyte=1000 megabyte
 func toGigaUnits(size string) (int64, error) {
 	sizeInBytes, err := units.FromHumanSize(size)
