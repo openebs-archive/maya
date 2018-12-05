@@ -83,49 +83,58 @@ func NewCmdVolumeStats() *cobra.Command {
 }
 
 func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
-	statsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
+	rawStatsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		return fmt.Errorf("Volume not found")
 	}
 	time.Sleep(time.Second)
-	statsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
+	rawStatsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		return fmt.Errorf("Volume not found")
 	}
 
-	stats, err := processStats(statsi, statsf)
-	if err != nil {
-		return err
+	maxLength := 0
+
+	// Find the maximum length
+	if len(rawStatsi) > len(rawStatsf) {
+		maxLength = len(rawStatsi)
+	} else {
+		maxLength = len(rawStatsf)
 	}
+
+	// Storing metrics in maps
+	statsi, statsf := make(map[string]v1alpha1.MetricsFamily), make(map[string]v1alpha1.MetricsFamily)
+	for i := 0; i < maxLength; i++ {
+		if i < len(rawStatsi) {
+			if len(rawStatsi[i].Metric) == 0 {
+				statsi[rawStatsi[i].Name] = v1alpha1.MetricsFamily{}
+			} else {
+				statsi[rawStatsi[i].Name] = rawStatsi[i].Metric[0]
+			}
+		}
+
+		if i < len(rawStatsf) {
+			if len(rawStatsf[i].Metric) == 0 {
+				statsf[rawStatsf[i].Name] = v1alpha1.MetricsFamily{}
+			} else {
+				statsf[rawStatsf[i].Name] = rawStatsf[i].Metric[0]
+			}
+		}
+	}
+
+	stats := processStats(statsi, statsf)
 
 	return print(statsTemplate, stats)
 }
 
-func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.StatsJSON, err error) {
-	if len(stats1) != len(stats2) {
-		return stats, fmt.Errorf("Invalid Response")
-	}
-
-	statsi, statsf := make(map[string]v1alpha1.MetricsFamily), make(map[string]v1alpha1.MetricsFamily)
-	for i := 0; i < len(stats1); i++ {
-		if len(stats1[i].Metric) == 0 {
-			statsi[stats1[i].Name] = v1alpha1.MetricsFamily{}
-		} else {
-			statsi[stats1[i].Name] = stats1[i].Metric[0]
-		}
-
-		if len(stats2[i].Metric) == 0 {
-			statsf[stats2[i].Name] = v1alpha1.MetricsFamily{}
-		} else {
-			statsf[stats2[i].Name] = stats2[i].Metric[0]
-		}
-	}
+func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alpha1.StatsJSON) {
 
 	// Calculate Read stats
-	stats.ReadIOPS = int64(getValue("openebs_reads", statsf) - getValue("openebs_reads", statsi))
-	rTimePS := getValue("openebs_read_time", statsf) - getValue("openebs_read_time", statsi)
-	stats.ReadThroughput = getValue("openebs_read_block_count", statsf) - getValue("openebs_read_block_count", statsi)
+	stats.ReadIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_reads", statsf)), int64(getValue("openebs_reads", statsi)))
+	rTimePS, _ := v1.SubstractFloat64(getValue("openebs_read_time", statsf), getValue("openebs_read_time", statsi))
+	stats.ReadThroughput, _ = v1.SubstractFloat64(getValue("openebs_read_block_count", statsf), getValue("openebs_read_block_count", statsi))
 	stats.ReadLatency, _ = v1.DivideFloat64(rTimePS, float64(stats.ReadIOPS))
+
 	// Convert from nanosec to milliseconds
 	stats.ReadLatency = stats.ReadLatency / v1.MicSec
 	stats.AvgReadBlockSize, _ = v1.DivideInt64(int64(stats.ReadThroughput), stats.ReadIOPS)
@@ -133,9 +142,9 @@ func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.Sta
 	stats.AvgReadBlockSize = stats.AvgReadBlockSize / v1.BytesToKB
 
 	// Calculate Write stats
-	stats.WriteIOPS = int64(getValue("openebs_writes", statsf) - getValue("openebs_writes", statsi))
-	wTimePS := getValue("openebs_write_time", statsf) - getValue("openebs_write_time", statsi)
-	stats.WriteThroughput = getValue("openebs_write_block_count", statsf) - getValue("openebs_write_block_count", statsi)
+	stats.WriteIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_writes", statsf)), int64(getValue("openebs_writes", statsi)))
+	wTimePS, _ := v1.SubstractFloat64(getValue("openebs_write_time", statsf), getValue("openebs_write_time", statsi))
+	stats.WriteThroughput, _ = v1.SubstractFloat64(getValue("openebs_write_block_count", statsf), getValue("openebs_write_block_count", statsi))
 	stats.WriteLatency, _ = v1.DivideFloat64(wTimePS, float64(stats.WriteIOPS))
 	// Convert from nanosec to milliseconds
 	stats.WriteLatency = stats.WriteLatency / v1.MicSec
@@ -163,7 +172,7 @@ func processStats(stats1, stats2 v1alpha1.VolumeMetricsList) (stats v1alpha1.Sta
 		}
 	}
 
-	return stats, nil
+	return stats
 }
 
 func getValue(key string, m map[string]v1alpha1.MetricsFamily) float64 {
