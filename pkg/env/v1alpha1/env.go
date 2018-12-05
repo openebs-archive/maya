@@ -184,6 +184,20 @@ func Get(envKey ENVKey) (value string) {
 	return getEnv(string(envKey))
 }
 
+// GetOrDefault fetches value from the provided environment variable
+// which on empty returns the defaultValue
+// NOTE: os.Getenv is used here instead of os.LookupEnv because it is
+// not required to know if the environment variable is defined on the system
+func GetOrDefault(e ENVKey, defaultValue string) (value string) {
+	envValue := Get(e)
+	if len(envValue) == 0 {
+		// ENV not defined or set to ""
+		return defaultValue
+	} else {
+		return envValue
+	}
+}
+
 // Lookup looks up an environment variable
 //
 // NOTE:
