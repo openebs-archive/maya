@@ -1,6 +1,6 @@
 sudo: required
-dist: trusty
-group: edge
+dist: xenial
+#group: edge
 env:
 - CHANGE_MINIKUBE_NONE_USER=true
 services:
