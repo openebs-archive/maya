@@ -22,6 +22,14 @@ package v1alpha1
 // CASTemplateLister.
 type CASTemplateListerExpansion interface{}
 
+// CStorBackupListerExpansion allows custom methods to be added to
+// CStorBackupLister.
+type CStorBackupListerExpansion interface{}
+
+// CStorBackupNamespaceListerExpansion allows custom methods to be added to
+// CStorBackupNamespaceLister.
+type CStorBackupNamespaceListerExpansion interface{}
+
 // CStorPoolListerExpansion allows custom methods to be added to
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}

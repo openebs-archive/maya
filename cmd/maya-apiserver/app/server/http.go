@@ -100,6 +100,17 @@ var (
 		[]string{"code", "method"},
 	)
 
+	latestOpenEBSBackupRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "latest_openebs_backup_request_duration_seconds",
+			Help:    "Request response time of the /latest/meta-data.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
+		},
+		// code is http code and method is http method returned by
+		// endpoint "/latest/meta-data"
+		[]string{"code", "method"},
+	)
+
 	// latestOpenEBSPoolRequestDuration Collects the response time since
 	// a request has been made on /latest/pool/
 	latestOpenEBSPoolRequestDuration = prometheus.NewHistogramVec(
@@ -126,6 +137,14 @@ var (
 		prometheus.CounterOpts{
 			Name: "latest_openebs_snapshots_requests_total",
 			Help: "Total number of /latest/snapshots requests.",
+		},
+		[]string{"code", "method"},
+	)
+
+	latestOpenEBSBackupRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "latest_openebs_backup_requests_total",
+			Help: "Total number of /latest/backup requests.",
 		},
 		[]string{"code", "method"},
 	)
@@ -268,6 +287,10 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	// Request w.r.t cas snapshot is handled here
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSSnapshotRequestCounter,
 		latestOpenEBSSnapshotRequestDuration, s.snapshotV1alpha1SpecificRequest))
+
+	// Request w.r.t cas snapshot is handled here
+	s.mux.HandleFunc("/latest/backup/", s.wrap(latestOpenEBSBackupRequestCounter,
+		latestOpenEBSBackupRequestDuration, s.backupV1alpha1SpecificRequest))
 
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and other custom metrics

@@ -25,6 +25,9 @@ func (s *HTTPServer) snapshotV1alpha1SpecificRequest(resp http.ResponseWriter, r
 	// The params extracted below are going to be used for RUD operations
 	// volName is the volume name in the query params
 	volName := req.URL.Query().Get("volume")
+	if volName == "" {
+		return nil, fmt.Errorf("Volname not passed\n")
+	}
 	// namespace is the namespace of volume in the query params
 	namespace := req.URL.Query().Get("namespace")
 	// casType is the cas type of volume in the query params
@@ -75,7 +78,7 @@ func (sOps *snapshotAPIOps) list(volName, namespace, casType string) (interface{
 
 	snaps, err := snapOps.List()
 	if err != nil {
-		glog.Errorf("Failed to list snapshots: error '%s'", err.Error())
+		glog.Errorf("Failed to list snapshots: error '%s\n'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 

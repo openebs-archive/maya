@@ -20,6 +20,8 @@ package v1alpha1
 
 type CASTemplateExpansion interface{}
 
+type CStorBackupExpansion interface{}
+
 type CStorPoolExpansion interface{}
 
 type CStorVolumeExpansion interface{}

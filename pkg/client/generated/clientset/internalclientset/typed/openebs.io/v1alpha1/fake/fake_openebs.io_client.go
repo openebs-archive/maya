@@ -32,6 +32,10 @@ func (c *FakeOpenebsV1alpha1) CASTemplates() v1alpha1.CASTemplateInterface {
 	return &FakeCASTemplates{c}
 }
 
+func (c *FakeOpenebsV1alpha1) CStorBackups(namespace string) v1alpha1.CStorBackupInterface {
+	return &FakeCStorBackups{c, namespace}
+}
+
 func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {
 	return &FakeCStorPools{c}
 }
