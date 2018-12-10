@@ -76,16 +76,16 @@ func (v *versionSet) fetchAndSetVersion() error {
 }
 
 // getVersion is a wrapper over fetchAndSetVersion
-func (v *versionSet) getVersion() error {
-	// If ENVs aren't set, fetch the required values from the
-	// K8s APIserver
-	if _, present := env.Lookup(openEBSversion); !present {
+func (v *versionSet) getVersion(override bool) error {
+	// If ENVs aren't set or the override is true, fetch the required
+	// values from the K8s APIserver
+	if _, present := env.Lookup(openEBSversion); !present || override {
 		if err := v.fetchAndSetVersion(); err != nil {
 			glog.Error(err.Error())
 			return err
 		}
 	}
-	// Fetch data from ENV instead
+	// Fetch data from ENV
 	v.id = env.Get(clusterUUID)
 	v.k8sArch = env.Get(clusterArch)
 	v.k8sVersion = env.Get(clusterVersion)

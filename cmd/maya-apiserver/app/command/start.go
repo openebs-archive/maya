@@ -184,7 +184,8 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 	}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
-		usage.New().Build().InstallBuilder().Send()
+		usage.New().Build().InstallBuilder(true).Send()
+		go usage.PingCheck()
 	}
 
 	// Wait for exit
