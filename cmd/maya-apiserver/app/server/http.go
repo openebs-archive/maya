@@ -289,7 +289,7 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 		latestOpenEBSSnapshotRequestDuration, s.snapshotV1alpha1SpecificRequest))
 
 	// Request w.r.t cas snapshot is handled here
-	s.mux.HandleFunc("/latest/backup/", s.wrap(latestOpenEBSBackupRequestCounter,
+	s.mux.HandleFunc("/latest/backups/", s.wrap(latestOpenEBSBackupRequestCounter,
 		latestOpenEBSBackupRequestDuration, s.backupV1alpha1SpecificRequest))
 
 	// request for metrics is handled here. It displays metrics related to

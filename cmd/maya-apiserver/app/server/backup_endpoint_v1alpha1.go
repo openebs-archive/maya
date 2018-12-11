@@ -9,6 +9,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
+	"k8s.io/client-go/rest"
 )
 
 type backupAPIOps struct {
@@ -65,7 +66,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		VolumeName: backup.Spec.VolumeName,
 		Namespace:  backup.Namespace,
 		CasType:    backup.Spec.CasType,
-		Name:       "Snap1",
+		Name:       backup.Name,
 	})
 	if err != nil {
 		return nil, CodedError(400, err.Error())
@@ -82,8 +83,9 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
 
 	glog.Infof("Creating backup %q for %s volume %q ", backup.Name, backup.Spec.VolumeName)
-	clientset := internalclientset.Clientset{}
-	_, err = clientset.OpenebsV1alpha1().CStorBackups(backup.Namespace).Create(backup)
+
+	openebsClient, _ := loadClientFromServiceAccount()
+	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).Create(backup)
 	if err != nil {
 		glog.Errorf("Failed to create backup: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -91,4 +93,18 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 
 	glog.Infof("Backup CR created successfully: name '%s'", "")
 	return "", nil
+}
+
+// loadClientFromServiceAccount loads a k8s client from a ServiceAccount
+// specified in the pod running
+func loadClientFromServiceAccount() (*internalclientset.Clientset, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	k8sClient, err := internalclientset.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return k8sClient, nil
 }
