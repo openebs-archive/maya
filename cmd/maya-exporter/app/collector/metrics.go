@@ -24,7 +24,7 @@ const (
 	// the iostats from the cstor.
 	Command = "IOSTATS"
 	// BufSize is the size of response from cstor.
-	BufSize = 256
+	BufSize = 1024
 )
 
 const (

@@ -119,13 +119,14 @@ func splitter(resp string) string {
 }
 
 // newResponse unmarshal the JSON into Response instances.
-func newResponse(result string) v1.VolumeStats {
+func newResponse(result string) (error, v1.VolumeStats) {
 	metrics := v1.VolumeStats{}
 	if err := json.Unmarshal([]byte(result), &metrics); err != nil {
 		glog.Error("Error in unmarshalling, found error: ", err)
+		return err, metrics
 	}
 	glog.Infof("Parsed metrics : %+v", metrics)
-	return metrics
+	return nil, metrics
 }
 
 // set make call to reader and writer to write the
@@ -160,7 +161,9 @@ func (c *Cstor) set(m *Metrics) error {
 	}
 
 	// unmarshal the json response into Metrics instances.
-	newResp = newResponse(response)
+	if err, newResp = newResponse(response); err != nil {
+		return err
+	}
 	volStats = c.parser(newResp)
 	m.reads.Set(volStats.reads)
 	m.writes.Set(volStats.writes)
