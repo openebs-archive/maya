@@ -72,7 +72,7 @@ func TestNewResponse(t *testing.T) {
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := newResponse(tt.response)
+			_, got := newResponse(tt.response)
 			if !reflect.DeepEqual(got, tt.output) {
 				t.Fatalf("unmarshal(%v) : expected %v, got %v", tt.response, tt.output, got)
 			}
