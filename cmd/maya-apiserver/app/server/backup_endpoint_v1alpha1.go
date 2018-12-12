@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
@@ -82,16 +85,30 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 
 	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
 
-	glog.Infof("Creating backup %q for %s volume %q ", backup.Name, backup.Spec.VolumeName)
-
 	openebsClient, _ := loadClientFromServiceAccount()
+
+	//Get List of cvr's related to this pvc
+	listOptions := v1.ListOptions{
+		LabelSelector: "openebs.io/persistent-volume=" + backup.Spec.VolumeName,
+	}
+	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas(backup.Namespace).List(listOptions)
+
+	//Select a healthy csr for backup
+	for _, cvr := range cvrList.Items {
+		if cvr.Status.Phase == v1alpha1.CVRStatusOnline {
+			backup.ObjectMeta.UID = types.UID(cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
+			break
+		}
+	}
+
+	glog.Infof("Creating backup %q for %s volume %q poolUUID:%v", backup.Name, backup.Spec.VolumeName, backup.ObjectMeta.UID)
 	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).Create(backup)
 	if err != nil {
 		glog.Errorf("Failed to create backup: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
 
-	glog.Infof("Backup CR created successfully: name '%s'", "")
+	glog.Infof("Backup CR created successfully: name '%s'", backup.Name)
 	return "", nil
 }
 
