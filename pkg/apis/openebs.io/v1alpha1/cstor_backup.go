@@ -47,6 +47,13 @@ type CStorBackupPhase string
 const (
 	// CSBStatusEmpty ensures the create operation is to be done, if import fails.
 	CSBStatusEmpty CStorBackupPhase = ""
+
+	// CVRStatusOnline ensures the resource is available.
+	CSBStatusOnline CStorBackupPhase = "Healthy"
+	// CVRStatusOffline ensures the resource is not available.
+	CSBStatusOffline CStorBackupPhase = "Offline"
+	// CVRStatusDegraded means that the rebuilding has not yet started.
+	CSBStatusDegraded CStorBackupPhase = "Degraded"
 	// CSBStatusError means that the volume status could not be found.
 	CSBStatusError CStorBackupPhase = "Error"
 	// CSBStatusDeletionFailed ensures the resource deletion has failed.
