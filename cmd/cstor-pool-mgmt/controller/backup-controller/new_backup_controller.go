@@ -78,7 +78,7 @@ func NewCStorBackupController(
 	// Create event broadcaster
 	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be
 	// logged for cStor-Replica-controller types.
-	glog.V(4).Info("Creating event broadcaster")
+	glog.V(4).Info("Creating backup event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
 
@@ -96,7 +96,7 @@ func NewCStorBackupController(
 		recorder:          recorder,
 	}
 
-	glog.Info("Setting up event handlers")
+	glog.Info("Setting up event handlers for backup")
 
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
@@ -109,6 +109,7 @@ func NewCStorBackupController(
 			// Note : In case controller reboots and existing object in etcd can cause delivery of
 			// add event when the controller comes again. Be careful in this part and handle accordingly.
 			csb := obj.(*apis.CStorBackup)
+
 			if !IsRightCStorPoolMgmt(csb) {
 				return
 			}
@@ -117,7 +118,7 @@ func NewCStorBackupController(
 				return
 			}
 			q.Operation = common.QOpAdd
-			glog.Infof("cStorVolumeReplica Added event : %v, %v", csb.ObjectMeta.Name, string(csb.ObjectMeta.UID))
+			glog.Infof("cStorBackup Added event : %v, %v", csb.ObjectMeta.Name, string(csb.ObjectMeta.UID))
 			controller.recorder.Event(csb, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 			csb.Status.Phase = apis.CSBStatusPending
 			csb, _ = controller.clientset.OpenebsV1alpha1().CStorBackups(csb.Namespace).Update(csb)

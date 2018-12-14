@@ -138,7 +138,7 @@ func (c *CStorBackupController) getCStorBackupResource(key string) (*apis.CStorB
 
 // IsRightCStorPoolMgmt is to check if the pool request is for particular pod/application.
 func IsRightCStorPoolMgmt(cStorPool *apis.CStorBackup) bool {
-	if os.Getenv(string(common.OpenEBSIOCStorID)) == string(cStorPool.ObjectMeta.UID) {
+	if os.Getenv(string(common.OpenEBSIOCStorID)) == cStorPool.ObjectMeta.Labels["cstorpool.openebs.io/uid"] {
 		return true
 	}
 	return false
