@@ -19,8 +19,8 @@ package spc
 import (
 	"fmt"
 	"github.com/golang/glog"
+	"github.com/openebs/CITF/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/k8s"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -68,16 +68,8 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolClaim) (string, error) {
 	switch operation {
 	case addEvent:
-		// CreateStoragePool function will create the storage pool
-		// It is a create event so resync should be false and pendingPoolcount is passed 0
-		// pendingPoolcount is not used when resync is false.
-		err := c.CreateStoragePool(spcGot, false, 0)
-		if err != nil {
-			glog.Error("Storagepool could not be created:", err)
-			// To-Do
-			// If Some error occur patch the spc object with appropriate reason
-		}
-
+		// Call addEventHandler in case of add event.
+		err := c.addEventHandler(spcGot)
 		return addEvent, err
 
 	case updateEvent:
@@ -89,7 +81,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 		if err != nil {
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
-		return syncEvent, err
+		return syncEvent, nil
 	case deleteEvent:
 		err := DeleteStoragePool(spcGot)
 
@@ -143,40 +135,94 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 	return spcGot, nil
 }
 
+// synSpc is the function which tries to converge to a desired state for the spc.
 func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
-	if len(spcGot.Spec.Disks.DiskList) > 0 {
-		// TODO : reconciliation for manual storagepool provisioning
-		glog.V(1).Infof("No reconciliation needed for manual provisioned pool of storagepoolclaim %s", spcGot.Name)
-		return nil
-	}
 	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
-	// Get kubernetes clientset
-	// namespaces is not required, hence passed empty.
-	newK8sClient, err := k8s.NewK8sClient("")
+	currentPoolCount, err := c.getCurrentPoolCount(spcGot)
 	if err != nil {
 		return err
 	}
-	// Get openebs clientset using a getter method (i.e. GetOECS() ) as
-	// the openebs clientset is not exported.
-	newOecsClient := newK8sClient.GetOECS()
-
-	// Get the current count of provisioned pool for the storagepool claim
-	spList, err := newOecsClient.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spcGot.Name})
-	if err != nil {
-		return fmt.Errorf("unable to list storagepools: %v", err)
-	}
-	currentPoolCount := len(spList.Items)
-
-	// If current pool count is less than maxpool count, try to converge to maxpool
-	if currentPoolCount < int(spcGot.Spec.MaxPools) {
+	maxPoolCount := int(spcGot.Spec.MaxPools)
+	// If current pool count is less than maxPool count, try to converge to maxPool.
+	if currentPoolCount < maxPoolCount {
 		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
 		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
-		pendingPoolCount := int(spcGot.Spec.MaxPools) - currentPoolCount
+		pendingPoolCount := maxPoolCount - currentPoolCount
 		// Call the storage pool create logic to provision the pending pools.
-		err := c.CreateStoragePool(spcGot, true, pendingPoolCount)
+		err = c.storagePoolCreateWrapper(pendingPoolCount, spcGot)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// addEventHandler is the event handler for the add event of spc.
+func (c *Controller) addEventHandler(spc *apis.StoragePoolClaim) error {
+	err := storagePoolValidator(spc)
+	if err != nil {
+		return err
+	}
+	currentPoolCount, err := c.getCurrentPoolCount(spc)
+	if err != nil {
+		return err
+	}
+	err = c.storagePoolCreateWrapper(spc.Spec.MaxPools-currentPoolCount, spc)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// storagePoolCreateWrapper is a wrapper function that calls the actual function to create pool as many time
+// as the number of pools need to be created.
+func (c *Controller) storagePoolCreateWrapper(maxPool int, spc *apis.StoragePoolClaim) error {
+	var newSpcLease Leaser
+	newSpcLease = &Lease{spc, SpcLeaseKey, c.clientset, c.kubeclientset}
+	err := newSpcLease.Hold()
+	if err != nil {
+		return fmt.Errorf("Could not acquire lease on spc object:%v", err)
+	}
+	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
+	defer newSpcLease.Release()
+	for poolCount := 1; poolCount <= maxPool; poolCount++ {
+		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, maxPool, spc.Name)
+		err = CreateStoragePool(spc)
+		if err != nil {
+			glog.Errorf("Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, maxPool, spc.Name)
+		}
+	}
+	return nil
+}
+
+// storagePoolValidator validates the spc configuration before creation of pool.
+func storagePoolValidator(spc *apis.StoragePoolClaim) error {
+	// Validations for poolType
+	if spc.Spec.MaxPools <= 0 {
+		return fmt.Errorf("aborting storagepool create operation for %s as maxPool count is invalid ", spc.Name)
+	}
+	poolType := spc.Spec.PoolSpec.PoolType
+	if poolType == "" {
+		return fmt.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
+	}
+
+	if !(poolType == string(v1alpha1.PoolTypeStripedCPV) || poolType == string(v1alpha1.PoolTypeMirroredCPV)) {
+		return fmt.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
+	}
+
+	diskType := spc.Spec.Type
+	if !(diskType == string(v1alpha1.TypeSparseCPV) || diskType == string(v1alpha1.TypeDiskCPV)) {
+		return fmt.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
+	}
+	return nil
+}
+
+// getCurrentPoolCount give the current pool count for the given spc.
+func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error) {
+	// Get the current count of provisioned pool for the storagepool claim
+	spList, err := c.clientset.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
+	if err != nil {
+		return 0, fmt.Errorf("unable to get current pool count:unable to list storagepools: %v", err)
+	}
+	return len(spList.Items), nil
 }

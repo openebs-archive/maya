@@ -17,17 +17,13 @@ limitations under the License.
 package spc
 
 import (
-	"errors"
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/storagepool"
-)
-
-const (
-	onlineStatus = "Online"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Cas template is a custom resource which has a list of runTasks.
@@ -39,28 +35,7 @@ const (
 // 1. It receives storagepoolclaim object from the spc watcher event handler.
 // 2. After successful validation, it will call a worker function for actual storage creation
 //    via the cas template specified in storagepoolclaim.
-func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) error {
-	if reSync {
-		glog.Infof("Storagepool resync event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
-	} else {
-		glog.Infof("Storagepool create event received for storagepoolclaim %s", spcGot.ObjectMeta.Name)
-	}
-	// Check whether the spc object has been processed for storagepool creation
-	if spcGot.Status.Phase == onlineStatus && !reSync {
-		glog.Infof("Storagepool already exists since the status on storagepoolclaim object %s is Online", spcGot.Name)
-		return nil
-	}
-	var newSpcLease Leaser
-	newSpcLease = &Lease{spcGot, SpcLeaseKey, c.clientset, c.kubeclientset}
-	err := newSpcLease.Hold()
-	if err != nil {
-		glog.Errorf("Could not acquire lease on spc object:%v", err)
-		return err
-	}
-	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spcGot.Name)
-
-	defer newSpcLease.Release()
-
+func CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
 	// Get kubernetes clientset
 	// namespaces is not required, hence passed empty.
 	newK8sClient, err := k8s.NewK8sClient("")
@@ -78,7 +53,7 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 		oecs: newOecsClient,
 	}
 	// Get a CasPool object
-	pool, err := newClientSet.newCasPool(spcGot, reSync, pendingPoolCount)
+	pool, err := newClientSet.NewCasPool(spcGot)
 	if err != nil {
 		return err
 	}
@@ -93,7 +68,6 @@ func (c *Controller) CreateStoragePool(spcGot *apis.StoragePoolClaim, reSync boo
 }
 
 // poolCreateWorker is a worker function which will create a storagepool
-
 func poolCreateWorker(pool *apis.CasPool) error {
 
 	glog.Infof("Creating storagepool for storagepoolclaim %s via CASTemplate", pool.StoragePoolClaim)
@@ -101,102 +75,65 @@ func poolCreateWorker(pool *apis.CasPool) error {
 	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
 		return fmt.Errorf("NewCasPoolOperation failed error '%s'", err.Error())
-
 	}
 	_, err = storagepoolOps.Create()
 	if err != nil {
 		return fmt.Errorf("failed to create cas template based storagepool: error '%s'", err.Error())
 
 	}
-
 	glog.Infof("Cas template based storagepool created successfully: name '%s'", pool.StoragePoolClaim)
 	return nil
 }
 
-// newCasPool will return a CasPool object
-func (newClientSet *clientSet) newCasPool(spcGot *apis.StoragePoolClaim, reSync bool, pendingPoolCount int) (*apis.CasPool, error) {
-	// Validations for poolType
-	poolType := spcGot.Spec.PoolSpec.PoolType
-	if poolType == "" {
-		return nil, errors.New("aborting storagepool create operation as no poolType is specified")
-	}
-
-	if !(poolType == string(v1alpha1.PoolTypeStripedCPV) || poolType == string(v1alpha1.PoolTypeMirroredCPV)) {
-		return nil, fmt.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
-	}
-
-	diskType := spcGot.Spec.Type
-	if !(diskType == string(v1alpha1.TypeSparseCPV) || diskType == string(v1alpha1.TypeDiskCPV)) {
-		return nil, fmt.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
-	}
-	// The name of cas template should be provided as annotation in storagepoolclaim yaml
-	// so that it can be used.
-
-	// Fill spc annotations to CasPool
-	casTemplateName := spcGot.Annotations[string(v1alpha1.CreatePoolCASTemplateKey)]
-
-	pool := &v1alpha1.CasPool{}
-	pool.StoragePoolClaim = spcGot.Name
-	pool.CasCreateTemplate = casTemplateName
-	pool.PoolType = spcGot.Spec.PoolSpec.PoolType
-	pool.MinPools = spcGot.Spec.MinPools
-	pool.MaxPools = spcGot.Spec.MaxPools
-	pool.Type = spcGot.Spec.Type
-	pool.ReSync = reSync
-	pool.PendingPoolCount = pendingPoolCount
-	pool.Annotations = spcGot.Annotations
-
-	// Fill the object with the disks list
-	pool.DiskList = spcGot.Spec.Disks.DiskList
-	// Check for disks
-	diskList := spcGot.Spec.Disks.DiskList
-	// If no disk are specified pool will be provisioned dynamically
-	if len(diskList) == 0 {
-		// newDisksList is the list of disks over which pool will be provisioned
-		newDisksList, err := newClientSet.getCasPoolDisk(pool)
-		if err != nil {
-			return nil, err
-		}
-		// Fill the object with the new disks list
-		pool.DiskList = newDisksList
-	}
-	return pool, nil
+func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
+	// Create a CasPool object and fill it with default values.
+	casPool := &v1alpha1.CasPool{}
+	casTemplateName := spc.Annotations[string(v1alpha1.CreatePoolCASTemplateKey)]
+	casPool.CasCreateTemplate = casTemplateName
+	casPool.StoragePoolClaim = spc.Name
+	casPool.PoolType = spc.Spec.PoolSpec.PoolType
+	// ToDo: Remove MinPools field as it is not being used.
+	casPool.MinPools = spc.Spec.MinPools
+	casPool.MaxPools = spc.Spec.MaxPools
+	casPool.Type = spc.Spec.Type
+	casPool.Annotations = spc.Annotations
+	// After CasPool object is filled with default values, call casPoolBuilder to fill more specific values.
+	casPool, err := newClientSet.casPoolBuilder(casPool, spc)
+	return casPool, err
 }
 
-// getCasPoolDisk is a wrapper that will call getDiskList function to get the disk lists
-// that will be used to provision a storagepool dynamically
-
-func (newClientSet *clientSet) getCasPoolDisk(cp *apis.CasPool) ([]string, error) {
-	// Performing valdations against CasPool fields
-	if cp.MaxPools <= 0 {
-		return nil, fmt.Errorf("aborting storagepool create operation as no maxPool field is specified")
-	}
-	// if no minimum pools were specified it will default to 1.
-	if cp.MinPools <= 0 {
-		glog.Warning("invalid or 0 min pool specified, defaulting to 1")
-		cp.MinPools = 1
-	}
-	if cp.MaxPools < cp.MinPools {
-		return nil, fmt.Errorf("aborting storagepool create operation as maxPool cannot be less than minPool")
-	}
-	// If it is a resync event, MaxPool is the pending pool to be provisioned
-	if cp.ReSync {
-		// if min pool was not provisioned try to provision again the minimum number of pool
-		// else set min pool to 1 as in this case min pool was provisioned.
-		if !(cp.MaxPools == cp.PendingPoolCount) {
-			cp.MinPools = 1
-		}
-		cp.MaxPools = cp.PendingPoolCount
-	}
-	// getDiskList will get the disks to be used for storagepool provisioning
-	newDisksList, err := newClientSet.nodeDiskAlloter(cp)
-
+// casPoolBuilder builds the CasPool object by filling details like diskList,nodeName etc.
+// Some of the fields of the CasPool object is passed to CAS engine.
+// CasPool object(type) is the contract on which CAS engine is instantiated for cStor pool creation.
+func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
+	// getDiskList will hold node and disks attached to it to be used for storagepool provisioning.
+	nodeDisks, err := newClientSet.nodeDiskAlloter(spc)
 	if err != nil {
 		return nil, fmt.Errorf("aborting storagepool create operation as no node qualified: %v", err)
 	}
-
-	if len(newDisksList) == 0 {
+	if len(nodeDisks.disks.diskList) == 0 {
 		return nil, fmt.Errorf("aborting storagepool create operation as no disk was found")
 	}
-	return newDisksList, nil
+	// For each of the disks, extract the device Id and fill the 'DeviceId' field of the CasPool object with it.
+	// In case, device Id is not available, fill the 'DeviceId' field of the CasPool object with device path.
+	for _, v := range nodeDisks.disks.diskList {
+		gotDisk, err := newClientSet.oecs.OpenebsV1alpha1().Disks().Get(v, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get device id for disk:failed to list the disks:%s", err)
+		}
+		if len(gotDisk.Spec.DevLinks) != 0 && len(gotDisk.Spec.DevLinks[0].Links) != 0 {
+			// Fill device Id of the disk to the CasPool object.
+			casPool.DeviceID = append(casPool.DeviceID, gotDisk.Spec.DevLinks[0].Links[0])
+		} else {
+			// Fill device path of the disk to the CasPool object.
+			// ToDo: Decide -- DeviceId and DevicePath fields for CasPool object.
+			// ToDO: Having these two fields for CasPool object can yield complex run tasks.
+			casPool.DeviceID = append(casPool.DeviceID, gotDisk.Spec.Path)
+		}
+	}
+	// Fill the node name to the CasPool object.
+	casPool.NodeName = nodeDisks.nodeName
+	// Fill the disks attached to this node to the CasPool object.
+	casPool.DiskList = nodeDisks.disks.diskList
+	return casPool, nil
 }
