@@ -47,7 +47,6 @@ MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
-VOLUME_GRPC=cstor-volume-grpc
 EXPORTER=maya-exporter
 
 # Specify the date o build
@@ -76,7 +75,6 @@ clean:
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
-	rm -rf ${GOPATH}/bin/${VOLUME_GRPC}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -196,20 +194,19 @@ pool-mgmt-image: cstor-pool-mgmt
 	@rm buildscripts/cstor-pool-mgmt/${POOL_MGMT}
 
 #Use this to build cstor-volume-mgmt
-cstor-volume-mgmt:
+cstor-volume-mgmt: cstor-volume-grpc
 	@echo "----------------------------"
 	@echo "--> cstor-volume-mgmt           "
 	@echo "----------------------------"
 	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
-#Use this to build cstor-volume-grpc
 cstor-volume-grpc:
 	@echo "----------------------------"
 	@echo "--> cstor-volume-grpc           "
 	@echo "----------------------------"
 	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
     -I${GOPATH}/src \
-    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-grpc/v1alpha1 \
+    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-mgmt/v1alpha1 \
     $(PWD)/pkg/apis/openebs.io/v1alpha1/cstorvolume.proto
 
 volume-mgmt-image: cstor-volume-mgmt
@@ -217,10 +214,8 @@ volume-mgmt-image: cstor-volume-mgmt
 	@echo "--> cstor-volume-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cp bin/cstor-volume-mgmt/${VOLUME_GRPC} buildscripts/cstor-volume-mgmt/
 	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
-	@rm buildscripts/cstor-volume-mgmt/${VOLUME_GRPC}
 
 # Use this to build only the maya-exporter.
 exporter:

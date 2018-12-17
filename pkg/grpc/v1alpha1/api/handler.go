@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
+	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"golang.org/x/net/context"
 )
