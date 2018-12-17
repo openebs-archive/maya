@@ -134,6 +134,30 @@ spec:
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
     - csp
+  additionalPrinterColumns:
+  - JSONPath: .status.capacity.used
+    name: Allocated
+    description: The amount of storage space within the pool that has been physically allocated
+    type: string
+  - JSONPath: .status.capacity.free
+    name: Free
+    description: The amount of free space available in the pool
+    type: string
+  - JSONPath: .status.capacity.total
+    name: Capacity
+    description: Total size of the storage pool
+    type: string
+  - JSONPath: .status.phase
+    name: Status
+    description: Identifies the current health of the pool
+    type: string
+  - JSONPath: .spec.poolSpec.poolType
+    name: Type
+    description: The type of the storage pool
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -157,6 +181,14 @@ spec:
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
     - cstorvolume
+  additionalPrinterColumns:
+  - JSONPath: .status.phase
+    name: Status
+    description: Identifies the current health of the target
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -180,6 +212,22 @@ spec:
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
     - cvr
+  additionalPrinterColumns:
+  - JSONPath: .status.capacity.used
+    name: Used
+    description: The amount of space that is "logically" consumed by this dataset
+    type: string
+  - JSONPath: .status.capacity.totalAllocated
+    name: Allocated
+    description: The amount of disk space consumed by a dataset and all its descendents
+    type: string
+  - JSONPath: .status.phase
+    name: Status
+    description: Identifies the current health of the replicas
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -203,6 +251,18 @@ spec:
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
     - disk
+  additionalPrinterColumns:
+  - JSONPath: .spec.capacity.storage
+    name: Size
+    description: Identifies the disk size(in Bytes)
+    type: string
+  - JSONPath: .status.state
+    name: Status
+    description: Identifies the current health of the disk
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
 ---
 `
 
