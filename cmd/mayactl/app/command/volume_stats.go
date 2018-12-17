@@ -36,6 +36,7 @@ Usage: mayactl volume stats --volname <vol> [-size <size>]
 `
 )
 
+// statsTemplate is used for formatting the stats output
 const statsTemplate = ` 
 Portal Details :
 ---------------
@@ -127,6 +128,7 @@ func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
 	return print(statsTemplate, stats)
 }
 
+// processStats calculates the figures from the final and initial response.
 func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alpha1.StatsJSON) {
 
 	// Calculate Read stats
@@ -171,10 +173,10 @@ func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alp
 			}
 		}
 	}
-
 	return stats
 }
 
+// getValue returns the value of the key if the key is present in map[string]MetricsFamily.
 func getValue(key string, m map[string]v1alpha1.MetricsFamily) float64 {
 	if val, p := m[key]; p {
 		return val.Gauge.Value
