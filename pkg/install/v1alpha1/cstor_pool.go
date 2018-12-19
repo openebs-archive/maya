@@ -105,7 +105,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putcstorpoolcr-default-0.8.0
+  name: cstor-pool-create-putcstorpoolcr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -139,7 +139,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putcstorpooldeployment-default-0.8.0
+  name: cstor-pool-create-putcstorpooldeployment-default
 spec:
   meta: |
     runNamespace: {{.Config.RunNamespace.value}}
@@ -283,7 +283,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putstoragepoolcr-default-0.8.0
+  name: cstor-pool-create-putstoragepoolcr-default
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -315,7 +315,7 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-patchstoragepoolclaim-default-0.8.0
+  name: cstor-pool-create-patchstoragepoolclaim-default
 spec:
   meta: |
     id: patchstoragepoolclaim

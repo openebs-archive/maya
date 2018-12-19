@@ -19,11 +19,10 @@ package spc
 import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//openebs "github.com/openebs/maya/pkg/client/clientset/versioned"
-	"errors"
-	"fmt"
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
 const (
@@ -41,7 +40,7 @@ type clientSet struct {
 
 type diskList struct {
 	//diskList is the list of usable disks that can be used in storagepool provisioning.
-	diskList []string
+	items []string
 }
 
 type nodeDisk struct {
@@ -55,7 +54,7 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.StoragePoolClaim) (*nodeDisk, e
 	// should not be returned.
 	listDisk, err := k.getDisk(cp)
 	if err != nil {
-		return nil, fmt.Errorf("error in getting the disk list:%v", err)
+		return nil, errors.Errorf("error in getting the disk list:%v", err)
 	}
 	if len(listDisk.Items) == 0 {
 		return nil, errors.New("no disk object found")
@@ -113,12 +112,12 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 		if nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] == nil {
 			// Entry to this block means first time the hostname will be mapped for the first time.
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &diskList{diskList: []string{value.Name}}
+			nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]] = &diskList{items: []string{value.Name}}
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
 			nodeDisk := nodeDiskMap[value.Labels[string(v1alpha1.HostNameCPK)]]
 			// Add the current disk to the diskList for this node.
-			nodeDisk.diskList = append(nodeDisk.diskList, value.Name)
+			nodeDisk.items = append(nodeDisk.items, value.Name)
 		}
 
 	}
@@ -134,7 +133,7 @@ func diskSelector(nodeDiskMap map[string]*diskList, poolType string) *nodeDisk {
 	selectedDisk := &nodeDisk{
 		nodeName: "",
 		disks: diskList{
-			diskList: []string{},
+			items: []string{},
 		},
 	}
 
@@ -154,12 +153,12 @@ func diskSelector(nodeDiskMap map[string]*diskList, poolType string) *nodeDisk {
 
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
-		if len(val.diskList) < requiredDiskCount {
+		if len(val.items) < requiredDiskCount {
 			continue
 		}
 		// Select the required disk from qualified nodes.
 		for i := 0; i < requiredDiskCount; i++ {
-			selectedDisk.disks.diskList = append(selectedDisk.disks.diskList, val.diskList[i])
+			selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
 		}
 		selectedDisk.nodeName = node
 		break
@@ -186,7 +185,7 @@ func (k *clientSet) getUsedDiskMap() (map[string]int, error) {
 	// Get the list of disk that has been used already for pool provisioning
 	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("unable to get the list of storagepools:%v", err)
+		return nil, errors.Wrapf(err, "unable to get the list of storagepools")
 	}
 	// Form a map that will hold all the used disk
 	usedDiskMap := make(map[string]int)
@@ -205,7 +204,7 @@ func (k *clientSet) getUsedNodeMap(spc string) (map[string]int, error) {
 	// Get the list of storagepool
 	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{LabelSelector: string(v1alpha1.StoragePoolClaimCPK) + "=" + spc})
 	if err != nil {
-		return nil, fmt.Errorf("unable to get the list of storagepools for stragepoolclaim %s:%v", spc, err)
+		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", spc)
 	}
 	// Form a map that will hold all the nodes where storagepool for the spc has been already created.
 	usedNodeMap := make(map[string]int)
@@ -231,7 +230,7 @@ func (k *clientSet) getDisk(cp *v1alpha1.StoragePoolClaim) (*v1alpha1.DiskList, 
 	for _, v := range spcDisks {
 		getDisk, err := k.oecs.OpenebsV1alpha1().Disks().Get(v, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
-			glog.Error("Error in fetching disk:", err)
+			runtime.HandleError(errors.Wrapf(err, "Error in fetching disk"))
 		} else {
 			// Deep-copy not required unless the object internal fields of objects are pointer referenced.
 			listDisk.Items = append(listDisk.Items, *getDisk)

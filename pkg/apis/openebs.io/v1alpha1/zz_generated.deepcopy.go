@@ -620,6 +620,12 @@ func (in *CasPool) DeepCopyInto(out *CasPool) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.DeviceID != nil {
+		in, out := &in.DeviceID, &out.DeviceID
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	in.Disks.DeepCopyInto(&out.Disks)
 	return
 }
 

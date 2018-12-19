@@ -190,8 +190,8 @@ func TestNodeDiskAlloter(t *testing.T) {
 			if gotErr != test.err {
 				t.Fatalf("Test case failed as the expected error %v but got %v", test.err, gotErr)
 			}
-			if len(diskList.disks.diskList) != test.expectedDiskListLength {
-				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList.disks.diskList))
+			if len(diskList.disks.items) != test.expectedDiskListLength {
+				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList.disks.items))
 			}
 		})
 	}

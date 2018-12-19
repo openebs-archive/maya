@@ -17,12 +17,12 @@ limitations under the License.
 package spc
 
 import (
-	"fmt"
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/storagepool"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -74,11 +74,11 @@ func poolCreateWorker(pool *apis.CasPool) error {
 
 	storagepoolOps, err := storagepool.NewCasPoolOperation(pool)
 	if err != nil {
-		return fmt.Errorf("NewCasPoolOperation failed error '%s'", err.Error())
+		return errors.Wrapf(err, "NewCasPoolOperation failed error")
 	}
 	_, err = storagepoolOps.Create()
 	if err != nil {
-		return fmt.Errorf("failed to create cas template based storagepool: error '%s'", err.Error())
+		return errors.Wrapf(err, "failed to create cas template based storagepool")
 
 	}
 	glog.Infof("Cas template based storagepool created successfully: name '%s'", pool.StoragePoolClaim)
@@ -109,17 +109,17 @@ func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.S
 	// getDiskList will hold node and disks attached to it to be used for storagepool provisioning.
 	nodeDisks, err := newClientSet.nodeDiskAlloter(spc)
 	if err != nil {
-		return nil, fmt.Errorf("aborting storagepool create operation as no node qualified: %v", err)
+		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
-	if len(nodeDisks.disks.diskList) == 0 {
-		return nil, fmt.Errorf("aborting storagepool create operation as no disk was found")
+	if len(nodeDisks.disks.items) == 0 {
+		return nil, errors.New("aborting storagepool create operation as no disk was found")
 	}
 	// For each of the disks, extract the device Id and fill the 'DeviceId' field of the CasPool object with it.
 	// In case, device Id is not available, fill the 'DeviceId' field of the CasPool object with device path.
-	for _, v := range nodeDisks.disks.diskList {
+	for _, v := range nodeDisks.disks.items {
 		gotDisk, err := newClientSet.oecs.OpenebsV1alpha1().Disks().Get(v, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("Failed to get device id for disk:failed to list the disks:%s", err)
+			return nil, errors.Wrapf(err, "Failed to get device id for disk:failed to list the disks")
 		}
 		if len(gotDisk.Spec.DevLinks) != 0 && len(gotDisk.Spec.DevLinks[0].Links) != 0 {
 			// Fill device Id of the disk to the CasPool object.
@@ -134,6 +134,6 @@ func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.S
 	// Fill the node name to the CasPool object.
 	casPool.NodeName = nodeDisks.nodeName
 	// Fill the disks attached to this node to the CasPool object.
-	casPool.DiskList = nodeDisks.disks.diskList
+	casPool.DiskList = nodeDisks.disks.items
 	return casPool, nil
 }
