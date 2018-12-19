@@ -38,9 +38,10 @@ var APIUnixSockVar util.UnixSock
 type Server struct {
 }
 
-func init(){
+func init() {
 	APIUnixSockVar = util.RealUnixSock{}
 }
+
 // RunVolumeSnapCreateCommand performs snapshot create operation and sends back the response
 func (s *Server) RunVolumeSnapCreateCommand(ctx context.Context, in *v1alpha1.VolumeSnapCreateRequest) (*v1alpha1.VolumeSnapCreateResponse, error) {
 	glog.Infof("Received snapshot create request. volname = %s, snapname = %s, version = %d", in.Volume, in.Snapname, in.Version)
