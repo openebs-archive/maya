@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -74,57 +75,40 @@ func TestRunVolumeStats(t *testing.T) {
 		err              error
 		addr             string
 	}{
-		"StatusOK": {
-			cmd: cmd,
-			cmdVolumeOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: `[{"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":2,"metric":[{"summary":{"sample_count":0,"sample_sum":0,"quantile":[{"quantile":0,"value":0},{"quantile":0.25,"value":0},{"quantile":0.5,"value":0},{"quantile":0.75,"value":0},{"quantile":1,"value":0}]}}]},{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":1,"metric":[{"gauge":{"value":12}}]},{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_alloc_bytes_total","help":"Total number of bytes allocated, even if freed.","type":0,"metric":[{"counter":{"value":1221368}}]},{"name":"go_memstats_buck_hash_sys_bytes","help":"Number of bytes used by the profiling bucket hash table.","type":1,"metric":[{"gauge":{"value":2792}}]},{"name":"go_memstats_frees_total","help":"Total number of frees.","type":0,"metric":[{"counter":{"value":431}}]},{"name":"go_memstats_gc_sys_bytes","help":"Number of bytes used for garbage collection system metadata.","type":1,"metric":[{"gauge":{"value":169984}}]},{"name":"go_memstats_heap_alloc_bytes","help":"Number of heap bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_heap_idle_bytes","help":"Number of heap bytes waiting to be used.","type":1,"metric":[{"gauge":{"value":237568}}]},{"name":"go_memstats_heap_inuse_bytes","help":"Number of heap bytes that are in use.","type":1,"metric":[{"gauge":{"value":2318336}}]},{"name":"go_memstats_heap_objects","help":"Number of allocated objects.","type":1,"metric":[{"gauge":{"value":7375}}]},{"name":"go_memstats_heap_released_bytes_total","help":"Total number of heap bytes released to OS.","type":0,"metric":[{"counter":{"value":0}}]},{"name":"go_memstats_heap_sys_bytes","help":"Number of heap bytes obtained from system.","type":1,"metric":[{"gauge":{"value":2555904}}]},{"name":"go_memstats_last_gc_time_seconds","help":"Number of seconds since 1970 of last garbage collection.","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"go_memstats_lookups_total","help":"Total number of pointer lookups.","type":0,"metric":[{"counter":{"value":24}}]},{"name":"go_memstats_mallocs_total","help":"Total number of mallocs.","type":0,"metric":[{"counter":{"value":7806}}]},{"name":"go_memstats_mcache_inuse_bytes","help":"Number of bytes in use by mcache structures.","type":1,"metric":[{"gauge":{"value":13888}}]},{"name":"go_memstats_mcache_sys_bytes","help":"Number of bytes used for mcache structures obtained from system.","type":1,"metric":[{"gauge":{"value":16384}}]},{"name":"go_memstats_mspan_inuse_bytes","help":"Number of bytes in use by mspan structures.","type":1,"metric":[{"gauge":{"value":32832}}]},{"name":"go_memstats_mspan_sys_bytes","help":"Number of bytes used for mspan structures obtained from system.","type":1,"metric":[{"gauge":{"value":49152}}]},{"name":"go_memstats_next_gc_bytes","help":"Number of heap bytes when next garbage collection will take place.","type":1,"metric":[{"gauge":{"value":4473924}}]},{"name":"go_memstats_other_sys_bytes","help":"Number of bytes used for other system allocations.","type":1,"metric":[{"gauge":{"value":1305880}}]},{"name":"go_memstats_stack_inuse_bytes","help":"Number of bytes in use by the stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_stack_sys_bytes","help":"Number of bytes obtained from system for stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_sys_bytes","help":"Number of bytes obtained by system. Sum of all system allocations.","type":1,"metric":[{"gauge":{"value":4689920}}]},{"name":"http_request_duration_microseconds","help":"The HTTP request latencies in microseconds.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":16749.686,"quantile":[{"quantile":0.5,"value":16749.686},{"quantile":0.9,"value":16749.686},{"quantile":0.99,"value":16749.686}]}}]},{"name":"http_request_size_bytes","help":"The HTTP request sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":65,"quantile":[{"quantile":0.5,"value":65},{"quantile":0.9,"value":65},{"quantile":0.99,"value":65}]}}]},{"name":"http_requests_total","help":"Total number of HTTP requests made.","type":0,"metric":[{"label":[{"name":"code","value":"200"},{"name":"handler","value":"prometheus"},{"name":"method","value":"get"}],"counter":{"value":1}}]},{"name":"http_response_size_bytes","help":"The HTTP response sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":7948,"quantile":[{"quantile":0.5,"value":7948},{"quantile":0.9,"value":7948},{"quantile":0.99,"value":7948}]}}]},{"name":"openebs_actual_used","help":"Actual volume size used","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_logical_size","help":"Logical size of volume","type":1,"metric":[{"gauge":{"value":0.0000152587890625}}]},{"name":"openebs_read_block_count","help":"Read Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_read_time","help":"Read time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_reads","help":"Read Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_sector_size","help":"sector size of volume","type":1,"metric":[{"gauge":{"value":4096}}]},{"name":"openebs_size_of_volume","help":"Size of the volume requested","type":1,"metric":[{"gauge":{"value":5}}]},{"name":"openebs_total_read_bytes","help":"Total read bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_total_write_bytes","help":"Total write bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_volume_uptime","help":"Time since volume has registered","type":0,"metric":[{"label":[{"name":"castype","value":"jiva"},{"name":"iqn","value":"iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"},{"name":"portal","value":"127.0.0.1"},{"name":"volName","value":"pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}],"counter":{"value":104.436802}}]},{"name":"openebs_write_block_count","help":"Write Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_write_time","help":"Write time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_writes","help":"Write Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"process_cpu_seconds_total","help":"Total user and system CPU time spent in seconds.","type":0,"metric":[{"counter":{"value":0.05}}]},{"name":"process_max_fds","help":"Maximum number of open file descriptors.","type":1,"metric":[{"gauge":{"value":1048576}}]},{"name":"process_open_fds","help":"Number of open file descriptors.","type":1,"metric":[{"gauge":{"value":8}}]},{"name":"process_resident_memory_bytes","help":"Resident memory size in bytes.","type":1,"metric":[{"gauge":{"value":6705152}}]},{"name":"process_start_time_seconds","help":"Start time of the process since unix epoch in seconds.","type":1,"metric":[{"gauge":{"value":1542187608.82}}]},{"name":"process_virtual_memory_bytes","help":"Virtual memory size in bytes.","type":1,"metric":[{"gauge":{"value":13996032}}]}]`,
-				T:            t,
-			},
-			err:  nil,
-			addr: "MAPI_ADDR",
+		"Status OK": {
+			cmd:              cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{volName: "vol1"},
+			fakeHandler:      utiltesting.FakeHandler{StatusCode: 200, ResponseBody: `[{"name":"openebs_actual_used","metric":[{"gauge":{"value":0}}]},{"name":"openebs_logical_size","metric":[{"gauge":{"value":0.0000152587890625}}]},{"name":"openebs_read_block_count","metric":[{"gauge":{"value":0}}]},{"name":"openebs_read_time","metric":[{"gauge":{"value":0}}]},{"name":"openebs_reads","metric":[{"gauge":{"value":0}}]},{"name":"openebs_sector_size","metric":[{"gauge":{"value":4096}}]},{"name":"openebs_size_of_volume","metric":[{"gauge":{"value":5}}]},{"name":"openebs_total_read_bytes","metric":[{"gauge":{"value":0}}]},{"name":"openebs_total_write_bytes","metric":[{"gauge":{"value":0}}]},{"name":"openebs_volume_uptime","metric":[{"label":[{"name":"castype","value":"jiva"},{"name":"iqn","value":"iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"},{"name":"portal","value":"127.0.0.1"},{"name":"volName","value":"pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}],"counter":{"value":104.436802}}]},{"name":"openebs_write_block_count","metric":[{"gauge":{"value":0}}]},{"name":"openebs_write_time","metric":[{"gauge":{"value":0}}]},{"name":"openebs_writes","metric":[{"gauge":{"value":0}}]}]`, T: t},
+			err:              nil,
+			addr:             "MAPI_ADDR",
+		},
+		"Metric is empty": {
+			cmd:              cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{volName: "vol1"},
+			fakeHandler:      utiltesting.FakeHandler{StatusCode: 200, ResponseBody: `[{"name":"openebs_actual_used","metric":[]},{"name":"openebs_logical_size","metric":[]},{"name":"openebs_read_block_count","metric":[]},{"name":"openebs_read_time","metric":[]},{"name":"openebs_reads","metric":[]},{"name":"openebs_sector_size","metric":[]},{"name":"openebs_size_of_volume","metric":[]},{"name":"openebs_total_read_bytes","metric":[]},{"name":"openebs_total_write_bytes","metric":[]},{"name":"openebs_volume_uptime","metric":[]},{"name":"openebs_write_block_count","metric":[]},{"name":"openebs_write_time","metric":[]},{"name":"openebs_writes","metric":[]}]`, T: t},
+			err:              nil,
+			addr:             "MAPI_ADDR",
 		},
 		"Invalid Response": {
-			cmd: cmd,
-			cmdVolumeOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: `"name":"go_gc_duration_seconds","help":"A summary of the GC invocation durations.","type":2,"metric":[{"summary":{"sample_count":0,"sample_sum":0,"quantile":[{"quantile":0,"value":0},{"quantile":0.25,"value":0},{"quantile":0.5,"value":0},{"quantile":0.75,"value":0},{"quantile":1,"value":0}]}}]},{"name":"go_goroutines","help":"Number of goroutines that currently exist.","type":1,"metric":[{"gauge":{"value":12}}]},{"name":"go_memstats_alloc_bytes","help":"Number of bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_alloc_bytes_total","help":"Total number of bytes allocated, even if freed.","type":0,"metric":[{"counter":{"value":1221368}}]},{"name":"go_memstats_buck_hash_sys_bytes","help":"Number of bytes used by the profiling bucket hash table.","type":1,"metric":[{"gauge":{"value":2792}}]},{"name":"go_memstats_frees_total","help":"Total number of frees.","type":0,"metric":[{"counter":{"value":431}}]},{"name":"go_memstats_gc_sys_bytes","help":"Number of bytes used for garbage collection system metadata.","type":1,"metric":[{"gauge":{"value":169984}}]},{"name":"go_memstats_heap_alloc_bytes","help":"Number of heap bytes allocated and still in use.","type":1,"metric":[{"gauge":{"value":1221368}}]},{"name":"go_memstats_heap_idle_bytes","help":"Number of heap bytes waiting to be used.","type":1,"metric":[{"gauge":{"value":237568}}]},{"name":"go_memstats_heap_inuse_bytes","help":"Number of heap bytes that are in use.","type":1,"metric":[{"gauge":{"value":2318336}}]},{"name":"go_memstats_heap_objects","help":"Number of allocated objects.","type":1,"metric":[{"gauge":{"value":7375}}]},{"name":"go_memstats_heap_released_bytes_total","help":"Total number of heap bytes released to OS.","type":0,"metric":[{"counter":{"value":0}}]},{"name":"go_memstats_heap_sys_bytes","help":"Number of heap bytes obtained from system.","type":1,"metric":[{"gauge":{"value":2555904}}]},{"name":"go_memstats_last_gc_time_seconds","help":"Number of seconds since 1970 of last garbage collection.","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"go_memstats_lookups_total","help":"Total number of pointer lookups.","type":0,"metric":[{"counter":{"value":24}}]},{"name":"go_memstats_mallocs_total","help":"Total number of mallocs.","type":0,"metric":[{"counter":{"value":7806}}]},{"name":"go_memstats_mcache_inuse_bytes","help":"Number of bytes in use by mcache structures.","type":1,"metric":[{"gauge":{"value":13888}}]},{"name":"go_memstats_mcache_sys_bytes","help":"Number of bytes used for mcache structures obtained from system.","type":1,"metric":[{"gauge":{"value":16384}}]},{"name":"go_memstats_mspan_inuse_bytes","help":"Number of bytes in use by mspan structures.","type":1,"metric":[{"gauge":{"value":32832}}]},{"name":"go_memstats_mspan_sys_bytes","help":"Number of bytes used for mspan structures obtained from system.","type":1,"metric":[{"gauge":{"value":49152}}]},{"name":"go_memstats_next_gc_bytes","help":"Number of heap bytes when next garbage collection will take place.","type":1,"metric":[{"gauge":{"value":4473924}}]},{"name":"go_memstats_other_sys_bytes","help":"Number of bytes used for other system allocations.","type":1,"metric":[{"gauge":{"value":1305880}}]},{"name":"go_memstats_stack_inuse_bytes","help":"Number of bytes in use by the stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_stack_sys_bytes","help":"Number of bytes obtained from system for stack allocator.","type":1,"metric":[{"gauge":{"value":589824}}]},{"name":"go_memstats_sys_bytes","help":"Number of bytes obtained by system. Sum of all system allocations.","type":1,"metric":[{"gauge":{"value":4689920}}]},{"name":"http_request_duration_microseconds","help":"The HTTP request latencies in microseconds.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":16749.686,"quantile":[{"quantile":0.5,"value":16749.686},{"quantile":0.9,"value":16749.686},{"quantile":0.99,"value":16749.686}]}}]},{"name":"http_request_size_bytes","help":"The HTTP request sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":65,"quantile":[{"quantile":0.5,"value":65},{"quantile":0.9,"value":65},{"quantile":0.99,"value":65}]}}]},{"name":"http_requests_total","help":"Total number of HTTP requests made.","type":0,"metric":[{"label":[{"name":"code","value":"200"},{"name":"handler","value":"prometheus"},{"name":"method","value":"get"}],"counter":{"value":1}}]},{"name":"http_response_size_bytes","help":"The HTTP response sizes in bytes.","type":2,"metric":[{"label":[{"name":"handler","value":"prometheus"}],"summary":{"sample_count":1,"sample_sum":7948,"quantile":[{"quantile":0.5,"value":7948},{"quantile":0.9,"value":7948},{"quantile":0.99,"value":7948}]}}]},{"name":"openebs_actual_used","help":"Actual volume size used","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_logical_size","help":"Logical size of volume","type":1,"metric":[{"gauge":{"value":0.0000152587890625}}]},{"name":"openebs_read_block_count","help":"Read Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_read_time","help":"Read time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_reads","help":"Read Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_sector_size","help":"sector size of volume","type":1,"metric":[{"gauge":{"value":4096}}]},{"name":"openebs_size_of_volume","help":"Size of the volume requested","type":1,"metric":[{"gauge":{"value":5}}]},{"name":"openebs_total_read_bytes","help":"Total read bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_total_write_bytes","help":"Total write bytes","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_volume_uptime","help":"Time since volume has registered","type":0,"metric":[{"label":[{"name":"castype","value":"jiva"},{"name":"iqn","value":"iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"},{"name":"portal","value":"127.0.0.1"},{"name":"volName","value":"pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}],"counter":{"value":104.436802}}]},{"name":"openebs_write_block_count","help":"Write Block count of volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_write_time","help":"Write time on volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"openebs_writes","help":"Write Input/Outputs on Volume","type":1,"metric":[{"gauge":{"value":0}}]},{"name":"process_cpu_seconds_total","help":"Total user and system CPU time spent in seconds.","type":0,"metric":[{"counter":{"value":0.05}}]},{"name":"process_max_fds","help":"Maximum number of open file descriptors.","type":1,"metric":[{"gauge":{"value":1048576}}]},{"name":"process_open_fds","help":"Number of open file descriptors.","type":1,"metric":[{"gauge":{"value":8}}]},{"name":"process_resident_memory_bytes","help":"Resident memory size in bytes.","type":1,"metric":[{"gauge":{"value":6705152}}]},{"name":"process_start_time_seconds","help":"Start time of the process since unix epoch in seconds.","type":1,"metric":[{"gauge":{"value":1542187608.82}}]},{"name":"process_virtual_memory_bytes","help":"Virtual memory size in bytes.","type":1,"metric":[{"gauge":{"value":13996032}}]}]`,
-				T:            t,
-			},
-			err:  errors.New("Volume not found"),
-			addr: "MAPI_ADDR",
+			cmd:              cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{volName: "vol1"},
+			fakeHandler:      utiltesting.FakeHandler{StatusCode: 200, ResponseBody: `[{"name":"openebs_actual_used","metric":[]},{"name":"openebs_logical_size","metric":[]},{"name":"openebs_read_block_count","metric":[]},{"name":"openebs_read_time","metric":[]},{"name":"openebs_reads","metric":[]},{"name":"openebs_sector_size","metric":[]},{"name":"openebs_size_of_volume","metric":[]},{"name":"openebs_total_read_bytes","metric":[]},{"name":"openebs_total_write_bytes","metric":[]},{"name":"openebs_volume_uptime","metric":[]},{"name":"openebs_write_block_count","metric":[]},{"name":"openebs_write_time","metric":[]},{"name":"openebs_writes","metric":[`, T: t},
+			err:              errors.New("Volume not found"),
+			addr:             "MAPI_ADDR",
 		},
 		"BadRequest": {
-			cmd: cmd,
-			cmdVolumeOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   404,
-				ResponseBody: "",
-				T:            t,
-			},
-			err:  errors.New("Volume not found"),
-			addr: "MAPI_ADDR",
+			cmd:              cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{volName: "vol1"},
+			fakeHandler:      utiltesting.FakeHandler{StatusCode: 404, ResponseBody: "", T: t},
+			err:              errors.New("Volume not found"),
+			addr:             "MAPI_ADDR",
 		},
 		"Response code 500": {
-			cmd: cmd,
-			cmdVolumeOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode:   500,
-				ResponseBody: "",
-				T:            t,
-			},
-			err:  errors.New("Volume not found"),
-			addr: "MAPI_ADDR",
+			cmd:              cmd,
+			cmdVolumeOptions: &CmdVolumeOptions{volName: "vol1"},
+			fakeHandler:      utiltesting.FakeHandler{StatusCode: 500, ResponseBody: "", T: t},
+			err:              errors.New("Volume not found"),
+			addr:             "MAPI_ADDR",
 		},
 	}
 
@@ -144,37 +128,120 @@ func TestRunVolumeStats(t *testing.T) {
 
 func TestProcessStats(t *testing.T) {
 	tests := map[string]struct {
-		stats1, stats2 v1alpha1.VolumeMetricsList
+		stats1, stats2 map[string]v1alpha1.MetricsFamily
 		Output         v1alpha1.StatsJSON
-		err            error
 	}{
 		"When length of stats1 is not equal to stat2": {
-			stats1: v1alpha1.VolumeMetricsList{
-				{}, {},
+			stats1: map[string]v1alpha1.MetricsFamily{},
+			stats2: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":             v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_writes":            v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_read_time":         v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 0}},
+				"openebs_write_time":        v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 0}},
+				"openebs_read_block_count":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 0}},
+				"openebs_write_block_count": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 0}},
+				"openebs_sector_size":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_logical_size":      v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 1.52587890625e-5}},
+				"openebs_actual_used":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_size_of_volume":    v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 5}},
+				"openebs_volume_uptime":     v1alpha1.MetricsFamily{Label: []v1alpha1.LabelItem{v1alpha1.LabelItem{Name: "castype", Value: "jiva"}, v1alpha1.LabelItem{Name: "iqn", Value: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}, v1alpha1.LabelItem{Name: "portal", Value: "127.0.0.1"}, v1alpha1.LabelItem{Name: "volName", Value: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}}},
 			},
-			stats2: v1alpha1.VolumeMetricsList{
-				{},
-			},
-			Output: v1alpha1.StatsJSON{},
-			err:    errors.New("Invalid Response"),
+			Output: v1alpha1.StatsJSON{IQN: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Portal: "127.0.0.1", Size: "5.000000", CASType: "jiva", ReadIOPS: 4096, WriteIOPS: 4096, ReadThroughput: 0, WriteThroughput: 0, ReadLatency: 0, WriteLatency: 0, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52587890625e-05},
 		},
 		"When length of stats1 is  equal to stat2": {
-			stats1: v1alpha1.VolumeMetricsList{
-				{}, {},
+			stats1: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":             v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_writes":            v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":         v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2}},
+				"openebs_write_time":        v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2}},
+				"openebs_read_block_count":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2}},
+				"openebs_write_block_count": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2}},
+				"openebs_sector_size":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_logical_size":      v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 1.52587890625e-5}},
+				"openebs_actual_used":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_size_of_volume":    v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 5}},
+				"openebs_volume_uptime":     v1alpha1.MetricsFamily{Label: []v1alpha1.LabelItem{v1alpha1.LabelItem{Name: "castype", Value: "jiva"}, v1alpha1.LabelItem{Name: "iqn", Value: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}, v1alpha1.LabelItem{Name: "portal", Value: "127.0.0.1"}, v1alpha1.LabelItem{Name: "volName", Value: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}}},
 			},
-			stats2: v1alpha1.VolumeMetricsList{
-				{}, {},
+			stats2: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":             v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_writes":            v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_read_time":         v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4}},
+				"openebs_write_time":        v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4}},
+				"openebs_read_block_count":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4}},
+				"openebs_write_block_count": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4}},
+				"openebs_sector_size":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_logical_size":      v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 1.52687890625e-5}},
+				"openebs_actual_used":       v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 4096}},
+				"openebs_size_of_volume":    v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 5}},
+				"openebs_volume_uptime":     v1alpha1.MetricsFamily{Label: []v1alpha1.LabelItem{v1alpha1.LabelItem{Name: "castype", Value: "jiva"}, v1alpha1.LabelItem{Name: "iqn", Value: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}, v1alpha1.LabelItem{Name: "portal", Value: "127.0.0.1"}, v1alpha1.LabelItem{Name: "volName", Value: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}}},
 			},
-			Output: v1alpha1.StatsJSON{},
-			err:    nil,
+			Output: v1alpha1.StatsJSON{IQN: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Portal: "127.0.0.1", Size: "5.000000", CASType: "jiva", ReadIOPS: 2048, WriteIOPS: 2048, ReadThroughput: 1.9073650038576458e-06, WriteThroughput: 1.9073650038576458e-06, ReadLatency: 9.765625e-10, WriteLatency: 9.765625e-10, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52687890625e-05},
 		},
 	}
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := processStats(tt.stats1, tt.stats2)
-			if !checkErr(err, tt.err) {
-				t.Fatalf("TestName: %v | processStats() => Got: %v | Want: %v \n", name, err, tt.err)
+			Output := processStats(tt.stats1, tt.stats2)
+			if !reflect.DeepEqual(Output, tt.Output) {
+				t.Fatalf("TestName: %v | processStats() => Got: %+v | Want: %+v \n", name, Output, tt.Output)
+			}
+		})
+	}
+}
+
+func TestConvertMappedResponse(t *testing.T) {
+	tests := map[string]struct {
+		rawResponse v1alpha1.VolumeMetricsList
+		output      map[string]v1alpha1.MetricsFamily
+	}{
+		"MetricsList containing MetricsFamily": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+		"When metricsFamily is not present in some metric item": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+		"When more than one metricFamily is present in some metric item": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}, {Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if output := convertMappedResponse(tt.rawResponse); !reflect.DeepEqual(tt.output, output) {
+				t.Fatalf("Test Name: %q | convertMappedResponse() => Got: %+v | Want: %+v \n", name, output, tt.output)
 			}
 		})
 	}
