@@ -132,7 +132,7 @@ bootstrap:
 kubegen: deepcopy clientset lister informer
 
 # code generation for custom resources and protobuf
-generated_files: deepcopy clientset lister informer cstor-volume-grpc
+generated_files: deepcopy clientset lister informer protobuf
 
 # builds vendored version of deepcopy-gen tool
 deepcopy:
@@ -200,9 +200,9 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
-cstor-volume-grpc:
+protobuf:
 	@echo "----------------------------"
-	@echo "--> cstor-volume-grpc           "
+	@echo "--> protobuf           "
 	@echo "----------------------------"
 	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
     -I${GOPATH}/src \
