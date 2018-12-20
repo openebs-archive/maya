@@ -188,3 +188,61 @@ func TestProcessStats(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertMappedResponse(t *testing.T) {
+	tests := map[string]struct {
+		rawResponse v1alpha1.VolumeMetricsList
+		output      map[string]v1alpha1.MetricsFamily
+	}{
+		"MetricsList containing MetricsFamily": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+		"When metricsFamily is not present in some metric item": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+		"When more than one metricFamily is present in some metric item": {
+			rawResponse: v1alpha1.VolumeMetricsList{
+				{Name: "openebs_reads", Metric: []v1alpha1.MetricsFamily{}},
+				{Name: "openebs_writes", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 2048}}, {Gauge: v1alpha1.Gauge{Value: 2048}}}},
+				{Name: "openebs_read_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+				{Name: "openebs_write_time", Metric: []v1alpha1.MetricsFamily{{Gauge: v1alpha1.Gauge{Value: 204}}}},
+			},
+			output: map[string]v1alpha1.MetricsFamily{
+				"openebs_reads":      v1alpha1.MetricsFamily{},
+				"openebs_writes":     v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 2048}},
+				"openebs_read_time":  v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+				"openebs_write_time": v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 204}},
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			if output := convertMappedResponse(tt.rawResponse); !reflect.DeepEqual(tt.output, output) {
+				t.Fatalf("Test Name: %q | convertMappedResponse() => Got: %+v | Want: %+v \n", name, output, tt.output)
+			}
+		})
+	}
+}

@@ -83,58 +83,42 @@ func NewCmdVolumeStats() *cobra.Command {
 	return cmd
 }
 
+// convertMappedResponse converts array of metrics to map[string]MetricsFamily
+func convertMappedResponse(rawMetrics v1alpha1.VolumeMetricsList) map[string]v1alpha1.MetricsFamily {
+	newMetrics := make(map[string]v1alpha1.MetricsFamily)
+	for _, metric := range rawMetrics {
+		if len(metric.Metric) == 0 {
+			newMetrics[metric.Name] = v1alpha1.MetricsFamily{}
+		} else {
+			newMetrics[metric.Name] = metric.Metric[0]
+		}
+	}
+	return newMetrics
+}
+
 func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
-	rawStatsi, err := mapiserver.VolumeStats(c.volName, c.namespace)
+	rawStatsInitial, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		return fmt.Errorf("Volume not found")
 	}
 	time.Sleep(time.Second)
-	rawStatsf, err := mapiserver.VolumeStats(c.volName, c.namespace)
+	rawStatsFinal, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		return fmt.Errorf("Volume not found")
 	}
 
-	maxLength := 0
-
-	// Find the maximum length
-	if len(rawStatsi) > len(rawStatsf) {
-		maxLength = len(rawStatsi)
-	} else {
-		maxLength = len(rawStatsf)
-	}
-
-	// Storing metrics in maps
-	statsi, statsf := make(map[string]v1alpha1.MetricsFamily), make(map[string]v1alpha1.MetricsFamily)
-	for i := 0; i < maxLength; i++ {
-		if i < len(rawStatsi) {
-			if len(rawStatsi[i].Metric) == 0 {
-				statsi[rawStatsi[i].Name] = v1alpha1.MetricsFamily{}
-			} else {
-				statsi[rawStatsi[i].Name] = rawStatsi[i].Metric[0]
-			}
-		}
-
-		if i < len(rawStatsf) {
-			if len(rawStatsf[i].Metric) == 0 {
-				statsf[rawStatsf[i].Name] = v1alpha1.MetricsFamily{}
-			} else {
-				statsf[rawStatsf[i].Name] = rawStatsf[i].Metric[0]
-			}
-		}
-	}
-
-	stats := processStats(statsi, statsf)
+	stats := processStats(convertMappedResponse(rawStatsInitial), convertMappedResponse(rawStatsFinal))
 
 	return print(statsTemplate, stats)
 }
 
 // processStats calculates the figures from the final and initial response.
-func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alpha1.StatsJSON) {
+func processStats(statsInitial, statsFinal map[string]v1alpha1.MetricsFamily) (stats v1alpha1.StatsJSON) {
 
 	// Calculate Read stats
-	stats.ReadIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_reads", statsf)), int64(getValue("openebs_reads", statsi)))
-	rTimePS, _ := v1.SubstractFloat64(getValue("openebs_read_time", statsf), getValue("openebs_read_time", statsi))
-	stats.ReadThroughput, _ = v1.SubstractFloat64(getValue("openebs_read_block_count", statsf), getValue("openebs_read_block_count", statsi))
+	stats.ReadIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_reads", statsFinal)), int64(getValue("openebs_reads", statsInitial)))
+	rTimePS, _ := v1.SubstractFloat64(getValue("openebs_read_time", statsFinal), getValue("openebs_read_time", statsInitial))
+	stats.ReadThroughput, _ = v1.SubstractFloat64(getValue("openebs_read_block_count", statsFinal), getValue("openebs_read_block_count", statsInitial))
 	stats.ReadLatency, _ = v1.DivideFloat64(rTimePS, float64(stats.ReadIOPS))
 
 	// Convert from nanosec to milliseconds
@@ -144,9 +128,9 @@ func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alp
 	stats.AvgReadBlockSize = stats.AvgReadBlockSize / v1.BytesToKB
 
 	// Calculate Write stats
-	stats.WriteIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_writes", statsf)), int64(getValue("openebs_writes", statsi)))
-	wTimePS, _ := v1.SubstractFloat64(getValue("openebs_write_time", statsf), getValue("openebs_write_time", statsi))
-	stats.WriteThroughput, _ = v1.SubstractFloat64(getValue("openebs_write_block_count", statsf), getValue("openebs_write_block_count", statsi))
+	stats.WriteIOPS, _ = v1.SubstractInt64(int64(getValue("openebs_writes", statsFinal)), int64(getValue("openebs_writes", statsInitial)))
+	wTimePS, _ := v1.SubstractFloat64(getValue("openebs_write_time", statsFinal), getValue("openebs_write_time", statsInitial))
+	stats.WriteThroughput, _ = v1.SubstractFloat64(getValue("openebs_write_block_count", statsFinal), getValue("openebs_write_block_count", statsInitial))
 	stats.WriteLatency, _ = v1.DivideFloat64(wTimePS, float64(stats.WriteIOPS))
 	// Convert from nanosec to milliseconds
 	stats.WriteLatency = stats.WriteLatency / v1.MicSec
@@ -154,13 +138,13 @@ func processStats(statsi, statsf map[string]v1alpha1.MetricsFamily) (stats v1alp
 	stats.WriteThroughput = stats.WriteThroughput / v1.BytesToMB
 	stats.AvgWriteBlockSize = stats.AvgWriteBlockSize / v1.BytesToKB
 
-	stats.SectorSize = getValue("openebs_sector_size", statsf)
-	stats.LogicalSize = getValue("openebs_logical_size", statsf)
-	stats.ActualUsed = getValue("openebs_actual_used", statsf)
+	stats.SectorSize = getValue("openebs_sector_size", statsFinal)
+	stats.LogicalSize = getValue("openebs_logical_size", statsFinal)
+	stats.ActualUsed = getValue("openebs_actual_used", statsFinal)
 
-	stats.Size = fmt.Sprintf("%f", getValue("openebs_size_of_volume", statsf))
+	stats.Size = fmt.Sprintf("%f", getValue("openebs_size_of_volume", statsFinal))
 
-	if val, p := statsf["openebs_volume_uptime"]; p {
+	if val, p := statsFinal["openebs_volume_uptime"]; p {
 		for _, v := range val.Label {
 			if v.Name == "iqn" {
 				stats.IQN = v.Value
