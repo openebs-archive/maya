@@ -1,7 +1,6 @@
 package command
 
 import (
-	"reflect"
 	"strconv"
 	"testing"
 
@@ -38,14 +37,5 @@ func TestRun(t *testing.T) {
 	err := Run(cmd)
 	if err != nil {
 		t.Errorf("Expected: '%s' Actual: '%s'", "nil", err)
-	}
-}
-
-// TestNewCmdOptions is to test type of CLI command.
-func TestNewCmdOptions(t *testing.T) {
-	var expectedCmd *cobra.Command
-	gotCmd := NewCmdOptions()
-	if reflect.TypeOf(gotCmd) != reflect.TypeOf(expectedCmd) {
-		t.Errorf("Expected: '%s' Actual: '%v'", reflect.TypeOf(gotCmd), reflect.TypeOf(expectedCmd))
 	}
 }

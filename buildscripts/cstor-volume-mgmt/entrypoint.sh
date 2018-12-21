@@ -2,5 +2,4 @@
 
 set -ex
 
-/usr/local/bin/cstor-volume-mgmt start &
-exec /usr/local/bin/cstor-volume-grpc server start
+/usr/local/bin/cstor-volume-mgmt start

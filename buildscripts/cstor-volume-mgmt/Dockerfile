@@ -10,7 +10,6 @@ RUN apt-get -y install rsyslog
 RUN mkdir -p /usr/local/etc/istgt
 
 COPY cstor-volume-mgmt /usr/local/bin/
-COPY cstor-volume-grpc /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh

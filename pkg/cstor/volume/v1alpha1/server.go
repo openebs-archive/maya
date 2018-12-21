@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server
+package v1alpha1
 
 import (
 	"fmt"
@@ -22,22 +22,16 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/cmd/cstor-volume-grpc/api"
-	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
-	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
+	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"google.golang.org/grpc"
 )
 
 // StartServer instantiates CStorVolume gRPC server
 // and watches for snapshot requests.
-func StartServer(port string) error {
-
-	api.APIUnixSockVar = util.RealUnixSock{}
-	volume.UnixSockVar = util.RealUnixSock{}
-
+func StartServer(unixSockVar util.UnixSock, port string) error {
 	// Blocking call for checking status of istgt running in cstor-volume container.
-	volume.CheckForIscsi()
+	util.CheckForIscsi(unixSockVar)
 
 	if len(port) == 0 {
 		i, err := strconv.Atoi(port)
@@ -45,9 +39,9 @@ func StartServer(port string) error {
 			// Blocking call for running the gRPC server
 			return RunCStorVolumeGrpcServer(i)
 		}
-		glog.Warningf("Invalid listen port. Using default port %d ", api.VolumeGrpcListenPort)
+		glog.Warningf("Invalid listen port. Using default port %d ", VolumeGrpcListenPort)
 	}
-	return RunCStorVolumeGrpcServer(api.VolumeGrpcListenPort)
+	return RunCStorVolumeGrpcServer(VolumeGrpcListenPort)
 }
 
 // RunCStorVolumeGrpcServer is Blocking call for listen for grpc requests of CStorVolume.
@@ -59,7 +53,7 @@ func RunCStorVolumeGrpcServer(port int) error {
 		glog.Fatalf("failed to listen: %v", err)
 	}
 	// create a server instance
-	s := api.Server{}
+	s := Server{}
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	// attach the RunCommand service to the server
