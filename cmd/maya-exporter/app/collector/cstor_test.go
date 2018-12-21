@@ -1,19 +1,16 @@
 package collector
 
 import (
-	"errors"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"regexp"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
-	"github.com/openebs/maya/types/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -26,6 +23,7 @@ var (
 	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }\r\nOK IOSTATS\r\n`
 )
 
+<<<<<<< 6f92d015ea64d5c1e4b9f4819cae9c85ae8d4848:cmd/maya-exporter/app/collector/cstorcollector_test.go
 func TestNewResponse(t *testing.T) {
 	cases := map[string]struct {
 		response string
@@ -88,13 +86,13 @@ func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup, response string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
 		wg.Done()
 		for {
 			fd, err := listener.Accept()
 			if err != nil {
 				t.Fatal("Accept error: ", err)
 			}
+			fd.Write([]byte(HeaderPrefix + EOF))
 			go sendFakeResponse(t, fd, response)
 		}
 	}()
@@ -102,12 +100,11 @@ func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup, response string) {
 
 func sendFakeResponse(t *testing.T, c net.Conn, resp string) {
 	for {
-		buf := make([]byte, 512)
+		buf := make([]byte, 1024)
 		_, err := c.Read(buf)
 		if err != nil {
 			return
 		}
-
 		data := resp
 		_, err = c.Write([]byte(data))
 		if err != nil {
@@ -192,19 +189,16 @@ func TestCstorCollector(t *testing.T) {
 			wg.Add(1)
 			runFakeUnixServer(t, &wg, tt.expectedResponse)
 			wg.Wait()
-			conn, err := net.Dial("unix", "/tmp/go.sock")
-			if err != nil {
-				t.Fatal("err in dial :", err)
-			}
 			// col is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			col := NewCstorStatsExporter(conn, "cstor")
+			cstor := Cstor()
+			cstor.InitiateConnection("/tmp/go.sock")
+			col := New(cstor, "cstor")
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
 
 			server := httptest.NewServer(promhttp.Handler())
-
 			client := http.DefaultClient
 			client.Timeout = 5 * time.Second
 			resp, err := client.Get(server.URL)
@@ -233,133 +227,5 @@ func TestCstorCollector(t *testing.T) {
 			prometheus.Unregister(col)
 			server.Close()
 		})
-	}
-}
-
-func TestCstorStatsCollector(t *testing.T) {
-	// Unlink the existing socket connection /tmp/go.sock if exists
-	// else ignore.
-	Unlink(t)
-	cases := map[string]struct {
-		exporter       *VolumeStatsExporter
-		err            error
-		fakeUnixServer bool
-	}{
-		"[Success] If controller is cstor and its running": {
-			exporter: &VolumeStatsExporter{
-				CASType: "cstor",
-				// Value of Conn will be overwritten at run time
-				Cstor: Cstor{
-					Conn: nil,
-				},
-				Metrics: *MetricsInitializer("cstor"),
-			},
-			fakeUnixServer: true,
-			err:            nil,
-		},
-		"[failure] If controller is cstor and its not running": {
-			exporter: &VolumeStatsExporter{
-				CASType: "cstor",
-				Cstor: Cstor{
-					Conn: nil,
-				},
-				Metrics: *MetricsInitializer("cstor"),
-			},
-			err: errors.New("error in initiating connection with socket"),
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			if tt.fakeUnixServer {
-				var wg sync.WaitGroup
-				wg.Add(1)
-				runFakeUnixServer(t, &wg, CstorResponse)
-				wg.Wait()
-				conn, err := net.Dial("unix", "/tmp/go.sock")
-				if err != nil {
-					t.Fatal("err in dial :", err)
-				}
-				// overwriting the value of Conn from nil to some valid
-				// value at run time.
-				tt.exporter.Conn = conn
-			}
-			got := tt.exporter.Cstor.collector(&tt.exporter.Metrics)
-			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
-			}
-		})
-		Unlink(t)
-	}
-}
-
-func TestSplitter(t *testing.T) {
-	cases := map[string]struct {
-		response         string
-		splittedResponse string
-	}{
-		"[Success] If response is as expected": {
-			response:         CstorResponse,
-			splittedResponse: SplittedResponse,
-		},
-		"[Failure] If response is not as expected, splitter should return nil string": {
-			response:         NilCstorResponse,
-			splittedResponse: "",
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			if got := splitter(tt.response); !reflect.DeepEqual(got, tt.splittedResponse) {
-				t.Fatalf("splitter(%v) => expected %v, got %v", tt.response, tt.splittedResponse, got)
-			}
-		})
-	}
-
-}
-
-func TestReadHeader(t *testing.T) {
-	Unlink(t)
-	cases := map[string]struct {
-		cstor          *Cstor
-		err            error
-		fakeUnixServer bool
-		header         string
-	}{
-		// Only success case of this can be performed, because you
-		// can't control the server's status at the run time in unit test.
-		// To test the failure case, we need to down the server at
-		// the run time and determining that situation (time) is not
-		// possible in unit test.
-		"[Success] Read header if server is available": {
-			cstor: &Cstor{
-				// conn value will be set at the run time after
-				// making the connection.
-				Conn: nil,
-			},
-			err:    nil,
-			header: "iSCSI Target Controller version istgt:0.5.20121028:15:21:49:Jun  8 2018 on  from \r\n",
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			runFakeUnixServer(t, &wg, tt.header)
-			wg.Wait()
-			conn, err := net.Dial("unix", "/tmp/go.sock")
-			if err != nil {
-				t.Fatal("err in dial :", err)
-			}
-			// overwrite the value of conn from nil to
-			// expected value.
-			tt.cstor.Conn = conn
-			tt.cstor.writer()
-			//			}
-			got := tt.cstor.ReadHeader()
-			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("ReadHeader(%v) : expected %v, got %v", tt.cstor.Conn, tt.err, got)
-			}
-		})
-		// unlink the socketpath
-		Unlink(t)
 	}
 }

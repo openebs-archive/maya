@@ -1,4 +1,4 @@
-package v1
+package stats
 
 import "encoding/json"
 
@@ -6,30 +6,16 @@ import "encoding/json"
 // or RW and HEALTHY or DEGRADED for cstor respectively
 type ReplicaMode string
 
-// VolumeMetrics is used to store the collected metrics
-// all the stats exposed by jiva stored into OpenEBSVolumeMetrics fields
-// This structure is depricated. Use VolumeStats instead of this one
-type VolumeMetrics struct {
-	Resource        Resource
-	RevisionCounter int64         `json:"RevisionCounter"`
-	ReplicaCounter  int64         `json:"ReplicaCounter"`
-	SCSIIOCount     map[int]int64 `json:"SCSIIOCount"`
-
-	ReadIOPS            string `json:"ReadIOPS"`
-	TotalReadTime       string `json:"TotalReadTime"`
-	TotalReadBlockCount string `json:"TotalReadBlockCount"`
-
-	WriteIOPS            string `json:"WriteIOPS"`
-	TotalWriteTime       string `json:"TotalWriteTime"`
-	TotalWriteBlockCount string `json:"TotalWriteBlockCount"`
-
-	UsedLogicalBlocks string  `json:"UsedLogicalBlocks"`
-	UsedBlocks        string  `json:"UsedBlocks"`
-	SectorSize        string  `json:"SectorSize"`
-	Size              string  `json:"Size"`
-	UpTime            float64 `json:"UpTime"`
-	Name              string  `json:"Name"`
-}
+const (
+	// BytesToGB used to convert bytes to GB
+	BytesToGB = 1073741824
+	// BytesToMB used to convert bytes to MB
+	BytesToMB = 1048567
+	// BytesToKB used to convert bytes to KB
+	BytesToKB = 1024
+	// MicSec used to convert to microsec to second
+	MicSec = 1000000
+)
 
 // VolumeStats is used to store the collected metrics
 // TODO: Make this generic, so that it can be used by mayactl
@@ -103,27 +89,4 @@ type Replica struct {
 	Address string `json:"Address"`
 	// Mode is the mode of replica.
 	Mode ReplicaMode `json:"Mode"`
-}
-
-// VolStatus stores the status of a volume.
-type VolStatus struct {
-	Resource        Resource
-	ReplicaCounter  int64  `json:"replicacounter"`
-	RevisionCounter string `json:"revisioncounter"`
-}
-
-// Resource stores information about a resources.
-type Resource struct {
-	Id      string            `json:"id,omitempty"`
-	Type    string            `json:"type,omitempty"`
-	Links   map[string]string `json:"links"`
-	Actions map[string]string `json:"actions"`
-}
-
-// Annotation stores information about an iSCSI volume.
-type Annotation struct {
-	IQN    string `json:"Iqn"`
-	Volume string `json:"Volume"`
-	Portal string `json:"Portal"`
-	Size   string `json:"Size"`
 }

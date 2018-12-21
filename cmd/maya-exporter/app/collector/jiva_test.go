@@ -1,18 +1,16 @@
 package collector
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"regexp"
 	"testing"
 	"time"
 
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	utiltesting "k8s.io/client-go/util/testing"
@@ -109,9 +107,10 @@ func TestJivaCollector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Couldn't parse the controller URL, found error %v", err)
 			}
-			// col is an instance of the Volume exporter which gets
+			jiva := Jiva(control)
+			// exporter is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			col := NewJivaStatsExporter(control, "jiva")
+			col := New(jiva, "jiva")
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
@@ -135,6 +134,7 @@ func TestJivaCollector(t *testing.T) {
 
 			for _, re := range tt.match {
 				if !re.Match(buf) {
+					fmt.Println(string(buf))
 					t.Errorf("failed matching: %q", re)
 				}
 			}
@@ -148,62 +148,13 @@ func TestJivaCollector(t *testing.T) {
 	}
 }
 
-func TestJivaStatsCollector(t *testing.T) {
-	cases := map[string]struct {
-		exporter    *VolumeStatsExporter
-		err         error
-		fakehandler utiltesting.FakeHandler
-		testServer  bool
-	}{
-		"[Success] If controller is Jiva and its running": {
-			exporter: &VolumeStatsExporter{
-				CASType: "jiva",
-				Jiva: Jiva{
-					VolumeControllerURL: "localhost:9500",
-				},
-				Metrics: *MetricsInitializer("jiva"),
-			},
-			testServer: true,
-			fakehandler: utiltesting.FakeHandler{
-				StatusCode:   200,
-				ResponseBody: string(controllerResponse),
-				T:            t,
-			},
-
-			err: nil,
-		},
-		"[Failure] If controller is Jiva and it is not reachable": {
-			exporter: &VolumeStatsExporter{
-				CASType: "jiva",
-				Jiva: Jiva{
-					VolumeControllerURL: "localhost:9500",
-				},
-				Metrics: *MetricsInitializer("jiva"),
-			},
-			err: errors.New("error in collecting metrics"),
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			if tt.testServer {
-				server := httptest.NewServer(&tt.fakehandler)
-				tt.exporter.VolumeControllerURL = server.URL
-			}
-			got := tt.exporter.Jiva.collector(&tt.exporter.Metrics)
-			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("collector() : expected %v, got %v", tt.err, got)
-			}
-		})
-	}
-}
-
 func TestGetVolumeStats(t *testing.T) {
 
 	cases := map[string]struct {
-		jiva        Jiva
+		jiva        jiva
 		obj         v1.VolumeStats
 		fakeHandler utiltesting.FakeHandler
-		err         error
+		err         bool
 	}{
 		"Valid Response from jiva controller": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -211,7 +162,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(validControllerResp),
 				T:            t,
 			},
-			err: nil,
+			err: false,
 		},
 		"Invalid Response from jiva controller": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -219,17 +170,19 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(invalidControllerResp),
 				T:            t,
 			},
-			err: errors.New("Error in unmarshalling the json response"),
+			err: true,
 		},
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
 			defer server.Close()
-			tt.jiva.VolumeControllerURL = server.URL
-			got := tt.jiva.getVolumeStats(&tt.obj)
-			if !reflect.DeepEqual(got, tt.err) {
-				t.Fatalf("getVolumeStats(%v) => got %v, want %v", server.URL, got, tt.err)
+			tt.jiva.url = server.URL
+			err := tt.jiva.getVolumeStats(&tt.obj)
+			if err != nil {
+				if !tt.err {
+					t.Fatalf("getVolumeStats(%v) => got %v, want %v", server.URL, err, tt.err)
+				}
 			}
 		})
 	}
