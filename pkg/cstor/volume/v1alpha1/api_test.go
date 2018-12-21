@@ -1,9 +1,9 @@
-package api
+package v1alpha1
 
 import (
 	"testing"
 
-	"github.com/openebs/maya/pkg/client/generated/cstor-volume-grpc/v1alpha1"
+	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 )
 
 type TestUnixSock struct{}

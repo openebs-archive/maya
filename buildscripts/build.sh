@@ -87,15 +87,6 @@ env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
     -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
     -o $output_name\
     ./cmd/${CTLNAME}
-if [ "${PNAME}" = "cstor-volume-mgmt" ]; then
-    env GOOS=$GOOS GOARCH=$GOARCH go build -ldflags \
-    "-X github.com/openebs/maya/pkg/version.GitCommit=${GIT_COMMIT} \
-        -X main.CtlName='cstor-volume-grpc' \
-        -X github.com/openebs/maya/pkg/version.Version=${VERSION} \
-        -X github.com/openebs/maya/pkg/version.VersionMeta=${VERSION_META}"\
-        -o "bin/cstor-volume-mgmt/"$GOOS"_"$GOARCH"/cstor-volume-grpc"\
-        ./cmd/cstor-volume-grpc
-fi
 
 echo ""
 

@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"time"
 
 	"strings"
 
@@ -33,14 +32,7 @@ import (
 
 // VolumeOperator is the name of the tool that makes volume-related operations.
 const (
-	VolumeOperator       = "iscsi"
-	IstgtConfPath        = "/usr/local/etc/istgt/istgt.conf"
-	IstgtStatusCmd       = "STATUS"
-	IstgtRefreshCmd      = "REFRESH"
-	IstgtReplicaCmd      = "REPLICA"
-	IstgtExecuteQuietCmd = "-q"
-	ReplicaStatus        = "Replica status"
-	WaitTimeForIscsi     = 3 * time.Second
+	VolumeOperator = "iscsi"
 )
 
 //FileOperatorVar is used for doing File Operations
@@ -49,18 +41,23 @@ var FileOperatorVar util.FileOperator
 //UnixSockVar is used for communication through Unix Socket
 var UnixSockVar util.UnixSock
 
+func init() {
+	UnixSockVar = util.RealUnixSock{}
+	FileOperatorVar = util.RealFileOperator{}
+}
+
 // CreateVolumeTarget creates a new cStor volume istgt config.
 func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 	// create conf file
 	text := CreateIstgtConf(cStorVolume)
-	err := FileOperatorVar.Write(IstgtConfPath, text, 0644)
+	err := FileOperatorVar.Write(util.IstgtConfPath, text, 0644)
 	if err != nil {
 		glog.Errorf("Failed to write istgt.conf")
 	}
 	glog.Info("Done writing istgt.conf")
 
 	// send refresh command to istgt and read the response
-	_, err = UnixSockVar.SendCommand(IstgtRefreshCmd)
+	_, err = UnixSockVar.SendCommand(util.IstgtRefreshCmd)
 	if err != nil {
 		glog.Info("Failed to refresh iscsi service with new configuration.")
 	}
@@ -72,7 +69,7 @@ func CreateVolumeTarget(cStorVolume *apis.CStorVolume) error {
 // GetVolumeStatus retrieves an array of replica statuses.
 func GetVolumeStatus(cStorVolume *apis.CStorVolume) (*apis.CVStatus, error) {
 	// send replica command to istgt and read the response
-	statuses, err := UnixSockVar.SendCommand(IstgtReplicaCmd)
+	statuses, err := UnixSockVar.SendCommand(util.IstgtReplicaCmd)
 	if err != nil {
 		glog.Errorf("Failed to list replicas.")
 		return nil, err
@@ -221,17 +218,4 @@ func CheckValidVolume(cStorVolume *apis.CStorVolume) error {
 	}
 
 	return nil
-}
-
-// CheckForIscsi is blocking call for checking status of istgt in cstor-istgt container.
-func CheckForIscsi() {
-	for {
-		_, err := UnixSockVar.SendCommand(IstgtStatusCmd)
-		if err != nil {
-			time.Sleep(WaitTimeForIscsi)
-			glog.Warningf("Waiting for istgt... err : %v", err)
-			continue
-		}
-		break
-	}
 }
