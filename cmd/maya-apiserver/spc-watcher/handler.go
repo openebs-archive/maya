@@ -24,6 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
+	"strings"
+)
+
+const (
+	// DEFAULTPOOlCOUNT will be set to maxPool field of spc if maxPool field is not provided.
+	DEFAULTPOOlCOUNT = 3
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -68,7 +74,7 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 	switch operation {
 	case addEvent:
 		// Call addEventHandler in case of add event.
-		err := c.addEventHandler(spcGot)
+		err := c.addEventHandler(spcGot, false)
 		return addEvent, err
 
 	case updateEvent:
@@ -136,43 +142,37 @@ func (c *Controller) getSpcResource(key string) (*apis.StoragePoolClaim, error) 
 
 // synSpc is the function which tries to converge to a desired state for the spc.
 func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
-	glog.V(1).Infof("Syncing storagepoolclaim %s", spcGot.Name)
-	currentPoolCount, err := c.getCurrentPoolCount(spcGot)
-	if err != nil {
-		return err
-	}
-	maxPoolCount := int(spcGot.Spec.MaxPools)
-	// If current pool count is less than maxPool count, try to converge to maxPool.
-	if currentPoolCount < maxPoolCount {
-		glog.Infof("Converging storagepoolclaim %s to desired state:current pool count is %d,desired pool count is %d", spcGot.Name, currentPoolCount, spcGot.Spec.MaxPools)
-		// pendingPoolCount holds the pending pool that should be provisioned to get the desired state.
-		pendingPoolCount := maxPoolCount - currentPoolCount
-		// Call the storage pool create logic to provision the pending pools.
-		err = c.create(pendingPoolCount, spcGot)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	glog.V(1).Infof("Reconciling storagepoolclaim %s", spcGot.Name)
+	err := c.addEventHandler(spcGot, true)
+	return err
 }
 
 // addEventHandler is the event handler for the add event of spc.
-func (c *Controller) addEventHandler(spc *apis.StoragePoolClaim) error {
-	err := validate(spc)
+func (c *Controller) addEventHandler(spc *apis.StoragePoolClaim, resync bool) error {
+	mutateSpc, err := validate(spc)
 	if err != nil {
 		return err
 	}
-	currentPoolCount, err := c.getCurrentPoolCount(spc)
+	// validate can mutate spc object -- for example if maxPool field is not present in case
+	// of auto provisioning, maxPool will default to 3.
+	// We need to immediately patch SPC object here.
+	if mutateSpc && !resync {
+		spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Update(spc)
+		if err != nil {
+			return errors.Wrap(err, "spc patch for defaulting the field(s) failed")
+		}
+	}
+	pendingPoolCount, err := c.getPendingPoolCount(spc)
 	if err != nil {
 		return err
 	}
-	err = c.create(spc.Spec.MaxPools-currentPoolCount, spc)
+	err = c.create(pendingPoolCount, spc)
 	return nil
 }
 
 // create is a wrapper function that calls the actual function to create pool as many time
 // as the number of pools need to be created.
-func (c *Controller) create(maxPool int, spc *apis.StoragePoolClaim) error {
+func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) error {
 	var newSpcLease Leaser
 	newSpcLease = &Lease{spc, SpcLeaseKey, c.clientset, c.kubeclientset}
 	err := newSpcLease.Hold()
@@ -181,39 +181,48 @@ func (c *Controller) create(maxPool int, spc *apis.StoragePoolClaim) error {
 	}
 	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
-	for poolCount := 1; poolCount <= maxPool; poolCount++ {
-		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, maxPool, spc.Name)
+	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
+		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name)
 		err = CreateStoragePool(spc)
 		if err != nil {
-			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, maxPool, spc.Name))
+			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name))
 		}
 	}
 	return nil
 }
 
 // validate validates the spc configuration before creation of pool.
-func validate(spc *apis.StoragePoolClaim) error {
+func validate(spc *apis.StoragePoolClaim) (bool, error) {
+	// ToDo: Move these to admission webhook plugins or CRD validations
 	// Validations for poolType
-	if spc.Spec.MaxPools <= 0 {
-		return errors.Errorf("aborting storagepool create operation for %s as maxPool count is invalid ", spc.Name)
+	var mutateSpc bool
+	if len(spc.Spec.Disks.DiskList) == 0 {
+		maxPools := spc.Spec.MaxPools
+		if maxPools == 0 {
+			spc.Spec.MaxPools = DEFAULTPOOlCOUNT
+			mutateSpc = true
+		}
+		if maxPools < 0 {
+			return mutateSpc, errors.Errorf("aborting storagepool create operation for %s as invalid maxPool value %d", spc.Name, maxPools)
+		}
 	}
 	poolType := spc.Spec.PoolSpec.PoolType
 	if poolType == "" {
-		return errors.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
+		return mutateSpc, errors.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
 	}
 
 	if !(poolType == string(apis.PoolTypeStripedCPV) || poolType == string(apis.PoolTypeMirroredCPV)) {
-		return errors.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
+		return mutateSpc, errors.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
 	}
 
 	diskType := spc.Spec.Type
 	if !(diskType == string(apis.TypeSparseCPV) || diskType == string(apis.TypeDiskCPV)) {
-		return errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
+		return mutateSpc, errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
-	return nil
+	return mutateSpc, nil
 }
 
-// getCurrentPoolCount give the current pool count for the given spc.
+// getCurrentPoolCount give the current pool count for the given auto provisioned spc.
 func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	// Get the current count of provisioned pool for the storagepool claim
 	spList, err := c.clientset.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
@@ -221,4 +230,50 @@ func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error
 		return 0, errors.Errorf("unable to get current pool count:unable to list storagepools: %v", err)
 	}
 	return len(spList.Items), nil
+}
+
+// getPendingPoolCount gives the count of pool that needs to be provisioned for a given spc.
+func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error) {
+	var pendingPoolCount int
+	if len(spc.Spec.Disks.DiskList) == 0 {
+		currentPoolCount, err := c.getCurrentPoolCount(spc)
+		if err != nil {
+			return 0, err
+		}
+		maxPoolCount := int(spc.Spec.MaxPools)
+		pendingPoolCount = maxPoolCount - currentPoolCount
+	} else {
+		// ToDo: -- Refactor using disk refernces to find the used disks
+		// allNodeDiskMap holds the map : diskName --> hostName ; for all the disks.
+		allNodeDiskMap := make(map[string]string)
+		// Get all disk in one shot from kube-apiserver
+		diskList, err := c.clientset.OpenebsV1alpha1().Disks().List(metav1.ListOptions{})
+		if err != nil {
+			return 0, err
+		}
+		newClientSet := &clientSet{
+			c.clientset,
+		}
+		// Get used disk for the SPC
+		// usedDiskMap holds the disk which are already used.
+		usedDiskMap, err := newClientSet.getUsedDiskMap()
+		for _, disk := range diskList.Items {
+			if usedDiskMap[disk.Name] == 1 {
+				continue
+			}
+			allNodeDiskMap[disk.Name] = disk.Labels[string(apis.HostNameCPK)]
+		}
+		// nodeCountMap holds the node names as the key over which pool should be provisioned.
+		nodeCountMap := make(map[string]int)
+		for _, spcDisk := range spc.Spec.Disks.DiskList {
+			if !(len(strings.TrimSpace(allNodeDiskMap[spcDisk])) == 0) {
+				nodeCountMap[allNodeDiskMap[spcDisk]]++
+			}
+		}
+		pendingPoolCount = len(nodeCountMap)
+	}
+	if pendingPoolCount < 0 {
+		return 0, errors.Errorf("Got invalid pending pool count %d", pendingPoolCount)
+	}
+	return pendingPoolCount, nil
 }

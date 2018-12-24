@@ -117,6 +117,7 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
   task: |-
+    {{- $diskDeviceIdList:= .Storagepool.diskDeviceIdList }}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
@@ -128,7 +129,10 @@ spec:
         openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
-        diskList: {{.Storagepool.diskDeviceIdList}}
+        diskList:
+        {{- range $k, $deviceID := $diskDeviceIdList }}
+        - {{ $deviceID }}
+        {{- end }}
       poolSpec:
         poolType: {{.Storagepool.poolType}}
         cacheFile: /tmp/{{.Storagepool.owner}}.cache
@@ -293,6 +297,7 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putstoragepool.objectName" .TaskResult | noop -}}
   task: |-
+    {{- $diskList:= .Storagepool.diskList }}
     apiVersion: openebs.io/v1alpha1
     kind: StoragePool
     metadata:
@@ -306,7 +311,10 @@ spec:
         openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
-        diskList: {{.Storagepool.diskList}}
+        diskList:
+        {{- range $k, $diskName := $diskList }}
+        - {{ $diskName }}
+        {{- end }}
       poolSpec:
         poolType: {{.Storagepool.poolType}}
         cacheFile: /tmp/{{.Storagepool.owner}}.cache
