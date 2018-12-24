@@ -19,6 +19,7 @@ package backupcontroller
 import (
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
@@ -72,12 +73,19 @@ func (c *CStorBackupController) csbEventHandler(operation common.QueueOperation,
 		glog.Infof("Processing csb added event: %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
 		status, err := c.csbAddEventHandler(csbGot)
 		return status, err
-
 	case common.QOpDestroy:
-		glog.Infof("Processing csb deleted event %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
+		/*
+			status, err := c.csbDestroyEventHandler(csbGot)
+			return status, err
+			glog.Infof("Processing csb deleted event %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
+		*/
 		return "", nil
 	case common.QOpSync:
-		glog.Infof("Synchronizing CstorBackup status for volume %s", csbGot.ObjectMeta.Name)
+		/*
+			status, err := c.csbSyncEventHandler(csbGot)
+			return status, err
+			glog.Infof("Synchronizing CstorBackup status for volume %s", csbGot.ObjectMeta.Name)
+		*/
 		return "", nil
 	}
 	return string(apis.CSBStatusInvalid), nil
@@ -139,6 +147,23 @@ func (c *CStorBackupController) getCStorBackupResource(key string) (*apis.CStorB
 // IsRightCStorPoolMgmt is to check if the pool request is for particular pod/application.
 func IsRightCStorPoolMgmt(cStorPool *apis.CStorBackup) bool {
 	if os.Getenv(string(common.OpenEBSIOCStorID)) == cStorPool.ObjectMeta.Labels["cstorpool.openebs.io/uid"] {
+		return true
+	}
+	return false
+}
+
+// IsDestroyEvent is to check if the call is for CStorVolumeReplica destroy.
+func IsDestroyEvent(cVR *apis.CStorBackup) bool {
+	if cVR.ObjectMeta.DeletionTimestamp != nil {
+		return true
+	}
+	return false
+}
+
+// IsOnlyStatusChange is to check only status change of cStorVolumeReplica object.
+func IsOnlyStatusChange(oldCSB, newCSB *apis.CStorBackup) bool {
+	if reflect.DeepEqual(oldCSB.Spec, newCSB.Spec) &&
+		!reflect.DeepEqual(oldCSB.Status, newCSB.Status) {
 		return true
 	}
 	return false

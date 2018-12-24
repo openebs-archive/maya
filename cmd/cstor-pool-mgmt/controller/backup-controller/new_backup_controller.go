@@ -19,6 +19,7 @@ package backupcontroller
 import (
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -122,10 +123,70 @@ func NewCStorBackupController(
 			controller.recorder.Event(csb, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 			csb.Status.Phase = apis.CSBStatusPending
 			csb, _ = controller.clientset.OpenebsV1alpha1().CStorBackups(csb.Namespace).Update(csb)
+			csbData := create_csb_data(csb)
 
+			_, err := controller.clientset.OpenebsV1alpha1().CStorBackupDatas(csb.Namespace).Create(csbData)
+			if err != nil {
+				glog.Errorf("Failed to create backupdata: error '%s'", err.Error())
+				return
+			}
 			controller.enqueueCStorBackup(csb, q)
 		},
 		UpdateFunc: func(old, new interface{}) {
+			newCSB := new.(*apis.CStorBackup)
+			oldCSB := old.(*apis.CStorBackup)
+			glog.Infof("CStorBackup sync done %s %s", newCSB.Spec.Name, newCSB.Spec.IncrementalBackupName)
+			if !IsRightCStorPoolMgmt(newCSB) {
+				return
+			}
+			if IsOnlyStatusChange(oldCSB, newCSB) {
+				glog.Infof("Only cSB status change: %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
+				return
+			}
+			if IsDeletionFailedBefore(newCSB) || IsErrorDuplicate(newCSB) {
+				return
+			}
+			if newCSB.ResourceVersion == oldCSB.ResourceVersion {
+				q.Operation = common.QOpSync
+				glog.Infof("CstorBackup status sync event for %s", newCSB.ObjectMeta.Name)
+				glog.Infof("CStorBackup sync done %s", newCSB.Spec.IncrementalBackupName)
+				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
+			} else if IsDestroyEvent(newCSB) {
+				q.Operation = common.QOpDestroy
+				glog.Infof("cStorBAckup Destroy event : %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
+				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
+			} else {
+				q.Operation = common.QOpModify
+				listOptions := v1.ListOptions{}
+				var backupData *apis.CStorBackupData
+				backupDataList, err := controller.clientset.OpenebsV1alpha1().CStorBackupDatas(newCSB.Namespace).List(listOptions)
+				for _, bkpData := range backupDataList.Items {
+					if bkpData.Spec.Name == newCSB.Spec.Name {
+						backupData = &bkpData
+					}
+				}
+				if backupData == nil {
+					glog.Infof("Failed to find backupData for %s", newCSB.Spec.Name)
+					csbData := create_csb_data(newCSB)
+					_, err := controller.clientset.OpenebsV1alpha1().CStorBackupDatas(newCSB.Namespace).Create(csbData)
+					if err != nil {
+						glog.Errorf("Failed to create backupdata: error '%s'", err.Error())
+						return
+					}
+					glog.Infof("Successfully Created backupData for %s", newCSB.Spec.Name, csbData.Spec.IncrementalBackupName)
+				} else {
+					update_csb_data(newCSB, backupData)
+					backupData, err = controller.clientset.OpenebsV1alpha1().CStorBackupDatas(newCSB.Namespace).Update(backupData)
+					if err != nil {
+						glog.Errorf("Failed to update backupdata: error '%s'", err.Error())
+
+					}
+					glog.Infof("Successfully Updated backupData for %s %s", newCSB.Spec.IncrementalBackupName, backupData.Spec.IncrementalBackupName)
+				}
+				glog.Infof("cStorBackup Modify event : %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
+				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
+			}
+			//controller.enqueueCStorBackup(newCSB, q)
 			// ToDo : Enqueue object for processing in case of update event
 			// Note : UpdateFunc is called in following three cases:
 			// 1. When object is updated/patched i.e. Resource version of object changes.
@@ -133,11 +194,14 @@ func NewCStorBackupController(
 			// 3. After every resync interval.
 		},
 		DeleteFunc: func(obj interface{}) {
-			// Note: DeleteFunc is called when object is deleted i.e. when deletion timestamp of object is set.
-			// ToDo : Enqueue object for processing in case of delete event
+			csb := obj.(*apis.CStorBackup)
+			if !IsRightCStorPoolMgmt(csb) {
+				return
+			}
+			glog.Infof("csb Resource deleted event: %v, %v", csb.ObjectMeta.Name, string(csb.ObjectMeta.UID))
+
 		},
 	})
-
 	return controller
 }
 
@@ -153,4 +217,19 @@ func (c *CStorBackupController) enqueueCStorBackup(obj *apis.CStorBackup, q comm
 	}
 	q.Key = key
 	c.workqueue.AddRateLimited(q)
+}
+
+func create_csb_data(csb *apis.CStorBackup) *apis.CStorBackupData {
+	backupData := &apis.CStorBackupData{}
+	backupData.Name = csb.Name
+	backupData.Spec.Name = csb.Spec.Name
+	backupData.Spec.VolumeName = csb.Spec.VolumeName
+	backupData.Spec.LastSnapshotName = csb.Spec.LastSnapshotName
+	backupData.Spec.IncrementalBackupName = csb.Spec.IncrementalBackupName
+	return backupData
+}
+
+func update_csb_data(csb *apis.CStorBackup, backupData *apis.CStorBackupData) {
+	backupData.Spec.LastSnapshotName = csb.Spec.LastSnapshotName
+	backupData.Spec.IncrementalBackupName = csb.Spec.IncrementalBackupName
 }

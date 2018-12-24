@@ -35,9 +35,12 @@ type CStorBackup struct {
 
 // CStorBackupSpec is the spec for a CStorBackup resource
 type CStorBackupSpec struct {
-	VolumeName string `json:"volumeName"`
-	CasType    string `json:"casType"`
-	BackupIP   string `json:"backupIP"`
+	Name                  string `json:"name"`
+	VolumeName            string `json:"volumeName"`
+	CasType               string `json:"casType"`
+	LastSnapshotName      string `json:"snapshotName"`
+	IncrementalBackupName string `json:"incrementalBackupName"`
+	BackupIP              string `json:"backupIP"`
 }
 
 // CStorBackupPhase is to hold result of action.
