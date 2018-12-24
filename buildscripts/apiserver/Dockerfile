@@ -3,20 +3,17 @@
 # maya api server's releases.
 #
 
-FROM alpine:3.6
+FROM ubuntu
 
 # TODO: The following env variables should be auto detected.
 ENV MAYA_API_SERVER_NETWORK="eth0"
 
-RUN apk add --no-cache \
+RUN apt update && apt install -y \
     iproute2 \
     bash \
     curl \
-    net-tools \
-    mii-tool \
-    procps \
-    libc6-compat \
-    ca-certificates
+    net-tools
+    
 RUN mkdir -p /etc/apiserver/orchprovider
 RUN mkdir -p /etc/apiserver/specs
 
