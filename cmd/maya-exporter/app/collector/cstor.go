@@ -124,7 +124,7 @@ func (c *cstor) readHeader() error {
 			break
 		}
 	}
-	glog.Info("Connection established with istgt, got header: %#v", str)
+	glog.Infof("Connection established with istgt, got header: %#v", str)
 	return nil
 }
 
