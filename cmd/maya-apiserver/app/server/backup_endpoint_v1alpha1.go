@@ -43,14 +43,15 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// namespace is expected
+	if len(strings.TrimSpace(backup.Namespace)) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to create backup '%v': missing namespace", backup.Name))
+	}
+
 	// backup name is expected
 	if len(strings.TrimSpace(backup.Spec.Name)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create backup: missing backup name "))
-	}
-
-	// incrementalBackup name is expected
-	if len(strings.TrimSpace(backup.Spec.IncrementalBackupName)) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to create backup: missing incremental backup name "))
 	}
 
 	// volume name is expected
@@ -59,38 +60,16 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	}
 
 	// backupIP is expected
-	if len(strings.TrimSpace(backup.Spec.BackupIP)) == 0 {
+	if len(strings.TrimSpace(backup.Spec.BackupDest)) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to create backup '%v': missing backupIP", backup.Name))
 	}
 
-	// namespace is expected
-	if len(strings.TrimSpace(backup.Namespace)) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to create backup '%v': missing namespace", backup.Name))
-	}
-
-	//TODO Create snapname randomly
-	snapshotName := backup.Spec.Name + backup.Spec.IncrementalBackupName
-	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
-		VolumeName: backup.Spec.VolumeName,
-		Namespace:  backup.Namespace,
-		CasType:    backup.Spec.CasType,
-		Name:       snapshotName,
-	})
-	if err != nil {
-		return nil, CodedError(400, err.Error())
-	}
-
-	glog.Infof("Creating %s volume %q snapshot", backup.Spec.CasType, backup.Spec.VolumeName)
-
-	snap, err := snapOps.Create()
-	if err != nil {
-		glog.Errorf("Failed to create snapshot: error '%s'", err.Error())
-		return nil, CodedError(500, err.Error())
-	}
-	backup.Spec.LastSnapshotName = snapshotName
 	backup.Name = backup.Spec.Name
-	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
-
+	backup.Spec.SnapName = backup.Name
+	//TODO Create snapname randomly
+	if err = create_snapshot_for_backup(backup); err != nil {
+		return nil, err
+	}
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{}
 	bkpList, err := openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).List(listOptions)
@@ -98,11 +77,12 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	//Check if this schedule is already present
 	for _, bkp := range bkpList.Items {
 		if backup.Spec.Name == bkp.Spec.Name {
-			bkp.Spec.LastSnapshotName = snapshotName
-			bkp.Spec.IncrementalBackupName = backup.Spec.IncrementalBackupName
+			bkp.Spec.PrevSnapName = bkp.Spec.SnapName
+			bkp.Spec.SnapName = backup.Spec.SnapName
+			bkp.Spec.Name = backup.Spec.Name
 			openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
-			glog.Infof("Creating incremental backup %s for %s volume %s poolUUID:%v",
-				backup.Spec.IncrementalBackupName, backup.Spec.Name,
+			glog.Infof("Creating incremental backup %s volume %s poolUUID:%v",
+				backup.Spec.Name,
 				backup.Spec.VolumeName, bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 			return "", nil
 		}
@@ -124,8 +104,8 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		}
 	}
 
-	glog.Infof("Creating backup %s for %s volume %q poolUUID:%v", backup.Spec.IncrementalBackupName,
-		backup.Spec.Name, backup.Spec.VolumeName,
+	glog.Infof("Creating backup %s for volume %q poolUUID:%v", backup.Spec.Name,
+		backup.Spec.VolumeName,
 		backup.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).Create(backup)
 	if err != nil {
@@ -135,6 +115,28 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 
 	glog.Infof("Backup CR created successfully: name '%s'", backup.Name)
 	return "", nil
+}
+
+func create_snapshot_for_backup(backup *v1alpha1.CStorBackup) error {
+	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
+		VolumeName: backup.Spec.VolumeName,
+		Namespace:  backup.Namespace,
+		CasType:    backup.Spec.CasType,
+		Name:       backup.Spec.SnapName,
+	})
+	if err != nil {
+		return CodedError(400, err.Error())
+	}
+
+	glog.Infof("Creating %s volume %q snapshot", backup.Spec.CasType, backup.Spec.VolumeName)
+
+	snap, err := snapOps.Create()
+	if err != nil {
+		glog.Errorf("Failed to create snapshot: error '%s'", err.Error())
+		return CodedError(500, err.Error())
+	}
+	glog.Infof("Snapshot created successfully: name '%s'", snap.Name)
+	return nil
 }
 
 // loadClientFromServiceAccount loads a k8s client from a ServiceAccount

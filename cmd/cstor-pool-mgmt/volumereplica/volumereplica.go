@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"encoding/json"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -35,6 +36,8 @@ const (
 	CreateCmd = "create"
 	// CloneCmd is the zfs volume clone command.
 	CloneCmd = "clone"
+	// BackupCmd is the zfs volume send command.
+	BackupCmd = "send"
 	// StatsCmd is the zfs volume stats command.
 	StatsCmd = "stats"
 	// ZfsStatusDegraded is the degraded state of zfs volume.
@@ -168,6 +171,37 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 		"-o", openebsVolname, snapName, fullVolName)
 
 	return cloneVolCmd
+}
+
+// CreateVolumeBackup sends cStor snapshots to remote location(zfs volumes).
+func CreateVolumeBackup(csb *apis.CStorBackup) error {
+	cmd := []string{}
+	// Parse capacity unit on CVR to support backward compatibility
+	cmd = builldVolumeBackupCommand(csb.ObjectMeta.Labels["cstorpool.openebs.io/uid"], csb.Spec.VolumeName, csb.Spec.PrevSnapName, csb.Spec.SnapName, csb.Spec.BackupDest)
+
+	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", csb.Spec.VolumeName, cmd)
+
+	stdoutStderr, err := RunnerVar.RunCombinedOutput("bash", cmd...)
+	if err != nil {
+		glog.Errorf("Unable to start backup %s. error : %v", csb.Spec.VolumeName, string(stdoutStderr))
+		return err
+	}
+	return nil
+}
+
+// builldVolumeBackupCommand returns volume create command along with attributes as a string array
+func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
+	var startBackupCmd []string
+
+	backupIP_Port := strings.Split(backupDest, ":")
+	if oldSnapName == "" {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
+			"cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc "+backupIP_Port[0]+" "+backupIP_Port[1])
+	} else {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
+			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc "+backupIP_Port[0]+" "+backupIP_Port[1])
+	}
+	return startBackupCmd
 }
 
 // GetVolumes returns the slice of volumes.

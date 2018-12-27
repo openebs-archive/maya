@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,6 +47,7 @@ func (c *CStorBackupController) syncHandler(key string, operation common.QueueOp
 	if status == "" {
 		return nil
 	}
+	csbGot.Status.Phase = apis.CStorBackupPhase(status)
 	if err != nil {
 		glog.Errorf(err.Error())
 		glog.Infof("csb:%v, %v; Status: %v", csbGot.Name,
@@ -70,7 +72,6 @@ func (c *CStorBackupController) csbEventHandler(operation common.QueueOperation,
 
 	switch operation {
 	case common.QOpAdd:
-		glog.Infof("Processing csb added event: %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
 		status, err := c.csbAddEventHandler(csbGot)
 		return status, err
 	case common.QOpDestroy:
@@ -80,13 +81,9 @@ func (c *CStorBackupController) csbEventHandler(operation common.QueueOperation,
 			glog.Infof("Processing csb deleted event %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
 		*/
 		return "", nil
-	case common.QOpSync:
-		/*
-			status, err := c.csbSyncEventHandler(csbGot)
-			return status, err
-			glog.Infof("Synchronizing CstorBackup status for volume %s", csbGot.ObjectMeta.Name)
-		*/
-		return "", nil
+	case common.QOpModify:
+		status, err := c.csbSyncEventHandler(csbGot)
+		return status, err
 	}
 	return string(apis.CSBStatusInvalid), nil
 }
@@ -98,7 +95,26 @@ func (c *CStorBackupController) csbAddEventHandler(csb *apis.CStorBackup) (strin
 		glog.Infof("csb creation successful: %v, %v", csb.ObjectMeta.Name, string(csb.GetUID()))
 		return string(apis.CSBStatusOnline), nil
 	}
-	//TODO: Buisness logic for csb add event
+	err := volumereplica.CreateVolumeBackup(csb)
+	if err != nil {
+		glog.Errorf("csb creation failure: %v", err.Error())
+		return string(apis.CSBStatusOffline), err
+	}
+	return "", nil
+}
+
+func (c *CStorBackupController) csbSyncEventHandler(csb *apis.CStorBackup) (string, error) {
+	// IsEmptyStatus is to check if initial status of cVR object is empty.
+	if IsEmptyStatus(csb) || IsPendingStatus(csb) {
+		c.recorder.Event(csb, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+		glog.Infof("csb creation successful: %v, %v", csb.ObjectMeta.Name, string(csb.GetUID()))
+		return string(apis.CSBStatusOnline), nil
+	}
+	err := volumereplica.CreateVolumeBackup(csb)
+	if err != nil {
+		glog.Errorf("csb creation failure: %v", err.Error())
+		return string(apis.CSBStatusOffline), err
+	}
 	return "", nil
 }
 
