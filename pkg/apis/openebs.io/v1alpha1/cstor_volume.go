@@ -82,7 +82,7 @@ type CVStatus struct {
 // ReplicaStatus stores the status of replicas
 type ReplicaStatus struct {
 	ID                string `json:"replicaId"`
-	Status            string `json:"status"`
+	Mode              string `json:"mode"`
 	CheckpointedIOSeq string `json:"checkpointedIOSeq"`
 	InflightRead      string `json:"inflightRead"`
 	InflightWrite     string `json:"inflightWrite"`
