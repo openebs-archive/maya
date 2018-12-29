@@ -3,7 +3,6 @@ package command
 import (
 	"errors"
 	goflag "flag"
-	"log"
 	"net/url"
 
 	"github.com/golang/glog"
@@ -102,7 +101,7 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 		glog.Infof("Initialising maya-exporter for the cstor")
 		options.RegisterCstorStatsExporter()
 	case "jiva":
-		log.Println("Initialising maya-exporter for the jiva")
+		glog.Infof("Initialising maya-exporter for the jiva")
 		if err := options.RegisterJivaStatsExporter(); err != nil {
 			glog.Fatal(err)
 			return nil
@@ -124,7 +123,7 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 		return errors.New("Error in parsing the URI")
 	}
 	jiva := collector.Jiva(url)
-	exporter := collector.New(jiva, o.CASType)
+	exporter := collector.New(jiva)
 	prometheus.MustRegister(exporter)
 	glog.Info("Registered maya exporter for jiva")
 	return nil
@@ -134,11 +133,9 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 // the exporter with Prometheus for collecting the metrics.This doesn't returns
 // error because that case is handled in InitiateConnection().
 func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
-	cstor := collector.Cstor()
-	if err := cstor.InitiateConnection(socketPath); err != nil {
-		glog.Errorln("can't initiate connection with istgt, error: ", err)
-	}
-	exporter := collector.New(cstor, o.CASType)
+	cstor := collector.Cstor(socketPath)
+	exporter := collector.New(cstor)
 	prometheus.MustRegister(exporter)
+	glog.Info("Registered maya exporter for cstor")
 	return
 }

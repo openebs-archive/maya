@@ -1,9 +1,9 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/command"
 	mayalogger "github.com/openebs/maya/pkg/logs"
 )
@@ -24,7 +24,7 @@ func run() error {
 	// Create & execute new command
 	cmd, err := command.NewCmdVolumeExporter()
 	if err != nil {
-		log.Println("Can't execute the command, found err :", err)
+		glog.Error("Can't execute the command, error :", err)
 		return err
 	}
 

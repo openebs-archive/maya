@@ -2,7 +2,7 @@ package collector
 
 import (
 	"github.com/golang/glog"
-	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -12,16 +12,32 @@ type collector struct {
 	metrics
 }
 
-func New(vol Volume, casType string) *collector {
+func New(vol Volume) *collector {
+	typ := casType(vol)
+	if typ == "" {
+		glog.Fatal("exiting...")
+	}
 	return &collector{
 		vol,
-		Metrics(casType),
+		Metrics(typ),
 	}
 }
 
-// registeredGauges returns the list of the registered gauge variables
-func (c *collector) registeredGauges() []prometheus.Gauge {
-	return []prometheus.Gauge{
+func casType(vol Volume) string {
+	switch typ := vol.(type) {
+	case *jiva:
+		return "jiva"
+	case *cstor:
+		return "cstor"
+	default:
+		glog.Error("Unknown cas type: ", typ)
+		return ""
+	}
+}
+
+// collectors returns the list of the collectors
+func (c *collector) collectors() []prometheus.Collector {
+	return []prometheus.Collector{
 		c.reads,
 		c.writes,
 		c.totalReadBytes,
@@ -37,15 +53,10 @@ func (c *collector) registeredGauges() []prometheus.Gauge {
 		c.volumeStatus,
 		c.connectionErrorCounter,
 		c.connectionRetryCounter,
+		c.parseErrorCounter,
 		c.totalReplicaCounter,
 		c.degradedReplicaCounter,
 		c.healthyReplicaCounter,
-	}
-}
-
-// registeredCounters returns the list of registered counter variables
-func (c *collector) registeredCounters() []prometheus.Collector {
-	return []prometheus.Collector{
 		c.volumeUpTime,
 	}
 }
@@ -64,12 +75,8 @@ func (c *collector) registeredCounters() []prometheus.Collector {
 //
 // Describe implements Describe method of prometheus.Collector interface.
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {
-	for _, gauge := range c.registeredGauges() {
-		gauge.Describe(ch)
-	}
-
-	for _, counter := range c.registeredCounters() {
-		counter.Describe(ch)
+	for _, col := range c.collectors() {
+		col.Describe(ch)
 	}
 }
 
@@ -98,27 +105,26 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		volumeStats v1.VolumeStats
 		stats       stats
 	)
+
+	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
 		glog.Errorln(err)
 		c.setError(err)
 	}
 
-	stats = c.parse(volumeStats)
+	stats = c.parse(volumeStats, metrics)
 
 	c.set(stats)
 
 	// collect the metrics extracted by collect method
-	for _, gauge := range c.registeredGauges() {
-		gauge.Collect(ch)
-	}
-	for _, counter := range c.registeredCounters() {
-		counter.Collect(ch)
+	for _, col := range c.collectors() {
+		col.Collect(ch)
 	}
 }
 
 func (c *collector) setError(err error) {
 	c.connectionErrorCounter.Inc()
-	if _, ok := err.(*connErr); ok {
+	if _, ok := err.(*colErr); ok {
 		c.connectionRetryCounter.Inc()
 	}
 }

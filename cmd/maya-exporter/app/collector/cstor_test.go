@@ -1,16 +1,19 @@
 package collector
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"regexp"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -23,59 +26,8 @@ var (
 	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }\r\nOK IOSTATS\r\n`
 )
 
-<<<<<<< 6f92d015ea64d5c1e4b9f4819cae9c85ae8d4848:cmd/maya-exporter/app/collector/cstorcollector_test.go
-func TestNewResponse(t *testing.T) {
-	cases := map[string]struct {
-		response string
-		output   v1.VolumeStats
-	}{
-		"[Success]Unmarshal Response into Metrics struct": {
-			response: JSONFormatedResponse,
-			output: v1.VolumeStats{
-				Size:                 "10737418240",
-				Iqn:                  "iqn.2017-08.OpenEBS.cstor:vol1",
-				Writes:               "0",
-				Reads:                "0",
-				TotalReadBytes:       "0",
-				TotalWriteBytes:      "0",
-				UsedLogicalBlocks:    "19",
-				SectorSize:           "512",
-				TotalReadBlockCount:  "12",
-				TotalWriteBlockCount: "15",
-				TotalReadTime:        "13",
-				TotalWriteTime:       "132",
-				UpTime:               "20",
-				ReplicaCounter:       "3",
-				RevisionCounter:      "1000",
-				Replicas: []v1.Replica{
-					{
-						Address: "tcp://172.18.0.3:9502",
-						Mode:    "DEGRADED",
-					},
-					{
-						Address: "tcp://172.18.0.4:9502",
-						Mode:    "HEALTHY",
-					},
-					{
-						Address: "tcp://172.18.0.5:9502",
-						Mode:    "HEALTHY",
-					},
-				},
-			},
-		},
-		"[Failure]Unmarshal Response returns empty Metrics": {
-			response: ImproperJSONFormatedResponse,
-			output:   v1.VolumeStats{},
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			got, _ := newResponse(tt.response)
-			if !reflect.DeepEqual(got, tt.output) {
-				t.Fatalf("unmarshal(%v) : expected %v, got %v", tt.response, tt.output, got)
-			}
-		})
-	}
+func fakeCstor() *cstor {
+	return &cstor{}
 }
 
 func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup, response string) {
@@ -191,9 +143,8 @@ func TestCstorCollector(t *testing.T) {
 			wg.Wait()
 			// col is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			cstor := Cstor()
-			cstor.InitiateConnection("/tmp/go.sock")
-			col := New(cstor, "cstor")
+			c := Cstor("/tmp/go.sock")
+			col := New(c)
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
@@ -226,6 +177,100 @@ func TestCstorCollector(t *testing.T) {
 			Unlink(t)
 			prometheus.Unregister(col)
 			server.Close()
+			c.close()
 		})
 	}
+}
+
+func TestUnmarshal(t *testing.T) {
+	cases := map[string]struct {
+		response string
+		output   v1.VolumeStats
+	}{
+		"[Success]Unmarshal Response into Metrics struct": {
+			response: JSONFormatedResponse,
+			output: v1.VolumeStats{
+				Size:                 "10737418240",
+				Iqn:                  "iqn.2017-08.OpenEBS.cstor:vol1",
+				Writes:               "0",
+				Reads:                "0",
+				TotalReadBytes:       "0",
+				TotalWriteBytes:      "0",
+				UsedLogicalBlocks:    "19",
+				SectorSize:           "512",
+				TotalReadBlockCount:  "12",
+				TotalWriteBlockCount: "15",
+				TotalReadTime:        "13",
+				TotalWriteTime:       "132",
+				UpTime:               "20",
+				ReplicaCounter:       "3",
+				RevisionCounter:      "1000",
+				Replicas: []v1.Replica{
+					{
+						Address: "tcp://172.18.0.3:9502",
+						Mode:    "DEGRADED",
+					},
+					{
+						Address: "tcp://172.18.0.4:9502",
+						Mode:    "HEALTHY",
+					},
+					{
+						Address: "tcp://172.18.0.5:9502",
+						Mode:    "HEALTHY",
+					},
+				},
+			},
+		},
+		"[Failure]Unmarshal Response returns empty Metrics": {
+			response: ImproperJSONFormatedResponse,
+			output:   v1.VolumeStats{},
+		},
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			c := Cstor("/tmp/go.sock")
+			got, _ := c.unmarshal(tt.response)
+			if !reflect.DeepEqual(got, tt.output) {
+				t.Fatalf("unmarshal(%v) : expected %v, got %v", tt.response, tt.output, got)
+			}
+		})
+	}
+}
+
+func TestInitiateConnection(t *testing.T) {
+	c := fakeCstor()
+	dialFunc = func(path string) (net.Conn, error) {
+		return nil, fmt.Errorf("No connection available")
+	}
+
+	err := c.initiateConnection("/tmp")
+	if err == nil {
+		t.Fatalf("initiateConnection(%s): expected: error, got: nil", "/tmp")
+	}
+	t.Logf("%v", err)
+}
+
+func TestSplitter(t *testing.T) {
+	cases := map[string]struct {
+		response         string
+		splittedResponse string
+	}{
+		"[Success] If response is as expected": {
+			response:         CstorResponse,
+			splittedResponse: SplittedResponse,
+		},
+		"[Failure] If response is not as expected, splitter should return nil string": {
+			response:         NilCstorResponse,
+			splittedResponse: "",
+		},
+	}
+	for name, tt := range cases {
+		t.Run(name, func(t *testing.T) {
+			c := Cstor("/tmp/go.sock")
+			if got := c.splitter(tt.response); !reflect.DeepEqual(got, tt.splittedResponse) {
+				t.Fatalf("splitter(%v) => expected %v, got %v", tt.response, tt.splittedResponse, got)
+			}
+		})
+	}
+
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/pkg/errors"
 
 	"github.com/golang/glog"
@@ -22,17 +22,13 @@ import (
 type jiva struct {
 	// url is jiva controller's url
 	url string
-	// stats is volume statistics associated with
-	// jiva (cas)
-	stats stats
 }
 
 // Jiva returns jiva's instance
 func Jiva(url *url.URL) *jiva {
 	url.Path = "/v1/stats"
 	return &jiva{
-		url:   url.String(),
-		stats: stats{},
+		url: url.String(),
 	}
 }
 
@@ -54,7 +50,7 @@ func (j *jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	resp, err := httpClient.Get(j.url)
 
 	if err != nil {
-		return &connErr{
+		return &colErr{
 			errors.Errorf("%v", err),
 		}
 	}
@@ -73,43 +69,44 @@ func (j *jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	return nil
 }
 
-func (j *jiva) parse(volStats v1.VolumeStats) stats {
+func (j *jiva) parse(volStats v1.VolumeStats, metrics *metrics) stats {
+	var stats = stats{}
 	if !volStats.Got {
 		glog.Warningf("%s", "can't parse stats, controller may not be reachable")
-		return stats{}
+		return stats
 	}
-	j.stats.got = true
-	j.stats.casType = "jiva"
-	j.stats.reads, _ = volStats.Reads.Float64()
-	j.stats.writes, _ = volStats.Writes.Float64()
-	j.stats.totalReadBytes, _ = volStats.TotalReadBytes.Float64()
-	j.stats.totalWriteBytes, _ = volStats.TotalWriteBytes.Float64()
-	j.stats.totalReadTime, _ = volStats.TotalReadTime.Float64()
-	j.stats.totalWriteTime, _ = volStats.TotalWriteTime.Float64()
-	j.stats.totalReadBlockCount, _ = volStats.TotalReadBlockCount.Float64()
-	j.stats.totalWriteBlockCount, _ = volStats.TotalWriteBlockCount.Float64()
+	stats.got = true
+	stats.casType = "jiva"
+	stats.reads = parseFloat64(volStats.Reads, metrics)
+	stats.writes = parseFloat64(volStats.Writes, metrics)
+	stats.totalReadBytes = parseFloat64(volStats.TotalReadBytes, metrics)
+	stats.totalWriteBytes = parseFloat64(volStats.TotalWriteBytes, metrics)
+	stats.totalReadTime = parseFloat64(volStats.TotalReadTime, metrics)
+	stats.totalWriteTime = parseFloat64(volStats.TotalWriteTime, metrics)
+	stats.totalReadBlockCount = parseFloat64(volStats.TotalReadBlockCount, metrics)
+	stats.totalWriteBlockCount = parseFloat64(volStats.TotalWriteBlockCount, metrics)
 
-	j.stats.sectorSize, _ = volStats.SectorSize.Float64()
+	stats.sectorSize = parseFloat64(volStats.SectorSize, metrics)
 
-	uBlocks, _ := volStats.UsedBlocks.Float64()
-	uBlocks = uBlocks * j.stats.sectorSize
-	j.stats.logicalSize, _ = v1.DivideFloat64(uBlocks, v1.BytesToGB)
-	aUsed, _ := volStats.UsedLogicalBlocks.Float64()
-	aUsed = aUsed * j.stats.sectorSize
-	j.stats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
-	size, _ := volStats.Size.Float64()
-	j.stats.size, _ = v1.DivideFloat64(size, v1.BytesToGB)
-	j.stats.totalReplicaCount, _ = volStats.ReplicaCounter.Float64()
-	j.stats.revisionCount, _ = volStats.RevisionCounter.Float64()
-	j.stats.uptime, _ = volStats.UpTime.Float64()
-	j.stats.name = volStats.Name
-	j.stats.replicas = volStats.Replicas
-	j.stats.status = volStats.TargetStatus
+	uBlocks := parseFloat64(volStats.UsedBlocks, metrics)
+	uBlocks = uBlocks * stats.sectorSize
+	stats.logicalSize, _ = v1.DivideFloat64(uBlocks, v1.BytesToGB)
+	aUsed := parseFloat64(volStats.UsedLogicalBlocks, metrics)
+	aUsed = aUsed * stats.sectorSize
+	stats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
+	size := parseFloat64(volStats.Size, metrics)
+	stats.size, _ = v1.DivideFloat64(size, v1.BytesToGB)
+	stats.totalReplicaCount = parseFloat64(volStats.ReplicaCounter, metrics)
+	stats.revisionCount = parseFloat64(volStats.RevisionCounter, metrics)
+	stats.uptime = parseFloat64(volStats.UpTime, metrics)
+	stats.name = volStats.Name
+	stats.replicas = volStats.Replicas
+	stats.status = volStats.TargetStatus
 	url := j.url
-	url = strings.TrimSuffix(url, ":9501/v1/stats")
-	url = strings.TrimPrefix(url, "http://")
-	j.stats.address = url
-	j.stats.iqn = "iqn.2016-09.com.openebs.jiva:" + volStats.Name
+	url = strings.TrimSuffix(url, port+endpoint)
+	url = strings.TrimPrefix(url, protocol)
+	stats.address = url
+	stats.iqn = jivaIQN + volStats.Name
 
-	return j.stats
+	return stats
 }

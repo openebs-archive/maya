@@ -2,13 +2,13 @@ package collector
 
 import (
 	"bytes"
+	"encoding/json"
 	"net"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/golang/glog"
-	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -29,28 +29,34 @@ const (
 	BufSize = 1024
 )
 
+var (
+	dialFunc = func(path string) (net.Conn, error) {
+		return net.Dial("unix", path)
+	}
+)
+
 // cstor implements the Exporter interface. It exposes
 // the metrics of a OpenEBS (cstor) volume.
 type cstor struct {
 	// conn is used as unix network connection
 	conn net.Conn
-	// stats is volume stats associated with
-	// jiva (cas)
-	stats stats
 }
 
 // Cstor returns cstor's instance
-func Cstor() *cstor {
-	return &cstor{
-		stats: stats{},
+func Cstor(path string) *cstor {
+	var c = new(cstor)
+	// ignore error, istgt may not be up. Connection
+	// can be established later upon new requests.
+	if err := c.initiateConnection(path); err != nil {
+		glog.Warning("Can't connect to istgt, error: ", err)
 	}
+	return c
 }
 
-// InitiateConnection tries to initiates the connection with the cstor
-// over unix domain socket. This function can not be unit tested (only
-// negative cases are possible).
-func (c *cstor) InitiateConnection(path string) error {
-	conn, err := net.Dial("unix", path)
+// initiateConnection tries to initiates the connection with the cstor
+// over unix domain socket.
+func (c *cstor) initiateConnection(path string) error {
+	conn, err := dialFunc(path)
 	if err != nil {
 		return err
 	}
@@ -128,6 +134,41 @@ func (c *cstor) readHeader() error {
 	return nil
 }
 
+// removeItem removes the string passed as argument from the slice
+func (c *cstor) removeItem(slice []string, str string) []string {
+	for index, value := range slice {
+		if value == str {
+			slice = append(slice[:index], slice[index+1:]...)
+		}
+	}
+	return slice
+}
+
+// unmarshal the result into VolumeStats instances.
+func (c *cstor) unmarshal(result string) (v1.VolumeStats, error) {
+	metrics := v1.VolumeStats{}
+	if err := json.Unmarshal([]byte(result), &metrics); err != nil {
+		glog.Error("Error in unmarshalling, found error: ", err)
+		return metrics, err
+	}
+	return metrics, nil
+}
+
+// splitter extracts the JSON from the response :
+// "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\",
+//	\"Writes\": \"0\", \"Reads\": \"0\", \"TotalWriteBytes\": \"0\",
+//  \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\" }\r\nOK IOSTATS\r\n"
+func (c *cstor) splitter(resp string) string {
+	var result []string
+	result = strings.Split(resp, EOF)
+	result = c.removeItem(result, Footer)
+	if len(result[0]) == 0 {
+		return ""
+	}
+	res := strings.TrimPrefix(result[0], Command+"  ")
+	return res
+}
+
 // getter writes query on the socket for the getting stats
 // if the connection is available else retry to initiate
 // connection again.
@@ -139,35 +180,33 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 	if c.conn == nil {
 		// initiate the connection again if connection with the istgt closed
 		// due to timeout or some other errors from istgt side.
-		if err := c.InitiateConnection(SocketPath); err != nil {
-			return v1.VolumeStats{}, &connErr{
-				errors.Errorf("%s: %v", "can't initiate connection with istgt", err),
+		if err := c.initiateConnection(SocketPath); err != nil {
+			return v1.VolumeStats{}, &colErr{
+				errors.Wrap(err, "Can't connect to istgt"),
 			}
 		}
 	}
 	if err := c.writer(); err != nil {
-		c.conn.Close()
-		c.conn = nil
-		return v1.VolumeStats{}, &connErr{
-			errors.Errorf("%v: %v", err, "closing connection"),
+		c.close()
+		return v1.VolumeStats{}, &colErr{
+			errors.Errorf("%v: closing connection", err),
 		}
 	}
-	response, err := c.reader()
+	buf, err := c.reader()
 	if err != nil {
-		c.conn.Close()
-		c.conn = nil
-		return v1.VolumeStats{}, &connErr{
-			errors.Errorf("%v: %v", err, "closing connection"),
+		c.close()
+		return v1.VolumeStats{}, &colErr{
+			errors.Errorf("%v: closing connection", err),
 		}
 	}
-	glog.Infof("Got response: %v", response)
-	response = splitter(response)
-	if len(response) == 0 {
+	glog.Infof("Got response: %v", buf)
+	resp := c.splitter(buf)
+	if len(resp) == 0 {
 		return v1.VolumeStats{}, errors.New("Got empty response from cstor")
 	}
 
 	// unmarshal the json response into metrics instances.
-	if stats, err = newResponse(response); err != nil {
+	if stats, err = c.unmarshal(resp); err != nil {
 		return v1.VolumeStats{}, err
 	}
 
@@ -176,37 +215,43 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 }
 
 // parse can used to parse the json strings into the respective types.
-func (c *cstor) parse(volStats v1.VolumeStats) stats {
+func (c *cstor) parse(volStats v1.VolumeStats, metrics *metrics) stats {
+	var stats = stats{}
 	if !volStats.Got {
 		glog.Warningf("%s", "can't parse, got empty stats, istgt may not be reachable")
-		return stats{}
+		return stats
 	}
-	c.stats.got = true
-	c.stats.casType = "cstor"
-	c.stats.reads, _ = volStats.Reads.Float64()
-	c.stats.writes, _ = volStats.Writes.Float64()
-	c.stats.totalReadBytes, _ = volStats.TotalReadBytes.Float64()
-	c.stats.totalWriteBytes, _ = volStats.TotalWriteBytes.Float64()
-	c.stats.sectorSize, _ = volStats.SectorSize.Float64()
-	c.stats.totalReadTime, _ = volStats.TotalReadTime.Float64()
-	c.stats.totalWriteTime, _ = volStats.TotalWriteTime.Float64()
-	c.stats.totalReadBlockCount, _ = volStats.TotalReadBlockCount.Float64()
-	c.stats.totalWriteBlockCount, _ = volStats.TotalWriteBlockCount.Float64()
-	c.stats.uptime, _ = volStats.UpTime.Float64()
-	c.stats.totalReplicaCount, _ = volStats.ReplicaCounter.Float64()
-	c.stats.revisionCount, _ = volStats.RevisionCounter.Float64()
-	aUsed, _ := volStats.UsedLogicalBlocks.Float64()
-	aUsed = aUsed * c.stats.sectorSize
-	c.stats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
-	size, _ := volStats.Size.Float64()
+	stats.got = true
+	stats.casType = "cstor"
+	stats.reads = parseFloat64(volStats.Reads, metrics)
+	stats.writes = parseFloat64(volStats.Writes, metrics)
+	stats.totalReadBytes = parseFloat64(volStats.TotalReadBytes, metrics)
+	stats.totalWriteBytes = parseFloat64(volStats.TotalWriteBytes, metrics)
+	stats.sectorSize = parseFloat64(volStats.SectorSize, metrics)
+	stats.totalReadTime = parseFloat64(volStats.TotalReadTime, metrics)
+	stats.totalWriteTime = parseFloat64(volStats.TotalWriteTime, metrics)
+	stats.totalReadBlockCount = parseFloat64(volStats.TotalReadBlockCount, metrics)
+	stats.totalWriteBlockCount = parseFloat64(volStats.TotalWriteBlockCount, metrics)
+	stats.uptime = parseFloat64(volStats.UpTime, metrics)
+	stats.totalReplicaCount = parseFloat64(volStats.ReplicaCounter, metrics)
+	stats.revisionCount = parseFloat64(volStats.RevisionCounter, metrics)
+	aUsed := parseFloat64(volStats.UsedLogicalBlocks, metrics)
+	aUsed = aUsed * stats.sectorSize
+	stats.actualSize, _ = v1.DivideFloat64(aUsed, v1.BytesToGB)
+	size := parseFloat64(volStats.Size, metrics)
 	size, _ = v1.DivideFloat64(size, v1.BytesToGB)
-	c.stats.size = size
+	stats.size = size
 	result := strings.Split(volStats.Iqn, ":")
 	volName := result[1]
-	c.stats.name = volName
-	c.stats.replicas = volStats.Replicas
-	c.stats.status = volStats.TargetStatus
-	c.stats.iqn = volStats.Iqn
-	c.stats.address = "127.0.0.1"
-	return c.stats
+	stats.name = volName
+	stats.replicas = volStats.Replicas
+	stats.status = volStats.TargetStatus
+	stats.iqn = volStats.Iqn
+	stats.address = "127.0.0.1"
+	return stats
+}
+
+func (c *cstor) close() {
+	c.conn.Close()
+	c.conn = nil
 }

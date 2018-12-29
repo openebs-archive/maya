@@ -1,7 +1,9 @@
 package collector
 
 import (
-	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
+	"encoding/json"
+
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -45,6 +47,7 @@ type metrics struct {
 	volumeStatus           prometheus.Gauge
 	connectionRetryCounter prometheus.Gauge
 	connectionErrorCounter prometheus.Gauge
+	parseErrorCounter      prometheus.Gauge
 	healthyReplicaCounter  prometheus.Gauge
 	degradedReplicaCounter prometheus.Gauge
 	totalReplicaCounter    prometheus.Gauge
@@ -76,7 +79,7 @@ type stats struct {
 	offlineReplicaCount  float64
 	name                 string
 	replicas             []v1.Replica
-	status               string
+	status               v1.TargetMode
 	address              string
 }
 
@@ -201,6 +204,14 @@ func Metrics(cas string) metrics {
 			},
 		),
 
+		parseErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "parse_error_total",
+				Help:      "Total no of parsing errors",
+			},
+		),
+
 		healthyReplicaCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
@@ -213,7 +224,7 @@ func Metrics(cas string) metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "degraded_replica_count",
-				Help:      "Total no of degraded replicas",
+				Help:      "Total no of degraded/ro replicas",
 			},
 		),
 
@@ -233,9 +244,9 @@ func (v *stats) getReplicaCount() {
 	)
 	for _, rep := range v.replicas {
 		switch rep.Mode {
-		case "RO", "DEGRADED":
+		case readOnly, degraded:
 			ro++
-		case "RW", "HEALTHY":
+		case readWrite, healthy:
 			rw++
 		}
 	}
@@ -245,13 +256,21 @@ func (v *stats) getReplicaCount() {
 
 func (v *stats) getVolumeStatus() volumeStatus {
 	switch v.status {
-	case "RO", "Offline":
+	case targetReadOnly, targetOffline:
 		return Offline
-	case "RW", "Healthy":
+	case targetReadWrite, targetHealthy:
 		return Healthy
-	case "Degraded":
+	case targetDegraded:
 		return Degraded
 	default:
 		return Unknown
 	}
+}
+
+func parseFloat64(entity json.Number, metrics *metrics) float64 {
+	num, err := entity.Float64()
+	if err != nil {
+		metrics.parseErrorCounter.Inc()
+	}
+	return num
 }

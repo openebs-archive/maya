@@ -5,6 +5,7 @@ import "encoding/json"
 // ReplicaMode is the mode of replica.In jiva it can be either RO
 // or RW and HEALTHY or DEGRADED for cstor respectively
 type ReplicaMode string
+type TargetMode string
 
 const (
 	// BytesToGB used to convert bytes to GB
@@ -79,7 +80,7 @@ type VolumeStats struct {
 	// to the target.
 	Replicas []Replica `json:"Replicas"`
 	// Target status is the status of the target (RW/RO)
-	TargetStatus string `json:"Status"`
+	TargetStatus TargetMode `json:"Status"`
 }
 
 // Replica is used to store the info about the replicas

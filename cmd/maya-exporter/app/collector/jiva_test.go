@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/openebs/maya/pkg/apis/openebs.io/stats"
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	utiltesting "k8s.io/client-go/util/testing"
@@ -110,7 +110,7 @@ func TestJivaCollector(t *testing.T) {
 			jiva := Jiva(control)
 			// exporter is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
-			col := New(jiva, "jiva")
+			col := New(jiva)
 			if err := prometheus.Register(col); err != nil {
 				t.Fatalf("collector failed to register: %s", err)
 			}
@@ -154,7 +154,7 @@ func TestGetVolumeStats(t *testing.T) {
 		jiva        jiva
 		obj         v1.VolumeStats
 		fakeHandler utiltesting.FakeHandler
-		err         bool
+		isErr       bool
 	}{
 		"Valid Response from jiva controller": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -162,7 +162,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(validControllerResp),
 				T:            t,
 			},
-			err: false,
+			isErr: false,
 		},
 		"Invalid Response from jiva controller": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -170,7 +170,7 @@ func TestGetVolumeStats(t *testing.T) {
 				ResponseBody: string(invalidControllerResp),
 				T:            t,
 			},
-			err: true,
+			isErr: true,
 		},
 	}
 	for name, tt := range cases {
@@ -179,10 +179,8 @@ func TestGetVolumeStats(t *testing.T) {
 			defer server.Close()
 			tt.jiva.url = server.URL
 			err := tt.jiva.getVolumeStats(&tt.obj)
-			if err != nil {
-				if !tt.err {
-					t.Fatalf("getVolumeStats(%v) => got %v, want %v", server.URL, err, tt.err)
-				}
+			if err != nil && !tt.isErr {
+				t.Fatalf("getVolumeStats(%v) => got %v, want isErr to be %v", server.URL, err, tt.isErr)
 			}
 		})
 	}
