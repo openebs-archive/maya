@@ -257,8 +257,15 @@ func TestSyncHandler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "pool1",
 				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: 3,
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeStripedCPV),
+					},
+				},
 			},
-			expectedError: true,
+			expectedError: false,
 		},
 
 		// TestCase#4
