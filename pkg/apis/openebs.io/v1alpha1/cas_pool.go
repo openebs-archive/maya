@@ -86,9 +86,15 @@ type CasPool struct {
 	// Type is the CasPool type e.g. sparse or openebs-cstor
 	Type string
 
+	// NodeName is the node where cstor pool will be created
+	NodeName string
+
 	// reSync will decide whether the event is a reconciliation event
 	ReSync bool
 
 	// PendingPoolCount is the number of pools that will be tried for creation as a part of reconciliation.
 	PendingPoolCount int
+
+	DeviceID []string
+	Disks     DiskList
 }
