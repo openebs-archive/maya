@@ -284,6 +284,44 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 			},
 			true,
 		},
+		"valid single replica healthy status": {
+			`{
+				"volumeStatus":[
+				   {
+						"name" : "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+						"status": "Healthy",
+						"replicaStatus" : [
+						{
+							"replicaId":5523611450015704000,
+							"Mode":"HEALTHY",
+							"checkpointedIOSeq":"0",
+							"Address" : "192.168.1.23",
+							"inflightRead":"0",
+							"inflightWrite":"0",
+							"inflightSync":"0",
+							"upTime":1275
+						},
+					  ]
+				   }
+				]
+			 }`,
+			&apis.CVStatus{
+				Name:   "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+				Status: "Healthy",
+				ReplicaStatuses: []apis.ReplicaStatus{
+					{
+						ID:                "5523611450015704000",
+						Mode:              "HEALTHY",
+						CheckpointedIOSeq: "0",
+						InflightRead:      "0",
+						InflightWrite:     "0",
+						InflightSync:      "0",
+						UpTime:            1275,
+					},
+				},
+			},
+			true,
+		},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
