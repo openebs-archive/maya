@@ -181,7 +181,7 @@ func CreateVolumeBackup(csb *apis.CStorBackup) error {
 
 	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", csb.Spec.VolumeName, cmd)
 
-	stdoutStderr, err := RunnerVar.RunCombinedOutput("bash", cmd...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
 	if err != nil {
 		glog.Errorf("Unable to start backup %s. error : %v", csb.Spec.VolumeName, string(stdoutStderr))
 		return err
@@ -196,11 +196,12 @@ func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, 
 	backupIP_Port := strings.Split(backupDest, ":")
 	if oldSnapName == "" {
 		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
-			"cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc "+backupIP_Port[0]+" "+backupIP_Port[1])
+			"cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+backupIP_Port[0]+" "+backupIP_Port[1])
 	} else {
 		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
-			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc "+backupIP_Port[0]+" "+backupIP_Port[1])
+			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+backupIP_Port[0]+" "+backupIP_Port[1])
 	}
+
 	return startBackupCmd
 }
 

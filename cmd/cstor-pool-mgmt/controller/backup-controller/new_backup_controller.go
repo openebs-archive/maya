@@ -183,7 +183,7 @@ func NewCStorBackupController(
 						glog.Errorf("Failed to create backupdata: error '%s'", err.Error())
 						return
 					}
-					glog.Infof("Successfully Created backupData for %s", newCSB.Spec.Name, csbData.Spec.SnapName)
+					glog.Infof("Successfully Created backupData for %s", newCSB.Spec.Name)
 				} else {
 					update_csb_data(newCSB, backupData)
 					backupData, err = controller.clientset.OpenebsV1alpha1().CStorBackupDatas(newCSB.Namespace).Update(backupData)

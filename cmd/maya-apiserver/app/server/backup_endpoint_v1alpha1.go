@@ -64,8 +64,6 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create backup '%v': missing backupIP", backup.Name))
 	}
 
-	backup.Name = backup.Spec.Name
-	backup.Spec.SnapName = backup.Name
 	//TODO Create snapname randomly
 	if err = create_snapshot_for_backup(backup); err != nil {
 		return nil, err
@@ -75,11 +73,14 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	bkpList, err := openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).List(listOptions)
 
 	//Check if this schedule is already present
+	splitName := strings.Split(backup.Spec.Name, "-")
+	backupName := strings.Join(splitName[0:len(splitName)-2], "-")
+	backup.Name = backupName
+	backup.Spec.SnapName = backup.Spec.Name
 	for _, bkp := range bkpList.Items {
-		if backup.Spec.Name == bkp.Spec.Name {
+		if bkp.Spec.Name == backupName {
 			bkp.Spec.PrevSnapName = bkp.Spec.SnapName
 			bkp.Spec.SnapName = backup.Spec.SnapName
-			bkp.Spec.Name = backup.Spec.Name
 			openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
 			glog.Infof("Creating incremental backup %s volume %s poolUUID:%v",
 				backup.Spec.Name,
@@ -92,7 +93,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	listOptions = v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + backup.Spec.VolumeName,
 	}
-	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas(backup.Namespace).List(listOptions)
+	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").List(listOptions)
 
 	//Select a healthy csr for backup
 	for _, cvr := range cvrList.Items {

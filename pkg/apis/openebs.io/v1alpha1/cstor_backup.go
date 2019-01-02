@@ -38,8 +38,8 @@ type CStorBackupSpec struct {
 	Name         string `json:"name"`
 	VolumeName   string `json:"volumeName"`
 	CasType      string `json:"casType"`
-	SnapName     string `json:"newSnapName"`
-	PrevSnapName string `json:"oldSnapName"`
+	SnapName     string `json:"snapName"`
+	PrevSnapName string `json:"prevSnapName"`
 	BackupDest   string `json:"backupDest"`
 }
 
