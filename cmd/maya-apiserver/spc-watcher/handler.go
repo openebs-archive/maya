@@ -149,6 +149,7 @@ func (c *Controller) syncSpc(spcGot *apis.StoragePoolClaim) error {
 
 // addEventHandler is the event handler for the add event of spc.
 func (c *Controller) addEventHandler(spc *apis.StoragePoolClaim, resync bool) error {
+	// TODO: Move these to admission webhook plugins or CRD validations
 	mutateSpc, err := validate(spc)
 	if err != nil {
 		return err
@@ -193,9 +194,11 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 
 // validate validates the spc configuration before creation of pool.
 func validate(spc *apis.StoragePoolClaim) (bool, error) {
-	// ToDo: Move these to admission webhook plugins or CRD validations
+	// TODO: Move these to admission webhook plugins or CRD validations
 	// Validations for poolType
 	var mutateSpc bool
+	// If maxPool field is skipped or entered a 0 value in SPC then for the add event it will default to 3.
+	// In case of resync maxPool field will not be mutated.
 	if len(spc.Spec.Disks.DiskList) == 0 {
 		maxPools := spc.Spec.MaxPools
 		if maxPools == 0 {
@@ -236,6 +239,7 @@ func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error
 func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	var pendingPoolCount int
 	if len(spc.Spec.Disks.DiskList) == 0 {
+		// Getting pending pool count in case of auto provisioned spc.
 		currentPoolCount, err := c.getCurrentPoolCount(spc)
 		if err != nil {
 			return 0, err
@@ -243,7 +247,8 @@ func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error
 		maxPoolCount := int(spc.Spec.MaxPools)
 		pendingPoolCount = maxPoolCount - currentPoolCount
 	} else {
-		// ToDo: -- Refactor using disk refernces to find the used disks
+		// TODO: -- Refactor using disk refernces to find the used disks
+		// Getting pending pool count in case of manual provisioned spc.
 		// allNodeDiskMap holds the map : diskName --> hostName ; for all the disks.
 		allNodeDiskMap := make(map[string]string)
 		// Get all disk in one shot from kube-apiserver
