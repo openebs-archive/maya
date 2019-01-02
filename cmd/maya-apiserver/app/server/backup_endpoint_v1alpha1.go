@@ -64,21 +64,24 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create backup '%v': missing backupIP", backup.Name))
 	}
 
+	openebsClient, _ := loadClientFromServiceAccount()
+	listOptions := v1.ListOptions{}
+
 	//TODO Create snapname randomly
+	splitName := strings.Split(backup.Spec.Name, "-")
+	if len(splitName) >= 2 {
+		backup.Name = strings.Join(splitName[0:len(splitName)-2], "-")
+	} else {
+		backup.Name = backup.Spec.Name
+	}
+	backup.Spec.SnapName = backup.Spec.Name
 	if err = create_snapshot_for_backup(backup); err != nil {
 		return nil, err
 	}
-	openebsClient, _ := loadClientFromServiceAccount()
-	listOptions := v1.ListOptions{}
-	bkpList, err := openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).List(listOptions)
-
 	//Check if this schedule is already present
-	splitName := strings.Split(backup.Spec.Name, "-")
-	backupName := strings.Join(splitName[0:len(splitName)-2], "-")
-	backup.Name = backupName
-	backup.Spec.SnapName = backup.Spec.Name
+	bkpList, err := openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).List(listOptions)
 	for _, bkp := range bkpList.Items {
-		if bkp.Spec.Name == backupName {
+		if bkp.Spec.Name == backup.Name {
 			bkp.Spec.PrevSnapName = bkp.Spec.SnapName
 			bkp.Spec.SnapName = backup.Spec.SnapName
 			openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
