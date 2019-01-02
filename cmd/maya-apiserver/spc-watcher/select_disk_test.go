@@ -80,89 +80,103 @@ func TestNodeDiskAlloter(t *testing.T) {
 	focs.FakeDiskCreator()
 	tests := map[string]struct {
 		// fakeCasPool holds the fake fakeCasPool object in test cases.
-		fakeCasPool *v1alpha1.CasPool
+		fakeCasPool *v1alpha1.StoragePoolClaim
 		// expectedDiskListLength holds the length of disk list
 		expectedDiskListLength int
 		// err is a bool , true signifies presence of error and vice-versa
 		err bool
 	}{
 		// Test Case #1
-		"CasPool1": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 3,
-			MinPools: 3,
-			Type:     "disk",
+		"autoSPC1": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+			},
 		},
-			3,
+			1,
 			false,
 		},
 		// Test Case #2
-		"CasPool2": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 3,
-			Type:     "disk",
+		"autoSPC2": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+			},
 		},
-			3,
+			2,
 			false,
 		},
 		// Test Case #3
-		"CasPool3": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 3,
-			MinPools: 3,
-			Type:     "disk",
+		"autoSPC3": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+			},
 		},
-			6,
+			1,
 			false,
 		},
 		// Test Case #4
-		"CasPool4": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 6,
-			MinPools: 6,
-			Type:     "disk",
+		"autoSPC4": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+			},
 		},
-			0,
-			true,
+			2,
+			false,
 		},
 		// Test Case #5
-		"CasPool5": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 6,
-			Type:     "disk",
+		"manualSPC5": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3"},
+				},
+			},
 		},
-			0,
-			true,
+			1,
+			false,
 		},
 		// Test Case #6
-		"CasPool6": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "disk",
+		"manualSPC6": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2"},
+				},
+			},
 		},
-			5,
+			2,
 			false,
 		},
 		// Test Case #7
-		"CasPool7 of sparse type": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "sparse",
+		"manualSPC7": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk7"},
+				},
+			},
 		},
-			5,
-			false,
-		},
-		// Test Case #7
-		"CasPool8 of sparse type": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "sparse",
-		},
-			10,
+			0,
 			false,
 		},
 	}
@@ -176,8 +190,8 @@ func TestNodeDiskAlloter(t *testing.T) {
 			if gotErr != test.err {
 				t.Fatalf("Test case failed as the expected error %v but got %v", test.err, gotErr)
 			}
-			if len(diskList) != test.expectedDiskListLength {
-				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList))
+			if len(diskList.disks.items) != test.expectedDiskListLength {
+				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList.disks.items))
 			}
 		})
 	}
