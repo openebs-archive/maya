@@ -70,7 +70,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	//TODO Create snapname randomly
 	splitName := strings.Split(backup.Spec.Name, "-")
 	if len(splitName) >= 2 {
-		backup.Name = strings.Join(splitName[0:len(splitName)-2], "-")
+		backup.Name = strings.Join(splitName[0:len(splitName)-1], "-")
 	} else {
 		backup.Name = backup.Spec.Name
 	}
@@ -81,9 +81,10 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	//Check if this schedule is already present
 	bkpList, err := openebsClient.OpenebsV1alpha1().CStorBackups(backup.Namespace).List(listOptions)
 	for _, bkp := range bkpList.Items {
-		if bkp.Spec.Name == backup.Name {
+		if bkp.Name == backup.Name {
 			bkp.Spec.PrevSnapName = bkp.Spec.SnapName
 			bkp.Spec.SnapName = backup.Spec.SnapName
+			bkp.Spec.BackupDest = backup.Spec.BackupDest
 			openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
 			glog.Infof("Creating incremental backup %s volume %s poolUUID:%v",
 				backup.Spec.Name,

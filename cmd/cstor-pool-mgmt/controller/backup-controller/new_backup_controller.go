@@ -145,7 +145,7 @@ func NewCStorBackupController(
 			// 3. After every resync interval.
 			newCSB := new.(*apis.CStorBackup)
 			oldCSB := old.(*apis.CStorBackup)
-			glog.Infof("CStorBackup sync done %s %s", newCSB.Spec.Name, newCSB.Spec.SnapName)
+			glog.Infof("Received Update %s %s", newCSB.Spec.Name, newCSB.Spec.SnapName)
 			if !IsRightCStorPoolMgmt(newCSB) {
 				return
 			}
@@ -158,20 +158,20 @@ func NewCStorBackupController(
 			}
 			if newCSB.ResourceVersion == oldCSB.ResourceVersion {
 				q.Operation = common.QOpSync
-				glog.Infof("CstorBackup status sync event for %s", newCSB.ObjectMeta.Name)
-				glog.Infof("CStorBackup sync done %s", newCSB.Spec.SnapName)
+				glog.Infof("Received CstorBackup status sync event for %s", newCSB.ObjectMeta.Name)
 				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
 			} else if IsDestroyEvent(newCSB) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorBAckup Destroy event : %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
 				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
+				glog.Infof("cStorBackup Modify event : %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
 				q.Operation = common.QOpModify
 				listOptions := v1.ListOptions{}
 				var backupData *apis.CStorBackupData
 				backupDataList, err := controller.clientset.OpenebsV1alpha1().CStorBackupDatas(newCSB.Namespace).List(listOptions)
 				for _, bkpData := range backupDataList.Items {
-					if bkpData.Spec.Name == newCSB.Spec.Name {
+					if bkpData.Name == newCSB.Name {
 						backupData = &bkpData
 					}
 				}
@@ -192,8 +192,8 @@ func NewCStorBackupController(
 					}
 					glog.Infof("Successfully Updated backupData for %s %s", newCSB.Spec.SnapName, backupData.Spec.SnapName)
 				}
-				glog.Infof("cStorBackup Modify event : %v, %v", newCSB.ObjectMeta.Name, string(newCSB.ObjectMeta.UID))
 				controller.recorder.Event(newCSB, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
+				glog.Infof("Done modify event %v", newCSB.Name)
 			}
 			controller.enqueueCStorBackup(newCSB, q)
 		},

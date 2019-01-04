@@ -81,6 +81,8 @@ func (c *CStorBackupController) csbEventHandler(operation common.QueueOperation,
 			glog.Infof("Processing csb deleted event %v, %v", csbGot.ObjectMeta.Name, string(csbGot.GetUID()))
 		*/
 		return "", nil
+	case common.QOpSync:
+		return "", nil
 	case common.QOpModify:
 		status, err := c.csbSyncEventHandler(csbGot)
 		return status, err
@@ -107,7 +109,7 @@ func (c *CStorBackupController) csbSyncEventHandler(csb *apis.CStorBackup) (stri
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(csb) || IsPendingStatus(csb) {
 		c.recorder.Event(csb, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-		glog.Infof("csb creation successful: %v, %v", csb.ObjectMeta.Name, string(csb.GetUID()))
+		glog.Infof("csb creation successful: %v, %v", csb.Name, string(csb.GetUID()))
 		return string(apis.CSBStatusOnline), nil
 	}
 	err := volumereplica.CreateVolumeBackup(csb)
@@ -197,7 +199,7 @@ func IsDeletionFailedBefore(csb *apis.CStorBackup) bool {
 // IsErrorDuplicate is to check if the status of cStorVolumeReplica object is error-duplicate.
 func IsErrorDuplicate(csb *apis.CStorBackup) bool {
 	if string(csb.Status.Phase) == string(apis.CSBStatusErrorDuplicate) {
-		glog.Infof("csb duplication error: %v", string(csb.ObjectMeta.UID))
+		glog.Infof("csb duplication error: %v", csb.Name, string(csb.ObjectMeta.UID))
 		return true
 	}
 	glog.V(4).Infof("Not error duplicate status: %v", string(csb.ObjectMeta.UID))
