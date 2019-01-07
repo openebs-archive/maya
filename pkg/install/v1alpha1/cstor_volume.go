@@ -392,6 +392,23 @@ spec:
                 topologyKey: kubernetes.io/hostname
                 namespaces: [{{.Volume.runNamespace}}]
           {{- end }}
+          tolerations:
+          - effect: NoExecute
+            key: node.alpha.kubernetes.io/notReady
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.alpha.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.kubernetes.io/not-ready
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 30
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
