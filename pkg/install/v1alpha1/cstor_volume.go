@@ -592,14 +592,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := printf "%s, %s" .Config.RunNamespace.value .Volume.runNamespace -}}
-    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
     apiVersion: v1
     kind: Service
     action: list
@@ -621,14 +614,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
     apiVersion: v1
     kind: Pod
     action: list
