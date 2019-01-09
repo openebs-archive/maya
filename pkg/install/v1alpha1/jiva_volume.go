@@ -230,6 +230,7 @@ spec:
     - jiva-volume-list-listtargetservice-default
     - jiva-volume-list-listtargetpod-default
     - jiva-volume-list-listreplicapod-default
+    - jiva-volume-list-listpv-default
   output: jiva-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -318,6 +319,22 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-list-listpv-default
+spec:
+  meta: |
+    id: listlistpv
+    apiVersion: v1
+    kind: PersistentVolume
+    action: list
+    options: |-
+      labelSelector: openebs.io/cas-type=jiva
+  post: |
+     {{- $pvPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.name},accessModes={@.spec.accessModes[0]},storageClass={@.spec.storageClassName};{end}" | trim | default "" | splitList ";" -}}
+     {{- $pvPairs | keyMap "pvList" .ListItems | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-list-output-default
 spec:
   meta: |
@@ -328,6 +345,7 @@ spec:
   task: |
     kind: CASVolumeList
     items:
+    {{- $pvList := .ListItems.pvList }}
     {{- range $pkey, $map := .ListItems.volumeList }}
     {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first }}
     {{- $clusterIP := pluck "clusterIP" $map | first }}
@@ -337,12 +355,15 @@ spec:
     {{- $replicaStatus := pluck "replicaStatus" $map | first }}
     {{- $name := $pkey | splitList "/" | last }}
     {{- $ns := $pkey | splitList "/" | first }}
+    {{- $pvInfo := pluck $name $pvList | first }}
       - kind: CASVolume
         apiVersion: v1alpha1
         metadata:
           name: {{ $name }}
           namespace: {{ $ns }}
           annotations:
+            openebs.io/access-mode: {{ $pvInfo.accessModes | default "" }}
+            openebs.io/storage-class: {{ $pvInfo.storageClass | default "" }}
             vsm.openebs.io/controller-ips: {{ $controllerIP }}
             vsm.openebs.io/cluster-ips: {{ $clusterIP }}
             vsm.openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
