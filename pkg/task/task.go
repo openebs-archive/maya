@@ -933,6 +933,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = kc.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1PVC() {
 		op, err = kc.ListCoreV1PVCAsRaw(opts)
+	} else if m.metaTaskExec.isListCoreV1PV() {
+		op, err = kc.ListCoreV1PVAsRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1Disk() {
 		op, err = kc.ListOEV1alpha1DiskRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1SP() {
