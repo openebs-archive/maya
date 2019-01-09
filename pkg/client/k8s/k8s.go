@@ -678,6 +678,17 @@ func (k *K8sClient) ListCoreV1PVCAsRaw(opts mach_apis_meta_v1.ListOptions) (resu
 	return
 }
 
+// ListCoreV1PVAsRaw fetches a list of K8s PVs with the provided options
+func (k *K8sClient) ListCoreV1PVAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Get().
+		Namespace(k.ns).
+		Resource("persistentvolumes").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		DoRaw()
+
+	return
+}
+
 // ListCoreV1PodAsRaw fetches a list of K8s Pods as per the provided options
 func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	result, err = k.cs.CoreV1().RESTClient().Get().
