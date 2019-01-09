@@ -63,15 +63,15 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	}
 
 	out := make([]string, len(cvols.Items)+2)
-	out[0] = "Namespace|Name|Status|Type|Capacity"
-	out[1] = "---------|----|------|----|--------"
-	for i, items := range cvols.Items {
-		if len(items.Status.Reason) == 0 {
-			items.Status.Reason = volumeStatusOK
+	out[0] = "Namespace|Name|Status|Type|Capacity|Storage Class|Access Mode"
+	out[1] = "---------|----|------|----|--------|-------------|-----------"
+	for i, item := range cvols.Items {
+		if len(item.Status.Reason) == 0 {
+			item.Status.Reason = volumeStatusOK
 		}
-		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s", items.ObjectMeta.Namespace,
-			items.ObjectMeta.Name,
-			items.Status.Reason, items.Spec.CasType, items.Spec.Capacity)
+		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", item.ObjectMeta.Namespace,
+			item.ObjectMeta.Name,
+			item.Status.Reason, item.Spec.CasType, item.Spec.Capacity, getAnnotationValue("openebs.io/storage-class", item), getAnnotationValue("openebs.io/access-mode", item))
 	}
 	if len(out) == 2 {
 		fmt.Println("No Volumes are running")
@@ -79,4 +79,11 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	}
 	fmt.Println(util.FormatList(out))
 	return nil
+}
+
+func getAnnotationValue(key string, vol v1alpha1.CASVolume) string {
+	if val, present := vol.ObjectMeta.Annotations[key]; present {
+		return val
+	}
+	return "N/A"
 }
