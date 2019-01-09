@@ -136,6 +136,7 @@ spec:
     - cstor-volume-list-listtargetservice-default
     - cstor-volume-list-listtargetpod-default
     - cstor-volume-list-listcstorvolumereplicacr-default
+    - cstor-volume-list-listpv-default
   output: cstor-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -623,6 +624,23 @@ spec:
     {{- $servicePairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},clusterIP={@.spec.clusterIP};{end}" | trim | default "" | splitList ";" -}}
     {{- $servicePairs | keyMap "volumeList" .ListItems | noop -}}
 ---
+#runTask to list all cstor pv
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-list-listpv-default
+spec:
+  meta: |
+    id: listlistpv
+    apiVersion: v1
+    kind: PersistentVolume
+    action: list
+    options: |-
+      labelSelector: openebs.io/cas-type=cstor
+  post: |
+      {{- $pvPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.name},accessModes={@.spec.accessModes[0]},storageClass={@.spec.storageClassName};{end}" | trim | default "" | splitList ";" -}}
+      {{- $pvPairs | keyMap "volumeList" .ListItems | noop -}}
+    ---
 # runTask to list all cstor target pods
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -685,6 +703,8 @@ spec:
     {{- $targetStatus := pluck "targetStatus" $map | first }}
     {{- $replicaName := pluck "replicaName" $map | first }}
     {{- $namespace := pluck "namespace" $map | first }}
+    {{- $accessMode :=  pluck "accessModes" $map | first }}
+    {{- $storageClass := pluck "storageClass" $map | first }}
     {{- $name := $pkey }}
       - kind: CASVolume
         apiVersion: v1alpha1
@@ -692,6 +712,8 @@ spec:
           name: {{ $name }}
           namespace: {{ $namespace }}
           annotations:
+            openebs.io/access-mode: {{ $accessMode }}
+            openebs.io/storage-class: {{ $storageClass }}
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
             openebs.io/controller-status: {{ $targetStatus | default "" | replace "true" "running" | replace "false" "notready" }}
