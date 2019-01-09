@@ -25,7 +25,7 @@ const (
 	// Command is a command that is used to write over wire and get
 	// the iostats from the cstor.
 	Command = "IOSTATS"
-	// BufSize is the size of response from cstor.
+	// BufSize is the size of response from cstor read at one time.
 	BufSize = 1024
 )
 
@@ -99,7 +99,9 @@ func (c *cstor) reader() (string, error) {
 		// appending the chunks at the end of str.
 		buffer.WriteString(string(buf[0:n]))
 		str = buffer.String()
-		if str[len(str)-12:] == Footer+EOF {
+		// confirm whether all the chunks have been collected
+		// exp: "IOSTATS(Command) <json response> OK IOSTATS(Footer+EOF)\r\n"
+		if str[:7] == Command && str[len(str)-12:] == Footer+EOF {
 			response = str
 			break
 		}

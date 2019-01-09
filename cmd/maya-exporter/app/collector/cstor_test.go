@@ -79,11 +79,13 @@ func TestCstorCollector(t *testing.T) {
 	// else ignore.
 	Unlink(t)
 	cases := map[string]struct {
-		expectedResponse string
-		match, unmatch   []*regexp.Regexp
+		expectedResponse     string
+		isFakeServerRequired bool
+		match, unmatch       []*regexp.Regexp
 	}{
 		"[Success] istgt is reachable and giving expected stats": {
-			expectedResponse: CstorResponse,
+			expectedResponse:     CstorResponse,
+			isFakeServerRequired: true,
 			// match matches the response with the expected input.
 			match: []*regexp.Regexp{
 				regexp.MustCompile(`openebs_reads 0`),
@@ -101,8 +103,8 @@ func TestCstorCollector(t *testing.T) {
 			unmatch: []*regexp.Regexp{},
 		},
 		"[Failure] istgt is not reachable and expected stats is null": {
-			expectedResponse: "OK IOSTATS\r\n",
 			// match matches the response with the expected input.
+			isFakeServerRequired: false,
 			match: []*regexp.Regexp{
 				regexp.MustCompile(`openebs_reads 0`),
 				regexp.MustCompile(`openebs_total_read_bytes 0`),
@@ -119,8 +121,9 @@ func TestCstorCollector(t *testing.T) {
 			unmatch: []*regexp.Regexp{},
 		},
 		"[Failure] istgt is reachable and giving valid stats but compare with incorrect output": {
-			expectedResponse: CstorResponse,
-			match:            []*regexp.Regexp{},
+			expectedResponse:     CstorResponse,
+			isFakeServerRequired: true,
+			match:                []*regexp.Regexp{},
 			unmatch: []*regexp.Regexp{
 				// every field is empty for negative testing
 				regexp.MustCompile(`openebs_reads `),
@@ -137,10 +140,12 @@ func TestCstorCollector(t *testing.T) {
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			var wg sync.WaitGroup
-			wg.Add(1)
-			runFakeUnixServer(t, &wg, tt.expectedResponse)
-			wg.Wait()
+			if tt.isFakeServerRequired {
+				var wg sync.WaitGroup
+				wg.Add(1)
+				runFakeUnixServer(t, &wg, tt.expectedResponse)
+				wg.Wait()
+			}
 			// col is an instance of the Volume exporter which gets
 			// /v1/stats api along with url.
 			c := Cstor("/tmp/go.sock")
@@ -177,7 +182,10 @@ func TestCstorCollector(t *testing.T) {
 			Unlink(t)
 			prometheus.Unregister(col)
 			server.Close()
-			c.close()
+
+			if tt.isFakeServerRequired {
+				c.close()
+			}
 		})
 	}
 }
