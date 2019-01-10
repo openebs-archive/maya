@@ -712,7 +712,7 @@ spec:
           name: {{ $name }}
           namespace: {{ $namespace }}
           annotations:
-            openebs.io/storage-class: {{ $storageClass }}
+            openebs.io/storage-class: {{ $storageClass | default "" }}
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
             openebs.io/controller-status: {{ $targetStatus | default "" | replace "true" "running" | replace "false" "notready" }}
