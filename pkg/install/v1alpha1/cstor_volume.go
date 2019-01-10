@@ -712,7 +712,6 @@ spec:
           name: {{ $name }}
           namespace: {{ $namespace }}
           annotations:
-            openebs.io/access-mode: {{ $accessMode }}
             openebs.io/storage-class: {{ $storageClass }}
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
@@ -725,6 +724,7 @@ spec:
           targetPort: 3260
           replicas: {{ $replicaName | default "" | splitList ", " | len }}
           casType: cstor
+          accessMode: {{ $accessMode | default "" }}
     {{- end -}}
 ---
 # runTask to list cStor target deployment service
