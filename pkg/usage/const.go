@@ -40,4 +40,7 @@ const (
 	// Event action
 	Replica             string = "replica:"
 	DefaultReplicaCount string = "replica:3"
+
+	// Event application name constant for volume event
+	DefaultCASType string = "jiva"
 )
