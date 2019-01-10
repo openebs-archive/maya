@@ -96,5 +96,5 @@ type CasPool struct {
 	PendingPoolCount int
 
 	DeviceID []string
-	Disks     DiskList
+	Disks    DiskList
 }

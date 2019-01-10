@@ -65,16 +65,16 @@ const (
 	StorageClassHeaderKey CASKey = "storageclass"
 )
 
-// CASPlainKey represents a openebs key used either in resource annotation 
+// CASPlainKey represents a openebs key used either in resource annotation
 // or label
 //
 // NOTE:
-//  PlainKey (i.e. without 'openebs.io/' ) helps to parse key via 
+//  PlainKey (i.e. without 'openebs.io/' ) helps to parse key via
 // go templating
 type CASPlainKey string
 
 const (
-	// OpenEBSVersionPlainKey is the label key which provides the installed 
+	// OpenEBSVersionPlainKey is the label key which provides the installed
 	// version of OpenEBS
 	OpenEBSVersionPlainKey CASPlainKey = "version"
 
@@ -82,11 +82,11 @@ const (
 	CASTNamePlainKey CASPlainKey = "castName"
 )
 
-// KubePlainKey represents a kubernetes key used either in resource annotation 
+// KubePlainKey represents a kubernetes key used either in resource annotation
 // or label
 //
 // NOTE:
-//  PlainKey (i.e. without 'kubernetes.io/' ) helps to parse key via 
+//  PlainKey (i.e. without 'kubernetes.io/' ) helps to parse key via
 // go templating
 type KubePlainKey string
 
