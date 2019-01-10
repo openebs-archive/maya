@@ -63,7 +63,7 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	}
 
 	out := make([]string, len(cvols.Items)+2)
-	out[0] = "Namespace|Name|Status|Type|Capacity|Storage Class|Access Mode"
+	out[0] = "Namespace|Name|Status|Type|Capacity|StorageClass|Access Mode"
 	out[1] = "---------|----|------|----|--------|-------------|-----------"
 	for i, item := range cvols.Items {
 		if len(item.Status.Reason) == 0 {
