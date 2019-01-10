@@ -37,7 +37,7 @@ type volumeAPIOpsV1alpha1 struct {
 func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
 		usage.New().Build().ApplicationBuilder().
-			SetApplicationName(cvol.Spec.CasType).
+			SetVolumeType(cvol.Spec.CasType, method).
 			SetDocumentTitle(cvol.ObjectMeta.Name).
 			SetLabel(usage.EventLabelCapacity).
 			SetReplicaCount(cvol.Spec.Replicas, method).

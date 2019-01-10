@@ -201,6 +201,17 @@ func (u *Usage) SetVolumeCapacity(volCapG string) *Usage {
 	return u
 }
 
+// Wrapper for setting the default storage-engine for volume-provision event
+func (u *Usage) SetVolumeType(volType, method string) *Usage {
+	if method == VolumeProvision && volType == "" {
+		// Set the default storage engine, if not specified in the request
+		u.SetApplicationName(DefaultCASType)
+	} else {
+		u.SetApplicationName(volType)
+	}
+	return u
+}
+
 // Wrapper for setting replica count for volume events
 // NOTE: This doesn't get the replica count in a volume de-provision event.
 // TODO: Pick the current value of replica-count from the CAS-engine
