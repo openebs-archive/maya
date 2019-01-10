@@ -119,6 +119,8 @@ type CASVolumeSpec struct {
 	FSType string `json:"fsType"`
 	// Lun will specify the lun number 0, 1.. on iSCSI Volume. (default: 0)
 	Lun int32 `json:"lun"`
+	// AccessMode will hold the access mode of this volume
+	AccessMode string `json:"accessMode"`
 }
 
 // CASVolumeStatus provides status of a cas volume
