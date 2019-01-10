@@ -362,7 +362,6 @@ spec:
           name: {{ $name }}
           namespace: {{ $ns }}
           annotations:
-            openebs.io/access-mode: {{ $pvInfo.accessModes | default "" }}
             openebs.io/storage-class: {{ $pvInfo.storageClass | default "" }}
             vsm.openebs.io/controller-ips: {{ $controllerIP }}
             vsm.openebs.io/cluster-ips: {{ $clusterIP }}
@@ -383,6 +382,7 @@ spec:
             openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
             openebs.io/targetportals: {{ $clusterIP }}:3260
         spec:
+          accessMode: {{ $pvInfo.accessModes | default "" }}
           capacity: {{ $capacity }}
           iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
           targetPortal: {{ $clusterIP }}:3260

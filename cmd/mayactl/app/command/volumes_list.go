@@ -71,7 +71,7 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 		}
 		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", item.ObjectMeta.Namespace,
 			item.ObjectMeta.Name,
-			item.Status.Reason, item.Spec.CasType, item.Spec.Capacity, getAnnotationValue("openebs.io/storage-class", item), getAnnotationValue("openebs.io/access-mode", item))
+			item.Status.Reason, item.Spec.CasType, item.Spec.Capacity, item.ObjectMeta.Annotations["openebs.io/storage-class"], item.Spec.AccessMode)
 	}
 	if len(out) == 2 {
 		fmt.Println("No Volumes are running")
@@ -79,11 +79,4 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	}
 	fmt.Println(util.FormatList(out))
 	return nil
-}
-
-func getAnnotationValue(key string, vol v1alpha1.CASVolume) string {
-	if val, present := vol.ObjectMeta.Annotations[key]; present {
-		return val
-	}
-	return "N/A"
 }
