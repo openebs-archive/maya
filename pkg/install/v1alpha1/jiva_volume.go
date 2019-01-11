@@ -32,6 +32,8 @@ spec:
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
+    - jiva-volume-read-listpv-default
+    - jiva-volume-read-listpods-default
   output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
@@ -455,6 +457,42 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-read-listpv-default
+spec:
+  meta: |
+    id: readlistpv
+    apiVersion: v1
+    kind: PersistentVolume
+    action: list
+  post: |
+    {{- $pvName := .Volume.owner -}}
+    {{- $pvcNamePath:= printf "{.items[?(@.metadata.name==%q)].spec.claimRef.name}" $pvName -}}
+    {{- $pvcNamespacePath:= printf "{.items[?(@.metadata.name==%q)].spec.claimRef.namespace}" $pvName -}}
+    {{- jsonpath .JsonResult $pvcNamePath | default "" | saveAs "readlistpv.pvcname" .TaskResult -}}
+    {{- jsonpath .JsonResult $pvcNamespacePath | default "" | saveAs "readlistpv.pvcnamespace" .TaskResult -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-read-listpods-default
+spec:
+  meta: |
+    id: readlistpod
+    apiVersion: v1
+    kind: Pod
+    runNamespace: {{ .TaskResult.readlistpv.pvcnamespace }}
+    disable: {{ $length := len .TaskResult.readlistpv.pvcname }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
+    action: list
+  post: |
+    {{- $pvcName:= .TaskResult.readlistpv.pvcname -}}
+    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
+    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
+    {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
+    {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-read-output-default
 spec:
   meta: |
@@ -489,6 +527,8 @@ spec:
         openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
+        openebs.io/application-pod-name: {{ .TaskResult.readlistpod.applicationPodName | default "N/A" }}
+        openebs.io/application-pod-namespace: {{ .TaskResult.readlistpod.applicationPodNamespace | default "N/A" }}
     spec:
       capacity: {{ $capacity }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
