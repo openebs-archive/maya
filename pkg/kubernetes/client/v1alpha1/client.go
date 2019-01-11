@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,49 +29,31 @@ const (
 	// K8sMasterIPEnvironmentKey is the environment variable key used to
 	// determine the kubernetes master IP address
 	K8sMasterIPEnvironmentKey env.ENVKey = "OPENEBS_IO_K8S_MASTER"
+
 	// KubeConfigEnvironmentKey is the environment variable key used to
 	// determine the kubernetes config
 	KubeConfigEnvironmentKey env.ENVKey = "OPENEBS_IO_KUBE_CONFIG"
 )
 
-// getInClusterConfigFunc is a typed function to get incluster config
+// getInClusterConfigFunc abstracts the logic to get
+// kubernetes incluster config
 //
 // NOTE:
-//  functional makes it simple to mock
+//  typed function makes it simple to mock
 type getInClusterConfigFunc func() (*rest.Config, error)
 
-// buildConfigFromFlagsFunc is a typed function to get desired
-// kubernetes config
+// buildConfigFromFlagsFunc provides the abstraction to get
+// kubernetes config from provided flags
 //
 // NOTE:
-//  functional makes it simple to mock
+//  typed function makes it simple to mock
 type buildConfigFromFlagsFunc func(string, string) (*rest.Config, error)
 
-// getKubeMasterIPFunc is a typed function to get kubernetes master
-// IP address
+// GetConfigFunc provides the abstraction to get
+// kubernetes config from provided client instance
 //
 // NOTE:
-//  functional makes it simple to mock
-type getKubeMasterIPFunc func(env.ENVKey) string
-
-// getKubeConfigPathFunc is a typed function to get kubernetes config
-// path
-//
-// NOTE:
-//  functional makes it simple to mock
-type getKubeConfigPathFunc func(env.ENVKey) string
-
-// getKubernetesClientsetFunc is a typed function to get kubernetes
-// clientset
-//
-// NOTE:
-//  functional makes it simple to mock
-type getKubernetesClientsetFunc func(*rest.Config) (*kubernetes.Clientset, error)
-
-// GetConfigFunc is a typed function to get kubernetes config
-//
-// NOTE:
-//  functional makes it simple to mock
+//  typed function makes it simple to mock
 type GetConfigFunc func(*Client) (*rest.Config, error)
 
 // GetConfig returns kubernetes config instance
@@ -85,14 +67,35 @@ func GetConfig(c *Client) (*rest.Config, error) {
 	return c.Config()
 }
 
+// getKubeMasterIPFunc provides the abstraction to get
+// kubernetes master IP address
+//
+// NOTE:
+//  typed function makes it simple to mock
+type getKubeMasterIPFunc func(env.ENVKey) string
+
+// getKubeConfigPathFunc provides the abstraction to get
+// kubernetes config path
+//
+// NOTE:
+//  typed function makes it simple to mock
+type getKubeConfigPathFunc func(env.ENVKey) string
+
+// getKubernetesClientsetFunc provides the abstraction to get
+// kubernetes clientset
+//
+// NOTE:
+//  typed function makes it simple to mock
+type getKubernetesClientsetFunc func(*rest.Config) (*kubernetes.Clientset, error)
+
 // Client provides common kuberenetes client operations
 type Client struct {
 	IsInCluster            bool                       // flag to let client point to its own cluster
-	getInClusterConfig     getInClusterConfigFunc     // typed func to get in cluster config
-	buildConfigFromFlags   buildConfigFromFlagsFunc   // typed func to get desired kubernetes config
-	getKubernetesClientset getKubernetesClientsetFunc // typed func to get kubernetes clienset
-	getKubeMasterIP        getKubeMasterIPFunc        // typed func to get kubernetes master IP
-	getKubeConfigPath      getKubeConfigPathFunc      // typed func to get kubernetes config path
+	getInClusterConfig     getInClusterConfigFunc     // handle to get in cluster config
+	buildConfigFromFlags   buildConfigFromFlagsFunc   // handle to get desired kubernetes config
+	getKubernetesClientset getKubernetesClientsetFunc // handle to get kubernetes clienset
+	getKubeMasterIP        getKubeMasterIPFunc        // handle to get kubernetes master IP
+	getKubeConfigPath      getKubeConfigPathFunc      // handle to get kubernetes config path
 }
 
 // OptionFunc is a typed function that abstracts any kind of operation
@@ -104,26 +107,30 @@ type OptionFunc func(*Client)
 
 // New returns a new instance of client
 func New(opts ...OptionFunc) *Client {
-	k := &Client{}
+	c := &Client{}
 	for _, o := range opts {
-		o(k)
+		o(c)
 	}
-	if k.getInClusterConfig == nil {
-		k.getInClusterConfig = rest.InClusterConfig
+	withDefaults(c)
+	return c
+}
+
+func withDefaults(c *Client) {
+	if c.getInClusterConfig == nil {
+		c.getInClusterConfig = rest.InClusterConfig
 	}
-	if k.buildConfigFromFlags == nil {
-		k.buildConfigFromFlags = clientcmd.BuildConfigFromFlags
+	if c.buildConfigFromFlags == nil {
+		c.buildConfigFromFlags = clientcmd.BuildConfigFromFlags
 	}
-	if k.getKubernetesClientset == nil {
-		k.getKubernetesClientset = kubernetes.NewForConfig
+	if c.getKubernetesClientset == nil {
+		c.getKubernetesClientset = kubernetes.NewForConfig
 	}
-	if k.getKubeMasterIP == nil {
-		k.getKubeMasterIP = env.Get
+	if c.getKubeMasterIP == nil {
+		c.getKubeMasterIP = env.Get
 	}
-	if k.getKubeConfigPath == nil {
-		k.getKubeConfigPath = env.Get
+	if c.getKubeConfigPath == nil {
+		c.getKubeConfigPath = env.Get
 	}
-	return k
 }
 
 // InCluster enables IsInCluster flag
@@ -133,7 +140,7 @@ func InCluster() OptionFunc {
 	}
 }
 
-// config returns the kubernetes config instance based on available criteria
+// Config returns the kubernetes config instance based on available criteria
 func (c *Client) Config() (config *rest.Config, err error) {
 	if c.IsInCluster {
 		return c.getInClusterConfig()

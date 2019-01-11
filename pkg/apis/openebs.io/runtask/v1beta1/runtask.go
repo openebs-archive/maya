@@ -85,6 +85,7 @@ const (
 type Kind string
 
 const (
+	// DaemonSet is a supported resource
 	DaemonSet Kind = "daemonset"
 )
 

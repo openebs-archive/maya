@@ -136,10 +136,10 @@ bootstrap:
 kubegen2: deepcopy2 clientset2 lister2 informer2
 
 # code generation for custom resources
-kubegen: deepcopy clientset lister informer
+kubegen: deepcopy clientset lister informer kubegen2
 
 # code generation for custom resources and protobuf
-generated_files: kubegen kubegen2 protobuf
+generated_files: kubegen protobuf
 
 # builds vendored version of deepcopy-gen tool
 # deprecate once the old pkg/apis/ folder structure is removed

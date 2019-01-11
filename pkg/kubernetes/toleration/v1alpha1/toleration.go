@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TolerationKey identifies keys associated with toleration; where
+// a key can be present in labels or in annotations
 type TolerationKey string
 
 const (
