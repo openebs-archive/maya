@@ -19,8 +19,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"strconv"
+
+	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 )
 
 const cstorSparsePoolYamls = `
@@ -34,6 +35,8 @@ metadata:
     cas.openebs.io/config: |
       - name: StoragePoolClaim
         value: "cstor-sparse-pool"
+      - name: ReplicaCount
+        value: "3"
       #- name: TargetResourceLimits
       #  value: |-
       #      memory: 1Gi
