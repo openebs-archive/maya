@@ -120,7 +120,6 @@ spec:
     - cstor-volume-read-listcstorvolumecr-default
     - cstor-volume-read-listcstorvolumereplicacr-default
     - cstor-volume-read-listtargetpod-default
-    - cstor-volume-read-listpv-default
     - cstor-volume-read-listpods-default
   output: cstor-volume-read-output-default
 ---
@@ -754,6 +753,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
 ---
 # runTask to list cstor volume cr
 apiVersion: openebs.io/v1alpha1
@@ -822,34 +822,17 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-read-listpv-default
-spec:
-  meta: |
-    id: readlistpv
-    apiVersion: v1
-    kind: PersistentVolume
-    action: list
-  post: |
-    {{- $pvName := .Volume.owner -}}
-    {{- $pvcNamePath:= printf "{.items[?(@.metadata.name==%q)].spec.claimRef.name}" $pvName -}}
-    {{- $pvcNamespacePath:= printf "{.items[?(@.metadata.name==%q)].spec.claimRef.namespace}" $pvName -}}
-    {{- jsonpath .JsonResult $pvcNamePath | default "" | saveAs "readlistpv.pvcname" .TaskResult -}}
-    {{- jsonpath .JsonResult $pvcNamespacePath | default "" | saveAs "readlistpv.pvcnamespace" .TaskResult -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
   name: cstor-volume-read-listpods-default
 spec:
   meta: |
     id: readlistpod
     apiVersion: v1
     kind: Pod
-    runNamespace: {{ .TaskResult.readlistpv.pvcnamespace }}
-    disable: {{ $length := len .TaskResult.readlistpv.pvcname }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
+    runNamespace: {{ .Volume.runNamespace }}
+    disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
     action: list
   post: |
-    {{- $pvcName:= .TaskResult.readlistpv.pvcname -}}
+    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
     {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
     {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
     {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
