@@ -1,0 +1,10 @@
+component_depth: 1
+languages:
+- go
+exclude:
+- /buildscripts/*
+- /ci/*
+- /pkg/client/generated/*
+- /integration-tests/*
+include:
+- .*\.go
