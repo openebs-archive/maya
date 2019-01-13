@@ -28,7 +28,7 @@ import (
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -195,8 +195,8 @@ Replica Details :
 		applicationInfoTemplate = `
 Application Details:
 --------------------
-Application Pod Name: {{.PodName}}
-Application Pod Namespace: {{.PodNamespace}}
+Application Pod Name      : {{.PodName}}
+Application Pod Namespace : {{.PodNamespace}}
 `
 
 		portalTemplate = `
