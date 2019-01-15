@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"encoding/json"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -148,7 +149,7 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	createVolCmd = append(createVolCmd, CreateCmd,
-		"-b", "4K", "-s", "-o", "compression=on",
+		"-b", "4K", "-s", "-o", "compression=on", "-o", "quorum=on",
 		"-o", openebsTargetIP, "-o", openebsVolname,
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 
@@ -164,7 +165,7 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	cloneVolCmd = append(cloneVolCmd, CloneCmd,
-		"-o", "compression=on", "-o", openebsTargetIP,
+		"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
 		"-o", openebsVolname, snapName, fullVolName)
 
 	return cloneVolCmd
