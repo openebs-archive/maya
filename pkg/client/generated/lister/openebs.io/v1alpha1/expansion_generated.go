@@ -42,6 +42,22 @@ type CStorBackupDataNamespaceListerExpansion interface{}
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
 
+// CStorRestoreListerExpansion allows custom methods to be added to
+// CStorRestoreLister.
+type CStorRestoreListerExpansion interface{}
+
+// CStorRestoreNamespaceListerExpansion allows custom methods to be added to
+// CStorRestoreNamespaceLister.
+type CStorRestoreNamespaceListerExpansion interface{}
+
+// CStorRestoreDataListerExpansion allows custom methods to be added to
+// CStorRestoreDataLister.
+type CStorRestoreDataListerExpansion interface{}
+
+// CStorRestoreDataNamespaceListerExpansion allows custom methods to be added to
+// CStorRestoreDataNamespaceLister.
+type CStorRestoreDataNamespaceListerExpansion interface{}
+
 // CStorVolumeListerExpansion allows custom methods to be added to
 // CStorVolumeLister.
 type CStorVolumeListerExpansion interface{}

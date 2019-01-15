@@ -26,6 +26,10 @@ type CStorBackupDataExpansion interface{}
 
 type CStorPoolExpansion interface{}
 
+type CStorRestoreExpansion interface{}
+
+type CStorRestoreDataExpansion interface{}
+
 type CStorVolumeExpansion interface{}
 
 type CStorVolumeReplicaExpansion interface{}

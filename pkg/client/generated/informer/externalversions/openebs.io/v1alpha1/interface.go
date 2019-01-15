@@ -32,6 +32,10 @@ type Interface interface {
 	CStorBackupDatas() CStorBackupDataInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
+	// CStorRestores returns a CStorRestoreInformer.
+	CStorRestores() CStorRestoreInformer
+	// CStorRestoreDatas returns a CStorRestoreDataInformer.
+	CStorRestoreDatas() CStorRestoreDataInformer
 	// CStorVolumes returns a CStorVolumeInformer.
 	CStorVolumes() CStorVolumeInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
@@ -75,6 +79,16 @@ func (v *version) CStorBackupDatas() CStorBackupDataInformer {
 // CStorPools returns a CStorPoolInformer.
 func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorRestores returns a CStorRestoreInformer.
+func (v *version) CStorRestores() CStorRestoreInformer {
+	return &cStorRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorRestoreDatas returns a CStorRestoreDataInformer.
+func (v *version) CStorRestoreDatas() CStorRestoreDataInformer {
+	return &cStorRestoreDataInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorVolumes returns a CStorVolumeInformer.

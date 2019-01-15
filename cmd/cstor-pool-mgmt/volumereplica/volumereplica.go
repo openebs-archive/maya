@@ -38,6 +38,8 @@ const (
 	CloneCmd = "clone"
 	// BackupCmd is the zfs volume send command.
 	BackupCmd = "send"
+	// RestoreCmd is the zfs volume send command.
+	RestoreCmd = "recv"
 	// StatsCmd is the zfs volume stats command.
 	StatsCmd = "stats"
 	// ZfsStatusDegraded is the degraded state of zfs volume.
@@ -201,6 +203,33 @@ func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, 
 		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
 			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+backupIP_Port[0]+" "+backupIP_Port[1])
 	}
+
+	return startBackupCmd
+}
+
+// CreateVolumeBackup sends cStor snapshots to remote location(zfs volumes).
+func CreateVolumeRestore(rst *apis.CStorRestore) error {
+	cmd := []string{}
+	// Parse capacity unit on CVR to support backward compatibility
+	cmd = builldVolumeRestoreCommand(rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"], rst.Spec.VolumeName, rst.Spec.RestoreSrc)
+
+	glog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
+
+	stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+	if err != nil {
+		glog.Errorf("Unable to start restore %s. error : %v", rst.Spec.VolumeName, string(stdoutStderr))
+		return err
+	}
+	return nil
+}
+
+// builldVolumeBackupCommand returns volume create command along with attributes as a string array
+func builldVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []string {
+	var startBackupCmd []string
+
+	restoreIP_Port := strings.Split(restoreSrc, ":")
+	startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, RestoreCmd,
+		"cstor-"+poolName+"/"+fullVolName+" < nc -w 3 "+restoreIP_Port[0]+" "+restoreIP_Port[1])
 
 	return startBackupCmd
 }
