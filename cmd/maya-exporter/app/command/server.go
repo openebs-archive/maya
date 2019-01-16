@@ -13,19 +13,6 @@ import (
 	"github.com/golang/glog"
 )
 
-// Initialize returns the valid flags such as jiva and cstor and returns
-// null string otherwise.
-func Initialize(options *VolumeExporterOptions) string {
-	switch option := options.CASType; option {
-	case "jiva":
-		return "jiva"
-	case "cstor":
-		return "cstor"
-	default:
-		return ""
-	}
-}
-
 // We need to run several instances of Exporter for each volume just like node
 // exporter on every node. At a time one instance can gather only the metrics
 // from the requested volume. You need to pass the controller IP using flag -c

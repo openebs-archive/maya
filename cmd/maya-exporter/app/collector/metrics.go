@@ -1,100 +1,11 @@
 package collector
 
 import (
-	"net"
-	"strings"
+	"encoding/json"
 
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
-
-type volumeStatus int
-
-const (
-	// SocketPath is path from where connection has to be created.
-	SocketPath = "/var/run/istgt_ctl_sock"
-	// HeaderPrefix is the prefix comes in the header from cstor.
-	HeaderPrefix = "iSCSI Target Controller version"
-	// EOF separates the strings from response which comes from the
-	// cstor as the collection of metrics.
-	EOF = "\r\n"
-	// Footer is used to verify if all the response has collected.
-	Footer = "OK IOSTATS"
-	// Command is a command that is used to write over wire and get
-	// the iostats from the cstor.
-	Command = "IOSTATS"
-	// BufSize is the size of response from cstor.
-	BufSize = 1024
-)
-
-const (
-	_ volumeStatus = iota
-	// Offline is the status of volume when no io's have been served
-	// or volume may be in RO state (only for jiva)
-	Offline
-	// Degraded is the status of volume when volume is
-	// performing in degraded mode but all features may available
-	Degraded
-	// Healthy is the status of volume when volume is serving io's
-	// and all features are available or volume may be in RW state
-	// (for jiva)
-	Healthy
-	// Unknown is the status of volume when no info is available
-	Unknown
-)
-
-// Exporter interface defines the interfaces that has methods to be
-// implemented by the CstorStatsExporter and JivaStatsExporter.
-type Exporter interface {
-	Collect()
-	Parse()
-	Set()
-}
-
-// Parse interface defines the method that to be implemented by the
-// CstorStatsExporter and JivaStatsExporter. parse() is used to parse
-// the response into the Metrics struct.
-type Parse interface {
-	parser()
-}
-
-// Collect interface defines the the method that to be implemented by
-// the CstorStatsExporter and JivaStatsExporter. collector() is used
-// to collect the metrics from the Jiva and Cstor.
-type Collect interface {
-	collector()
-}
-
-// Set interface defines the method set() which is used to set the
-// values to the gauges and counters.
-type Set interface {
-	set()
-}
-
-// VolumeStatsExporter inherits the properties of cstor and jiva,
-// these properties includes metrics of the volumes.
-type VolumeStatsExporter struct {
-	CASType string
-	Cstor
-	Jiva
-	Metrics
-}
-
-// Collector is the interface implemented by struct that can be used by
-// Prometheus to collect metrics. A Collector has to be registered for
-// collection of  metrics. Basically it has two methods Describe and Collect.
-
-// Cstor implements the prometheus.Collector interface. It exposes
-// the metrics of a OpenEBS (cstor) volume.
-type Cstor struct {
-	Conn net.Conn
-}
-
-// Jiva implements the prometheus.Collector interface. It exposes
-// the metrics of a OpenEBS (Jiva) volume.
-type Jiva struct {
-	VolumeControllerURL string
-}
 
 // A gauge is a metric that represents a single numerical value that can
 // arbitrarily go up and down.
@@ -119,8 +30,8 @@ type Jiva struct {
 // method). Create instances with NewCounterVec.
 //
 
-// Metrics keeps all the volume related stats values into the respective fields.
-type Metrics struct {
+// metrics keeps all the volume related stats values into the respective fields.
+type metrics struct {
 	actualUsed             prometheus.Gauge
 	logicalSize            prometheus.Gauge
 	sectorSize             prometheus.Gauge
@@ -134,15 +45,20 @@ type Metrics struct {
 	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
 	volumeStatus           prometheus.Gauge
+	connectionRetryCounter prometheus.Gauge
+	connectionErrorCounter prometheus.Gauge
+	parseErrorCounter      prometheus.Gauge
+	healthyReplicaCounter  prometheus.Gauge
+	degradedReplicaCounter prometheus.Gauge
+	totalReplicaCounter    prometheus.Gauge
 	volumeUpTime           *prometheus.GaugeVec
-	connectionRetryCounter *prometheus.CounterVec
-	connectionErrorCounter *prometheus.CounterVec
-	replicaCounter         *prometheus.GaugeVec
 }
 
-// VolumeStats keep the values of read/write I/O's and
+// stats keep the values of read/write I/O's and
 // other volume statistics per second.
-type VolumeStats struct {
+type stats struct {
+	got                  bool
+	casType, iqn         string
 	reads                float64
 	writes               float64
 	totalReadBlockCount  float64
@@ -157,17 +73,21 @@ type VolumeStats struct {
 	actualSize           float64
 	uptime               float64
 	revisionCount        float64
-	replicaCount         float64
+	totalReplicaCount    float64
+	healthyReplicaCount  float64
+	degradedReplicaCount float64
+	offlineReplicaCount  float64
 	name                 string
 	replicas             []v1.Replica
-	status               string
+	status               v1.TargetMode
+	address              string
 }
 
 // MetricsInitializer returns the Metrics instance used for registration
 // of exporter while instantiating JivaStatsExporter and
 // CstorStatsExporter.
-func MetricsInitializer(casType string) *Metrics {
-	return &Metrics{
+func Metrics(cas string) metrics {
+	return metrics{
 		actualUsed: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
@@ -265,146 +185,92 @@ func MetricsInitializer(casType string) *Metrics {
 				Name:      "volume_uptime",
 				Help:      "Time since volume has registered",
 			},
-			[]string{"volName", "iqn", "portal", "castype", "status"},
+			[]string{"volName", "castype"},
 		),
 
-		connectionRetryCounter: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		connectionRetryCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "connection_retry_total",
 				Help:      "Total no of connection retry requests",
 			},
-			[]string{"err"},
 		),
 
-		connectionErrorCounter: prometheus.NewCounterVec(
-			prometheus.CounterOpts{
+		connectionErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "connection_error_total",
 				Help:      "Total no of connection errors",
 			},
-			[]string{"err"},
 		),
 
-		replicaCounter: prometheus.NewGaugeVec(
+		parseErrorCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "replica_count",
-				Help:      "Total no of replicas",
+				Name:      "parse_error_total",
+				Help:      "Total no of parsing errors",
 			},
-			[]string{"address", "mode"},
+		),
+
+		healthyReplicaCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "healthy_replica_count",
+				Help:      "Total no of healthy replicas",
+			},
+		),
+
+		degradedReplicaCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "degraded_replica_count",
+				Help:      "Total no of degraded/ro replicas",
+			},
+		),
+
+		totalReplicaCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "total_replica_count",
+				Help:      "Total no of replicas connected to cas",
+			},
 		),
 	}
 }
 
-// buildStringof build comma separated string addr and mode from
-// replica address and replica modes respectively.
-func (v VolumeStats) buildStringof(addr, mode *strings.Builder) {
-	count := int(v.replicaCount)
-	for i := 0; i < count; i++ {
-		addr.WriteString(v.replicas[i].Address)
-		mode.WriteString(string(v.replicas[i].Mode))
-		if i < count-1 {
-			addr.WriteString(",")
-			mode.WriteString(",")
+func (v *stats) getReplicaCount() {
+	var (
+		ro, rw float64
+	)
+	for _, rep := range v.replicas {
+		switch rep.Mode {
+		case readOnly, degraded:
+			ro++
+		case readWrite, healthy:
+			rw++
 		}
 	}
+	v.degradedReplicaCount = ro
+	v.healthyReplicaCount = rw
 }
 
-func (v VolumeStats) getVolumeStatus() volumeStatus {
+func (v *stats) getVolumeStatus() volumeStatus {
 	switch v.status {
-	case "RO", "Offline":
+	case targetReadOnly, targetOffline:
 		return Offline
-	case "RW", "Healthy":
+	case targetReadWrite, targetHealthy:
 		return Healthy
-	case "Degraded":
+	case targetDegraded:
 		return Degraded
 	default:
 		return Unknown
 	}
 }
 
-// gaugeList returns the list of the registered gauge variables
-func (v *VolumeStatsExporter) gaugesList() []prometheus.Gauge {
-	return []prometheus.Gauge{
-		v.reads,
-		v.writes,
-		v.totalReadBytes,
-		v.totalWriteBytes,
-		v.totalReadTime,
-		v.totalWriteTime,
-		v.totalReadBlockCount,
-		v.totalWriteBlockCount,
-		v.actualUsed,
-		v.logicalSize,
-		v.sectorSize,
-		v.sizeOfVolume,
-		v.volumeStatus,
+func parseFloat64(entity json.Number, metrics *metrics) float64 {
+	num, err := entity.Float64()
+	if err != nil {
+		metrics.parseErrorCounter.Inc()
 	}
-}
-
-// counterList returns the list of registered counter variables
-func (v *VolumeStatsExporter) countersList() []prometheus.Collector {
-	return []prometheus.Collector{
-		v.volumeUpTime,
-		v.connectionErrorCounter,
-		v.connectionRetryCounter,
-		v.replicaCounter,
-	}
-}
-
-// Describe sends the super-set of all possible descriptors of metrics
-// collected by this Collector to the provided channel and returns once
-// the last descriptor has been sent. The sent descriptors fulfill the
-// consistency and uniqueness requirements described in the Desc
-// documentation. (It is valid if one and the same Collector sends
-// duplicate descriptors. Those duplicates are simply ignored. However,
-// two different Collectors must not send duplicate descriptors.) This
-// method idempotently sends the same descriptors throughout the
-// lifetime of the Collector. If a Collector encounters an error while
-// executing this method, it must send an invalid descriptor (created
-// with NewInvalidDesc) to signal the error to the registry.
-
-// Describe describes all the registered stats metrics from the OpenEBS volumes.
-func (v *VolumeStatsExporter) Describe(ch chan<- *prometheus.Desc) {
-	for _, gauge := range v.gaugesList() {
-		gauge.Describe(ch)
-	}
-
-	for _, counter := range v.countersList() {
-		counter.Describe(ch)
-	}
-}
-
-// Collect is called by the Prometheus registry when collecting
-// metrics. The implementation sends each collected metric via the
-// provided channel and returns once the last metric has been sent. The
-// descriptor of each sent metric is one of those returned by
-// Describe. Returned metrics that share the same descriptor must differ
-// in their variable label values. This method may be called
-// way. Bloc	king occurs at the expense of total performance of rendering
-// concurrently and must therefore be implemented in a concurrency safe
-// all registered metrics. Ideally, Collector implementations support
-// concurrent readers.
-
-// Collect collects all the registered stats metrics from the OpenEBS volumes.
-// It tries to reconnect with the volume if there is any error via a goroutine.
-func (v *VolumeStatsExporter) Collect(ch chan<- prometheus.Metric) {
-	// no need to catch the error as exporter should work even if
-	// there are failures in collecting the metrics due to connection
-	// issues or anything else.
-	switch v.CASType {
-	case "cstor":
-		v.Cstor.collector(&v.Metrics)
-	case "jiva":
-		v.Jiva.collector(&v.Metrics)
-	}
-
-	// collect the metrics extracted by collect method
-	for _, gauge := range v.gaugesList() {
-		gauge.Collect(ch)
-	}
-	for _, counter := range v.countersList() {
-		counter.Collect(ch)
-	}
+	return num
 }
