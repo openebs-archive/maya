@@ -9,39 +9,6 @@ import (
 	"testing"
 )
 
-func TestInitialize(t *testing.T) {
-	cases := map[string]struct {
-		cmdOptions *VolumeExporterOptions
-		output     string
-	}{
-		"Storage engine is cstor": {
-			cmdOptions: &VolumeExporterOptions{
-				CASType: "cstor",
-			},
-			output: "cstor",
-		},
-		"storage engine is jiva": {
-			cmdOptions: &VolumeExporterOptions{
-				CASType: "jiva",
-			},
-			output: "jiva",
-		},
-		"storage engine is other": {
-			cmdOptions: &VolumeExporterOptions{
-				CASType: "other",
-			},
-			output: "",
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			got := Initialize(tt.cmdOptions)
-			if got != tt.output {
-				t.Fatalf("Initialize() => %v, want %v", got, tt.output)
-			}
-		})
-	}
-}
 func TestStartMayaExporter(t *testing.T) {
 	ErrorMessage := make(chan error)
 	cases := map[string]struct {

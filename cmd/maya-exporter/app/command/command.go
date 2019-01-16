@@ -3,7 +3,6 @@ package command
 import (
 	"errors"
 	goflag "flag"
-	"log"
 	"net/url"
 
 	"github.com/golang/glog"
@@ -21,6 +20,8 @@ const (
 	listenAddress = ":9500"
 	// metricsPath is the endpoint of exporter.
 	metricsPath = "/metrics"
+	// socketPath where istgt is listening
+	socketPath = "/var/run/istgt_ctl_sock"
 	// controllerAddress is the address where jiva controller listens.
 	controllerAddress = "http://localhost:9501"
 	// casType is the type of container attached storage (CAS) from which
@@ -95,21 +96,18 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 // nil on successful execution.
 func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	glog.Infof("Starting maya-exporter ...")
-	option := Initialize(options)
-	if len(option) == 0 {
-		glog.Fatal("maya-exporter only supports jiva and cstor as storage engine")
-		return nil
-	}
-	if option == "cstor" {
-		glog.Infof("initialising maya-exporter for the cstor")
+	switch options.CASType {
+	case "cstor":
+		glog.Infof("Initialising maya-exporter for the cstor")
 		options.RegisterCstorStatsExporter()
-	}
-	if option == "jiva" {
-		log.Println("Initialising maya-exporter for the jiva")
+	case "jiva":
+		glog.Infof("Initialising maya-exporter for the jiva")
 		if err := options.RegisterJivaStatsExporter(); err != nil {
 			glog.Fatal(err)
 			return nil
 		}
+	default:
+		return errors.New("unsupported CAS")
 	}
 	options.StartMayaExporter()
 	return nil
@@ -119,13 +117,15 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 // initialises an instance of JivaStatsExporter.This returns err
 // if the URL is not correct.
 func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
-	controllerURL, err := url.ParseRequestURI(o.ControllerAddress)
+	url, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
 		glog.Error(err)
 		return errors.New("Error in parsing the URI")
 	}
-	exporter := collector.NewJivaStatsExporter(controllerURL, o.CASType)
+	jiva := collector.Jiva(url)
+	exporter := collector.New(jiva)
 	prometheus.MustRegister(exporter)
+	glog.Info("Registered maya exporter for jiva")
 	return nil
 }
 
@@ -133,13 +133,9 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 // the exporter with Prometheus for collecting the metrics.This doesn't returns
 // error because that case is handled in InitiateConnection().
 func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
-	var c collector.Cstor
-	c.InitiateConnection()
-	if c.Conn == nil {
-		glog.Error("Connection is not established with the cstor.")
-	}
-	exporter := collector.NewCstorStatsExporter(c.Conn, o.CASType)
+	cstor := collector.Cstor(socketPath)
+	exporter := collector.New(cstor)
 	prometheus.MustRegister(exporter)
-	glog.Info("Registered the exporter")
+	glog.Info("Registered maya exporter for cstor")
 	return
 }
