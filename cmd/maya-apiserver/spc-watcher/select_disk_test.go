@@ -19,11 +19,12 @@ package spc
 import (
 	"testing"
 	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
+	"strconv"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 func (focs *clientSet) FakeDiskCreator() {
@@ -146,7 +147,7 @@ func TestNodeDiskAlloter(t *testing.T) {
 				},
 			},
 		},
-			1,
+			3,
 			false,
 		},
 		// Test Case #6
@@ -179,7 +180,23 @@ func TestNodeDiskAlloter(t *testing.T) {
 			0,
 			false,
 		},
+		// Test Case #8
+		"manualSPC8": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3", "disk4"},
+				},
+			},
+		},
+			4,
+			false,
+		},
 	}
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			diskList, err := focs.nodeDiskAlloter(test.fakeCasPool)

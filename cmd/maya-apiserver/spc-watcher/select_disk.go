@@ -27,7 +27,9 @@ import (
 
 const (
 	// DiskStateActive is the active state of the disks.
-	DiskStateActive = "Active"
+	DiskStateActive        = "Active"
+	ProvisioningTypeManual = "manual"
+	ProvisioningTypeAuto   = "auto"
 )
 
 // clientset struct holds the interface of internalclientset
@@ -59,13 +61,18 @@ func (k *clientSet) nodeDiskAlloter(cp *v1alpha1.StoragePoolClaim) (*nodeDisk, e
 	if len(listDisk.Items) == 0 {
 		return nil, errors.New("no disk object found")
 	}
-
+	var provisioningType string
+	if len(cp.Spec.Disks.DiskList) == 0 {
+		provisioningType = ProvisioningTypeAuto
+	} else {
+		provisioningType = ProvisioningTypeManual
+	}
 	// pendingAllotment holds the number of pools that will be pending to be provisioned.
 	nodeDiskMap, err := k.nodeSelector(listDisk, cp.Spec.PoolSpec.PoolType, cp.Name)
 	if err != nil {
 		return nil, err
 	}
-	selectedDisk := diskSelector(nodeDiskMap, cp.Spec.PoolSpec.PoolType)
+	selectedDisk := diskSelector(nodeDiskMap, cp.Spec.PoolSpec.PoolType, provisioningType)
 	return selectedDisk, nil
 }
 
@@ -126,7 +133,7 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 
 // diskSelector is the function that will select the required number of disks from qualified nodes
 // so as to provision storagepool.
-func diskSelector(nodeDiskMap map[string]*diskList, poolType string) *nodeDisk {
+func diskSelector(nodeDiskMap map[string]*diskList, poolType, provisioningType string) *nodeDisk {
 
 	// selectedDisk will hold a list of disk that will be used to provision storage pool, after a
 	// minimum number of node qualifies
@@ -137,28 +144,45 @@ func diskSelector(nodeDiskMap map[string]*diskList, poolType string) *nodeDisk {
 		},
 	}
 
-	// requiredDiskCount will hold the required number of disk that should be selected from a qualified
+	// diskCount will hold the number of disk that will be selected from a qualified
 	// node for specific pool type
-	var requiredDiskCount int
-	// If pool type is striped, 1 disk should be selected
+	var diskCount int
+	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
+	// node for specific pool type
+	var minRequiredDiskCount int
+	// If pool type is striped, at least 1 disk should be selected
 	if poolType == string(v1alpha1.PoolTypeStripedCPV) {
-		requiredDiskCount = int(v1alpha1.StripedDiskCountCPV)
+		minRequiredDiskCount = int(v1alpha1.StripedDiskCountCPV)
 	}
-	// If pool type is mirrored, 2 disks should be selected
+	// If pool type is mirrored, at least 2 disks should be selected
 	if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
-		requiredDiskCount = int(v1alpha1.MirroredDiskCountCPV)
+		minRequiredDiskCount = int(v1alpha1.MirroredDiskCountCPV)
 	}
 	// Range over the nodeDiskMap map to get the list of disks
 	for node, val := range nodeDiskMap {
 
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
-		if len(val.items) < requiredDiskCount {
+		if len(val.items) < minRequiredDiskCount {
 			continue
 		}
+		if provisioningType == ProvisioningTypeManual {
+			diskCount = len(val.items)
+		}
+		if provisioningType == ProvisioningTypeAuto {
+			diskCount = minRequiredDiskCount
+		}
 		// Select the required disk from qualified nodes.
-		for i := 0; i < requiredDiskCount; i++ {
-			selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
+		if poolType == string(v1alpha1.PoolTypeStripedCPV) {
+			for i := 0; i < diskCount; i++ {
+				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
+			}
+		}
+		if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
+			for i := 0; i < diskCount/2*2; i = i + 2 {
+				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
+				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i+1])
+			}
 		}
 		selectedDisk.nodeName = node
 		break
