@@ -179,7 +179,7 @@ func diskSelector(nodeDiskMap map[string]*diskList, poolType, provisioningType s
 			}
 		}
 		if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
-			for i := 0; i < diskCount/2*2; i = i + 2 {
+			for i := 0; i < (diskCount/2)*2; i = i + 2 {
 				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
 				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i+1])
 			}
