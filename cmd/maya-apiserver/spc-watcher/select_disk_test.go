@@ -195,6 +195,21 @@ func TestNodeDiskAlloter(t *testing.T) {
 			4,
 			false,
 		},
+		// Test Case #8
+		"manualSPC9": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3"},
+				},
+			},
+		},
+			2,
+			false,
+		},
 	}
 
 	for name, test := range tests {
