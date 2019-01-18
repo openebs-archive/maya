@@ -209,6 +209,16 @@ spec:
               protocol: TCP
             - containerPort: 3232
               protocol: TCP
+            livenessProbe:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID
+              failureThreshold: 3
+              initialDelaySeconds: 300
+              periodSeconds: 10
+              timeoutSeconds: 30
             securityContext:
               privileged: true
             volumeMounts:
@@ -220,6 +230,10 @@ spec:
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            env:
+              # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
+            - name: OPENEBS_IO_CSTOR_ID
+              value: {{.TaskResult.putcstorpoolcr.objectUID}}
               # To avoid clash between terminating and restarting pod
               # in case older zrepl gets deleted faster, we keep initial delay
             lifecycle:
