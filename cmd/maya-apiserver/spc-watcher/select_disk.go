@@ -32,6 +32,11 @@ const (
 	ProvisioningTypeAuto   = "auto"
 )
 
+var defaultDiskCount = map[string]int{
+	string(v1alpha1.PoolTypeMirroredCPV): int(v1alpha1.MirroredDiskCountCPV),
+	string(v1alpha1.PoolTypeStripedCPV):  int(v1alpha1.StripedDiskCountCPV),
+}
+
 // clientset struct holds the interface of internalclientset
 // i.e. openebs.
 // This struct will be binded to method ListDisk and is useful in mocking
@@ -134,7 +139,6 @@ func (k *clientSet) nodeSelector(listDisk *v1alpha1.DiskList, poolType string, s
 // diskSelector is the function that will select the required number of disks from qualified nodes
 // so as to provision storagepool.
 func diskSelector(nodeDiskMap map[string]*diskList, poolType, provisioningType string) *nodeDisk {
-
 	// selectedDisk will hold a list of disk that will be used to provision storage pool, after a
 	// minimum number of node qualifies
 	selectedDisk := &nodeDisk{
@@ -143,46 +147,24 @@ func diskSelector(nodeDiskMap map[string]*diskList, poolType, provisioningType s
 			items: []string{},
 		},
 	}
-
 	// diskCount will hold the number of disk that will be selected from a qualified
 	// node for specific pool type
 	var diskCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
-	var minRequiredDiskCount int
-	// If pool type is striped, at least 1 disk should be selected
-	if poolType == string(v1alpha1.PoolTypeStripedCPV) {
-		minRequiredDiskCount = int(v1alpha1.StripedDiskCountCPV)
-	}
-	// If pool type is mirrored, at least 2 disks should be selected
-	if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
-		minRequiredDiskCount = int(v1alpha1.MirroredDiskCountCPV)
-	}
-	// Range over the nodeDiskMap map to get the list of disks
+	minRequiredDiskCount := defaultDiskCount[poolType]
 	for node, val := range nodeDiskMap {
-
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
 		if len(val.items) < minRequiredDiskCount {
 			continue
 		}
+		diskCount = minRequiredDiskCount
 		if provisioningType == ProvisioningTypeManual {
-			diskCount = len(val.items)
+			diskCount = (len(val.items) / minRequiredDiskCount) * minRequiredDiskCount
 		}
-		if provisioningType == ProvisioningTypeAuto {
-			diskCount = minRequiredDiskCount
-		}
-		// Select the required disk from qualified nodes.
-		if poolType == string(v1alpha1.PoolTypeStripedCPV) {
-			for i := 0; i < diskCount; i++ {
-				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
-			}
-		}
-		if poolType == string(v1alpha1.PoolTypeMirroredCPV) {
-			for i := 0; i < (diskCount/2)*2; i = i + 2 {
-				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
-				selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i+1])
-			}
+		for i := 0; i < diskCount; i++ {
+			selectedDisk.disks.items = append(selectedDisk.disks.items, val.items[i])
 		}
 		selectedDisk.nodeName = node
 		break
