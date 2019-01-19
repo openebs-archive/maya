@@ -21,14 +21,17 @@ package template
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
+	"reflect"
+	"strings"
+	"text/template"
+	"time"
+
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
-	"reflect"
-	"strings"
-	"text/template"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -780,6 +783,7 @@ func runtaskFuncs() (f template.FuncMap) {
 		"keyMap":             keyMap,
 		"splitKeyMap":        splitKeyMap,
 		"splitListTrim":      splitListTrim,
+		"randomize":          randomize,
 	}
 }
 
@@ -878,4 +882,19 @@ func AsMapOfStrings(context string, yml string, values map[string]interface{}) (
 func splitListTrim(sep, orig string) []string {
 	processedStr := strings.TrimRight(strings.TrimLeft(orig, sep), sep)
 	return strings.Split(processedStr, sep)
+}
+
+// For given []string as input, randomize API returns its randomized list
+// Example:
+// {{- $poolUids := keys .ListItems.cvolPoolList.pools | randomize }}
+func randomize(list []string) []string {
+	res := []string{}
+
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	perm := r.Perm(len(list))
+	for _, idx := range perm {
+		res = append(res, list[idx])
+	}
+
+	return res
 }
