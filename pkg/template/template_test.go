@@ -2131,7 +2131,7 @@ func TestRandomize(t *testing.T) {
 		list []string
 		want []string
 	}{
-		"SingeKey": {
+		"SingleKey": {
 			list: []string{
 				"key1",
 			},
@@ -2143,7 +2143,6 @@ func TestRandomize(t *testing.T) {
 			},
 			want: []string{"key1", "key2"},
 		},
-
 	}
 
 	for name, mock := range tests {
@@ -2151,7 +2150,7 @@ func TestRandomize(t *testing.T) {
 			list := randomize(mock.list)
 			if len(list) != len(mock.want) {
 				t.Fatalf("failed to test randomize: expected '%v' %d: actual '%v' %d",
-				    mock.want, len(mock.want), list, len(list))
+					mock.want, len(mock.want), list, len(list))
 			}
 		})
 	}
