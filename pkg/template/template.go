@@ -892,8 +892,8 @@ func randomize(list []string) []string {
 
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	perm := r.Perm(len(list))
-	for _, idx := range perm {
-		res = append(res, list[idx])
+	for _, randomIdx := range perm {
+		res = append(res, list[randomIdx])
 	}
 
 	return res
