@@ -323,7 +323,7 @@ func TestSyncHandler(t *testing.T) {
 			}
 
 			if test.expectedError != resultError {
-				t.Errorf("Test case failed : expected '%v' but got '%v' ", err, test.expectedError)
+				t.Errorf("Test case: %v failed expected '%v' but got '%v' ", name, err, test.expectedError)
 			}
 		})
 	}

@@ -40,6 +40,10 @@ const (
 	PoolTypeMirroredCPV CasPoolValString = "mirrored"
 	// PoolTypeStripedCPV is a key for striped for pool
 	PoolTypeStripedCPV CasPoolValString = "striped"
+	// PoolTypeRaidzCPV is a key for raidz for pool
+	PoolTypeRaidzCPV CasPoolValString = "raidz"
+	// PoolTypeRaidz2CPV is a key for raidz for pool
+	PoolTypeRaidz2CPV CasPoolValString = "raidz2"
 	// TypeSparseCPV is a key for sparse disk pool
 	TypeSparseCPV CasPoolValString = "sparse"
 	// TypeDiskCPV is a key for physical,iscsi,virtual etc disk pool
@@ -48,6 +52,10 @@ const (
 	StripedDiskCountCPV CasPoolValInt = 1
 	// MirroredDiskCountCPV is the count for mirrored type pool
 	MirroredDiskCountCPV CasPoolValInt = 2
+	// RaidzDiskCountCPV is the count for raidz type pool
+	RaidzDiskCountCPV CasPoolValInt = 3
+	// Raidz2DiskCountCPV is the count for raidz2 type pool
+	Raidz2DiskCountCPV CasPoolValInt = 6
 )
 
 // CasPool is a type which will be utilised by CAS engine to perform
@@ -96,5 +104,5 @@ type CasPool struct {
 	PendingPoolCount int
 
 	DeviceID []string
-	Disks     DiskList
+	Disks    DiskList
 }

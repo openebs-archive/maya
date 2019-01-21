@@ -35,6 +35,8 @@ const (
 var defaultDiskCount = map[string]int{
 	string(v1alpha1.PoolTypeMirroredCPV): int(v1alpha1.MirroredDiskCountCPV),
 	string(v1alpha1.PoolTypeStripedCPV):  int(v1alpha1.StripedDiskCountCPV),
+	string(v1alpha1.PoolTypeRaidzCPV):    int(v1alpha1.RaidzDiskCountCPV),
+	string(v1alpha1.PoolTypeRaidz2CPV):   int(v1alpha1.Raidz2DiskCountCPV),
 }
 
 // clientset struct holds the interface of internalclientset

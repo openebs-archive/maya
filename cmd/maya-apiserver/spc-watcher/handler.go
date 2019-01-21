@@ -17,6 +17,8 @@ limitations under the License.
 package spc
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
@@ -24,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"strings"
 )
 
 const (
@@ -214,7 +215,8 @@ func validate(spc *apis.StoragePoolClaim) (bool, error) {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
 	}
 
-	if !(poolType == string(apis.PoolTypeStripedCPV) || poolType == string(apis.PoolTypeMirroredCPV)) {
+	if !(poolType == string(apis.PoolTypeStripedCPV) || poolType == string(apis.PoolTypeMirroredCPV) ||
+		poolType == string(apis.PoolTypeRaidzCPV) || poolType == string(apis.PoolTypeRaidz2CPV)) {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
 	}
 
