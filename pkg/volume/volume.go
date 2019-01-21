@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -160,11 +161,21 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var isRestoreVol string
+	if pvc.Annotations["openebs.io/created-through"] == "restore" {
+		isRestoreVol = "true"
+	} else {
+		isRestoreVol = "false"
+	}
+	logrus.Infof("This volume is used for restoration: %v", isRestoreVol)
+
 	volumeLabels := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):                 v.volume.Name,
-		string(v1alpha1.CapacityVTP):              capacity,
-		string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
-		string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
+		string(v1alpha1.OwnerVTP):                   v.volume.Name,
+		string(v1alpha1.CapacityVTP):                capacity,
+		string(v1alpha1.RunNamespaceVTP):            v.volume.Namespace,
+		string(v1alpha1.PersistentVolumeClaimVTP):   pvcName,
+		string(v1alpha1.IsRestoreVolumePropertyVTP): isRestoreVol,
 	}
 
 	runtimeVolumeValues := util.MergeMaps(volumeLabels, cloneLabels)

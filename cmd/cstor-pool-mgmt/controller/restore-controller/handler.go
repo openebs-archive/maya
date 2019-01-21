@@ -93,16 +93,21 @@ func (c *CStorRestoreController) rstEventHandler(operation common.QueueOperation
 
 func (c *CStorRestoreController) rstAddEventHandler(rst *apis.CStorRestore) (string, error) {
 	// IsEmptyStatus is to check if initial status of RST object is empty.
-	if IsEmptyStatus(rst) || IsPendingStatus(rst) {
-		c.recorder.Event(rst, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
-		glog.Infof("rst creation successful: %v, %v", rst.ObjectMeta.Name, string(rst.GetUID()))
-		return string(apis.RSTStatusOnline), nil
-	}
+	/*
+		if IsEmptyStatus(rst) || IsPendingStatus(rst) {
+			c.recorder.Event(rst, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+			glog.Infof("rst creation successful: %v, %v", rst.ObjectMeta.Name, string(rst.GetUID()))
+			return string(apis.RSTStatusOnline), nil
+		}
+	*/
 	err := volumereplica.CreateVolumeRestore(rst)
 	if err != nil {
 		glog.Errorf("rst creation failure: %v", err.Error())
 		return string(apis.RSTStatusOffline), err
 	}
+	c.recorder.Event(rst, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
+	glog.Infof("rst creation successful: %v, %v", rst.ObjectMeta.Name, string(rst.GetUID()))
+	return string(apis.RSTStatusOnline), nil
 	return "", nil
 }
 

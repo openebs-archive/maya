@@ -96,6 +96,7 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		restore.ObjectMeta.Labels = map[string]string{
 			"cstorpool.openebs.io/uid": cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"],
 		}
+		restore.Spec.TargetIP = cvr.Spec.TargetIP
 		glog.Infof("Creating restore %s for volume %q poolUUID:%v", restore.Name,
 			restore.Spec.VolumeName,
 			restore.ObjectMeta.Labels["cstorpool.openebs.io/uid"])

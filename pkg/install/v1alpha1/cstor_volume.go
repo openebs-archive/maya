@@ -543,6 +543,7 @@ spec:
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
+        isRestoreVol: {{ .Volume.isRestoreVol }}
       finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
     spec:
       capacity: {{ .Volume.capacity }}

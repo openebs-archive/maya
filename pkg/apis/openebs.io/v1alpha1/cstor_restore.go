@@ -39,6 +39,7 @@ type CStorRestoreSpec struct {
 	VolumeName string `json:"volumeName"`
 	CasType    string `json:"casType"`
 	RestoreSrc string `json:"backupSrc"`
+	TargetIP   string `json:"targetIP"`
 }
 
 // CStorRestorePhase is to hold result of action.
