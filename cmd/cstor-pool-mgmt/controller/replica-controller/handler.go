@@ -175,9 +175,16 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeR
 		return string(apis.CVRStatusErrorDuplicate), nil
 	}
 
+	// Setting quorum to true for newly creating Volumes.
+	var quorum = true
+	if IsRecreateStatus(cVR) {
+		glog.Infof("Pool is recreated hence creating the volumes by setting off the quorum property")
+		quorum = false
+	}
+
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
-	if IsEmptyStatus(cVR) || IsPendingStatus(cVR) {
-		err := volumereplica.CreateVolumeReplica(cVR, fullVolName)
+	if IsEmptyStatus(cVR) || IsPendingStatus(cVR) || IsRecreateStatus(cVR) {
+		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
 			glog.Errorf("cVR creation failure: %v", err.Error())
 			return string(apis.CVRStatusOffline), err
@@ -269,6 +276,17 @@ func IsDeletionFailedBefore(cVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
+// IsStatusOnline is to check if the status of cStorVolumeReplica object is
+// Healthy.
+func IsOnlineStatus(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusOnline) {
+		glog.Infof("cVR Healthy status: %v", string(cVR.ObjectMeta.UID))
+		return true
+	}
+	glog.Infof("Not Healthy status: %v", string(cVR.ObjectMeta.UID))
+	return false
+}
+
 // IsEmptyStatus is to check if the status of cStorVolumeReplica object is empty.
 func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
 	if string(cVR.Status.Phase) == string(apis.CVRStatusEmpty) {
@@ -286,6 +304,17 @@ func IsPendingStatus(cVR *apis.CStorVolumeReplica) bool {
 		return true
 	}
 	glog.V(4).Infof("Not pending status: %v", string(cVR.ObjectMeta.UID))
+	return false
+}
+
+// IsRecreateStatus is to check if the status of cStorVolumeReplica object is
+// in recreated state.
+func IsRecreateStatus(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusRecreate) {
+		glog.Infof("cVR Recreate: %v", string(cVR.ObjectMeta.UID))
+		return true
+	}
+	glog.V(4).Infof("Not Recreate status: %v", string(cVR.ObjectMeta.UID))
 	return false
 }
 

@@ -108,7 +108,7 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 }
 
 // CreateVolumeReplica creates cStor replica(zfs volumes).
-func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) error {
+func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) error {
 	cmd := []string{}
 	isClone := cStorVolumeReplica.Labels[string(apis.CloneEnableKEY)] == "true"
 	snapName := ""
@@ -124,7 +124,7 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 		// Parse capacity unit on CVR to support backward compatibility
 		volCapacity := parseCapacityUnit(cStorVolumeReplica.Spec.Capacity)
 		cStorVolumeReplica.Spec.Capacity = volCapacity
-		cmd = builldVolumeCreateCommand(cStorVolumeReplica, fullVolName)
+		cmd = builldVolumeCreateCommand(cStorVolumeReplica, fullVolName, quorum)
 	}
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
@@ -141,15 +141,20 @@ func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolNam
 }
 
 // builldVolumeCreateCommand returns volume create command along with attributes as a string array
-func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string) []string {
+func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) []string {
 	var createVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
 
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
+	quorumValue := "quorum=on"
+	if !quorum {
+		quorumValue = "quorum=off"
+	}
+
 	createVolCmd = append(createVolCmd, CreateCmd,
-		"-b", "4K", "-s", "-o", "compression=on", "-o", "quorum=on",
+		"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
 		"-o", openebsTargetIP, "-o", openebsVolname,
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 

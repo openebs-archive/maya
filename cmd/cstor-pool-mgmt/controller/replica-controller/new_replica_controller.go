@@ -114,7 +114,14 @@ func NewCStorVolumeReplicaController(
 			q.Operation = common.QOpAdd
 			glog.Infof("cStorVolumeReplica Added event : %v, %v", cVR.ObjectMeta.Name, string(cVR.ObjectMeta.UID))
 			controller.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
-			cVR.Status.Phase = apis.CVRStatusPending
+
+			// For New request phase of cVR will be empty
+			if IsEmptyStatus(cVR) {
+				cVR.Status.Phase = apis.CVRStatusPending
+			} else {
+				cVR.Status.Phase = apis.CVRStatusRecreate
+			}
+
 			cVR, _ = controller.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Update(cVR)
 			controller.enqueueCStorReplica(cVR, q)
 		},

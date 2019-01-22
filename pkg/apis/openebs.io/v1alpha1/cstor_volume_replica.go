@@ -79,6 +79,8 @@ const (
 	CVRStatusErrorDuplicate CStorVolumeReplicaPhase = "Invalid"
 	// CVRStatusPending ensures pending task of cvr resource.
 	CVRStatusPending CStorVolumeReplicaPhase = "Init"
+	// CVRStatusRecreate ensures recreation task of cvr resource.
+	CVRStatusRecreate CStorVolumeReplicaPhase = "Recreate"
 )
 
 // CStorVolumeReplicaStatus is for handling status of cvr.
