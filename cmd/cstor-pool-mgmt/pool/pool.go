@@ -24,6 +24,12 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/pkg/errors"
+)
+
+var (
+	poolTypeCommand  = map[string]string{"mirrored": "mirror", "raidz": "raidz", "raidz2": "raidz2"}
+	defaultGroupSize = map[string]int{"striped": 1, "mirrored": 2, "raidz": 3, "raidz2": 6}
 )
 
 // PoolOperator is the name of the tool that makes pool-related operations.
@@ -107,10 +113,21 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	createAttr = append(createAttr, poolNameUID)
-	// To generate mirror disk0 disk1 mirror disk2 disk3 format.
-	for i, disk := range cStorPool.Spec.Disks.DiskList {
-		if cStorPool.Spec.PoolSpec.PoolType == "mirrored" && i%2 == 0 {
-			createAttr = append(createAttr, "mirror")
+	poolType := cStorPool.Spec.PoolSpec.PoolType
+	diskList := cStorPool.Spec.Disks.DiskList
+	if poolType == "striped" {
+		for _, disk := range diskList {
+			createAttr = append(createAttr, disk)
+		}
+		return createAttr
+	}
+	// To generate pool of the following types:
+	// mirrored (grouped by multiples of 2): mirror disk1 disk2 mirror disk3 disk4
+	// raidz (grouped by multiples of 3): raidz disk1 disk2 disk3 raidz disk 4 disk5 disk6
+	// raidz2 (grouped by multiples of 6): raidz2 disk1 disk2 disk3 disk4 disk5 disk6
+	for i, disk := range diskList {
+		if i%defaultGroupSize[poolType] == 0 {
+			createAttr = append(createAttr, poolTypeCommand[poolType])
 		}
 		createAttr = append(createAttr, disk)
 	}
@@ -120,15 +137,17 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 // CheckValidPool checks for validity of CStorPool resource.
 func CheckValidPool(cStorPool *apis.CStorPool) error {
-	if len(string(cStorPool.ObjectMeta.UID)) == 0 {
+	poolUID := cStorPool.ObjectMeta.UID
+	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
-	if len(cStorPool.Spec.Disks.DiskList) < 1 {
-		return fmt.Errorf("Disk name(s) cannot be empty")
+	diskCount := len(cStorPool.Spec.Disks.DiskList)
+	poolType := cStorPool.Spec.PoolSpec.PoolType
+	if diskCount < defaultGroupSize[poolType] {
+		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
 	}
-	if cStorPool.Spec.PoolSpec.PoolType == "mirrored" &&
-		len(cStorPool.Spec.Disks.DiskList)%2 != 0 {
-		return fmt.Errorf("Mirror poolType needs even number of disks")
+	if diskCount%defaultGroupSize[poolType] != 0 {
+		return errors.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
 	}
 	return nil
 }

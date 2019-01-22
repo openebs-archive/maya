@@ -17,6 +17,8 @@ limitations under the License.
 package spc
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
@@ -24,12 +26,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"strings"
 )
 
 const (
 	// DEFAULTPOOlCOUNT will be set to maxPool field of spc if maxPool field is not provided.
 	DEFAULTPOOlCOUNT = 3
+)
+
+var (
+	supportedPool = map[apis.CasPoolValString]bool{
+		apis.PoolTypeStripedCPV:  true,
+		apis.PoolTypeMirroredCPV: true,
+		apis.PoolTypeRaidzCPV:    true,
+		apis.PoolTypeRaidz2CPV:   true,
+	}
 )
 
 // syncHandler compares the actual state with the desired, and attempts to
@@ -214,7 +224,8 @@ func validate(spc *apis.StoragePoolClaim) (bool, error) {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
 	}
 
-	if !(poolType == string(apis.PoolTypeStripedCPV) || poolType == string(apis.PoolTypeMirroredCPV)) {
+	ok := supportedPool[apis.CasPoolValString(poolType)]
+	if !ok {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
 	}
 

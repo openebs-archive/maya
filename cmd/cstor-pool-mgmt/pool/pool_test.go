@@ -322,6 +322,46 @@ func TestCreatePool(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
+		"img3PoolResource": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"img4PoolResource": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz2",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
 	}
 	RunnerVar = TestRunner{}
 	for desc, ut := range testPoolResource {
@@ -569,8 +609,67 @@ func TestCheckValidPool(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
+		"Valid-StripedDisks1": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Valid-StripedDisks2": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+
+		"Invalid-StripedDisks": {
+			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 1, 0, "striped"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+
 		"Invalid-DiskListEmpty": {
-			expectedError: fmt.Errorf("Disk name(s) cannot be empty"),
+			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 2, 0, "mirrored"),
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -590,7 +689,7 @@ func TestCheckValidPool(t *testing.T) {
 			},
 		},
 		"Invalid-MirrorOddDisks": {
-			expectedError: fmt.Errorf("Mirror poolType needs even number of disks"),
+			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 2, 3, "mirrored"),
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -629,15 +728,137 @@ func TestCheckValidPool(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
+		"Valid-RaidzDisks": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Invalid-NoOfRaidzDisks": {
+			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 3, 2, "raidz"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Valid-Raidz2Disks": {
+			expectedError: nil,
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz2",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Invalid-Raidz2Disks": {
+			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 6, 2, "raidz2"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdc", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz2",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"Valid-RaidzDisks2": {
+			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 7, "raidz"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
+		"InValid-RaidzDisks3": {
+			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 5, "raidz"),
+			test: &apis.CStorPool{
+				TypeMeta: v1.TypeMeta{},
+				ObjectMeta: v1.ObjectMeta{
+					UID: types.UID("abc"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg", "/dev/sdd"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool1.cache",
+						PoolType:         "raidz",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{},
+			},
+		},
 	}
-	for desc, ut := range testPoolResource {
-		Obtainederr := CheckValidPool(ut.test)
-		if Obtainederr != nil {
-			if Obtainederr.Error() != ut.expectedError.Error() {
-				t.Fatalf("Desc : %v, Expected error: %v, Got : %v",
-					desc, ut.expectedError, Obtainederr)
+	for name, ut := range testPoolResource {
+		t.Run(name, func(t *testing.T) {
+			Obtainederr := CheckValidPool(ut.test)
+			if Obtainederr != nil {
+				if Obtainederr.Error() != ut.expectedError.Error() {
+					t.Fatalf("Desc : %v, Expected error: %v, Got : %v",
+						name, ut.expectedError, Obtainederr)
+				}
 			}
-		}
+		})
 	}
 }
 
