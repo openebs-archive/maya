@@ -74,7 +74,7 @@ func StartControllers(kubeconfig string) {
 	volume.UnixSockVar = util.RealUnixSock{}
 
 	// Blocking call for checking status of istgt running in cstor-volume container.
-	volume.CheckForIscsi()
+	util.CheckForIscsi(volume.UnixSockVar)
 
 	// Blocking call for checking status of CStorVolume CR.
 	common.CheckForCStorVolumeCRD(openebsClient)

@@ -28,7 +28,7 @@ import (
 	k8sclient "github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/types/v1"
 	"github.com/spf13/cobra"
 )
 
@@ -76,6 +76,12 @@ type cstorReplicaInfo struct {
 	Status     string
 	NodeName   string
 	IP         string
+}
+
+// applicationsDetails stores information about the application connected to the volume
+type applicationsDetails struct {
+	PodName      string
+	PodNamespace string
 }
 
 // NewCmdVolumeInfo displays OpenEBS Volume information.
@@ -186,6 +192,13 @@ Replica Details :
 {{ printf "%s\t" $value.Name }} {{ printf "%s\t" $value.Status }} {{ printf "%s\t" $value.PoolName }} {{ $value.NodeName }} {{end}}
 `
 
+		applicationInfoTemplate = `
+Application Details:
+--------------------
+Application Pod Name      : {{.PodName}}
+Application Pod Namespace : {{.PodNamespace}}
+`
+
 		portalTemplate = `
 Portal Details :
 ----------------
@@ -208,6 +221,12 @@ Replica Count     :   {{.ReplicaCount}}
 		v.GetReplicaCount(),
 		v.GetControllerNode(),
 	}
+
+	applicationInfo := applicationsDetails{
+		PodName:      v.Volume.ObjectMeta.Annotations["openebs.io/application-pod-name"],
+		PodNamespace: v.Volume.ObjectMeta.Annotations["openebs.io/application-pod-namespace"],
+	}
+
 	tmpl, err := template.New("VolumeInfo").Parse(portalTemplate)
 	if err != nil {
 		fmt.Println("Error displaying output, found error :", err)
@@ -218,6 +237,19 @@ Replica Count     :   {{.ReplicaCount}}
 		fmt.Println("Error displaying volume details, found error :", err)
 		return nil
 	}
+
+	tmpl, err = template.New("VolumeInfo").Parse(applicationInfoTemplate)
+	if err != nil {
+		fmt.Println("Error displaying output, found error :", err)
+		return nil
+	}
+
+	err = tmpl.Execute(os.Stdout, applicationInfo)
+	if err != nil {
+		fmt.Println("Error displaying volume details, found error :", err)
+		return nil
+	}
+
 	if v.GetCASType() == string(JivaStorageEngine) {
 		replicaCount, _ = strconv.Atoi(v.GetReplicaCount())
 		// This case will occur only if user has manually specified zero replica.

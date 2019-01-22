@@ -93,14 +93,14 @@ func (c *CStorBackupController) csbEventHandler(operation common.QueueOperation,
 func (c *CStorBackupController) csbAddEventHandler(csb *apis.CStorBackup) (string, error) {
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
 	if IsEmptyStatus(csb) || IsPendingStatus(csb) {
+		err := volumereplica.CreateVolumeBackup(csb)
+		if err != nil {
+			glog.Errorf("csb creation failure: %v", err.Error())
+			return string(apis.CSBStatusOffline), err
+		}
 		c.recorder.Event(csb, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 		glog.Infof("csb creation successful: %v, %v", csb.ObjectMeta.Name, string(csb.GetUID()))
 		return string(apis.CSBStatusOnline), nil
-	}
-	err := volumereplica.CreateVolumeBackup(csb)
-	if err != nil {
-		glog.Errorf("csb creation failure: %v", err.Error())
-		return string(apis.CSBStatusOffline), err
 	}
 	return "", nil
 }

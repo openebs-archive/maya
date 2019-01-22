@@ -49,6 +49,10 @@ spec:
   # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
+  # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceRequests
+    value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
@@ -78,6 +82,7 @@ spec:
     - cstor-volume-create-getpvc-default
     - cstor-volume-create-listclonecstorvolumereplicacr-default
     - cstor-volume-create-listcstorpoolcr-default
+    - cstor-volume-create-getstorageclass-default
     - cstor-volume-create-puttargetservice-default
     - cstor-volume-create-putcstorvolumecr-default
     - cstor-volume-create-puttargetdeployment-default
@@ -120,6 +125,7 @@ spec:
     - cstor-volume-read-listcstorvolumecr-default
     - cstor-volume-read-listcstorvolumereplicacr-default
     - cstor-volume-read-listtargetpod-default
+    - cstor-volume-read-listpods-default
   output: cstor-volume-read-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -136,6 +142,7 @@ spec:
     - cstor-volume-list-listtargetservice-default
     - cstor-volume-list-listtargetpod-default
     - cstor-volume-list-listcstorvolumereplicacr-default
+    - cstor-volume-list-listpv-default
   output: cstor-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -214,6 +221,22 @@ spec:
     {{- $poolsNodeList | keyMap "cvolPoolNodeList" .ListItems | noop -}}
     {{- end }}
 ---
+#runTask to get storageclass info
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-create-getstorageclass-default
+spec:
+  meta: |
+    id: creategetsc
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    objectName: {{ .Volume.storageclass }}
+    action: get
+  post: |
+    {{- $resourceVer := jsonpath .JsonResult "{.metadata.resourceVersion}" -}}
+    {{- trim $resourceVer | saveAs "creategetsc.storageClassVersion" .TaskResult | noop -}}
+---
 # runTask to create cStor target service
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -240,6 +263,10 @@ spec:
     apiVersion: v1
     kind: Service
     metadata:
+      annotations:
+        openebs.io/storage-class-ref: |
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/target-service: cstor-target-svc
         openebs.io/storage-engine-type: cstor
@@ -296,6 +323,9 @@ spec:
       annotations:
         openebs.io/fs-type: {{ .Config.FSType.value }}
         openebs.io/lun: {{ .Config.Lun.value }}
+        openebs.io/storage-class-ref: |
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/version: {{ .CAST.version }}
@@ -332,6 +362,8 @@ spec:
     {{- $resourceRequestsVal := fromYaml .Config.TargetResourceRequests.value -}}
     {{- $setResourceLimits := .Config.TargetResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
+    {{- $setAuxResourceRequests := .Config.AuxResourceRequests.value | default "none" -}}
+    {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
@@ -354,6 +386,9 @@ spec:
         openebs.io/volume-monitor: "true"
         {{- end}}
         openebs.io/volume-type: cstor
+        openebs.io/storage-class-ref: |
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
     spec:
       replicas: 1
       selector:
@@ -370,13 +405,17 @@ spec:
             app: cstor-volume-manager
             openebs.io/target: cstor-target
             openebs.io/persistent-volume: {{ .Volume.owner }}
+            openebs.io/storage-class: {{ .Volume.storageclass }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-          {{- if eq $isMonitor "true" }}
           annotations:
+            openebs.io/storage-class-ref: |
+              name: {{ .Volume.storageclass }}
+              resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
+            {{- if eq $isMonitor "true" }}
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
-          {{- end}}
+            {{- end}}
         spec:
           serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
           {{- if ne $targetAffinityVal "none" }}
@@ -392,6 +431,23 @@ spec:
                 topologyKey: kubernetes.io/hostname
                 namespaces: [{{.Volume.runNamespace}}]
           {{- end }}
+          tolerations:
+          - effect: NoExecute
+            key: node.alpha.kubernetes.io/notReady
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.alpha.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.kubernetes.io/not-ready
+            operator: Exists
+            tolerationSeconds: 30
+          - effect: NoExecute
+            key: node.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 30
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
@@ -425,13 +481,19 @@ spec:
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             args:
             - "-e=cstor"
             command: ["maya-exporter"]
@@ -446,13 +508,19 @@ spec:
           {{- end }}
           - name: cstor-volume-mgmt
             image: {{ .Config.VolumeControllerImage.value }}
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             imagePullPolicy: IfNotPresent
             ports:
             - containerPort: 80
@@ -506,7 +574,7 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $poolUids := keys .ListItems.cvolPoolList.pools }}
+    {{- $poolUids := keys .ListItems.cvolPoolList.pools | randomize }}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     repeatWith:
       resources:
@@ -544,6 +612,9 @@ spec:
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
         isRestoreVol: {{ .Volume.isRestoreVol }}
+        openebs.io/storage-class-ref: |
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
     spec:
       capacity: {{ .Volume.capacity }}
@@ -593,14 +664,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := printf "%s, %s" .Config.RunNamespace.value .Volume.runNamespace -}}
-    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
     apiVersion: v1
     kind: Service
     action: list
@@ -614,6 +678,23 @@ spec:
     {{- $servicePairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},clusterIP={@.spec.clusterIP};{end}" | trim | default "" | splitList ";" -}}
     {{- $servicePairs | keyMap "volumeList" .ListItems | noop -}}
 ---
+#runTask to list all cstor pv
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-list-listpv-default
+spec:
+  meta: |
+    id: listlistpv
+    apiVersion: v1
+    kind: PersistentVolume
+    action: list
+    options: |-
+      labelSelector: openebs.io/cas-type=cstor
+  post: |
+      {{- $pvPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.name},accessModes={@.spec.accessModes[0]},storageClass={@.spec.storageClassName};{end}" | trim | default "" | splitList ";" -}}
+      {{- $pvPairs | keyMap "volumeList" .ListItems | noop -}}
+    ---
 # runTask to list all cstor target pods
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -622,14 +703,7 @@ metadata:
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
-    {{- $runNamespace := .Config.RunNamespace.value -}}
-    {{- $nss := $runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -683,6 +757,8 @@ spec:
     {{- $targetStatus := pluck "targetStatus" $map | first }}
     {{- $replicaName := pluck "replicaName" $map | first }}
     {{- $namespace := pluck "namespace" $map | first }}
+    {{- $accessMode :=  pluck "accessModes" $map | first }}
+    {{- $storageClass := pluck "storageClass" $map | first }}
     {{- $name := $pkey }}
       - kind: CASVolume
         apiVersion: v1alpha1
@@ -690,6 +766,7 @@ spec:
           name: {{ $name }}
           namespace: {{ $namespace }}
           annotations:
+            openebs.io/storage-class: {{ $storageClass | default "" }}
             openebs.io/cluster-ips: {{ $clusterIP }}
             openebs.io/volume-size: {{ $capacity }}
             openebs.io/controller-status: {{ $targetStatus | default "" | replace "true" "running" | replace "false" "notready" }}
@@ -701,6 +778,7 @@ spec:
           targetPort: 3260
           replicas: {{ $replicaName | default "" | splitList ", " | len }}
           casType: cstor
+          accessMode: {{ $accessMode | default "" }}
     {{- end -}}
 ---
 # runTask to list cStor target deployment service
@@ -728,6 +806,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
 ---
 # runTask to list cstor volume cr
 apiVersion: openebs.io/v1alpha1
@@ -793,6 +872,25 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.targetNodeName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
 ---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-read-listpods-default
+spec:
+  meta: |
+    id: readlistpod
+    apiVersion: v1
+    kind: Pod
+    runNamespace: {{ .Volume.runNamespace }}
+    disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
+    action: list
+  post: |
+    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
+    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
+    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
+    {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
+    {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
+---
 # runTask to render output of read volume task as CAS Volume
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -819,6 +917,8 @@ spec:
         openebs.io/node-names: {{ .TaskResult.readlistrep.hostname | default "" | splitList " " | join "," }}
         openebs.io/pool-names: {{ .TaskResult.readlistrep.poolname | default "" | splitList " " | join "," }}
         openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.targetNodeName | default ""}}
+        openebs.io/application-pod-name: {{ .TaskResult.readlistpod.applicationPodName | default "N/A" }}
+        openebs.io/application-pod-namespace: {{ .TaskResult.readlistpod.applicationPodNamespace | default "N/A" }}
     spec:
       capacity: {{ $capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}

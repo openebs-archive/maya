@@ -1,5 +1,5 @@
-# list only our namespaced directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|integration-tests')
+# list only maya source code directories
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|integration-tests')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -7,6 +7,10 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # API_PKG sets namespace where the API resources are defined
 API_PKG := github.com/openebs/maya/pkg
+
+# ALL_API_GROUPS has the list of all API resources from various groups
+ALL_API_GROUPS=\
+  openebs.io/runtask/v1beta1
 
 # API_GROUPS sets api version of the resources exposed by maya
 ifeq (${API_GROUPS}, )
@@ -47,7 +51,6 @@ MAYACTL=mayactl
 APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
-VOLUME_GRPC=cstor-volume-grpc
 EXPORTER=maya-exporter
 
 # Specify the date o build
@@ -76,7 +79,6 @@ clean:
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
-	rm -rf ${GOPATH}/bin/${VOLUME_GRPC}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -126,17 +128,21 @@ vet:
 # Bootstrap the build by downloading additional tools
 bootstrap:
 	@for tool in  $(EXTERNAL_TOOLS) ; do \
-		echo "Installing $$tool" ; \
+		echo "+ Installing $$tool" ; \
 		go get -u $$tool; \
 	done
 
 # code generation for custom resources
-kubegen: deepcopy clientset lister informer
+kubegen2: deepcopy2 clientset2 lister2 informer2
+
+# code generation for custom resources
+kubegen: deepcopy clientset lister informer kubegen2
 
 # code generation for custom resources and protobuf
-generated_files: deepcopy clientset lister informer cstor-volume-grpc
+generated_files: kubegen protobuf
 
 # builds vendored version of deepcopy-gen tool
+# deprecate once the old pkg/apis/ folder structure is removed
 deepcopy:
 	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
 	@echo "+ Generating deepcopy funcs for $(API_GROUPS)"
@@ -145,7 +151,19 @@ deepcopy:
 		--output-file-base zz_generated.deepcopy \
 		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
-# also builds vendored version of client-gen tool
+# builds vendored version of deepcopy-gen tool
+deepcopy2:
+	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating deepcopy funcs for $$apigrp" ; \
+		deepcopy-gen \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
+			--output-file-base zz_generated.deepcopy \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of client-gen tool
+# deprecate once the old pkg/apis/ folder structure is removed
 clientset:
 	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
 	@echo "+ Generating clientsets for $(API_GROUPS)"
@@ -156,7 +174,21 @@ clientset:
 		--clientset-path $(API_PKG)/client/generated/clientset \
 		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
-# also builds vendored version of lister-gen tool
+# builds vendored version of client-gen tool
+clientset2:
+	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating clientsets for $$apigrp" ; \
+		client-gen \
+			--fake-clientset=true \
+			--input $$apigrp \
+			--input-base $(API_PKG)/apis \
+			--clientset-path $(API_PKG)/client/generated/$$apigrp/clientset \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of lister-gen tool
+# deprecate once the old pkg/apis/ folder structure is removed
 lister:
 	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
 	@echo "+ Generating lister for $(API_GROUPS)"
@@ -165,7 +197,19 @@ lister:
 		--output-package $(API_PKG)/client/generated/lister \
 		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
-# also builds vendored version of informer-gen tool
+# builds vendored version of lister-gen tool
+lister2:
+	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating lister for $$apigrp" ; \
+		lister-gen \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
+			--output-package $(API_PKG)/client/generated/$$apigrp/lister \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
+
+# builds vendored version of informer-gen tool
+# deprecate once the old pkg/apis/ folder structure is removed
 informer:
 	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
 	@echo "+ Generating informer for $(API_GROUPS)"
@@ -175,6 +219,19 @@ informer:
 		--versioned-clientset-package $(API_PKG)/client/generated/clientset/internalclientset \
 		--listers-package $(API_PKG)/client/generated/lister \
 		--go-header-file ./buildscripts/custom-boilerplate.go.txt
+
+# builds vendored version of informer-gen tool
+informer2:
+	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
+	@for apigrp in  $(ALL_API_GROUPS) ; do \
+		echo "+ Generating informer for $$apigrp" ; \
+		informer-gen \
+			--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+			--output-package $(API_PKG)/client/generated/$$apigrp/informer \
+			--versioned-clientset-package $(API_PKG)/client/generated/$$apigrp/clientset/internalclientset \
+			--listers-package $(API_PKG)/client/generated/$$apigrp/lister \
+			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
+	done
 
 # You might need to use sudo
 install: bin/maya/${MAYACTL}
@@ -202,14 +259,13 @@ cstor-volume-mgmt:
 	@echo "----------------------------"
 	@PNAME="cstor-volume-mgmt" CTLNAME=${VOLUME_MGMT} sh -c "'$(PWD)/buildscripts/build.sh'"
 
-#Use this to build cstor-volume-grpc
-cstor-volume-grpc:
+protobuf:
 	@echo "----------------------------"
-	@echo "--> cstor-volume-grpc           "
+	@echo "--> protobuf           "
 	@echo "----------------------------"
 	@protoc -I $(PWD)/pkg/apis/openebs.io/v1alpha1/ \
     -I${GOPATH}/src \
-    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-grpc/v1alpha1 \
+    --go_out=plugins=grpc:$(PWD)/pkg/client/generated/cstor-volume-mgmt/v1alpha1 \
     $(PWD)/pkg/apis/openebs.io/v1alpha1/cstorvolume.proto
 
 volume-mgmt-image: cstor-volume-mgmt
@@ -217,10 +273,8 @@ volume-mgmt-image: cstor-volume-mgmt
 	@echo "--> cstor-volume-mgmt image         "
 	@echo "----------------------------"
 	@cp bin/cstor-volume-mgmt/${VOLUME_MGMT} buildscripts/cstor-volume-mgmt/
-	@cp bin/cstor-volume-mgmt/${VOLUME_GRPC} buildscripts/cstor-volume-mgmt/
 	@cd buildscripts/cstor-volume-mgmt && sudo docker build -t openebs/cstor-volume-mgmt:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/cstor-volume-mgmt/${VOLUME_MGMT}
-	@rm buildscripts/cstor-volume-mgmt/${VOLUME_GRPC}
 
 # Use this to build only the maya-exporter.
 exporter:
@@ -275,4 +329,4 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen generated_files
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files

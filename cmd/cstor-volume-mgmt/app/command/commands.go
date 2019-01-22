@@ -29,26 +29,21 @@ var (
 	usage   = fmt.Sprintf("%s", cmdName)
 )
 
-// NewCmdOptions creates an options Cobra command to return usage.
-func NewCmdOptions() *cobra.Command {
-	cmd := &cobra.Command{
-		Use: "options",
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Usage()
-		},
-	}
-
-	return cmd
+// CmdSnaphotOptions holds the options for snapshot
+// create command
+type CmdSnaphotOptions struct {
+	volName  string
+	snapName string
 }
 
-// NewCStorVolumeMgmt creates a new CStorVolume CRD watcher command.
+// NewCStorVolumeMgmt creates a new CStorVolume CRD watcher and grpc command.
 func NewCStorVolumeMgmt() (*cobra.Command, error) {
 	// Create a new command.
 	cmd := &cobra.Command{
 		Use:   usage,
-		Short: "CStor Volume Management",
+		Short: "CStor Volume Watcher and GRPC server",
 		Long: `interfaces between observing the CStorVolume
-		 objects and volume controller creation`,
+		 objects and volume controller creation and GRPC server`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(Run(cmd), util.Fatal)
 		},
@@ -61,6 +56,6 @@ func NewCStorVolumeMgmt() (*cobra.Command, error) {
 
 // Run is to run cstor-volume-mgmt command without any arguments
 func Run(cmd *cobra.Command) error {
-	glog.Infof("cstor-volume-mgmt watcher for CStorVolume objects")
+	glog.Infof("cstor-volume-mgmt for CStorVolume objects and grpc server")
 	return nil
 }

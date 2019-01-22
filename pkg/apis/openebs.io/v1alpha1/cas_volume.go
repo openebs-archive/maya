@@ -101,24 +101,26 @@ type CASVolume struct {
 
 // CASVolumeSpec has the properties of a cas volume
 type CASVolumeSpec struct {
-	// Capacity will hold the capacity of this Volume
+	// Capacity of a volume will hold the capacity of the Volume
 	Capacity string `json:"capacity"`
-	// Iqn will hold the iqn value of this Volume
+	// Iqn of a volume will hold the iqn value of the Volume
 	Iqn string `json:"iqn"`
-	// TargetPortal will hold the target portal for this volume
+	// TargetPortal of a volume will hold the target portal of the volume
 	TargetPortal string `json:"targetPortal"`
-	// TargetIP will hold the targetIP for this Volume
+	// TargetIP of a volume will hold the targetIP of the Volume
 	TargetIP string `json:"targetIP"`
-	// TargetPort will hold the targetIP for this Volume
+	// TargetPort of a volume will hold the targetIP of the Volume
 	TargetPort string `json:"targetPort"`
-	// Replicas will hold the replica count for this volume
+	// Replicas of a volume will hold the replica count of the volume
 	Replicas string `json:"replicas"`
-	// CasType will hold the storage engine used to provision this volume
+	// CasType of a volume will hold the storage engine used to provision the volume
 	CasType string `json:"casType"`
-	// FSType will specify the format type - ext4(default), xfs of PV
+	// FSType of a volume will specify the format type - ext4(default), xfs of PV
 	FSType string `json:"fsType"`
-	// Lun will specify the lun number 0, 1.. on iSCSI Volume. (default: 0)
+	// Lun of volume will specify the lun number 0, 1.. on iSCSI Volume. (default: 0)
 	Lun int32 `json:"lun"`
+	// AccessMode of a volume will hold the access mode of the volume
+	AccessMode string `json:"accessMode"`
 }
 
 // CASVolumeStatus provides status of a cas volume

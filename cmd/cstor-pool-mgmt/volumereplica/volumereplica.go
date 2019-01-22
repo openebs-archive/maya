@@ -42,7 +42,7 @@ const (
 	// RestoreCmd is the zfs volume send command.
 	RestoreCmd = "recv"
 	// SetCmd is the zfs volume send command.
-	SetCmd = "recv"
+	SetCmd = "set"
 	// StatsCmd is the zfs volume stats command.
 	StatsCmd = "stats"
 	// ZfsStatusDegraded is the degraded state of zfs volume.
@@ -157,12 +157,12 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 
 	if cStorVolumeReplica.Annotations["isRestoreVol"] == "true" {
 		createVolCmd = append(createVolCmd, CreateCmd,
-			"-b", "4K", "-s", "-o", "compression=on",
+			"-b", "4K", "-s", "-o", "compression=on", "-o", "quorum=on",
 			"-o", openebsVolname, "-V", cStorVolumeReplica.Spec.Capacity,
 			fullVolName)
 	} else {
 		createVolCmd = append(createVolCmd, CreateCmd,
-			"-b", "4K", "-s", "-o", "compression=on",
+			"-b", "4K", "-s", "-o", "compression=on", "-o", "quorum=on",
 			"-o", openebsTargetIP, "-o", openebsVolname,
 			"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 
@@ -180,7 +180,7 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
 
 	cloneVolCmd = append(cloneVolCmd, CloneCmd,
-		"-o", "compression=on", "-o", openebsTargetIP,
+		"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
 		"-o", openebsVolname, snapName, fullVolName)
 
 	return cloneVolCmd
@@ -233,16 +233,17 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 			glog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
 			time.Sleep(time.Second * 5)
 		} else {
-			return nil
+			cmd = builldVolumeSetCommand(rst)
+			stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
+			if err != nil {
+				glog.Errorf("Unable to set Target IP for %s, error : %v", rst.Spec.VolumeName, string(stdoutStderr))
+			} else {
+				glog.Infof("Restore successful")
+				return nil
+			}
 		}
 		i++
 	}
-	cmd = builldVolumeSetCommand(rst)
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(VolumeReplicaOperator, cmd...)
-	if err != nil {
-		glog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
-	}
-
 	return fmt.Errorf("Unable to start restore")
 }
 
@@ -250,7 +251,7 @@ func CreateVolumeRestore(rst *apis.CStorRestore) error {
 func builldVolumeSetCommand(rst *apis.CStorRestore) []string {
 	var createSetCmd []string
 	openebsTargetIP := "io.openebs:targetip=" + rst.Spec.TargetIP
-	fullVolName := rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"] + "/" + rst.Spec.VolumeName
+	fullVolName := "cstor-" + rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"] + "/" + rst.Spec.VolumeName
 
 	createSetCmd = append(createSetCmd, SetCmd, openebsTargetIP, fullVolName)
 	return createSetCmd

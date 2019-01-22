@@ -120,6 +120,15 @@ const (
 
 	// DiskListCTP indicates the list of disks
 	DiskListCTP StoragePoolTLPProperty = "diskList"
+	// DiskDeviceListCTP indicates the list of device id of disks
+	// If device is is not present for a disk, it contians the device path.
+	DiskDeviceListCTP StoragePoolTLPProperty = "diskDeviceIdList"
+	// NOodeNameCTP is the name of node where cstorpool will be ceated
+	NodeNameCTP StoragePoolTLPProperty = "nodeName"
+	// PoolTypeCTP is the type of cstorpool that will be ceated
+	PoolTypeCTP StoragePoolTLPProperty = "poolType"
+	// InitPhaseCTP is the init phase for the cstorpool CR that will be ceated
+	InitPhaseCTP StoragePoolTLPProperty = "phase"
 )
 
 // VolumeTLPProperty is used to define properties that comes

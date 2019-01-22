@@ -32,6 +32,7 @@ spec:
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
+    - jiva-volume-read-listpods-default
   output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
@@ -134,6 +135,10 @@ spec:
   # expected by Kubernetes. Example:
   - name: ReplicaResourceLimits
     value: "none"
+  # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceRequests
+    value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
@@ -230,6 +235,7 @@ spec:
     - jiva-volume-list-listtargetservice-default
     - jiva-volume-list-listtargetpod-default
     - jiva-volume-list-listreplicapod-default
+    - jiva-volume-list-listpv-default
   output: jiva-volume-list-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -318,6 +324,22 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-list-listpv-default
+spec:
+  meta: |
+    id: listlistpv
+    apiVersion: v1
+    kind: PersistentVolume
+    action: list
+    options: |-
+      labelSelector: openebs.io/cas-type=jiva
+  post: |
+     {{- $pvPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.name},accessModes={@.spec.accessModes[0]},storageClass={@.spec.storageClassName};{end}" | trim | default "" | splitList ";" -}}
+     {{- $pvPairs | keyMap "pvList" .ListItems | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-list-output-default
 spec:
   meta: |
@@ -328,6 +350,7 @@ spec:
   task: |
     kind: CASVolumeList
     items:
+    {{- $pvList := .ListItems.pvList }}
     {{- range $pkey, $map := .ListItems.volumeList }}
     {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first }}
     {{- $clusterIP := pluck "clusterIP" $map | first }}
@@ -337,12 +360,14 @@ spec:
     {{- $replicaStatus := pluck "replicaStatus" $map | first }}
     {{- $name := $pkey | splitList "/" | last }}
     {{- $ns := $pkey | splitList "/" | first }}
+    {{- $pvInfo := pluck $name $pvList | first }}
       - kind: CASVolume
         apiVersion: v1alpha1
         metadata:
           name: {{ $name }}
           namespace: {{ $ns }}
           annotations:
+            openebs.io/storage-class: {{ $pvInfo.storageClass | default "" }}
             vsm.openebs.io/controller-ips: {{ $controllerIP }}
             vsm.openebs.io/cluster-ips: {{ $clusterIP }}
             vsm.openebs.io/iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
@@ -362,6 +387,7 @@ spec:
             openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
             openebs.io/targetportals: {{ $clusterIP }}:3260
         spec:
+          accessMode: {{ $pvInfo.accessModes | default "" }}
           capacity: {{ $capacity }}
           iqn: iqn.2016-09.com.openebs.jiva:{{ $name }}
           targetPortal: {{ $clusterIP }}:3260
@@ -388,6 +414,7 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistsvc.items | notFoundErr "controller service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -434,6 +461,25 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-volume-read-listpods-default
+spec:
+  meta: |
+    id: readlistpod
+    apiVersion: v1
+    kind: Pod
+    runNamespace: {{ .Volume.runNamespace }}
+    disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
+    action: list
+  post: |
+    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
+    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
+    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
+    {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
+    {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-volume-read-output-default
 spec:
   meta: |
@@ -468,6 +514,8 @@ spec:
         openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
+        openebs.io/application-pod-name: {{ .TaskResult.readlistpod.applicationPodName | default "N/A" }}
+        openebs.io/application-pod-namespace: {{ .TaskResult.readlistpod.applicationPodNamespace | default "N/A" }}
     spec:
       capacity: {{ $capacity }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
@@ -497,6 +545,10 @@ spec:
     apiVersion: v1
     Kind: Service
     metadata:
+      annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/storage-engine-type: jiva
         openebs.io/cas-type: jiva
@@ -669,6 +721,8 @@ spec:
     {{- $resourceRequestsVal := fromYaml .Config.TargetResourceRequests.value -}}
     {{- $setResourceLimits := .Config.TargetResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
+    {{- $setAuxResourceRequests := .Config.AuxResourceRequests.value | default "none" -}}
+    {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
@@ -689,6 +743,9 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
         {{- end}}
@@ -712,6 +769,9 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
           annotations:
+            openebs.io/storage-class-ref: | 
+                name: {{ .Volume.storageclass }}
+                resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/fs-type: {{ .Config.FSType.value }}
             openebs.io/lun: {{ .Config.Lun.value }}
             {{- if eq $isMonitor "true" }}
@@ -778,13 +838,19 @@ spec:
             - maya-exporter
             image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             ports:
             - containerPort: 9500
               protocol: TCP
@@ -828,8 +894,6 @@ spec:
     {{- $resourceRequestsVal := fromYaml .Config.ReplicaResourceRequests.value -}}
     {{- $setResourceLimits := .Config.ReplicaResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.ReplicaResourceLimits.value -}}
-    {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
-    {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     {{- $replicaAntiAffinityVal := .TaskResult.creategetpvc.replicaAntiAffinity -}}
     {{- $hasNodeSelector := .Config.ReplicaNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.ReplicaNodeSelector.value -}}
@@ -845,6 +909,9 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
       name: {{ .Volume.owner }}-rep
@@ -864,6 +931,9 @@ spec:
             openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
             {{- end }}
           annotations:
+            openebs.io/storage-class-ref: | 
+              name: {{ .Volume.storageclass }}
+              resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/capacity: {{ .Volume.capacity }}
             openebs.io/storage-pool: {{ .Config.StoragePool.value }}
         spec:

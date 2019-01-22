@@ -18,32 +18,48 @@ package command
 
 import (
 	goflag "flag"
+	"sync"
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/start-controller"
+	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
+	"github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
 	"github.com/spf13/cobra"
 )
 
 // CmdStartOptions has flags for starting CStorVolume watcher.
 type CmdStartOptions struct {
 	kubeconfig string
+	port       string
 }
 
-// NewCmdStart starts watching for CStorVolume resource events.
+// NewCmdStart starts gRPC server and watcher for CStorVolume.
 func NewCmdStart() *cobra.Command {
 	options := CmdStartOptions{}
-	getCmd := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "start",
-		Short: "starts CStorVolume watcher",
-		Long:  `CStorVolume resources will be watched for added, updated, deleted events`,
+		Short: "starts CStorVolume gRPC and watcher",
+		Long: `The grpc server would be serving snapshot requests whereas
+		the watcher would be watching for add, updat, delete events`,
 		Run: func(cmd *cobra.Command, args []string) {
-			startcontroller.StartControllers(options.kubeconfig)
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				v1alpha1.StartServer(volume.UnixSockVar, options.port)
+				wg.Done()
+			}()
+			wg.Add(1)
+			go func() {
+				startcontroller.StartControllers(options.kubeconfig)
+				wg.Done()
+			}()
+			wg.Wait()
 		},
 	}
-	// Bind & parse flags defined by external projects.
-	// e.g. This imports the golang/glog pkg flags into the cmd flagset.
-	getCmd.Flags().AddGoFlagSet(goflag.CommandLine)
 	goflag.CommandLine.Parse([]string{})
-	getCmd.Flags().StringVar(&options.kubeconfig, "kubeconfig", "",
+	cmd.Flags().StringVar(&options.kubeconfig, "kubeconfig", "",
 		`kubeconfig needs to be specified if out of cluster`)
-	return getCmd
+	cmd.Flags().StringVarP(&options.port, "port", "p", options.port,
+		"port on which the server should listen on")
+
+	return cmd
 }

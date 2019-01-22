@@ -35,6 +35,7 @@ type VolumeMetrics struct {
 // TODO: Make this generic, so that it can be used by mayactl
 // and other components of maya.
 type VolumeStats struct {
+	Got bool
 	// Iqn is unique iSCSI qualified name, it is used to
 	// configure iscsi initiator and target.
 	Iqn string `json:"iqn"`

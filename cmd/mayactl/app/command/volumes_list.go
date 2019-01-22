@@ -63,15 +63,15 @@ func (c *CmdVolumeOptions) RunVolumesList(cmd *cobra.Command) error {
 	}
 
 	out := make([]string, len(cvols.Items)+2)
-	out[0] = "Namespace|Name|Status|Type|Capacity"
-	out[1] = "---------|----|------|----|--------"
-	for i, items := range cvols.Items {
-		if len(items.Status.Reason) == 0 {
-			items.Status.Reason = volumeStatusOK
+	out[0] = "Namespace|Name|Status|Type|Capacity|StorageClass|Access Mode"
+	out[1] = "---------|----|------|----|--------|-------------|-----------"
+	for i, item := range cvols.Items {
+		if len(item.Status.Reason) == 0 {
+			item.Status.Reason = volumeStatusOK
 		}
-		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s", items.ObjectMeta.Namespace,
-			items.ObjectMeta.Name,
-			items.Status.Reason, items.Spec.CasType, items.Spec.Capacity)
+		out[i+2] = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s", item.ObjectMeta.Namespace,
+			item.ObjectMeta.Name,
+			item.Status.Reason, item.Spec.CasType, item.Spec.Capacity, item.ObjectMeta.Annotations["openebs.io/storage-class"], item.Spec.AccessMode)
 	}
 	if len(out) == 2 {
 		fmt.Println("No Volumes are running")

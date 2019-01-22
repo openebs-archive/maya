@@ -257,6 +257,31 @@ func TestSyncHandler(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "pool1",
 				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: 3,
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeStripedCPV),
+					},
+				},
+			},
+			expectedError: false,
+		},
+
+		"Sync Operation for spc add event invalid pool type": {
+			key:       "pool3",
+			operation: addEvent,
+			fakestoragepoolclaim: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pool3",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeDiskCPV),
+					MaxPools: 3,
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: "raidz1",
+					},
+				},
 			},
 			expectedError: true,
 		},
@@ -304,7 +329,7 @@ func TestSyncHandler(t *testing.T) {
 				// Hence creating the objects
 				_, err := controller.clientset.OpenebsV1alpha1().StoragePoolClaims().Create(test.fakestoragepoolclaim)
 				if err != nil {
-					t.Fatalf("Desc:%v, Unable to create resource : %s", name, test.key)
+					t.Fatalf("Test name: %v, Unable to create resource : %s, error: %v", name, test.key, err)
 				}
 			}
 
@@ -314,9 +339,8 @@ func TestSyncHandler(t *testing.T) {
 			if err != nil {
 				resultError = true
 			}
-
 			if test.expectedError != resultError {
-				t.Errorf("Test case failed : expected '%v' but got '%v' ", err, test.expectedError)
+				t.Errorf("Test case: %v failed expected '%v' but got '%v' ", name, test.expectedError, resultError)
 			}
 		})
 	}

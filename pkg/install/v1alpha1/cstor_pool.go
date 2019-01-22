@@ -16,6 +16,7 @@ limitations under the License.
 
 // TODO
 // Rename this file by removing the version suffix information
+
 package v1alpha1
 
 const cstorPoolYamls = `
@@ -63,6 +64,10 @@ spec:
   #      memory: 1Gi
   - name: PoolResourceLimits
     value: "none"
+  # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceRequests
+    value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
@@ -76,8 +81,6 @@ spec:
     tasks:
     # Following are the list of run tasks executed in this order to
     # create a cstor storage pool
-    - cstor-pool-create-getspcinfo-default
-    - cstor-pool-create-listnode-default
     - cstor-pool-create-putcstorpoolcr-default
     - cstor-pool-create-putcstorpooldeployment-default
     - cstor-pool-create-putstoragepoolcr-default
@@ -106,61 +109,6 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-getspcinfo-default
-spec:
-  meta: |
-    id: getspcinfo
-    apiVersion: openebs.io/v1alpha1
-    kind: StoragePoolClaim
-    objectName: {{.Storagepool.owner}}
-    action: get
-  post: |
-    # For backward compatibility, getspcinfo.disk is saved as a task result
-    {{- jsonpath .JsonResult "{range .spec.disks.diskList[*]}{$},{end}" | trim | saveAs "getspcinfo.disk" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.spec.poolSpec.poolType}" | trim | saveAs "getspcinfo.poolType" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.spec.type}" | trim | saveAs "getspcinfo.type" .TaskResult | noop -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: cstor-pool-create-listnode-default
-spec:
-  meta: |
-    id: listnode
-    apiVersion: openebs.io/v1alpha1
-    kind: Disk
-    action: get
-    repeatWith:
-      metas:
-      {{- $diskList := .TaskResult.getspcinfo.disk }}
-      # To support backward compatibility
-      # If .TaskResult.getspcinfo.disk is empty, get disk list from CAS engine top level property
-      {{if $diskList}}
-      {{- $diskList := .TaskResult.getspcinfo.disk | replace "," " "| trim | split " "}}
-      {{ range $k,$v := $diskList }}
-      - objectName: {{$v}}
-      {{ end }}
-      {{else}}
-      {{- $diskList := .Storagepool.diskList}}
-      {{ range $k,$v := $diskList }}
-      - objectName: {{$v}}
-      {{ end }}
-      {{ end }}
-  post: |
-    {{- $diskDevLink:= jsonpath .JsonResult "{@.spec.devlinks[0].links[0]}"}}
-    {{if $diskDevLink }}
-    {{- $nodeDiskdevlinkList := jsonpath .JsonResult "pkey=node,{@.metadata.labels.kubernetes\\.io/hostname}={@.spec.devlinks[0].links[0]};" | trim | default "" | splitList ";" -}}
-    {{- $nodeDiskdevlinkList | keyMap "nodeDiskdevlinkMap" .ListItems | noop -}}
-    {{else}}
-    {{- $nodeDiskdevlinkList := jsonpath .JsonResult "pkey=node,{@.metadata.labels.kubernetes\\.io/hostname}={@.spec.path};" | trim | default "" | splitList ";" -}}
-    {{- $nodeDiskdevlinkList | keyMap "nodeDiskdevlinkMap" .ListItems | noop -}}
-    {{end}}
-    {{- $nodeDiskList := jsonpath .JsonResult "pkey=node,{@.metadata.labels.kubernetes\\.io/hostname}={@.metadata.name};" | trim | default "" | splitList ";" -}}
-    {{- $nodeDiskList | keyMap "nodeDiskMap" .ListItems | noop -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
   name: cstor-pool-create-putcstorpoolcr-default
 spec:
   meta: |
@@ -168,34 +116,33 @@ spec:
     kind: CStorPool
     action: put
     id: putcstorpoolcr
-    repeatWith:
-      resources:
-      {{- range $k, $v := .ListItems.nodeDiskdevlinkMap.node}}
-      - {{ $k }}
-      {{- end }}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpoolcr.objectName" .TaskResult | noop -}}
-    {{- $nodeUidList := jsonpath .JsonResult "pkey=nodeUid,{.metadata.labels.kubernetes\\.io/hostname}={.metadata.uid} {.metadata.name};" | trim | default "" | splitList ";" -}}
-    {{- $nodeUidList | keyMap "nodeUidMap" .ListItems | noop -}}
-  task: |
+    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
+  task: |-
+    {{- $diskDeviceIdList:= .Storagepool.diskDeviceIdList }}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
       name: {{.Storagepool.owner}}-{{randAlphaNum 4 |lower }}
       labels:
         openebs.io/storage-pool-claim: {{.Storagepool.owner}}
-        kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+        kubernetes.io/hostname: {{.Storagepool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
-        diskList: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeDiskdevlinkMap.node }}
+        diskList:
+        {{- range $k, $deviceID := $diskDeviceIdList }}
+        - {{ $deviceID }}
+        {{- end }}
       poolSpec:
-        poolType: {{.TaskResult.getspcinfo.poolType}}
+        poolType: {{.Storagepool.poolType}}
         cacheFile: /tmp/{{.Storagepool.owner}}.cache
         overProvisioning: false
     status:
-      phase: {{ .Storagepool.phase }}
+      phase: Init
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -208,27 +155,24 @@ spec:
     kind: Deployment
     action: put
     id: putcstorpooldeployment
-    repeatWith:
-      resources:
-      {{- range $k, $v := .ListItems.nodeUidMap.nodeUid }}
-      - {{ $k }}
-      {{- end }}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpooldeployment.objectName" .TaskResult | noop -}}
-  task: |
+  task: |-
     {{- $setResourceRequests := .Config.PoolResourceRequests.value | default "none" -}}
     {{- $resourceRequestsVal := fromYaml .Config.PoolResourceRequests.value -}}
     {{- $setResourceLimits := .Config.PoolResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.PoolResourceLimits.value -}}
+    {{- $setAuxResourceRequests := .Config.AuxResourceRequests.value | default "none" -}}
+    {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     metadata:
-      name: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last}}
+      name: {{.TaskResult.putcstorpoolcr.objectName}}
       labels:
         openebs.io/storage-pool-claim: {{.Storagepool.owner}}
-        openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last}}
+        openebs.io/cstor-pool: {{.TaskResult.putcstorpoolcr.objectName}}
         app: cstor-pool
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
@@ -247,7 +191,7 @@ spec:
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           nodeSelector:
-            kubernetes.io/hostname: {{ .ListItems.currentRepeatResource}}
+            kubernetes.io/hostname: {{.Storagepool.nodeName}}
           containers:
           - name: cstor-pool
             image: {{ .Config.CstorPoolImage.value }}
@@ -271,6 +215,16 @@ spec:
               protocol: TCP
             - containerPort: 3232
               protocol: TCP
+            livenessProbe:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - zfs set io.openebs:livenesstimestap='$(date)' cstor-$OPENEBS_IO_CSTOR_ID
+              failureThreshold: 3
+              initialDelaySeconds: 300
+              periodSeconds: 10
+              timeoutSeconds: 30
             securityContext:
               privileged: true
             volumeMounts:
@@ -282,6 +236,10 @@ spec:
               mountPath: {{ .Config.SparseDir.value }}
             - name: udev
               mountPath: /run/udev
+            env:
+              # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
+            - name: OPENEBS_IO_CSTOR_ID
+              value: {{.TaskResult.putcstorpoolcr.objectUID}}
               # To avoid clash between terminating and restarting pod
               # in case older zrepl gets deleted faster, we keep initial delay
             lifecycle:
@@ -290,13 +248,19 @@ spec:
                     command: ["/bin/sh", "-c", "sleep 2"]
           - name: cstor-pool-mgmt
             image: {{ .Config.CstorPoolMgmtImage.value }}
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             ports:
             - containerPort: 9500
               protocol: TCP
@@ -314,7 +278,7 @@ spec:
             env:
               # OPENEBS_IO_CSTOR_ID env has UID of cStorPool CR.
             - name: OPENEBS_IO_CSTOR_ID
-              value: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | first}}
+              value: {{.TaskResult.putcstorpoolcr.objectUID}}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -356,30 +320,29 @@ spec:
     kind: StoragePool
     action: put
     id: putstoragepool
-    repeatWith:
-      resources:
-      {{- range $k, $v := .ListItems.nodeDiskdevlinkMap.node}}
-      - {{ $k }}
-      {{- end }}
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putstoragepool.objectName" .TaskResult | noop -}}
-  task: |
+  task: |-
+    {{- $diskList:= .Storagepool.diskList }}
     apiVersion: openebs.io/v1alpha1
     kind: StoragePool
     metadata:
-      name: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last }}
+      name: {{.TaskResult.putcstorpooldeployment.objectName}}
       labels:
         openebs.io/storage-pool-claim: {{.Storagepool.owner}}
-        openebs.io/cstor-pool: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeUidMap.nodeUid |first | splitList " " | last}}
+        openebs.io/cstor-pool: {{.TaskResult.putcstorpooldeployment.objectName}}
         openebs.io/cas-type: cstor
-        kubernetes.io/hostname: {{ .ListItems.currentRepeatResource }}
+        kubernetes.io/hostname: {{ .Storagepool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
     spec:
       disks:
-        diskList: {{ pluck .ListItems.currentRepeatResource .ListItems.nodeDiskMap.node }}
+        diskList:
+        {{- range $k, $diskName := $diskList }}
+        - {{ $diskName }}
+        {{- end }}
       poolSpec:
-        poolType: {{.TaskResult.getspcinfo.poolType}}
+        poolType: {{.Storagepool.poolType}}
         cacheFile: /tmp/{{.Storagepool.owner}}.cache
         overProvisioning: false
 ---
@@ -394,7 +357,7 @@ spec:
     kind: StoragePoolClaim
     objectName: {{.Storagepool.owner}}
     action: patch
-  task: |
+  task: |-
     type: merge
     pspec: |-
       status:

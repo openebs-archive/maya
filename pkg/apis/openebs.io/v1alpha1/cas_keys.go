@@ -33,6 +33,8 @@ type CASKey string
 const (
 	// CreatePoolCASTemplateKey is the cas template annotation key whose value is
 	// the name of cas template that will be used to provision a storagepool
+	// If this field is present on SPC then CAS template pointed by this field is used to provision
+	// the storage pool else default CAS template is used.
 	CreatePoolCASTemplateKey CASKey = "cas.openebs.io/create-pool-template"
 
 	// DeletePoolCASTemplateKey is the cas template annotation key whose value is
@@ -63,16 +65,16 @@ const (
 	StorageClassHeaderKey CASKey = "storageclass"
 )
 
-// CASPlainKey represents a openebs key used either in resource annotation 
+// CASPlainKey represents a openebs key used either in resource annotation
 // or label
 //
 // NOTE:
-//  PlainKey (i.e. without 'openebs.io/' ) helps to parse key via 
+//  PlainKey (i.e. without 'openebs.io/' ) helps to parse key via
 // go templating
 type CASPlainKey string
 
-const(
-	// OpenEBSVersionPlainKey is the label key which provides the installed 
+const (
+	// OpenEBSVersionPlainKey is the label key which provides the installed
 	// version of OpenEBS
 	OpenEBSVersionPlainKey CASPlainKey = "version"
 
@@ -80,11 +82,11 @@ const(
 	CASTNamePlainKey CASPlainKey = "castName"
 )
 
-// KubePlainKey represents a kubernetes key used either in resource annotation 
+// KubePlainKey represents a kubernetes key used either in resource annotation
 // or label
 //
 // NOTE:
-//  PlainKey (i.e. without 'kubernetes.io/' ) helps to parse key via 
+//  PlainKey (i.e. without 'kubernetes.io/' ) helps to parse key via
 // go templating
 type KubePlainKey string
 
