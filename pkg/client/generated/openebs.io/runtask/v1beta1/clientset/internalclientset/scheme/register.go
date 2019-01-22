@@ -1,13 +1,5 @@
 /*
-<<<<<<< HEAD
-<<<<<<< HEAD
 Copyright 2019 The OpenEBS Authors
-=======
-Copyright 2018 The OpenEBS Authors
->>>>>>> 95b9ed61... feat(build, codegen, makefile): code gen for custom resources
-=======
-Copyright 2019 The OpenEBS Authors
->>>>>>> 0b10a48d... fix(license header, travis, rework): update license header, fixes and reworks
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
