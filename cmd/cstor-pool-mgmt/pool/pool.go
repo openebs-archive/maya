@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	poolTypeMap         = map[string]string{"mirrored": "mirror", "raidz": "raidz", "raidz2": "raidz2"}
-	groupSizeByPoolType = map[string]int{"striped": 1, "mirrored": 2, "raidz": 3, "raidz2": 6}
+	poolTypeCommand  = map[string]string{"mirrored": "mirror", "raidz": "raidz", "raidz2": "raidz2"}
+	defaultGroupSize = map[string]int{"striped": 1, "mirrored": 2, "raidz": 3, "raidz2": 6}
 )
 
 // PoolOperator is the name of the tool that makes pool-related operations.
@@ -126,8 +126,8 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	// raidz (grouped by multiples of 3): raidz disk1 disk2 disk3 raidz disk 4 disk5 disk6
 	// raidz2 (grouped by multiples of 6): raidz2 disk1 disk2 disk3 disk4 disk5 disk6
 	for i, disk := range diskList {
-		if i%groupSizeByPoolType[poolType] == 0 {
-			createAttr = append(createAttr, poolTypeMap[poolType])
+		if i%defaultGroupSize[poolType] == 0 {
+			createAttr = append(createAttr, poolTypeCommand[poolType])
 		}
 		createAttr = append(createAttr, disk)
 	}
@@ -137,18 +137,17 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 
 // CheckValidPool checks for validity of CStorPool resource.
 func CheckValidPool(cStorPool *apis.CStorPool) error {
-	//	initCstorPoolVars(cStorPool)
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
 	diskCount := len(cStorPool.Spec.Disks.DiskList)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
-	if diskCount < groupSizeByPoolType[poolType] {
-		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", groupSizeByPoolType[poolType], diskCount, poolType)
+	if diskCount < defaultGroupSize[poolType] {
+		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
 	}
-	if diskCount%groupSizeByPoolType[poolType] != 0 {
-		return errors.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", groupSizeByPoolType[poolType], diskCount, poolType)
+	if diskCount%defaultGroupSize[poolType] != 0 {
+		return errors.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
 	}
 	return nil
 }

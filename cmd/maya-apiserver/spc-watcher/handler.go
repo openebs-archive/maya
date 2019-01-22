@@ -33,6 +33,15 @@ const (
 	DEFAULTPOOlCOUNT = 3
 )
 
+var (
+	supportedPool = map[apis.CasPoolValString]bool{
+		apis.PoolTypeStripedCPV:  true,
+		apis.PoolTypeMirroredCPV: true,
+		apis.PoolTypeRaidzCPV:    true,
+		apis.PoolTypeRaidz2CPV:   true,
+	}
+)
+
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
@@ -215,14 +224,7 @@ func validate(spc *apis.StoragePoolClaim) (bool, error) {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation for %s as no poolType is specified", spc.Name)
 	}
 
-	poolTypeMap := map[apis.CasPoolValString]bool{
-		apis.PoolTypeStripedCPV:  true,
-		apis.PoolTypeMirroredCPV: true,
-		apis.PoolTypeRaidzCPV:    true,
-		apis.PoolTypeRaidz2CPV:   true,
-	}
-
-	ok := poolTypeMap[apis.CasPoolValString(poolType)]
+	ok := supportedPool[apis.CasPoolValString(poolType)]
 	if !ok {
 		return mutateSpc, errors.Errorf("aborting storagepool create operation as specified poolType is %s which is invalid", poolType)
 	}
