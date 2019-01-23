@@ -107,6 +107,9 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		}
 		glog.Infof("Restore CR created successfully: name '%s'", restore.Name)
 	}
+	resp := &v1alpha1.RestoreResp{
+		ReplicaCount: len(cvrList.Items),
+	}
 
-	return len(cvrList.Items), nil
+	return resp, nil
 }
