@@ -246,7 +246,7 @@ func TestSetCachefileProcess(*testing.T) {
 
 // TestCreateVolumeReplica is to test cStorVolumeReplica creation.
 func TestCreateVolumeReplica(t *testing.T) {
-	fakeQuorum := true
+	fakeQuorums := []bool{true, false}
 	testPoolResource := map[string]struct {
 		expectedError error
 		test          *apis.CStorVolumeReplica
@@ -269,9 +269,11 @@ func TestCreateVolumeReplica(t *testing.T) {
 		},
 	}
 	RunnerVar = TestRunner{}
-	obtainedErr := CreateVolumeReplica(testPoolResource["Valid-vol1Resource"].test, "abcd123/dcba", fakeQuorum)
-	if testPoolResource["Valid-vol1Resource"].expectedError != obtainedErr {
-		t.Fatalf("Expected: %v, Got: %v", testPoolResource["Valid-vol1Resource"].expectedError, obtainedErr)
+	for _, fakeQuorum := range fakeQuorums {
+		obtainedErr := CreateVolumeReplica(testPoolResource["Valid-vol1Resource"].test, "abcd123/dcba", fakeQuorum)
+		if testPoolResource["Valid-vol1Resource"].expectedError != obtainedErr {
+			t.Fatalf("Expected: %v, Got: %v", testPoolResource["Valid-vol1Resource"].expectedError, obtainedErr)
+		}
 	}
 }
 
