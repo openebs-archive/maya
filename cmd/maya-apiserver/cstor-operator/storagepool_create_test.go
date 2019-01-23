@@ -16,12 +16,103 @@ limitations under the License.
 package spc
 
 import (
+	"github.com/golang/glog"
+	algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
+
+	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
+	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
+	"k8s.io/client-go/kubernetes/fake"
 	"testing"
 )
 
+var diskK8sClient *disk.KubernetesClient
+
+func FakeDiskCreator(dc *disk.KubernetesClient) {
+	// Create some fake disk objects over nodes.
+	// For example, create 6 disk (out of 6 disks 2 disks are sparse disks)for each of 5 nodes.
+	// That meant 6*5 i.e. 30 disk objects should be created
+
+	// diskObjectList will hold the list of disk objects
+	var diskObjectList [30]*apis.Disk
+
+	sparseDiskCount := 2
+	var diskLabel string
+
+	// nodeIdentifer will help in naming a node and attaching multiple disks to a single node.
+	nodeIdentifer := 0
+	for diskListIndex := 0; diskListIndex < 30; diskListIndex++ {
+		diskIdentifier := strconv.Itoa(diskListIndex)
+		if diskListIndex%6 == 0 {
+			nodeIdentifer++
+			sparseDiskCount = 0
+		}
+		if sparseDiskCount != 2 {
+			diskLabel = "sparse"
+			sparseDiskCount++
+		} else {
+			diskLabel = "disk"
+		}
+		diskObjectList[diskListIndex] = &apis.Disk{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "disk" + diskIdentifier,
+				Labels: map[string]string{
+					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
+					"ndm.io/disk-type":       diskLabel,
+				},
+			},
+			Status: apis.DiskStatus{
+				State: DiskStateActive,
+			},
+		}
+		_, err := dc.Create(diskObjectList[diskListIndex])
+		if err != nil {
+			glog.Error(err)
+		}
+	}
+
+}
+func fakeDiskClient() {
+	diskK8sClient = &disk.KubernetesClient{
+		fake.NewSimpleClientset(),
+		openebsFakeClientset.NewSimpleClientset(),
+	}
+}
+func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *algorithm.AlgorithmConfig {
+	var diskClient disk.DiskInterface
+	fakeDiskClient()
+	FakeDiskCreator(diskK8sClient)
+	if algorithm.ProvisioningType(spc) == ProvisioningTypeManual {
+		diskClient = &disk.SpcObjectClient{
+			diskK8sClient,
+			spc,
+		}
+	} else {
+		diskClient = diskK8sClient
+	}
+
+	cspK8sClient := &cstorpool.KubernetesClient{
+		fake.NewSimpleClientset(),
+		openebsFakeClientset.NewSimpleClientset(),
+	}
+	spK8sClient := &sp.KubernetesClient{
+		fake.NewSimpleClientset(),
+		openebsFakeClientset.NewSimpleClientset(),
+	}
+	ac := &algorithm.AlgorithmConfig{
+		Spc:        spc,
+		DiskClient: diskClient,
+		CspClient:  cspK8sClient,
+		SpClient:   spK8sClient,
+	}
+
+	return ac
+}
 func TestNewCasPool(t *testing.T) {
 	focs := &clientSet{
 		oecs: openebsFakeClientset.NewSimpleClientset(),
@@ -83,7 +174,11 @@ func TestNewCasPool(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			// newCasPool is the function under test.
-			CasPool, err := focs.NewCasPool(test.fakestoragepoolclaim)
+			fakeAlgoConf := fakeAlgorithmConfig(test.fakestoragepoolclaim)
+			fakePoolConfig := &poolCreateConfig{
+				fakeAlgoConf,
+			}
+			CasPool, err := focs.NewCasPool(test.fakestoragepoolclaim, fakePoolConfig)
 			if err != nil || CasPool == nil {
 				t.Errorf("Test case failed as expected nil error but error or CasPool object was nil:%s", name)
 			}

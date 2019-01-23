@@ -38,7 +38,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 
-	"github.com/openebs/maya/cmd/maya-apiserver/spc-watcher"
+	"github.com/openebs/maya/cmd/maya-apiserver/cstor-operator"
 	"github.com/spf13/cobra"
 )
 
