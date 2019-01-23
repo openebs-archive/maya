@@ -116,8 +116,10 @@ func NewCStorVolumeReplicaController(
 			controller.recorder.Event(cVR, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
 
 			// For New request phase of cVR will be empty
+			// ToDO: Need to have an annotation in CSP and CVR which will state
+			// about recreation events.
 			if IsEmptyStatus(cVR) {
-				cVR.Status.Phase = apis.CVRStatusPending
+				cVR.Status.Phase = apis.CVRStatusInit
 			} else {
 				cVR.Status.Phase = apis.CVRStatusRecreate
 			}

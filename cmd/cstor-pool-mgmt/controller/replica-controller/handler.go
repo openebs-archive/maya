@@ -183,7 +183,7 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeR
 	}
 
 	// IsEmptyStatus is to check if initial status of cVR object is empty.
-	if IsEmptyStatus(cVR) || IsPendingStatus(cVR) || IsRecreateStatus(cVR) {
+	if IsEmptyStatus(cVR) || IsInitStatus(cVR) || IsRecreateStatus(cVR) {
 		err := volumereplica.CreateVolumeReplica(cVR, fullVolName, quorum)
 		if err != nil {
 			glog.Errorf("cVR creation failure: %v", err.Error())
@@ -297,9 +297,9 @@ func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
 	return false
 }
 
-// IsPendingStatus is to check if the status of cStorVolumeReplica object is pending.
-func IsPendingStatus(cVR *apis.CStorVolumeReplica) bool {
-	if string(cVR.Status.Phase) == string(apis.CVRStatusPending) {
+// IsInitStatus is to check if the status of cStorVolumeReplica object is pending.
+func IsInitStatus(cVR *apis.CStorVolumeReplica) bool {
+	if string(cVR.Status.Phase) == string(apis.CVRStatusInit) {
 		glog.Infof("cVR pending: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
