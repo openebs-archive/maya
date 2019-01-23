@@ -93,6 +93,30 @@ func TestGetPoolResource(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
+		"img3PoolResource": {
+			expectedPoolName: "existingpool",
+			test: &apis.CStorPool{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "pool3",
+					UID:  types.UID("existingpool"),
+				},
+				Spec: apis.CStorPoolSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{"/tmp/img3.img"},
+					},
+					PoolSpec: apis.CStorPoolAttr{
+						CacheFile:        "/tmp/pool3.cache",
+						PoolType:         "striped",
+						OverProvisioning: false,
+					},
+				},
+				Status: apis.CStorPoolStatus{
+					Phase:    "Healthy",
+					Capacity: apis.CStorPoolCapacityAttr{},
+				},
+			},
+		},
 	}
 	for desc, ut := range testPoolResource {
 		// Create Pool resource
