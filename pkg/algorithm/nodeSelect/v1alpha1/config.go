@@ -91,9 +91,9 @@ func getCspK8sClient() *cstorpool.KubernetesClient {
 func NewAlgorithmConfig(spc *apis.StoragePoolClaim) *AlgorithmConfig {
 	var diskK8sClient disk.DiskInterface
 	if ProvisioningType(spc) == ProvisioningTypeManual {
-		diskK8sClient = getDiskK8sClient()
-	} else {
 		diskK8sClient = getDiskSpcClient(spc)
+	} else {
+		diskK8sClient = getDiskK8sClient()
 	}
 
 	cspK8sClient := getCspK8sClient()

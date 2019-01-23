@@ -27,7 +27,7 @@ import (
 func (ac *AlgorithmConfig) NodeDiskSelector() (*nodeDisk, error) {
 	listDisk, err := ac.getDisk()
 
-	if len(listDisk.Items) == 0 {
+	if listDisk == nil || len(listDisk.Items) == 0 {
 		return nil, errors.Wrapf(err, "no disk object found")
 	}
 	nodeDiskMap, err := ac.getCandidateNode(listDisk)
