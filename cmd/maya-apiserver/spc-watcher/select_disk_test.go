@@ -19,11 +19,12 @@ package spc
 import (
 	"testing"
 	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
+	"strconv"
+
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
 )
 
 func (focs *clientSet) FakeDiskCreator() {
@@ -80,92 +81,137 @@ func TestNodeDiskAlloter(t *testing.T) {
 	focs.FakeDiskCreator()
 	tests := map[string]struct {
 		// fakeCasPool holds the fake fakeCasPool object in test cases.
-		fakeCasPool *v1alpha1.CasPool
+		fakeCasPool *v1alpha1.StoragePoolClaim
 		// expectedDiskListLength holds the length of disk list
 		expectedDiskListLength int
 		// err is a bool , true signifies presence of error and vice-versa
 		err bool
 	}{
 		// Test Case #1
-		"CasPool1": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 3,
-			MinPools: 3,
-			Type:     "disk",
+		"autoSPC1": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+			},
 		},
-			3,
+			1,
 			false,
 		},
 		// Test Case #2
-		"CasPool2": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 3,
-			Type:     "disk",
+		"autoSPC2": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+			},
+		},
+			2,
+			false,
+		},
+		// Test Case #3
+		"autoSPC3": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+			},
+		},
+			1,
+			false,
+		},
+		// Test Case #4
+		"autoSPC4": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+			},
+		},
+			2,
+			false,
+		},
+		// Test Case #5
+		"manualSPC5": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "striped",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3"},
+				},
+			},
 		},
 			3,
 			false,
 		},
-		// Test Case #3
-		"CasPool3": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 3,
-			MinPools: 3,
-			Type:     "disk",
-		},
-			6,
-			false,
-		},
-		// Test Case #4
-		"CasPool4": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 6,
-			MinPools: 6,
-			Type:     "disk",
-		},
-			0,
-			true,
-		},
-		// Test Case #5
-		"CasPool5": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 6,
-			Type:     "disk",
-		},
-			0,
-			true,
-		},
 		// Test Case #6
-		"CasPool6": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "disk",
+		"manualSPC6": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2"},
+				},
+			},
 		},
-			5,
+			2,
 			false,
 		},
 		// Test Case #7
-		"CasPool7 of sparse type": {&v1alpha1.CasPool{
-			PoolType: "striped",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "sparse",
+		"manualSPC7": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "sparse",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk7"},
+				},
+			},
 		},
-			5,
+			0,
 			false,
 		},
-		// Test Case #7
-		"CasPool8 of sparse type": {&v1alpha1.CasPool{
-			PoolType: "mirrored",
-			MaxPools: 6,
-			MinPools: 2,
-			Type:     "sparse",
+		// Test Case #8
+		"manualSPC8": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3", "disk4"},
+				},
+			},
 		},
-			10,
+			4,
+			false,
+		},
+		// Test Case #8
+		"manualSPC9": {&v1alpha1.StoragePoolClaim{
+			Spec: v1alpha1.StoragePoolClaimSpec{
+				Type: "disk",
+				PoolSpec: v1alpha1.CStorPoolAttr{
+					PoolType: "mirrored",
+				},
+				Disks: v1alpha1.DiskAttr{
+					DiskList: []string{"disk1", "disk2", "disk3"},
+				},
+			},
+		},
+			2,
 			false,
 		},
 	}
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			diskList, err := focs.nodeDiskAlloter(test.fakeCasPool)
@@ -176,8 +222,8 @@ func TestNodeDiskAlloter(t *testing.T) {
 			if gotErr != test.err {
 				t.Fatalf("Test case failed as the expected error %v but got %v", test.err, gotErr)
 			}
-			if len(diskList) != test.expectedDiskListLength {
-				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList))
+			if len(diskList.disks.items) != test.expectedDiskListLength {
+				t.Errorf("Test case failed as the expected disk list length is %d but got %d", test.expectedDiskListLength, len(diskList.disks.items))
 			}
 		})
 	}

@@ -147,6 +147,7 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 		}
 		return status, err
 	}
+	glog.Warningf("No matching event handlers for cvr %s", cVR.ObjectMeta.Name)
 	return string(apis.CVRStatusInvalid), nil
 }
 

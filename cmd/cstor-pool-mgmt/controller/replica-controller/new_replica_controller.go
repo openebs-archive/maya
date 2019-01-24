@@ -128,7 +128,9 @@ func NewCStorVolumeReplicaController(
 				glog.Infof("Only cVR status change: %v, %v", newCVR.ObjectMeta.Name, string(newCVR.ObjectMeta.UID))
 				return
 			}
-			if IsDeletionFailedBefore(newCVR) || IsErrorDuplicate(newCVR) {
+			// ToDo: Need to have statuses in more organised manner
+			// ToDo: IsErrorDuplicate(newCVR) is ignored as of now.
+			if IsDeletionFailedBefore(newCVR) {
 				return
 			}
 			// Periodic resync will send update events for all known cStorReplica.
