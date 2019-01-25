@@ -3,8 +3,8 @@
 echo "--------------------Installing openebs operator---------------------------"
 sleep 5
 
-CI_BRANCH="master"
-CI_TAG="ci"
+CI_BRANCH="v0.8.x"
+CI_TAG="v0.8.x-ci"
 
 #Images from this repo are always tagged as ci
 #The downloaded operator file will may contain a non-ci tag name
@@ -73,23 +73,23 @@ kubectl get sc
 
 sleep 10
 #echo "------------------ Deploy Pre-release features ---------------------------"
-#kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/openebs-pre-release-features.yaml
+#kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/openebs-pre-release-features.yaml
 
 echo "------------------------ Create sparse storagepoolclaim --------------- "
 # delete the storagepoolclaim created earlier and create new spc with min/max pool
 # count 1
 kubectl delete spc --all
-kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/spc-sparse-single.yaml
+kubectl apply -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/sample-pv-yamls/spc-sparse-single.yaml
 sleep 10
 
 echo "--------------- Maya apiserver later logs -----------------------------"
 dumpMayaAPIServerLogs 200
 
 echo "--------------- Create Cstor and Jiva PersistentVolume ------------------"
-#kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/demo/pvc-single-replica-jiva.yaml
+#kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/sample-pv-yamls/pvc-jiva-sc-1r.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/demo/pvc-single-replica-jiva.yaml
 sleep 10
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/sample-pv-yamls/pvc-sparse-claim-cstor.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/sample-pv-yamls/pvc-sparse-claim-cstor.yaml
 
 sleep 30
 echo "--------------------- List SC,PVC,PV and pods ---------------------------"
@@ -109,12 +109,12 @@ CSTORTARGET=$(kubectl get deploy -n openebs -l openebs.io/target=cstor-target --
 waitForDeployment ${CSTORTARGET} openebs
 
 echo "---------------Testing deployment in pvc namespace---------------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/volume/cstor/service-account.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/ci/maya/volume/cstor/service-account.yaml
 
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/volume/cstor/sc_app_ns.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/ci/maya/volume/cstor/sc_app_ns.yaml
 
 echo "---------------Creating in pvc---------------"
-kubectl create -f https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/maya/volume/cstor/pvc_app_ns.yaml
+kubectl create -f https://raw.githubusercontent.com/openebs/openebs/$CI_BRANCH/k8s/ci/maya/volume/cstor/pvc_app_ns.yaml
 
 sleep 10
 
