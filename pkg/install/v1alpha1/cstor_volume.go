@@ -49,6 +49,10 @@ spec:
   # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
+  # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceRequests
+    value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
@@ -334,6 +338,8 @@ spec:
     {{- $resourceRequestsVal := fromYaml .Config.TargetResourceRequests.value -}}
     {{- $setResourceLimits := .Config.TargetResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.TargetResourceLimits.value -}}
+    {{- $setAuxResourceRequests := .Config.AuxResourceRequests.value | default "none" -}}
+    {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
@@ -444,13 +450,19 @@ spec:
           {{- if eq $isMonitor "true" }}
           - image: {{ .Config.VolumeMonitorImage.value }}
             name: maya-volume-exporter
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             args:
             - "-e=cstor"
             command: ["maya-exporter"]
@@ -465,13 +477,19 @@ spec:
           {{- end }}
           - name: cstor-volume-mgmt
             image: {{ .Config.VolumeControllerImage.value }}
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             imagePullPolicy: IfNotPresent
             ports:
             - containerPort: 80

@@ -64,6 +64,10 @@ spec:
   #      memory: 1Gi
   - name: PoolResourceLimits
     value: "none"
+  # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
+  # in the format expected by Kubernetes
+  - name: AuxResourceRequests
+    value: "none"
   # AuxResourceLimits allow you to set limits on side cars. Limits have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceLimits
@@ -158,6 +162,8 @@ spec:
     {{- $resourceRequestsVal := fromYaml .Config.PoolResourceRequests.value -}}
     {{- $setResourceLimits := .Config.PoolResourceLimits.value | default "none" -}}
     {{- $resourceLimitsVal := fromYaml .Config.PoolResourceLimits.value -}}
+    {{- $setAuxResourceRequests := .Config.AuxResourceRequests.value | default "none" -}}
+    {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
     apiVersion: extensions/v1beta1
@@ -242,13 +248,19 @@ spec:
                     command: ["/bin/sh", "-c", "sleep 2"]
           - name: cstor-pool-mgmt
             image: {{ .Config.CstorPoolMgmtImage.value }}
-            {{- if ne $setAuxResourceLimits "none" }}
             resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
               limits:
               {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
-            {{- end }}
+              {{- end }}
             ports:
             - containerPort: 9500
               protocol: TCP
