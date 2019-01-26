@@ -26,5 +26,7 @@ rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 curl https://raw.githubusercontent.com/openebs/openebs/master/k8s/ci/test-script.sh > test-script.sh
 # append local tests to this script 
 cat ./ci/mayactl.sh >> ./test-script.sh
+cat ./ci/clean_up.sh >> ./test-script.sh
+cat ./ci/upgrade >> ./test-script.sh
 chmod +x test-script.sh && ./test-script.sh
 rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
