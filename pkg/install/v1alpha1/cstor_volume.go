@@ -543,7 +543,7 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $poolUids := keys .ListItems.cvolPoolList.pools }}
+    {{- $poolUids := keys .ListItems.cvolPoolList.pools | randomize }}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     repeatWith:
       resources:

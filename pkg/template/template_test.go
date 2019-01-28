@@ -36,10 +36,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ghodss/yaml"
 	"reflect"
 	"testing"
 	"text/template"
+
+	"github.com/ghodss/yaml"
 )
 
 func TestAddTo(t *testing.T) {
@@ -1260,7 +1261,7 @@ kindTwo: Deployment`,
 			},
 			expectedYaml: `
 default:
-  mydeploy: 
+  mydeploy:
     kind: Deployment
 openebs:
   mypod:
@@ -1314,7 +1315,7 @@ kind: MyList
 apiVersion: v1alpha1
 items:
 # NOTE:
-#   Below range and if blocks should end with }} 
+#   Below range and if blocks should end with }}
 # If they end with -}} a new line is not formed and makes the yaml invalid
 {{- range $pkey, $val := .Values.scenario }}
   - label: {{ $pkey }}
@@ -2120,6 +2121,36 @@ all:
 			ok := reflect.DeepEqual(objExpected, objActual)
 			if !ok {
 				t.Fatalf("failed to test dynamic templating:\n\nexpected: '%s' \n\nactual: '%s'", mock.ymlExpected, buf.Bytes())
+			}
+		})
+	}
+}
+
+func TestRandomize(t *testing.T) {
+	tests := map[string]struct {
+		list []string
+		want []string
+	}{
+		"SingleKey": {
+			list: []string{
+				"key1",
+			},
+			want: []string{"key1"},
+		},
+		"TwoKeys": {
+			list: []string{
+				"key1", "key2",
+			},
+			want: []string{"key1", "key2"},
+		},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			list := randomize(mock.list)
+			if len(list) != len(mock.want) {
+				t.Fatalf("failed to test randomize: expected '%v' %d: actual '%v' %d",
+					mock.want, len(mock.want), list, len(list))
 			}
 		})
 	}
