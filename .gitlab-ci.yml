@@ -50,21 +50,21 @@ baseline-image:
      - echo $BRANCH
      - export COMMIT=${CI_COMMIT_SHA:0:8}
      - echo $COMMIT
-     - git clone https://github.com/openebs/e2e-infrastructure.git
+     - git clone https://github.com/$REPO/e2e-infrastructure.git
      - cd e2e-infrastructure/baseline
      - ansible-playbook commit-writer.yml --extra-vars "branch=$BRANCH repo=$CI_PROJECT_NAME commit=$COMMIT"
      - git status
      - git add baseline
      - git status
      - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
-     - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
-     - curl -X POST -F token=$AWS -F ref=master https://gitlab.openebs.ci/api/v4/projects/7/trigger/pipeline
-     - curl -X POST -F token=$AWS -F ref=infra-chaos https://gitlab.openebs.ci/api/v4/projects/7/trigger/pipeline
-     - curl -X POST -F token=$GCP -F ref=master https://gitlab.openebs.ci/api/v4/projects/9/trigger/pipeline
-     - curl -X POST -F token=$AZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
-     - curl -X POST -F token=$PACKET -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
-     - curl -X POST -F token=$EKS -F ref=master https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F token=$GKE -F ref=master https://gitlab.openebs.ci/api/v4/projects/24/trigger/pipeline 
+     - git push  https://$user:$pass@github.com/$REPO/e2e-infrastructure.git --all
+     - curl -X POST -F token=$MAWS -F ref=infra-chaos https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
+     - curl -X POST -F token=$MAWS -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
+     - curl -X POST -F token=$MGCP -F ref=master https://gitlab.openebs.ci/api/v4/projects/21/trigger/pipeline
+     - curl -X POST -F token=$MAZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/25/trigger/pipeline
+     - curl -X POST -F token=$MPACKET -F ref=master https://gitlab.openebs.ci/api/v4/projects/23/trigger/pipeline
+     - curl -X POST -F token=$MEKS -F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
+     - curl -X POST -F token=$MGKE -F ref=master https://gitlab.openebs.ci/api/v4/projects/22/trigger/pipeline 
 clean-maya:
   when: always
   stage: cleanup
