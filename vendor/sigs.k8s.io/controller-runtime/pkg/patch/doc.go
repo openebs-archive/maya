@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The OpenEBS Authors
+Copyright 2018 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+/*
+Package patch provides method to calculate JSON patch between 2 k8s objects.
 
-import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/openebscluster/v1alpha1"
-)
+Calculate JSON patch
 
-// Operations abstracts all possible operations against
-// openebscluster instance
-type Operations interface {
-	Get(name string) (*apis.OpenebsCluster, error)
-}
+	oldDeployment := appsv1.Deployment{
+		// some fields
+	}
+	newDeployment := appsv1.Deployment{
+		// some different fields
+	}
+	patch, err := NewJSONPatch(oldDeployment, newDeployment)
+	if err != nil {
+		// handle error
+	}
+*/
+package patch
