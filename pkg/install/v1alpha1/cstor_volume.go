@@ -49,6 +49,8 @@ spec:
   # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
+  - name: TargetNodeSelector
+    value: "none"
   # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceRequests
@@ -342,6 +344,8 @@ spec:
     {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
+    {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
     {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
     apiVersion: apps/v1beta1
     Kind: Deployment
@@ -386,6 +390,12 @@ spec:
             prometheus.io/scrape: "true"
           {{- end}}
         spec:
+          {{- if ne $hasNodeSelector "none" }}
+          nodeSelector:
+            {{- range $sK, $sV := $nodeSelectorVal }}
+              {{ $sK }}: {{ $sV }}
+            {{- end }}
+          {{- end}}
           serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
           {{- if ne $targetAffinityVal "none" }}
           affinity:
