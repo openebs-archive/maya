@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -89,6 +90,7 @@ const (
 
 // Periodic interval duration.
 const (
+	DefaultUsedCapacityLimit = 80
 	// CRDRetryInterval is used if CRD is not present.
 	CRDRetryInterval = 10 * time.Second
 	// PoolNameHandlerInterval is used when expected pool is not present.
@@ -110,8 +112,11 @@ const (
 	PoolWaitInterval = 2 * time.Second
 )
 
-// InitialImportedPoolVol is to store pool-volume names while pod restart.
-var InitialImportedPoolVol []string
+var (
+	// InitialImportedPoolVol is to store pool-volume names while pod restart.
+	InitialImportedPoolVol  []string
+	UsedPoolCapacityWarning EventReason = EventReason(fmt.Sprintf("Used pool capacity has reached limit of %d %%", DefaultUsedCapacityLimit))
+)
 
 // QueueLoad is for storing the key and type of operation before entering workqueue
 type QueueLoad struct {

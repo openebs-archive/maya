@@ -79,6 +79,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
 	// ToDo: requried fields on CSP ( Some code re-organization will be required)
 	c.syncCsp(cspObject)
+	c.syncUsedCapacity(cspObject)
 	_, err = c.clientset.OpenebsV1alpha1().CStorPools().Update(cspObject)
 	if err != nil {
 		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
@@ -387,6 +388,14 @@ func IsDeletionFailedBefore(cStorPool *apis.CStorPool) bool {
 		return true
 	}
 	return false
+}
+
+// syncUsedCapacity generate warning if used capacity reach the default limit
+func (c *CStorPoolController) syncUsedCapacity(cStorPool *apis.CStorPool) {
+	if pool.UsedCapacity > common.DefaultUsedCapacityLimit {
+		msg := fmt.Sprintf("current used capacity is %d", pool.UsedCapacity)
+		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.UsedPoolCapacityWarning), msg)
+	}
 }
 
 // syncCsp updates field on CSP object after fetching the values from zpool utility.

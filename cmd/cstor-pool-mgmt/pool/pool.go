@@ -18,6 +18,7 @@ package pool
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 var (
 	poolTypeCommand  = map[string]string{"mirrored": "mirror", "raidz": "raidz", "raidz2": "raidz2"}
 	defaultGroupSize = map[string]int{"striped": 1, "mirrored": 2, "raidz": 3, "raidz2": 6}
+	UsedCapacity     int64
 )
 
 // PoolOperator is the name of the tool that makes pool-related operations.
@@ -325,6 +327,24 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			// so we need to reimport.
 			if PoolAddEventHandled && strings.Contains(string(out), StatusNoPoolsAvailable) {
 				break
+			}
+
+			// Command   : $ sudo zpool get capacity -Hp
+			// raw output: vol1	  capacity	  12%	-
+
+			rawOut, err := RunnerVar.RunCombinedOutput(PoolOperator, "get", "capacity", "-Hp")
+			if err != nil {
+				glog.Errorf("zpool get capacity returned error in zrepl capacity check, error: %v", err)
+			}
+			if len(rawOut) != 0 {
+				// split the rawOut by skipping spaces and get slice data
+				data := strings.Fields(string(rawOut))
+				usedCapacity := strings.TrimSuffix(data[2], "%")
+				capacity, err := strconv.ParseInt(usedCapacity, 10, 64)
+				if err != nil {
+					glog.Errorf("error in parsing zpool capacity, error: %v", err)
+				}
+				UsedCapacity = capacity
 			}
 			time.Sleep(ZreplRetryInterval)
 			continue
