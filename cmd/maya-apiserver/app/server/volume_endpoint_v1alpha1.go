@@ -33,8 +33,8 @@ type volumeAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
-// volumeEvents sends anonymous volume (de)-provision events
-func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
+// sendEventOrIgnore sends anonymous volume (de)-provision events
+func sendEventOrIgnore(cvol *v1alpha1.CASVolume, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
 		usage.New().Build().ApplicationBuilder().
 			SetApplicationName(cvol.Spec.CasType).
@@ -62,13 +62,13 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 	switch req.Method {
 	case "POST":
 		cvol, err := volOp.create()
-		volumeEvents(cvol, usage.VolumeProvision)
+		sendEventOrIgnore(cvol, usage.VolumeProvision)
 		return cvol, err
 	case "GET":
 		return volOp.httpGet()
 	case "DELETE":
 		cvol, err := volOp.httpDelete()
-		volumeEvents(cvol, usage.VolumeDeprovision)
+		sendEventOrIgnore(cvol, usage.VolumeDeprovision)
 		return cvol, err
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
