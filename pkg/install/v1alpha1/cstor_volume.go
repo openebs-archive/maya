@@ -395,6 +395,8 @@ spec:
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
     spec:
       replicas: 1
+      strategy:
+        type: Recreate
       selector:
         matchLabels:
           app: cstor-volume-manager

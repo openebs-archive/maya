@@ -755,6 +755,8 @@ spec:
       name: {{ .Volume.owner }}-ctrl
     spec:
       replicas: 1
+      strategy:
+        type: Recreate
       selector:
         matchLabels:
           openebs.io/controller: jiva-controller
@@ -917,6 +919,8 @@ spec:
       name: {{ .Volume.owner }}-rep
     spec:
       replicas: {{ .Config.ReplicaCount.value }}
+      strategy:
+        type: Recreate
       selector:
         matchLabels:
           openebs.io/replica: jiva-replica
