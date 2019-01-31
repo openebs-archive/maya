@@ -19,6 +19,11 @@ else
     GIT_COMMIT="$(git rev-parse HEAD)"
 fi
 
+# Set BUILDMETA based on travis tag
+if [[ -n "$TRAVIS_TAG" ]] && [[ $TRAVIS_TAG != *"RC"* ]]; then
+    echo "released" > BUILDMETA
+fi
+
 # Get the version details
 VERSION="$(cat $GOPATH/src/github.com/openebs/maya/VERSION)"
 VERSION_META="$(cat $GOPATH/src/github.com/openebs/maya/BUILDMETA)"
