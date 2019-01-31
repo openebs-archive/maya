@@ -49,8 +49,6 @@ spec:
   # By default, the resource limits are disabled.
   - name: TargetResourceLimits
     value: "none"
-  - name: TargetNodeSelector
-    value: "none"
   # AuxResourceRequests allow you to set requests on side cars. Requests have to be specified
   # in the format expected by Kubernetes
   - name: AuxResourceRequests
@@ -78,6 +76,33 @@ spec:
   # resync the resource status
   - name: ResyncInterval
     value: "30"
+  # TargetNodeSelector allows you to specify the nodes where
+  # openebs targets have to be scheduled. To use this feature,
+  # the nodes should already be labeled with the key=value. For example:
+  # "kubectl label nodes <node-name> nodetype=storage"
+  # Note: It is recommended that node selector for replica specify
+  # nodes that have disks/ssds attached to them. Example:
+  #- name: TargetNodeSelector
+  #  value: |-
+  #      nodetype: storage
+  - name: TargetNodeSelector
+    value: "none"
+  # TargetTolerations allows you to specify the tolerations for target
+  # Example: 
+  # - name: TargetTolerations
+  #   value: |-
+  #      t1:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoSchedule"
+  #      t2:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoExecute"
+  - name: TargetTolerations
+    value: "none"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -368,9 +393,11 @@ spec:
     {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
+    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
     {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
-    {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
+    {{- $hasTargetToleration := .Config.TargetTolerations.value | default "none" -}}
+    {{- $targetTolerationVal := fromYaml .Config.TargetTolerations.value -}}
     apiVersion: apps/v1beta1
     Kind: Deployment
     metadata:
@@ -458,6 +485,14 @@ spec:
             key: node.kubernetes.io/unreachable
             operator: Exists
             tolerationSeconds: 30
+          {{- if ne $hasTargetToleration "none" }}
+          {{- range $k, $v := $targetTolerationVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
           containers:
           - image: {{ .Config.VolumeTargetImage.value }}
             name: cstor-istgt
