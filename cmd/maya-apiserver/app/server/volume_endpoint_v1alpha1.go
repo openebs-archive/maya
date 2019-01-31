@@ -33,8 +33,8 @@ type volumeAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
-// volumeEvents sends anonymous volume (de)-provision events
-func volumeEvents(cvol *v1alpha1.CASVolume, method string) {
+// sendEventOrIgnore sends anonymous volume (de)-provision events
+func sendEventOrIgnore(cvol *v1alpha1.CASVolume, method string) {
 	if menv.Truthy(menv.OpenEBSEnableAnalytics) && cvol != nil {
 		usage.New().Build().ApplicationBuilder().
 			SetApplicationName(cvol.Spec.CasType).
@@ -61,11 +61,15 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 
 	switch req.Method {
 	case "POST":
-		return volOp.create()
+		cvol, err := volOp.create()
+		sendEventOrIgnore(cvol, usage.VolumeProvision)
+		return cvol, err
 	case "GET":
 		return volOp.httpGet()
 	case "DELETE":
-		return volOp.httpDelete()
+		cvol, err := volOp.httpDelete()
+		sendEventOrIgnore(cvol, usage.VolumeDeprovision)
+		return cvol, err
 	default:
 		return nil, CodedError(405, ErrInvalidMethod)
 	}
@@ -88,7 +92,7 @@ func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
 }
 
 // httpDelete deals with http DELETE request
-func (v *volumeAPIOpsV1alpha1) httpDelete() (interface{}, error) {
+func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 	// Extract name of volume from path after trimming
 	volName := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes/"))
 
@@ -123,7 +127,6 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 		return nil, CodedError(400, err.Error())
 	}
 	cvol, err := vOps.Create()
-	volumeEvents(vol, usage.VolumeProvision)
 	if err != nil {
 		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -214,7 +217,6 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 	}
 
 	cvol, err := vOps.Delete()
-	volumeEvents(vol, usage.VolumeDeprovision)
 	if err != nil {
 		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
