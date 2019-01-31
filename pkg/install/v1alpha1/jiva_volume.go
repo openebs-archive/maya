@@ -54,6 +54,38 @@ spec:
     value: "default"
   - name: VolumeMonitor
     enabled: "true"
+  # TargetTolerations allows you to specify the tolerations for target
+  # Example: 
+  # - name: TargetTolerations
+  #   value: |-
+  #      t1:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoSchedule"
+  #      t2:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoExecute"
+  - name: TargetTolerations
+    value: "none"
+  # ReplicaTolerations allows you to specify the tolerations for target
+  # Example: 
+  # - name: ReplicaTolerations
+  #   value: |-
+  #      t1:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoSchedule"
+  #      t2:
+  #        key: "key1"
+  #        operator: "Equal"
+  #        value: "value1"
+  #        effect: "NoExecute"
+  - name: ReplicaTolerations
+    value: "none"
   - name: EvictionTolerations
     value: |-
       t1:
@@ -728,6 +760,8 @@ spec:
     {{- $hasNodeSelector := .Config.TargetNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
     {{- $targetAffinityVal := .TaskResult.creategetpvc.targetAffinity -}}
+    {{- $hasTargetToleration := .Config.TargetTolerations.value | default "none" -}}
+    {{- $targetTolerationVal := fromYaml .Config.TargetTolerations.value -}}
     apiVersion: extensions/v1beta1
     Kind: Deployment
     metadata:
@@ -874,6 +908,14 @@ spec:
             key: node.kubernetes.io/unreachable
             operator: Exists
             tolerationSeconds: 0
+          {{- if ne $hasTargetToleration "none" }}
+          {{- range $k, $v := $targetTolerationVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -899,6 +941,8 @@ spec:
     {{- $replicaAntiAffinityVal := .TaskResult.creategetpvc.replicaAntiAffinity -}}
     {{- $hasNodeSelector := .Config.ReplicaNodeSelector.value | default "none" -}}
     {{- $nodeSelectorVal := fromYaml .Config.ReplicaNodeSelector.value -}}
+    {{- $hasReplicaToleration := .Config.ReplicaTolerations.value | default "none" -}}
+    {{- $replicaTolerationVal := fromYaml .Config.ReplicaTolerations.value -}}
     apiVersion: extensions/v1beta1
     kind: Deployment
     metadata:
@@ -1011,6 +1055,14 @@ spec:
           tolerations:
           {{- if ne $isEvictionTolerations "none" }}
           {{- range $k, $v := $evictionTolerationsVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+          {{- if ne $hasReplicaToleration "none" }}
+          {{- range $k, $v := $replicaTolerationVal }}
           -
           {{- range $kk, $vv := $v }}
             {{ $kk }}: {{ $vv }}
