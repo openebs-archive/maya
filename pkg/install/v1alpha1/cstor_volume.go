@@ -88,7 +88,7 @@ spec:
   - name: TargetNodeSelector
     value: "none"
   # TargetTolerations allows you to specify the tolerations for target
-  # Example: 
+  # Example:
   # - name: TargetTolerations
   #   value: |-
   #      t1:
@@ -294,7 +294,7 @@ spec:
     metadata:
       annotations:
         openebs.io/pvc-namespace: {{ .Volume.runNamespace }}
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
@@ -347,6 +347,7 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | saveAs "cvolcreateputvolume.objectName" .TaskResult | noop -}}
   task: |
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
     metadata:
@@ -354,9 +355,14 @@ spec:
       annotations:
         openebs.io/fs-type: {{ .Config.FSType.value }}
         openebs.io/lun: {{ .Config.Lun.value }}
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
+        {{- if ne $isClone "false" }}
+        openebs.io/snapshot: {{ .Volume.snapshotName }}
+        openebs.io/source-volume: {{ .Volume.sourceVolume }}
+        {{- end }}
+
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/version: {{ .CAST.version }}
@@ -421,7 +427,7 @@ spec:
         openebs.io/volume-monitor: "true"
         {{- end}}
         openebs.io/volume-type: cstor
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
     spec:
@@ -445,7 +451,7 @@ spec:
             openebs.io/storage-class: {{ .Volume.storageclass }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
           annotations:
-            openebs.io/storage-class-ref: | 
+            openebs.io/storage-class-ref: |
               name: {{ .Volume.storageclass }}
               resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             {{- if eq $isMonitor "true" }}
@@ -679,7 +685,7 @@ spec:
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
