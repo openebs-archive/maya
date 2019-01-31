@@ -21,18 +21,9 @@ func TestCasType(t *testing.T) {
 		vol Volume
 		cas string
 	}{
-		"cas type is jiva": {
-			vol: new(jiva),
-			cas: "jiva",
-		},
-		"cas type is cstor": {
-			vol: new(cstor),
-			cas: "cstor",
-		},
-		"cas type is fakeVol": {
-			vol: new(fakeVol),
-			cas: "",
-		},
+		"cas type is jiva":    {vol: new(jiva), cas: "jiva"},
+		"cas type is cstor":   {vol: new(cstor), cas: "cstor"},
+		"cas type is fakeVol": {vol: new(fakeVol), cas: ""},
 	}
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {

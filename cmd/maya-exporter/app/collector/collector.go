@@ -12,25 +12,27 @@ type collector struct {
 	metrics
 }
 
+// New returns an instance of collector
 func New(vol Volume) *collector {
-	typ := casType(vol)
-	if typ == "" {
+	t := casType(vol)
+	if t == "" {
+		// only jiva and cstor are supported casType
 		glog.Fatal("exiting...")
 	}
 	return &collector{
 		vol,
-		Metrics(typ),
+		Metrics(t),
 	}
 }
 
 func casType(vol Volume) string {
-	switch typ := vol.(type) {
+	switch t := vol.(type) {
 	case *jiva:
 		return "jiva"
 	case *cstor:
 		return "cstor"
 	default:
-		glog.Error("Unknown cas type: ", typ)
+		glog.Error("Unknown cas type: ", t)
 		return ""
 	}
 }
