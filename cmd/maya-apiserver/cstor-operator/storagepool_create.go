@@ -18,6 +18,7 @@ package spc
 
 import (
 	"github.com/golang/glog"
+	algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
@@ -25,6 +26,12 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type poolCreateConfig struct {
+	*algorithm.AlgorithmConfig
+}
+
+var poolconfig *poolCreateConfig
 
 // Cas template is a custom resource which has a list of runTasks.
 
@@ -53,7 +60,10 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
 		oecs: newOecsClient,
 	}
 	// Get a CasPool object
-	pool, err := newClientSet.NewCasPool(spcGot)
+	poolconfig = &poolCreateConfig{
+		algorithm.NewAlgorithmConfig(spcGot),
+	}
+	pool, err := newClientSet.NewCasPool(spcGot, poolconfig)
 	if err != nil {
 		return err
 	}
@@ -85,7 +95,7 @@ func poolCreateWorker(pool *apis.CasPool) error {
 	return nil
 }
 
-func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
+func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim, algorithmConfig *poolCreateConfig) (*apis.CasPool, error) {
 	// Create a CasPool object and fill it with default values.
 	casPool := &v1alpha1.CasPool{}
 	casTemplateName := spc.Annotations[string(v1alpha1.CreatePoolCASTemplateKey)]
@@ -98,25 +108,25 @@ func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim) (*apis.Cas
 	casPool.Type = spc.Spec.Type
 	casPool.Annotations = spc.Annotations
 	// After CasPool object is filled with default values, call casPoolBuilder to fill more specific values.
-	casPool, err := newClientSet.casPoolBuilder(casPool, spc)
+	casPool, err := newClientSet.casPoolBuilder(casPool, spc, algorithmConfig)
 	return casPool, err
 }
 
 // casPoolBuilder builds the CasPool object by filling details like diskList,nodeName etc.
 // Some of the fields of the CasPool object is passed to CAS engine.
 // CasPool object(type) is the contract on which CAS engine is instantiated for cStor pool creation.
-func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
+func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.StoragePoolClaim, ac *poolCreateConfig) (*apis.CasPool, error) {
 	// getDiskList will hold node and disks attached to it to be used for storagepool provisioning.
-	nodeDisks, err := newClientSet.nodeDiskAlloter(spc)
+	nodeDisks, err := ac.NodeDiskSelector()
 	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
-	if len(nodeDisks.disks.items) == 0 {
+	if len(nodeDisks.Disks.Items) == 0 {
 		return nil, errors.New("aborting storagepool create operation as no disk was found")
 	}
-	// For each of the disks, extract the device Id and fill the 'DeviceId' field of the CasPool object with it.
+	// For each of the disk, extract the device Id and fill the 'DeviceId' field of the CasPool object with it.
 	// In case, device Id is not available, fill the 'DeviceId' field of the CasPool object with device path.
-	for _, v := range nodeDisks.disks.items {
+	for _, v := range nodeDisks.Disks.Items {
 		gotDisk, err := newClientSet.oecs.OpenebsV1alpha1().Disks().Get(v, metav1.GetOptions{})
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to get device id for disk:failed to list the disks")
@@ -132,8 +142,8 @@ func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.S
 		}
 	}
 	// Fill the node name to the CasPool object.
-	casPool.NodeName = nodeDisks.nodeName
+	casPool.NodeName = nodeDisks.NodeName
 	// Fill the disks attached to this node to the CasPool object.
-	casPool.DiskList = nodeDisks.disks.items
+	casPool.DiskList = nodeDisks.Disks.Items
 	return casPool, nil
 }
