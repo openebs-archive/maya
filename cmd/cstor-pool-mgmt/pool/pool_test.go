@@ -75,7 +75,6 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 		env = []string{"GO_WANT_CAPACITY_HELPER_PROCESS=1"}
 	case "set":
 		cs = []string{"-test.run=TestSetCachefileProcess", "--"}
-		env = []string{"SetErr=nil"}
 		break
 	}
 	cs = append(cs, args...)
@@ -958,4 +957,26 @@ func TestPoolCapacity(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCheckPoolCapacity(t *testing.T) {
+	cases := map[string]struct {
+		rawOutput        string
+		expectedCapacity int64
+	}{
+		"t1": {rawOutput: `pool1     capacity   0   -`, expectedCapacity: 0},
+		"t2": {rawOutput: `pool1     capacity   10   -`, expectedCapacity: 10},
+		"t3": {rawOutput: `pool1     capacity   20   -`, expectedCapacity: 20},
+		"t4": {rawOutput: `pool1     capacity   80   -`, expectedCapacity: 80},
+		"t5": {rawOutput: "", expectedCapacity: 0},
+	}
+	for name, test := range cases {
+		t.Run(name, func(t *testing.T) {
+			gotCapacity := checkPoolCapacity(test.rawOutput)
+			if !(reflect.DeepEqual(test.expectedCapacity, gotCapacity)) {
+				t.Errorf("Test case failed as expected object: %v but got object:%v", test.expectedCapacity, gotCapacity)
+			}
+		})
+	}
+
 }

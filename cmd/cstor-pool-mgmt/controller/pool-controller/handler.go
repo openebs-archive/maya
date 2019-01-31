@@ -392,9 +392,15 @@ func IsDeletionFailedBefore(cStorPool *apis.CStorPool) bool {
 
 // syncUsedCapacity generate warning if used capacity reach the default limit
 func (c *CStorPoolController) syncUsedCapacity(cStorPool *apis.CStorPool) {
-	if pool.UsedCapacity > common.DefaultUsedCapacityLimit {
+	if pool.UsedCapacity >= common.UsedCapacityLimitEightyPercent {
 		msg := fmt.Sprintf("current used capacity is %d", pool.UsedCapacity)
-		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.UsedPoolCapacityWarning), msg)
+		c.recorder.Event(cStorPool, corev1.EventTypeWarning, string(common.UsedPoolCapacityEightyPercent), msg)
+		return
+	}
+	if pool.UsedCapacity > common.UsedCapacityLimitSeventyPercent {
+		msg := fmt.Sprintf("current used capacity is %d", pool.UsedCapacity)
+		c.recorder.Event(cStorPool, corev1.EventTypeNormal, string(common.UsedPoolCapacitySeventyPercent), msg)
+		return
 	}
 }
 

@@ -90,7 +90,8 @@ const (
 
 // Periodic interval duration.
 const (
-	DefaultUsedCapacityLimit = 80
+	UsedCapacityLimitEightyPercent  = 80
+	UsedCapacityLimitSeventyPercent = 70
 	// CRDRetryInterval is used if CRD is not present.
 	CRDRetryInterval = 10 * time.Second
 	// PoolNameHandlerInterval is used when expected pool is not present.
@@ -114,8 +115,9 @@ const (
 
 var (
 	// InitialImportedPoolVol is to store pool-volume names while pod restart.
-	InitialImportedPoolVol  []string
-	UsedPoolCapacityWarning EventReason = EventReason(fmt.Sprintf("Used pool capacity has reached limit of %d %%", DefaultUsedCapacityLimit))
+	InitialImportedPoolVol         []string
+	UsedPoolCapacitySeventyPercent EventReason = EventReason(fmt.Sprintf("Used pool capacity has reached limit of %d %%", UsedCapacityLimitSeventyPercent))
+	UsedPoolCapacityEightyPercent  EventReason = EventReason(fmt.Sprintf("Used pool capacity has reached limit of %d %%", UsedCapacityLimitEightyPercent))
 )
 
 // QueueLoad is for storing the key and type of operation before entering workqueue

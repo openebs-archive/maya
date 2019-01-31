@@ -318,6 +318,20 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 	}
 }
 
+func checkPoolCapacity(rawOut string) int64 {
+	if len(rawOut) != 0 {
+		// split the rawOut by skipping spaces and get slice data
+		data := strings.Fields(rawOut)
+		usedCapacity := data[2]
+		capacity, err := strconv.ParseInt(usedCapacity, 10, 64)
+		if err != nil {
+			glog.Errorf("error in parsing zpool capacity, error: %v", err)
+		}
+		return capacity
+	}
+	return 0
+}
+
 // CheckForZreplContinuous is continuous health checker for status of zrepl in cstor-pool container.
 func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	for {
@@ -328,24 +342,13 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			if PoolAddEventHandled && strings.Contains(string(out), StatusNoPoolsAvailable) {
 				break
 			}
-
 			// Command   : $ sudo zpool get capacity -Hp
 			// raw output: vol1	  capacity	  12%	-
-
 			rawOut, err := RunnerVar.RunCombinedOutput(PoolOperator, "get", "capacity", "-Hp")
 			if err != nil {
 				glog.Errorf("zpool get capacity returned error in zrepl capacity check, error: %v", err)
 			}
-			if len(rawOut) != 0 {
-				// split the rawOut by skipping spaces and get slice data
-				data := strings.Fields(string(rawOut))
-				usedCapacity := strings.TrimSuffix(data[2], "%")
-				capacity, err := strconv.ParseInt(usedCapacity, 10, 64)
-				if err != nil {
-					glog.Errorf("error in parsing zpool capacity, error: %v", err)
-				}
-				UsedCapacity = capacity
-			}
+			UsedCapacity = checkPoolCapacity(string(rawOut))
 			time.Sleep(ZreplRetryInterval)
 			continue
 		}
