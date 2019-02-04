@@ -1649,6 +1649,26 @@ kind: Pod
 				},
 			},
 		},
+		//
+		// start of test scenario
+		//
+		"133": {
+			templateInYaml: `
+{{- jsonpath .JsonDoc "{.Labels}" | replace "running" "true" | replace "stopped" "false" | noop -}}
+`,
+			templateValues: map[string]interface{}{
+				"JsonDoc": mockJsonMarshal(&MockJson{
+					Labels: map[string]string{
+						"openebs.io/replica-status": "running",
+					},
+					Name: "test-vol",
+				}),
+				"Values": map[string]interface{}{},
+			},
+			expectedYaml: `
+`,
+			expectedTemplateValues: map[string]interface{}{},
+		},
 	}
 
 	for name, mock := range tests {

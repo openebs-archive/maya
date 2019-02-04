@@ -406,8 +406,8 @@ spec:
             vsm.openebs.io/replica-count: {{ $replicaIP | default "" | splitList ", " | len }}
             vsm.openebs.io/volume-size: {{ $capacity }}
             vsm.openebs.io/replica-ips: {{ $replicaIP }}
-            vsm.openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
-            vsm.openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
+            vsm.openebs.io/replica-status: {{ $replicaStatus | default "" | replace "true" "running" | replace "false" "notready" }}
+            vsm.openebs.io/controller-status: {{ $controllerStatus | default "" | replace "true" "running" | replace "false" "notready" | replace " " "," }}
             vsm.openebs.io/targetportals: {{ $clusterIP }}:3260
             openebs.io/controller-ips: {{ $controllerIP }}
             openebs.io/cluster-ips: {{ $clusterIP }}
@@ -415,8 +415,8 @@ spec:
             openebs.io/replica-count: {{ $replicaIP | default "" | splitList ", " | len }}
             openebs.io/volume-size: {{ $capacity }}
             openebs.io/replica-ips: {{ $replicaIP }}
-            openebs.io/replica-status: {{ $replicaStatus | replace "true" "running" | replace "false" "notready" }}
-            openebs.io/controller-status: {{ $controllerStatus | replace "true" "running" | replace "false" "notready" | replace " " "," }}
+            openebs.io/replica-status: {{ $replicaStatus | default "" | replace "true" "running" | replace "false" "notready" }}
+            openebs.io/controller-status: {{ $controllerStatus | default "" | replace "true" "running" | replace "false" "notready" | replace " " "," }}
             openebs.io/targetportals: {{ $clusterIP }}:3260
         spec:
           accessMode: {{ $pvInfo.accessModes | default "" }}
