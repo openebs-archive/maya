@@ -29,7 +29,7 @@ func (k *KubernetesClient) Get(name string) (*StoragePool, error) {
 
 // List is kubernetes client implementation to list disk.
 func (k *KubernetesClient) List(opts v1.ListOptions) (*StoragePoolList, error) {
-	spList, err := k.Clientset.OpenebsV1alpha1().StoragePools().List(v1.ListOptions{})
+	spList, err := k.Clientset.OpenebsV1alpha1().StoragePools().List(opts)
 	return &StoragePoolList{spList, nil, nil}, err
 }
 
