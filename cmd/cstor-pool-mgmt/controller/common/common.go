@@ -17,7 +17,11 @@ limitations under the License.
 package common
 
 import (
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"reflect"
+	"sort"
 	"sync"
 	"time"
 
@@ -257,4 +261,15 @@ func Init() {
 	// Making RunnerVar to use RealRunner
 	pool.RunnerVar = util.RealRunner{}
 	volumereplica.RunnerVar = util.RealRunner{}
+}
+
+// CalculateHash is to calulate the hash of Disk CR's
+func CalculateHash(diskList []string) (string, error) {
+	sort.Strings(diskList)
+	jsonEncodedValue, err := json.Marshal(diskList)
+	if err != nil {
+		return "", err
+	}
+	hashBytes := md5.Sum(jsonEncodedValue)
+	return hex.EncodeToString(hashBytes[:]), nil
 }

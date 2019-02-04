@@ -169,6 +169,13 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 					glog.Infof("Pool %v is online", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
 					c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 					common.SyncResources.IsImported = true
+					if GetHash(cStorPoolGot) == "" {
+						hash, err := common.CalculateHash(cStorPoolGot.Spec.Disks.DiskList)
+						if err != nil {
+							glog.Errorf("Failed to update openebs.io/csp-disk-hash value: %v", err)
+						}
+						UpdateHash(cStorPoolGot, hash)
+					}
 					return string(apis.CStorPoolStatusOnline), nil
 				}
 				glog.Infof("Pool %v already present", string(pool.PoolPrefix)+string(cStorPoolGot.GetUID()))
@@ -222,6 +229,12 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
+		// Calculating hash value for disk CRs
+		hash, err := common.CalculateHash(cStorPoolGot.Spec.Disks.DiskList)
+		if err != nil {
+			glog.Errorf("Failed to update openebs.io/csp-disk-hash value: %v", err)
+		}
+		UpdateHash(cStorPoolGot, hash)
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 		return string(apis.CStorPoolStatusOnline), nil
 	}
@@ -387,6 +400,16 @@ func IsDeletionFailedBefore(cStorPool *apis.CStorPool) bool {
 		return true
 	}
 	return false
+}
+
+// UpdateHash is to update the hash of Disk CRs in csp object
+func UpdateHash(cStorPool *apis.CStorPool, hashValue string) {
+	cStorPool.ObjectMeta.Annotations["openebs.io/csp-disk-hash"] = hashValue
+}
+
+// GetHash is to get the hash of Disk CRs stored in csp
+func GetHash(cStorPool *apis.CStorPool) string {
+	return cStorPool.ObjectMeta.Annotations["openebs.io/csp-disk-hash"]
 }
 
 // syncCsp updates field on CSP object after fetching the values from zpool utility.
