@@ -24,7 +24,7 @@ import (
 )
 
 // NodeDiskSelector selects a node and disks attached to it.
-func (ac *AlgorithmConfig) NodeDiskSelector() (*nodeDisk, error) {
+func (ac *Config) NodeDiskSelector() (*nodeDisk, error) {
 	listDisk, err := ac.getDisk()
 
 	if listDisk == nil || len(listDisk.Items) == 0 {
@@ -40,7 +40,7 @@ func (ac *AlgorithmConfig) NodeDiskSelector() (*nodeDisk, error) {
 }
 
 // getUsedDiskMap gives list of disks that has already been used for pool provisioning.
-func (ac *AlgorithmConfig) getUsedDiskMap() (map[string]int, error) {
+func (ac *Config) getUsedDiskMap() (map[string]int, error) {
 	// Get the list of disk that has been used already for pool provisioning
 	spList, err := ac.SpClient.List(v1.ListOptions{})
 
@@ -59,7 +59,7 @@ func (ac *AlgorithmConfig) getUsedDiskMap() (map[string]int, error) {
 
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
-func (ac *AlgorithmConfig) getUsedNodeMap() (map[string]int, error) {
+func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 	spList, err := ac.SpClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", ac.Spc.Name)
@@ -71,7 +71,7 @@ func (ac *AlgorithmConfig) getUsedNodeMap() (map[string]int, error) {
 	return usedNodeMap, nil
 }
 
-func (ac *AlgorithmConfig) getCandidateNode(listDisk *apis.DiskList) (map[string]*diskList, error) {
+func (ac *Config) getCandidateNode(listDisk *apis.DiskList) (map[string]*diskList, error) {
 	usedDiskMap, err := ac.getUsedDiskMap()
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func (ac *AlgorithmConfig) getCandidateNode(listDisk *apis.DiskList) (map[string
 	return nodeDiskMap, nil
 }
 
-func (ac *AlgorithmConfig) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
+func (ac *Config) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
 	// selectedDisk will hold a node capable to form pool and list of disks attached to it.
 	selectedDisk := &nodeDisk{
 		NodeName: "",
@@ -150,17 +150,16 @@ func diskFilterConstraint(diskType string) string {
 	return label
 }
 
-// provisioningType returns the way pool should be provisioned e.g. auto or manual.
+// ProvisioningType returns the way pool should be provisioned e.g. auto or manual.
 func ProvisioningType(spc *apis.StoragePoolClaim) string {
 	if len(spc.Spec.Disks.DiskList) == 0 {
 		return ProvisioningTypeAuto
-	} else {
-		return ProvisioningTypeManual
 	}
+	return ProvisioningTypeManual
 }
 
 // poolType returns the type of pool provisioning e.g. mirrored or striped for a given spc.
-func (ac *AlgorithmConfig) poolType() string {
+func (ac *Config) poolType() string {
 	if ac.Spc.Spec.PoolSpec.PoolType == string(apis.PoolTypeMirroredCPV) {
 		return string(apis.PoolTypeMirroredCPV)
 	}
@@ -177,7 +176,7 @@ func (ac *AlgorithmConfig) poolType() string {
 }
 
 // getDisk return the all disks of a certain type(e.g. sparse, disk) which is specified in spc.
-func (ac *AlgorithmConfig) getDisk() (*apis.DiskList, error) {
+func (ac *Config) getDisk() (*apis.DiskList, error) {
 	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
 	dL, err := ac.DiskClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {

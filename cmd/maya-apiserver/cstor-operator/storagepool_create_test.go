@@ -17,7 +17,7 @@ package spc
 
 import (
 	"github.com/golang/glog"
-	algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
+	algorithm "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
@@ -83,7 +83,7 @@ func fakeDiskClient() {
 		openebsFakeClientset.NewSimpleClientset(),
 	}
 }
-func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *algorithm.AlgorithmConfig {
+func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *algorithm.Config {
 	var diskClient disk.DiskInterface
 	fakeDiskClient()
 	FakeDiskCreator(diskK8sClient)
@@ -104,7 +104,7 @@ func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *algorithm.AlgorithmConfig 
 		fake.NewSimpleClientset(),
 		openebsFakeClientset.NewSimpleClientset(),
 	}
-	ac := &algorithm.AlgorithmConfig{
+	ac := &algorithm.Config{
 		Spc:        spc,
 		DiskClient: diskClient,
 		CspClient:  cspK8sClient,

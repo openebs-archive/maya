@@ -18,7 +18,7 @@ package spc
 
 import (
 	"github.com/golang/glog"
-	algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
+	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
@@ -28,7 +28,7 @@ import (
 )
 
 type poolCreateConfig struct {
-	*algorithm.AlgorithmConfig
+	*nodeselect.Config
 }
 
 var poolconfig *poolCreateConfig
@@ -61,7 +61,7 @@ func CreateStoragePool(spcGot *apis.StoragePoolClaim) error {
 	}
 	// Get a CasPool object
 	poolconfig = &poolCreateConfig{
-		algorithm.NewAlgorithmConfig(spcGot),
+		nodeselect.NewConfig(spcGot),
 	}
 	pool, err := newClientSet.NewCasPool(spcGot, poolconfig)
 	if err != nil {
