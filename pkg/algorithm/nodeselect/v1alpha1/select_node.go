@@ -26,9 +26,11 @@ import (
 // NodeDiskSelector selects a node and disks attached to it.
 func (ac *Config) NodeDiskSelector() (*nodeDisk, error) {
 	listDisk, err := ac.getDisk()
-
+	if err != nil {
+		return nil, err
+	}
 	if listDisk == nil || len(listDisk.Items) == 0 {
-		return nil, errors.Wrapf(err, "no disk object found")
+		return nil, errors.New("no disk object found")
 	}
 	nodeDiskMap, err := ac.getCandidateNode(listDisk)
 	if err != nil {
