@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,9 +26,11 @@ import (
 
 const (
 	// DiskStateActive is the active state of the disks.
-	DiskStateActive        = "Active"
+	DiskStateActive = "Active"
+	// ProvisioningTypeManual is the manual provisioned SPC.
 	ProvisioningTypeManual = "manual"
-	ProvisioningTypeAuto   = "auto"
+	// ProvisioningTypeAuto is the auto provisioned SPC.
+	ProvisioningTypeAuto = "auto"
 )
 
 var defaultDiskCount = map[string]int{
@@ -46,14 +48,23 @@ type nodeDisk struct {
 	NodeName string
 	Disks    diskList
 }
-type AlgorithmConfig struct {
-	Spc              *apis.StoragePoolClaim
-	DiskClient       disk.DiskInterface
-	SpClient         sp.StoragepoolInterface
-	CspClient        cstorpool.CstorpoolInterface
+
+// Config embeds clients for disk,csp and sp and contains, SPC object and ProvisioningType field which should tell
+// provisioning type manual or auto.
+type Config struct {
+	// Spc is the StoragePoolClaim object.
+	Spc *apis.StoragePoolClaim
+	// DiskClient is the client for Disk to perform CRUD operations on Disk object.
+	DiskClient disk.DiskInterface
+	// SpClient is the client for SP to perform CRUD operations on SP object.
+	SpClient sp.StoragepoolInterface
+	// CspClient is the client for CSP to perform CRUD operations on CSP object.
+	CspClient cstorpool.CstorpoolInterface
+	// ProvisioningType tells the type of provisioning i.e. manual or auto.
 	ProvisioningType string
 }
 
+// getDiskK8sClient returns an instance of kubernetes client for Disk.
 func getDiskK8sClient() *disk.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &disk.KubernetesClient{
@@ -62,6 +73,10 @@ func getDiskK8sClient() *disk.KubernetesClient {
 	}
 	return K8sClient
 }
+
+// getDiskSpcClient returns an instance of SPC client for Disk.
+// NOTE : SPC is a typed client which embeds regular kubernetes disk client and SPC object.
+// This client is used in manual provisioning of SPC.
 func getDiskSpcClient(spc *apis.StoragePoolClaim) *disk.SpcObjectClient {
 	K8sClient := &disk.SpcObjectClient{
 		getDiskK8sClient(),
@@ -70,6 +85,8 @@ func getDiskSpcClient(spc *apis.StoragePoolClaim) *disk.SpcObjectClient {
 	return K8sClient
 }
 
+// getSpK8sClient returns an instance of kubernetes client for SP.
+// TODO: Deprecate SP
 func getSpK8sClient() *sp.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &sp.KubernetesClient{
@@ -79,6 +96,7 @@ func getSpK8sClient() *sp.KubernetesClient {
 	return K8sClient
 }
 
+// getCspK8sClient returns an instance of kubernetes client for CSP.
 func getCspK8sClient() *cstorpool.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &cstorpool.KubernetesClient{
@@ -88,20 +106,23 @@ func getCspK8sClient() *cstorpool.KubernetesClient {
 	return K8sClient
 }
 
-func NewAlgorithmConfig(spc *apis.StoragePoolClaim) *AlgorithmConfig {
-	var diskK8sClient disk.DiskInterface
+// NewConfig returns an instance of Config based on SPC object.
+func NewConfig(spc *apis.StoragePoolClaim) *Config {
+	var diskClient disk.DiskInterface
+	// If provisioning type is manual diskClient is assigned SPC disk client
+	// else it is assigned kubernetes disk client.
 	if ProvisioningType(spc) == ProvisioningTypeManual {
-		diskK8sClient = getDiskSpcClient(spc)
+		diskClient = getDiskSpcClient(spc)
 	} else {
-		diskK8sClient = getDiskK8sClient()
+		diskClient = getDiskK8sClient()
 	}
 
 	cspK8sClient := getCspK8sClient()
 	spK8sClient := getSpK8sClient()
 	pT := ProvisioningType(spc)
-	ac := &AlgorithmConfig{
+	ac := &Config{
 		Spc:              spc,
-		DiskClient:       diskK8sClient,
+		DiskClient:       diskClient,
 		CspClient:        cspK8sClient,
 		SpClient:         spK8sClient,
 		ProvisioningType: pT,

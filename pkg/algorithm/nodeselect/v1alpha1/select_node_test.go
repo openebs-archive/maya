@@ -84,7 +84,7 @@ func fakeDiskClient() {
 		openebsFakeClientset.NewSimpleClientset(),
 	}
 }
-func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *AlgorithmConfig {
+func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 	var diskClient disk.DiskInterface
 	fakeDiskClient()
 	FakeDiskCreator(diskK8sClient)
@@ -105,7 +105,7 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *AlgorithmConfig {
 		fake.NewSimpleClientset(),
 		openebsFakeClientset.NewSimpleClientset(),
 	}
-	ac := &AlgorithmConfig{
+	ac := &Config{
 		Spc:        spc,
 		DiskClient: diskClient,
 		CspClient:  cspK8sClient,
