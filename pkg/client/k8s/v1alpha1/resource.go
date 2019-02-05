@@ -74,7 +74,7 @@ func (r *resource) Create(obj *unstructured.Unstructured, subresources ...string
 		err = errors.Wrapf(err, "failed to create resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
 		return
 	}
-	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Create(obj, subresources...)
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Create(obj, metav1.CreateOptions{}, subresources...)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to create resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
 		return
@@ -120,7 +120,7 @@ func (r *resource) Update(oldobj, newobj *unstructured.Unstructured, subresource
 	resourceVersion := oldobj.GetResourceVersion()
 	newobj.SetResourceVersion(resourceVersion)
 
-	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Update(newobj, subresources...)
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).Update(newobj, metav1.UpdateOptions{}, subresources...)
 	if err != nil {
 		err = errors.Wrapf(err, "failed to update resource '%s' '%s' at '%s'", r.gvr, oldobj.GetName(), r.namespace)
 		return
