@@ -88,4 +88,5 @@ type ReplicaStatus struct {
 	InflightWrite     string `json:"inflightWrite"`
 	InflightSync      string `json:"inflightSync"`
 	UpTime            int    `json:"upTime"`
+	Quorum            string `json:"quorum"`
 }
