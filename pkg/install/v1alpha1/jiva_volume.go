@@ -237,6 +237,8 @@ metadata:
   name: jiva-volume-delete-default
 spec:
   defaultConfig:
+  - name: ScrubImage
+    value: "quay.io/openebs/openebs-tools:3.8"
   # RetainReplicaData specifies whether jiva replica data folder 
   # should be cleared or retained. 
   - name: RetainReplicaData
@@ -1251,7 +1253,7 @@ spec:
               type: ""
           containers:
           - name: sjr
-            image: quay.io/openebs/openebs-tools:3.8
+            image: {{ .Config.ScrubImage.value }}
             command: 
             - sh
             - -c
