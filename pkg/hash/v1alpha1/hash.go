@@ -23,13 +23,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CalculateHash constructs the hash for any type of object
-func CalculateHash(obj interface{}) (string, error) {
+// Hash constructs the hash value for any type of object
+func Hash(obj interface{}) (string, error) {
 
 	// Convert the given object into json encoded bytes
 	jsonEncodedValues, err := json.Marshal(obj)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to convert the object to jsonEncoded format")
+		return "", errors.Wrapf(err, "failed to convert the object to json encoded format")
 	}
 	hashBytes := md5.Sum(jsonEncodedValues)
 	return hex.EncodeToString(hashBytes[:]), nil
