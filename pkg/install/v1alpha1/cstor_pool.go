@@ -81,6 +81,7 @@ spec:
     tasks:
     # Following are the list of run tasks executed in this order to
     # create a cstor storage pool
+    - cstor-pool-create-getspc-default
     - cstor-pool-create-putcstorpoolcr-default
     - cstor-pool-create-putcstorpooldeployment-default
     - cstor-pool-create-putstoragepoolcr-default
@@ -105,6 +106,21 @@ spec:
     - cstor-pool-delete-deletecstorpooldeployment-default
     - cstor-pool-delete-liststoragepoolcr-default
     - cstor-pool-delete-deletestoragepoolcr-default
+---
+# This run task get StoragePoolClaim
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-pool-create-getspc-default
+spec:
+  meta: |
+    id: getspc
+    apiVersion: openebs.io/v1alpha1
+    kind: StoragePoolClaim
+    action: get
+    objectName: {{.Storagepool.owner}}
+  post: |
+    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "getspc.objectUID" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -131,6 +147,13 @@ spec:
         kubernetes.io/hostname: {{.Storagepool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+      ownerReferences:
+      - apiVersion: openebs.io/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: StoragePoolClaim
+        name: {{.Storagepool.owner}}
+        uid: {{ .TaskResult.getspc.objectUID }} 
     spec:
       disks:
         diskList:
@@ -157,7 +180,8 @@ spec:
     id: putcstorpooldeployment
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpooldeployment.objectName" .TaskResult | noop -}}
-  task: |-
+    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpooldeployment.objectUID" .TaskResult | noop -}}
+  task: |
     {{- $setResourceRequests := .Config.PoolResourceRequests.value | default "none" -}}
     {{- $resourceRequestsVal := fromYaml .Config.PoolResourceRequests.value -}}
     {{- $setResourceLimits := .Config.PoolResourceLimits.value | default "none" -}}
@@ -176,6 +200,13 @@ spec:
         app: cstor-pool
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+      ownerReferences:
+      - apiVersion: openebs.io/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: CStorPool
+        name: {{ .TaskResult.putcstorpoolcr.objectName }}
+        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}    
     spec:
       strategy:
         type: Recreate
@@ -335,6 +366,13 @@ spec:
         kubernetes.io/hostname: {{ .Storagepool.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+      ownerReferences:
+      - apiVersion: openebs.io/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: Deployment
+        name: {{ .TaskResult.putcstorpooldeployment.objectName }}
+        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}  
     spec:
       disks:
         diskList:
