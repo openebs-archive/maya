@@ -220,25 +220,13 @@ func TestSyncHandler(t *testing.T) {
 		expectedError bool
 	}{
 		// Function under test expects key,operation,and storagepoolcalim object as an argument
-		// If the event is deleteEvent or addEvent , creation of storagepool and deletion of storagepool
+		// If the event is addEvent , creation of  storagepool
 		// should be attempted.
 		// The attempt will fail because of the absence of cas template in go environment
-		// Hence deleteEvent and addEvent should error out.
+		// Hence addEvent should error out.
 		// For all other events there is no such attempt and no error should occur.
 
 		// TestCase#1
-		"Sync Operation for spc delete event": {
-			key:       "pool1",
-			operation: deleteEvent,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-				},
-			},
-			expectedError: true,
-		},
-
-		// TestCase#2
 		"Sync Operation for spc for any unrecognized operation tag": {
 			key:       "pool1",
 			operation: "Default Case In Switch",
@@ -249,7 +237,7 @@ func TestSyncHandler(t *testing.T) {
 			},
 			expectedError: false,
 		},
-		// TestCase#3
+		// TestCase#2
 		"Sync Operation for spc add event": {
 			key:       "pool1",
 			operation: addEvent,
@@ -267,7 +255,7 @@ func TestSyncHandler(t *testing.T) {
 			},
 			expectedError: false,
 		},
-
+		// TestCase#3
 		"Sync Operation for spc add event invalid pool type": {
 			key:       "pool3",
 			operation: addEvent,
@@ -308,14 +296,6 @@ func TestSyncHandler(t *testing.T) {
 				},
 			},
 			expectedError: false,
-		},
-
-		// TestCase#6
-		"Sync Operation for spc delete event when the function receives nil object": {
-			key:                  "pool2",
-			operation:            deleteEvent,
-			fakestoragepoolclaim: nil,
-			expectedError:        true,
 		},
 	}
 

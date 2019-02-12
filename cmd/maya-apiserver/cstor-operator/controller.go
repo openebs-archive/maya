@@ -130,8 +130,6 @@ func NewController(
 		// 3. After every fixed amount of time which is know as reSync Period.
 		//    ReSync period can be set to values we want. It can help in reconiciliation.
 		UpdateFunc: controller.updateSpc,
-
-		DeleteFunc: controller.deleteSpc,
 	})
 
 	return controller
@@ -158,11 +156,10 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		c.queueLoad.Object = spcObjectNew
 		c.enqueueSpc(&c.queueLoad)
 	} else {
-		// Suppressing delete event here as the event is already captured in
-		// deleteSpc hook.
 		if IsDeleteEvent(spcObjectNew) {
+			// Ignore the delete event
+			// We can enqueue object in future if we need to do some other task in case of delete event.
 			c.queueLoad.Operation = ignoreEvent
-			glog.Warning("Delete event suppressed in update hook as it is already handled in delete hook")
 		} else {
 			// To-DO
 			// Implement Logic for Update of SPC object
@@ -174,14 +171,6 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 
 	}
 
-}
-
-func (c *Controller) deleteSpc(obj interface{}) {
-	spcObject := obj.(*apis.StoragePoolClaim)
-	c.queueLoad.Operation = deleteEvent
-	c.queueLoad.Object = spcObject
-	glog.V(4).Infof("Queuing SPC %s for delete event", spcObject.Name)
-	c.enqueueSpc(&c.queueLoad)
 }
 
 // IsDeleteEvent is to check if the call is for SPC delete.

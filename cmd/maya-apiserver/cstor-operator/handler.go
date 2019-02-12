@@ -52,18 +52,6 @@ func (c *Controller) syncHandler(key, operation string, object interface{}) erro
 	if err != nil {
 		return err
 	}
-	// Check if the event is for delete and use the spc object that was pushed in the queue
-	// for utilising details from it e.g. delete cas template name for storagepool deletion.
-	if operation == deleteEvent {
-		// Need to typecast the interface object to storagepoolclaim object because
-		// interface type of nil is different from nil but all other type of nil has the same type as that of nil.
-		spcObject := object.(*apis.StoragePoolClaim)
-		if spcObject == nil {
-			return errors.New("storagepoolclaim object not found for storage pool deletion")
-		}
-		spcGot = spcObject
-	}
-
 	// Call the spcEventHandler which will take spc object , key(namespace/name of object) and type of operation we need to to for storage pool
 	// Type of operation for storage pool e.g. create, delete etc.
 	events, err := c.spcEventHandler(operation, spcGot)
@@ -97,16 +85,8 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
 		return syncEvent, nil
-	case deleteEvent:
-		err := DeleteStoragePool(spcGot)
-
-		if err != nil {
-			glog.Error("Storagepool could not be deleted:", err)
-		}
-
-		return deleteEvent, err
 	default:
-		// operation with tag other than add,update and delete are ignored.
+		// operation with tag other than add,update and sync are ignored.
 		return ignoreEvent, nil
 	}
 }
