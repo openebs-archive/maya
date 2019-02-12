@@ -7,7 +7,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -201,7 +201,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 						"replicaStatus" : [
 						{
 							"replicaId":"5523611450015704000",
-							"status":"HEALTHY",
+							"mode":"HEALTHY",
 							"checkpointedIOSeq":"0",
 							"inflightRead":"0",
 							"inflightWrite":"0",
@@ -210,7 +210,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 						},
 						{
 							"replicaId":"23523553",
-							"status":"BAD",
+							"mode":"BAD",
 							"checkpointedIOSeq":"0",
 							"inflightRead":"0",
 							"inflightWrite":"0",
@@ -227,7 +227,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				ReplicaStatuses: []apis.ReplicaStatus{
 					{
 						ID:                "5523611450015704000",
-						Status:            "HEALTHY",
+						Mode:              "HEALTHY",
 						CheckpointedIOSeq: "0",
 						InflightRead:      "0",
 						InflightWrite:     "0",
@@ -236,7 +236,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 					},
 					{
 						ID:                "23523553",
-						Status:            "BAD",
+						Mode:              "BAD",
 						CheckpointedIOSeq: "0",
 						InflightRead:      "0",
 						InflightWrite:     "0",
@@ -256,7 +256,7 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 						"replicaStatus" : [
 						{
 							"replicaId":5523611450015704000,
-							"status":"HEALTHY",
+							"mode":"HEALTHY",
 							"checkpointedIOSeq":"0",
 							"inflightRead":"0",
 							"inflightWrite":"0",
@@ -273,7 +273,45 @@ func TestExtractReplicaStatusFromJSON(t *testing.T) {
 				ReplicaStatuses: []apis.ReplicaStatus{
 					{
 						ID:                "5523611450015704000",
-						Status:            "HEALTHY",
+						Mode:              "HEALTHY",
+						CheckpointedIOSeq: "0",
+						InflightRead:      "0",
+						InflightWrite:     "0",
+						InflightSync:      "0",
+						UpTime:            1275,
+					},
+				},
+			},
+			true,
+		},
+		"valid single replica healthy status": {
+			`{
+				"volumeStatus":[
+				   {
+						"name" : "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+						"status": "Healthy",
+						"replicaStatus" : [
+						{
+							"replicaId":5523611450015704000,
+							"Mode":"HEALTHY",
+							"checkpointedIOSeq":"0",
+							"Address" : "192.168.1.23",
+							"inflightRead":"0",
+							"inflightWrite":"0",
+							"inflightSync":"0",
+							"upTime":1275
+						},
+					  ]
+				   }
+				]
+			 }`,
+			&apis.CVStatus{
+				Name:   "pvc-c7f1a961-e0e3-11e8-b49d-42010a800233",
+				Status: "Healthy",
+				ReplicaStatuses: []apis.ReplicaStatus{
+					{
+						ID:                "5523611450015704000",
+						Mode:              "HEALTHY",
 						CheckpointedIOSeq: "0",
 						InflightRead:      "0",
 						InflightWrite:     "0",
