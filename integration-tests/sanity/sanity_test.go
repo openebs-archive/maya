@@ -7,6 +7,10 @@ import (
 
 var _ = Describe("Sanity", func() {
 	Context("should create cstor volume", func() {
+		PIt("should apply the cstor pvc", func() {
+
+		})
+
 		PIt("should create cstor target", func() {
 
 		})
