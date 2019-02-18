@@ -44,7 +44,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsUnstructured()
+	artifacts, err := artifacts.GetArtifactsListUnstructured(artifacts.OpenEBSArtifacts)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Installing the artifacts to kubernetes cluster
@@ -59,12 +59,13 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	status := false
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 300; i++ {
 		pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{})
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(pods).NotTo(BeNil())
-
-		if kubernetes.CheckPodsRunning(*pods, 4) {
+		expectedStoragePoolPods, err := clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		if kubernetes.CheckPodsRunning(*pods, 4+len(expectedStoragePoolPods.Items)) {
 			status = true
 			break
 		}
@@ -77,7 +78,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsUnstructured()
+	artifacts, err := artifacts.GetArtifactsListUnstructured(artifacts.OpenEBSArtifacts)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Deleting artifacts
