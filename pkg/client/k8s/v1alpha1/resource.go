@@ -53,6 +53,11 @@ type ResourceApplier interface {
 	Apply(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
 }
 
+// ResourceDeleter abstracts
+type ResourceDeleter interface {
+	Delete(obj *unstructured.Unstructured, subresources ...string) error
+}
+
 type resource struct {
 	gvr       schema.GroupVersionResource // identify a resource
 	namespace string                      // namespace where this resource is to be operated at
@@ -80,6 +85,22 @@ func (r *resource) Create(obj *unstructured.Unstructured, subresources ...string
 		return
 	}
 	return
+}
+
+// Delete deletes a existing resource in kubernetes cluster
+func (r *resource) Delete(obj *unstructured.Unstructured, subresources ...string) error {
+	if obj == nil {
+		return errors.Errorf("nil resource instance: failed to delete resource '%s' at '%s'", r.gvr, r.namespace)
+	}
+	dynamic, err := Dynamic().Provide()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
+	}
+	err = dynamic.Resource(r.gvr).Namespace(r.namespace).Delete(obj.GetName(), &metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete resource '%s' '%s' at '%s'", r.gvr, obj.GetName(), r.namespace)
+	}
+	return nil
 }
 
 // Get returns a specific resource from kubernetes cluster
@@ -174,4 +195,32 @@ func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...s
 		return r.options.Creator.Create(obj, subresources...)
 	}
 	return r.options.Updater.Update(resource, obj, subresources...)
+}
+
+// ResourceDeleteOptions is a utility instance used during the resource's delete operations
+type ResourceDeleteOptions struct {
+	Deleter ResourceDeleter
+}
+
+// Delete is a resource that is suitable to be executed as a Delete operation
+type Delete struct {
+	*resource
+	options ResourceDeleteOptions
+}
+
+// DeleteResource returns a new instance of delete resource
+func DeleteResource(gvr schema.GroupVersionResource, namespace string) *Delete {
+	resource := Resource(gvr, namespace)
+	options := ResourceDeleteOptions{Deleter: resource}
+	return &Delete{resource: resource, options: options}
+}
+
+// Delete deletes a resource from a kubernetes cluster
+func (d *Delete) Delete(obj *unstructured.Unstructured, subresources ...string) error {
+	if d.options.Deleter == nil {
+		return errors.New("nil resource deleter instance: failed to delete resource")
+	} else if obj == nil {
+		return errors.New("nil resource instance: failed to delete resource")
+	}
+	return d.options.Deleter.Delete(obj, subresources...)
 }

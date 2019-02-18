@@ -17,3 +17,13 @@ func CheckPodsRunning(pods v1.PodList, expectedPods int) bool {
 	}
 	return true
 }
+
+// CheckForNamespace returns true if target namespace exists in v1.NamespaceList
+func CheckForNamespace(namespaces v1.NamespaceList, targetNamespace string) bool {
+	for _, namespace := range namespaces.Items {
+		if namespace.GetName() == targetNamespace {
+			return false
+		}
+	}
+	return true
+}

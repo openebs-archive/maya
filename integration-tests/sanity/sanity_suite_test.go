@@ -1,6 +1,7 @@
 package sanity
 
 import (
+	"flag"
 	"os"
 	"testing"
 	"time"
@@ -15,12 +16,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	waitTime time.Duration = 10
+)
+
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Sanity")
 }
 
+var namespace string
+
+func init() {
+	flag.StringVar(&namespace, "namespace", "openebs", "namespace for performing the test")
+	flag.Parse()
+
+}
+
 var _ = BeforeSuite(func() {
+
 	// Fetching the kube config path
 	configPath, err := kubernetes.GetConfigPath()
 	Expect(err).ShouldNot(HaveOccurred())
@@ -30,31 +44,31 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Fetching the openebs component artifacts
-	al, err := artifacts.GetArtifactsUnstructured()
+	artifacts, err := artifacts.GetArtifactsUnstructured()
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Installing the artifacts to kubernetes cluster
-	for _, a := range al {
-		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(a), a.GetNamespace())
-		_, err := cu.Apply(a)
+	for _, artifact := range artifacts {
+		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+		_, err := cu.Apply(artifact)
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
 	// Waiting for pods to be ready
-	cl, err := kubernetes.GetClientSet()
+	clientset, err := kubernetes.GetClientSet()
 	Expect(err).NotTo(HaveOccurred())
-
-	pods, err := cl.CoreV1().Pods("openebs").List(metav1.ListOptions{})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(pods).NotTo(BeNil())
 
 	status := false
 	for i := 0; i < 100; i++ {
+		pods, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pods).NotTo(BeNil())
+
 		if kubernetes.CheckPodsRunning(*pods, 4) {
 			status = true
 			break
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(waitTime * time.Second)
 	}
 	if !status {
 		Fail("Pods were not ready in expected time")
@@ -62,7 +76,38 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	// Unsetting the environment variable
-	err := os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
+	// Fetching the openebs component artifacts
+	artifacts, err := artifacts.GetArtifactsUnstructured()
 	Expect(err).ShouldNot(HaveOccurred())
+
+	// Deleting artifacts
+	for _, artifact := range artifacts {
+		d := k8s.DeleteResource(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
+		err := d.Delete(artifact)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	// Unsetting the environment variable
+	err = os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
+	Expect(err).ShouldNot(HaveOccurred())
+
+	// Waiting for openebs namespace to get terminated
+	clientset, err := kubernetes.GetClientSet()
+	Expect(err).NotTo(HaveOccurred())
+
+	status := false
+	for i := 0; i < 100; i++ {
+		namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(namespaces).NotTo(BeNil())
+
+		if kubernetes.CheckForNamespace(*namespaces, namespace) {
+			status = true
+			break
+		}
+		time.Sleep(waitTime * time.Second)
+	}
+	if !status {
+		Fail("Pods were not ready in expected time")
+	}
 })
