@@ -26,8 +26,10 @@ var (
 	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }\r\nOK IOSTATS\r\n`
 )
 
-func fakeCstor() *cstor {
-	return &cstor{}
+func fakeCstor(path string) *cstor {
+	return &cstor{
+		socketPath: path,
+	}
 }
 
 func runFakeUnixServer(t *testing.T, wg *sync.WaitGroup, response string) {
@@ -246,12 +248,12 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestInitiateConnection(t *testing.T) {
-	c := fakeCstor()
+	c := fakeCstor("/tmp")
 	dialFunc = func(path string) (net.Conn, error) {
 		return nil, fmt.Errorf("No connection available")
 	}
 
-	err := c.initiateConnection("/tmp")
+	err := c.initiateConnection()
 	if err == nil {
 		t.Fatalf("initiateConnection(%s): expected: error, got: nil", "/tmp")
 	}

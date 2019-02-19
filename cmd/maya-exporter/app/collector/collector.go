@@ -100,23 +100,26 @@ func (c *collector) Describe(ch chan<- *prometheus.Desc) {
 //
 // Collect implements Collect method of prometheus.Collector interface.
 func (c *collector) Collect(ch chan<- prometheus.Metric) {
+
 	var (
 		err         error
 		volumeStats v1.VolumeStats
 		stats       stats
 	)
 
+	glog.Info("Get metrics")
 	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
 		glog.Errorln(err)
 		c.setError(err)
 	}
 
+	glog.Info("Parse metrics")
 	stats = c.parse(volumeStats, metrics)
 
 	c.set(stats)
-
 	// collect the metrics extracted by collect method
+	glog.Info("Collect metrics")
 	for _, col := range c.collectors() {
 		col.Collect(ch)
 	}

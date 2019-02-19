@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
@@ -38,25 +39,23 @@ var (
 // cstor implements the Exporter interface. It exposes
 // the metrics of a OpenEBS (cstor) volume.
 type cstor struct {
+	sync.Mutex
 	// conn is used as unix network connection
-	conn net.Conn
+	conn       net.Conn
+	socketPath string
 }
 
 // Cstor returns cstor's instance
 func Cstor(path string) *cstor {
-	var c = new(cstor)
-	// ignore error, istgt may not be up. Connection
-	// can be established later upon new requests.
-	if err := c.initiateConnection(path); err != nil {
-		glog.Warning("Can't connect to istgt, error: ", err)
+	return &cstor{
+		socketPath: path,
 	}
-	return c
 }
 
 // initiateConnection tries to initiates the connection with the cstor
 // over unix domain socket.
-func (c *cstor) initiateConnection(path string) error {
-	conn, err := dialFunc(path)
+func (c *cstor) initiateConnection() error {
+	conn, err := dialFunc(c.socketPath)
 	if err != nil {
 		return err
 	}
@@ -99,6 +98,13 @@ func (c *cstor) reader() (string, error) {
 		// appending the chunks at the end of str.
 		buffer.WriteString(string(buf[0:n]))
 		str = buffer.String()
+		// It's possible that chunks read from socket is less than
+		// 7 or 12(slice comparison), so exporter may panic, this check ensures
+		// that str of atleast length 12 has been read from the socket, if not
+		// it continue to read again
+		if len(str) < 12 {
+			continue
+		}
 		// confirm whether all the chunks have been collected
 		// exp: "IOSTATS(Command) <json response> OK IOSTATS(Footer+EOF)\r\n"
 		if str[:7] == Command && str[len(str)-12:] == Footer+EOF {
@@ -175,28 +181,31 @@ func (c *cstor) splitter(resp string) string {
 // if the connection is available else retry to initiate
 // connection again.
 func (c *cstor) get() (v1.VolumeStats, error) {
+	// locking ensures only one request is being processed
+	// at a time and hence ensure that there is no fd leak.
+	// because if we create a new connection for each request
+	// there will be fd leak.
+	c.Lock()
+	defer c.Unlock()
 	var (
 		err   error
 		stats v1.VolumeStats
 	)
-	if c.conn == nil {
-		// initiate the connection again if connection with the istgt closed
-		// due to timeout or some other errors from istgt side.
-		if err := c.initiateConnection(SocketPath); err != nil {
-			return v1.VolumeStats{}, &colErr{
-				errors.Wrap(err, "Can't connect to istgt"),
-			}
+	if err := c.initiateConnection(); err != nil {
+		return v1.VolumeStats{}, &colErr{
+			errors.Wrap(err, "Can't connect to istgt"),
 		}
 	}
+	defer c.close()
+	glog.Info("Request istgt to get volume stats")
 	if err := c.writer(); err != nil {
-		c.close()
 		return v1.VolumeStats{}, &colErr{
 			errors.Errorf("%v: closing connection", err),
 		}
 	}
+	glog.Info("Read response from istgt")
 	buf, err := c.reader()
 	if err != nil {
-		c.close()
 		return v1.VolumeStats{}, &colErr{
 			errors.Errorf("%v: closing connection", err),
 		}
@@ -254,6 +263,11 @@ func (c *cstor) parse(volStats v1.VolumeStats, metrics *metrics) stats {
 }
 
 func (c *cstor) close() {
+	// exporter may get concurrent requests, so it's possible that
+	// one of the connection may have been closed but other one is
+	// still going to read or write. This ensures that read and
+	// write both are closed on fd's (shutdown) and then finally close the connection.
+	c.conn.(*net.UnixConn).CloseRead()
+	c.conn.(*net.UnixConn).CloseWrite()
 	c.conn.Close()
-	c.conn = nil
 }

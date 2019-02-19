@@ -244,7 +244,7 @@ func (v *stats) getReplicaCount() {
 	)
 	for _, rep := range v.replicas {
 		switch rep.Mode {
-		case readOnly, degraded:
+		case readOnly, writeOnly, degraded:
 			ro++
 		case readWrite, healthy:
 			rw++
