@@ -41,6 +41,12 @@ type ResourceGetter interface {
 	Get(name string, options metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
 }
 
+// ResourceLister abstracts fetching an unstructured list of instance from kubernetes
+// cluster
+type ResourceLister interface {
+	List(options metav1.ListOptions) (*unstructured.UnstructuredList, error)
+}
+
 // ResourceUpdater abstracts updating an unstructured instance found in
 // kubernetes cluster
 type ResourceUpdater interface {
@@ -53,7 +59,7 @@ type ResourceApplier interface {
 	Apply(obj *unstructured.Unstructured, subresources ...string) (*unstructured.Unstructured, error)
 }
 
-// ResourceDeleter abstracts
+// ResourceDeleter abstracts deletes an unstructured instance that is available in kubernetes cluster
 type ResourceDeleter interface {
 	Delete(obj *unstructured.Unstructured, subresources ...string) error
 }
@@ -149,6 +155,21 @@ func (r *resource) Update(oldobj, newobj *unstructured.Unstructured, subresource
 	return
 }
 
+// List returns a list of specific resource at kubernetes cluster
+func (r *resource) List(opts metav1.ListOptions) (u *unstructured.UnstructuredList, err error) {
+	dynamic, err := Dynamic().Provide()
+	if err != nil {
+		err = errors.Wrapf(err, "failed to list resource '%s'  at '%s'", r.gvr, r.namespace)
+		return
+	}
+	u, err = dynamic.Resource(r.gvr).Namespace(r.namespace).List(opts)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to list resource '%s'  at '%s'", r.gvr, r.namespace)
+		return
+	}
+	return
+}
+
 // ResourceApplyOptions is a utility instance used during the resource's apply
 // operation
 type ResourceApplyOptions struct {
@@ -223,4 +244,58 @@ func (d *Delete) Delete(obj *unstructured.Unstructured, subresources ...string) 
 		return errors.New("nil resource instance: failed to delete resource")
 	}
 	return d.options.Deleter.Delete(obj, subresources...)
+}
+
+// ResourceListOptions is a utility instance used during the resource's list operations
+type ResourceListOptions struct {
+	Lister ResourceLister
+}
+
+// List is a resource resource that is suitable to be executed as a List operation
+type List struct {
+	*resource
+	options ResourceListOptions
+}
+
+// ListResource returns a new instance of list resource
+func ListResource(gvr schema.GroupVersionResource, namespace string) *List {
+	resource := Resource(gvr, namespace)
+	options := ResourceListOptions{Lister: resource}
+	return &List{resource: resource, options: options}
+}
+
+// List lists a resource from a kubernetes cluster
+func (l *List) List(options metav1.ListOptions) (u *unstructured.UnstructuredList, err error) {
+	if l.options.Lister == nil {
+		err = errors.New("nil resource lister instance: failed to list resource")
+		return
+	}
+	return l.options.Lister.List(options)
+}
+
+// ResourceGetOptions is a utility instance used during the resource's get operations
+type ResourceGetOptions struct {
+	Getter ResourceGetter
+}
+
+// Get is resource that is suitable to be executed as Get operation
+type Get struct {
+	*resource
+	options ResourceGetOptions
+}
+
+// GetResource returns a new instance of get resource
+func GetResource(gvr schema.GroupVersionResource, namespace string) *Get {
+	resource := Resource(gvr, namespace)
+	options := ResourceGetOptions{Getter: resource}
+	return &Get{resource: resource, options: options}
+}
+
+// Get gets a resource from a kubernetes cluster
+func (g *Get) Get(name string, opts metav1.GetOptions, subresources ...string) (u *unstructured.Unstructured, err error) {
+	if g.options.Getter == nil {
+		err = errors.New("nil resource getter instance: failed to get resource")
+		return
+	}
+	return g.options.Getter.Get(name, opts, subresources...)
 }

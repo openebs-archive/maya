@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -26,4 +28,15 @@ func CheckForNamespace(namespaces v1.NamespaceList, targetNamespace string) bool
 		}
 	}
 	return true
+}
+
+// CheckForPod returns true if pods is in Running state
+func CheckForPod(pods v1.PodList, targetRegex string) bool {
+	for _, pod := range pods.Items {
+		if strings.Contains(pod.GetName(), targetRegex) && pod.Status.Phase == "Running" {
+			return true
+		}
+	}
+
+	return false
 }
