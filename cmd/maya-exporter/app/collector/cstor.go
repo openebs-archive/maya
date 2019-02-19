@@ -282,4 +282,5 @@ func (c *cstor) close() {
 	c.conn.(*net.UnixConn).CloseRead()
 	c.conn.(*net.UnixConn).CloseWrite()
 	c.conn.Close()
+	c.conn = nil
 }
