@@ -23,6 +23,7 @@ const (
 )
 
 const (
+	writeOnly       = v1.ReplicaMode("WO")
 	readOnly        = v1.ReplicaMode("RO")
 	degraded        = v1.ReplicaMode("DEGRADED")
 	readWrite       = v1.ReplicaMode("RW")
