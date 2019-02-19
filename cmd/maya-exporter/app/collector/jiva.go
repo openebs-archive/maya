@@ -58,7 +58,7 @@ func (j *jiva) getVolumeStats(obj *v1.VolumeStats) error {
 	if err != nil {
 		return err
 	}
-	glog.Info("Got response: ", string(body))
+	glog.V(2).Info("Got response: ", string(body))
 	err = json.Unmarshal(body, &obj)
 
 	if err != nil {
