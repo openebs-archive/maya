@@ -6,6 +6,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
@@ -61,6 +62,7 @@ func (c *cstor) initiateConnection() error {
 	}
 	if conn != nil {
 		c.conn = conn
+		c.conn.SetDeadline(time.Now().Add(5 * time.Second))
 		c.readHeader()
 	}
 	return nil
@@ -138,7 +140,7 @@ func (c *cstor) readHeader() error {
 			break
 		}
 	}
-	glog.Infof("Connection established with istgt, got header: %#v", str)
+	glog.V(2).Infof("Connection established with istgt, got header: %#v", str)
 	return nil
 }
 
@@ -191,26 +193,35 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 		err   error
 		stats v1.VolumeStats
 	)
+
+	glog.V(2).Info("Initiate connection")
 	if err := c.initiateConnection(); err != nil {
 		return v1.VolumeStats{}, &colErr{
 			errors.Wrap(err, "Can't connect to istgt"),
 		}
 	}
 	defer c.close()
-	glog.Info("Request istgt to get volume stats")
+
+	glog.V(2).Info("Request istgt to get volume stats")
+	c.conn.SetDeadline(time.Now().Add(5 * time.Second))
+
 	if err := c.writer(); err != nil {
 		return v1.VolumeStats{}, &colErr{
 			errors.Errorf("%v: closing connection", err),
 		}
 	}
-	glog.Info("Read response from istgt")
+
+	glog.V(2).Info("Read response from istgt")
+	c.conn.SetDeadline(time.Now().Add(5 * time.Second))
+
 	buf, err := c.reader()
 	if err != nil {
+		glog.Errorf("Got response: %v", buf)
 		return v1.VolumeStats{}, &colErr{
 			errors.Errorf("%v: closing connection", err),
 		}
 	}
-	glog.Infof("Got response: %v", buf)
+
 	resp := c.splitter(buf)
 	if len(resp) == 0 {
 		return v1.VolumeStats{}, errors.New("Got empty response from cstor")
@@ -218,6 +229,7 @@ func (c *cstor) get() (v1.VolumeStats, error) {
 
 	// unmarshal the json response into metrics instances.
 	if stats, err = c.unmarshal(resp); err != nil {
+		glog.Errorf("Got response: %v", buf)
 		return v1.VolumeStats{}, err
 	}
 

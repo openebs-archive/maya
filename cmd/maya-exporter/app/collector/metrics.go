@@ -3,6 +3,7 @@ package collector
 import (
 	"encoding/json"
 
+	"github.com/golang/glog"
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -270,6 +271,7 @@ func (v *stats) getVolumeStatus() volumeStatus {
 func parseFloat64(entity json.Number, metrics *metrics) float64 {
 	num, err := entity.Float64()
 	if err != nil {
+		glog.Error("failed to parse, err: ", err)
 		metrics.parseErrorCounter.Inc()
 	}
 	return num

@@ -107,19 +107,19 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 		stats       stats
 	)
 
-	glog.Info("Get metrics")
+	glog.V(2).Info("Get metrics")
 	metrics := &c.metrics
 	if volumeStats, err = c.get(); err != nil {
 		glog.Errorln(err)
 		c.setError(err)
 	}
 
-	glog.Info("Parse metrics")
+	glog.V(2).Info("Parse metrics")
 	stats = c.parse(volumeStats, metrics)
 
 	c.set(stats)
 	// collect the metrics extracted by collect method
-	glog.Info("Collect metrics")
+	glog.V(2).Info("Collect metrics")
 	for _, col := range c.collectors() {
 		col.Collect(ch)
 	}
