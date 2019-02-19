@@ -279,8 +279,12 @@ func (c *cstor) close() {
 	// one of the connection may have been closed but other one is
 	// still going to read or write. This ensures that read and
 	// write both are closed on fd's (shutdown) and then finally close the connection.
-	c.conn.(*net.UnixConn).CloseRead()
-	c.conn.(*net.UnixConn).CloseWrite()
+	if conn, ok := c.conn.(*net.UnixConn); ok {
+		conn.CloseRead()
+	}
+	if conn, ok := c.conn.(*net.UnixConn); ok {
+		conn.CloseWrite()
+	}
 	c.conn.Close()
 	c.conn = nil
 }

@@ -184,10 +184,6 @@ func TestCstorCollector(t *testing.T) {
 			Unlink(t)
 			prometheus.Unregister(col)
 			server.Close()
-
-			if tt.isFakeServerRequired {
-				c.close()
-			}
 		})
 	}
 }
