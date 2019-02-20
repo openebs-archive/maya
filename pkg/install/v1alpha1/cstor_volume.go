@@ -185,8 +185,10 @@ spec:
     objectName: {{ .Volume.pvc }}
     action: get
   post: |
-    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | trim | default "none" -}}
+    {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | trim | default "" -}}
     {{- $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
+    {{- $preferredReplicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/preferred-replica-anti-affinity}" | trim | default "" -}}
+    {{- $preferredReplicaAntiAffinity | saveAs "creategetpvc.preferredReplicaAntiAffinity" .TaskResult | noop -}}
     {{- $targetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/target-affinity}" | trim | default "none" -}}
     {{- $targetAffinity | saveAs "creategetpvc.targetAffinity" .TaskResult | noop -}}
 ---
@@ -621,8 +623,17 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $poolUids := keys .ListItems.cvolPoolList.pools | randomize }}
+    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity }}
+    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
+    {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
+    {{- $selectionPolicy := cspGetPolicyByLabelSelector $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector }}
+    {{- $poolUids := keys .ListItems.cvolPoolList.pools }}
+    {{- $poolUids = cspFilter $poolUids $selectionPolicy | randomize }}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
+    {{- if lt (len $poolUids) $replicaCount -}}
+    {{- printf "Not enough pools to provision replica: expected replica count %d actual count %d" $replicaCount (len $poolUids) | fail -}}
+    {{- end -}}
     repeatWith:
       resources:
       {{- range $k, $v := $poolUids }}
@@ -631,6 +642,8 @@ spec:
       {{- end }}
       {{- end }}
   task: |
+    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity -}}
+    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1
@@ -651,6 +664,12 @@ spec:
         openebs.io/cas-template-name: {{ .CAST.castName }}
         {{- if ne $isClone "false" }}
         openebs.io/cloned: true
+        {{- end }}
+        {{- if ne $replicaAntiAffinity  "" }}
+        openebs.io/replica-anti-affinity: {{ .TaskResult.creategetpvc.replicaAntiAffinity }}
+        {{- end }}
+        {{- if ne $preferredReplicaAntiAffinity  "" }}
+        openebs.io/preferred-replica-anti-affinity: {{ .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
         {{- end }}
       annotations:
         {{- if ne $isClone "false" }}
