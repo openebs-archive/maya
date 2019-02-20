@@ -17,6 +17,7 @@ limitations under the License.
 package webhook
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -46,6 +47,8 @@ var (
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
 )
 
+// Skip validation in special namespaces, i.e. in kube-system and kube-public
+// namespaces the validation will be skipped
 var (
 	ignoredNamespaces = []string{
 		metav1.NamespaceSystem,
@@ -54,12 +57,27 @@ var (
 )
 
 const (
+	// admissionWebhookAnnotationValidateKey is the annotation key which can be use
+	// explicitly forcefully to disable the validation policy(enable by default)
+	// if set as 'false'. for ex: 'admission-webhook-openebs.io/validate: "false"'
+
+	/* kind: PersistentVolumeClaim
+	   apiVersion: v1
+	      metadata:
+	      name: cstor-claim
+	      annotation:
+	        admission-webhook-openebs.io/validate: "false"
+	*/
 	admissionWebhookAnnotationValidateKey = "admission-webhook-openebs.io/validate"
-	admissionWebhookAnnotationMutateKey   = "admission-webhook-openebs.io/mutate"
-	admissionWebhookAnnotationStatusKey   = "admission-webhook-openebs.io/status"
+
+	// admissionWebhookAnnotationStatusKey annotation key to get status of
+	// validated object in case there is more then one resource to validate
+	admissionWebhookAnnotationStatusKey = "admission-webhook-openebs.io/status"
 )
 
-type WebhookServer struct {
+// Webhook implements a validating webhook.
+type Webhook struct {
+	//  Server defines parameters for running an golang HTTP server.
 	Server *http.Server
 
 	// kubeClient is a standard kubernetes clientset
@@ -69,11 +87,14 @@ type WebhookServer struct {
 	Clientset clientset.Interface
 }
 
-// WhSvrParameters are webhook parameters are server configures parameters
-type WhSvrParameters struct {
-	Port     int    // webhook server port
-	CertFile string // path to the x509 certificate for https
-	KeyFile  string // path to the x509 private key matching `CertFile`
+// WParameters are server configures parameters
+type WParameters struct {
+	// Port is webhook server port
+	Port int
+	//CertFile is path to the x509 certificate for https
+	CertFile string
+	//KeyFile is path to the x509 private key matching `CertFile`
+	KeyFile string
 }
 
 func init() {
@@ -84,7 +105,25 @@ func init() {
 	_ = v1.AddToScheme(runtimeScheme)
 }
 
-func admissionRequired(ignoredList []string, admissionAnnotationKey string, metadata *metav1.ObjectMeta) bool {
+// NewWebhook creates a new instance of a webhook.
+func NewWebhook(p WParameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface) (*Webhook, error) {
+
+	pair, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
+	if err != nil {
+		return nil, err
+	}
+	wh := &Webhook{
+		Server: &http.Server{
+			Addr:      fmt.Sprintf(":%v", p.Port),
+			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
+		},
+		KubeClient: kubeClient,
+		Clientset:  openebsClient,
+	}
+	return wh, nil
+}
+
+func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
@@ -98,8 +137,13 @@ func admissionRequired(ignoredList []string, admissionAnnotationKey string, meta
 		annotations = map[string]string{}
 	}
 
+	// admissionWebhookAnnotationValidateKey is the annotation key which can be use
+	// explicitly forcefully to disable the validation policy(enable by default)
+	// if set as 'false'. for ex: 'admission-webhook-openebs.io/validate: "false"'
+	// by default return 'true' if nothing is specified
+
 	var required bool
-	switch strings.ToLower(annotations[admissionAnnotationKey]) {
+	switch strings.ToLower(annotations[string(admissionWebhookAnnotationValidateKey)]) {
 	default:
 		required = true
 	case "n", "no", "false", "off":
@@ -109,16 +153,17 @@ func admissionRequired(ignoredList []string, admissionAnnotationKey string, meta
 }
 
 func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
-	required := admissionRequired(ignoredList, admissionWebhookAnnotationValidateKey, metadata)
+	required := admissionRequired(ignoredList, metadata)
 	glog.Infof("Validation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required)
 	return required
 }
 
-// validate deployments and services
-func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+// validate validates the persistentvolumeclaim(PVC) delete request
+func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
 	status := &v1beta1.AdmissionResponse{}
 
+	// validates only if requested operation is DELETE and request kind is PVC
 	if ar.Request.Operation != v1beta1.Delete && req.Kind.Kind != "PersistentVolumeClaim" {
 		status.Allowed = true
 		return status
@@ -126,7 +171,7 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
-	// TODO use raw object once validation webhooks support DELETE request
+	// TODO* use raw object once validation webhooks support DELETE request
 	// object as non nil value https://github.com/kubernetes/kubernetes/issues/66536
 	//var pvc corev1.PersistentVolumeClaim
 	//err := json.Unmarshal(req.Object.Raw, &pvc)
@@ -141,7 +186,7 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 	//}
 
 	// fetch the pvc specifications
-	pvc, err := whsvr.KubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
+	pvc, err := wh.KubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
 	if err != nil {
 		status.Allowed = false
 		status.Result = &metav1.Status{
@@ -158,22 +203,27 @@ func (whsvr *WebhookServer) validate(ar *v1beta1.AdmissionReview) *v1beta1.Admis
 		}
 	}
 
+	// get the all CStorVolumes resources in openebs namespace(default namespace
+	// for CStorvolume resource) to check the source-volume annotation to find
+	// out if there is any clone volume exists.
+	// if source-volume annotation matches with name of PVC, failed the pvc
+	// deletion operation.
 	status.Allowed = true
-	cStorVolumes, _ := whsvr.Clientset.OpenebsV1alpha1().CStorVolumes("openebs").List(metav1.ListOptions{})
+	cStorVolumes, _ := wh.Clientset.OpenebsV1alpha1().CStorVolumes("openebs").List(metav1.ListOptions{})
 	for _, cstorvolume := range cStorVolumes.Items {
 		if cstorvolume.Annotations["openebs.io/source-volume"] == pvc.Spec.VolumeName {
 			status.Allowed = false
 			status.Result = &metav1.Status{
 				Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "the PVC has cloned volume created",
-				Message: fmt.Sprintf("pvc %q has cloned volume %q", pvc.Name, cstorvolume.Name),
+				Message: fmt.Sprintf("pvc %q has cloned volume PV: %q", pvc.Name, cstorvolume.Name),
 			}
 		}
 	}
 	return status
 }
 
-// Serve method for webhook server
-func (whsvr *WebhookServer) Serve(w http.ResponseWriter, r *http.Request) {
+// Serve method for webhook server, handles http requests for webhooks
+func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {
@@ -205,7 +255,7 @@ func (whsvr *WebhookServer) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		if r.URL.Path == "/validate" {
-			admissionResponse = whsvr.validate(&ar)
+			admissionResponse = wh.validate(&ar)
 		}
 	}
 
