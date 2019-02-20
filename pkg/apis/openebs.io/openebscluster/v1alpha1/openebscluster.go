@@ -38,50 +38,89 @@ type OpenebsCluster struct {
 // OpenebsClusterSpec is the specifications of an
 // openebs cluster
 type OpenebsClusterSpec struct {
-	Version    string        `json:"version"`
+	// Version implies the version of openebs
+	// components that should be deployed
+	// in the cluster
+	Version string `json:"version"`
+
+	// Components represents a list of openebs
+	// components that should be deployed
+	// in the cluster
 	Components ComponentList `json:"components"`
 }
 
 // ComponentList states the desired components of an
 // openebs cluster
 type ComponentList struct {
-	Labels      map[string]string `json:"labels"`      // desired labels for each component in the list
-	Annotations map[string]string `json:"annotations"` // desired annotations for each component in the list
-	Namespace   string            `json:"namespace"`   // desired namespace for each component in the list
-	Items       []Component       `json:"items"`       // desired components in an openebs cluster
+	// Labels to be applied against each component
+	Labels map[string]string `json:"labels"`
+
+	// Annotations to be applied against each component
+	Annotations map[string]string `json:"annotations"`
+
+	// Namespace in which each component gets deployed
+	Namespace string `json:"namespace"`
+
+	// Items represents the actual components to
+	// be deployed in the cluster
+	Items []Component `json:"items"`
 }
 
 // Component represents a desired component
 // in an openebs cluster
 type Component struct {
-	Name        string            `json:"name"`                  // name of the component
-	Enabled     bool              `json:"enabled"`               // flag to install if enabled or un-install if disabled
-	Labels      map[string]string `json:"labels,omitempty"`      // desired labels for this component
-	Annotations map[string]string `json:"annotations,omitempty"` // desired annotations for this component
-	Namespace   string            `json:"namespace,omitempty"`   // desired namespace for this component
-	Template    Template          `json:"template"`              // refers to a template that defines this component
+	// Name of the component
+	Name string `json:"name"`
+
+	// Enabled is the flag that determines if
+	// this component should be deployed or
+	// un-deployed if it was deployed previously
+	Enabled bool `json:"enabled"`
+
+	// Labels to be applied against this component
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Annotations to be applied against this component
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// Namespace of this component
+	Namespace string `json:"namespace,omitempty"`
+
+	// Template that has the specifications of this
+	// component
+	Template Template `json:"template"`
 }
 
 // TemplateType represents the supported template kinds
-// that can define an openebs component
-type TemplateType int
+// that can define an openebs component. In other words
+// it has the component specifications
+type TemplateType string
 
 const (
 	// Catalog is a supported template that defines an
 	// openebs component
-	Catalog TemplateType = iota + 1
+	Catalog TemplateType = "Catalog"
 )
 
 // Template contains specifications that defines an
 // openebs component
 type Template struct {
-	Name       string       `json:"name"`       // name of the refered template
-	Kind       TemplateType `json:"kind"`       // supported template kind
-	APIVersion string       `json:"apiVersion"` // api version of this template
-	Namespace  string       `json:"namespace"`  // namespace where this template is to be found
+	// Name of the template
+	Name string `json:"name"`
+
+	// Kind of the template
+	Kind TemplateType `json:"kind"`
+
+	// APIVersion of the template
+	APIVersion string `json:"apiVersion"`
+
+	// Namespace where this template is to
+	// be found
+	Namespace string `json:"namespace"`
 }
 
-// OpenebsClusterStatus represents the current state of OpenebsCluster
+// OpenebsClusterStatus represents the current
+// state of OpenebsCluster
 type OpenebsClusterStatus struct {
 	Phase string `json:"phase"`
 }

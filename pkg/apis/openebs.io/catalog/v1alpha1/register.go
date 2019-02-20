@@ -17,42 +17,24 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/openebs/maya/pkg/apis/openebs.io"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
-
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: openebsio.GroupName, Version: "v1alpha1"}
-
-// Resource takes an unqualified resource and returns a Group qualified GroupResource
-func Resource(resource string) schema.GroupResource {
-	return SchemeGroupVersion.WithResource(resource).GroupResource()
-}
 
 var (
-	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
-	SchemeBuilder runtime.SchemeBuilder
+	// SchemeGroupVersion defines the group version
+	// for catalog
+	SchemeGroupVersion = schema.GroupVersion{Group: "openebs.io", Version: "v1alpha1"}
 
-	localSchemeBuilder = &SchemeBuilder
-	// AddToScheme is a global function that registers this API group & version to a scheme
-	AddToScheme = localSchemeBuilder.AddToScheme
+	// SchemeBuilder for catalog
+	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
+
+	// AddScheme function for catalog
+	// is required by pkg/client/...
+	AddScheme = SchemeBuilder.AddToScheme
 )
 
-func init() {
-	// We only register manually written functions here. The registration of the
-	// generated functions takes place in the generated files. The separation
-	// makes the code compile even when the generated files are missing.
-	localSchemeBuilder.Register(addKnownTypes)
-}
-
-// Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&Catalog{},
-		&CatalogList{},
-	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
-	return nil
+// Resource is required by pkg/client/listers/...
+func Resource(resource string) schema.GroupResource {
+	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }

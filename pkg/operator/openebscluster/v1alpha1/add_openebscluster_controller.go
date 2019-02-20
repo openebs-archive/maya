@@ -14,14 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/catalog/v1alpha1"
+	oeccontroller "github.com/openebs/maya/pkg/controller/openebscluster/v1alpha1"
 )
 
-// Operations abstracts all possible operations against
-// catalog instance
-type Operations interface {
-	Get(name string) (*apis.Catalog, error)
+func init() {
+	// RegisteredKubeControllers is a list of eligible
+	// kubernetes based controllers to be registered
+	// against a kubernetes based controller manager
+	// instance
+	RegisteredKubeControllers = append(RegisteredKubeControllers, oeccontroller.KubeRegister)
 }
