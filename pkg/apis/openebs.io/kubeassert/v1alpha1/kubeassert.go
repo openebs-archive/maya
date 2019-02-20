@@ -34,68 +34,77 @@ type KubeAssert struct {
 	Status KubeAssertStatus `json:"status"`
 }
 
-// KubeAssertSpec provides the specifications of a KubeAssert
+// KubeAssertSpec provides the specifications of a
+// KubeAssert
 type KubeAssertSpec struct {
-	// List of checks that gets verified
+	// Describe is the detailed description of what
+	// this assertion is supposed to achieve
+	Describe string `json:"desc"`
+
+	// Checks represents the list of checks to
+	// be executed to evaluate the overall
+	// assertion
 	Checks []Check `json:"checks"`
 }
 
-// Check describes one verification
+// Check represents a verification
 type Check struct {
-	// Description of this check
-	Desc string `json:"desc"`
-	// Given represents the current resource(s) available
-	// in the cluster
-	Given Given `json:"given"`
-	// Then specifies what is expected from the given
-	// resource(s)
-	Then Then `json:"then"`
-}
+	// It describes this check
+	It string `json:"it"`
 
-// Given represents the current resource(s) available
-// in the cluster
-type Given struct {
-	// resource kind to be verified
+	// Kind of the resource to be verified
 	Kind string `json:"kind"`
-	// name of the resource to be verified
+
+	// Name of the resource to be verified
 	Name string `json:"name"`
-	// namespace of the resource(s) to be verified
+
+	// Namespace of the resource to be verified
 	Namespace string `json:"namespace"`
-	// api version of the resource(s) to be verified
+
+	// APIVersion of the resource
 	APIVersion string `json:"apiVersion"`
-	// labels of resource(s) to be verified
+
+	// LabelSelector to filter the resource(s)
+	// that needs to be verified
 	LabelSelector string `json:"labelSelector"`
-	// annotations of resource(s) to be verified
+
+	// AnnotationSelector to filter the resource(s)
+	// that needs to be verified
 	AnnotationSelector string `json:"annotationSelector"`
+
+	// Expect contains the rules of this
+	// check
+	Expect Expect `json:"expect"`
 }
 
-// Then specifies what is expected from the given
-// resource(s)
-type Then struct {
-	// Expect represents the verification conditions
-	Expect Expect `json:"expect"`
-	// Options to be used during verification
+// Expect contains the rules to evaluate
+// a check
+type Expect struct {
+	// Match consists of a list of expected
+	// matches
+	Match []string `json:"match"`
+
+	// Options represent the tunables to use
+	// while evaluating these matches
 	Options Options `json:"options"`
 }
 
-// Expect represents the expectation specifications
-type Expect struct {
-	// Match is a list of expected matches
-	Match []string `json:"match"`
-}
-
 // Options represent the tunables that may be
-// used while verifying the expectations
+// used while evaluating the matches
 type Options struct {
 	// Number of seconds before expectation is initiated.
 	InitialDelaySeconds int32 `json:"initialDelaySeconds"`
+
 	// Number of seconds after which the handler times out.
 	TimeoutSeconds int32 `json:"timeoutSeconds"`
+
 	// How often (in seconds) to perform the check.
 	PeriodSeconds int32 `json:"periodSeconds"`
+
 	// Minimum consecutive successes for the probe to be considered
 	// successful after having failed.
 	SuccessThreshold int32 `json:"successThreshold"`
+
 	// Minimum consecutive failures for the probe to be considered
 	// failed after having succeeded.
 	FailureThreshold int32 `json:"failureThreshold"`

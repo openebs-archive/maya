@@ -55,6 +55,7 @@ APISERVER=maya-apiserver
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
+OPENEBS_CLUSTER=openebs-cluster
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -82,6 +83,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
+	rm -rf ${GOPATH}/bin/${OPENEBS_CLUSTER}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -314,6 +316,22 @@ apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
+# build openebs cluster binary
+openebs-cluster:
+	@echo "----------------------------"
+	@echo "--> ${OPENEBS_CLUSTER}      "
+	@echo "----------------------------"
+	@PNAME=${OPENEBS_CLUSTER} CTLNAME=${OPENEBS_CLUSTER} sh -c "'$(PWD)/buildscripts/build.sh'"
+
+# build openebs cluster image
+openebs-cluster-image: openebs-cluster
+	@echo "----------------------------"
+	@echo "--> ${OPENEBS_CLUSTER} image"
+	@echo "----------------------------"
+	@cp bin/${OPENEBS_CLUSTER}/${OPENEBS_CLUSTER} buildscripts/${OPENEBS_CLUSTER}/
+	@cd buildscripts/${OPENEBS_CLUSTER} && sudo docker build -t openebs/${OPENEBS_CLUSTER}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${OPENEBS_CLUSTER}/${OPENEBS_CLUSTER}
+
 rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
 	@echo "--> rhel based apiserver image"
@@ -324,7 +342,6 @@ rhel-apiserver-image: mayactl apiserver
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
 
-
 # Push images
 deploy-images:
 	@DIMAGE="openebs/m-apiserver" ./buildscripts/push
@@ -332,4 +349,4 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images
