@@ -46,9 +46,9 @@ type metrics struct {
 	totalWriteBytes        prometheus.Gauge
 	sizeOfVolume           prometheus.Gauge
 	volumeStatus           prometheus.Gauge
+	parseErrorCounter      prometheus.Gauge
 	connectionRetryCounter prometheus.Gauge
 	connectionErrorCounter prometheus.Gauge
-	parseErrorCounter      prometheus.Gauge
 	healthyReplicaCounter  prometheus.Gauge
 	degradedReplicaCounter prometheus.Gauge
 	totalReplicaCounter    prometheus.Gauge

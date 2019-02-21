@@ -107,6 +107,9 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 			glog.Fatal(err)
 			return nil
 		}
+	case "pool":
+		glog.Infof("Initialising maya-exporter for the cstor pool")
+		options.RegisterPool()
 	default:
 		return errors.New("unsupported CAS")
 	}
@@ -143,7 +146,10 @@ func (o *VolumeExporterOptions) RegisterCstor() {
 
 // RegisterPool...
 func (o *VolumeExporterOptions) RegisterPool() {
-	prometheus.MustRegister(pool.New())
+	pool.InitVar()
+	p := pool.New()
+	p.GetInitStatus()
+	prometheus.MustRegister(p)
 	glog.Info("Registered maya exporter for cstor")
 	return
 }
