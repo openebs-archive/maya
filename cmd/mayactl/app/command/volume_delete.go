@@ -32,7 +32,7 @@ Usage: mayactl volume delete --volname <vol>
 `
 )
 
-// NewCmdVolumeDelete creates a new OpenEBS Volume
+// NewCmdVolumeDelete deletes a new OpenEBS Volume
 func NewCmdVolumeDelete() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete",

@@ -44,6 +44,8 @@ func CreateVolume(vname, size, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+volumePath, jsonValue, "", false)
+
+	requestType := "POST"
+	_, err = sendRequest(requestType, GetURL()+volumePath, jsonValue, "", false)
 	return err
 }

@@ -103,13 +103,13 @@ func ChangeDateFormatToUnixDate(snapshotDisks []SnapshotInfo) error {
 	return nil
 }
 
-// postRequest sends request to a url with payload of values
-func postRequest(url string, values []byte, namespace string, chkbody bool) ([]byte, error) {
+// sendRequest sends POST or UPDATE request to a url with payload of values
+func sendRequest(reqType, url string, values []byte, namespace string, chkbody bool) ([]byte, error) {
 	if len(url) == 0 {
 		return nil, errors.New("Invalid URL")
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(values))
+	req, err := http.NewRequest(reqType, url, bytes.NewBuffer(values))
 
 	if err != nil {
 		return nil, err

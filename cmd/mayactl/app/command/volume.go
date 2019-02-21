@@ -95,6 +95,14 @@ Examples:
 
  # Delete a Volume created in 'test' namespace:
    $ mayactl volume delete --volname <vol> --namespace test
+
+ # Resize a Volume created in default namespace:
+   $ mayactl volume resize --volname <vol> --size <size><unit>
+   Supported units: G, Gi, T, Ti
+
+ # Resize a Volume created in 'test' namespace:
+   $ mayactl volume resize --volname <vol> --size <size><unit> --namespace test
+   Supported units: G, Gi, T, Ti
 `
 	options = &CmdVolumeOptions{
 		namespace: "default",
@@ -115,6 +123,7 @@ func NewCmdVolume() *cobra.Command {
 		NewCmdVolumeDelete(),
 		NewCmdVolumeStats(),
 		NewCmdVolumeInfo(),
+		NewCmdVolumeResize(),
 	)
 	cmd.PersistentFlags().StringVarP(&options.namespace, "namespace", "n", options.namespace,
 		"namespace name, required if volume is not in the default namespace")

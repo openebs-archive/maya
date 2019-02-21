@@ -268,7 +268,8 @@ func TestPostRequest(t *testing.T) {
 			}
 			defer server.Close()
 			r := []byte{23, 4, 23}
-			_, got := postRequest(url, r, tt.namespace, tt.chkbody)
+			fakeReqType := "POST"
+			_, got := sendRequest(fakeReqType, url, r, tt.namespace, tt.chkbody)
 			if got.Error() != tt.err.Error() {
 				t.Fatalf("\nTest Name :%v \n  got => %v \n  want => %v \n", name, got, tt.err)
 			}
