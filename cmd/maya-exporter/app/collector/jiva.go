@@ -79,8 +79,6 @@ func (j *jiva) parse(volStats v1.VolumeStats, metrics *metrics) stats {
 	stats.casType = "jiva"
 	stats.reads = parseFloat64(volStats.Reads, metrics)
 	stats.writes = parseFloat64(volStats.Writes, metrics)
-	stats.totalReadBytes = parseFloat64(volStats.TotalReadBytes, metrics)
-	stats.totalWriteBytes = parseFloat64(volStats.TotalWriteBytes, metrics)
 	stats.totalReadTime = parseFloat64(volStats.TotalReadTime, metrics)
 	stats.totalWriteTime = parseFloat64(volStats.TotalWriteTime, metrics)
 	stats.totalReadBlockCount = parseFloat64(volStats.TotalReadBlockCount, metrics)
