@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 
@@ -34,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -54,25 +52,6 @@ var (
 		metav1.NamespaceSystem,
 		metav1.NamespacePublic,
 	}
-)
-
-const (
-	// admissionWebhookAnnotationValidateKey is the annotation key which can be use
-	// explicitly forcefully to disable the validation policy(enable by default)
-	// if set as 'false'. for ex: 'admission-webhook-openebs.io/validate: "false"'
-
-	/* kind: PersistentVolumeClaim
-	   apiVersion: v1
-	      metadata:
-	      name: cstor-claim
-	      annotation:
-	        admission-webhook-openebs.io/validate: "false"
-	*/
-	admissionWebhookAnnotationValidateKey = "admission-webhook-openebs.io/validate"
-
-	// admissionWebhookAnnotationStatusKey annotation key to get status of
-	// validated object in case there is more then one resource to validate
-	admissionWebhookAnnotationStatusKey = "admission-webhook-openebs.io/status"
 )
 
 // Webhook implements a validating webhook.
@@ -131,42 +110,24 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 			return false
 		}
 	}
-
-	annotations := metadata.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-
-	// admissionWebhookAnnotationValidateKey is the annotation key which can be use
-	// explicitly forcefully to disable the validation policy(enable by default)
-	// if set as 'false'. for ex: 'admission-webhook-openebs.io/validate: "false"'
-	// by default return 'true' if nothing is specified
-
-	var required bool
-	switch strings.ToLower(annotations[string(admissionWebhookAnnotationValidateKey)]) {
-	default:
-		required = true
-	case "n", "no", "false", "off":
-		required = false
-	}
-	return required
+	return true
 }
 
 func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	required := admissionRequired(ignoredList, metadata)
-	glog.Infof("Validation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required)
+	glog.V(4).Infof("Validation policy for %v/%v: required:%v", metadata.Namespace, metadata.Name, required)
 	return required
 }
 
 // validate validates the persistentvolumeclaim(PVC) delete request
 func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
-	status := &v1beta1.AdmissionResponse{}
+	response := &v1beta1.AdmissionResponse{}
 
 	// validates only if requested operation is DELETE and request kind is PVC
 	if ar.Request.Operation != v1beta1.Delete && req.Kind.Kind != "PersistentVolumeClaim" {
-		status.Allowed = true
-		return status
+		response.Allowed = true
+		return response
 	}
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
@@ -188,12 +149,11 @@ func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	// fetch the pvc specifications
 	pvc, err := wh.KubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error retrieving PVC: %v", err.Error()),
 		}
-		return status
+		return response
 	}
 
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
@@ -203,23 +163,32 @@ func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 		}
 	}
 
+	response.Allowed = true
+	cStorVolumes, err := wh.Clientset.OpenebsV1alpha1().CStorVolumes("openebs").List(metav1.ListOptions{})
+	if err != nil {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("error retrieving CstorVolumes: %v", err.Error()),
+		}
+		return response
+	}
+
 	// get the all CStorVolumes resources in openebs namespace(default namespace
 	// for CStorvolume resource) to check the source-volume annotation to find
 	// out if there is any clone volume exists.
 	// if source-volume annotation matches with name of PVC, failed the pvc
 	// deletion operation.
-	status.Allowed = true
-	cStorVolumes, _ := wh.Clientset.OpenebsV1alpha1().CStorVolumes("openebs").List(metav1.ListOptions{})
 	for _, cstorvolume := range cStorVolumes.Items {
 		if cstorvolume.Annotations["openebs.io/source-volume"] == pvc.Spec.VolumeName {
-			status.Allowed = false
-			status.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "the PVC has cloned volume created",
-				Message: fmt.Sprintf("pvc %q has cloned volume PV: %q", pvc.Name, cstorvolume.Name),
+			response.Allowed = false
+			response.Result = &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC has cloned volume",
+				Message: fmt.Sprintf("pvc %q has one or more cloned volume(s)", pvc.Name),
 			}
+			break
 		}
 	}
-	return status
+	return response
 }
 
 // Serve method for webhook server, handles http requests for webhooks

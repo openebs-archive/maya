@@ -8,69 +8,23 @@ import (
 
 func TestAdmissionRequired(t *testing.T) {
 	cases := []struct {
-		meta *metav1.ObjectMeta
-		key  string
-		want bool
+		Name, Namespace string
+		want            bool
 	}{
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "default-policy",
-				Namespace:   "test-namespace",
-				Annotations: map[string]string{},
-			},
-			want: true,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:      "no-policy",
-				Namespace: "default",
-			},
-			want: true,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "no-policy",
-				Namespace:   "default",
-				Annotations: map[string]string{"foo": "bar"},
-			},
-			want: true,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "force-off-policy",
-				Namespace:   "test-namespace",
-				Annotations: map[string]string{admissionWebhookAnnotationValidateKey: "off"},
-			},
-			want: false,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "force-off-policy",
-				Namespace:   "test-namespace",
-				Annotations: map[string]string{admissionWebhookAnnotationValidateKey: "n"},
-			},
-			want: false,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "no-policy-in-kube-system",
-				Namespace:   "kube-system",
-				Annotations: map[string]string{},
-			},
-			want: false,
-		},
-		{
-			meta: &metav1.ObjectMeta{
-				Name:        "no-policy-in-kube-public",
-				Namespace:   "kube-system",
-				Annotations: map[string]string{},
-			},
-			want: false,
-		},
+		{"default-policy", "test-namespace", true},
+		{"default-policy", "default", true},
+		{"no-policy-in-kube-system", "kube-system", false},
+		{"no-policy-in-kube-public", "kube-public", false},
 	}
+
 	for _, c := range cases {
-		if got := validationRequired(ignoredNamespaces, c.meta); got != c.want {
-			t.Errorf("admissionRequired(%v)  got %v want %v", c.meta.Name, got, c.want)
+		meta := &metav1.ObjectMeta{
+			Name:      c.Name,
+			Namespace: c.Namespace,
+		}
+
+		if got := validationRequired(ignoredNamespaces, meta); got != c.want {
+			t.Errorf("admissionRequired(%v)  got %v want %v", meta.Name, got, c.want)
 		}
 	}
 }
