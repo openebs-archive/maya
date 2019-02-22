@@ -52,6 +52,7 @@ CSTOR_BASE_IMAGE= openebs/cstor-base:${BASE_TAG}
 # Specify the name for the binaries
 MAYACTL=mayactl
 APISERVER=maya-apiserver
+WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
@@ -60,7 +61,7 @@ OPENEBS_CLUSTER=openebs-cluster
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
 
 dev: format
 	@PNAME="maya" MAYACTL=${MAYACTL} DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
@@ -297,6 +298,15 @@ exporter-image: exporter
 	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/exporter/${EXPORTER}
 
+admission-server-image:
+	@echo "----------------------------"
+	@echo "--> admission-server image         "
+	@echo "----------------------------"
+	@PNAME=${WEBHOOK} CTLNAME=${WEBHOOK} sh -c "'$(PWD)/buildscripts/build.sh'"
+	@cp bin/${WEBHOOK}/${WEBHOOK} buildscripts/admission-server/
+	@cd buildscripts/${WEBHOOK} && sudo docker build -t openebs/admission-server:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${WEBHOOK}/${WEBHOOK}
+
 # Use this to build only the maya apiserver.
 apiserver:
 	@echo "----------------------------"
@@ -348,5 +358,6 @@ deploy-images:
 	@DIMAGE="openebs/m-exporter" ./buildscripts/push
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
+	@DIMAGE="openebs/admission-server" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image

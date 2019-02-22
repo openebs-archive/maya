@@ -24,7 +24,7 @@ var (
 )
 
 func main() {
-	var parameters webhook.WParameters
+	var parameters webhook.Parameters
 
 	// get command line parameters
 	flag.IntVar(&parameters.Port, "port", 443, "Webhook server port.")
@@ -48,7 +48,7 @@ func main() {
 		glog.Errorf("Error building openebs clientset: %s", err.Error())
 	}
 
-	wh, err := webhook.NewWebhook(parameters, kubeClient, openebsClient)
+	wh, err := webhook.New(parameters, kubeClient, openebsClient)
 	if err != nil {
 		glog.Errorf("failed to create validation webhook: %s", err.Error())
 	}
@@ -69,7 +69,7 @@ func main() {
 
 	// listening OS shutdown singal
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	<-signalChan
 
 	glog.Infof("Got OS shutdown signal, shutting down webhook server gracefully...")

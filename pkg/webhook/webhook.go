@@ -23,13 +23,14 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-
 	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -54,20 +55,20 @@ var (
 	}
 )
 
-// Webhook implements a validating webhook.
-type Webhook struct {
+// webhook implements a validating webhook.
+type webhook struct {
 	//  Server defines parameters for running an golang HTTP server.
 	Server *http.Server
 
 	// kubeClient is a standard kubernetes clientset
-	KubeClient kubernetes.Interface
+	kubeClient kubernetes.Interface
 
-	// Clientset is a openebs custom resource package generated for custom API group.
-	Clientset clientset.Interface
+	// clientset is a openebs custom resource package generated for custom API group.
+	clientset clientset.Interface
 }
 
-// WParameters are server configures parameters
-type WParameters struct {
+// Parameters are server configures parameters
+type Parameters struct {
 	// Port is webhook server port
 	Port int
 	//CertFile is path to the x509 certificate for https
@@ -84,20 +85,20 @@ func init() {
 	_ = v1.AddToScheme(runtimeScheme)
 }
 
-// NewWebhook creates a new instance of a webhook.
-func NewWebhook(p WParameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface) (*Webhook, error) {
+// New creates a new instance of a webhook.
+func New(p Parameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface) (*webhook, error) {
 
 	pair, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
 	if err != nil {
 		return nil, err
 	}
-	wh := &Webhook{
+	wh := &webhook{
 		Server: &http.Server{
 			Addr:      fmt.Sprintf(":%v", p.Port),
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
-		KubeClient: kubeClient,
-		Clientset:  openebsClient,
+		kubeClient: kubeClient,
+		clientset:  openebsClient,
 	}
 	return wh, nil
 }
@@ -106,7 +107,7 @@ func admissionRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool {
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
-			glog.Infof("Skip validation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace)
+			glog.V(4).Infof("Skip validation for %v for it's in special namespace:%v", metadata.Name, metadata.Namespace)
 			return false
 		}
 	}
@@ -120,12 +121,12 @@ func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool 
 }
 
 // validate validates the persistentvolumeclaim(PVC) delete request
-func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	req := ar.Request
 	response := &v1beta1.AdmissionResponse{}
 
 	// validates only if requested operation is DELETE and request kind is PVC
-	if ar.Request.Operation != v1beta1.Delete && req.Kind.Kind != "PersistentVolumeClaim" {
+	if ar.Request.Operation != v1beta1.Delete || req.Kind.Kind != "PersistentVolumeClaim" {
 		response.Allowed = true
 		return response
 	}
@@ -147,7 +148,7 @@ func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	//}
 
 	// fetch the pvc specifications
-	pvc, err := wh.KubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
+	pvc, err := wh.kubeClient.CoreV1().PersistentVolumeClaims(req.Namespace).Get(req.Name, metav1.GetOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -157,14 +158,25 @@ func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	}
 
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
-		glog.Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
+		glog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
 
+	// construct source-volume label to list all the matched cstorVolumes
+	label := fmt.Sprintf("openebs.io/source-volume=%s", pvc.Spec.VolumeName)
+	listOptions := metav1.ListOptions{
+		LabelSelector: label,
+	}
+
+	// get the all CStorVolumes resources in all namespaces based on the
+	// source-volume label to verify if there is any clone volume exists.
+	// if source-volume label matches with name of PV, failed the pvc
+	// deletion operation.
+
 	response.Allowed = true
-	cStorVolumes, err := wh.Clientset.OpenebsV1alpha1().CStorVolumes("openebs").List(metav1.ListOptions{})
+	cStorVolumes, err := wh.getCstorVolumes(listOptions)
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -173,26 +185,28 @@ func (wh *Webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 		return response
 	}
 
-	// get the all CStorVolumes resources in openebs namespace(default namespace
-	// for CStorvolume resource) to check the source-volume annotation to find
-	// out if there is any clone volume exists.
-	// if source-volume annotation matches with name of PVC, failed the pvc
-	// deletion operation.
-	for _, cstorvolume := range cStorVolumes.Items {
-		if cstorvolume.Annotations["openebs.io/source-volume"] == pvc.Spec.VolumeName {
-			response.Allowed = false
-			response.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC has cloned volume",
-				Message: fmt.Sprintf("pvc %q has one or more cloned volume(s)", pvc.Name),
-			}
-			break
+	if len(cStorVolumes.Items) != 0 {
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
+			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumes.Items)),
 		}
+
 	}
 	return response
 }
 
+// getCstorVolumes gets the list of CstorVolumes based in the source-volume labels
+func (wh *webhook) getCstorVolumes(listOptions metav1.ListOptions) (*v1alpha1.CStorVolumeList, error) {
+	var cStorVolumes *v1alpha1.CStorVolumeList
+	var err error
+
+	cStorVolumes, err = wh.clientset.OpenebsV1alpha1().CStorVolumes("").List(listOptions)
+	return cStorVolumes, err
+}
+
 // Serve method for webhook server, handles http requests for webhooks
-func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
+func (wh *webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {
@@ -241,7 +255,7 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		glog.Errorf("Can't encode response: %v", err)
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
 	}
-	glog.Infof("Ready to write reponse ...")
+	glog.V(5).Infof("Ready to write reponse ...")
 	if _, err := w.Write(resp); err != nil {
 		glog.Errorf("Can't write response: %v", err)
 		http.Error(w, fmt.Sprintf("could not write response: %v", err), http.StatusInternalServerError)

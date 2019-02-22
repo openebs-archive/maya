@@ -360,13 +360,16 @@ spec:
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         {{- if ne $isClone "false" }}
         openebs.io/snapshot: {{ .Volume.snapshotName }}
-        openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
 
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+        {{- if ne $isClone "false" }}
+        openebs.io/source-volume: {{ .Volume.sourceVolume }}
+        {{- end }}
+
     spec:
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
       capacity: {{ .Volume.capacity }}
