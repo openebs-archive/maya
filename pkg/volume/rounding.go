@@ -111,7 +111,7 @@ func RoundUpToKBInt(size resource.Quantity) (int, error) {
 	return roundUpSizeInt(requestBytes, KB)
 }
 
-// RoundUpToKBInt rounds up given quantity upto chunks of Ki. It returns an
+// RoundUpToKiInt rounds up given quantity upto chunks of Ki. It returns an
 // int instead of an int64 and an error if there's overflow
 func RoundUpToKiInt(size resource.Quantity) (int, error) {
 	requestBytes := size.Value()
@@ -121,7 +121,7 @@ func RoundUpToKiInt(size resource.Quantity) (int, error) {
 // roundUpSizeInt calculates how many allocation units are needed to accommodate
 // a volume of given size. It returns an int instead of an int64 and an error if
 // there's overflow
-func roundUpSizeInt(volumeSizeBytes int64, allocationUnitBytes int64) (int, error) {
+func roundUpSizeInt(volumeSizeBytes, allocationUnitBytes int64) (int, error) {
 	roundedUp := roundUpSize(volumeSizeBytes, allocationUnitBytes)
 	roundedUpInt := int(roundedUp)
 	if int64(roundedUpInt) != roundedUp {
@@ -135,7 +135,7 @@ func roundUpSizeInt(volumeSizeBytes int64, allocationUnitBytes int64) (int, erro
 // allocates volumes in gibibyte-sized chunks,
 // RoundUpSize(1500 * 1024*1024, 1024*1024*1024) returns '2'
 // (2 Gi is the smallest allocatable volume that can hold 1500Mi)
-func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
+func roundUpSize(volumeSizeBytes, allocationUnitBytes int64) int64 {
 	roundedUp := volumeSizeBytes / allocationUnitBytes
 	if volumeSizeBytes%allocationUnitBytes > 0 {
 		roundedUp++
@@ -143,7 +143,8 @@ func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
 	return roundedUp
 }
 
-// NOTE: Treating Gi and G as same
+// NOTE: As of now Gi and G as same
+
 // RoundUpStringToGi converts the given size into Gi
 func RoundUpStringToGi(sizeVal int64, unit string) int64 {
 	value := sizeVal

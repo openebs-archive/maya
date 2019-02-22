@@ -13,6 +13,7 @@ import (
 
 // constants
 const (
+	// VolumeGrpcListenPort listen on port 7777
 	VolumeGrpcListenPort = 7777
 	ProtocolVersion      = 1
 )
