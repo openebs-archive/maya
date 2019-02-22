@@ -110,6 +110,10 @@ const (
 	// to create storage pool
 	CASTemplateToCreatePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_CREATE_POOL"
 
+	// CASTemplateToResizeCStorVolumeENVK is the ENV key that specifies the CAS Template
+	// to create cstor cas volumes
+	CASTemplateToResizeCStorVolumeENVK ENVKey = "OPENEBS_IO_CSTOR_CAS_TEMPLATE_TO_RESIZE_VOLUME"
+
 	// CASTemplateToDeletePoolENVK is the ENV key that specifies the CAS Template
 	// to delete storage pool
 	CASTemplateToDeletePoolENVK ENVKey = "OPENEBS_IO_CAS_TEMPLATE_TO_DELETE_POOL"

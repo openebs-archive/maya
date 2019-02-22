@@ -92,6 +92,9 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 		cvol, err := volOp.httpDelete()
 		sendEventOrIgnore(cvol, usage.VolumeDeprovision)
 		return cvol, err
+	case "UPDATE":
+		cvol, err := volOp.update()
+		return cvol, err
 	default:
 		return nil, CodedError(405, http.StatusText(405))
 	}
@@ -124,6 +127,41 @@ func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 	}
 
 	return v.delete(volName)
+}
+
+// update process the http UPDATE request
+func (v *volumeAPIOpsV1alpha1) update() (*v1alpha1.CASVolume, error) {
+	newVol := &v1alpha1.CASVolume{}
+	err := decodeBody(v.req, newVol)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("Received CASVolume: %v", newVol)
+	if len(newVol.Name) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing volume name '%v'", newVol))
+	}
+
+	if len(newVol.Spec.Capacity) == 0 {
+		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing size '%v'", newVol))
+	}
+
+	// use run namespace from http request header if volume's namespace is still not set
+	if len(newVol.Namespace) == 0 {
+		newVol.Namespace = v.req.Header.Get(NamespaceKey)
+	}
+
+	vOps, err := volume.NewOperation(newVol)
+	if err != nil {
+		return nil, CodedError(400, err.Error())
+	}
+	cvol, err := vOps.Resize()
+	if err != nil {
+		glog.Errorf("failed to resize cas template based volume: error '%s'", err.Error())
+		return nil, CodedError(500, err.Error())
+	}
+	glog.Infof("cas template based volume resized successfully: name '%s' and size '%s'", cvol.Name, cvol.Spec.Capacity)
+
+	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {

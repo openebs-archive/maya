@@ -296,12 +296,12 @@ func TestNotSupportedCategoryCommand(t *testing.T) {
 		isSupportedCategory bool
 	}{
 		"test 101": {RunCommandCategoryList{JivaCommandCategory, CstorCommandCategory}, true},
-		"test 102": {RunCommandCategoryList{VolumeCommandCategory, CstorCommandCategory}, false},
+		"test 102": {RunCommandCategoryList{VolumeCommandCategory, CstorCommandCategory}, true},
 		"test 103": {RunCommandCategoryList{VolumeCommandCategory, PoolCommandCategory}, false},
 		"test 104": {RunCommandCategoryList{JivaCommandCategory, PoolCommandCategory}, false},
 		"test 105": {RunCommandCategoryList{JivaCommandCategory, VolumeCommandCategory}, true},
 		"test 106": {RunCommandCategoryList{VolumeCommandCategory, JivaCommandCategory}, true},
-		"test 107": {RunCommandCategoryList{VolumeCommandCategory, CstorCommandCategory}, false},
+		"test 107": {RunCommandCategoryList{VolumeCommandCategory, CstorCommandCategory}, true},
 		"test 108": {RunCommandCategoryList{SnapshotCommandCategory, CstorCommandCategory}, true},
 		"test 109": {RunCommandCategoryList{SnapshotCommandCategory, JivaCommandCategory}, false},
 	}

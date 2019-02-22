@@ -143,6 +143,21 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
+  name: cstor-volume-resize-default
+spec:
+  defaultConfig:
+  - name: RunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
+  taskNamespace: {{env "OPENEBS_NAMESPACE"}}
+  run:
+    tasks:
+    - cstor-volume-resize-listtargetservice-default
+    - cstor-volume-resize-resizevolume-default
+  output: cstor-volume-resize-output-default
+---
+apiVersion: openebs.io/v1alpha1
+kind: CASTemplate
+metadata:
   name: cstor-volume-read-default
 spec:
   defaultConfig:
@@ -1026,6 +1041,72 @@ spec:
       lun: {{ .TaskResult.readlistcv.lun }}
       fsType: {{ .TaskResult.readlistcv.fsType }}
       replicas: {{ .TaskResult.readlistrep.capacity | default "" | splitList " " | len }}
+      casType: cstor
+---
+# runTask to list cStor target deployment service
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-listtargetservice-default
+spec:
+  meta: |
+    {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $runNamespace := .Config.RunNamespace.value -}}
+    {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
+    {{- if ne $pvcServiceAccount "" }}
+    runNamespace: {{ .Volume.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{ else }}
+    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    {{- end }}
+    apiVersion: v1
+    id: readlistsvc
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/target-service=cstor-target-svc,openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
+    {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-resizevolume-default
+spec:
+  meta: |
+    id: resizecstorvolume
+    kind: Command
+  post: |
+    {{- $runCommand := update cstor volume | withoption "ip" .TaskResult.readlistsvc.clusterIP -}}
+    {{- $runCommand := $runCommand | withoption "volname" .Volume.owner -}}
+    {{- $runCommand | withoption "capacity" .Volume.capacity | run | saveas "resizecstorvolume" .TaskResult -}}
+    {{- $err := .TaskResult.resizecstorvolume.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "resizecstorvolume.verifyErr" .TaskResult | noop -}}
+---
+# runTask to render volume resize output as CASVolume
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-output-default
+spec:
+  meta: |
+    action: output
+    id: cstorvolumeoutput
+    kind: CASVolume
+    apiVersion: v1alpha1
+  task: |
+    kind: CASVolume
+    apiVersion: v1alpha1
+    metadata:
+      name: {{ .Volume.owner }}
+      labels:
+        openebs.io/version: {{ .CAST.version }}
+        openebs.io/cas-template-name: {{ .CAST.castName }}
+    spec:
+      capacity: {{ .Volume.capacity }}
+      volumeName: {{ .Volume.volumeName }}
       casType: cstor
 ---
 # runTask to list the cstorvolume that has to be deleted

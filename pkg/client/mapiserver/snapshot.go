@@ -72,7 +72,9 @@ func CreateSnapshot(volName string, snapName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+snapshotCreatePath, jsonValue, namespace, true)
+
+	requestType := "POST"
+	_, err = sendRequest(requestType, GetURL()+snapshotCreatePath, jsonValue, namespace, true)
 	return err
 }
 
@@ -96,7 +98,9 @@ func RevertSnapshot(volName string, snapName string, namespace string) error {
 	if err != nil {
 		return err
 	}
-	_, err = postRequest(GetURL()+snapshotRevertPath, jsonValue, namespace, false)
+
+	requestType := "POST"
+	_, err = sendRequest(requestType, GetURL()+snapshotRevertPath, jsonValue, namespace, false)
 	return err
 }
 

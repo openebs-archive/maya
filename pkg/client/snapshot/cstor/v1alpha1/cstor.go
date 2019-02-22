@@ -45,7 +45,7 @@ func CreateSnapshot(ip, volName, snapName string) (*v1alpha1.VolumeSnapCreateRes
 	}
 	defer conn.Close()
 
-	c := v1alpha1.NewRunSnapCommandClient(conn)
+	c := v1alpha1.NewRunCommandClient(conn)
 	response, err := c.RunVolumeSnapCreateCommand(context.Background(),
 		&v1alpha1.VolumeSnapCreateRequest{
 			Version:  ProtocolVersion,
@@ -77,7 +77,7 @@ func DestroySnapshot(ip, volName, snapName string) (*v1alpha1.VolumeSnapDeleteRe
 	}
 	defer conn.Close()
 
-	c := v1alpha1.NewRunSnapCommandClient(conn)
+	c := v1alpha1.NewRunCommandClient(conn)
 	response, err := c.RunVolumeSnapDeleteCommand(context.Background(),
 		&v1alpha1.VolumeSnapDeleteRequest{
 			Version:  ProtocolVersion,

@@ -24,7 +24,17 @@ message VolumeSnapDeleteResponse {
 	bytes status = 2;
 }
 
-service RunSnapCommand {
-  rpc RunVolumeSnapCreateCommand(VolumeSnapCreateRequest) returns (VolumeSnapCreateResponse) {};
+message VolumeResizeRequest {
+	string volume = 1;
+	string size = 2;
+}
+
+message VolumeResizeResponse {
+	bytes status = 1;
+}
+
+service RunCommand {
+	rpc RunVolumeSnapCreateCommand(VolumeSnapCreateRequest) returns (VolumeSnapCreateResponse) {};
 	rpc RunVolumeSnapDeleteCommand(VolumeSnapDeleteRequest) returns (VolumeSnapDeleteResponse) {};
+	rpc RunVolumeResizeCommand(VolumeResizeRequest) returns (VolumeResizeResponse) {};
 }

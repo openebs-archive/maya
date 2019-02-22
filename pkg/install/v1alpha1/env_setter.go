@@ -224,6 +224,10 @@ func (e *envInstall) List() (l *envList, err error) {
 		Value: ver.WithSuffix("cstor-pool-create-default"),
 	})
 	l.Items = append(l.Items, &env{
+		Key:   menv.CASTemplateToResizeCStorVolumeENVK,
+		Value: ver.WithSuffix("cstor-volume-resize-default"),
+	})
+	l.Items = append(l.Items, &env{
 		Key:   menv.CASTemplateToDeletePoolENVK,
 		Value: ver.WithSuffix("cstor-pool-delete-default"),
 	})

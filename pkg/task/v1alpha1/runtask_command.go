@@ -489,6 +489,8 @@ func (c *RunCommand) instance() (r Runner) {
 		r = HttpCommand(c)
 	} else if c.Category.IsCstorSnapshot() {
 		r = &cstorSnapshotCommand{c}
+	} else if c.Category.IsCstorVolume() {
+		r = &cstorVolumeCommand{c}
 	} else {
 		r = &notSupportedCategoryCommand{c}
 	}

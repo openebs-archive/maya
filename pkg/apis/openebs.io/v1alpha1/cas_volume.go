@@ -58,6 +58,10 @@ const (
 	// CASTemplateKeyForVolumeList is the key to fetch name of CASTemplate
 	// to list CAS Volumes
 	CASTemplateKeyForVolumeList CASVolumeKey = "cas.openebs.io/list-volume-template"
+
+	// CASTemplateKeyForVolumeResize is the key to fetch name of CASTemplate
+	// to resize a CAS Volume
+	CASTemplateKeyForVolumeResize CASVolumeKey = "cas.openebs.io/resize-volume-template"
 )
 
 // TODO

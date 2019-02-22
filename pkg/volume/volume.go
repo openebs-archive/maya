@@ -17,9 +17,13 @@ limitations under the License.
 package volume
 
 import (
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
@@ -27,6 +31,7 @@ import (
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
+	core_v1 "k8s.io/api/core/v1"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -46,6 +51,27 @@ type Operation struct {
 	OperationOptions
 	// volume to create or read or delete
 	volume *v1alpha1.CASVolume
+}
+
+// TODO: Move to different package
+// getString will return the alphabeticals in given string
+func getString(strValue string) (string, error) {
+	reg, err := regexp.Compile("[^A-Za-z]+")
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to process a regular expresion")
+	}
+	return reg.ReplaceAllString(strValue, ""), nil
+}
+
+// getInt will get  return the integers in given string
+func getInt(strValue string) (int64, error) {
+	reg, err := regexp.Compile("[^0-9]+")
+	if err != nil {
+		return -1, errors.Wrapf(err, "failed to process a regular expresion")
+	}
+	strVal := reg.ReplaceAllString(strValue, "")
+	strInt, err := strconv.Atoi(strVal)
+	return int64(strInt), err
 }
 
 // NewOperation returns a new instance of volumeOperation
@@ -204,6 +230,98 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
+	return vol, nil
+}
+
+// Resize updates the size of a CASVolume(cStor)
+func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
+	glog.V(4).Infof("Fetching the details of pvc,pv,sc,casName")
+
+	capacityUnit, err := getString(v.volume.Spec.Capacity)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get capacity unit")
+	}
+	capacityValue, err := getInt(v.volume.Spec.Capacity)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get capacity value")
+	}
+
+	newSizeGIB := RoundUpStringToGi(capacityValue, capacityUnit)
+
+	// pv details
+	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	oldSizeGIB := RoundUpToGi(pv.Spec.Capacity[core_v1.ResourceStorage])
+
+	glog.V(4).Infof("Value of old volume size: %d and requested size: %d in Gi", oldSizeGIB, newSizeGIB)
+	// If volume size is already greater than or equal to requested size return
+	if oldSizeGIB >= newSizeGIB {
+		return nil, fmt.Errorf("Volume is already greater than or equal to requested volume size")
+	}
+
+	// sc details
+	scName := pv.Labels[string(v1alpha1.StorageClassKey)]
+	if len(scName) == 0 {
+		scName = pv.Spec.StorageClassName
+	}
+	if len(scName) == 0 {
+		return nil, fmt.Errorf("failed to delete volume '%s': missing storage class in PV object", v.volume.Name)
+	}
+
+	// fetch the storage class specifications
+	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// extract the cas volume config from storage class
+	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
+
+	// cas template corresponding to this volume
+	casType := pv.Labels[string(v1alpha1.CASTypeKey)]
+
+	// extract read cas template name from sc annotation
+	castName := getResizeCASTemplate(casType, sc)
+	if len(castName) == 0 {
+		return nil, fmt.Errorf("unable to resize volume '%s': missing cas template for resize '%s'", v.volume.Name, v1alpha1.CASTemplateKeyForVolumeResize)
+	}
+
+	// fetch read cas template specifications
+	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	// read cas volume via cas template engine
+	engine, err := NewVolumeEngine(
+		"",
+		casConfigSC,
+		cast,
+		string(v1alpha1.VolumeTLP),
+		map[string]interface{}{
+			string(v1alpha1.OwnerVTP):        v.volume.Name,
+			string(v1alpha1.CapacityVTP):     v.volume.Spec.Capacity,
+			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// resize the volume by executing engine
+	data, err := engine.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshall into openebs volume
+	vol := &v1alpha1.CASVolume{}
+	err = yaml.Unmarshal(data, vol)
+	if err != nil {
+		return nil, err
+	}
 	return vol, nil
 }
 
@@ -458,6 +576,25 @@ func getCreateCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 			castName = menv.Get(menv.CASTemplateToCreateCStorVolumeENVK)
 		} else if casType == string(v1alpha1.JivaVolume) || casType == "" {
 			castName = menv.Get(menv.CASTemplateToCreateJivaVolumeENVK)
+		}
+	}
+	return castName
+}
+
+// getResizeCASTemplate return the name of the cast template
+func getResizeCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) string {
+	castName := sc.Annotations[string(v1alpha1.CASTemplateKeyForVolumeResize)]
+	// if cas template for the given operation is empty then fetch from environment variables
+	if len(castName) == 0 {
+		casType := strings.ToLower(sc.Annotations[string(v1alpha1.CASTypeKey)])
+		// if casType is missing in sc annotation then use the default cas type
+		if casType == "" {
+			casType = strings.ToLower(defaultCasType)
+		}
+		// check for cas-type, if cstor, set create cas template to cstor,
+		// if jiva or for jiva and if absent then default to jiva
+		if casType == string(v1alpha1.CstorVolume) {
+			castName = menv.Get(menv.CASTemplateToResizeCStorVolumeENVK)
 		}
 	}
 	return castName

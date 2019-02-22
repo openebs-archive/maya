@@ -165,6 +165,11 @@ func TestNotSupportedActionCommand(t *testing.T) {
 		"test 103": {`{{- patch jiva volume | run -}}`, mockval},
 		"test 104": {`{{- get jiva volume | run -}}`, mockval},
 		"test 105": {`{{- update jiva volume | run -}}`, mockval},
+		"test 106": {`{{- lst cstor volume | run -}}`, mockval},
+		"test 107": {`{{- patch cstor volume | run -}}`, mockval},
+		"test 108": {`{{- get cstor volume | run -}}`, mockval},
+		"test 109": {`{{- delete cstor volume | run -}}`, mockval},
+		"test 110": {`{{- create cstor volume | run -}}`, mockval},
 	}
 
 	for name, mock := range tests {
