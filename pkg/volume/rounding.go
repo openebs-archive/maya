@@ -143,19 +143,28 @@ func roundUpSize(volumeSizeBytes, allocationUnitBytes int64) int64 {
 	return roundedUp
 }
 
-// NOTE: As of now Gi and G as same
-
 // RoundUpStringToGi converts the given size into Gi
 func RoundUpStringToGi(sizeVal int64, unit string) int64 {
 	value := sizeVal
 	switch unit {
+	case "Zi":
+		value = sizeVal * 1024 * 1024 * 1024 * 1024
+	case "Z":
+		value = int64(float64(sizeVal*1000*1000*1000*1000) * 0.932)
+	case "Ei":
+		value = sizeVal * 1024 * 1024 * 1024
+	case "E":
+		value = int64(float64(sizeVal*1000*1000*1000) * 0.932)
+	case "Pi":
+		value = sizeVal * 1024 * 1024
+	case "P":
+		value = int64(float64(sizeVal*1000*1000) * 0.932)
 	case "Ti":
 		value = sizeVal * 1024
 	case "T":
-		value = sizeVal * 1000
-		if sizeVal%1024 > 0 {
-			value++
-		}
+		value = int64(float64(sizeVal*1000) * 0.932)
+	case "G":
+		value = int64(float64(sizeVal) * 0.932)
 	case "Mi":
 		value = sizeVal / 1024
 	case "M":

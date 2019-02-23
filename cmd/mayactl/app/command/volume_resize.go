@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
@@ -34,7 +33,7 @@ This command resizes the volume.
 Usage: mayactl volume resize [options]
 
 $ mayactl volume resize --volume <vol> --size <size> --namespace <namespace>
-Supported units: G, Gi, T, Ti
+  Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei, Z, Zi
 
 `
 )
@@ -70,16 +69,14 @@ func (c *CmdVolumeOptions) ValidateResize(cmd *cobra.Command) error {
 	}
 
 	// TODO: Below validation is need to be moved into maya-apiserver
-	// Regex to say only positive integers are accepted
-	reg, err := regexp.Compile("[^0-9-]+")
+	// Regex to say only positive integers and valid size is accepted
+	reg, err := regexp.Compile("^[0-9]+[MGTPEZ][i]{0,1}$")
 	if err != nil {
 		return errors.New("failed to process regular expresion")
 	}
 
-	sizeVal := reg.ReplaceAllString(c.size, "")
-	sizeInt, err := strconv.Atoi(sizeVal)
-	if sizeInt <= 0 || err != nil {
-		return errors.New("Please provide valid size")
+	if !reg.MatchString(c.size) {
+		return errors.New("Please provide valid size and unit")
 	}
 	return nil
 }
