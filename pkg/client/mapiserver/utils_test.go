@@ -185,6 +185,7 @@ func TestPostRequest(t *testing.T) {
 		chkbody     bool
 		usefakeurl  bool
 		invalidurl  string
+		fakeReqType string
 	}{
 		"Invalid Url with no namespace": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -192,11 +193,12 @@ func TestPostRequest(t *testing.T) {
 				ResponseBody: string(""),
 				T:            t,
 			},
-			namespace:  "",
-			err:        errors.New("Invalid URL"),
-			chkbody:    false,
-			usefakeurl: false,
-			invalidurl: "",
+			namespace:   "",
+			err:         errors.New("Invalid URL"),
+			chkbody:     false,
+			usefakeurl:  false,
+			invalidurl:  "",
+			fakeReqType: "POST",
 		},
 		"No response with no namespace": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -204,22 +206,24 @@ func TestPostRequest(t *testing.T) {
 				ResponseBody: string(response),
 				T:            t,
 			},
-			namespace:  "",
-			err:        errors.New("Server status error: Bad Request"),
-			chkbody:    false,
-			usefakeurl: true,
+			namespace:   "",
+			err:         errors.New("Server status error: Bad Request"),
+			chkbody:     false,
+			usefakeurl:  true,
+			fakeReqType: "POST",
 		},
-		"Url not reachable": {
+		"Url not reachable with POST request": {
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   400,
 				ResponseBody: string(response),
 				T:            t,
 			},
-			namespace:  "",
-			err:        errors.New(`Post invalid: unsupported protocol scheme ""`),
-			chkbody:    false,
-			usefakeurl: false,
-			invalidurl: "invalid",
+			namespace:   "",
+			err:         errors.New(`Post invalid: unsupported protocol scheme ""`),
+			chkbody:     false,
+			usefakeurl:  false,
+			invalidurl:  "invalid",
+			fakeReqType: "POST",
 		},
 		"not parsable url": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -227,11 +231,12 @@ func TestPostRequest(t *testing.T) {
 				ResponseBody: string(response),
 				T:            t,
 			},
-			namespace:  "",
-			err:        errors.New(`parse *:: first path segment in URL cannot contain colon`),
-			chkbody:    false,
-			usefakeurl: false,
-			invalidurl: "*:",
+			namespace:   "",
+			err:         errors.New(`parse *:: first path segment in URL cannot contain colon`),
+			chkbody:     false,
+			usefakeurl:  false,
+			invalidurl:  "*:",
+			fakeReqType: "POST",
 		},
 		"chk body is enabled": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -239,10 +244,11 @@ func TestPostRequest(t *testing.T) {
 				ResponseBody: string(response),
 				T:            t,
 			},
-			namespace:  "",
-			err:        errors.New(response),
-			chkbody:    true,
-			usefakeurl: true,
+			namespace:   "",
+			err:         errors.New(response),
+			chkbody:     true,
+			usefakeurl:  true,
+			fakeReqType: "POST",
 		},
 		"chk body is enabled with namespace": {
 			fakeHandler: utiltesting.FakeHandler{
@@ -250,10 +256,24 @@ func TestPostRequest(t *testing.T) {
 				ResponseBody: string(response),
 				T:            t,
 			},
-			namespace:  "default",
-			err:        errors.New(response),
-			chkbody:    true,
-			usefakeurl: true,
+			namespace:   "default",
+			err:         errors.New(response),
+			chkbody:     true,
+			usefakeurl:  true,
+			fakeReqType: "POST",
+		},
+		"Url not reachable with UPDATE request": {
+			fakeHandler: utiltesting.FakeHandler{
+				StatusCode:   400,
+				ResponseBody: string(response),
+				T:            t,
+			},
+			namespace:   "",
+			err:         errors.New(`Update invalid: unsupported protocol scheme ""`),
+			chkbody:     false,
+			usefakeurl:  false,
+			invalidurl:  "invalid",
+			fakeReqType: "UPDATE",
 		},
 	}
 
@@ -268,8 +288,7 @@ func TestPostRequest(t *testing.T) {
 			}
 			defer server.Close()
 			r := []byte{23, 4, 23}
-			fakeReqType := "POST"
-			_, got := sendRequest(fakeReqType, url, r, tt.namespace, tt.chkbody)
+			_, got := sendRequest(tt.fakeReqType, url, r, tt.namespace, tt.chkbody)
 			if got.Error() != tt.err.Error() {
 				t.Fatalf("\nTest Name :%v \n  got => %v \n  want => %v \n", name, got, tt.err)
 			}

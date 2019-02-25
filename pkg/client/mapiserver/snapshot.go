@@ -28,6 +28,7 @@ import (
 )
 
 const (
+	requestType        = "POST"
 	httpTimeout        = 5 * time.Second
 	snapshotCreatePath = "/latest/snapshots/create/"
 	snapshotRevertPath = "/latest/snapshots/revert/"
@@ -73,7 +74,6 @@ func CreateSnapshot(volName string, snapName string, namespace string) error {
 		return err
 	}
 
-	requestType := "POST"
 	_, err = sendRequest(requestType, GetURL()+snapshotCreatePath, jsonValue, namespace, true)
 	return err
 }
@@ -99,7 +99,6 @@ func RevertSnapshot(volName string, snapName string, namespace string) error {
 		return err
 	}
 
-	requestType := "POST"
 	_, err = sendRequest(requestType, GetURL()+snapshotRevertPath, jsonValue, namespace, false)
 	return err
 }
