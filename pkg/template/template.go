@@ -29,6 +29,7 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
+	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
@@ -63,6 +64,14 @@ func empty(given interface{}) bool {
 		return false
 	}
 	return true
+}
+
+// ifNotNil returns the second argument if first is not nil
+func ifNotNil(this, then interface{}) interface{} {
+	if !empty(this) {
+		return then
+	}
+	return this
 }
 
 // VersionMismatchError represents an error due to version mismatch
@@ -784,6 +793,7 @@ func runtaskFuncs() (f template.FuncMap) {
 		"splitKeyMap":        splitKeyMap,
 		"splitListTrim":      splitListTrim,
 		"randomize":          randomize,
+		"IfNotNil":           ifNotNil,
 	}
 }
 
@@ -798,8 +808,12 @@ func allCustomFuncs() template.FuncMap {
 	for k, v := range rc {
 		f[k] = v
 	}
-	kVer := kubever.TemplateFunctions()
-	for k, v := range kVer {
+	ver := kubever.TemplateFunctions()
+	for k, v := range ver {
+		f[k] = v
+	}
+	ps := poolselection.TemplateFunctions()
+	for k, v := range ps {
 		f[k] = v
 	}
 	return f
