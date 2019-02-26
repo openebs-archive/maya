@@ -291,10 +291,12 @@ spec:
     kind: Service
     metadata:
       annotations:
+        openebs.io/pvc-namespace: {{ .Volume.runNamespace }}
         openebs.io/storage-class-ref: | 
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
+        openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         openebs.io/target-service: cstor-target-svc
         openebs.io/storage-engine-type: cstor
         openebs.io/cas-type: cstor
@@ -853,6 +855,7 @@ spec:
     {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/pvc-namespace}" | default "" | trim | saveAs "readlistsvc.pvcNs" .TaskResult | noop -}}
 ---
 # runTask to list cstor volume cr
 apiVersion: openebs.io/v1alpha1
@@ -927,7 +930,7 @@ spec:
     id: readlistpod
     apiVersion: v1
     kind: Pod
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .TaskResult.readlistsvc.pvcNs }}
     disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
     action: list
   post: |
