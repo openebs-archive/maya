@@ -203,27 +203,38 @@ func TestNotSupportedActionCommand(t *testing.T) {
 	}
 }
 
-func TestNotSupportedCategoryCommand(t *testing.T) {
+func TestUpdateCstorVolumeCommand(t *testing.T) {
 	mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-
 	tests := map[string]struct {
-		template string
-		tvalues  map[string]interface{}
+		template       string
+		tvalues        map[string]interface{}
+		expectedOutput error
 	}{
-		// NOTE: If these combinations are supported in future then remove the
-		// test case(s)
-		"test 101": {`{{- create cstor volume | run -}}`, mockval},
-		"test 102": {`{{- lst cstor volume | run -}}`, mockval},
-		"test 103": {`{{- patch cstor volume | run -}}`, mockval},
-		"test 104": {`{{- get cstor volume | run -}}`, mockval},
-		"test 105": {`{{- update cstor volume | run -}}`, mockval},
-		"test 106": {`{{- delete cstor volume | run -}}`, mockval},
+		"101": {
+			template:       `{{- update cstor volume | run -}}`,
+			tvalues:        mockval,
+			expectedOutput: fmt.Errorf("missing ip address"),
+		},
+		"102": {
+			template:       `{{- update cstor volume | withoption "ip" "0.0.0.0" | withoption "volname" "vol1" | withoption "capacity" "10G" | run -}}`,
+			tvalues:        mockval,
+			expectedOutput: fmt.Errorf("Error while dialing dial tcp 0.0.0.0:7777: connect"),
+		},
+		"103": {
+			template:       `{{- update cstor volume | withoption "ip" "" | withoption "volname" "vol1" | withoption "capacity" "9Zi" | run -}}`,
+			tvalues:        mockval,
+			expectedOutput: fmt.Errorf("missing ip address"),
+		},
+		"104": {
+			template:       `{{- update cstor volume | withoption "ip" "0.0.0.0" | run -}}`,
+			tvalues:        mockval,
+			expectedOutput: fmt.Errorf("missing volume name"),
+		},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := AllCustomFuncs()
-			tpl := template.New(mock.template).Funcs(allfuncs)
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)

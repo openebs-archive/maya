@@ -2,6 +2,7 @@ package volume
 
 import (
 	"fmt"
+	"math"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -144,7 +145,7 @@ func roundUpSize(volumeSizeBytes, allocationUnitBytes int64) int64 {
 }
 
 // RoundUpStringToGi converts the given size into Gi
-func RoundUpStringToGi(sizeVal int64, unit string) int64 {
+func RoundUpStringToGi(sizeVal int64, unit string) (int64, error) {
 	value := sizeVal
 	switch unit {
 	case "Zi":
@@ -164,7 +165,9 @@ func RoundUpStringToGi(sizeVal int64, unit string) int64 {
 	case "T":
 		value = int64(float64(sizeVal*1000) * 0.932)
 	case "G":
-		value = int64(float64(sizeVal) * 0.932)
+		value = int64(math.Round(float64(sizeVal) * 0.932))
+	case "Gi":
+		value = sizeVal
 	case "Mi":
 		value = sizeVal / 1024
 	case "M":
@@ -175,6 +178,8 @@ func RoundUpStringToGi(sizeVal int64, unit string) int64 {
 		value = sizeVal / (1000 * 1000)
 	case "B":
 		value = sizeVal / (1024 * 1024 * 1024)
+	default:
+		return int64(-1), fmt.Errorf("Invalid unit")
 	}
-	return int64(value)
+	return int64(value), nil
 }

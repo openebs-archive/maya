@@ -56,7 +56,7 @@ type Operation struct {
 // TODO: Move to different package
 // getString will return the alphabeticals in given string
 func getString(strValue string) (string, error) {
-	reg, err := regexp.Compile("[^A-Za-z]+")
+	reg, err := regexp.Compile("[^KMGTPEZi]")
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to process a regular expresion")
 	}
@@ -64,12 +64,15 @@ func getString(strValue string) (string, error) {
 }
 
 // getInt will get  return the integers in given string
-func getInt(strValue string) (int64, error) {
+func getNum(strValue string) (int64, error) {
 	reg, err := regexp.Compile("[^0-9]+")
 	if err != nil {
-		return -1, errors.Wrapf(err, "failed to process a regular expresion")
+		return int64(-1), errors.Wrapf(err, "failed to process a regular expresion")
 	}
 	strVal := reg.ReplaceAllString(strValue, "")
+	if len(strVal) == 0 {
+		return int64(-1), fmt.Errorf("No number found")
+	}
 	strInt, err := strconv.Atoi(strVal)
 	return int64(strInt), err
 }
@@ -241,12 +244,15 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get capacity unit")
 	}
-	capacityValue, err := getInt(v.volume.Spec.Capacity)
+	capacityValue, err := getNum(v.volume.Spec.Capacity)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get capacity value")
 	}
 
-	newSizeGIB := RoundUpStringToGi(capacityValue, capacityUnit)
+	newSizeGIB, err := RoundUpStringToGi(capacityValue, capacityUnit)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert new capacity %s", v.volume.Spec.Capacity)
+	}
 
 	// pv details
 	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})

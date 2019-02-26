@@ -15,7 +15,9 @@
 package volume
 
 import (
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -240,6 +242,102 @@ func TestGetDeleteCASTemplate(t *testing.T) {
 
 			if castName != test.expectedCAST {
 				t.Fatalf("unexpected cast name, wanted %q got %q", test.expectedCAST, castName)
+			}
+		})
+	}
+}
+
+func TestgetString(t *testing.T) {
+	tests := map[string]struct {
+		testString    string
+		expectedValue string
+		expectedError error
+	}{
+		"Interms of G": {
+			testString:    "10G",
+			expectedValue: "G",
+			expectedError: nil,
+		},
+		"Interms of Zi": {
+			testString:    "5Zi",
+			expectedValue: "Zi",
+			expectedError: nil,
+		},
+		"Interms of T": {
+			testString:    "9T",
+			expectedValue: "T",
+			expectedError: nil,
+		},
+		"Interms of K": {
+			testString:    "9.04K",
+			expectedValue: "K",
+			expectedError: nil,
+		},
+		"Invalid Unit": {
+			testString:    "9.04S",
+			expectedValue: "",
+			expectedError: nil,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			val, err := getString(test.testString)
+			if val != test.expectedValue && err == nil {
+				t.Logf("actual string: %s", val)
+				t.Logf("expected string: %s", test.expectedValue)
+				t.Error("unexpected rounded value")
+			}
+			if !reflect.DeepEqual(err, test.expectedError) {
+				t.Errorf("Test case Name: %s Expected error: %v but got: %v", name, test.expectedError, err)
+			}
+		})
+	}
+}
+
+func TestgetInt(t *testing.T) {
+	tests := map[string]struct {
+		testString    string
+		expectedValue int64
+		expectedError error
+	}{
+		"Interms of G": {
+			testString:    "10G",
+			expectedValue: int64(10),
+			expectedError: nil,
+		},
+		"Interms of Zi": {
+			testString:    "5Zi",
+			expectedValue: int64(5),
+			expectedError: nil,
+		},
+		"Interms of T": {
+			testString:    "9T",
+			expectedValue: int64(9),
+			expectedError: nil,
+		},
+		"Interms of K": {
+			testString:    "3K",
+			expectedValue: int64(3),
+			expectedError: nil,
+		},
+		"Invalid Unit": {
+			testString:    "Mi",
+			expectedValue: int64(64),
+			expectedError: fmt.Errorf("No number found"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			val, err := getNum(test.testString)
+			if val != test.expectedValue && err == nil {
+				t.Logf("actual string: %d", val)
+				t.Logf("expected string: %d", test.expectedValue)
+				t.Error("unexpected rounded value")
+			}
+			if !reflect.DeepEqual(err, test.expectedError) {
+				t.Errorf("Test case Name: %s Expected error: %v but got: %v", name, test.expectedError, err)
 			}
 		})
 	}

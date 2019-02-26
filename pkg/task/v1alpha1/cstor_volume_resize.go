@@ -29,7 +29,7 @@ type cstorVolumeResize struct {
 
 // Run creates cstor volume resize contents
 func (c *cstorVolumeResize) Run() (r RunCommandResult) {
-	glog.Infof("In Run() func after cas template execution...%v", c)
+	glog.Infof("After cas template execution: %v", c)
 	err := c.validateOptions()
 	if err != nil {
 		return c.AddError(errors.Errorf("failed to resize the cstor volume: %s", err)).Result(nil)
