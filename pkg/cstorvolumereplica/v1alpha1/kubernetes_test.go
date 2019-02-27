@@ -41,7 +41,7 @@ func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
 
 func fakeClientSet(k *kubeclient) {}
 
-func TestWithDefaults(t *testing.T) {
+func TestKubernetesWithDefaults(t *testing.T) {
 	tests := map[string]struct {
 		expectListFn, expectGetClientset bool
 	}{
@@ -72,7 +72,7 @@ func TestWithDefaults(t *testing.T) {
 	}
 }
 
-func TestWithKubeClient(t *testing.T) {
+func TestKubernetesWithKubeClient(t *testing.T) {
 	tests := map[string]struct {
 		Clientset             *client.Clientset
 		expectKubeClientEmpty bool
@@ -96,7 +96,7 @@ func TestWithKubeClient(t *testing.T) {
 	}
 }
 
-func TestKubeClient(t *testing.T) {
+func TestKubernetesKubeClient(t *testing.T) {
 	tests := map[string]struct {
 		expectClientSet bool
 		opts            []kubeclientBuildOption
@@ -123,7 +123,7 @@ func TestKubeClient(t *testing.T) {
 	}
 }
 
-func TestGetClientOrCached(t *testing.T) {
+func TesKubernetestGetClientOrCached(t *testing.T) {
 	tests := map[string]struct {
 		expectErr  bool
 		KubeClient *kubeclient
