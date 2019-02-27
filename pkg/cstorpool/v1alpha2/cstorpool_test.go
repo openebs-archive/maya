@@ -11,7 +11,7 @@ import (
 func mockAlwaysTrue(*csp) bool  { return true }
 func mockAlwaysFalse(*csp) bool { return false }
 
-func TestAll(t *testing.T) {
+func TestCStorPoolAll(t *testing.T) {
 	tests := map[string]struct {
 		Predicates     predicateList
 		expectedOutput bool
@@ -40,7 +40,7 @@ func TestAll(t *testing.T) {
 	}
 }
 
-func TestIsNotUID(t *testing.T) {
+func TestCStorPoolIsNotUID(t *testing.T) {
 	tests := map[string]struct {
 		cspuid         types.UID
 		uids           []string
@@ -71,7 +71,7 @@ func TestIsNotUID(t *testing.T) {
 	}
 }
 
-func TestFilterUIDs(t *testing.T) {
+func TestCStorPoolFilterUIDs(t *testing.T) {
 	tests := map[string]struct {
 		Predicates     predicateList
 		UIDs           []types.UID
@@ -107,7 +107,7 @@ func TestFilterUIDs(t *testing.T) {
 	}
 }
 
-func TestWithUIDs(t *testing.T) {
+func TestCStorPoolWithUIDs(t *testing.T) {
 	tests := map[string]struct {
 		expectedUIDs []string
 	}{
@@ -138,7 +138,7 @@ func TestWithUIDs(t *testing.T) {
 	}
 }
 
-func TestList(t *testing.T) {
+func TestCstorPoolList(t *testing.T) {
 	tests := map[string]struct {
 		expectedUIDs []string
 	}{
