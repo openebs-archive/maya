@@ -17,7 +17,6 @@ limitations under the License.
 package replicacontroller
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -30,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -133,11 +131,6 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
 			return string(apis.CVRStatusDeletionFailed), err
 		}
-		// removeFinalizer is to remove finalizer of cVR resource.
-		err = c.removeFinalizer(cVR)
-		if err != nil {
-			return string(apis.CVRStatusOffline), err
-		}
 		return "", nil
 	case common.QOpSync:
 		glog.Infof("Synchronizing CstorVolumeReplica status for volume %s", cVR.ObjectMeta.Name)
@@ -216,30 +209,6 @@ func (c *CStorVolumeReplicaController) getVolumeReplicaResource(key string) (*ap
 		return nil, err
 	}
 	return cStorVolumeReplicaUpdated, nil
-}
-
-// removeFinalizer is to remove finalizer of CStorVolumeReplica resource.
-func (c *CStorVolumeReplicaController) removeFinalizer(cVR *apis.CStorVolumeReplica) error {
-	glog.Errorf("Removing finalizers for %s", cVR.Name)
-	// The Patch method requires an array of elements
-	// therefore creating array of one element
-	cvrPatch := make([]CVRPatch, 1)
-	// setting operation as remove
-	cvrPatch[0].Op = "remove"
-	// object to be removed is finalizers
-	cvrPatch[0].Path = "/metadata/finalizers"
-	cvrPatchJSON, err := json.Marshal(cvrPatch)
-	if err != nil {
-		glog.Errorf("Error marshaling cvrPatch object: %s", err)
-		return err
-	}
-	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVR.Namespace).Patch(cVR.Name, types.JSONPatchType, cvrPatchJSON)
-	if err != nil {
-		glog.Errorf("Finalizer patch failed for %s: %s", cVR.Name, err)
-		return err
-	}
-	glog.Infof("Removed Finalizer: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
-	return nil
 }
 
 // IsRightCStorVolumeReplica is to check if the cvr request is for particular pod/application.

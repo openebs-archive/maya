@@ -682,7 +682,6 @@ spec:
         openebs.io/storage-class-ref: | 
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
-      finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
     spec:
       capacity: {{ .Volume.capacity }}
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
