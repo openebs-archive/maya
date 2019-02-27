@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/template"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +17,10 @@ const (
 	preferReplicaAntiAffinityLabel labelKey = "openebs.io/preferred-replica-anti-affinity"
 	replicaAntiAffinityLabel       labelKey = "openebs.io/replica-anti-affinity"
 )
+
+// cvrListFn abstracts fetching of a list of cstor
+//  volume replicas
+type cvrListFn func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error)
 
 // policyName is a type that caters to
 // naming of various pool selection
@@ -46,6 +51,17 @@ type policy interface {
 // policy implementation
 type antiAffinityLabel struct {
 	labelSelector string
+
+	// cvrList holds the function to list
+	// cstor volume replica which is useful
+	// mocking
+	cvrList cvrListFn
+}
+
+// defaultCVRList is the default
+// implementation of cvrListFn
+func defaultCVRList() cvrListFn {
+	return cvr.KubeClient().List
 }
 
 // name returns the name of this
@@ -69,7 +85,7 @@ func (l antiAffinityLabel) filter(poolUIDs []string) ([]string, error) {
 	// NOTE: we try without giving any namespace
 	// so that it lists from all available
 	// namespaces
-	cvrs, err := cvr.KubeClient().List("", metav1.ListOptions{LabelSelector: l.labelSelector})
+	cvrs, err := l.cvrList("", metav1.ListOptions{LabelSelector: l.labelSelector})
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +185,7 @@ func (s *selection) isAntiAffinityLabel() bool {
 // selection
 func PreferAntiAffinityLabel(lbl string) buildOption {
 	return func(s *selection) {
-		p := preferAntiAffinityLabel{antiAffinityLabel{labelSelector: lbl}}
+		p := preferAntiAffinityLabel{antiAffinityLabel{labelSelector: lbl, cvrList: defaultCVRList()}}
 		s.policies = append(s.policies, p)
 	}
 }
@@ -178,7 +194,7 @@ func PreferAntiAffinityLabel(lbl string) buildOption {
 // as a policy to be used during pool selection
 func AntiAffinityLabel(lbl string) buildOption {
 	return func(s *selection) {
-		a := antiAffinityLabel{labelSelector: lbl}
+		a := antiAffinityLabel{labelSelector: lbl, cvrList: defaultCVRList()}
 		s.policies = append(s.policies, a)
 	}
 }

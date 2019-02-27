@@ -1,8 +1,16 @@
 package v1alpha1
 
 import (
+	"errors"
 	"reflect"
 	"testing"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	cstorPoolUIDLabelKey string = "cstorpool.openebs.io/uid"
 )
 
 func TestPreferAntiAffinityLabel(t *testing.T) {
@@ -21,7 +29,7 @@ func TestPreferAntiAffinityLabel(t *testing.T) {
 			bo := PreferAntiAffinityLabel(test.label)
 			s := &selection{}
 			bo(s)
-			if !reflect.DeepEqual(s.policies[len(s.policies)-1], test.expectedoutput) {
+			if s.policies[len(s.policies)-1].name() != test.expectedoutput.name() {
 				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies[len(s.policies)-1])
 			}
 		})
@@ -44,7 +52,7 @@ func TestAntiAffinityLabel(t *testing.T) {
 			bo := AntiAffinityLabel(test.mocklabel)
 			s := &selection{}
 			bo(s)
-			if !reflect.DeepEqual(s.policies[len(s.policies)-1], test.expectedoutput) {
+			if s.policies[len(s.policies)-1].name() != test.expectedoutput.name() {
 				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies[len(s.policies)-1])
 			}
 		})
@@ -86,7 +94,7 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestTemplateFunctions(t *testing.T) {
+func TestTemplateFunctionsCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedLength int
 	}{
@@ -155,5 +163,154 @@ func TestNewSelection(t *testing.T) {
 				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUIDs, p.poolUIDs)
 			}
 		})
+	}
+}
+
+func TestAntiAffinityFilter(t *testing.T) {
+	tests := map[string]struct {
+		CVRUid, poolUids, expectedUids []string
+		labelSelector                  string
+		expectError                    bool
+	}{
+		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
+		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
+		"Test 3":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
+		"Test 4":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
+		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
+		"Test 6":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
+		"Test 7":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
+		"Test 8":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
+		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
+		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			fakeList := &apis.CStorVolumeReplicaList{}
+			for _, uid := range test.CVRUid {
+				fakeList.Items = append(fakeList.Items,
+					apis.CStorVolumeReplica{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								string(replicaAntiAffinityLabel): test.labelSelector,
+								cstorPoolUIDLabelKey:             uid,
+							},
+						},
+					},
+				)
+			}
+
+			var fakeErr error
+			if test.expectError {
+				fakeErr = errors.New("Some fake error")
+			}
+
+			a := antiAffinityLabel{
+				labelSelector: test.labelSelector,
+				cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+					return fakeList, fakeErr
+				},
+			}
+
+			output, err := a.filter(test.poolUids)
+			if test.expectError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.expectError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if len(test.expectedUids) != len(output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			}
+		})
+	}
+}
+
+func TestPreferredAntiAffinityFilter(t *testing.T) {
+	tests := map[string]struct {
+		CVRUid, poolUids, expectedUids []string
+		labelSelector                  string
+		expectError                    bool
+	}{
+		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
+		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
+		"Test 3":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1"}, []string{}, "label4", true},
+		"Test 4":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
+		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
+		"Test 6":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
+		"Test 7":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
+		"Test 8":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
+		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
+		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2"}, "label5", false},
+		"Test 11": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
+		"Test 12": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			fakeList := &apis.CStorVolumeReplicaList{}
+			for _, uid := range test.CVRUid {
+				fakeList.Items = append(fakeList.Items,
+					apis.CStorVolumeReplica{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								string(replicaAntiAffinityLabel): test.labelSelector,
+								cstorPoolUIDLabelKey:             uid,
+							},
+						},
+					},
+				)
+			}
+
+			var fakeErr error
+			if test.expectError {
+				fakeErr = errors.New("Some fake error")
+			}
+
+			a := preferAntiAffinityLabel{
+				antiAffinityLabel: antiAffinityLabel{
+					labelSelector: test.labelSelector,
+					cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+						return fakeList, fakeErr
+					},
+				},
+			}
+
+			output, err := a.filter(test.poolUids)
+			if test.expectError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.expectError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if len(test.expectedUids) != len(output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			}
+		})
+	}
+}
+
+func TestIsPolicy(t *testing.T) {
+	tests := map[string]struct {
+		policies     []policy
+		expectpolicy policyName
+		isPresent    bool
+	}{
+		"Test 1": {[]policy{&antiAffinityLabel{}}, antiAffinityLabelPolicyName, true},
+		"Test 2": {[]policy{&antiAffinityLabel{}}, antiAffinityLabelPolicyName, true},
+		"Test 3": {[]policy{&preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
+		"Test 4": {[]policy{&preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
+		"Test 5": {[]policy{&preferAntiAffinityLabel{}, &preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
+		"Test 6": {[]policy{&preferAntiAffinityLabel{}, &preferAntiAffinityLabel{}}, preferAntiAffinityLabelPolicyName, true},
+	}
+
+	for name, test := range tests {
+		s := &selection{}
+		for _, p := range test.policies {
+			s.policies = append(s.policies, p)
+		}
+
+		output := s.isPolicy(test.expectpolicy)
+		if output != test.isPresent {
+			t.Fatalf("test %q failed: expected %v but got %v", name, test.isPresent, output)
+		}
 	}
 }
