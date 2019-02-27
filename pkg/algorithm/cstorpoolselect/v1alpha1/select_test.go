@@ -90,7 +90,7 @@ func TestTemplateFunctions(t *testing.T) {
 	tests := map[string]struct {
 		expectedLength int
 	}{
-		"Test 1": {3},
+		"Test 1": {4},
 	}
 
 	for name, test := range tests {
