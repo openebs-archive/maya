@@ -88,7 +88,7 @@ spec:
   - name: TargetNodeSelector
     value: "none"
   # TargetTolerations allows you to specify the tolerations for target
-  # Example: 
+  # Example:
   # - name: TargetTolerations
   #   value: |-
   #      t1:
@@ -627,7 +627,9 @@ spec:
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
-      finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
+        openebs.io/storage-class-ref: |
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
     spec:
       capacity: {{ .Volume.capacity }}
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
