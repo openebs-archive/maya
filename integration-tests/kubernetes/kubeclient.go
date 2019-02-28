@@ -8,11 +8,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var (
-	kubeConfigPath *string
-	clientset      *kube.Clientset
-)
-
 // HomeDir return the Home Directory of the environement
 func HomeDir() (string, error) {
 	if h := os.Getenv("HOME"); h != "" { // linux

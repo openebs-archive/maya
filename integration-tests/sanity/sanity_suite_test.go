@@ -30,7 +30,6 @@ var namespace string
 func init() {
 	flag.StringVar(&namespace, "namespace", "openebs", "namespace for performing the test")
 	flag.Parse()
-
 }
 
 var _ = BeforeSuite(func() {
@@ -44,7 +43,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsListUnstructured(artifacts.OpenEBSArtifacts)
+	artifacts, err := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Installing the artifacts to kubernetes cluster
@@ -78,7 +77,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsListUnstructured(artifacts.OpenEBSArtifacts)
+	artifacts, err := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Deleting artifacts

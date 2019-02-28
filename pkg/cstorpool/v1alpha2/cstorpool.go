@@ -122,13 +122,26 @@ func (b *listBuilder) WithUIDNode(UIDNode map[string]string) *listBuilder {
 	return b
 }
 
-// WithCStorPool builds the list based on the provided
+// WithList builds the list based on the provided
 // *apis.CStorPool instances
 func (b *listBuilder) WithList(pools *CSPList) *listBuilder {
 	if pools == nil {
 		return b
 	}
 	b.list.items = append(b.list.items, pools.items...)
+	return b
+}
+
+// WithAPIList builds the list based on the provided
+// *apis.CStorPoolList
+func (b *listBuilder) WithAPIList(pools *apis.CStorPoolList) *listBuilder {
+	if pools == nil {
+		return b
+	}
+	for _, pool := range pools.Items {
+		b.list.items = append(b.list.items, &csp{&pool})
+	}
+
 	return b
 }
 

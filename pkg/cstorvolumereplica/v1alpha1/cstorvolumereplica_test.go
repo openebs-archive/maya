@@ -28,7 +28,7 @@ func TestGetPoolUIDs(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []cvr{}
 			for _, p := range mock.cvrUIDs {
-				cvrItems = append(cvrItems, cvr{apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{cstorPoolUIDLabelKey: p}}}})
+				cvrItems = append(cvrItems, cvr{apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{string(cstorPoolUIDLabel): p}}}})
 			}
 			cvr := &cvrList{items: cvrItems}
 			if output := cvr.GetPoolUIDs(); !reflect.DeepEqual(output, mock.expectedString) {
@@ -57,7 +57,7 @@ func TestWithListObject(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []apis.CStorVolumeReplica{}
 			for _, p := range mock.expectedUIDs {
-				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{cstorPoolUIDLabelKey: p}}})
+				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{string(cstorPoolUIDLabel): p}}})
 			}
 
 			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems})
@@ -89,7 +89,7 @@ func TestList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []apis.CStorVolumeReplica{}
 			for _, p := range mock.expectedUIDs {
-				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{cstorPoolUIDLabelKey: p}}})
+				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{string(cstorPoolUIDLabel): p}}})
 			}
 
 			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems}).List()

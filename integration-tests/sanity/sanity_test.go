@@ -22,8 +22,11 @@ var (
 var _ = Describe("Sanity", func() {
 	Context("should update storageclass", func() {
 		It("should update storageclass wih replica count to 1", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Fetching the openebs component artifacts
-			artifacts, err := artifacts.GetArtifactsListUnstructured(artifacts.SingleReplicaSC)
+			artifacts, err := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.SingleReplicaSC)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Installing the artifacts to kubernetes cluster
@@ -38,8 +41,11 @@ var _ = Describe("Sanity", func() {
 
 	Context("should create cstor volume", func() {
 		It("should apply the cstor pvc", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the PVC artifact
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CStorPVCArtifacts)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CStorPVCArtifacts)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Installing the artifacts to kubernetes cluster
@@ -94,9 +100,11 @@ var _ = Describe("Sanity", func() {
 		})
 
 		It("should create cstor volume replica CR", func() {
+			// TODO
+			// Remove this from artfacts
 
 			// Getting the cstor volume replica artifacts
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CVRArtifact)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CVRArtifact)
 			Expect(err).ShouldNot(HaveOccurred())
 			l := k8s.ListResource(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
 			u, err := l.List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
@@ -107,8 +115,11 @@ var _ = Describe("Sanity", func() {
 		})
 
 		It("should create cstor replica CR", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the cstor replica artifacts
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CRArtifact)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CRArtifact)
 			Expect(err).ShouldNot(HaveOccurred())
 			l := k8s.ListResource(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
 			u, err := l.List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
@@ -133,8 +144,11 @@ var _ = Describe("Sanity", func() {
 	Context("should delete cstor volume", func() {
 		It("should delete cstor pvc", func() {
 			time.Sleep(waitTime * time.Second)
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the PVC artifact
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CStorPVCArtifacts)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CStorPVCArtifacts)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Deleting the artifacts to kubernetes cluster
@@ -167,8 +181,11 @@ var _ = Describe("Sanity", func() {
 		})
 
 		It("should delete cstor volume replica CR", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the cstor volume replica artifacts
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CVRArtifact)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CVRArtifact)
 			Expect(err).ShouldNot(HaveOccurred())
 			status := false
 			for i := 0; i < 300; i++ {
@@ -187,8 +204,11 @@ var _ = Describe("Sanity", func() {
 		})
 
 		It("should delete cstor replica CR", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the cstor replica artifacts
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.CRArtifact)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.CRArtifact)
 			Expect(err).ShouldNot(HaveOccurred())
 			l := k8s.ListResource(k8s.GroupVersionResourceFromGVK(artifact), artifact.GetNamespace())
 			u, err := l.List(metav1.ListOptions{LabelSelector: "openebs.io/persistent-volume=" + cstorpvname})
@@ -214,8 +234,11 @@ var _ = Describe("Sanity", func() {
 
 	Context("should create jiva volumes", func() {
 		It("should apply jiva pvc", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the PVC artifact
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.JivaPVCArtifacts)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.JivaPVCArtifacts)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Installing the artifacts to kubernetes cluster
@@ -306,8 +329,11 @@ var _ = Describe("Sanity", func() {
 
 	Context("should  delete jiva volume", func() {
 		It("should delete jiva pvc", func() {
+			// TODO
+			// Remove this from artfacts
+
 			// Getting the PVC artifact
-			artifact, err := artifacts.GetArtifactUnstructured(artifacts.JivaPVCArtifacts)
+			artifact, err := artifacts.GetArtifactUnstructuredFromFile(artifacts.JivaPVCArtifacts)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Deleting the artifacts to kubernetes cluster
