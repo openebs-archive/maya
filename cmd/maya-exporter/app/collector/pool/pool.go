@@ -47,7 +47,7 @@ func (p *pool) GetInitStatus(timeout time.Duration) {
 			continue
 		}
 		str := string(stdout)
-		if !zpool.IsAvailable(str) {
+		if zpool.IsNotAvailable(str) {
 			glog.Warning("No pool available, pool must be creating, retry after 3s")
 			time.Sleep(3 * time.Second)
 			continue
@@ -63,6 +63,8 @@ func (p *pool) collectors() []prometheus.Collector {
 		p.size,
 		p.status,
 		p.syncCount,
+		p.readCount,
+		p.writeCount,
 		p.readBytes,
 		p.writeBytes,
 		p.syncLatency,
@@ -104,6 +106,8 @@ func (p *pool) zpoolGaugeVec() []prometheus.Gauge {
 func (p *pool) zvolGaugeVec() []*prometheus.GaugeVec {
 	return []*prometheus.GaugeVec{
 		p.syncCount,
+		p.readCount,
+		p.writeCount,
 		p.readBytes,
 		p.writeBytes,
 		p.syncLatency,
@@ -138,27 +142,31 @@ func (p *pool) get() (zvol.Stats, zpool.Stats, error) {
 		zvolStats, zpoolStats  = zvol.Stats{}, zpool.Stats{}
 	)
 
-	stdoutZFS, err = zvol.Run(timeout, runner, "stats")
-	if err != nil {
-		glog.Errorf("Failed to get zfs stats, error: %v, stdout: %v", err)
-		return zvolStats, zpoolStats, err
-	}
-
-	zvolStats, err = zvol.StatsParser(stdoutZFS)
-	if err != nil {
-		glog.Errorln("Failed to parse zfs stats command, error: "+err.Error(), "stdout: "+string(stdoutZFS))
-		return zvolStats, zpoolStats, err
-	}
-
+	glog.V(2).Info("Run zpool list command")
 	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
 		glog.Errorf("Failed to get zpool stats, error: %v, stdout: %v", err)
 		return zvolStats, zpoolStats, err
 	}
 
+	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		glog.Errorln("Failed to parse zpool list command, error: "+err.Error(), "stdout: "+string(stdoutZpool))
+		glog.Errorf("Failed to parse zpool list command, error: %v, stdout: %v", err, string(stdoutZpool))
+		return zvolStats, zpoolStats, err
+	}
+
+	glog.V(2).Info("Run zfs stats command")
+	stdoutZFS, err = zvol.Run(timeout, runner, "stats")
+	if err != nil {
+		glog.Errorf("Failed to get zfs stats, error: %v, stdout: %v", err)
+		return zvolStats, zpoolStats, err
+	}
+
+	glog.V(2).Infof("Parse stdout of zfs stats command, got stdout: %v", string(stdoutZFS))
+	zvolStats, err = zvol.StatsParser(stdoutZFS)
+	if err != nil {
+		glog.Errorf("Failed to parse zfs stats command, error: %v, stdout: %v", err, string(stdoutZFS))
 		return zvolStats, zpoolStats, err
 	}
 
@@ -175,9 +183,10 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 
+	glog.V(2).Infof("Got zfs stats: %#v and zpool stats: %#v", zvolStats, zpoolStats)
 	poolStats.parse(zpoolStats, p)
-	p.setZVolStats(zvolStats)
 	p.setZPoolStats(poolStats)
+	p.setZVolStats(zvolStats)
 	for _, col := range p.collectors() {
 		col.Collect(ch)
 	}

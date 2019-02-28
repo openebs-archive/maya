@@ -55,9 +55,9 @@ func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, err
 	return status, nil
 }
 
-// IsAvailable checks whether any pool is availble or not.
-func IsAvailable(str string) bool {
-	return !strings.Contains(str, string(NoPoolAvailable))
+// IsNotAvailable checks whether any pool is availble or not.
+func IsNotAvailable(str string) bool {
+	return strings.Contains(str, string(NoPoolAvailable))
 }
 
 // ListParser parses output of zpool list -Hp
@@ -66,7 +66,7 @@ func IsAvailable(str string) bool {
 // cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	10670309376	716288	10669593088	-	0	0	1.00 ONLINE	-
 func ListParser(output []byte) (Stats, error) {
 	str := string(output)
-	if !IsAvailable(str) {
+	if IsNotAvailable(str) {
 		return Stats{}, errors.New(string(NoPoolAvailable))
 	}
 	stats := strings.Fields(string(output))

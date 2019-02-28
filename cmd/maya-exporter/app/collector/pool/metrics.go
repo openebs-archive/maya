@@ -11,6 +11,8 @@ import (
 type metrics struct {
 	readBytes  *prometheus.GaugeVec
 	writeBytes *prometheus.GaugeVec
+	readCount  *prometheus.GaugeVec
+	writeCount *prometheus.GaugeVec
 
 	syncCount   *prometheus.GaugeVec
 	syncLatency *prometheus.GaugeVec
@@ -94,6 +96,24 @@ func Metrics() metrics {
 				Namespace: "openebs",
 				Name:      "total_write_bytes",
 				Help:      "Total write in bytes",
+			},
+			[]string{"vol", "pool"},
+		),
+
+		readCount: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "total_read_count",
+				Help:      "Total read io count",
+			},
+			[]string{"vol", "pool"},
+		),
+
+		writeCount: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "total_write_count",
+				Help:      "Total write io count",
 			},
 			[]string{"vol", "pool"},
 		),

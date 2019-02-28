@@ -66,6 +66,8 @@ type Volume struct {
 	RebuildStatus ZVolRebuildStatus `json:"rebuildStatus"` // RebuildStatus of volume
 
 	SyncCount   float64 `json:"syncCount"`   // Total Sync processed on this volume
+	ReadCount   float64 `json:"readCount"`   // Total Reads
+	WriteCount  float64 `json:"writeCount"`  // Total Writes
 	ReadBytes   float64 `json:"readByte"`    // Total Reads in bytes
 	WriteBytes  float64 `json:"writeByte"`   // Total Writes in bytes
 	SyncLatency float64 `json:"syncLatency"` // Latency involved in processing sync io's
@@ -95,19 +97,22 @@ func StatsParser(output []byte) (Stats, error) {
 	if err := json.NewDecoder(bytes.NewReader(output)).Decode(&stats); err != nil {
 		return stats, err
 	}
-	if !isPresent(stats.Volumes) {
+	if isNotPresent(stats.Volumes) {
 		return stats, errors.New("Got empty pool/volume name")
 	}
 	return stats, nil
 }
 
-func isPresent(vol []Volume) bool {
+func isNotPresent(vol []Volume) bool {
+	if len(vol) == 0 {
+		return true
+	}
 	for _, v := range vol {
 		if v.Name == "" {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // StatsList returns the list of stats
@@ -116,6 +121,8 @@ func isPresent(vol []Volume) bool {
 func StatsList(v Volume) []float64 {
 	return []float64{
 		v.SyncCount,
+		v.ReadCount,
+		v.WriteCount,
 		v.ReadBytes,
 		v.WriteBytes,
 		v.SyncLatency,
