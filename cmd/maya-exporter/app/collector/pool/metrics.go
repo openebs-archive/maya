@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/exporter/v1alpha1/zpool"
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -47,6 +47,9 @@ type statsFloat64 struct {
 	usedCapacityPercent float64
 }
 
+// List returns list of type float64 of various stats
+// TODO: Please donot change the order, add the new stats
+// at the end of the list.
 func (s *statsFloat64) List() []float64 {
 	return []float64{
 		s.size,
@@ -55,14 +58,6 @@ func (s *statsFloat64) List() []float64 {
 		s.free,
 		s.usedCapacityPercent,
 	}
-}
-
-func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
-	s.size = parseFloat64(stats.Size, &p.metrics)
-	s.used = parseFloat64(stats.Used, &p.metrics)
-	s.free = parseFloat64(stats.Free, &p.metrics)
-	s.status = zpool.Status[stats.Status]
-	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
 }
 
 func parseFloat64(e string, m *metrics) float64 {
@@ -74,6 +69,15 @@ func parseFloat64(e string, m *metrics) float64 {
 	return num
 }
 
+func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
+	s.size = parseFloat64(stats.Size, &p.metrics)
+	s.used = parseFloat64(stats.Used, &p.metrics)
+	s.free = parseFloat64(stats.Free, &p.metrics)
+	s.status = zpool.Status[stats.Status]
+	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
+}
+
+// Metrics initializes fields of the metrics and returns its instance
 func Metrics() metrics {
 	return metrics{
 		readBytes: prometheus.NewGaugeVec(

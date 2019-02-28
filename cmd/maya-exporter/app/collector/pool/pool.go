@@ -2,28 +2,33 @@ package pool
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/exporter/v1alpha1/zfs"
-	"github.com/openebs/maya/pkg/exporter/v1alpha1/zpool"
 	"github.com/openebs/maya/pkg/util"
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
+	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // pool implements prometheus.Collector interface
 type pool struct {
+	sync.Mutex
 	metrics
 }
 
 var (
-	Runner util.Runner
+	// runner variable is used for executing binaries
+	runner util.Runner
 )
 
+// InitVar initialize runner variable
 func InitVar() {
-	Runner = util.RealRunner{}
+	runner = util.RealRunner{}
 }
 
+// New returns new instance of pool
 func New() *pool {
 	return &pool{
 		metrics: Metrics(),
@@ -32,15 +37,22 @@ func New() *pool {
 
 // GetInitStatus run zpool binary to verify whether zpool container
 // has started.
-func (p *pool) GetInitStatus() {
+func (p *pool) GetInitStatus(timeout time.Duration) {
 
 	for {
-		_, err := Runner.RunCombinedOutput("zpool", "status")
+		stdout, err := zpool.Run(timeout, runner, "status")
 		if err != nil {
-			glog.Warningf("Failed to get zpool status, error: %v, retry after 2s", err)
+			glog.Warningf("Failed to get zpool status, error: %v, pool container may be initializing,  retry after 2s", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
+		str := string(stdout)
+		if !zpool.IsAvailable(str) {
+			glog.Warning("No pool available, pool must be creating, retry after 3s")
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		glog.Info("\n", string(stdout))
 		break
 	}
 }
@@ -71,6 +83,10 @@ func (p *pool) collectors() []prometheus.Collector {
 	}
 }
 
+// zpoolGaugeVec returns list of Gauge vectors (prometheus's type)
+// related to zpool in which values will be set.
+// NOTE: Please donot edit the order, add new metrics at the end of
+// the list
 func (p *pool) zpoolGaugeVec() []prometheus.Gauge {
 	return []prometheus.Gauge{
 		p.size,
@@ -81,7 +97,11 @@ func (p *pool) zpoolGaugeVec() []prometheus.Gauge {
 	}
 }
 
-func (p *pool) zfsGaugeVec() []*prometheus.GaugeVec {
+// zfsGaugeVec returns list of zfs Gauge vectors (prometheus's type)
+// in which values will be set.
+// NOTE: Please donot edit the order, add new metrics at the end
+// of the list
+func (p *pool) zvolGaugeVec() []*prometheus.GaugeVec {
 	return []*prometheus.GaugeVec{
 		p.syncCount,
 		p.readBytes,
@@ -100,59 +120,63 @@ func (p *pool) zfsGaugeVec() []*prometheus.GaugeVec {
 	}
 }
 
+// Describe is implementation of Describe method of prometheus.Collector
+// interface.
 func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 	for _, col := range p.collectors() {
 		col.Describe(ch)
 	}
 }
 
-func (p *pool) get() (zfs.Stats, zpool.Stats, error) {
+func (p *pool) get() (zvol.Stats, zpool.Stats, error) {
+	p.Lock()
+	defer p.Unlock()
 	var (
 		err                    error
-		zfsStats               = zfs.Stats{}
-		zpoolStats             = zpool.Stats{}
 		stdoutZFS, stdoutZpool []byte
+		timeout                = 5 * time.Second
+		zvolStats, zpoolStats  = zvol.Stats{}, zpool.Stats{}
 	)
 
-	stdoutZFS, err = zfs.Run(Runner, "stats")
+	stdoutZFS, err = zvol.Run(timeout, runner, "stats")
 	if err != nil {
-		glog.Errorf("Failed to get zfs stats, error: %v", err)
-		return zfs.Stats{}, zpool.Stats{}, err
+		glog.Errorf("Failed to get zfs stats, error: %v, stdout: %v", err)
+		return zvolStats, zpoolStats, err
 	}
 
-	zfsStats, err = zfs.StatsParser(stdoutZFS)
+	zvolStats, err = zvol.StatsParser(stdoutZFS)
 	if err != nil {
-		glog.Errorf("Failed to parse zfs stats command, stdout: %#v, error: %v", string(stdoutZFS), err)
-		return zfsStats, zpoolStats, &colErr{err}
+		glog.Errorln("Failed to parse zfs stats command, error: "+err.Error(), "stdout: "+string(stdoutZFS))
+		return zvolStats, zpoolStats, err
 	}
 
-	stdoutZpool, err = zpool.Run(Runner, "list", "-Hp")
+	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
-		glog.Errorf("Failed to get zpool stats, error: %v", err)
-		return zfsStats, zpoolStats, err
+		glog.Errorf("Failed to get zpool stats, error: %v, stdout: %v", err)
+		return zvolStats, zpoolStats, err
 	}
 
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		glog.Errorf("Failed to parse zpool list command, stdout: %#v, error: %v", string(stdoutZpool), err)
-		return zfsStats, zpoolStats, &colErr{err}
+		glog.Errorln("Failed to parse zpool list command, error: "+err.Error(), "stdout: "+string(stdoutZpool))
+		return zvolStats, zpoolStats, err
 	}
 
-	return zfsStats, zpoolStats, nil
-
+	return zvolStats, zpoolStats, nil
 }
 
+// Collect is implementation of prometheus's prometheus.Collector interface
 func (p *pool) Collect(ch chan<- prometheus.Metric) {
 
 	poolStats := statsFloat64{}
-	zfsStats, zpoolStats, err := p.get()
+	zvolStats, zpoolStats, err := p.get()
 	if err != nil {
 		p.incErrorCounter(err)
 		return
 	}
 
 	poolStats.parse(zpoolStats, p)
-	p.setZFSStats(zfsStats)
+	p.setZVolStats(zvolStats)
 	p.setZPoolStats(poolStats)
 	for _, col := range p.collectors() {
 		col.Collect(ch)
@@ -160,9 +184,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 }
 
 func (p *pool) incErrorCounter(err error) {
-	if _, ok := err.(*colErr); ok {
-		p.commandErrorCounter.Inc()
-	}
+	p.commandErrorCounter.Inc()
 }
 
 func (p *pool) setZPoolStats(stats statsFloat64) {
@@ -172,11 +194,11 @@ func (p *pool) setZPoolStats(stats statsFloat64) {
 	}
 }
 
-func (p *pool) setZFSStats(stats zfs.Stats) {
+func (p *pool) setZVolStats(stats zvol.Stats) {
 	for _, vol := range stats.Volumes {
 		poolName, volname := split(vol.Name)
-		items := zfs.StatsList(vol)
-		for index, col := range p.zfsGaugeVec() {
+		items := zvol.StatsList(vol)
+		for index, col := range p.zvolGaugeVec() {
 			col.WithLabelValues(volname, poolName).Set(items[index])
 		}
 	}

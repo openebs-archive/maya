@@ -4,6 +4,7 @@ import (
 	"errors"
 	goflag "flag"
 	"net/url"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
@@ -144,11 +145,15 @@ func (o *VolumeExporterOptions) RegisterCstor() {
 	return
 }
 
-// RegisterPool...
+// RegisterPool registers pool collector which collects
+// pool level metrics
 func (o *VolumeExporterOptions) RegisterPool() {
 	pool.InitVar()
 	p := pool.New()
-	p.GetInitStatus()
+
+	// Blocking call with retry timeout of 2s and context timeout of 5 sec,
+	// pool container may be starting.
+	p.GetInitStatus(5 * time.Second)
 	prometheus.MustRegister(p)
 	glog.Info("Registered maya exporter for cstor")
 	return
