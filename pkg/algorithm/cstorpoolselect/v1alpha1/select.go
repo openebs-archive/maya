@@ -16,6 +16,7 @@ type labelKey string
 const (
 	preferReplicaAntiAffinityLabel labelKey = "openebs.io/preferred-replica-anti-affinity"
 	replicaAntiAffinityLabel       labelKey = "openebs.io/replica-anti-affinity"
+	cstorPoolUIDLabel              labelKey = "cstorpool.openebs.io/uid"
 )
 
 // cvrListFn abstracts fetching of a list of cstor

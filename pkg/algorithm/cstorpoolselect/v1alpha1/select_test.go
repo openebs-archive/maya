@@ -9,9 +9,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	cstorPoolUIDLabelKey string = "cstorpool.openebs.io/uid"
-)
+func fakeCVRListOk(uids ...string) cvrListFn {
+	return func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+		l := &apis.CStorVolumeReplicaList{}
+		for _, uid := range uids {
+			l.Items = append(l.Items,
+				apis.CStorVolumeReplica{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							string(cstorPoolUIDLabel): uid,
+						},
+					},
+				},
+			)
+		}
+		return l, nil
+	}
+}
+
+func fakeCVRListErr() cvrListFn {
+	return func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+		return nil, errors.New("fake error")
+	}
+}
 
 func TestPreferAntiAffinityLabel(t *testing.T) {
 	tests := map[string]struct {
@@ -135,13 +155,47 @@ func TestNewSelection(t *testing.T) {
 		expectedUIDs, expectedBuildOptions                 int
 		UIDs, preferAntiAffinityLabels, AntiAffinityLabels []string
 	}{
-		"Test 1": {1, 2, []string{"uid1"}, []string{"PAlabel1"}, []string{"Alabel1"}},
-		"Test 2": {2, 3, []string{"uid1", "uid2"}, []string{"PAlabel1", "PAlabel2"}, []string{"Alabel1"}},
-		"Test 3": {3, 3, []string{"uid1", "uid2", "uid3"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2"}},
-		"Test 4": {4, 4, []string{"uid1", "uid2", "uid3", "uid4"}, []string{"PAlabel1", "PAlabel2", "PAlabel3"}, []string{"Alabel1"}},
-		"Test 5": {5, 4, []string{"uid1", "uid2", "uid3", "uid4", "uid5"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2", "Alabel3"}},
-		"Test 6": {6, 5, []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6"}, []string{"PAlabel1", "PAlabel2", "PAlabel3", "PAlabel4"}, []string{"Alabel1"}},
-		"Test 7": {7, 5, []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6", "uid7"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2", "Alabel3", "Alabel4"}},
+		"Test 1": {
+			expectedUIDs: 1, expectedBuildOptions: 2,
+			UIDs:                     []string{"uid1"},
+			preferAntiAffinityLabels: []string{"PAlabel1"},
+			AntiAffinityLabels:       []string{"Alabel1"},
+		},
+		"Test 2": {
+			expectedUIDs: 2, expectedBuildOptions: 3,
+			UIDs:                     []string{"uid1", "uid2"},
+			preferAntiAffinityLabels: []string{"PAlabel1", "PAlabel2"},
+			AntiAffinityLabels:       []string{"Alabel1"},
+		},
+		"Test 3": {
+			expectedUIDs: 3, expectedBuildOptions: 3,
+			UIDs:                     []string{"uid1", "uid2", "uid3"},
+			preferAntiAffinityLabels: []string{"PAlabel1"},
+			AntiAffinityLabels:       []string{"Alabel1", "Alabel2"},
+		},
+		"Test 4": {
+			expectedUIDs: 4, expectedBuildOptions: 4,
+			UIDs:                     []string{"uid1", "uid2", "uid3", "uid4"},
+			preferAntiAffinityLabels: []string{"PAlabel1", "PAlabel2", "PAlabel3"},
+			AntiAffinityLabels:       []string{"Alabel1"},
+		},
+		"Test 5": {
+			expectedUIDs: 5, expectedBuildOptions: 4,
+			UIDs:                     []string{"uid1", "uid2", "uid3", "uid4", "uid5"},
+			preferAntiAffinityLabels: []string{"PAlabel1"},
+			AntiAffinityLabels:       []string{"Alabel1", "Alabel2", "Alabel3"},
+		},
+		"Test 6": {
+			expectedUIDs: 6, expectedBuildOptions: 5,
+			UIDs:                     []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6"},
+			preferAntiAffinityLabels: []string{"PAlabel1", "PAlabel2", "PAlabel3", "PAlabel4"},
+			AntiAffinityLabels:       []string{"Alabel1"},
+		},
+		"Test 7": {
+			expectedUIDs: 7, expectedBuildOptions: 5,
+			UIDs:                     []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6", "uid7"},
+			preferAntiAffinityLabels: []string{"PAlabel1"},
+			AntiAffinityLabels:       []string{"Alabel1", "Alabel2", "Alabel3", "Alabel4"}},
 	}
 
 	for name, test := range tests {
@@ -168,58 +222,86 @@ func TestNewSelection(t *testing.T) {
 
 func TestAntiAffinityFilter(t *testing.T) {
 	tests := map[string]struct {
-		CVRUid, poolUids, expectedUids []string
-		labelSelector                  string
-		expectError                    bool
+		cvrList                       cvrListFn
+		availablePools, expectedPools []string
+		isError                       bool
 	}{
-		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
-		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
-		"Test 3":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
-		"Test 4":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
-		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
-		"Test 6":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
-		"Test 7":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
-		"Test 8":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
-		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
-		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+		"Test 1": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 1", "uid 2", "uid 3"},
+			isError:        false,
+		},
+		"Test 2": {
+			cvrList:        fakeCVRListOk("uid 4", "uid 2", "uid 7"),
+			availablePools: []string{"uid 6"},
+			expectedPools:  []string{"uid 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			cvrList:        fakeCVRListOk("uid 4", "uid 2", "uid 7"),
+			availablePools: []string{"uid 6"},
+			expectedPools:  []string{"uid 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 3"},
+			isError:        false,
+		},
+		"Test 5": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 3"},
+			isError:        false,
+		},
+		"Test 6": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3"),
+			availablePools: []string{"uid 1", "uid 5", "uid 3"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 1", "uid 2", "uid 3"},
+			isError:        false,
+		},
+		"Test 8": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3"),
+			availablePools: []string{"uid 1", "uid 5", "uid 3"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 9": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3", "uid 5"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3", "uid 5"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeList := &apis.CStorVolumeReplicaList{}
-			for _, uid := range test.CVRUid {
-				fakeList.Items = append(fakeList.Items,
-					apis.CStorVolumeReplica{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								string(replicaAntiAffinityLabel): test.labelSelector,
-								cstorPoolUIDLabelKey:             uid,
-							},
-						},
-					},
-				)
-			}
-
-			var fakeErr error
-			if test.expectError {
-				fakeErr = errors.New("Some fake error")
-			}
-
 			a := antiAffinityLabel{
-				labelSelector: test.labelSelector,
-				cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
-					return fakeList, fakeErr
-				},
+				labelSelector: "should not be empty",
+				cvrList:       test.cvrList,
 			}
-
-			output, err := a.filter(test.poolUids)
-			if test.expectError && err == nil {
+			output, err := a.filter(test.availablePools)
+			if test.isError && err == nil {
 				t.Fatalf("test %q failed: expected error not to be nil", name)
-			} else if !test.expectError && err != nil {
+			} else if !test.isError && err != nil {
 				t.Fatalf("test %q failed: expected error to be nil", name)
-			} else if len(test.expectedUids) != len(output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
-			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			} else if len(test.expectedPools) != len(output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output)
+			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedPools, output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output)
 			}
 		})
 	}
@@ -227,62 +309,112 @@ func TestAntiAffinityFilter(t *testing.T) {
 
 func TestPreferredAntiAffinityFilter(t *testing.T) {
 	tests := map[string]struct {
-		CVRUid, poolUids, expectedUids []string
-		labelSelector                  string
-		expectError                    bool
+		cvrList                       cvrListFn
+		availablePools, expectedPools []string
+		isError                       bool
 	}{
-		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
-		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
-		"Test 3":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1"}, []string{}, "label4", true},
-		"Test 4":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
-		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
-		"Test 6":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
-		"Test 7":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
-		"Test 8":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
-		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
-		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2"}, "label5", false},
-		"Test 11": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
-		"Test 12": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+		"Test 1": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 1", "uid 2", "uid 3"},
+			isError:        false,
+		},
+		"Test 2": {
+			cvrList:        fakeCVRListOk("uid 4", "uid 2", "uid 7"),
+			availablePools: []string{"uid 6"},
+			expectedPools:  []string{"uid 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			cvrList:        fakeCVRListOk("uid 4", "uid 2", "uid 7"),
+			availablePools: []string{"uid 6"},
+			expectedPools:  []string{"uid 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 3"},
+			isError:        false,
+		},
+		"Test 5": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 3"},
+		},
+		"Test 6": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3"),
+			availablePools: []string{"uid 1", "uid 5", "uid 3"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"uid 1", "uid 2", "uid 3"},
+			expectedPools:  []string{"uid 1", "uid 2", "uid 3"},
+			isError:        false,
+		},
+		"Test 8": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3"),
+			availablePools: []string{"uid 1", "uid 5", "uid 3"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 9": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3", "uid 5"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1", "uid 2", "uid 3", "uid 5"},
+			expectedPools:  []string{"uid 5"},
+			isError:        false,
+		},
+		"Test 11": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"uid 1", "uid 2", "uid 3", "uid 5"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+		"Test 12": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"uid 1"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+		"Test 13": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1"},
+			expectedPools:  []string{"uid 1"},
+			isError:        false,
+		},
+		"Test 14": {
+			cvrList:        fakeCVRListOk("uid 1", "uid 2", "uid 3", "uid 4"),
+			availablePools: []string{"uid 1", "uid 2"},
+			expectedPools:  []string{"uid 1", "uid 2"},
+			isError:        false,
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeList := &apis.CStorVolumeReplicaList{}
-			for _, uid := range test.CVRUid {
-				fakeList.Items = append(fakeList.Items,
-					apis.CStorVolumeReplica{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								string(replicaAntiAffinityLabel): test.labelSelector,
-								cstorPoolUIDLabelKey:             uid,
-							},
-						},
-					},
-				)
-			}
-
-			var fakeErr error
-			if test.expectError {
-				fakeErr = errors.New("Some fake error")
-			}
-
 			a := preferAntiAffinityLabel{
 				antiAffinityLabel: antiAffinityLabel{
-					labelSelector: test.labelSelector,
-					cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
-						return fakeList, fakeErr
-					},
+					labelSelector: "should not be empty",
+					cvrList:       test.cvrList,
 				},
 			}
 
-			output, err := a.filter(test.poolUids)
-			if test.expectError && err == nil {
+			output, err := a.filter(test.availablePools)
+			if test.isError && err == nil {
 				t.Fatalf("test %q failed: expected error not to be nil", name)
-			} else if !test.expectError && err != nil {
+			} else if !test.isError && err != nil {
 				t.Fatalf("test %q failed: expected error to be nil", name)
-			} else if len(test.expectedUids) != len(output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
-			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			} else if len(test.expectedPools) != len(output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output)
+			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedPools, output) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output)
 			}
 		})
 	}
@@ -303,10 +435,7 @@ func TestIsPolicy(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		s := &selection{}
-		for _, p := range test.policies {
-			s.policies = append(s.policies, p)
-		}
+		s := &selection{policies: test.policies}
 
 		output := s.isPolicy(test.expectpolicy)
 		if output != test.isPresent {
