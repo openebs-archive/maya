@@ -9,6 +9,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
+// ZpoolStatus is pool's status
 type ZpoolStatus string
 
 const (
@@ -54,16 +55,12 @@ func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, err
 	return status, nil
 }
 
+// IsAvailable checks whether any pool is availble or not.
 func IsAvailable(str string) bool {
 	return !strings.Contains(str, string(NoPoolAvailable))
 }
 
-// List parser parses output of zpool list -Hp
-// Command: # zpool list
-// Output:
-// NAME                                        SIZE    ALLOC    FREE    EXPANDSZ             FRAG      CAP  DEDUP        HEALTH     ALTROOT
-// cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a  9.94G   713K     9.94G   -                    0%        0%   1.00x        ONLINE     -
-
+// ListParser parses output of zpool list -Hp
 // Command: zpool list -Hp
 // Output:
 // cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	10670309376	716288	10669593088	-	0	0	1.00 ONLINE	-

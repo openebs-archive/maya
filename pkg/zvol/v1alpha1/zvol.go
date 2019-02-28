@@ -9,6 +9,12 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
+// ZVolStatus is zvol's status
+type ZVolStatus string
+
+// ZVolRebuildingStatus is zvol's rebuilding status
+type ZVolRebuildStatus string
+
 const (
 	// Binary represents zfs binary
 	Binary                      = "zfs"
@@ -26,18 +32,15 @@ const (
 	RebuildStatusActiveDataSetInProgress ZVolRebuildStatus = "ACTIVE DATASET REBUILD INPROGRESS"
 )
 
-type ZVolStatus string
-type ZVolRebuildStatus string
-
 var (
-	// ZVolStatus is mapping of the status with values
+	// Status is mapping of the  zvol status with values
 	Status = map[ZVolStatus]float64{
 		StatusOffline:    0,
 		StatusHealthy:    1,
 		StatusDegraded:   2,
 		StatusRebuilding: 3,
 	}
-	// ZVolRebuildStatus is mapping of the status with values
+	// RebuildingStatus is mapping of rebuilding status of zvol with values
 	RebuildingStatus = map[ZVolRebuildStatus]float64{
 		RebuildStatusInit:                    0,
 		RebuildStatusDone:                    1,

@@ -196,15 +196,11 @@ func (p *pool) setZPoolStats(stats statsFloat64) {
 
 func (p *pool) setZVolStats(stats zvol.Stats) {
 	for _, vol := range stats.Volumes {
-		poolName, volname := split(vol.Name)
+		s := strings.Split(vol.Name, "/")
+		poolName, volname := s[0], s[1]
 		items := zvol.StatsList(vol)
 		for index, col := range p.zvolGaugeVec() {
 			col.WithLabelValues(volname, poolName).Set(items[index])
 		}
 	}
-}
-
-func split(str string) (string, string) {
-	newStr := strings.Split(str, "/")
-	return newStr[0], newStr[1]
 }

@@ -48,7 +48,7 @@ type statsFloat64 struct {
 }
 
 // List returns list of type float64 of various stats
-// TODO: Please donot change the order, add the new stats
+// NOTE: Please donot change the order, add the new stats
 // at the end of the list.
 func (s *statsFloat64) List() []float64 {
 	return []float64{
