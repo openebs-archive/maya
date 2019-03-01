@@ -31,6 +31,10 @@ spec:
   # communicates with cstor iscsi target
   - name: CstorPoolImage
     value: {{env "OPENEBS_IO_CSTOR_POOL_IMAGE" | default "openebs/cstor-pool:latest"}}
+  # CstorPoolExporterImage is the container image that executes zpool and zfs binary
+  # to export various volume and pool metrics
+  - name: CstorPoolExporterImage
+    value: {{env "OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE" | default "openebs/m-exporter:latest"}}
   # CstorPoolMgmtImage runs cstor pool and cstor volume replica related CRUD
   # operations
   - name: CstorPoolMgmtImage
@@ -53,7 +57,7 @@ spec:
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   # PoolResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from PoolResourceLimits or the default requests set in the cluster. 
+  # from PoolResourceLimits or the default requests set in the cluster.
   - name: PoolResourceRequests
     value: "none"
   # PoolResourceLimits allow you to set the limits on memory and cpu for pool pods
@@ -197,6 +201,11 @@ spec:
       template:
         metadata:
           labels:
+            monitoring: pool_exporter_prometheus
+          annotations:
+            prometheus.io/path: /metrics
+            prometheus.io/port: "9500"
+            prometheus.io/scrape: "true"
             app: cstor-pool
             openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         spec:
@@ -272,9 +281,6 @@ spec:
                 {{ $rKey }}: {{ $rLimit }}
               {{- end }}
               {{- end }}
-            ports:
-            - containerPort: 9500
-              protocol: TCP
             securityContext:
               privileged: true
             volumeMounts:
@@ -300,6 +306,37 @@ spec:
                   fieldPath: metadata.namespace
             - name: RESYNC_INTERVAL
               value: {{ .Config.ResyncInterval.value }}
+          - name: maya-exporter
+            image: {{ .Config.CstorPoolExporterImage.value }}
+            resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
+              limits:
+              {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+            command:
+			- maya-exporter
+            args:
+            - "-e=pool"
+            ports:
+            - containerPort: 9500
+              protocol: TCP
+            volumeMounts:
+            - mountPath: /dev
+              name: device
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: {{ .Config.SparseDir.value }}
+              name: sparse
+            - mountPath: /run/udev
+              name: udev
           volumes:
           - name: device
             hostPath:
