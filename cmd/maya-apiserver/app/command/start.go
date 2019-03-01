@@ -38,7 +38,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 
-	"github.com/openebs/maya/cmd/maya-apiserver/spc-watcher"
+	spc "github.com/openebs/maya/cmd/maya-apiserver/spc-watcher"
 	"github.com/spf13/cobra"
 )
 
@@ -182,6 +182,11 @@ func Run(cmd *cobra.Command, c *CmdStartOptions) error {
 			glog.Errorf("Failed to start storage pool controller: %s", err.Error())
 		}
 	}()
+
+	// start webhook controller
+	//go func() {
+	//	webhook.Start()
+	//}()
 
 	if env.Truthy(env.OpenEBSEnableAnalytics) {
 		usage.New().Build().InstallBuilder(true).Send()
