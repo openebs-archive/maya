@@ -102,7 +102,7 @@ func (p *pool) get() (zpool.Stats, error) {
 	glog.V(2).Info("Run zpool list command")
 	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
-		glog.Errorf("Failed to get zpool stats, error: %v, stdout: %v", err)
+		glog.Errorf("Failed to get zpool stats, error: %v", err)
 		return zpoolStats, err
 	}
 

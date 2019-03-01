@@ -103,7 +103,7 @@ func (v *volume) get() (zvol.Stats, error) {
 	glog.V(2).Info("Run zfs stats command")
 	stdout, err = zvol.Run(timeout, runner, "stats")
 	if err != nil {
-		glog.Errorf("Failed to get zfs stats, error: %v, stdout: %v", err, string(stdout))
+		glog.Errorf("Failed to get zfs stats, error: %v", err)
 		return stats, err
 	}
 
