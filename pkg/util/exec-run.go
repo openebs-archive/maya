@@ -87,6 +87,6 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 }
 
 // RunCommandWithTimeoutContext is to mock Real runner exec.
-func (r TestRunner) RunCommandWithTimeoutContext(command string, args ...string) ([]byte, error) {
+func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
 	return []byte("success"), nil
 }
