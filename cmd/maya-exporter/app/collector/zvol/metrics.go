@@ -160,7 +160,7 @@ func newMetrics() metrics {
 				Name:      "write_latency",
 				Help:      "Write latency on replica",
 			},
-			[]string{"volName", "castype"},
+			[]string{"vol", "pool"},
 		),
 
 		volumeStatus: prometheus.NewGaugeVec(
