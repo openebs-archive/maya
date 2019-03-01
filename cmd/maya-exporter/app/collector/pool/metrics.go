@@ -9,36 +9,14 @@ import (
 )
 
 type metrics struct {
-	readBytes  *prometheus.GaugeVec
-	writeBytes *prometheus.GaugeVec
-	readCount  *prometheus.GaugeVec
-	writeCount *prometheus.GaugeVec
-
-	syncCount   *prometheus.GaugeVec
-	syncLatency *prometheus.GaugeVec
-
-	readLatency  *prometheus.GaugeVec
-	writeLatency *prometheus.GaugeVec
-
-	volumeStatus *prometheus.GaugeVec
-
-	inflightIOCount   *prometheus.GaugeVec
-	dispatchedIOCount *prometheus.GaugeVec
-
-	rebuildCount       *prometheus.GaugeVec
-	rebuildBytes       *prometheus.GaugeVec
-	rebuildStatus      *prometheus.GaugeVec
-	rebuildDoneCount   *prometheus.GaugeVec
-	rebuildFailedCount *prometheus.GaugeVec
-
 	size                prometheus.Gauge
 	status              prometheus.Gauge
 	usedCapacity        prometheus.Gauge
 	freeCapacity        prometheus.Gauge
 	usedCapacityPercent prometheus.Gauge
 
-	parseErrorCounter   prometheus.Gauge
-	commandErrorCounter prometheus.Gauge
+	parseErrorCounter        prometheus.Gauge
+	zpoolCommandErrorCounter prometheus.Gauge
 }
 
 type statsFloat64 struct {
@@ -79,153 +57,9 @@ func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
 	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
 }
 
-// Metrics initializes fields of the metrics and returns its instance
-func Metrics() metrics {
+// newMetrics initializes fields of the metrics and returns its instance
+func newMetrics() metrics {
 	return metrics{
-		readBytes: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_read_bytes",
-				Help:      "Total read in bytes",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		writeBytes: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_write_bytes",
-				Help:      "Total write in bytes",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		readCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_read_count",
-				Help:      "Total read io count",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		writeCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_write_count",
-				Help:      "Total write io count",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		syncCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "sync_count",
-				Help:      "Total no of sync on replica",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		syncLatency: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "sync_latency",
-				Help:      "Sync latency on replica",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		readLatency: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "read_latency",
-				Help:      "Read latency on replica",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		writeLatency: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "write_latency",
-				Help:      "Write latency on replica",
-			},
-			[]string{"volName", "castype"},
-		),
-
-		volumeStatus: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "volume_status",
-				Help:      `Status of volume (0, 1, 2, 3) = {"Offline", "Healthy", "Degraded", "Rebuilding"}`,
-			},
-			[]string{"vol", "pool"},
-		),
-
-		inflightIOCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "inflight_io_count",
-				Help:      "Inflight IO's count",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		dispatchedIOCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "dispatched_io_count",
-				Help:      "Dispatched IO's count",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		rebuildCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "rebuild_count",
-				Help:      "Rebuild count",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		rebuildBytes: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "rebuild_bytes",
-				Help:      "Rebuild bytes",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		rebuildStatus: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "rebuild_status",
-				Help:      `Status of rebuild on replica (0, 1, 2, 3, 4, 5, 6)= {"INIT", "DONE", "SNAP REBUILD INPROGRESS", "ACTIVE DATASET REBUILD INPROGRESS", "ERRORED", "FAILED", "UNKNOWN"}`,
-			},
-			[]string{"vol", "pool"},
-		),
-
-		rebuildDoneCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_rebuild_done",
-				Help:      "Total no of rebuild done on replica",
-			},
-			[]string{"vol", "pool"},
-		),
-
-		rebuildFailedCount: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "total_failed_rebuild",
-				Help:      "Total no of failed rebuilds on replica",
-			},
-			[]string{"vol", "pool"},
-		),
-
 		size: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
@@ -274,11 +108,11 @@ func Metrics() metrics {
 			},
 		),
 
-		commandErrorCounter: prometheus.NewGauge(
+		zpoolCommandErrorCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "command_error",
-				Help:      "Command error counter (zfs/zpool)",
+				Name:      "zpool_command_error",
+				Help:      "zpool command error counter",
 			},
 		),
 	}

@@ -92,9 +92,9 @@ func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, err
 }
 
 // StatsParser parses the json response of zfs stats command.
-func StatsParser(output []byte) (Stats, error) {
+func StatsParser(stdout []byte) (Stats, error) {
 	var stats = Stats{}
-	if err := json.NewDecoder(bytes.NewReader(output)).Decode(&stats); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(stdout)).Decode(&stats); err != nil {
 		return stats, err
 	}
 	if isNotPresent(stats.Volumes) {

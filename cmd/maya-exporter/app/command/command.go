@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector/pool"
+	"github.com/openebs/maya/cmd/maya-exporter/app/collector/zvol"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
@@ -149,12 +150,18 @@ func (o *VolumeExporterOptions) RegisterCstor() {
 // pool level metrics
 func (o *VolumeExporterOptions) RegisterPool() {
 	pool.InitVar()
+	zvol.InitVar()
 	p := pool.New()
+	z := zvol.New()
+	l := zvol.NewVolumeList()
 
 	// Blocking call with retry timeout of 2s and context timeout of 5 sec,
 	// pool container may be starting.
 	p.GetInitStatus(5 * time.Second)
 	prometheus.MustRegister(p)
+	prometheus.MustRegister(z)
+	prometheus.MustRegister(l)
 	glog.Info("Registered maya exporter for cstor")
+
 	return
 }

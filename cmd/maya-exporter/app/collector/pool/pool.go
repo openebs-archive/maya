@@ -1,14 +1,12 @@
 package pool
 
 import (
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
-	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -31,7 +29,7 @@ func InitVar() {
 // New returns new instance of pool
 func New() *pool {
 	return &pool{
-		metrics: Metrics(),
+		metrics: newMetrics(),
 	}
 }
 
@@ -62,65 +60,24 @@ func (p *pool) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
 		p.size,
 		p.status,
-		p.syncCount,
-		p.readCount,
-		p.writeCount,
-		p.readBytes,
-		p.writeBytes,
-		p.syncLatency,
-		p.readLatency,
-		p.writeLatency,
 		p.usedCapacity,
 		p.freeCapacity,
-		p.rebuildCount,
-		p.rebuildBytes,
-		p.volumeStatus,
-		p.rebuildStatus,
-		p.inflightIOCount,
-		p.rebuildDoneCount,
-		p.dispatchedIOCount,
-		p.rebuildFailedCount,
 		p.usedCapacityPercent,
-		p.commandErrorCounter,
+		p.zpoolCommandErrorCounter,
 	}
 }
 
-// zpoolGaugeVec returns list of Gauge vectors (prometheus's type)
+// gaugeVec returns list of Gauge vectors (prometheus's type)
 // related to zpool in which values will be set.
 // NOTE: Please donot edit the order, add new metrics at the end of
 // the list
-func (p *pool) zpoolGaugeVec() []prometheus.Gauge {
+func (p *pool) gaugeVec() []prometheus.Gauge {
 	return []prometheus.Gauge{
 		p.size,
 		p.status,
 		p.usedCapacity,
 		p.freeCapacity,
 		p.usedCapacityPercent,
-	}
-}
-
-// zfsGaugeVec returns list of zfs Gauge vectors (prometheus's type)
-// in which values will be set.
-// NOTE: Please donot edit the order, add new metrics at the end
-// of the list
-func (p *pool) zvolGaugeVec() []*prometheus.GaugeVec {
-	return []*prometheus.GaugeVec{
-		p.syncCount,
-		p.readCount,
-		p.writeCount,
-		p.readBytes,
-		p.writeBytes,
-		p.syncLatency,
-		p.readLatency,
-		p.writeLatency,
-		p.rebuildCount,
-		p.rebuildBytes,
-		p.inflightIOCount,
-		p.rebuildDoneCount,
-		p.dispatchedIOCount,
-		p.rebuildFailedCount,
-		p.volumeStatus,
-		p.rebuildStatus,
 	}
 }
 
@@ -132,84 +89,58 @@ func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (p *pool) get() (zvol.Stats, zpool.Stats, error) {
+func (p *pool) get() (zpool.Stats, error) {
 	p.Lock()
 	defer p.Unlock()
 	var (
-		err                    error
-		stdoutZFS, stdoutZpool []byte
-		timeout                = 5 * time.Second
-		zvolStats, zpoolStats  = zvol.Stats{}, zpool.Stats{}
+		err         error
+		stdoutZpool []byte
+		timeout     = 5 * time.Second
+		zpoolStats  = zpool.Stats{}
 	)
 
 	glog.V(2).Info("Run zpool list command")
 	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
 		glog.Errorf("Failed to get zpool stats, error: %v, stdout: %v", err)
-		return zvolStats, zpoolStats, err
+		return zpoolStats, err
 	}
 
 	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
 		glog.Errorf("Failed to parse zpool list command, error: %v, stdout: %v", err, string(stdoutZpool))
-		return zvolStats, zpoolStats, err
+		return zpoolStats, err
 	}
 
-	glog.V(2).Info("Run zfs stats command")
-	stdoutZFS, err = zvol.Run(timeout, runner, "stats")
-	if err != nil {
-		glog.Errorf("Failed to get zfs stats, error: %v, stdout: %v", err)
-		return zvolStats, zpoolStats, err
-	}
-
-	glog.V(2).Infof("Parse stdout of zfs stats command, got stdout: %v", string(stdoutZFS))
-	zvolStats, err = zvol.StatsParser(stdoutZFS)
-	if err != nil {
-		glog.Errorf("Failed to parse zfs stats command, error: %v, stdout: %v", err, string(stdoutZFS))
-		return zvolStats, zpoolStats, err
-	}
-
-	return zvolStats, zpoolStats, nil
+	return zpoolStats, nil
 }
 
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (p *pool) Collect(ch chan<- prometheus.Metric) {
 
 	poolStats := statsFloat64{}
-	zvolStats, zpoolStats, err := p.get()
+	zpoolStats, err := p.get()
 	if err != nil {
 		p.incErrorCounter(err)
 		return
 	}
 
-	glog.V(2).Infof("Got zfs stats: %#v and zpool stats: %#v", zvolStats, zpoolStats)
+	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
 	poolStats.parse(zpoolStats, p)
 	p.setZPoolStats(poolStats)
-	p.setZVolStats(zvolStats)
 	for _, col := range p.collectors() {
 		col.Collect(ch)
 	}
 }
 
 func (p *pool) incErrorCounter(err error) {
-	p.commandErrorCounter.Inc()
+	p.zpoolCommandErrorCounter.Inc()
 }
 
 func (p *pool) setZPoolStats(stats statsFloat64) {
-	for index, col := range p.zpoolGaugeVec() {
+	for index, col := range p.gaugeVec() {
 		items := stats.List()
 		col.Set(items[index])
-	}
-}
-
-func (p *pool) setZVolStats(stats zvol.Stats) {
-	for _, vol := range stats.Volumes {
-		s := strings.Split(vol.Name, "/")
-		poolName, volname := s[0], s[1]
-		items := zvol.StatsList(vol)
-		for index, col := range p.zvolGaugeVec() {
-			col.WithLabelValues(volname, poolName).Set(items[index])
-		}
 	}
 }
