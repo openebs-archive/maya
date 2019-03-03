@@ -430,6 +430,12 @@ func (k *K8sClient) GetOEV1alpha1CV(name string) (*api_oe_v1alpha1.CStorVolume, 
 	return cvOps.Get(name, mach_apis_meta_v1.GetOptions{})
 }
 
+// UpdateOEV1alpha1CV updates a CStorVolume
+func (k *K8sClient) UpdateOEV1alpha1CV(cstorVolume *api_oe_v1alpha1.CStorVolume) (*api_oe_v1alpha1.CStorVolume, error) {
+	cvops := k.oeV1alpha1CVOps()
+	return cvops.Update(cstorVolume)
+}
+
 // CreateOEV1alpha1CSPAsRaw creates a CStorVolume
 func (k *K8sClient) CreateOEV1alpha1CSPAsRaw(v *api_oe_v1alpha1.CStorPool) (result []byte, err error) {
 	csp, err := k.CreateOEV1alpha1CSP(v)
@@ -457,6 +463,11 @@ func (k *K8sClient) CreateOEV1alpha1CVAsRaw(v *api_oe_v1alpha1.CStorVolume) (res
 
 	return json.Marshal(csv)
 }
+
+//func (k *K8sClient) UpdateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
+//	cvops := k.oeV1alpha1CVROps()
+//	return cvops.Update(cvr)
+//}
 
 // CreateOEV1alpha1CVR creates a CStorVolumeReplica
 func (k *K8sClient) CreateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
@@ -568,6 +579,13 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 	pops := k.coreV1PVOps()
 	return pops.Get(name, opts)
 }
+
+// Update takes the representation of a persistentVolume and updates it
+//func (k *K8sClient) PutPV(pv *api_core_v1.PersistentVolume) (*api_core_v1.PersistentVolume, error) {
+//
+//	pops := k.coreV1PVOps()
+//	return pops.Update(pv)
+//}
 
 // GetCoreV1PersistentVolumeAsRaw fetches the K8s PersistentVolume with the
 // provided name

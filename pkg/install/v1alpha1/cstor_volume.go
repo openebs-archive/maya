@@ -186,6 +186,7 @@ spec:
     - cstor-volume-list-listtargetservice-default
     - cstor-volume-list-listtargetpod-default
     - cstor-volume-list-listcstorvolumereplicacr-default
+    - cstor-volume-list-listcstorvolume-default
     - cstor-volume-list-listpv-default
   output: cstor-volume-list-output-default
 ---
@@ -863,8 +864,23 @@ spec:
     kind: CStorVolumeReplica
     action: list
   post: |
-    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},replicaName={@.metadata.name},capacity={@.spec.capacity};{end}" | trim | default "" | splitList ";" -}}
+    {{- $replicaPairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},replicaName={@.metadata.name};{end}" | trim | default "" | splitList ";" -}}
     {{- $replicaPairs | keyMap "volumeList" .ListItems | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-list-listcstorvolume-default
+spec:
+  meta: |
+    runNamespace: {{.Config.RunNamespace.value}}
+    id: listlistcv
+    apiVersion: openebs.io/v1alpha1
+    kind: CStorVolume
+    action: list
+  post: |
+    {{- $volumepairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},capacity={@.spec.capacity};{end}" | trim | default "" | splitList ";" -}}
+    {{- $volumepairs | keyMap "volumeList" .ListItems | noop -}}
 ---
 # runTask to render volume list output
 apiVersion: openebs.io/v1alpha1
@@ -962,6 +978,7 @@ spec:
     {{- .TaskResult.readlistcv.names | notFoundErr "cStor Volume CR not found" | saveIf "readlistcv.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistcv.fsType" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/lun}" | trim | default "0" | int | saveAs "readlistcv.lun" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
 ---
 # runTask to list all replica crs of a volume
 apiVersion: openebs.io/v1alpha1
@@ -982,7 +999,6 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.cstorpool\\.openebs\\.io/hostname}" | trim | saveAs "readlistrep.hostname" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.labels.cstorpool\\.openebs\\.io/name}" | trim | saveAs "readlistrep.poolname" .TaskResult | noop -}}
     {{- .TaskResult.readlistrep.items | notFoundErr "replicas not found" | saveIf "readlistrep.notFoundErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
 ---
 # runTask to list cStor volume target pods
 apiVersion: openebs.io/v1alpha1
@@ -1018,7 +1034,7 @@ spec:
     kind: CASVolume
     apiVersion: v1alpha1
   task: |
-    {{/* We calculate capacity of the volume here. Pickup capacity from cvr */}}
+    {{/* We calculate capacity of the volume here. Pickup capacity from cv */}}
     {{- $capacity := .TaskResult.readlistrep.capacity | default "" | splitList " " | first -}}
     kind: CASVolume
     apiVersion: v1alpha1
@@ -1101,6 +1117,7 @@ spec:
     apiVersion: v1alpha1
     metadata:
       name: {{ .Volume.owner }}
+      namespace: {{ .TaskResult.readlistsvc.derivedNS }}
       labels:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}

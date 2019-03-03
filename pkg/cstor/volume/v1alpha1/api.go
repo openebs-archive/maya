@@ -144,8 +144,9 @@ func ResizeVolume(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alp
 		if errOp != nil {
 			glog.Errorf("Failed to update the size of the file %v", errOp)
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "resize request failed")
 	}
+
 	respstr := "ERR"
 	if nil != sockresp && len(sockresp) > 1 {
 		respstr = sockresp[1]

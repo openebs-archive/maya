@@ -366,7 +366,7 @@ func TestRoundUpStringToGi(t *testing.T) {
 		"G to Gi": {
 			size:           int64(4),
 			unit:           "G",
-			expectedOutput: int64(3),
+			expectedOutput: int64(4),
 			expectedError:  nil,
 		},
 		"Mi to Gi": {

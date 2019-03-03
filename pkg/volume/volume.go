@@ -238,7 +238,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 // Resize updates the size of a CASVolume(cStor)
 func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
-	glog.V(4).Infof("Fetching the details of pvc,pv,sc,casName")
+	glog.V(4).Infof("fetching the details of pvc,pv,sc,casName")
 
 	capacityUnit, err := getString(v.volume.Spec.Capacity)
 	if err != nil {
@@ -259,12 +259,19 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	oldSizeGIB := RoundUpToGi(pv.Spec.Capacity[core_v1.ResourceStorage])
 
 	glog.V(4).Infof("Value of old volume size: %d and requested size: %d in Gi", oldSizeGIB, newSizeGIB)
+
 	// If volume size is already greater than or equal to requested size return
 	if oldSizeGIB >= newSizeGIB {
 		return nil, fmt.Errorf("Volume is already greater than or equal to requested volume size")
+	}
+
+	if string(v.volume.Namespace) != string(pv.Spec.ClaimRef.Namespace) {
+		err = errors.New("")
+		return nil, errors.Wrapf(err, "provided namespace(%s) is not matching with pvc namespace(%s)", v.volume.Namespace, pv.Spec.ClaimRef.Namespace)
 	}
 
 	// sc details
@@ -272,6 +279,7 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	if len(scName) == 0 {
 		scName = pv.Spec.StorageClassName
 	}
+
 	if len(scName) == 0 {
 		return nil, fmt.Errorf("failed to delete volume '%s': missing storage class in PV object", v.volume.Name)
 	}
@@ -328,6 +336,24 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// k8scli used to get the kubeclient in cstorvolume namespace
+	k8scli, err := m_k8s_client.NewK8sClient(string(vol.Namespace))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get the kube client for volume")
+	}
+	cstorvolume, err := k8scli.GetOEV1alpha1CV(string(vol.Name))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get the cstor volume")
+	}
+	// Update the capacity of cstor volume CR
+	cstorvolume.Spec.Capacity = v.volume.Spec.Capacity
+	_, err = k8scli.UpdateOEV1alpha1CV(cstorvolume)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update the cstorvolume\n")
+		//TODO: Is it necessary to revert the size in dataplane
+	}
+
 	return vol, nil
 }
 
