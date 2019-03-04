@@ -47,7 +47,7 @@ func (v *volume) collectors() []prometheus.Collector {
 		v.writeLatency,
 		v.rebuildCount,
 		v.rebuildBytes,
-		v.volumeStatus,
+		v.replicaStatus,
 		v.rebuildStatus,
 		v.inflightIOCount,
 		v.rebuildDoneCount,
@@ -77,7 +77,7 @@ func (v *volume) gaugeVec() []*prometheus.GaugeVec {
 		v.rebuildDoneCount,
 		v.dispatchedIOCount,
 		v.rebuildFailedCount,
-		v.volumeStatus,
+		v.replicaStatus,
 		v.rebuildStatus,
 	}
 }

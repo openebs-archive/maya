@@ -20,7 +20,7 @@ type metrics struct {
 	readLatency  *prometheus.GaugeVec
 	writeLatency *prometheus.GaugeVec
 
-	volumeStatus *prometheus.GaugeVec
+	replicaStatus *prometheus.GaugeVec
 
 	inflightIOCount   *prometheus.GaugeVec
 	dispatchedIOCount *prometheus.GaugeVec
@@ -163,11 +163,11 @@ func newMetrics() metrics {
 			[]string{"vol", "pool"},
 		),
 
-		volumeStatus: prometheus.NewGaugeVec(
+		replicaStatus: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "volume_status",
-				Help:      `Status of volume (0, 1, 2, 3) = {"Offline", "Healthy", "Degraded", "Rebuilding"}`,
+				Name:      "replica_status",
+				Help:      `Status of replica (0, 1, 2, 3) = {"Offline", "Healthy", "Degraded", "Rebuilding"}`,
 			},
 			[]string{"vol", "pool"},
 		),
