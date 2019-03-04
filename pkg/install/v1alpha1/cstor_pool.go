@@ -174,7 +174,7 @@ spec:
     {{- $auxResourceRequestsVal := fromYaml .Config.AuxResourceRequests.value -}}
     {{- $setAuxResourceLimits := .Config.AuxResourceLimits.value | default "none" -}}
     {{- $auxResourceLimitsVal := fromYaml .Config.AuxResourceLimits.value -}}
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1beta1
     kind: Deployment
     metadata:
       name: {{.TaskResult.putcstorpoolcr.objectName}}
@@ -184,13 +184,15 @@ spec:
         app: cstor-pool
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
+      annotations:
+        monitoring: pool_exporter_prometheus
       ownerReferences:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
         controller: true
         kind: CStorPool
         name: {{ .TaskResult.putcstorpoolcr.objectName }}
-        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}    
+        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}
     spec:
       strategy:
         type: Recreate
@@ -201,8 +203,9 @@ spec:
       template:
         metadata:
           labels:
-            monitoring: pool_exporter_prometheus
+            app: cstor-pool
           annotations:
+            monitoring: pool_exporter_prometheus
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
