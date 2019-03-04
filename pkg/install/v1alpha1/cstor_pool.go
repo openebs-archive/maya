@@ -322,7 +322,7 @@ spec:
               {{- end }}
               {{- end }}
             command:
-			- maya-exporter
+            - maya-exporter
             args:
             - "-e=pool"
             ports:
