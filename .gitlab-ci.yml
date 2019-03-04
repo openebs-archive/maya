@@ -6,7 +6,7 @@ build-maya:
    stage: build
    only:
      refs:
-       - ^v[0-9][.][0-9][.]x|master?$
+       - ^(v[0-9][.][0-9][.]x|master)?$
    before_script:
      - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - export GOPATH=$HOME/go
@@ -49,7 +49,7 @@ baseline-image:
   stage: baseline
   only:
     refs:
-      - ^v[0-9][.][0-9][.]x|master?$
+      - ^(v[0-9][.][0-9][.]x|master)?$
   script:
      - pwd
      - export BRANCH=${CI_COMMIT_REF_NAME}
@@ -74,7 +74,7 @@ clean-maya:
   stage: cleanup
   only:
     refs:
-      - ^v[0-9][.][0-9][.]x|master?$
+      - ^(v[0-9][.][0-9][.]x|master)?$
   script:
     - sudo minikube delete || true
     - sudo rm -r ~/go
