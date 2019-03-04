@@ -245,10 +245,12 @@ func (v *stats) getReplicaCount() {
 	)
 	for _, rep := range v.replicas {
 		switch rep.Mode {
-		case readOnly, writeOnly, degraded:
+		case readOnly, writeOnly, errored, degraded:
 			ro++
 		case readWrite, healthy:
 			rw++
+		default:
+			glog.Error("Unknown replica mode: ", rep.Mode)
 		}
 	}
 	v.degradedReplicaCount = ro
