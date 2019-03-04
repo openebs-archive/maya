@@ -4,8 +4,11 @@ stages:
   - cleanup
 build-maya:
    stage: build
+   only:
+     refs:
+       - ^v[0-9][.][0-9][.]x|master?$
    before_script:
-     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - export GOPATH=$HOME/go
      - export PATH=$HOME/go/bin:$PATH
      - mkdir -p $HOME/go/src/github.com/openebs/maya
@@ -44,13 +47,17 @@ build-maya:
 
 baseline-image:
   stage: baseline
+  only:
+    refs:
+      - ^v[0-9][.][0-9][.]x|master?$
   script:
      - pwd
      - export BRANCH=${CI_COMMIT_REF_NAME}
      - echo $BRANCH
-     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - echo $COMMIT
      - git clone https://github.com/openebs/e2e-infrastructure.git
+     - git checkout $BRANCH
      - cd e2e-infrastructure/baseline
      - ansible-playbook commit-writer.yml --extra-vars "branch=$BRANCH repo=$CI_PROJECT_NAME commit=$COMMIT"
      - git status
@@ -58,14 +65,18 @@ baseline-image:
      - git status
      - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
      - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
-     - curl -X POST -F token=$AZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/2/trigger/pipeline
-     - curl -X POST -F token=$EKS -F ref=master https://gitlab.openebs.ci/api/v4/projects/3/trigger/pipeline
-     - curl -X POST -F token=$GKE -F ref=master https://gitlab.openebs.ci/api/v4/projects/5/trigger/pipeline
+     - curl -X POST -F variable[MAYA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-11 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+     - curl -X POST -F variable[MAYA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-12 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+     - curl -X POST -F variable[MAYA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-13 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+
 clean-maya:
   when: always
   stage: cleanup
+  only:
+    refs:
+      - ^v[0-9][.][0-9][.]x|master?$
   script:
-    - sudo minikube delete
+    - sudo minikube delete || true
     - sudo rm -r ~/go
     - sudo docker images 
     - sudo docker image prune -a --force
