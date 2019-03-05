@@ -88,9 +88,6 @@ func TestProcessNextWorkItemModify(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -145,9 +142,6 @@ func TestProcessNextWorkItemDestroy(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",

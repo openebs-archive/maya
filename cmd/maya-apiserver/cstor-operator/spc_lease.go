@@ -34,8 +34,10 @@ const (
 	// It will be present in spc annotations.
 	// If key has an empty value, that means no one has acquired a lease on spc object.
 	SpcLeaseKey = "openebs.io/spc-lease"
-	// PatchOperation is the strategy of patch operation.
-	PatchOperation = "replace"
+	// PatchOperationReplace is the strategy of patch operation.
+	PatchOperationReplace = "replace"
+	// PatchOperationAdd is the add operation for patch
+	PatchOperationAdd = "add"
 	// PatchPath is the path to the field on spc object which need to be patched.
 	PatchPath = "/metadata/annotations/openebs.io~1spc-lease"
 )
@@ -137,7 +139,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	}
 	spcPatch := make([]Patch, 1)
 	// setting operation as remove
-	spcPatch[0].Op = PatchOperation
+	spcPatch[0].Op = PatchOperationReplace
 	// object to be removed is finalizers
 	spcPatch[0].Path = PatchPath
 	leaseValueObj, err := parseLeaseValue(spcObject.Annotations[SpcLeaseKey])

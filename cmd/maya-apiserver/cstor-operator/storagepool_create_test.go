@@ -143,7 +143,7 @@ func TestNewCasPool(t *testing.T) {
 						PoolType: "striped",
 					},
 					Disks: apis.DiskAttr{
-						DiskList: []string{"disk1", "disk2", "disk3"},
+						DiskList: []string{"disk4", "disk2", "disk3", "disk5"},
 					},
 				},
 			},
@@ -169,7 +169,6 @@ func TestNewCasPool(t *testing.T) {
 			},
 		},
 	}
-
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

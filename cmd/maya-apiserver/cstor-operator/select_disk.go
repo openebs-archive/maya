@@ -191,15 +191,17 @@ func diskFilterConstraint(diskType string) string {
 // Form usedDisk map that will hold the list of all used disks
 func (k *clientSet) getUsedDiskMap() (map[string]int, error) {
 	// Get the list of disk that has been used already for pool provisioning
-	spList, err := k.oecs.OpenebsV1alpha1().StoragePools().List(mach_apis_meta_v1.ListOptions{})
+	cspList, err := k.oecs.OpenebsV1alpha1().CStorPools().List(mach_apis_meta_v1.ListOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools")
 	}
 	// Form a map that will hold all the used disk
 	usedDiskMap := make(map[string]int)
-	for _, sp := range spList.Items {
-		for _, usedDisk := range sp.Spec.Disks.DiskList {
-			usedDiskMap[usedDisk]++
+	for _, sp := range cspList.Items {
+		for _, group := range sp.Spec.Group {
+			for _, disk := range group.Item {
+				usedDiskMap[disk.Name]++
+			}
 		}
 
 	}

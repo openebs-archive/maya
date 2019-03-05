@@ -31,14 +31,52 @@ type CStorPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CStorPoolSpec   `json:"spec"`
-	Status CStorPoolStatus `json:"status"`
+	Spec       CStorPoolSpec    `json:"spec"`
+	Status     CStorPoolStatus  `json:"status"`
+	Operations []CstorOperation `json:"operations"`
+}
+
+const (
+	// PoolExpandAction is the key for add action. It is used in operations sub resource in CSP for pool expansion.
+	PoolExpandAction = "Add"
+	// PoolDeleteAction is the key for delete action. It is used in operations sub resource in CSP for pool deletion.
+	PoolDeleteAction = "Delete"
+	// PoolOperationStatusInit is the status of a operation that has just came in existence on CSP and should be processed.
+	PoolOperationStatusInit = "Init"
+)
+
+// CstorOperation contains the operation and details to carry out the same on a cstor pool.
+type CstorOperation struct {
+	// Action is the operation that should be performed.
+	Action string `json:"action"`
+	// NewDisks holds a list of newer disks that is added and should be used to carry out the operation.
+	NewDisks []string `json:"newDisk"`
+	// OldDisk holds a list of older disks that is removed and should be used to carry out disk operations.
+	OldDisk []string `json:"oldDisk"`
+	// Status holds the status of operation that is carried out.
+	Status string `json:status`
 }
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
 type CStorPoolSpec struct {
-	Disks    DiskAttr      `json:"disks"`
+	Group    []DiskGroup   `json:"group"`
 	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+// DiskGroup contains a collection of disk for a given pool topology in CSP.
+type DiskGroup struct {
+	// Item contains a list of CspDisks.
+	Item []CspDisk `json:"disk"`
+}
+
+// CspDisk contains the details of disk present on CSP.
+type CspDisk struct {
+	// Name is the name of the disk resource.
+	Name string `json:"name"`
+	// DeviceID is the device id of the disk resource. In case of sparse disks, it contains the device path.
+	DeviceID string `json:"deviceID"`
+	// InUseByPool tells whether the disk is present on spc. If disk is present on SPC, it is true else false.
+	InUseByPool bool `json:"inUseByPool"`
 }
 
 // DiskAttr stores the disk related attributes.
@@ -76,6 +114,9 @@ const (
 	CStorPoolStatusError CStorPoolPhase = "Error"
 	// CStorPoolStatusDeletionFailed ensures the resource deletion has failed.
 	CStorPoolStatusDeletionFailed CStorPoolPhase = "DeletionFailed"
+
+	// CStorPoolStatusExpansionFailed ensures the resource deletion has failed.
+	CStorPoolStatusExpansionFailed CStorPoolPhase = "ExpansionFailed"
 	// CStorPoolStatusInvalid ensures invalid resource.
 	CStorPoolStatusInvalid CStorPoolPhase = "Invalid"
 	// CStorPoolStatusErrorDuplicate ensures error due to duplicate resource.

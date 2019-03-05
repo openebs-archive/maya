@@ -17,18 +17,17 @@ package pool
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/util"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/golang/glog"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/util"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 type TestRunner struct {
@@ -295,9 +294,6 @@ func TestCreatePool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "striped",
@@ -315,9 +311,6 @@ func TestCreatePool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -327,50 +320,10 @@ func TestCreatePool(t *testing.T) {
 				Status: apis.CStorPoolStatus{},
 			},
 		},
-		"img3PoolResource": {
-			expectedError: nil,
-			test: &apis.CStorPool{
-				TypeMeta: v1.TypeMeta{},
-				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("abc"),
-				},
-				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
-					},
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "raidz",
-						OverProvisioning: false,
-					},
-				},
-				Status: apis.CStorPoolStatus{},
-			},
-		},
-		"img4PoolResource": {
-			expectedError: nil,
-			test: &apis.CStorPool{
-				TypeMeta: v1.TypeMeta{},
-				ObjectMeta: v1.ObjectMeta{
-					UID: types.UID("abc"),
-				},
-				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
-					},
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "raidz2",
-						OverProvisioning: false,
-					},
-				},
-				Status: apis.CStorPoolStatus{},
-			},
-		},
 	}
 	RunnerVar = TestRunner{}
 	for desc, ut := range testPoolResource {
-		obtainedErr := CreatePool(ut.test)
+		obtainedErr := CreatePool(ut.test, []string{"test"})
 		if ut.expectedError != obtainedErr {
 			t.Fatalf("Desc: %v, Expected: %v, Got: %v", desc, ut.expectedError, obtainedErr)
 		}
@@ -393,9 +346,6 @@ func TestImportPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -414,9 +364,6 @@ func TestImportPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -486,9 +433,6 @@ func TestSetCacheFile(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img", "/tmp/img2.img", "/tmp/img3.img", "/tmp/img4.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "striped",
@@ -592,6 +536,7 @@ func TestCheckValidPool(t *testing.T) {
 	testPoolResource := map[string]struct {
 		expectedError error
 		test          *apis.CStorPool
+		deviceIDs     []string
 	}{
 		"Invalid-poolNameEmpty": {
 			expectedError: fmt.Errorf("Poolname/UID cannot be empty"),
@@ -602,9 +547,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID:  types.UID(""),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -613,6 +555,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-StripedDisks1": {
 			expectedError: nil,
@@ -622,9 +565,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "striped",
@@ -633,6 +573,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0"},
 		},
 		"Valid-StripedDisks2": {
 			expectedError: nil,
@@ -642,9 +583,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "striped",
@@ -653,6 +591,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "var/img-1"},
 		},
 
 		"Invalid-StripedDisks": {
@@ -671,6 +610,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{},
 		},
 
 		"Invalid-DiskListEmpty": {
@@ -681,9 +621,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -692,6 +629,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{},
 		},
 		"Invalid-MirrorOddDisks": {
 			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 2, 3, "mirrored"),
@@ -701,9 +639,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -712,6 +647,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2"},
 		},
 		"Valid-Pool": {
 			expectedError: nil,
@@ -721,9 +657,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -732,6 +665,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-RaidzDisks": {
 			expectedError: nil,
@@ -741,9 +675,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz",
@@ -752,6 +683,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2"},
 		},
 		"Invalid-NoOfRaidzDisks": {
 			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 3, 2, "raidz"),
@@ -761,9 +693,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz",
@@ -772,6 +701,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-Raidz2Disks": {
 			expectedError: nil,
@@ -781,9 +711,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz2",
@@ -792,18 +719,16 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4", "/var/img-5"},
 		},
 		"Invalid-Raidz2Disks": {
-			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 6, 2, "raidz2"),
+			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 6, 5, "raidz2"),
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdc", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz2",
@@ -812,6 +737,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4"},
 		},
 		"Valid-RaidzDisks2": {
 			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 7, "raidz"),
@@ -821,9 +747,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz",
@@ -832,6 +755,7 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4", "/var/img-5", "/var/img-6"},
 		},
 		"InValid-RaidzDisks3": {
 			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 5, "raidz"),
@@ -841,9 +765,6 @@ func TestCheckValidPool(t *testing.T) {
 					UID: types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/dev/sdd", "/dev/sde", "/dev/sdf", "/dev/sdg", "/dev/sdd"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "raidz",
@@ -852,11 +773,14 @@ func TestCheckValidPool(t *testing.T) {
 				},
 				Status: apis.CStorPoolStatus{},
 			},
+			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4"},
 		},
 	}
 	for name, ut := range testPoolResource {
+		ut := ut
+		name := name
 		t.Run(name, func(t *testing.T) {
-			Obtainederr := CheckValidPool(ut.test)
+			Obtainederr := CheckValidPool(ut.test, ut.deviceIDs)
 			if Obtainederr != nil {
 				if Obtainederr.Error() != ut.expectedError.Error() {
 					t.Fatalf("Desc : %v, Expected error: %v, Got : %v",

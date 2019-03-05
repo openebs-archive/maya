@@ -58,6 +58,18 @@ const (
 // RunnerVar the runner variable for executing binaries.
 var RunnerVar util.Runner
 
+//
+//// Predicates type is the type for predicate functions.
+//type Predicates func(poolName string, deviceID []string) (err error)
+//
+//// ExpansionPredicates is a map with pool type as key and expansion predicate function for the corresponding pool type.
+//var ExpansionPredicates = map[string]Predicates{
+//	string(apis.PoolTypeStripedCPV):  ExpandStripedPool,
+//	string(apis.PoolTypeMirroredCPV): ExpandMirroredPool,
+//	string(apis.PoolTypeRaidzCPV):    ExpandRaidzPool,
+//	string(apis.PoolTypeRaidz2CPV):   ExpandRaidz2Pool,
+//}
+
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
 	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
@@ -84,10 +96,9 @@ func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 }
 
 // CreatePool creates a new cStor pool.
-func CreatePool(cStorPool *apis.CStorPool) error {
-	createAttr := createPoolBuilder(cStorPool)
+func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
+	createAttr := createPoolBuilder(cStorPool, diskList)
 	glog.V(4).Info("createAttr : ", createAttr)
-
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
 	if err != nil {
 		glog.Errorf("Unable to create pool: %v", string(stdoutStderr))
@@ -97,7 +108,7 @@ func CreatePool(cStorPool *apis.CStorPool) error {
 }
 
 // createPoolBuilder is to build create pool command.
-func createPoolBuilder(cStorPool *apis.CStorPool) []string {
+func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
 	// populate pool creation attributes.
 	var createAttr []string
 	// When disks of other file formats, say ext4, are used to create cstorpool,
@@ -114,7 +125,6 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	createAttr = append(createAttr, poolNameUID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
-	diskList := cStorPool.Spec.Disks.DiskList
 	if poolType == "striped" {
 		for _, disk := range diskList {
 			createAttr = append(createAttr, disk)
@@ -131,17 +141,58 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 		}
 		createAttr = append(createAttr, disk)
 	}
-
 	return createAttr
 }
 
+// ExpandPool expands a cstor pool
+func ExpandPool(csp *apis.CStorPool, deviceIDs []string) (output []byte, err error) {
+	command := getExpansionCommand(csp, deviceIDs)
+	return executeCommand(command)
+}
+
+func getExpansionCommand(csp *apis.CStorPool, deviceIDs []string) []string {
+	if csp.Spec.PoolSpec.PoolType == string(apis.PoolTypeStripedCPV) {
+		return getStripedPoolExpansionCommand(csp, deviceIDs)
+	}
+
+	return getOtherPoolExpansionCommand(csp, deviceIDs)
+}
+
+func getPoolName(csp *apis.CStorPool) string {
+	return string(PoolPrefix) + string(csp.ObjectMeta.UID)
+}
+
+func getStripedPoolExpansionCommand(csp *apis.CStorPool, deviceIDs []string) []string {
+	expandPoolAttr := []string{"add", "-f", getPoolName(csp)}
+	expandPoolAttr = append(expandPoolAttr, deviceIDs...)
+	return expandPoolAttr
+}
+
+func getOtherPoolExpansionCommand(csp *apis.CStorPool, deviceIDs []string) []string {
+	poolType := csp.Spec.PoolSpec.PoolType
+	groupSize := defaultGroupSize[poolType]
+	expandPoolAttr := []string{"add", "-f", getPoolName(csp)}
+	for i, deviceID := range deviceIDs {
+		if i%groupSize == 0 {
+			expandPoolAttr = append(expandPoolAttr, poolTypeCommand[poolType])
+		}
+		expandPoolAttr = append(expandPoolAttr, deviceID)
+	}
+	return expandPoolAttr
+}
+
+func executeCommand(command []string) ([]byte, error) {
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, command...)
+	return stdoutStderr, err
+}
+
 // CheckValidPool checks for validity of CStorPool resource.
-func CheckValidPool(cStorPool *apis.CStorPool) error {
+func CheckValidPool(cStorPool *apis.CStorPool, diskList []string) error {
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
-	diskCount := len(cStorPool.Spec.Disks.DiskList)
+	diskCount := len(diskList)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
 		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
@@ -324,6 +375,7 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 			//even though we imported pool, it disappeared (may be due to zrepl container crashing).
 			// so we need to reimport.
 			if PoolAddEventHandled && strings.Contains(string(out), StatusNoPoolsAvailable) {
+				glog.Errorf("zrepl not available : %v", out)
 				break
 			}
 			time.Sleep(ZreplRetryInterval)

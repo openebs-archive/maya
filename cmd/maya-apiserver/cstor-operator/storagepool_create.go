@@ -24,7 +24,7 @@ import (
 	"github.com/openebs/maya/pkg/client/k8s"
 	"github.com/openebs/maya/pkg/storagepool"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type poolCreateConfig struct {
@@ -124,26 +124,69 @@ func (newClientSet *clientSet) casPoolBuilder(casPool *apis.CasPool, spc *apis.S
 	if len(nodeDisks.Disks.Items) == 0 {
 		return nil, errors.New("aborting storagepool create operation as no disk was found")
 	}
-	// For each of the disk, extract the device Id and fill the 'DeviceId' field of the CasPool object with it.
-	// In case, device Id is not available, fill the 'DeviceId' field of the CasPool object with device path.
-	for _, v := range nodeDisks.Disks.Items {
-		gotDisk, err := newClientSet.oecs.OpenebsV1alpha1().Disks().Get(v, metav1.GetOptions{})
-		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to get device id for disk:failed to list the disks")
-		}
-		if len(gotDisk.Spec.DevLinks) != 0 && len(gotDisk.Spec.DevLinks[0].Links) != 0 {
-			// Fill device Id of the disk to the CasPool object.
-			casPool.DeviceID = append(casPool.DeviceID, gotDisk.Spec.DevLinks[0].Links[0])
-		} else {
-			// Fill device path of the disk to the CasPool object.
-			// ToDo: Decide -- DeviceId and DevicePath fields for CasPool object.
-			// ToDO: Having these two fields for CasPool object can yield complex run tasks.
-			casPool.DeviceID = append(casPool.DeviceID, gotDisk.Spec.Path)
-		}
-	}
+
 	// Fill the node name to the CasPool object.
 	casPool.NodeName = nodeDisks.NodeName
 	// Fill the disks attached to this node to the CasPool object.
-	casPool.DiskList = nodeDisks.Disks.Items
+	//casPool.DiskList = nodeDisks.Disks.Items
+	//TODO: Improve Following Code
+	if spc.Spec.PoolSpec.PoolType == string(apis.PoolTypeStripedCPV) {
+		for _, disk := range nodeDisks.Disks.Items {
+			var diskList []apis.CspDisk
+			var group apis.DiskGroup
+			disk := apis.CspDisk{
+				Name:        disk,
+				InUseByPool: true,
+			}
+			devID, err := newClientSet.getDeviceID(disk.Name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", disk.Name, spc.Name)
+			}
+			disk.DeviceID = devID
+			diskList = append(diskList, disk)
+			group = apis.DiskGroup{
+				Item: diskList,
+			}
+			casPool.DiskList = append(casPool.DiskList, group)
+		}
+		return casPool, nil
+	}
+	count := nodeselect.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
+	for i := 0; i <= len(nodeDisks.Disks.Items)/count; i = i + count {
+		var diskList []apis.CspDisk
+		var group apis.DiskGroup
+		for j := 0; j < count; j++ {
+
+			disk := apis.CspDisk{
+				Name:        nodeDisks.Disks.Items[i+j],
+				InUseByPool: true,
+			}
+			devID, err := newClientSet.getDeviceID(disk.Name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", disk.Name, spc.Name)
+			}
+			disk.DeviceID = devID
+			diskList = append(diskList, disk)
+		}
+		group = apis.DiskGroup{
+			Item: diskList,
+		}
+		casPool.DiskList = append(casPool.DiskList, group)
+	}
 	return casPool, nil
+}
+
+// TODO: Move to disk package
+func (newClientSet *clientSet) getDeviceID(diskName string) (string, error) {
+	var deviceID string
+	disk, err := newClientSet.oecs.OpenebsV1alpha1().Disks().Get(diskName, v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if len(disk.Spec.DevLinks) != 0 && len(disk.Spec.DevLinks[0].Links) != 0 {
+		deviceID = disk.Spec.DevLinks[0].Links[0]
+	} else {
+		deviceID = disk.Spec.Path
+	}
+	return deviceID, nil
 }

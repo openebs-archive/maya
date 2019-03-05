@@ -44,30 +44,31 @@ func (ac *Config) NodeDiskSelector() (*nodeDisk, error) {
 // getUsedDiskMap gives list of disks that has already been used for pool provisioning.
 func (ac *Config) getUsedDiskMap() (map[string]int, error) {
 	// Get the list of disk that has been used already for pool provisioning
-	spList, err := ac.SpClient.List(v1.ListOptions{})
+	cspList, err := ac.CspClient.List(v1.ListOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools")
 	}
 	usedDiskMap := make(map[string]int)
-	for _, sp := range spList.StoragePoolList.Items {
-		for _, usedDisk := range sp.Spec.Disks.DiskList {
-			usedDiskMap[usedDisk]++
+	for _, csp := range cspList.CStorPoolList.Items {
+		for _, usedDisk := range csp.Spec.Group {
+			for _, disk := range usedDisk.Item {
+				usedDiskMap[disk.Name]++
+			}
 		}
 	}
-
 	return usedDiskMap, nil
 }
 
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
 func (ac *Config) getUsedNodeMap() (map[string]int, error) {
-	spList, err := ac.SpClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	spList, err := ac.CspClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", ac.Spc.Name)
+		return nil, errors.Wrapf(err, "unable to get the list of CSPs for stragepoolclaim %s", ac.Spc.Name)
 	}
 	usedNodeMap := make(map[string]int)
-	for _, sp := range spList.StoragePoolList.Items {
+	for _, sp := range spList.CStorPoolList.Items {
 		usedNodeMap[sp.Labels[string(apis.HostNameCPK)]]++
 	}
 	return usedNodeMap, nil
@@ -121,7 +122,7 @@ func (ac *Config) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
 	var diskCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
-	minRequiredDiskCount := defaultDiskCount[ac.poolType()]
+	minRequiredDiskCount := DefaultDiskCount[ac.poolType()]
 	for node, val := range nodeDiskMap {
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.

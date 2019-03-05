@@ -42,6 +42,14 @@ var (
 	}
 )
 
+// DiskDetails contains the name and device ID of a disk.
+type DiskDetails struct {
+	// DiskName is the name of the disk CR.
+	DiskName string
+	// DeviceID is the device id of the disk present on disk CR>
+	DeviceID string
+}
+
 // syncHandler compares the actual state with the desired, and attempts to
 // converge the two. It then updates the Status block of the spcPoolUpdated resource
 // with the current status of the resource.
@@ -85,6 +93,9 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
 		return syncEvent, nil
+	case diskops:
+		_, err := c.handleDiskHashChange(spcGot)
+		return diskops, err
 	default:
 		// operation with tag other than add,update and sync are ignored.
 		return ignoreEvent, nil
@@ -170,6 +181,7 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on spc object")
 	}
+	// TODO: Think of putting this info log as levelled info log.
 	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
@@ -177,7 +189,13 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 		err = CreateStoragePool(spc)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name))
+			break
 		}
+	}
+
+	_, err = c.patchSpcWithDiskHash(spc)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch disk hash for pool create event for spc %s", spc.Name)
 	}
 	return nil
 }
@@ -219,11 +237,11 @@ func validate(spc *apis.StoragePoolClaim) (bool, error) {
 // getCurrentPoolCount give the current pool count for the given auto provisioned spc.
 func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	// Get the current count of provisioned pool for the storagepool claim
-	spList, err := c.clientset.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
 	if err != nil {
 		return 0, errors.Errorf("unable to get current pool count:unable to list storagepools: %v", err)
 	}
-	return len(spList.Items), nil
+	return len(cspList.Items), nil
 }
 
 // getPendingPoolCount gives the count of pool that needs to be provisioned for a given spc.

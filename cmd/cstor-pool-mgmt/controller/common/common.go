@@ -75,8 +75,16 @@ const (
 	MessageResourceSyncFailure EventReason = "Resource sync failed:"
 	// FailureDestroy holds status for corresponding failed destroy resource.
 	FailureDestroy EventReason = "FailDestroy"
+	// FailureExpand holds status for corresponding failed expansion of pool.
+	FailureExpand EventReason = "FailureExpand"
+	// SuccessExpand holds status for corresponding successful expansion of pool.
+	SuccessExpand EventReason = "SuccessExpand"
+	// FailureDelete holds status for corresponding failed deletion of pool.
+	FailureDelete EventReason = "FailureDelete"
 	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
 	MessageResourceFailDestroy EventReason = "Resource Destroy failed"
+	// MessageResourceSuccessExpand holds message for success in pool expansion.
+	MessageResourceSuccessExpand EventReason = "Pool Expanded Successfully"
 	// FailureValidate holds status for corresponding failed validate resource.
 	FailureValidate EventReason = "FailValidate"
 	// MessageResourceFailValidate holds message for corresponding failed validate resource.
@@ -85,6 +93,10 @@ const (
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
+	// FailureInGettingDeviceID holds status for failure in fetching device ID of disk.
+	FailureInGettingDeviceID EventReason = "FailDeviceIDFetch"
+	// FailureInGettingDeviceIDMsg holds message for corresponding failure in fetching device ID.
+	FailureInGettingDeviceIDMsg EventReason = "Failure in creating pool as device ID could not be fetched"
 )
 
 // Periodic interval duration.
@@ -136,7 +148,8 @@ const (
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
 	// QOpSync is the operation for syncing(reconciling) on cstor pool object.
-	QOpSync QueueOperation = "Sync"
+	QOpSync    QueueOperation = "Sync"
+	QOpDiskOps QueueOperation = "diskops"
 )
 
 // namespace defines kubernetes namespace specified for cvr.

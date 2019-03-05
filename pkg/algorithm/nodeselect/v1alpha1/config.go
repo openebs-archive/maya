@@ -33,7 +33,8 @@ const (
 	ProvisioningTypeAuto = "auto"
 )
 
-var defaultDiskCount = map[string]int{
+// DefaultDiskCount is the minimum number of disk that is required to create a pool.
+var DefaultDiskCount = map[string]int{
 	string(apis.PoolTypeMirroredCPV): int(apis.MirroredDiskCountCPV),
 	string(apis.PoolTypeStripedCPV):  int(apis.StripedDiskCountCPV),
 	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzDiskCountCPV),
