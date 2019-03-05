@@ -35,7 +35,8 @@ const (
 	// If key has an empty value, that means no one has acquired a lease on spc object.
 	SpcLeaseKey = "openebs.io/spc-lease"
 	// PatchOperation is the strategy of patch operation.
-	PatchOperation = "replace"
+	PatchOperation    = "replace"
+	PatchOperationAdd = "add"
 	// PatchPath is the path to the field on spc object which need to be patched.
 	PatchPath = "/metadata/annotations/openebs.io~1spc-lease"
 )

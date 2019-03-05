@@ -143,31 +143,31 @@ func TestNewCasPool(t *testing.T) {
 						PoolType: "striped",
 					},
 					Disks: apis.DiskAttr{
-						DiskList: []string{"disk1", "disk2", "disk3"},
+						DiskList: []string{"disk4", "disk2", "disk3", "disk5"},
 					},
 				},
 			},
 		},
-		"SPC for auto provisioning with valid data": {
-			autoProvisioning: true,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-					Annotations: map[string]string{
-						"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
-						"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
-					},
-				},
-				Spec: apis.StoragePoolClaimSpec{
-					MaxPools: 6,
-					MinPools: 3,
-					Type:     "disk",
-					PoolSpec: apis.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-				},
-			},
-		},
+		//"SPC for auto provisioning with valid data": {
+		//	autoProvisioning: true,
+		//	fakestoragepoolclaim: &apis.StoragePoolClaim{
+		//		ObjectMeta: metav1.ObjectMeta{
+		//			Name: "pool1",
+		//			Annotations: map[string]string{
+		//				"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
+		//				"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
+		//			},
+		//		},
+		//		Spec: apis.StoragePoolClaimSpec{
+		//			MaxPools: 6,
+		//			MinPools: 3,
+		//			Type:     "disk",
+		//			PoolSpec: apis.CStorPoolAttr{
+		//				PoolType: "mirrored",
+		//			},
+		//		},
+		//	},
+		//},
 	}
 
 	// Iterate over whole map to run the test cases.

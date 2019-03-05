@@ -250,7 +250,7 @@ func TestUpdateSpc(t *testing.T) {
 		// Make a two storagepoolcalim objects i.e. fakestoragepoolclaimOld & fakestoragepoolclaimNew.
 		// Keep the resource version for both the objects different.
 		// The expected queueload should be as it is in expectedQueueLoad
-		"Update event of spc object when RV changes": {
+		"Update event of spc object when RV changes but disk list hash does not change": {
 			fakestoragepoolclaimOld: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "pool1",
@@ -261,12 +261,19 @@ func TestUpdateSpc(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "pool1",
 					ResourceVersion: "111235",
+					Annotations: map[string]string{
+						// This is the output hash for disk list for this object
+						spcDiskHashKey: "ec411bfc38ae059a5e482cc00db507ec",
+					},
 				},
 			},
 			expectedQueueLoad: QueueLoad{"pool1", updateEvent, &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "pool1",
 					ResourceVersion: "111235",
+					Annotations: map[string]string{
+						spcDiskHashKey: "ec411bfc38ae059a5e482cc00db507ec",
+					},
 				},
 			},
 			},
@@ -293,6 +300,35 @@ func TestUpdateSpc(t *testing.T) {
 				},
 			},
 			expectedQueueLoad: QueueLoad{"", ignoreEvent, nil},
+		},
+		// TestCase#4
+		"Update event of spc object when RV changes due to disk list change": {
+			fakestoragepoolclaimOld: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "pool1",
+					ResourceVersion: "111232",
+				},
+			},
+			fakestoragepoolclaimNew: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "pool1",
+					ResourceVersion: "111235",
+					Annotations: map[string]string{
+						// This is not the output hash for disk list for this object
+						spcDiskHashKey: "bcv11bfc38ae059a5e482cc00db507ec",
+					},
+				},
+			},
+			expectedQueueLoad: QueueLoad{"pool1", diskops, &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "pool1",
+					ResourceVersion: "111235",
+					Annotations: map[string]string{
+						spcDiskHashKey: "bcv11bfc38ae059a5e482cc00db507ec",
+					},
+				},
+			},
+			},
 		},
 	}
 

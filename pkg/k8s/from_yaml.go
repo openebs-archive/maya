@@ -164,6 +164,7 @@ type StoragePoolYml struct {
 }
 
 func NewCStorPoolYml(context, yml string, values map[string]interface{}) (*CStorPoolYml, error) {
+
 	b, err := template.AsTemplatedBytes(context, yml, values)
 	if err != nil {
 		return nil, err

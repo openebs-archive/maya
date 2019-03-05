@@ -18,6 +18,8 @@ package poolcontroller
 
 import (
 	"fmt"
+	"github.com/openebs/maya/pkg/hash/v1alpha1"
+	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"time"
@@ -30,7 +32,7 @@ import (
 	"github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -123,18 +125,28 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		glog.Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
+	case "hashChange":
+
 	}
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
-	// CheckValidPool is to check if pool attributes are correct.
-	err := pool.CheckValidPool(cStorPoolGot)
+	// Get the device ID for the disks present on CSP
+	diskDeviceIDs, err := c.getDeviceIds(cStorPoolGot)
+	if err != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureInGettingDeviceId), string(common.FailureInGettingDeviceIdMsg))
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device ids for disks present on csp %s", cStorPoolGot.Name)
+	}
+
+	// Validate pool topology with respect ot number of disks present on CSP.
+	// For example, even number of disks should be present on csp for mirrored pool creation.
+	err = pool.CheckValidPool(cStorPoolGot, diskDeviceIDs)
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 		return string(apis.CStorPoolStatusOffline), err
 	}
-
+	hash.Hash(cStorPoolGot.Spec.Group)
 	/* 	If pool is already present.
 	Pool CR status is online. This means pool (main car) is running successfully,
 	but watcher container got restarted.
@@ -199,6 +211,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	// make a check if initialImportedPoolVol is not empty, then notify cvr controller
 	// through channel.
 	if len(common.InitialImportedPoolVol) != 0 {
+		c.putHashOnCsp(cStorPoolGot)
 		common.SyncResources.IsImported = true
 	} else {
 		common.SyncResources.IsImported = false
@@ -207,7 +220,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
 	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
 		// LabelClear is to clear pool label
-		err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
+		err = pool.LabelClear(diskDeviceIDs)
 		if err != nil {
 			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 		} else {
@@ -215,31 +228,37 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		}
 
 		// CreatePool is to create cstor pool.
-		err = pool.CreatePool(cStorPoolGot)
+		err = pool.CreatePool(cStorPoolGot, diskDeviceIDs)
 		if err != nil {
 			glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
 			return string(apis.CStorPoolStatusOffline), err
 		}
+
+		c.putHashOnCsp(cStorPoolGot)
 		glog.Infof("Pool creation successful: %v", string(cStorPoolGot.GetUID()))
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 		return string(apis.CStorPoolStatusOnline), nil
 	}
-	glog.Infof("Not init status: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
-
+	glog.Infof("Pool creation aborted as status on CSP in not 'init' or 'pending'  : %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 	return string(apis.CStorPoolStatusOffline), importPoolErr
 }
 
 func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
+	diskDeviceIDs, err := c.getDeviceIds(cStorPoolGot)
+	//TODO: Add context to error
+	if err != nil {
+		return "", err
+	}
 	// DeletePool is to delete cstor pool.
-	err := pool.DeletePool(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
+	err = pool.DeletePool(string(pool.PoolPrefix) + string(cStorPoolGot.ObjectMeta.UID))
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
 		return string(apis.CStorPoolStatusDeletionFailed), err
 	}
 
 	// LabelClear is to clear pool label
-	err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
+	err = pool.LabelClear(diskDeviceIDs)
 	if err != nil {
 		glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 	} else {
@@ -279,7 +298,7 @@ func (c *CStorPoolController) getPoolResource(key string) (*apis.CStorPool, erro
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
-		if errors.IsNotFound(err) {
+		if k8serror.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("cStorPoolGot '%s' in work queue no longer exists", key))
 			return nil, nil
 		}
@@ -335,6 +354,14 @@ func IsRightCStorPoolMgmt(cStorPool *apis.CStorPool) bool {
 
 // IsDestroyEvent is to check if the call is for cStorPool destroy.
 func IsDestroyEvent(cStorPool *apis.CStorPool) bool {
+	if cStorPool.ObjectMeta.DeletionTimestamp != nil {
+		return true
+	}
+	return false
+}
+
+// IsDiskHashCahnged is to check if the hash of disk list has changed
+func IsDiskHashCahnged(cStorPool *apis.CStorPool) bool {
 	if cStorPool.ObjectMeta.DeletionTimestamp != nil {
 		return true
 	}
@@ -400,3 +427,111 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 		cStorPool.Status.Capacity = *capacity
 	}
 }
+func (c *CStorPoolController) putHashOnCsp(csp *apis.CStorPool) {
+	// Get the hash of the disk list present on csp.
+	diskHash, err := hash.Hash(csp.Spec.Group)
+	if err != nil {
+		runtime.HandleError(err)
+	}
+	// Update CSP label with the disk list hash.
+	csp.Annotations[diskRefLabelKey] = diskHash
+}
+
+// TODO: Enahnce the following code which should handle disk addition and removal in CSP
+// TODO: Unit Test
+func (c *CStorPoolController) getDeviceId(diskName string) (string, error) {
+	var deviceID string
+	disk, err := c.clientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
+	// TODO: Add context to error
+	if err != nil {
+		return "", err
+	}
+	if disk == nil {
+		return "", fmt.Errorf("Disk object %s not found", disk.Name)
+	}
+	if len(disk.Spec.DevLinks) != 0 && len(disk.Spec.DevLinks[0].Links) != 0 {
+		deviceID = disk.Spec.DevLinks[0].Links[0]
+	} else {
+		deviceID = disk.Spec.Path
+	}
+	return deviceID, nil
+}
+
+// TODO: Unit Test
+func (c *CStorPoolController) getDeviceIdList(diskNames []string) ([]string, error) {
+	var deviceIDs []string
+	for _, diskName := range diskNames {
+		gotDeviceID, err := c.getDeviceId(diskName)
+		// TODO: Add context to error
+		if err != nil {
+			return []string{""}, err
+		}
+		deviceIDs = append(deviceIDs, gotDeviceID)
+	}
+	return deviceIDs, nil
+}
+
+// TODO : Unit Test
+func (c *CStorPoolController) getDeviceIds(csp *apis.CStorPool) ([]string, error) {
+	var diskName []string
+	for _, group := range csp.Spec.Group {
+		for _, disk := range group.Item {
+			diskName = append(diskName, disk.Name)
+		}
+	}
+	deviceIDs, err := c.getDeviceIdList(diskName)
+	return deviceIDs, err
+}
+
+//
+//func (c *CStorPoolController)handleDiskChange(csp *apis.CStorPool) (error) {
+//	// CheckValidPool is to check if pool attributes are correct.
+//	diskDeviceIDs, err := c.getDeviceIds(csp)
+//	//TODO: Add context to error
+//	if err != nil {
+//		return err
+//	}
+//	// Check if pool exists
+//	poolName,err:=pool.GetPoolName()
+//	if err!=nil{
+//		return err
+//	}
+//	if len(poolName)==0{
+//		// Pool does not exist -- import the pool
+//
+//		status,err:=c.importPool(csp,true)
+//		if err!=nil{
+//			// Pool import failed
+//			err = pool.CreatePool(csp, diskDeviceIDs)
+//			return err
+//		}
+//		if status!=""{
+//			// Pool Import succeeded
+//		}
+//	}else {
+//		// Pool exists
+//		c.getNewerDisk()
+//	}
+//
+//}
+//
+//func (c *CStorPoolController)getNewerDisk()  {
+//	// Get Pool details -- find replacement candidates
+//	c.replaceDisk()
+//	// Get pool details -- find addition candidates
+//	c.addDisk()
+//	// Update the disk hash
+//	c.updateDiskHash()
+//}
+//
+//func (c *CStorPoolController)replaceDisk()  {
+//
+//}
+//
+//func (c *CStorPoolController)addDisk()  {
+//
+//}
+//
+//func (c *CStorPoolController)updateDiskHash()  {
+//
+//}

@@ -37,8 +37,17 @@ type CStorPool struct {
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
 type CStorPoolSpec struct {
-	Disks    DiskAttr      `json:"disks"`
+	Group    []DiskGroup   `json:"group"`
 	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+type DiskGroup struct {
+	Item []CspDisk `json:"disk"`
+}
+
+type CspDisk struct {
+	Name        string `json:"name"`
+	InUseByPool bool   `json:"inUseByPool"`
 }
 
 // DiskAttr stores the disk related attributes.

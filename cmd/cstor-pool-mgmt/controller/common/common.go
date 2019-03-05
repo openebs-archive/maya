@@ -85,6 +85,9 @@ const (
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
+
+	FailureInGettingDeviceId    EventReason = "FailDeviceIDFetch"
+	FailureInGettingDeviceIdMsg EventReason = "Failure in creating pool as device ID could not be fetched"
 )
 
 // Periodic interval duration.
@@ -136,7 +139,8 @@ const (
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
 	// QOpSync is the operation for syncing(reconciling) on cstor pool object.
-	QOpSync QueueOperation = "Sync"
+	QOpSync    QueueOperation = "Sync"
+	QOpDiskOps QueueOperation = "diskops"
 )
 
 // namespace defines kubernetes namespace specified for cvr.

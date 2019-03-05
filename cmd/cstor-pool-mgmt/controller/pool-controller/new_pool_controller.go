@@ -39,7 +39,10 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 )
 
-const poolControllerName = "CStorPool"
+const (
+	poolControllerName = "CStorPool"
+	diskRefLabelKey    = "openebs.io/disk-hash-ref"
+)
 
 // CStorPoolController is the controller implementation for CStorPool resources.
 type CStorPoolController struct {
@@ -141,6 +144,10 @@ func NewCStorPoolController(
 			} else if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
+			} else if IsDiskHashCahnged(newCStorPool) {
+				q.Operation = common.QOpDiskOps
+				glog.Infof("cStorPool disk ops event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 			} else {
 				q.Operation = common.QOpModify

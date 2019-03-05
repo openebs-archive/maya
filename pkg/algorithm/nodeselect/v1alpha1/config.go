@@ -33,7 +33,7 @@ const (
 	ProvisioningTypeAuto = "auto"
 )
 
-var defaultDiskCount = map[string]int{
+var DefaultDiskCount = map[string]int{
 	string(apis.PoolTypeMirroredCPV): int(apis.MirroredDiskCountCPV),
 	string(apis.PoolTypeStripedCPV):  int(apis.StripedDiskCountCPV),
 	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzDiskCountCPV),

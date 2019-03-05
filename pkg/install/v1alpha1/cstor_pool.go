@@ -105,7 +105,10 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-putcstorpoolcr-default
+  name: cstor-pool-create-putcstorpoolcr-default-0.8.0
+  namespace: openebs
+  labels:
+    version: 0.8.0
 spec:
   meta: |
     apiVersion: openebs.io/v1alpha1
@@ -117,14 +120,14 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
   task: |-
-    {{- $diskDeviceIdList:= .Storagepool.diskDeviceIdList }}
+    {{- $diskDeviceIdList:= toYaml .Storagepool | fromYaml -}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
-      name: {{.Storagepool.owner}}-{{randAlphaNum 4 |lower }}
+      name: {{$diskDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
-        kubernetes.io/hostname: {{.Storagepool.nodeName}}
+        openebs.io/storage-pool-claim: {{$diskDeviceIdList.owner}}
+        kubernetes.io/hostname: {{$diskDeviceIdList.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       ownerReferences:
@@ -132,17 +135,19 @@ spec:
         blockOwnerDeletion: true
         controller: true
         kind: StoragePoolClaim
-        name: {{.Storagepool.owner}}
+        name: {{$diskDeviceIdList.owner}}
         uid: {{ .TaskResult.getspc.objectUID }} 
     spec:
-      disks:
-        diskList:
-        {{- range $k, $deviceID := $diskDeviceIdList }}
-        - {{ $deviceID }}
+      group:
+        {{- range $k, $v := $diskDeviceIdList.diskList }}
+        - disk:
+          {{- range $ki, $disk := $v.disk }}
+          - name: {{$disk.name}} 
+            inUseByPool: true 
+          {{- end }}
         {{- end }}
       poolSpec:
-        poolType: {{.Storagepool.poolType}}
-        cacheFile: /tmp/{{.Storagepool.owner}}.cache
+        poolType: {{$diskDeviceIdList.poolType}}
         overProvisioning: false
     status:
       phase: Init
@@ -320,49 +325,6 @@ spec:
             hostPath:
               path: /run/udev
               type: Directory
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: cstor-pool-create-putstoragepoolcr-default
-spec:
-  meta: |
-    apiVersion: openebs.io/v1alpha1
-    kind: StoragePool
-    action: put
-    id: putstoragepool
-  post: |
-    {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putstoragepool.objectName" .TaskResult | noop -}}
-  task: |-
-    {{- $diskList:= .Storagepool.diskList }}
-    apiVersion: openebs.io/v1alpha1
-    kind: StoragePool
-    metadata:
-      name: {{.TaskResult.putcstorpooldeployment.objectName}}
-      labels:
-        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
-        openebs.io/cstor-pool: {{.TaskResult.putcstorpooldeployment.objectName}}
-        openebs.io/cas-type: cstor
-        kubernetes.io/hostname: {{ .Storagepool.nodeName}}
-        openebs.io/version: {{ .CAST.version }}
-        openebs.io/cas-template-name: {{ .CAST.castName }}
-      ownerReferences:
-      - apiVersion: openebs.io/v1alpha1
-        blockOwnerDeletion: true
-        controller: true
-        kind: Deployment
-        name: {{ .TaskResult.putcstorpooldeployment.objectName }}
-        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}  
-    spec:
-      disks:
-        diskList:
-        {{- range $k, $diskName := $diskList }}
-        - {{ $diskName }}
-        {{- end }}
-      poolSpec:
-        poolType: {{.Storagepool.poolType}}
-        cacheFile: /tmp/{{.Storagepool.owner}}.cache
-        overProvisioning: false
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask

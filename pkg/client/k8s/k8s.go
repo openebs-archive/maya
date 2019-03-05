@@ -349,6 +349,7 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 // CreateOEV1alpha1CSP creates a CStorPool
 func (k *K8sClient) CreateOEV1alpha1CSP(csp *api_oe_v1alpha1.CStorPool) (*api_oe_v1alpha1.CStorPool, error) {
 	cspops := k.oeV1alpha1CSPOps()
+
 	return cspops.Create(csp)
 }
 

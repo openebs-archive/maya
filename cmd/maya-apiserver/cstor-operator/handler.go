@@ -17,6 +17,9 @@ limitations under the License.
 package spc
 
 import (
+	"encoding/json"
+	"github.com/openebs/maya/pkg/hash/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	"github.com/golang/glog"
@@ -85,6 +88,9 @@ func (c *Controller) spcEventHandler(operation string, spcGot *apis.StoragePoolC
 			glog.Errorf("Storagepool %s could not be synced:%v", spcGot.Name, err)
 		}
 		return syncEvent, nil
+	case diskops:
+		_, err := c.handleDiskHashChange(spcGot)
+		return diskops, err
 	default:
 		// operation with tag other than add,update and sync are ignored.
 		return ignoreEvent, nil
@@ -170,6 +176,7 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on spc object")
 	}
+	// TODO: Think of putting this info log as levelled info log.
 	glog.Infof("Lease acquired successfully on storagepoolclaim %s ", spc.Name)
 	defer newSpcLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
@@ -177,7 +184,13 @@ func (c *Controller) create(pendingPoolCount int, spc *apis.StoragePoolClaim) er
 		err = CreateStoragePool(spc)
 		if err != nil {
 			runtime.HandleError(errors.Wrapf(err, "Pool provisioning failed for %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, spc.Name))
+			break
 		}
+	}
+
+	_, err = c.patchSpcWithDiskHash(spc)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch disk hash for pool create event for spc %s", spc.Name)
 	}
 	return nil
 }
@@ -219,11 +232,11 @@ func validate(spc *apis.StoragePoolClaim) (bool, error) {
 // getCurrentPoolCount give the current pool count for the given auto provisioned spc.
 func (c *Controller) getCurrentPoolCount(spc *apis.StoragePoolClaim) (int, error) {
 	// Get the current count of provisioned pool for the storagepool claim
-	spList, err := c.clientset.OpenebsV1alpha1().StoragePools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
 	if err != nil {
 		return 0, errors.Errorf("unable to get current pool count:unable to list storagepools: %v", err)
 	}
-	return len(spList.Items), nil
+	return len(cspList.Items), nil
 }
 
 // getPendingPoolCount gives the count of pool that needs to be provisioned for a given spc.
@@ -272,4 +285,73 @@ func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error
 		return 0, errors.Errorf("Got invalid pending pool count %d", pendingPoolCount)
 	}
 	return pendingPoolCount, nil
+}
+
+func (c *Controller) handleDiskHashChange(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+
+	// Make a map containing all the disks present in spc.
+	spcDisks := make(map[string]bool)
+	for _, disk := range spc.Spec.Disks.DiskList {
+		spcDisks[disk] = true
+	}
+
+	// Get all CSP corresponding to the SPC
+	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get csp objects for spc %s", spc.Name)
+	}
+
+	// TODO: Handle for disk addition cases
+	// For all the CSPs mark the disk present on CSP as not in use if not found in spcDisks map.
+	for i, csp := range cspList.Items {
+		for j, group := range csp.Spec.Group {
+			for k, disk := range group.Item {
+				if spcDisks[disk.Name] == false {
+					cspList.Items[i].Spec.Group[j].Item[k].InUseByPool = false
+				}
+			}
+		}
+		// TODO: Think about taking lease before updating CSP object
+		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(&csp)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update CSP %s for disk changes", csp.Name)
+		}
+	}
+
+	// Patch spc with new disk list hash
+	spcGot, err := c.patchSpcWithDiskHash(spc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch spc %s for disk changes", spc.Name)
+	}
+	return spcGot, nil
+}
+
+func (c *Controller) patchSpcWithDiskHash(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+
+	diskHash, _ := hash.Hash(spc.Spec.Disks)
+	spcPatch := make([]Patch, 1)
+	spcPatch[0].Op = PatchOperation
+	// TODO: If there is no annotaion in SPC -- Create it
+	if spc.Annotations == nil {
+		return nil, errors.Errorf("No annotation found in spc %s", spc.Name)
+	}
+	if spc.Annotations[spcDiskHashKey] == "" {
+		return nil, errors.Errorf("Annotation %s found in spc %s", spcDiskHashKey, spc.Name)
+	}
+
+	// TODO: Move following to above if block
+	if spc.Annotations[spcDiskHashKey] == "" {
+		spcPatch[0].Op = PatchOperationAdd
+	}
+
+	spcPatch[0].Path = spcDiskHashKeyPath
+	spcPatch[0].Value = diskHash
+	spcPatchJSON, err := json.Marshal(spcPatch)
+
+	spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Patch(spc.Name, types.JSONPatchType, spcPatchJSON)
+
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch spc %s with the new disk list hash", spc.Name)
+	}
+	return spc, nil
 }

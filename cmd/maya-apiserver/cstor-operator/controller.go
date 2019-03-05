@@ -19,6 +19,9 @@ package spc
 import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"github.com/openebs/maya/pkg/hash/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/runtime"
+
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 
@@ -40,11 +43,14 @@ import (
 
 const controllerAgentName = "spc-controller"
 const (
-	addEvent    = "add"
-	updateEvent = "update"
-	deleteEvent = "delete"
-	ignoreEvent = "ignore"
-	syncEvent   = "sync"
+	addEvent           = "add"
+	updateEvent        = "update"
+	deleteEvent        = "delete"
+	ignoreEvent        = "ignore"
+	syncEvent          = "sync"
+	diskops            = "diskops"
+	spcDiskHashKey     = "openebs.io/disk-hash-ref"
+	spcDiskHashKeyPath = "/metadata/annotations/openebs.io~1disk-hash-ref"
 )
 
 // Controller is the controller implementation for SPC resources
@@ -160,6 +166,12 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 			// Ignore the delete event
 			// We can enqueue object in future if we need to do some other task in case of delete event.
 			c.queueLoad.Operation = ignoreEvent
+			// TODO: Handle this for auto provisioning. Need not enqueue for auto provisioning.
+		} else if isDiskHashChanged(spcObjectNew) {
+			c.queueLoad.Operation = diskops
+			c.queueLoad.Object = spcObjectNew
+			glog.V(4).Infof("Queuing SPC %s for disk operations event", spcObjectNew.Name)
+			c.enqueueSpc(&c.queueLoad)
 		} else {
 			// To-DO
 			// Implement Logic for Update of SPC object
@@ -179,4 +191,18 @@ func IsDeleteEvent(spc *apis.StoragePoolClaim) bool {
 		return true
 	}
 	return false
+}
+
+// isDiskHashChanged is to check if spc has been modified to change the disks on it e.g addition/removal of disks
+// from disk list on spc.
+func isDiskHashChanged(spc *apis.StoragePoolClaim) bool {
+	getHash, err := hash.Hash(spc.Spec.Disks)
+	if err != nil {
+		runtime.HandleError(err)
+		return false
+	}
+	if spc.Annotations[spcDiskHashKey] == getHash {
+		return false
+	}
+	return true
 }
