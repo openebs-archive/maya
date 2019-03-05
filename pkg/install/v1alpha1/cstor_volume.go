@@ -634,13 +634,13 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity }}
-    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
-    {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
-    {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
-    {{- $selectionPolicy := cspGetPolicyByLabelSelector $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector }}
-    {{- $poolUids := keys .ListItems.cvolPoolList.pools }}
-    {{- $poolUids = cspFilter $poolUids $selectionPolicy | randomize }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity -}}
+    {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity -}}
+    {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity -}}
+    {{- $selectionPolicy := cspGetPolicyByLabelSelector $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector -}}
+    {{- $poolUids := keys .ListItems.cvolPoolList.pools -}}
+    {{- $poolUids = cspFilter $poolUids $selectionPolicy | randomize -}}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     {{- if lt (len $poolUids) $replicaCount -}}
     {{- printf "Not enough pools to provision replica: expected replica count %d actual count %d" $replicaCount (len $poolUids) | fail -}}
@@ -653,8 +653,8 @@ spec:
       {{- end }}
       {{- end }}
   task: |
-    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity -}}
-    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity -}}
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1
@@ -827,14 +827,14 @@ spec:
     properties were set in preceding list tasks,
     */}}
     {{- range $pkey, $map := .ListItems.volumeList }}
-    {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first }}
-    {{- $clusterIP := pluck "clusterIP" $map | first }}
-    {{- $targetStatus := pluck "targetStatus" $map | first }}
-    {{- $replicaName := pluck "replicaName" $map | first }}
-    {{- $namespace := pluck "namespace" $map | first }}
-    {{- $accessMode :=  pluck "accessModes" $map | first }}
-    {{- $storageClass := pluck "storageClass" $map | first }}
-    {{- $name := $pkey }}
+    {{- $capacity := pluck "capacity" $map | first | default "" | splitList ", " | first -}}
+    {{- $clusterIP := pluck "clusterIP" $map | first -}}
+    {{- $targetStatus := pluck "targetStatus" $map | first -}}
+    {{- $replicaName := pluck "replicaName" $map | first -}}
+    {{- $namespace := pluck "namespace" $map | first -}}
+    {{- $accessMode :=  pluck "accessModes" $map | first -}}
+    {{- $storageClass := pluck "storageClass" $map | first -}}
+    {{- $name := $pkey -}}
       - kind: CASVolume
         apiVersion: v1alpha1
         metadata:
@@ -961,9 +961,9 @@ spec:
     disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
     action: list
   post: |
-    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
-    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
-    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
+    {{- $pvcName := .TaskResult.readlistsvc.pvcName -}}
+    {{- $applicationNamePath := printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
+    {{- $applicationNamespacePath := printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
     {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
     {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
 ---
