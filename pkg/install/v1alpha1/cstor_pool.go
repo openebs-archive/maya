@@ -185,7 +185,7 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
-        monitoring: pool_exporter_prometheus
+        openebs.io/monitoring: pool_exporter_prometheus
       ownerReferences:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
@@ -205,11 +205,10 @@ spec:
           labels:
             app: cstor-pool
           annotations:
-            monitoring: pool_exporter_prometheus
+            openebs.io/monitoring: pool_exporter_prometheus
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
-            app: cstor-pool
             openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
