@@ -3,7 +3,6 @@ package pool
 import (
 	"strconv"
 
-	"github.com/golang/glog"
 	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -15,8 +14,10 @@ type metrics struct {
 	freeCapacity        prometheus.Gauge
 	usedCapacityPercent prometheus.Gauge
 
-	parseErrorCounter        prometheus.Gauge
-	zpoolCommandErrorCounter prometheus.Gauge
+	zpoolCommandErrorCounter    prometheus.Gauge
+	zpoolRejectRequestCounter   prometheus.Gauge
+	zpoolListparseErrorCounter  prometheus.Gauge
+	noPoolAvailableErrorCounter prometheus.Gauge
 }
 
 type statsFloat64 struct {
@@ -43,8 +44,7 @@ func (s *statsFloat64) List() []float64 {
 func parseFloat64(e string, m *metrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
-		glog.Error("failed to parse, err: ", err)
-		m.parseErrorCounter.Inc()
+		m.zpoolListparseErrorCounter.Inc()
 	}
 	return num
 }
@@ -100,11 +100,19 @@ func newMetrics() metrics {
 			},
 		),
 
-		parseErrorCounter: prometheus.NewGauge(
+		zpoolListparseErrorCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "parse_error_total",
+				Name:      "zpool_list_parse_error_count",
 				Help:      "Total no of parsing errors",
+			},
+		),
+
+		zpoolRejectRequestCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "zpool_reject_request_count",
+				Help:      "Total no of rejected requests",
 			},
 		),
 
@@ -113,6 +121,14 @@ func newMetrics() metrics {
 				Namespace: "openebs",
 				Name:      "zpool_command_error",
 				Help:      "zpool command error counter",
+			},
+		),
+
+		noPoolAvailableErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "no_pool_available_error",
+				Help:      "no pool available error count",
 			},
 		),
 	}

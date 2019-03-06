@@ -31,15 +31,18 @@ type metrics struct {
 	rebuildDoneCount   *prometheus.GaugeVec
 	rebuildFailedCount *prometheus.GaugeVec
 
-	zfsCommandErrorCounter prometheus.Gauge
+	zfsCommandErrorCounter       prometheus.Gauge
+	zfsStatsParseErrorCounter    prometheus.Gauge
+	zfsStatsRejectRequestCounter prometheus.Gauge
 }
 
 type listMetrics struct {
 	used      *prometheus.GaugeVec
 	available *prometheus.GaugeVec
 
-	zfsParseErrorCounter       prometheus.Gauge
-	zfsListCommandErrorCounter prometheus.Gauge
+	zfsParseErrorCounter        prometheus.Gauge
+	zfsListCommandErrorCounter  prometheus.Gauge
+	zfsListRequestRejectCounter prometheus.Gauge
 }
 
 type fields struct {
@@ -79,6 +82,14 @@ func newListMetrics() listMetrics {
 		),
 
 		zfsListCommandErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "zfs_list_command_error",
+				Help:      "zfs command error counter",
+			},
+		),
+
+		zfsListRequestRejectCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_list_command_error",
@@ -240,6 +251,22 @@ func newMetrics() metrics {
 				Namespace: "openebs",
 				Name:      "zfs_command_error",
 				Help:      "zfs command error counter",
+			},
+		),
+
+		zfsStatsParseErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "zfs_stats_parse_error_counter",
+				Help:      "zfs stats parse error counter",
+			},
+		),
+
+		zfsStatsRejectRequestCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "zfs_stats_reject_request_count",
+				Help:      "zfs stats reject request counters",
 			},
 		),
 	}

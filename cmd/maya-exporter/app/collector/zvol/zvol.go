@@ -15,6 +15,7 @@ import (
 type volume struct {
 	sync.Mutex
 	metrics
+	request bool
 }
 
 var (
@@ -32,6 +33,10 @@ func New() *volume {
 	return &volume{
 		metrics: newMetrics(),
 	}
+}
+
+func (v *volume) isRequestInProgress() bool {
+	return v.request
 }
 
 // collectors returns the list of the collectors
@@ -54,6 +59,8 @@ func (v *volume) collectors() []prometheus.Collector {
 		v.dispatchedIOCount,
 		v.rebuildFailedCount,
 		v.zfsCommandErrorCounter,
+		v.zfsStatsParseErrorCounter,
+		v.zfsStatsRejectRequestCounter,
 	}
 }
 
@@ -91,8 +98,6 @@ func (v *volume) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (v *volume) get() (zvol.Stats, error) {
-	v.Lock()
-	defer v.Unlock()
 	var (
 		err     error
 		stdout  []byte
@@ -103,14 +108,14 @@ func (v *volume) get() (zvol.Stats, error) {
 	glog.V(2).Info("Run zfs stats command")
 	stdout, err = zvol.Run(timeout, runner, "stats")
 	if err != nil {
-		glog.Errorf("Failed to get zfs stats, error: %v", err)
+		v.zfsCommandErrorCounter.Inc()
 		return stats, err
 	}
 
 	glog.V(2).Infof("Parse stdout of zfs stats command, got stdout: %v", string(stdout))
 	stats, err = zvol.StatsParser(stdout)
 	if err != nil {
-		glog.Errorf("Failed to parse zfs stats command, error: %v, stdout: %v", err, string(stdout))
+		v.zfsStatsParseErrorCounter.Inc()
 		return stats, err
 	}
 
@@ -119,10 +124,19 @@ func (v *volume) get() (zvol.Stats, error) {
 
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (v *volume) Collect(ch chan<- prometheus.Metric) {
+	v.Lock()
+	if v.isRequestInProgress() {
+		v.zfsStatsRejectRequestCounter.Inc()
+		v.Unlock()
+		return
+
+	}
+
+	v.request = true
+	v.Unlock()
 
 	zvolStats, err := v.get()
 	if err != nil {
-		v.incErrorCounter(err)
 		return
 	}
 
@@ -131,10 +145,10 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range v.collectors() {
 		col.Collect(ch)
 	}
-}
 
-func (v *volume) incErrorCounter(err error) {
-	v.zfsCommandErrorCounter.Inc()
+	v.Lock()
+	v.request = false
+	v.Unlock()
 }
 
 func (v *volume) setZVolStats(stats zvol.Stats) {

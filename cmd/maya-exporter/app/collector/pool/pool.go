@@ -14,6 +14,7 @@ import (
 type pool struct {
 	sync.Mutex
 	metrics
+	request bool
 }
 
 var (
@@ -31,6 +32,10 @@ func New() *pool {
 	return &pool{
 		metrics: newMetrics(),
 	}
+}
+
+func (p *pool) isRequestInProgress() bool {
+	return p.request
 }
 
 // GetInitStatus run zpool binary to verify whether zpool container
@@ -64,6 +69,9 @@ func (p *pool) collectors() []prometheus.Collector {
 		p.freeCapacity,
 		p.usedCapacityPercent,
 		p.zpoolCommandErrorCounter,
+		p.zpoolRejectRequestCounter,
+		p.zpoolListparseErrorCounter,
+		p.noPoolAvailableErrorCounter,
 	}
 }
 
@@ -89,9 +97,7 @@ func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (p *pool) get() (zpool.Stats, error) {
-	p.Lock()
-	defer p.Unlock()
+func (p *pool) getZpoolStats() (zpool.Stats, error) {
 	var (
 		err         error
 		stdoutZpool []byte
@@ -99,17 +105,16 @@ func (p *pool) get() (zpool.Stats, error) {
 		zpoolStats  = zpool.Stats{}
 	)
 
-	glog.V(2).Info("Run zpool list command")
 	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
-		glog.Errorf("Failed to get zpool stats, error: %v", err)
+		p.zpoolCommandErrorCounter.Inc()
 		return zpoolStats, err
 	}
 
 	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		glog.Errorf("Failed to parse zpool list command, error: %v, stdout: %v", err, string(stdoutZpool))
+		p.noPoolAvailableErrorCounter.Inc()
 		return zpoolStats, err
 	}
 
@@ -119,28 +124,37 @@ func (p *pool) get() (zpool.Stats, error) {
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (p *pool) Collect(ch chan<- prometheus.Metric) {
 
-	poolStats := statsFloat64{}
-	zpoolStats, err := p.get()
-	if err != nil {
-		p.incErrorCounter(err)
+	p.Lock()
+	if p.isRequestInProgress() {
+		p.zpoolRejectRequestCounter.Inc()
+		p.Unlock()
 		return
+
 	}
 
+	p.request = true
+	p.Unlock()
+
+	poolStats := statsFloat64{}
+	zpoolStats, err := p.getZpoolStats()
+	if err != nil {
+		return
+	}
 	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
 	poolStats.parse(zpoolStats, p)
 	p.setZPoolStats(poolStats)
 	for _, col := range p.collectors() {
 		col.Collect(ch)
 	}
-}
 
-func (p *pool) incErrorCounter(err error) {
-	p.zpoolCommandErrorCounter.Inc()
+	p.Lock()
+	p.request = false
+	p.Unlock()
 }
 
 func (p *pool) setZPoolStats(stats statsFloat64) {
+	items := stats.List()
 	for index, col := range p.gaugeVec() {
-		items := stats.List()
 		col.Set(items[index])
 	}
 }

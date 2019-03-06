@@ -13,6 +13,7 @@ import (
 type volumeList struct {
 	sync.Mutex
 	listMetrics
+	request bool
 }
 
 // NewVolumeList returns new instance of volumeList
@@ -22,6 +23,10 @@ func NewVolumeList() *volumeList {
 	}
 }
 
+func (v *volumeList) isRequestInProgress() bool {
+	return v.request
+}
+
 // collectors returns the list of the collectors
 func (v *volumeList) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
@@ -29,6 +34,7 @@ func (v *volumeList) collectors() []prometheus.Collector {
 		v.available,
 		v.zfsParseErrorCounter,
 		v.zfsListCommandErrorCounter,
+		v.zfsListRequestRejectCounter,
 	}
 }
 
@@ -54,16 +60,12 @@ func (v *volumeList) Describe(ch chan<- *prometheus.Desc) {
 func (v *volumeList) get() ([]fields, error) {
 	v.Lock()
 	defer v.Unlock()
-	var (
-		err     error
-		stdout  []byte
-		timeout = 5 * time.Second
-	)
+	var timeout = 5 * time.Second
 
 	glog.V(2).Info("Run zfs list command")
-	stdout, err = zvol.Run(timeout, runner, "list", "-Hp")
+	stdout, err := zvol.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
-		glog.Errorf("Failed to get zfs list, error: %v", err)
+		v.zfsListCommandErrorCounter.Inc()
 		return nil, err
 	}
 
@@ -75,10 +77,19 @@ func (v *volumeList) get() ([]fields, error) {
 
 // Collect is implementation of prometheus's prometheus.Collector interface
 func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
+	v.Lock()
+	if v.isRequestInProgress() {
+		v.zfsListRequestRejectCounter.Inc()
+		v.Unlock()
+		return
+
+	}
+
+	v.request = true
+	v.Unlock()
 
 	volumeLists, err := v.get()
 	if err != nil {
-		v.incErrorCounter(err)
 		return
 	}
 
@@ -87,10 +98,10 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range v.collectors() {
 		col.Collect(ch)
 	}
-}
 
-func (v *volumeList) incErrorCounter(err error) {
-	v.zfsListCommandErrorCounter.Inc()
+	v.Lock()
+	v.request = false
+	v.Unlock()
 }
 
 func (v *volumeList) setListStats(volumeLists []fields) {
