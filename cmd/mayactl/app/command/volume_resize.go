@@ -33,7 +33,7 @@ This command resizes the volume.
 Usage: mayactl volume resize [options]
 
 $ mayactl volume resize --volume <vol> --size <size> --namespace <namespace>
-  Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei, Z, Zi
+  Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei
 
 `
 )
@@ -68,15 +68,14 @@ func (c *CmdVolumeOptions) ValidateResize(cmd *cobra.Command) error {
 		return errors.New("--size is missing. Please specify value")
 	}
 
-	// TODO: Below validation is need to be moved into maya-apiserver
-	// Regex to say only positive integers and valid size is accepted
-	reg, err := regexp.Compile("^[0-9]+[MGTPEZ][i]{0,1}$")
+	// Regex to say only positive integers and valid size units are accepted
+	reg, err := regexp.Compile("^[0-9]+[MGTPE][i]{0,1}$")
 	if err != nil {
 		return errors.New("failed to process regular expresion")
 	}
 
 	if !reg.MatchString(c.size) {
-		return errors.New("Please provide valid size and unit")
+		return errors.New("invalid size. Please specify valid size and units")
 	}
 	return nil
 }
@@ -90,6 +89,6 @@ func (c *CmdVolumeOptions) RunVolumeResize(cmd *cobra.Command) error {
 		return fmt.Errorf("Volume resize failed: %v", resp)
 	}
 
-	fmt.Printf("Volume resize is successfull on volume: %s with size: %s in %s namespace\n", c.volName, c.size, c.namespace)
+	fmt.Printf("Volume resize is successfull for volume: %s with size: %s in %s namespace\n", c.volName, c.size, c.namespace)
 	return nil
 }

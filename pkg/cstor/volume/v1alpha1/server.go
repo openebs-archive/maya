@@ -54,7 +54,6 @@ func RunCStorVolumeGrpcServer(port int) error {
 	}
 	// create a server instance
 	s := Server{}
-	glog.Infof("Server %v", s)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	// attach the RunCommand service to the server

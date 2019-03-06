@@ -298,39 +298,39 @@ func TestgetString(t *testing.T) {
 func TestgetInt(t *testing.T) {
 	tests := map[string]struct {
 		testString    string
-		expectedValue int64
+		expectedValue uint64
 		expectedError error
 	}{
 		"Interms of G": {
 			testString:    "10G",
-			expectedValue: int64(10),
+			expectedValue: uint64(10),
 			expectedError: nil,
 		},
 		"Interms of Zi": {
 			testString:    "5Zi",
-			expectedValue: int64(5),
+			expectedValue: uint64(5),
 			expectedError: nil,
 		},
 		"Interms of T": {
 			testString:    "9T",
-			expectedValue: int64(9),
+			expectedValue: uint64(9),
 			expectedError: nil,
 		},
 		"Interms of K": {
 			testString:    "3K",
-			expectedValue: int64(3),
+			expectedValue: uint64(3),
 			expectedError: nil,
 		},
 		"Invalid Unit": {
 			testString:    "Mi",
-			expectedValue: int64(64),
+			expectedValue: uint64(64),
 			expectedError: fmt.Errorf("No number found"),
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			val, err := getNum(test.testString)
+			val, err := getInt(test.testString)
 			if val != test.expectedValue && err == nil {
 				t.Logf("actual string: %d", val)
 				t.Logf("expected string: %d", test.expectedValue)

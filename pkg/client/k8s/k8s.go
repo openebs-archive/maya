@@ -36,8 +36,10 @@ import (
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 	api_storage_v1 "k8s.io/api/storage/v1"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
 
@@ -413,6 +415,38 @@ func (k *K8sClient) CreateOEV1alpha1CV(cv *api_oe_v1alpha1.CStorVolume) (*api_oe
 	return cvops.Create(cv)
 }
 
+// PatchCV patches the CStor Volume object with updated capacity
+func (k *K8sClient) PatchCV(oldCV *api_oe_v1alpha1.CStorVolume, newSize string) error {
+	cvClone := oldCV.DeepCopy()
+
+	oldData, err := json.Marshal(cvClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling CV : %q", cvClone.Name)
+	}
+
+	cvClone.Spec.Capacity = newSize
+
+	newData, err := json.Marshal(cvClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling CV : %q", cvClone.Name)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, cvClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Error Creating two way merge patch for  CV : %q", cvClone.Name)
+	}
+
+	_, updateErr := k.oeV1alpha1CVOps().Patch(cvClone.Name, types.MergePatchType, patchBytes)
+
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
+}
+
 // oeV1alpha1CVOps is a utility function that provides a instance capable of
 // executing various OpenEBS CStorVolume related operations
 func (k *K8sClient) oeV1alpha1CVOps() typed_oe_v1alpha1.CStorVolumeInterface {
@@ -463,11 +497,6 @@ func (k *K8sClient) CreateOEV1alpha1CVAsRaw(v *api_oe_v1alpha1.CStorVolume) (res
 
 	return json.Marshal(csv)
 }
-
-//func (k *K8sClient) UpdateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
-//	cvops := k.oeV1alpha1CVROps()
-//	return cvops.Update(cvr)
-//}
 
 // CreateOEV1alpha1CVR creates a CStorVolumeReplica
 func (k *K8sClient) CreateOEV1alpha1CVR(cvr *api_oe_v1alpha1.CStorVolumeReplica) (*api_oe_v1alpha1.CStorVolumeReplica, error) {
@@ -554,6 +583,12 @@ func (k *K8sClient) coreV1PVCOps() typed_core_v1.PersistentVolumeClaimInterface 
 	return k.cs.CoreV1().PersistentVolumeClaims(k.ns)
 }
 
+//UpdatePVC takes the representation of a persistentVolumeClaim and updates it
+func (k *K8sClient) UpdatePVC(pvc *api_core_v1.PersistentVolumeClaim) (*api_core_v1.PersistentVolumeClaim, error) {
+	pops := k.coreV1PVCOps()
+	return pops.Update(pvc)
+}
+
 // GetPVC fetches the K8s PVC with the provided name
 func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api_core_v1.PersistentVolumeClaim, error) {
 	if k.PVC != nil {
@@ -580,12 +615,71 @@ func (k *K8sClient) GetPV(name string, opts mach_apis_meta_v1.GetOptions) (*api_
 	return pops.Get(name, opts)
 }
 
-// Update takes the representation of a persistentVolume and updates it
-//func (k *K8sClient) PutPV(pv *api_core_v1.PersistentVolume) (*api_core_v1.PersistentVolume, error) {
-//
-//	pops := k.coreV1PVOps()
-//	return pops.Update(pv)
-//}
+// UpdatePV takes the new representation of a persistentVolume and updates it
+func (k *K8sClient) UpdatePV(pv *api_core_v1.PersistentVolume) (*api_core_v1.PersistentVolume, error) {
+	pops := k.coreV1PVOps()
+	return pops.Update(pv)
+}
+
+// PatchPV patches the persistent Volume object with updated capacity
+func (k *K8sClient) PatchPV(oldPV *api_core_v1.PersistentVolume, newSize resource.Quantity) error {
+	pvClone := oldPV.DeepCopy()
+
+	oldData, err := json.Marshal(pvClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling PV : %q", pvClone.Name)
+	}
+
+	pvClone.Spec.Capacity[api_core_v1.ResourceStorage] = newSize
+
+	newData, err := json.Marshal(pvClone)
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling PV : %q", pvClone.Name)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, pvClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Error Creating two way merge patch for  CV : %q", pvClone.Name)
+	}
+
+	_, updateErr := k.coreV1PVOps().Patch(pvClone.Name, types.StrategicMergePatchType, patchBytes)
+
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
+}
+
+// PatchPVC patches the persistentVolumeClaim object with updated capacity
+func (k *K8sClient) PatchPVC(oldPVC *api_core_v1.PersistentVolumeClaim, newSize resource.Quantity) error {
+	pvcClone := oldPVC.DeepCopy()
+
+	oldData, err := json.Marshal(pvcClone)
+
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling PV : %q", pvcClone.Name)
+	}
+
+	pvcClone.Spec.Resources.Requests[api_core_v1.ResourceStorage] = newSize
+
+	newData, err := json.Marshal(pvcClone)
+	if err != nil {
+		return errors.Wrapf(err, "Unexpected error marshaling PV : %q", pvcClone.Name)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, pvcClone)
+	if err != nil {
+		return errors.Wrapf(err, "Error Creating two way merge patch for  CV : %q", pvcClone.Name)
+	}
+
+	_, updateErr := k.coreV1PVCOps().Patch(pvcClone.Name, types.StrategicMergePatchType, patchBytes)
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
+}
 
 // GetCoreV1PersistentVolumeAsRaw fetches the K8s PersistentVolume with the
 // provided name

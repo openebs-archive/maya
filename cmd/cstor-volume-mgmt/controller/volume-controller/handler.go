@@ -273,12 +273,13 @@ func IsOnlyStatusChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	return false
 }
 
-//IsOnlyCapacityChange is to check only capacity changes of cStorVolume spec.
-func IsOnlyCapacityChange(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
+//IsCapacityChanged is to check whether the capacity is updated or not
+func IsCapacityChanged(oldCStorVolume, newCStorVolume *apis.CStorVolume) bool {
 	if !reflect.DeepEqual(oldCStorVolume.Spec.Capacity, newCStorVolume.Spec.Capacity) {
-		glog.Infof("Volume capcity changed from %v to %v", oldCStorVolume.Spec.Capacity, newCStorVolume.Spec.Capacity)
+		glog.Infof("Volume size modified from %v to %v for cstor volume : %s",
+			oldCStorVolume.Spec.Capacity, newCStorVolume.Spec.Capacity, newCStorVolume.Name)
 		return true
 	}
-	glog.Infof("No Capacity changed for cstor volume : %s", newCStorVolume.Name)
+	glog.Infof("No volume size changed for cstor volume : %s", newCStorVolume.Name)
 	return false
 }

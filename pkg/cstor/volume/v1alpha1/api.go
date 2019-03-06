@@ -129,7 +129,7 @@ func ResizeVolume(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alp
 	if err != nil {
 		return nil, err
 	} else if index == -1 {
-		return nil, errors.Wrapf(err, "Not able to get the Storage details from '%v'", util.IstgtConfPath)
+		return nil, errors.Wrapf(err, "failed to get the Storage details from '%v'", util.IstgtConfPath)
 	}
 	err = APIFileOperatorVar.Updatefile(util.IstgtConfPath, updateStorageVal, index, 0644)
 	if err != nil {
@@ -142,7 +142,7 @@ func ResizeVolume(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alp
 		glog.Infof("Reverting the changes in file %s", util.IstgtConfPath)
 		errOp := APIFileOperatorVar.Updatefile(util.IstgtConfPath, oldStorageVal, index, 0644)
 		if errOp != nil {
-			glog.Errorf("Failed to update the size of the file %v", errOp)
+			glog.Errorf("Failed to revert the size of the file %v", errOp)
 		}
 		return nil, errors.Wrapf(err, "resize request failed")
 	}

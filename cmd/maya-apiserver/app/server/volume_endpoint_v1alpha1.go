@@ -18,6 +18,7 @@ package server
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/golang/glog"
@@ -143,6 +144,16 @@ func (v *volumeAPIOpsV1alpha1) update() (*v1alpha1.CASVolume, error) {
 
 	if len(newVol.Spec.Capacity) == 0 {
 		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing size '%v'", newVol))
+	}
+
+	// Regex to say only positive integers and valid size units are accepted
+	reg, err := regexp.Compile("^[0-9]+[MGTPE][i]{0,1}$")
+	if err != nil {
+		return nil, CodedError(400, fmt.Sprintf("failed to process regular expresion '%v'", newVol))
+	}
+
+	if !reg.MatchString(newVol.Spec.Capacity) {
+		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: invalid size '%v'", newVol))
 	}
 
 	// use run namespace from http request header if volume's namespace is still not set

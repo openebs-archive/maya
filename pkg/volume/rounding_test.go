@@ -308,111 +308,170 @@ func Test_RoundUpToKiB(t *testing.T) {
 	}
 }
 
-func TestRoundUpStringToGi(t *testing.T) {
+func Test_RoundUpToBytes(t *testing.T) {
+	testcases := []struct {
+		name       string
+		resource   resource.Quantity
+		roundedVal int64
+	}{
+		{
+			name:       "round Ki to Bytes",
+			resource:   resource.MustParse("1000Ki"),
+			roundedVal: int64(1024000),
+		},
+		{
+			name:       "round k to Bytes",
+			resource:   resource.MustParse("1000k"),
+			roundedVal: int64(1000000),
+		},
+		{
+			name:       "round Mi to Bytes",
+			resource:   resource.MustParse("1000Mi"),
+			roundedVal: int64(1048576000),
+		},
+		{
+			name:       "round M to Bytes",
+			resource:   resource.MustParse("1000M"),
+			roundedVal: int64(1000000000),
+		},
+		{
+			name:       "round G to Bytes",
+			resource:   resource.MustParse("1000G"),
+			roundedVal: int64(1000000000000),
+		},
+		{
+			name:       "round Gi to Bytes",
+			resource:   resource.MustParse("1000Gi"),
+			roundedVal: int64(1073741824000),
+		},
+		{
+			name:       "round T to Bytes",
+			resource:   resource.MustParse("989T"),
+			roundedVal: int64(989000000000000),
+		},
+		{
+			name:       "round Ti to Bytes",
+			resource:   resource.MustParse("1024Ti"),
+			roundedVal: int64(1125899906842624),
+		},
+		{
+			name:       "round Ei to Bytes",
+			resource:   resource.MustParse("979Ei"),
+			roundedVal: int64(9223372036854775807),
+		},
+	}
+
+	for _, test := range testcases {
+		t.Run(test.name, func(t *testing.T) {
+			val := RoundUpToBytes(test.resource)
+			if val != test.roundedVal {
+				t.Logf("actual value: %d", val)
+				t.Logf("expected value: %d", test.roundedVal)
+				t.Error("unexpected value")
+			}
+		})
+	}
+}
+
+func TestRoundUpStringToBytes(t *testing.T) {
 	testcases := map[string]struct {
-		size           int64
+		size           uint64
 		unit           string
-		expectedOutput int64
+		expectedOutput uint64
 		expectedError  error
 	}{
-		"Zi to Gi": {
-			size:           int64(5),
-			unit:           "Zi",
-			expectedOutput: int64(5497558138880),
-			expectedError:  nil,
-		},
-		"Z to Gi": {
-			size:           int64(6),
-			unit:           "Z",
-			expectedOutput: int64(5592000000000),
-			expectedError:  nil,
-		},
-		"Ei to Gi": {
-			size:           int64(3),
+		"Ei to Bytes": {
+			size:           uint64(3),
 			unit:           "Ei",
-			expectedOutput: int64(3221225472),
+			expectedOutput: uint64(3458764513820540928),
 			expectedError:  nil,
 		},
-		"E to Gi": {
-			size:           int64(2),
+		"E to Bytes": {
+			size:           uint64(2),
 			unit:           "E",
-			expectedOutput: int64(1864000000),
+			expectedOutput: uint64(2000000000000000000),
 			expectedError:  nil,
 		},
-		"Pi to Gi": {
-			size:           int64(6),
+		"Pi to Bytes": {
+			size:           uint64(6),
 			unit:           "Pi",
-			expectedOutput: int64(6291456),
+			expectedOutput: uint64(6755399441055744),
 			expectedError:  nil,
 		},
-		"P to Gi": {
-			size:           int64(5),
+		"P to Bytes": {
+			size:           uint64(5),
 			unit:           "P",
-			expectedOutput: int64(4660000),
+			expectedOutput: uint64(5000000000000000),
 			expectedError:  nil,
 		},
-		"Ti to Gi": {
-			size:           int64(2),
+		"Ti to Bytes": {
+			size:           uint64(2),
 			unit:           "Ti",
-			expectedOutput: int64(2048),
+			expectedOutput: uint64(2199023255552),
 			expectedError:  nil,
 		},
-		"T to Gi": {
-			size:           int64(2),
+		"T to Bytes": {
+			size:           uint64(2),
 			unit:           "T",
-			expectedOutput: int64(1864),
+			expectedOutput: uint64(2000000000000),
 			expectedError:  nil,
 		},
-		"G to Gi": {
-			size:           int64(4),
+		"Gi to Bytes": {
+			size:           uint64(7),
+			unit:           "Gi",
+			expectedOutput: uint64(7516192768),
+			expectedError:  nil,
+		},
+		"G to Bytes": {
+			size:           uint64(4),
 			unit:           "G",
-			expectedOutput: int64(4),
+			expectedOutput: uint64(4000000000),
 			expectedError:  nil,
 		},
-		"Mi to Gi": {
-			size:           int64(2048),
+		"Mi to Bytes": {
+			size:           uint64(2048),
 			unit:           "Mi",
-			expectedOutput: int64(2),
+			expectedOutput: uint64(2147483648),
 			expectedError:  nil,
 		},
-		"M to Gi": {
-			size:           int64(3124),
+		"M to Bytes": {
+			size:           uint64(3124),
 			unit:           "M",
-			expectedOutput: int64(3),
+			expectedOutput: uint64(3124000000),
 			expectedError:  nil,
 		},
-		"Ki to Gi": {
-			size:           int64(123452),
+		"Ki to Bytes": {
+			size:           uint64(123452),
 			unit:           "Ki",
-			expectedOutput: int64(0),
+			expectedOutput: uint64(126414848),
 			expectedError:  nil,
 		},
-		"K to Gi": {
-			size:           int64(2048),
+		"K to Bytes": {
+			size:           uint64(2048000),
 			unit:           "K",
-			expectedOutput: int64(0),
+			expectedOutput: uint64(2048000000),
 			expectedError:  nil,
 		},
-		"B to Gi": {
-			size:           int64(2048),
+		"B to Bytes": {
+			size:           uint64(2048),
 			unit:           "B",
-			expectedOutput: int64(0),
+			expectedOutput: uint64(2048),
 			expectedError:  nil,
 		},
 		"Invalid unit": {
-			size:           int64(1233),
+			size:           uint64(1233),
 			unit:           "Hi",
-			expectedOutput: int64(-1),
+			expectedOutput: uint64(0),
 			expectedError:  fmt.Errorf("Invalid unit"),
 		},
 	}
 
 	for name, test := range testcases {
 		t.Run(name, func(t *testing.T) {
-			val, err := RoundUpStringToGi(test.size, test.unit)
+			val, err := RoundUpStringToBytes(test.size, test.unit)
 			if val != test.expectedOutput && err == nil {
-				t.Logf("actual rounded value: %d", val)
-				t.Logf("expected rounded value: %d", test.expectedOutput)
+				t.Logf("actual value: %d", val)
+				t.Logf("expected value: %d", test.expectedOutput)
 				t.Error("unexpected rounded value")
 			}
 			if !reflect.DeepEqual(err, test.expectedError) {

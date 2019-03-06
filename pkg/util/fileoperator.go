@@ -42,7 +42,7 @@ func (r RealFileOperator) Write(filename string, data []byte, perm os.FileMode) 
 	return err
 }
 
-// GetLineDetails return the line number, line content of the file
+// GetLineDetails return the line number and line content of matched string in file
 func (r RealFileOperator) GetLineDetails(filename, searchString string) (int, string, error) {
 	var line string
 	var i int

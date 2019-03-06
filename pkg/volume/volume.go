@@ -33,6 +33,7 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	core_v1 "k8s.io/api/core/v1"
 	v1_storage "k8s.io/api/storage/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -56,7 +57,7 @@ type Operation struct {
 // TODO: Move to different package
 // getString will return the alphabeticals in given string
 func getString(strValue string) (string, error) {
-	reg, err := regexp.Compile("[^KMGTPEZi]")
+	reg, err := regexp.Compile("[^A-Za-z]")
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to process a regular expresion")
 	}
@@ -64,17 +65,29 @@ func getString(strValue string) (string, error) {
 }
 
 // getInt will get  return the integers in given string
-func getNum(strValue string) (int64, error) {
+func getInt(strValue string) (uint64, error) {
 	reg, err := regexp.Compile("[^0-9]+")
 	if err != nil {
-		return int64(-1), errors.Wrapf(err, "failed to process a regular expresion")
+		return uint64(0), errors.Wrapf(err, "failed to process a regular expresion")
 	}
 	strVal := reg.ReplaceAllString(strValue, "")
 	if len(strVal) == 0 {
-		return int64(-1), fmt.Errorf("No number found")
+		return uint64(0), fmt.Errorf("No number found")
 	}
 	strInt, err := strconv.Atoi(strVal)
-	return int64(strInt), err
+	return uint64(strInt), err
+}
+
+func splitString(value string) (uint64, string, error) {
+	valueInt, err := getInt(value)
+	if err != nil {
+		return uint64(0), "", errors.Wrapf(err, "failed to get capacity value")
+	}
+	valueStr, err := getString(value)
+	if err != nil {
+		return uint64(0), "", errors.Wrapf(err, "failed to get capacity unit")
+	}
+	return valueInt, valueStr, nil
 }
 
 // NewOperation returns a new instance of volumeOperation
@@ -240,16 +253,11 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	glog.V(4).Infof("fetching the details of pvc,pv,sc,casName")
 
-	capacityUnit, err := getString(v.volume.Spec.Capacity)
+	capacityValue, capacityUnit, err := splitString(v.volume.Spec.Capacity)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get capacity unit")
+		return nil, errors.Wrapf(err, "failed to process Capacity")
 	}
-	capacityValue, err := getNum(v.volume.Spec.Capacity)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get capacity value")
-	}
-
-	newSizeGIB, err := RoundUpStringToGi(capacityValue, capacityUnit)
+	newSize, err := RoundUpStringToBytes(capacityValue, capacityUnit)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to convert new capacity %s", v.volume.Spec.Capacity)
 	}
@@ -260,12 +268,11 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	oldSizeGIB := RoundUpToGi(pv.Spec.Capacity[core_v1.ResourceStorage])
-
-	glog.V(4).Infof("Value of old volume size: %d and requested size: %d in Gi", oldSizeGIB, newSizeGIB)
+	oldSize := RoundUpToBytes(pv.Spec.Capacity[core_v1.ResourceStorage])
+	glog.V(4).Infof("old volume size: %d and requested size: %d in Bytes", oldSize, newSize)
 
 	// If volume size is already greater than or equal to requested size return
-	if oldSizeGIB >= newSizeGIB {
+	if uint64(oldSize) >= newSize {
 		return nil, fmt.Errorf("Volume is already greater than or equal to requested volume size")
 	}
 
@@ -337,7 +344,24 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 		return nil, err
 	}
 
-	// k8scli used to get the kubeclient in cstorvolume namespace
+	// Updating the CR's with the updated capacity
+	quantity, err := resource.ParseQuantity(v.volume.Spec.Capacity)
+	err = v.k8sClient.PatchPV(pv, quantity)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update pv(%v)\n", pv.Name)
+	}
+
+	pvc, err := v.k8sClient.GetPVC(pv.Spec.ClaimRef.Name, mach_apis_meta_v1.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get pvc")
+	}
+	err = v.k8sClient.PatchPVC(pvc, quantity)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update the pvc(%v)\n", pvc.Name)
+		//TODO: Is it necessary to revert the size changes in dataplane?
+	}
+
+	// k8scli used to get the kubeclient for cstorvolume in corresponding namespace
 	k8scli, err := m_k8s_client.NewK8sClient(string(vol.Namespace))
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get the kube client for volume")
@@ -346,12 +370,10 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get the cstor volume")
 	}
-	// Update the capacity of cstor volume CR
-	cstorvolume.Spec.Capacity = v.volume.Spec.Capacity
-	_, err = k8scli.UpdateOEV1alpha1CV(cstorvolume)
+	err = k8scli.PatchCV(cstorvolume, v.volume.Spec.Capacity)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update the cstorvolume\n")
-		//TODO: Is it necessary to revert the size in dataplane
+		//TODO: Is it necessary to revert the size changes in dataplane?
 	}
 
 	return vol, nil

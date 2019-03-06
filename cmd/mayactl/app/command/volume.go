@@ -98,11 +98,11 @@ Examples:
 
  # Resize a Volume created in default namespace:
    $ mayactl volume resize --volname <vol> --size <size><unit>
-   Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei, Z, Zi
+   Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei
 
  # Resize a Volume created in 'test' namespace:
    $ mayactl volume resize --volname <vol> --size <size><unit> --namespace test
-   Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei, Z, Zi
+   Supported units: M, Mi, G, Gi, T, Ti, P, Pi, E, Ei
 `
 	options = &CmdVolumeOptions{
 		namespace: "default",

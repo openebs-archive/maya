@@ -50,7 +50,7 @@ func TestValidateResize(t *testing.T) {
 				size:    "-4OG",
 			},
 			cmd:            cmd,
-			expectedOutput: fmt.Errorf("Please provide valid size and unit"),
+			expectedOutput: fmt.Errorf("invalid size. Please specify valid size and units"),
 		},
 		"When invalid size unit is given": {
 			cmdOptions: &CmdVolumeOptions{
@@ -58,7 +58,7 @@ func TestValidateResize(t *testing.T) {
 				size:    "40TiB",
 			},
 			cmd:            cmd,
-			expectedOutput: fmt.Errorf("Please provide valid size and unit"),
+			expectedOutput: fmt.Errorf("invalid size. Please specify valid size and units"),
 		},
 		"When valid arguments are passed": {
 			cmdOptions: &CmdVolumeOptions{
@@ -73,7 +73,7 @@ func TestValidateResize(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := tt.cmdOptions.ValidateResize(tt.cmd)
 			if (err != nil && tt.expectedOutput != nil) && string(err.Error()) != string(tt.expectedOutput.Error()) {
-				t.Errorf("Expected Output was %v \nbut got: %v", tt.expectedOutput, err)
+				t.Errorf("Expected Output: %v \nbut got: %v", tt.expectedOutput, err)
 			}
 		})
 	}

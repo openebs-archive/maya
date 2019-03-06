@@ -2,12 +2,21 @@ package volume
 
 import (
 	"fmt"
-	"math"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
+	// EB - ExaByte size
+	EB = 1000 * 1000 * 1000 * 1000 * 1000 * 1000
+	// Ei - ExbiByte size
+	Ei = 1024 * 1024 * 1024 * 1024 * 1024 * 1024
+
+	// PB - PetaByte size
+	PB = 1000 * 1000 * 1000 * 1000 * 1000
+	// Pi - PebiByte size
+	Pi = 1024 * 1024 * 1024 * 1024 * 1024
+
 	// TB - TeraByte size
 	TB = 1000 * 1000 * 1000 * 1000
 	// Ti - TebiByte size
@@ -28,6 +37,30 @@ const (
 	// Ki - KibiByte size
 	Ki = 1024
 )
+
+// RoundUpToEB rounds up given quantity to chunks of EB
+func RoundUpToEB(size resource.Quantity) int64 {
+	requestBytes := size.Value()
+	return roundUpSize(requestBytes, EB)
+}
+
+// RoundUpToEi rounds up given quantity upto chunks of Ei
+func RoundUpToEi(size resource.Quantity) int64 {
+	requestBytes := size.Value()
+	return roundUpSize(requestBytes, Ei)
+}
+
+// RoundUpToPB rounds up given quantity to chunks of PB
+func RoundUpToPB(size resource.Quantity) int64 {
+	requestBytes := size.Value()
+	return roundUpSize(requestBytes, PB)
+}
+
+// RoundUpToPi rounds up given quantity upto chunks of Pi
+func RoundUpToPi(size resource.Quantity) int64 {
+	requestBytes := size.Value()
+	return roundUpSize(requestBytes, Pi)
+}
 
 // RoundUpToTB rounds up given quantity to chunks of TB
 func RoundUpToTB(size resource.Quantity) int64 {
@@ -75,6 +108,11 @@ func RoundUpToKB(size resource.Quantity) int64 {
 func RoundUpToKi(size resource.Quantity) int64 {
 	requestBytes := size.Value()
 	return roundUpSize(requestBytes, Ki)
+}
+
+// RoundUpToBytes rounds up given quantity upto chunks of Bytes
+func RoundUpToBytes(size resource.Quantity) int64 {
+	return size.Value()
 }
 
 // RoundUpToGBInt rounds up given quantity to chunks of GB. It returns an
@@ -144,42 +182,38 @@ func roundUpSize(volumeSizeBytes, allocationUnitBytes int64) int64 {
 	return roundedUp
 }
 
-// RoundUpStringToGi converts the given size into Gi
-func RoundUpStringToGi(sizeVal int64, unit string) (int64, error) {
-	value := sizeVal
+// RoundUpStringToBytes converts the given size into bytes
+func RoundUpStringToBytes(sizeVal uint64, unit string) (uint64, error) {
+	var value uint64
 	switch unit {
-	case "Zi":
-		value = sizeVal * 1024 * 1024 * 1024 * 1024
-	case "Z":
-		value = int64(float64(sizeVal*1000*1000*1000*1000) * 0.932)
 	case "Ei":
-		value = sizeVal * 1024 * 1024 * 1024
+		value = sizeVal * Ei
 	case "E":
-		value = int64(float64(sizeVal*1000*1000*1000) * 0.932)
+		value = sizeVal * EB
 	case "Pi":
-		value = sizeVal * 1024 * 1024
+		value = sizeVal * Pi
 	case "P":
-		value = int64(float64(sizeVal*1000*1000) * 0.932)
+		value = sizeVal * PB
 	case "Ti":
-		value = sizeVal * 1024
+		value = sizeVal * Ti
 	case "T":
-		value = int64(float64(sizeVal*1000) * 0.932)
+		value = sizeVal * TB
 	case "G":
-		value = int64(math.Round(float64(sizeVal) * 0.932))
+		value = sizeVal * GB
 	case "Gi":
-		value = sizeVal
+		value = sizeVal * Gi
 	case "Mi":
-		value = sizeVal / 1024
+		value = sizeVal * Mi
 	case "M":
-		value = sizeVal / 1000
+		value = sizeVal * MB
 	case "K":
-		value = sizeVal / (1024 * 1024)
+		value = sizeVal * KB
 	case "Ki":
-		value = sizeVal / (1000 * 1000)
+		value = sizeVal * Ki
 	case "B":
-		value = sizeVal / (1024 * 1024 * 1024)
+		value = sizeVal
 	default:
-		return int64(-1), fmt.Errorf("Invalid unit")
+		return uint64(0), fmt.Errorf("Invalid unit")
 	}
-	return int64(value), nil
+	return value, nil
 }
