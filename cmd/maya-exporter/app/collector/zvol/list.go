@@ -32,7 +32,7 @@ func (v *volumeList) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
 		v.used,
 		v.available,
-		v.zfsParseErrorCounter,
+		v.zfsListParseErrorCounter,
 		v.zfsListCommandErrorCounter,
 		v.zfsListRequestRejectCounter,
 	}
@@ -71,7 +71,7 @@ func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	}
 
 	glog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
-	list, err := listParser(stdout, &v.listMetrics, ch)
+	list := listParser(stdout, &v.listMetrics, ch)
 
 	return list, err
 }

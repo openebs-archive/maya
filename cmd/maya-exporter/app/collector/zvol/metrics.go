@@ -39,7 +39,7 @@ type listMetrics struct {
 	used      *prometheus.GaugeVec
 	available *prometheus.GaugeVec
 
-	zfsParseErrorCounter        prometheus.Gauge
+	zfsListParseErrorCounter    prometheus.Gauge
 	zfsListCommandErrorCounter  prometheus.Gauge
 	zfsListRequestRejectCounter prometheus.Gauge
 }
@@ -72,10 +72,10 @@ func newListMetrics() listMetrics {
 			[]string{"name"},
 		),
 
-		zfsParseErrorCounter: prometheus.NewGauge(
+		zfsListParseErrorCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "zfs_parse_error",
+				Name:      "zfs_list_parse_error",
 				Help:      "Total no of zfs list parse errors",
 			},
 		),
@@ -274,13 +274,13 @@ func newMetrics() metrics {
 func parseFloat64(e string, m *listMetrics, ch chan<- prometheus.Metric) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
-		m.zfsParseErrorCounter.Inc()
-		m.zfsParseErrorCounter.Collect(ch)
+		m.zfsListParseErrorCounter.Inc()
+		m.zfsListParseErrorCounter.Collect(ch)
 	}
 	return num
 }
 
-func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) ([]fields, error) {
+func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) []fields {
 	list := make([]fields, 0)
 	vols := strings.Split(string(stdout), "\n")
 	for _, v := range vols {
@@ -295,5 +295,5 @@ func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) ([]f
 		}
 		list = append(list, vol)
 	}
-	return list, nil
+	return list
 }
