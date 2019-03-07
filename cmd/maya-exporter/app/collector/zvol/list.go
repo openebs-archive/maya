@@ -57,20 +57,21 @@ func (v *volumeList) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (v *volumeList) get() ([]fields, error) {
+func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	v.Lock()
 	defer v.Unlock()
-	var timeout = 5 * time.Second
+	var timeout = 30 * time.Second
 
 	glog.V(2).Info("Run zfs list command")
 	stdout, err := zvol.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
 		v.zfsListCommandErrorCounter.Inc()
+		v.zfsListCommandErrorCounter.Collect(ch)
 		return nil, err
 	}
 
 	glog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
-	list, err := listParser(stdout, &v.listMetrics)
+	list, err := listParser(stdout, &v.listMetrics, ch)
 
 	return list, err
 }
@@ -80,6 +81,7 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 	v.Lock()
 	if v.isRequestInProgress() {
 		v.zfsListRequestRejectCounter.Inc()
+		v.zfsListRequestRejectCounter.Collect(ch)
 		v.Unlock()
 		return
 
@@ -88,7 +90,7 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 	v.request = true
 	v.Unlock()
 
-	volumeLists, err := v.get()
+	volumeLists, err := v.get(ch)
 	if err != nil {
 		return
 	}

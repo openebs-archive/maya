@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -272,16 +271,16 @@ func newMetrics() metrics {
 	}
 }
 
-func parseFloat64(e string, m *listMetrics) float64 {
+func parseFloat64(e string, m *listMetrics, ch chan<- prometheus.Metric) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
-		glog.Error("failed to parse, err: ", err)
 		m.zfsParseErrorCounter.Inc()
+		m.zfsParseErrorCounter.Collect(ch)
 	}
 	return num
 }
 
-func listParser(stdout []byte, m *listMetrics) ([]fields, error) {
+func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) ([]fields, error) {
 	list := make([]fields, 0)
 	vols := strings.Split(string(stdout), "\n")
 	for _, v := range vols {
@@ -291,8 +290,8 @@ func listParser(stdout []byte, m *listMetrics) ([]fields, error) {
 		}
 		vol := fields{
 			name:      f[0],
-			used:      parseFloat64(f[1], m),
-			available: parseFloat64(f[2], m),
+			used:      parseFloat64(f[1], m, ch),
+			available: parseFloat64(f[2], m, ch),
 		}
 		list = append(list, vol)
 	}

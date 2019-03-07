@@ -82,7 +82,6 @@ func (p *pool) collectors() []prometheus.Collector {
 func (p *pool) gaugeVec() []prometheus.Gauge {
 	return []prometheus.Gauge{
 		p.size,
-		p.status,
 		p.usedCapacity,
 		p.freeCapacity,
 		p.usedCapacityPercent,
@@ -97,17 +96,18 @@ func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (p *pool) getZpoolStats() (zpool.Stats, error) {
+func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 	var (
 		err         error
 		stdoutZpool []byte
-		timeout     = 5 * time.Second
+		timeout     = 30 * time.Second
 		zpoolStats  = zpool.Stats{}
 	)
 
 	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
 	if err != nil {
 		p.zpoolCommandErrorCounter.Inc()
+		p.zpoolCommandErrorCounter.Collect(ch)
 		return zpoolStats, err
 	}
 
@@ -115,6 +115,7 @@ func (p *pool) getZpoolStats() (zpool.Stats, error) {
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
 		p.noPoolAvailableErrorCounter.Inc()
+		p.noPoolAvailableErrorCounter.Collect(ch)
 		return zpoolStats, err
 	}
 
@@ -127,6 +128,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	p.Lock()
 	if p.isRequestInProgress() {
 		p.zpoolRejectRequestCounter.Inc()
+		p.zpoolRejectRequestCounter.Collect(ch)
 		p.Unlock()
 		return
 
@@ -136,13 +138,13 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	p.Unlock()
 
 	poolStats := statsFloat64{}
-	zpoolStats, err := p.getZpoolStats()
+	zpoolStats, err := p.getZpoolStats(ch)
 	if err != nil {
 		return
 	}
 	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
-	poolStats.parse(zpoolStats, p)
-	p.setZPoolStats(poolStats)
+	poolStats.parse(zpoolStats, p, ch)
+	p.setZPoolStats(poolStats, zpoolStats.Name)
 	for _, col := range p.collectors() {
 		col.Collect(ch)
 	}
@@ -152,9 +154,10 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	p.Unlock()
 }
 
-func (p *pool) setZPoolStats(stats statsFloat64) {
+func (p *pool) setZPoolStats(stats statsFloat64, name string) {
 	items := stats.List()
 	for index, col := range p.gaugeVec() {
 		col.Set(items[index])
 	}
+	p.status.WithLabelValues(name).Set(stats.status)
 }

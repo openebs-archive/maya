@@ -97,11 +97,11 @@ func (v *volume) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (v *volume) get() (zvol.Stats, error) {
+func (v *volume) get(ch chan<- prometheus.Metric) (zvol.Stats, error) {
 	var (
 		err     error
 		stdout  []byte
-		timeout = 5 * time.Second
+		timeout = 30 * time.Second
 		stats   = zvol.Stats{}
 	)
 
@@ -109,6 +109,7 @@ func (v *volume) get() (zvol.Stats, error) {
 	stdout, err = zvol.Run(timeout, runner, "stats")
 	if err != nil {
 		v.zfsCommandErrorCounter.Inc()
+		v.zfsCommandErrorCounter.Collect(ch)
 		return stats, err
 	}
 
@@ -116,6 +117,7 @@ func (v *volume) get() (zvol.Stats, error) {
 	stats, err = zvol.StatsParser(stdout)
 	if err != nil {
 		v.zfsStatsParseErrorCounter.Inc()
+		v.zfsStatsParseErrorCounter.Collect(ch)
 		return stats, err
 	}
 
@@ -127,6 +129,7 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 	v.Lock()
 	if v.isRequestInProgress() {
 		v.zfsStatsRejectRequestCounter.Inc()
+		v.zfsStatsRejectRequestCounter.Collect(ch)
 		v.Unlock()
 		return
 
@@ -135,7 +138,7 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 	v.request = true
 	v.Unlock()
 
-	zvolStats, err := v.get()
+	zvolStats, err := v.get(ch)
 	if err != nil {
 		return
 	}

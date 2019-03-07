@@ -40,10 +40,11 @@ var (
 // of zpool list -Hp command
 type Stats struct {
 	Status              ZpoolStatus // Status represents status of a Pool
-	Used                string      // Used size of Pools
-	Free                string      // Free size of Pools
-	Size                string      // Size of pool
-	UsedCapacityPercent string      // Used size of pools in precent
+	Name                string
+	Used                string // Used size of Pools
+	Free                string // Free size of Pools
+	Size                string // Size of pool
+	UsedCapacityPercent string // Used size of pools in precent
 }
 
 // Run is wrapper over RunCommandWithTimeoutContext for running zpool commands
@@ -71,6 +72,7 @@ func ListParser(output []byte) (Stats, error) {
 	}
 	stats := strings.Fields(string(output))
 	return Stats{
+		Name:                stats[0],
 		Size:                stats[1],
 		Used:                stats[2],
 		Free:                stats[3],

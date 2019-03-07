@@ -9,10 +9,10 @@ import (
 
 type metrics struct {
 	size                prometheus.Gauge
-	status              prometheus.Gauge
 	usedCapacity        prometheus.Gauge
 	freeCapacity        prometheus.Gauge
 	usedCapacityPercent prometheus.Gauge
+	status              *prometheus.GaugeVec
 
 	zpoolCommandErrorCounter    prometheus.Gauge
 	zpoolRejectRequestCounter   prometheus.Gauge
@@ -34,27 +34,27 @@ type statsFloat64 struct {
 func (s *statsFloat64) List() []float64 {
 	return []float64{
 		s.size,
-		s.status,
 		s.used,
 		s.free,
 		s.usedCapacityPercent,
 	}
 }
 
-func parseFloat64(e string, m *metrics) float64 {
+func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		m.zpoolListparseErrorCounter.Inc()
+		m.zpoolListparseErrorCounter.Collect(ch)
 	}
 	return num
 }
 
-func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
-	s.size = parseFloat64(stats.Size, &p.metrics)
-	s.used = parseFloat64(stats.Used, &p.metrics)
-	s.free = parseFloat64(stats.Free, &p.metrics)
+func (s *statsFloat64) parse(stats zpool.Stats, p *pool, ch chan<- prometheus.Metric) {
+	s.size = parseFloat64(stats.Size, &p.metrics, ch)
+	s.used = parseFloat64(stats.Used, &p.metrics, ch)
+	s.free = parseFloat64(stats.Free, &p.metrics, ch)
 	s.status = zpool.Status[stats.Status]
-	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
+	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics, ch)
 }
 
 // newMetrics initializes fields of the metrics and returns its instance
@@ -68,12 +68,13 @@ func newMetrics() metrics {
 			},
 		),
 
-		status: prometheus.NewGauge(
+		status: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "pool_status",
 				Help:      `Status of pool (0, 1, 2, 3, 4, 5, 6)= {"Offline", "Online", "Degraded", "Faulted", "Removed", "Unavail", "NoPoolsAvailable"}`,
 			},
+			[]string{"pool"},
 		),
 
 		usedCapacity: prometheus.NewGauge(
