@@ -130,6 +130,12 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 		response.Allowed = true
 		return response
 	}
+	// ignore the Delete request if requested resource doesn't exists
+	if ar.Request.Name == "" {
+		response.Allowed = true
+		return response
+	}
+
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
