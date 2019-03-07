@@ -5,7 +5,6 @@ ARG BASE_IMAGE
 FROM $BASE_IMAGE
 
 ADD maya-exporter /usr/local/bin
-ADD zfs /usr/local/bin
 
 ARG BUILD_DATE
 LABEL org.label-schema.name="m-exporter"
