@@ -82,6 +82,10 @@ func (i taskIdentifier) isDeployment() bool {
 	return i.identity.Kind == string(m_k8s_client.DeploymentKK)
 }
 
+func (i taskIdentifier) isReplicaSet() bool {
+	return i.identity.Kind == string(m_k8s_client.ReplicaSetKK)
+}
+
 func (i taskIdentifier) isJob() bool {
 	return i.identity.Kind == string(m_k8s_client.JobKK)
 }
@@ -168,6 +172,10 @@ func (i taskIdentifier) isOEV1alpha1CSP() bool {
 
 func (i taskIdentifier) isExtnV1B1Deploy() bool {
 	return i.isExtnV1B1() && i.isDeployment()
+}
+
+func (i taskIdentifier) isExtnV1B1ReplicaSet() bool {
+	return i.isExtnV1B1() && i.isReplicaSet()
 }
 
 func (i taskIdentifier) isBatchV1Job() bool {
