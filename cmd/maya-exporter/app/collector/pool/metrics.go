@@ -112,7 +112,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zpool_reject_request_count",
-				Help:      "Total no of rejected requests",
+				Help:      "Total no of rejected requests of zpool command",
 			},
 		),
 
@@ -120,7 +120,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zpool_command_error",
-				Help:      "zpool command error counter",
+				Help:      "Total no of zpool command errors",
 			},
 		),
 
@@ -128,7 +128,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "no_pool_available_error",
-				Help:      "no pool available error count",
+				Help:      "Total no of no pool available errors",
 			},
 		),
 	}

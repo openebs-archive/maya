@@ -77,7 +77,7 @@ func newListMetrics() listMetrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_parse_error",
-				Help:      "zfs parse error counter",
+				Help:      "Total no of zfs list parse errors",
 			},
 		),
 
@@ -85,15 +85,15 @@ func newListMetrics() listMetrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_list_command_error",
-				Help:      "zfs command error counter",
+				Help:      "Total no of zfs command errors",
 			},
 		),
 
 		zfsListRequestRejectCounter: prometheus.NewGauge(
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
-				Name:      "zfs_list_command_error",
-				Help:      "zfs command error counter",
+				Name:      "zfs_list_request_reject_count",
+				Help:      "Total no of rejected requests of zfs list",
 			},
 		),
 	}
@@ -250,7 +250,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_command_error",
-				Help:      "zfs command error counter",
+				Help:      "Total no of zfs command errors",
 			},
 		),
 
@@ -258,7 +258,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_stats_parse_error_counter",
-				Help:      "zfs stats parse error counter",
+				Help:      "Total no of zfs stats parse errors",
 			},
 		),
 
@@ -266,7 +266,7 @@ func newMetrics() metrics {
 			prometheus.GaugeOpts{
 				Namespace: "openebs",
 				Name:      "zfs_stats_reject_request_count",
-				Help:      "zfs stats reject request counters",
+				Help:      "Total no of rejected requests of zfs stats",
 			},
 		),
 	}
