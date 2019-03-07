@@ -114,8 +114,16 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		p.noPoolAvailableErrorCounter.Inc()
-		p.noPoolAvailableErrorCounter.Collect(ch)
+		if err.Error() == string(zpool.NoPoolAvailable) {
+			p.noPoolAvailableErrorCounter.Inc()
+			p.noPoolAvailableErrorCounter.Collect(ch)
+		}
+
+		if err.Error() == zpool.InCompleteStdoutErr {
+			p.incompleteOutputErrorCounter.Inc()
+			p.incompleteOutputErrorCounter.Collect(ch)
+		}
+
 		return zpoolStats, err
 	}
 

@@ -14,10 +14,11 @@ type metrics struct {
 	usedCapacityPercent prometheus.Gauge
 	status              *prometheus.GaugeVec
 
-	zpoolCommandErrorCounter    prometheus.Gauge
-	zpoolRejectRequestCounter   prometheus.Gauge
-	zpoolListparseErrorCounter  prometheus.Gauge
-	noPoolAvailableErrorCounter prometheus.Gauge
+	zpoolCommandErrorCounter     prometheus.Gauge
+	zpoolRejectRequestCounter    prometheus.Gauge
+	zpoolListparseErrorCounter   prometheus.Gauge
+	noPoolAvailableErrorCounter  prometheus.Gauge
+	incompleteOutputErrorCounter prometheus.Gauge
 }
 
 type statsFloat64 struct {
@@ -130,6 +131,14 @@ func newMetrics() metrics {
 				Namespace: "openebs",
 				Name:      "no_pool_available_error",
 				Help:      "Total no of no pool available errors",
+			},
+		),
+
+		incompleteOutputErrorCounter: prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: "openebs",
+				Name:      "zpool_list_incomplete_stdout_error",
+				Help:      "Total no of incomplete stdout of zpool list command errors",
 			},
 		),
 	}

@@ -13,14 +13,15 @@ import (
 type ZpoolStatus string
 
 const (
-	Binary                      = "zpool" // Binary represents zpool binary
-	Offline         ZpoolStatus = "OFFLINE"
-	Online          ZpoolStatus = "ONLINE"
-	Degraded        ZpoolStatus = "DEGRADED"
-	Faulted         ZpoolStatus = "FAULTED"
-	Removed         ZpoolStatus = "REMOVED"
-	Unavail         ZpoolStatus = "UNAVAIL"
-	NoPoolAvailable ZpoolStatus = "no pools available"
+	Binary                          = "zpool" // Binary represents zpool binary
+	Offline             ZpoolStatus = "OFFLINE"
+	Online              ZpoolStatus = "ONLINE"
+	Degraded            ZpoolStatus = "DEGRADED"
+	Faulted             ZpoolStatus = "FAULTED"
+	Removed             ZpoolStatus = "REMOVED"
+	Unavail             ZpoolStatus = "UNAVAIL"
+	NoPoolAvailable     ZpoolStatus = "no pools available"
+	InCompleteStdoutErr             = "Couldn't receive complete output"
 )
 
 var (
@@ -61,6 +62,14 @@ func IsNotAvailable(str string) bool {
 	return strings.Contains(str, string(NoPoolAvailable))
 }
 
+func isValid(stats string) ([]string, bool) {
+	statsList := strings.Fields(stats)
+	if len(statsList) < 9 {
+		return nil, false
+	}
+	return statsList, true
+}
+
 // ListParser parses output of zpool list -Hp
 // Command: zpool list -Hp
 // Output:
@@ -70,7 +79,12 @@ func ListParser(output []byte) (Stats, error) {
 	if IsNotAvailable(str) {
 		return Stats{}, errors.New(string(NoPoolAvailable))
 	}
-	stats := strings.Fields(string(output))
+
+	stats, ok := isValid(str)
+	if !ok {
+		return Stats{}, errors.New(InCompleteStdoutErr)
+	}
+
 	return Stats{
 		Name:                stats[0],
 		Size:                stats[1],
