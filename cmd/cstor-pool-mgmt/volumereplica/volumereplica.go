@@ -47,6 +47,7 @@ const (
 	// ZfsStatusRebuilding is the rebuilding state of zfs volume.
 	ZfsStatusRebuilding = "Rebuilding"
 )
+
 const (
 	// CStorPoolUIDKey is the key for csp object uid which is present in cvr labels.
 	CStorPoolUIDKey = "cstorpool.openebs.io/uid"
@@ -145,8 +146,9 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 	var createVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
-
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
+	// ZvolWorkers represents number of threads that executes client IOs
+	openebsZvolWorkers := "io.openebs:zvol_workers=" + cStorVolumeReplica.Spec.ZvolWorkers
 
 	quorumValue := "quorum=on"
 	if !quorum {
@@ -155,7 +157,7 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 
 	createVolCmd = append(createVolCmd, CreateCmd,
 		"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
-		"-o", openebsTargetIP, "-o", openebsVolname,
+		"-o", openebsTargetIP, "-o", openebsVolname, "-o", openebsZvolWorkers,
 		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 
 	return createVolCmd
@@ -166,12 +168,13 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 	var cloneVolCmd []string
 
 	openebsVolname := "io.openebs:volname=" + cStorVolumeReplica.ObjectMeta.Name
-
 	openebsTargetIP := "io.openebs:targetip=" + cStorVolumeReplica.Spec.TargetIP
+	// ZvolWorkers represents number of threads that executes client IOs
+	openebsZvolWorkers := "io.openebs:zvol_workers=" + cStorVolumeReplica.Spec.ZvolWorkers
 
 	cloneVolCmd = append(cloneVolCmd, CloneCmd,
 		"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
-		"-o", openebsVolname, snapName, fullVolName)
+		"-o", openebsZvolWorkers, "-o", openebsVolname, snapName, fullVolName)
 
 	return cloneVolCmd
 }
