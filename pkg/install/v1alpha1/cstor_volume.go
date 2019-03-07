@@ -106,10 +106,10 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - cstor-volume-create-getstorageclass-default
     - cstor-volume-create-getpvc-default
     - cstor-volume-create-listclonecstorvolumereplicacr-default
     - cstor-volume-create-listcstorpoolcr-default
-    - cstor-volume-create-getstorageclass-default
     - cstor-volume-create-puttargetservice-default
     - cstor-volume-create-putcstorvolumecr-default
     - cstor-volume-create-puttargetdeployment-default
@@ -185,12 +185,21 @@ spec:
     objectName: {{ .Volume.pvc }}
     action: get
   post: |
+    {{- $hostName := jsonpath .JsonResult "{.metadata.annotations.volume\\.kubernetes\\.io/selected-node}" | trim | default "" -}}
+    {{- $hostName | saveAs "creategetpvc.hostName" .TaskResult | noop -}}
     {{- $replicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/replica-anti-affinity}" | trim | default "" -}}
     {{- $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
     {{- $preferredReplicaAntiAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/preferred-replica-anti-affinity}" | trim | default "" -}}
     {{- $preferredReplicaAntiAffinity | saveAs "creategetpvc.preferredReplicaAntiAffinity" .TaskResult | noop -}}
     {{- $targetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/target-affinity}" | trim | default "none" -}}
     {{- $targetAffinity | saveAs "creategetpvc.targetAffinity" .TaskResult | noop -}}
+    {{- $stsTargetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/sts-target-affinity}" | trim | default "none" -}}
+    {{- if ne $stsTargetAffinity "none" -}}
+    {{- $stsTargetAffinity | saveAs "stsTargetAffinity" .TaskResult | noop -}}
+    {{- end -}}
+    {{- if ne .TaskResult.stsTargetAffinity "none" -}}
+    {{- printf "%s-%s" .TaskResult.stsTargetAffinity ((splitList "-" .Volume.pvc) | last) | default "none" | saveAs "sts.applicationName" .TaskResult -}}
+    {{- end -}}
 ---
 # This RunTask is meant to be run only during clone create requests.
 # However, clone & volume creation follow the same CASTemplate specifications.
@@ -265,6 +274,8 @@ spec:
   post: |
     {{- $resourceVer := jsonpath .JsonResult "{.metadata.resourceVersion}" -}}
     {{- trim $resourceVer | saveAs "creategetsc.storageClassVersion" .TaskResult | noop -}}
+    {{- $stsTargetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/sts-target-affinity}" | trim | default "none" -}}
+    {{- $stsTargetAffinity | saveAs "stsTargetAffinity" .TaskResult | noop -}}
 ---
 # runTask to create cStor target service
 apiVersion: openebs.io/v1alpha1
@@ -470,7 +481,18 @@ spec:
             {{- end }}
           {{- end}}
           serviceAccountName: {{ .Config.PVCServiceAccountName.value | default .Config.ServiceAccountName.value }}
-          {{- if ne $targetAffinityVal "none" }}
+          {{- if ne (.TaskResult.sts.applicationName | default "") "" }}
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: statefulset.kubernetes.io/pod-name
+                    operator: In
+                    values:
+                    - {{ .TaskResult.sts.applicationName }}
+                topologyKey: kubernetes.io/hostname
+          {{- else if ne $targetAffinityVal "none" }}
           affinity:
             podAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
@@ -634,13 +656,15 @@ spec:
     Calculate the replica count
     Add as many poolUid to resources as there is replica count
     */}}
-    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity }}
-    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $hostName := .TaskResult.creategetpvc.hostName -}}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity }}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
     {{- $antiAffinityLabelSelector := printf "openebs.io/replica-anti-affinity=%s" $replicaAntiAffinity | IfNotNil $replicaAntiAffinity }}
     {{- $preferredAntiAffinityLabelSelector := printf "openebs.io/preferred-replica-anti-affinity=%s" $preferredReplicaAntiAffinity | IfNotNil $preferredReplicaAntiAffinity }}
-    {{- $selectionPolicy := cspGetPolicyByLabelSelector $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector }}
-    {{- $poolUids := keys .ListItems.cvolPoolList.pools }}
-    {{- $poolUids = cspFilter $poolUids $selectionPolicy | randomize }}
+    {{- $preferedScheduleOnHostAnnotationSelector := printf "volume.kubernetes.io/selected-node=%s" $hostName | IfNotNil $hostName }}
+    {{- $selectionPolicies := cspGetPolicies $antiAffinityLabelSelector $preferredAntiAffinityLabelSelector $preferedScheduleOnHostAnnotationSelector }}
+    {{- $pools :=  createCSPListFromUIDNodeMap (getMapofString .ListItems.cvolPoolNodeList "pools") }}
+    {{- $poolUids := cspFilterPoolIDs $pools $selectionPolicies | randomize }}
     {{- $replicaCount := .Config.ReplicaCount.value | int64 -}}
     {{- if lt (len $poolUids) $replicaCount -}}
     {{- printf "Not enough pools to provision replica: expected replica count %d actual count %d" $replicaCount (len $poolUids) | fail -}}
@@ -653,8 +677,8 @@ spec:
       {{- end }}
       {{- end }}
   task: |
-    {{- $replicaAntiAffinity:= .TaskResult.creategetpvc.replicaAntiAffinity -}}
-    {{- $preferredReplicaAntiAffinity:= .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
+    {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity -}}
+    {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1

@@ -639,6 +639,8 @@ spec:
   post: |
     {{- $resourceVer := jsonpath .JsonResult "{.metadata.resourceVersion}" -}}
     {{- trim $resourceVer | saveAs "creategetsc.storageClassVersion" .TaskResult | noop -}}
+    {{- $stsTargetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/sts-target-affinity}" | trim | default "none" -}}
+    {{- $stsTargetAffinity | saveAs "stsTargetAffinity" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -657,6 +659,13 @@ spec:
     {{- $replicaAntiAffinity | saveAs "creategetpvc.replicaAntiAffinity" .TaskResult | noop -}}
     {{- $targetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/target-affinity}" | trim | default "none" -}}
     {{- $targetAffinity | saveAs "creategetpvc.targetAffinity" .TaskResult | noop -}}
+    {{- $stsTargetAffinity := jsonpath .JsonResult "{.metadata.labels.openebs\\.io/sts-target-affinity}" | trim | default "none" -}}
+    {{- if ne $stsTargetAffinity "none" -}}
+    {{- $stsTargetAffinity | saveAs "stsTargetAffinity" .TaskResult | noop -}}
+    {{- end -}}
+    {{- if ne .TaskResult.stsTargetAffinity "none" -}}
+    {{- printf "%s-%s" .TaskResult.stsTargetAffinity ((splitList "-" .Volume.pvc) | last) | default "none" | saveAs "sts.applicationName" .TaskResult -}}
+    {{- end -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -824,7 +833,18 @@ spec:
               {{ $sK }}: {{ $sV }}
             {{- end }}
           {{- end}}
-          {{- if ne $targetAffinityVal "none" }}
+          {{- if ne (.TaskResult.sts.applicationName | default "") "" }}
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                  - key: statefulset.kubernetes.io/pod-name
+                    operator: In
+                    values:
+                    - {{ .TaskResult.sts.applicationName }}
+                topologyKey: kubernetes.io/hostname
+          {{- else if ne $targetAffinityVal "none" }}
           affinity:
             podAffinity:
               requiredDuringSchedulingIgnoredDuringExecution:
