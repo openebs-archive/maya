@@ -548,6 +548,11 @@ spec:
             ports:
             - containerPort: 3260
               protocol: TCP
+            env:
+            - name: QueueDepth
+              value: {{ .Config.QueueDepth.value }}
+            - name: Luworkers
+              value: {{ .Config.Luworkers.value }}
             securityContext:
               privileged: true
             volumeMounts:
@@ -678,6 +683,7 @@ spec:
     {{- $replicaAntiAffinity := .TaskResult.creategetpvc.replicaAntiAffinity -}}
     {{- $preferredReplicaAntiAffinity := .TaskResult.creategetpvc.preferredReplicaAntiAffinity }}
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
+    {{- $zvolWorkers := .Config.ZvolWorkers.value | default "" -}}
     kind: CStorVolumeReplica
     apiVersion: openebs.io/v1alpha1
     metadata:
@@ -716,6 +722,9 @@ spec:
     spec:
       capacity: {{ .Volume.capacity }}
       targetIP: {{ .TaskResult.cvolcreateputsvc.clusterIP }}
+      {{- if ne $zvolWorkers  "" }}
+      zvolWorkers: {{ .Config.ZvolWorkers.value }}
+      {{- end }}
     status:
       # phase would be update by appropriate target
       phase: ""
