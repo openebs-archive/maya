@@ -39,6 +39,12 @@ func (v *volume) isRequestInProgress() bool {
 	return v.request
 }
 
+func (v *volume) setRequestToFalse() {
+	v.Lock()
+	v.request = false
+	v.Unlock()
+}
+
 // collectors returns the list of the collectors
 func (v *volume) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
@@ -140,6 +146,7 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 
 	zvolStats, err := v.get(ch)
 	if err != nil {
+		v.setRequestToFalse()
 		return
 	}
 
@@ -148,10 +155,7 @@ func (v *volume) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range v.collectors() {
 		col.Collect(ch)
 	}
-
-	v.Lock()
-	v.request = false
-	v.Unlock()
+	v.setRequestToFalse()
 }
 
 func (v *volume) setZVolStats(stats zvol.Stats) {

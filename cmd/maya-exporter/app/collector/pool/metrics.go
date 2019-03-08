@@ -45,7 +45,6 @@ func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		m.zpoolListparseErrorCounter.Inc()
-		m.zpoolListparseErrorCounter.Collect(ch)
 	}
 	return num
 }

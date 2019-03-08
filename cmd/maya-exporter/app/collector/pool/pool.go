@@ -38,6 +38,12 @@ func (p *pool) isRequestInProgress() bool {
 	return p.request
 }
 
+func (p *pool) setRequestToFalse() {
+	p.Lock()
+	p.request = false
+	p.Unlock()
+}
+
 // GetInitStatus run zpool binary to verify whether zpool container
 // has started.
 func (p *pool) GetInitStatus(timeout time.Duration) {
@@ -148,6 +154,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	poolStats := statsFloat64{}
 	zpoolStats, err := p.getZpoolStats(ch)
 	if err != nil {
+		p.setRequestToFalse()
 		return
 	}
 	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
@@ -156,10 +163,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range p.collectors() {
 		col.Collect(ch)
 	}
-
-	p.Lock()
-	p.request = false
-	p.Unlock()
+	p.setRequestToFalse()
 }
 
 func (p *pool) setZPoolStats(stats statsFloat64, name string) {

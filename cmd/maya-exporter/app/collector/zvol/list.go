@@ -27,6 +27,12 @@ func (v *volumeList) isRequestInProgress() bool {
 	return v.request
 }
 
+func (v *volumeList) setRequestToFalse() {
+	v.Lock()
+	v.request = false
+	v.Unlock()
+}
+
 // collectors returns the list of the collectors
 func (v *volumeList) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
@@ -92,6 +98,7 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 
 	volumeLists, err := v.get(ch)
 	if err != nil {
+		v.setRequestToFalse()
 		return
 	}
 
@@ -100,10 +107,7 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 	for _, col := range v.collectors() {
 		col.Collect(ch)
 	}
-
-	v.Lock()
-	v.request = false
-	v.Unlock()
+	v.setRequestToFalse()
 }
 
 func (v *volumeList) setListStats(volumeLists []fields) {
