@@ -339,8 +339,16 @@ func (m *metaTaskExecutor) isPutCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isPatchCoreV1Service() bool {
+	return m.identifier.isCoreV1Service() && m.isPatch()
+}
+
 func (m *metaTaskExecutor) isDeleteExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isDeleteExtnV1B1ReplicaSet() bool {
+	return m.identifier.isExtnV1B1ReplicaSet() && m.isDelete()
 }
 
 func (m *metaTaskExecutor) isDeleteAppsV1B1Deploy() bool {
@@ -381,6 +389,10 @@ func (m *metaTaskExecutor) isGetStorageV1SC() bool {
 
 func (m *metaTaskExecutor) isGetBatchV1Job() bool {
 	return m.identifier.isBatchV1Job() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isGetExtnV1B1Deploy() bool {
+	return m.identifier.isExtnV1B1Deploy() && m.isGet()
 }
 
 func (m *metaTaskExecutor) isDeleteBatchV1Job() bool {
@@ -436,6 +448,14 @@ func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
 
 func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
+}
+
+func (m *metaTaskExecutor) isPatchOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isPatch()
+}
+
+func (m *metaTaskExecutor) isPatchOEV1alpha1CVR() bool {
+	return m.identifier.isOEV1alpha1CVR() && m.isPatch()
 }
 
 func (m *metaTaskExecutor) isListOEV1alpha1Disk() bool {

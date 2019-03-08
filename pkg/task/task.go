@@ -91,6 +91,11 @@ func (m *taskExecutor) getTaskObjectName() string {
 	return m.metaTaskExec.getObjectName()
 }
 
+// getTaskRunNamespace gets the task's run namespace
+func (m *taskExecutor) getTaskRunNamespace() string {
+	return m.metaTaskExec.getRunNamespace()
+}
+
 // getK8sClient gets the kubernetes client to execute this task
 func (m *taskExecutor) getK8sClient() *m_k8s_client.K8sClient {
 	return m.metaTaskExec.getK8sClient()
@@ -348,8 +353,14 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchOEV1alpha1SPC()
 	} else if m.metaTaskExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
+	} else if m.metaTaskExec.isPatchCoreV1Service() {
+		err = m.patchCoreV1Service()
 	} else if m.metaTaskExec.isDeleteExtnV1B1Deploy() {
 		err = m.deleteExtnV1B1Deployment()
+	} else if m.metaTaskExec.isDeleteExtnV1B1ReplicaSet() {
+		err = m.deleteExtnV1B1ReplicaSet()
+	} else if m.metaTaskExec.isGetExtnV1B1Deploy() {
+		err = m.getExtnV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteCoreV1Service() {
@@ -378,6 +389,10 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.deleteOEV1alpha1CSV()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CVR() {
 		err = m.deleteOEV1alpha1CVR()
+	} else if m.metaTaskExec.isPatchOEV1alpha1CSV() {
+		err = m.patchOEV1alpha1CSV()
+	} else if m.metaTaskExec.isPatchOEV1alpha1CVR() {
+		err = m.patchOEV1alpha1CVR()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else if m.metaTaskExec.isGetStorageV1SC() {
@@ -583,6 +598,52 @@ func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
 	return
 }
 
+// patchOEV1alpha1CSV will patch a CStorVolume as defined in the task
+func (m *taskExecutor) patchOEV1alpha1CSV() (err error) {
+	patch, err := asTaskPatch("patchCSV", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return
+	}
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+	// patch the CStor Volume
+	csv, err := m.getK8sClient().PatchOEV1alpha1CSV(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, csv, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchOEV1alpha1CVR will patch a CStorVolumeReplica as defined in the task
+func (m *taskExecutor) patchOEV1alpha1CVR() (err error) {
+	patch, err := asTaskPatch("patchCVR", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return
+	}
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+	// patch the CStor Volume Replica
+	cvr, err := m.getK8sClient().PatchOEV1alpha1CVR(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, cvr, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
 // patchAppsV1B1Deploy will patch a Deployment object in a kubernetes cluster.
 // The patch specifications as configured in the RunTask
 func (m *taskExecutor) patchAppsV1B1Deploy() (err error) {
@@ -615,6 +676,30 @@ func (m *taskExecutor) patchExtnV1B1Deploy() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchCoreV1Service will patch a Service where the patch specifications
+// are configured in the RunTask
+func (m *taskExecutor) patchCoreV1Service() (err error) {
+	patch, err := asTaskPatch("CoreV1ServicePatch", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return
+	}
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+	// patch the service
+	service, err := m.getK8sClient().PatchCoreV1ServiceAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, service, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -660,6 +745,19 @@ func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
 		}
 	}
 
+	return
+}
+
+// deleteExtnV1B1ReplicaSet will delete one or more ReplicaSets as specified in
+// the RunTask
+func (m *taskExecutor) deleteExtnV1B1ReplicaSet() (err error) {
+	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
+	for _, name := range objectNames {
+		err = m.getK8sClient().DeleteExtnV1B1ReplicaSet(strings.TrimSpace(name))
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -733,7 +831,6 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 	if err != nil {
 		return
 	}
-
 	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }

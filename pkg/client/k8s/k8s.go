@@ -63,6 +63,9 @@ const (
 	// DeploymentKK is a K8s Deployment Kind
 	DeploymentKK K8sKind = "Deployment"
 
+	// ReplicaSetKK is a K8s ReplicaSet Kind
+	ReplicaSetKK K8sKind = "ReplicaSet"
+
 	// ConfigMapKK is a K8s ConfigMap Kind
 	ConfigMapKK K8sKind = "ConfigMap"
 
@@ -860,6 +863,12 @@ func (k *K8sClient) extnV1B1DeploymentOps() typed_ext_v1beta1.DeploymentInterfac
 	return k.cs.ExtensionsV1beta1().Deployments(k.ns)
 }
 
+// extnV1B1ReplicaSetOps is a utility function that provides an instance capable of
+// executing various k8s ReplicaSet related operations.
+func (k *K8sClient) extnV1B1ReplicaSetOps() typed_ext_v1beta1.ReplicaSetInterface {
+	return k.cs.ExtensionsV1beta1().ReplicaSets(k.ns)
+}
+
 // GetDeployment fetches the K8s Deployment with the provided name
 func (k *K8sClient) GetDeployment(name string, opts mach_apis_meta_v1.GetOptions) (*api_extn_v1beta1.Deployment, error) {
 	if k.Deployment != nil {
@@ -960,6 +969,18 @@ func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchTy
 	return
 }
 
+// PatchOEV1alpha1CSV patches the CSV object with the provided patches
+func (k *K8sClient) PatchOEV1alpha1CSV(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolume, err error) {
+	result, err = k.oecs.OpenebsV1alpha1().CStorVolumes(namespace).Patch(name, patchType, patches)
+	return
+}
+
+// PatchOEV1alpha1CVR patches the CVR object with the provided patches
+func (k *K8sClient) PatchOEV1alpha1CVR(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolumeReplica, err error) {
+	result, err = k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Patch(name, patchType, patches)
+	return
+}
+
 // PatchExtnV1B1DeploymentAsRaw patches the K8s Deployment with the provided patches
 func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
 	result, err = k.cs.ExtensionsV1beta1().RESTClient().Patch(patchType).
@@ -972,9 +993,31 @@ func (k *K8sClient) PatchExtnV1B1DeploymentAsRaw(name string, patchType types.Pa
 	return
 }
 
+// PatchCoreV1ServiceAsRaw patches the K8s Service with the provided patches
+func (k *K8sClient) PatchCoreV1ServiceAsRaw(name string, patchType types.PatchType, patches []byte) (result []byte, err error) {
+	result, err = k.cs.CoreV1().RESTClient().Patch(patchType).
+		Namespace(k.ns).
+		Resource("services").
+		Name(name).
+		Body(patches).
+		DoRaw()
+
+	return
+}
+
 // DeleteExtnV1B1Deployment deletes the K8s Deployment with the provided name
 func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	dops := k.extnV1B1DeploymentOps()
+	// ensure all the dependants are deleted
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
+		PropagationPolicy: &deletePropagation,
+	})
+}
+
+// DeleteExtnV1B1ReplicaSet deletes the K8s ReplicaSet with the provided name
+func (k *K8sClient) DeleteExtnV1B1ReplicaSet(name string) error {
+	dops := k.extnV1B1ReplicaSetOps()
 	// ensure all the dependants are deleted
 	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
 	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
