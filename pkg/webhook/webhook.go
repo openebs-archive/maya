@@ -130,6 +130,14 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 		response.Allowed = true
 		return response
 	}
+
+	// ignore the Delete request of PVC if resource name is empty which
+	// can happen as part of cleanup process of namespace
+	if ar.Request.Name == "" {
+		response.Allowed = true
+		return response
+	}
+
 	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 
