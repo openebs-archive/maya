@@ -22,8 +22,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	v1_storage "k8s.io/api/storage/v1"
@@ -391,7 +391,7 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 		}
 
 		// read cas volume via cas template engine
-		engine, err := engine.New(
+		engine, err := castv1alpha1.NewEngine(
 			cast,
 			string(v1alpha1.VolumeTLP),
 			map[string]interface{}{
@@ -493,7 +493,7 @@ func (v *Operation) ReadStats() ([]byte, error) {
 		return nil, err
 	}
 
-	engine, err := engine.New(
+	engine, err := castv1alpha1.NewEngine(
 		cast,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{

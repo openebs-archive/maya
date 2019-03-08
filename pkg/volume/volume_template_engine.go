@@ -19,16 +19,17 @@ package volume
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/engine"
 	"strings"
+
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 )
 
 // volumeEngine is capable of executing a CAS volume related operation via
 // CAS template
 type volumeEngine struct {
 	// engine exposes generic CAS template operations
-	engine engine.Interface
+	engine castv1alpha1.Interface
 	// defaultConfig is the default cas volume configurations found
 	// in the CASTemplate
 	defaultConfig []v1alpha1.Config
@@ -60,17 +61,17 @@ func NewVolumeEngine(
 		return
 	}
 	// CAS config from  PersistentVolumeClaim
-	casConfPVC, err := engine.UnMarshallToConfig(casConfigPVC)
+	casConfPVC, err := castv1alpha1.UnMarshallToConfig(casConfigPVC)
 	if err != nil {
 		return
 	}
 	// CAS config from StorageClass
-	casConfSC, err := engine.UnMarshallToConfig(casConfigSC)
+	casConfSC, err := castv1alpha1.UnMarshallToConfig(casConfigSC)
 	if err != nil {
 		return
 	}
 	// make use of the generic CAS template engine
-	cEngine, err := engine.New(cast, key, volumeValues)
+	cEngine, err := castv1alpha1.NewEngine(cast, key, volumeValues)
 	if err != nil {
 		return
 	}
@@ -91,14 +92,14 @@ func NewVolumeEngine(
 //  PersistentVolumeClaim >> StorageClass >> CAS Template Default Config
 func (c *volumeEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	// merge unique config elements from SC with config from PVC
-	mc := engine.MergeConfig(c.casConfigPVC, c.casConfigSC)
+	mc := castv1alpha1.MergeConfig(c.casConfigPVC, c.casConfigSC)
 	// merge above resulting config with default config from CASTemplate
-	return engine.MergeConfig(mc, c.defaultConfig)
+	return castv1alpha1.MergeConfig(mc, c.defaultConfig)
 }
 
 // Run executes a CAS volume related operation
 func (c *volumeEngine) Run() (op []byte, err error) {
-	m, err := engine.ConfigToMap(c.prepareFinalConfig())
+	m, err := castv1alpha1.ConfigToMap(c.prepareFinalConfig())
 	if err != nil {
 		return
 	}

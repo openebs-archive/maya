@@ -21,8 +21,8 @@ import (
 
 	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	"github.com/openebs/maya/pkg/engine"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
@@ -180,7 +180,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := castv1alpha1.NewEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 	}
 
 	// list cas volume via cas template engine
-	engine, err := engine.New(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := castv1alpha1.NewEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
