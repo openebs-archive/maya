@@ -969,14 +969,14 @@ func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchTy
 	return
 }
 
-// PatchOEV1alpha1CSVAsRaw patches the CSV object with the provided patches
-func (k *K8sClient) PatchOEV1alpha1CSVAsRaw(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolume, err error) {
+// PatchOEV1alpha1CSV patches the CSV object with the provided patches
+func (k *K8sClient) PatchOEV1alpha1CSV(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolume, err error) {
 	result, err = k.oecs.OpenebsV1alpha1().CStorVolumes(namespace).Patch(name, patchType, patches)
 	return
 }
 
-// PatchOEV1alpha1CVRAsRaw patches the CVR object with the provided patches
-func (k *K8sClient) PatchOEV1alpha1CVRAsRaw(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolumeReplica, err error) {
+// PatchOEV1alpha1CVR patches the CVR object with the provided patches
+func (k *K8sClient) PatchOEV1alpha1CVR(name, namespace string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorVolumeReplica, err error) {
 	result, err = k.oecs.OpenebsV1alpha1().CStorVolumeReplicas(namespace).Patch(name, patchType, patches)
 	return
 }

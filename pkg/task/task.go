@@ -604,23 +604,19 @@ func (m *taskExecutor) patchOEV1alpha1CSV() (err error) {
 	if err != nil {
 		return
 	}
-
 	pe, err := newTaskPatchExecutor(patch)
 	if err != nil {
 		return
 	}
-
 	raw, err := pe.toJson()
 	if err != nil {
 		return
 	}
-
 	// patch the CStor Volume
-	csv, err := m.getK8sClient().PatchOEV1alpha1CSVAsRaw(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
+	csv, err := m.getK8sClient().PatchOEV1alpha1CSV(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
 	if err != nil {
 		return
 	}
-
 	util.SetNestedField(m.templateValues, csv, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -631,23 +627,19 @@ func (m *taskExecutor) patchOEV1alpha1CVR() (err error) {
 	if err != nil {
 		return
 	}
-
 	pe, err := newTaskPatchExecutor(patch)
 	if err != nil {
 		return
 	}
-
 	raw, err := pe.toJson()
 	if err != nil {
 		return
 	}
-
 	// patch the CStor Volume Replica
-	cvr, err := m.getK8sClient().PatchOEV1alpha1CVRAsRaw(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
+	cvr, err := m.getK8sClient().PatchOEV1alpha1CVR(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
 	if err != nil {
 		return
 	}
-
 	util.SetNestedField(m.templateValues, cvr, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -694,23 +686,19 @@ func (m *taskExecutor) patchCoreV1Service() (err error) {
 	if err != nil {
 		return
 	}
-
 	pe, err := newTaskPatchExecutor(patch)
 	if err != nil {
 		return
 	}
-
 	raw, err := pe.toJson()
 	if err != nil {
 		return
 	}
-
 	// patch the service
 	service, err := m.getK8sClient().PatchCoreV1ServiceAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
 	if err != nil {
 		return
 	}
-
 	util.SetNestedField(m.templateValues, service, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -764,14 +752,12 @@ func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
 // the RunTask
 func (m *taskExecutor) deleteExtnV1B1ReplicaSet() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
-
 	for _, name := range objectNames {
 		err = m.getK8sClient().DeleteExtnV1B1ReplicaSet(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
 	}
-
 	return
 }
 
@@ -845,7 +831,6 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 	if err != nil {
 		return
 	}
-
 	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
