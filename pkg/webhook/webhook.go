@@ -130,7 +130,9 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 		response.Allowed = true
 		return response
 	}
-	// ignore the Delete request if requested resource doesn't exists
+
+	// ignore the Delete request of PVC if resource name is empty which
+	// can happen as part of cleanup process of namespace
 	if ar.Request.Name == "" {
 		response.Allowed = true
 		return response
