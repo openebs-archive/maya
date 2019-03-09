@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 )
 
 func TestUnMarshallToConfig(t *testing.T) {
@@ -56,7 +56,7 @@ func TestUnMarshallToConfig(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			c, err := castv1alpha1.UnMarshallToConfig(mock.config)
+			c, err := cast.UnMarshallToConfig(mock.config)
 
 			if err != nil && !mock.isErr {
 				t.Fatalf("failed to test unmarshall to config: expected 'no error': actual '%#v'", err)
@@ -181,7 +181,7 @@ func TestMergeConfig(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			fc := castv1alpha1.MergeConfig(mock.highPriorityConfig, mock.lowPriorityConfig)
+			fc := cast.MergeConfig(mock.highPriorityConfig, mock.lowPriorityConfig)
 
 			if len(fc) != mock.countAfterMerge {
 				t.Fatalf("failed to test merge config: expected count '%d': actual count '%d'", mock.countAfterMerge, len(fc))

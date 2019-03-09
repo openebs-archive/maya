@@ -21,7 +21,7 @@ import (
 
 	yaml "github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -168,7 +168,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// fetch read cas template specifications
-	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (s *snapshot) Read() (*v1alpha1.CASSnapshot, error) {
 	}
 
 	// read cas volume via cas template engine
-	engine, err := castv1alpha1.NewEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := cast.Engine(castObj, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 	}
 
 	// fetch read cas template specifications
-	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +310,7 @@ func (s *snapshot) List() (*v1alpha1.CASSnapshotList, error) {
 	}
 
 	// list cas volume via cas template engine
-	engine, err := castv1alpha1.NewEngine(cast, string(v1alpha1.SnapshotTLP), snapshotLabels)
+	engine, err := cast.Engine(castObj, string(v1alpha1.SnapshotTLP), snapshotLabels)
 	if err != nil {
 		return nil, err
 	}

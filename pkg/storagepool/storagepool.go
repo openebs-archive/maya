@@ -22,7 +22,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,14 +135,14 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 	}
 
 	// fetch delete cas template specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// delete storagepool via cas template engine
-	engine, err := castv1alpha1.NewEngine(
-		cast,
+	engine, err := cast.Engine(
+		castObj,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
 			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
@@ -196,14 +196,14 @@ func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
 	castName := menv.Get(menv.CASTemplateToListStoragePoolENVK)
 
 	// fetch read cas template specifications
-	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// create new instance on CASEngine
-	engine, err := castv1alpha1.NewEngine(
-		cast,
+	engine, err := cast.Engine(
+		castObj,
 		"",
 		map[string]interface{}{},
 	)
@@ -236,14 +236,14 @@ func (s *StoragePoolOperation) Read() (*v1alpha1.StoragePool, error) {
 	castName := menv.Get(menv.CASTemplateToReadStoragePoolENVK)
 
 	// fetch read cas template specifications
-	cast, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := s.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// create new instance on CASEngine
-	engine, err := castv1alpha1.NewEngine(
-		cast,
+	engine, err := cast.Engine(
+		castObj,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
 			string(v1alpha1.OwnerCTP): s.poolName,

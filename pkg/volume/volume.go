@@ -22,7 +22,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	castv1alpha1 "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -385,14 +385,14 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 
 	for _, castName := range strings.Split(castNames, ",") {
 		// fetch read cas template specifications
-		cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+		castObj, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
 
 		// read cas volume via cas template engine
-		engine, err := castv1alpha1.NewEngine(
-			cast,
+		engine, err := cast.Engine(
+			castObj,
 			string(v1alpha1.VolumeTLP),
 			map[string]interface{}{
 				string(v1alpha1.RunNamespaceVTP): v.volumes.Namespace,
@@ -488,13 +488,13 @@ func (v *Operation) ReadStats() ([]byte, error) {
 	castName := menv.Get(menv.CASTemplateToReadVolumeStatsENVK)
 
 	// fetch read cas template specifications
-	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
+	castObj, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := castv1alpha1.NewEngine(
-		cast,
+	engine, err := cast.Engine(
+		castObj,
 		string(v1alpha1.VolumeTLP),
 		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):        v.volume.Name,

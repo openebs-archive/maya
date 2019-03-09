@@ -122,8 +122,8 @@ func initValues() (v map[string]interface{}) {
 	}
 }
 
-// NewEngine returns a new instance of engine of version v1alpha1
-func NewEngine(cast *v1alpha1.CASTemplate, key string, values map[string]interface{}) (e *engine, err error) {
+// Engine returns a new instance of engine
+func Engine(cast *v1alpha1.CASTemplate, key string, values map[string]interface{}) (e *engine, err error) {
 	if cast == nil {
 		err = fmt.Errorf("failed to create cas template engine: nil cas template")
 		return
