@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	resizeVolumePath = "/latest/volumes/resize"
+	resizeVolumePath = "/latest/volumes/resize/"
 )
 
 // ResizeVolume will request maya-apiserver to resize volume
@@ -45,7 +45,7 @@ func ResizeVolume(volName, size, namespace string) error {
 		return err
 	}
 
-	requestType := "UPDATE"
+	requestType := "PUT"
 	_, err = sendRequest(requestType, GetURL()+resizeVolumePath, jsonValue, namespace, true)
 	return err
 }

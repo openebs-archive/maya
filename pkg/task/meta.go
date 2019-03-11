@@ -394,6 +394,14 @@ func (m *MetaExecutor) isListCoreV1PV() bool {
 	return m.identifier.isCoreV1PV() && m.isList()
 }
 
+func (m *MetaExecutor) isPatchCoreV1PV() bool {
+	return m.identifier.isCoreV1PV() && m.isPatch()
+}
+
+func (m *MetaExecutor) isPatchCoreV1PVC() bool {
+	return m.identifier.isCoreV1PVC() && m.isPatch()
+}
+
 func (m *MetaExecutor) isListCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isList()
 }

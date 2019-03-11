@@ -103,7 +103,7 @@ func ChangeDateFormatToUnixDate(snapshotDisks []SnapshotInfo) error {
 	return nil
 }
 
-// sendRequest sends POST or UPDATE request to a url with payload of values
+// sendRequest sends POST or PUT request to a url with payload of values
 func sendRequest(reqType, url string, values []byte, namespace string, chkbody bool) ([]byte, error) {
 	if len(url) == 0 {
 		return nil, errors.New("Invalid URL")

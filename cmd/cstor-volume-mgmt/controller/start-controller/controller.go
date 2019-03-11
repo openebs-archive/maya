@@ -35,6 +35,7 @@ import (
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	file "github.com/openebs/maya/pkg/file"
 	"github.com/openebs/maya/pkg/signals"
 	"github.com/openebs/maya/pkg/util"
 )
@@ -67,7 +68,7 @@ func StartControllers(kubeconfig string) {
 		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
-	volume.FileOperatorVar = util.RealFileOperator{}
+	volume.FileOperatorVar = file.RealFileOperator{}
 
 	volume.UnixSockVar = util.RealUnixSock{}
 

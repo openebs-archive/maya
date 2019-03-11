@@ -12,9 +12,9 @@ func TestCstorVolumeResize(t *testing.T) {
 		isErr    bool
 		errMsg   string
 	}{
-		"test 101": {"", "vol1", "", true, "failed to resize the cstor volume: missing ip address"},
-		"test 102": {"0.0.0.0", "", "", true, "failed to resize the cstor volume: missing volume name"},
-		"test 103": {"0.0.0.0", "pvc-21312-321312-321321-31231", "", true, "failed to resize the cstor volume: missing volume capacity"},
+		"test 101": {"", "vol1", "", true, "failed to resize the cstor volume: 'missing ip address'"},
+		"test 102": {"0.0.0.0", "", "", true, "failed to resize the cstor volume: 'missing volume name'"},
+		"test 103": {"0.0.0.0", "pvc-21312-321312-321321-31231", "", true, "failed to resize the cstor volume: 'missing volume capacity'"},
 	}
 
 	for name, mock := range tests {

@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -37,7 +36,7 @@ func TestCstorVolumeCommand(t *testing.T) {
 func TestvalidateOptions(t *testing.T) {
 	tests := map[string]struct {
 		cstorVolCmd    *cstorVolumeCommand
-		expectedOutput error
+		isValidCommand bool
 	}{
 		"Empty volume name": {
 			cstorVolCmd: &cstorVolumeCommand{
@@ -45,7 +44,7 @@ func TestvalidateOptions(t *testing.T) {
 					Data: RunCommandDataMap{"ip": RunCommandData("127.0.1"), "volname": RunCommandData(""), "capacity": RunCommandData("10G")},
 				},
 			},
-			expectedOutput: fmt.Errorf("missing volume name"),
+			isValidCommand: false,
 		},
 		"Empty IP": {
 			cstorVolCmd: &cstorVolumeCommand{
@@ -53,7 +52,7 @@ func TestvalidateOptions(t *testing.T) {
 					Data: RunCommandDataMap{"ip": RunCommandData(""), "volname": RunCommandData("vol1"), "capacity": RunCommandData("20G")},
 				},
 			},
-			expectedOutput: fmt.Errorf("missing ip address"),
+			isValidCommand: false,
 		},
 		"Empty Capacity": {
 			cstorVolCmd: &cstorVolumeCommand{
@@ -61,7 +60,7 @@ func TestvalidateOptions(t *testing.T) {
 					Data: RunCommandDataMap{"ip": RunCommandData("127.0.1"), "volname": RunCommandData("vol1"), "capacity": RunCommandData("")},
 				},
 			},
-			expectedOutput: fmt.Errorf("missing volume capacity"),
+			isValidCommand: false,
 		},
 		"Populate all the values": {
 			cstorVolCmd: &cstorVolumeCommand{
@@ -69,14 +68,14 @@ func TestvalidateOptions(t *testing.T) {
 					Data: RunCommandDataMap{"ip": RunCommandData("0.0.0.0"), "volname": RunCommandData("vol1"), "capacity": RunCommandData("5Zi")},
 				},
 			},
-			expectedOutput: nil,
+			isValidCommand: true,
 		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			err := test.cstorVolCmd.validateOptions()
-			if err != nil && test.expectedOutput != nil {
-				t.Errorf("Expected output was: %v \nbut got: %v", test.expectedOutput, err)
+			if !test.isValidCommand && err == nil {
+				t.Errorf("Expected error in command but got '%v'", err)
 			}
 		})
 	}

@@ -68,7 +68,7 @@ func (r RealFileOperator) Updatefile(filename, updateStorageVal string, index in
 	lines := strings.Split(string(buffer), "\n")
 	lines[index] = updateStorageVal
 	newbuffer := strings.Join(lines, "\n")
-	glog.Infof("Values in lines %s\n", lines)
+	glog.V(4).Infof("content in a file %s\n", lines)
 	err = r.Write(filename, []byte(newbuffer), perm)
 	return err
 }

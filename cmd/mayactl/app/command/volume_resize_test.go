@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/openebs/maya/pkg/util"
@@ -26,54 +27,54 @@ func TestValidateResize(t *testing.T) {
 	}
 
 	validCmd := map[string]*struct {
-		cmdOptions     *CmdVolumeOptions
-		cmd            *cobra.Command
-		expectedOutput error
+		cmdOptions      *CmdVolumeOptions
+		cmd             *cobra.Command
+		cmdResultsError bool
 	}{
 		"When volume size is missed": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
-			cmd:            cmd,
-			expectedOutput: fmt.Errorf("--size is missing. Please specify value"),
+			cmd:             cmd,
+			cmdResultsError: true,
 		},
 		"When volume name is missed": {
 			cmdOptions: &CmdVolumeOptions{
 				size: "5G",
 			},
-			cmd:            cmd,
-			expectedOutput: fmt.Errorf("--volname is missing. Please specify the name of the volume to be resized"),
+			cmd:             cmd,
+			cmdResultsError: true,
 		},
 		"When invalid size is given": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol2",
 				size:    "-4OG",
 			},
-			cmd:            cmd,
-			expectedOutput: fmt.Errorf("invalid size. Please specify valid size and units"),
+			cmd:             cmd,
+			cmdResultsError: true,
 		},
 		"When invalid size unit is given": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol3",
 				size:    "40TiB",
 			},
-			cmd:            cmd,
-			expectedOutput: fmt.Errorf("invalid size. Please specify valid size and units"),
+			cmd:             cmd,
+			cmdResultsError: true,
 		},
 		"When valid arguments are passed": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol3",
 				size:    "40Pi",
 			},
-			cmd:            cmd,
-			expectedOutput: nil,
+			cmd:             cmd,
+			cmdResultsError: false,
 		},
 	}
 	for name, tt := range validCmd {
 		t.Run(name, func(t *testing.T) {
 			err := tt.cmdOptions.ValidateResize(tt.cmd)
-			if (err != nil && tt.expectedOutput != nil) && string(err.Error()) != string(tt.expectedOutput.Error()) {
-				t.Errorf("Expected Output: %v \nbut got: %v", tt.expectedOutput, err)
+			if tt.cmdResultsError && err == nil {
+				t.Errorf("Test '%s' failed: expected some error but got '%v'", name, err)
 			}
 		})
 	}
@@ -111,7 +112,7 @@ func TestRunVolumeResize(t *testing.T) {
 				T:            t,
 			},
 			addr:           "MAPI_ADDR",
-			expectedOutput: fmt.Errorf("Volume resize failed: HTTP Error 400 : Bad Request"),
+			expectedOutput: fmt.Errorf("HTTP Error 400 : Bad Request"),
 		},
 		"Getting status error 404": {
 			cmdOptions: &CmdVolumeOptions{
@@ -125,7 +126,7 @@ func TestRunVolumeResize(t *testing.T) {
 				T:            t,
 			},
 			addr:           "MAPI_ADDR",
-			expectedOutput: fmt.Errorf("Volume resize failed: HTTP Error 404 : Not Found"),
+			expectedOutput: fmt.Errorf("HTTP Error 404 : Not Found"),
 		},
 		"Resizing the volume": {
 			cmdOptions: &CmdVolumeOptions{
@@ -149,10 +150,10 @@ func TestRunVolumeResize(t *testing.T) {
 			defer server.Close()
 			os.Setenv(tt.addr, server.URL)
 			err := tt.cmdOptions.RunVolumeResize(cmd)
-			if (err != nil && tt.expectedOutput != nil) && string(err.Error()) != string(tt.expectedOutput.Error()) {
-				t.Errorf("\nExpected output was : %v \nbut got : %v", tt.expectedOutput, err)
+			if (err != nil && tt.expectedOutput != nil) && !strings.Contains(string(err.Error()), string(tt.expectedOutput.Error())) {
+				t.Errorf("Test '%s' failed: Expected output: %v \nbut got : %v", name, tt.expectedOutput, err)
 			} else if (err != nil && tt.expectedOutput == nil) || (err == nil && tt.expectedOutput != nil) {
-				t.Errorf("\nExpected output was : %v \nbut got : %v", tt.expectedOutput, err)
+				t.Errorf("Test '%s' failed: Expected output: %v \nbut got : %v", name, tt.expectedOutput, err)
 			}
 		})
 	}

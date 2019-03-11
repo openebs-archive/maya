@@ -39,14 +39,14 @@ func ResizeVolume(ip, volName, capacity string) (*v1alpha1.VolumeResizeResponse,
 			Size:   capacity,
 		})
 	if err != nil {
-		return nil, errors.Errorf("error when calling the RunVolumeResizeCommand: %s", err)
+		return nil, errors.Errorf("error when calling the RunVolumeResizeCommand: '%s'", err)
 	}
 
 	if response != nil {
 		var responseStatus CommandStatus
 		json.Unmarshal(response.Status, &responseStatus)
-		if strings.Contains(responseStatus.Response, "Err") {
-			return nil, errors.Errorf("ResizeVolume command failed with error: %v", responseStatus.Response)
+		if strings.Contains(responseStatus.Response, "ERR") {
+			return nil, errors.Errorf("ResizeVolume command failed with error: '%v'", responseStatus.Response)
 		}
 	}
 

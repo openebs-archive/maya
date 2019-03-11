@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	file "github.com/openebs/maya/pkg/file"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -36,14 +37,14 @@ const (
 )
 
 //FileOperatorVar is used for doing File Operations
-var FileOperatorVar util.FileOperator
+var FileOperatorVar file.FileOperator
 
 //UnixSockVar is used for communication through Unix Socket
 var UnixSockVar util.UnixSock
 
 func init() {
 	UnixSockVar = util.RealUnixSock{}
-	FileOperatorVar = util.RealFileOperator{}
+	FileOperatorVar = file.RealFileOperator{}
 }
 
 // CreateVolumeTarget creates a new cStor volume istgt config.

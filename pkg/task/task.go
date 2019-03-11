@@ -539,7 +539,10 @@ func (m *executor) ExecuteIt() (err error) {
 	} else if m.MetaExec.isPatchOEV1alpha1CSP() {
 		err = m.patchCstorPool()
 	} else if m.MetaExec.isList() {
-		err = m.listK8sResources()
+	} else if m.MetaExec.isPatchCoreV1PV() {
+		err = m.patchCoreV1PV()
+	} else if m.MetaExec.isPatchCoreV1PVC() {
+		err = m.patchCoreV1PVC()
 	} else if m.MetaExec.isGetStorageV1SC() {
 		err = m.getStorageV1SC()
 	} else if m.MetaExec.isGetCoreV1PV() {
@@ -969,6 +972,50 @@ func (m *executor) patchCstorPool() (err error) {
 		return errors.Wrap(err, "failed to patch cstorpool")
 	}
 	util.SetNestedField(m.Values, p, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchCoreV1PV will patch persistentvolume as defined in the runtask
+func (m *executor) patchCoreV1PV() (err error) {
+	patch, err := asTaskPatch("patchPV", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return
+	}
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+	pv, err := m.getK8sClient().PatchCoreV1PVAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.Values, pv, string(v1alpha1.CurrentRepeatResourceLITP))
+	return
+}
+
+// patchCoreV1PVC will patch persistentvolume claim as defined in the runtask
+func (m *executor) patchCoreV1PVC() (err error) {
+	patch, err := asTaskPatch("patchPVC", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return
+	}
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+	pvc, err := m.getK8sClient().PatchCoreV1PVCAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.Values, pvc, string(v1alpha1.CurrentRepeatResourceLITP))
 	return
 }
 

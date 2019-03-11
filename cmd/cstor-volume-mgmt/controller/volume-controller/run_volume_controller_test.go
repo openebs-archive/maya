@@ -28,6 +28,7 @@ import (
 	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 
+	file "github.com/openebs/maya/pkg/file"
 	"github.com/openebs/maya/pkg/signals"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +108,7 @@ func TestProcessNextWorkItemAdd(t *testing.T) {
 	q.Key = "volume2"
 	q.Operation = common.QOpAdd
 	volumeController.workqueue.AddRateLimited(q)
-	volume.FileOperatorVar = util.TestFileOperator{}
+	volume.FileOperatorVar = file.TestFileOperator{}
 	volume.UnixSockVar = util.TestUnixSock{}
 	obtainedOutput := volumeController.processNextWorkItem()
 	if obtainedOutput != testVolumeResource["img2VolumeResource"].expectedOutput {

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	file "github.com/openebs/maya/pkg/file"
 	"github.com/openebs/maya/pkg/util"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,7 +50,7 @@ func TestCreateVolumeTarget(t *testing.T) {
 			},
 		},
 	}
-	FileOperatorVar = util.TestFileOperator{}
+	FileOperatorVar = file.TestFileOperator{}
 	UnixSockVar = util.TestUnixSock{}
 	obtainedErr := CreateVolumeTarget(testVolumeResource["img1VolumeResource"].test)
 	if testVolumeResource["img1VolumeResource"].expectedError != obtainedErr {

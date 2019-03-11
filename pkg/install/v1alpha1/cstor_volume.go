@@ -151,8 +151,11 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - cstor-volume-resize-listtargetservice-default
+    - cstor-volume-resize-gettargetservice-default
     - cstor-volume-resize-resizevolume-default
+    - cstor-volume-resize-patchcstorvolume
+    - cstor-volume-resize-patchpv
+    - cstor-volume-resize-patchpvc
   output: cstor-volume-resize-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -873,14 +876,13 @@ metadata:
   name: cstor-volume-list-listcstorvolume-default
 spec:
   meta: |
-    runNamespace: {{.Config.RunNamespace.value}}
     id: listlistcv
     apiVersion: openebs.io/v1alpha1
     kind: CStorVolume
     action: list
   post: |
-    {{- $volumepairs := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},capacity={@.spec.capacity};{end}" | trim | default "" | splitList ";" -}}
-    {{- $volumepairs | keyMap "volumeList" .ListItems | noop -}}
+    {{- $volumecapacity := jsonpath .JsonResult "{range .items[*]}pkey={@.metadata.labels.openebs\\.io/persistent-volume},capacity={@.spec.capacity};{end}" | trim | default "" | splitList ";" -}}
+    {{- $volumecapacity | keyMap "volumeList" .ListItems | noop -}}
 ---
 # runTask to render volume list output
 apiVersion: openebs.io/v1alpha1
@@ -978,7 +980,7 @@ spec:
     {{- .TaskResult.readlistcv.names | notFoundErr "cStor Volume CR not found" | saveIf "readlistcv.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/fs-type}" | trim | default "ext4" | saveAs "readlistcv.fsType" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/lun}" | trim | default "0" | int | saveAs "readlistcv.lun" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.capacity}" | trim | saveAs "readlistcv.capacity" .TaskResult | noop -}}
 ---
 # runTask to list all replica crs of a volume
 apiVersion: openebs.io/v1alpha1
@@ -1035,7 +1037,7 @@ spec:
     apiVersion: v1alpha1
   task: |
     {{/* We calculate capacity of the volume here. Pickup capacity from cv */}}
-    {{- $capacity := .TaskResult.readlistrep.capacity | default "" | splitList " " | first -}}
+    {{- $capacity := .TaskResult.readlistcv.capacity | default "" | splitList " " | first -}}
     kind: CASVolume
     apiVersion: v1alpha1
     metadata:
@@ -1056,35 +1058,35 @@ spec:
       targetPort: 3260
       lun: {{ .TaskResult.readlistcv.lun }}
       fsType: {{ .TaskResult.readlistcv.fsType }}
-      replicas: {{ .TaskResult.readlistrep.capacity | default "" | splitList " " | len }}
+      replicas: {{ .TaskResult.readlistcv.capacity | default "" | splitList " " | len }}
       casType: cstor
 ---
 # runTask to list cStor target deployment service
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-volume-resize-listtargetservice-default
+  name: cstor-volume-resize-gettargetservice-default
 spec:
   meta: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{- $runNamespace := .Config.RunNamespace.value -}}
     {{- $pvcServiceAccount := .Config.PVCServiceAccountName.value | default "" -}}
     {{- if ne $pvcServiceAccount "" }}
-    runNamespace: {{ .Volume.runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    runNamespace: {{ .Volume.runNamespace | saveAs "resizelistsvc.derivedNS" .TaskResult }}
     {{ else }}
-    runNamespace: {{ $runNamespace | saveAs "readlistsvc.derivedNS" .TaskResult }}
+    runNamespace: {{ $runNamespace | saveAs "resizelistsvc.derivedNS" .TaskResult }}
     {{- end }}
     apiVersion: v1
-    id: readlistsvc
+    id: resizelistsvc
     kind: Service
     action: list
     options: |-
       labelSelector: openebs.io/target-service=cstor-target-svc,openebs.io/persistent-volume={{ .Volume.owner }}
   post: |
-    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
-    {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "resizelistsvc.items" .TaskResult | noop -}}
+    {{- .TaskResult.resizelistsvc.items | notFoundErr "target service not found" | saveIf "resizelistsvc.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "resizelistsvc.clusterIP" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "resizelistsvc.pvcName" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1095,11 +1097,76 @@ spec:
     id: resizecstorvolume
     kind: Command
   post: |
-    {{- $runCommand := update cstor volume | withoption "ip" .TaskResult.readlistsvc.clusterIP -}}
+    {{- $runCommand := update cstor volume | withoption "ip" .TaskResult.resizelistsvc.clusterIP -}}
     {{- $runCommand := $runCommand | withoption "volname" .Volume.owner -}}
     {{- $runCommand | withoption "capacity" .Volume.capacity | run | saveas "resizecstorvolume" .TaskResult -}}
     {{- $err := .TaskResult.resizecstorvolume.error | default "" | toString -}}
     {{- $err | empty | not | verifyErr $err | saveIf "resizecstorvolume.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-patchcstorvolume
+spec:
+  meta: |
+    id: createpatchcv
+    runNamespace: {{ .TaskResult.resizelistsvc.derivedNS }}
+    apiVersion: openebs.io/v1alpha1
+    kind: CStorVolume
+    objectName: {{ .Volume.owner }}
+    action: patch
+  task: |
+      type: merge
+      pspec: |-
+        spec:
+          capacity: {{ .Volume.capacity }}
+  post: |
+    {{- $err := .TaskResult.createpatchcv.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "createpatchcv.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-patchpv
+spec:
+  meta: |
+    id: createpatchpv
+    apiVersion: v1
+    kind: PersistentVolume
+    objectName: {{ .Volume.owner }}
+    action: patch
+  task: |
+      type: strategic
+      pspec: |-
+        spec:
+          capacity:
+            storage: {{ .Volume.capacity }}
+  post: |
+    {{- $err := .TaskResult.createpatchpv.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "createpatchpv.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: cstor-volume-resize-patchpvc
+spec:
+  meta: |
+    id: createpatchpvc
+    runNamespace: {{ .Volume.runNamespace }}
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    objectName: {{ .TaskResult.resizelistsvc.pvcName }}
+    action: patch
+  task: |
+      type: strategic
+      pspec: |-
+        spec:
+          resources:
+            requests:
+              storage: {{ .Volume.capacity }}
+  post: |
+    {{- $err := .TaskResult.createpatchpvc.error | default "" | toString -}}
+    {{- $err | empty | not | verifyErr $err | saveIf "createpatchpvc.verifyErr" .TaskResult | noop -}}
 ---
 # runTask to render volume resize output as CASVolume
 apiVersion: openebs.io/v1alpha1
@@ -1117,7 +1184,7 @@ spec:
     apiVersion: v1alpha1
     metadata:
       name: {{ .Volume.owner }}
-      namespace: {{ .TaskResult.readlistsvc.derivedNS }}
+      namespace: {{ .TaskResult.resizelistsvc.derivedNS }}
       labels:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}

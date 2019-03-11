@@ -289,7 +289,7 @@ func TestgetString(t *testing.T) {
 				t.Error("unexpected rounded value")
 			}
 			if !reflect.DeepEqual(err, test.expectedError) {
-				t.Errorf("Test case Name: %s Expected error: %v but got: %v", name, test.expectedError, err)
+				t.Errorf("Test case: %s Expected error: %v but got: %v", name, test.expectedError, err)
 			}
 		})
 	}
@@ -337,7 +337,7 @@ func TestgetInt(t *testing.T) {
 				t.Error("unexpected rounded value")
 			}
 			if !reflect.DeepEqual(err, test.expectedError) {
-				t.Errorf("Test case Name: %s Expected error: %v but got: %v", name, test.expectedError, err)
+				t.Errorf("Test case Name: '%s' Expected error: '%v' but got: '%v'", name, test.expectedError, err)
 			}
 		})
 	}

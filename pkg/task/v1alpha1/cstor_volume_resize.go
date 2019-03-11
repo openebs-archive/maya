@@ -32,7 +32,7 @@ func (c *cstorVolumeResize) Run() (r RunCommandResult) {
 	glog.V(4).Infof("cas template: %v", c)
 	err := c.validateOptions()
 	if err != nil {
-		return c.AddError(errors.Errorf("failed to resize the cstor volume: %s", err)).Result(nil)
+		return c.AddError(errors.Errorf("failed to resize the cstor volume: '%s'", err)).Result(nil)
 	}
 	ip, _ := c.Data["ip"].(string)
 	volOps := cstor.Cstor()

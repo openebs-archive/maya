@@ -129,10 +129,12 @@ func NewCStorVolumeController(
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorVolume Destroy event : %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
-			} else if IsCapacityChanged(oldCStorVolume, newCStorVolume) {
+			} else if oldCStorVolume.Spec.Capacity != newCStorVolume.Spec.Capacity {
 				// TODO: Remove this check once the controller supports for resize
-				glog.Infof("Volume size is updated: %v, %v", newCStorVolume.Spec.Capacity, string(newCStorVolume.ObjectMeta.UID))
-				reason := fmt.Sprintf("Volume(%v) capacity updated to %v", newCStorVolume.Name, newCStorVolume.Spec.Capacity)
+				glog.Infof("change in capacity was detected for cstor volume '%s': '%s' to '%s'",
+					newCStorVolume.Name, oldCStorVolume.Spec.Capacity, newCStorVolume.Spec.Capacity)
+				reason := fmt.Sprintf("change in capacity was detected for volume '%s': '%s' to '%s'", newCStorVolume.Name,
+					oldCStorVolume.Spec.Capacity, newCStorVolume.Spec.Capacity)
 				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.MessageModifySynced), string(common.EventReason(reason)))
 				return
 			} else {

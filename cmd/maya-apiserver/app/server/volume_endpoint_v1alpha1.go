@@ -18,7 +18,6 @@ package server
 
 import (
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/golang/glog"
@@ -27,6 +26,7 @@ import (
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
+	"github.com/openebs/maya/pkg/validation"
 	"github.com/openebs/maya/pkg/volume"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -93,8 +93,8 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 		cvol, err := volOp.httpDelete()
 		sendEventOrIgnore(cvol, usage.VolumeDeprovision)
 		return cvol, err
-	case "UPDATE":
-		cvol, err := volOp.update()
+	case "PUT":
+		cvol, err := volOp.httpPut()
 		return cvol, err
 	default:
 		return nil, CodedError(405, http.StatusText(405))
@@ -117,6 +117,16 @@ func (v *volumeAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	return v.read(volName)
 }
 
+//httpPut deals with http PUT request
+func (v *volumeAPIOpsV1alpha1) httpPut() (interface{}, error) {
+	path := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes"))
+	if strings.Contains(path, "/resize/") {
+		return v.resize()
+	} else {
+		return nil, CodedError(405, fmt.Sprintf("failed to process a PUT request"))
+	}
+}
+
 // httpDelete deals with http DELETE request
 func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 	// Extract name of volume from path after trimming
@@ -130,8 +140,8 @@ func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 	return v.delete(volName)
 }
 
-// update process the http UPDATE request
-func (v *volumeAPIOpsV1alpha1) update() (*v1alpha1.CASVolume, error) {
+// resize process the volume resize operation
+func (v *volumeAPIOpsV1alpha1) resize() (*v1alpha1.CASVolume, error) {
 	newVol := &v1alpha1.CASVolume{}
 	err := decodeBody(v.req, newVol)
 	if err != nil {
@@ -139,21 +149,20 @@ func (v *volumeAPIOpsV1alpha1) update() (*v1alpha1.CASVolume, error) {
 	}
 	glog.V(4).Infof("Received CASVolume: %v", newVol)
 	if len(newVol.Name) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing volume name '%v'", newVol))
+		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing volume name"))
 	}
 
 	if len(newVol.Spec.Capacity) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing size '%v'", newVol))
+		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: missing size for volume '%s'", newVol.Name))
 	}
 
-	// Regex to say only positive integers and valid size units are accepted
-	reg, err := regexp.Compile("^[0-9]+[MGTPE][i]{0,1}$")
+	// validate capacity
+	isValid, err := validation.ValidateString(newVol.Spec.Capacity, "^[0-9]+[MGTPE][i]{0,1}$")
 	if err != nil {
-		return nil, CodedError(400, fmt.Sprintf("failed to process regular expresion '%v'", newVol))
+		return nil, CodedError(400, fmt.Sprintf("error: '%v'", err))
 	}
-
-	if !reg.MatchString(newVol.Spec.Capacity) {
-		return nil, CodedError(400, fmt.Sprintf("failed to resize a volume: invalid size '%v'", newVol))
+	if !isValid {
+		return nil, CodedError(400, fmt.Sprintf("failed to resize the volume:invalid size '%s', size must match the regular expression '^[0-9]+[MGTPE][i]{0,1}$'", newVol.Spec.Capacity))
 	}
 
 	// use run namespace from http request header if volume's namespace is still not set
@@ -167,10 +176,10 @@ func (v *volumeAPIOpsV1alpha1) update() (*v1alpha1.CASVolume, error) {
 	}
 	cvol, err := vOps.Resize()
 	if err != nil {
-		glog.Errorf("failed to resize cas template based volume: error '%s'", err.Error())
+		glog.Errorf("failed to resize volume: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
 	}
-	glog.Infof("cas template based volume resized successfully: name '%s' and size '%s'", cvol.Name, cvol.Spec.Capacity)
+	glog.Infof("resized the volume:'%s' with capacity: '%s'", cvol.Name, cvol.Spec.Capacity)
 
 	return cvol, nil
 }

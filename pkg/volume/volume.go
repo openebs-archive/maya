@@ -33,7 +33,6 @@ import (
 	"github.com/openebs/maya/pkg/util"
 	core_v1 "k8s.io/api/core/v1"
 	v1_storage "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -72,7 +71,7 @@ func getInt(strValue string) (uint64, error) {
 	}
 	strVal := reg.ReplaceAllString(strValue, "")
 	if len(strVal) == 0 {
-		return uint64(0), fmt.Errorf("No number found")
+		return uint64(0), fmt.Errorf("No integer found")
 	}
 	strInt, err := strconv.Atoi(strVal)
 	return uint64(strInt), err
@@ -259,7 +258,7 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	}
 	newSize, err := RoundUpStringToBytes(capacityValue, capacityUnit)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert new capacity %s", v.volume.Spec.Capacity)
+		return nil, errors.Wrapf(err, "failed to convert capacity '%s' to Bytes", v.volume.Spec.Capacity)
 	}
 
 	// pv details
@@ -269,7 +268,7 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	}
 
 	oldSize := RoundUpToBytes(pv.Spec.Capacity[core_v1.ResourceStorage])
-	glog.V(4).Infof("old volume size: %d and requested size: %d in Bytes", oldSize, newSize)
+	glog.V(4).Infof("old capacity: '%d' and requested capacity: '%d' in Bytes", oldSize, newSize)
 
 	// If volume size is already greater than or equal to requested size return
 	if uint64(oldSize) >= newSize {
@@ -278,7 +277,7 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 
 	if string(v.volume.Namespace) != string(pv.Spec.ClaimRef.Namespace) {
 		err = errors.New("")
-		return nil, errors.Wrapf(err, "provided namespace(%s) is not matching with pvc namespace(%s)", v.volume.Namespace, pv.Spec.ClaimRef.Namespace)
+		return nil, errors.Wrapf(err, "provided namespace('%s') is not matching with pvc namespace('%s')", v.volume.Namespace, pv.Spec.ClaimRef.Namespace)
 	}
 
 	// sc details
@@ -288,13 +287,17 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	}
 
 	if len(scName) == 0 {
-		return nil, fmt.Errorf("failed to delete volume '%s': missing storage class in PV object", v.volume.Name)
+		return nil, fmt.Errorf("failed to resize volume '%s': missing storage class in PV object", v.volume.Name)
 	}
 
 	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return nil, err
+	}
+
+	if sc.AllowVolumeExpansion == nil || *sc.AllowVolumeExpansion == false {
+		return nil, fmt.Errorf("failed to resize volume: '%s' storage class '%s' doesn't support resize", v.volume.Name, sc.Name)
 	}
 
 	// extract the cas volume config from storage class
@@ -342,38 +345,6 @@ func (v *Operation) Resize() (*v1alpha1.CASVolume, error) {
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
 		return nil, err
-	}
-
-	// Updating the CR's with the updated capacity
-	quantity, err := resource.ParseQuantity(v.volume.Spec.Capacity)
-	err = v.k8sClient.PatchPV(pv, quantity)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update pv(%v)\n", pv.Name)
-	}
-
-	pvc, err := v.k8sClient.GetPVC(pv.Spec.ClaimRef.Name, mach_apis_meta_v1.GetOptions{})
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get pvc")
-	}
-	err = v.k8sClient.PatchPVC(pvc, quantity)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update the pvc(%v)\n", pvc.Name)
-		//TODO: Is it necessary to revert the size changes in dataplane?
-	}
-
-	// k8scli used to get the kubeclient for cstorvolume in corresponding namespace
-	k8scli, err := m_k8s_client.NewK8sClient(string(vol.Namespace))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get the kube client for volume")
-	}
-	cstorvolume, err := k8scli.GetOEV1alpha1CV(string(vol.Name))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get the cstor volume")
-	}
-	err = k8scli.PatchCV(cstorvolume, v.volume.Spec.Capacity)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update the cstorvolume\n")
-		//TODO: Is it necessary to revert the size changes in dataplane?
 	}
 
 	return vol, nil
@@ -645,8 +616,7 @@ func getResizeCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 		if casType == "" {
 			casType = strings.ToLower(defaultCasType)
 		}
-		// check for cas-type, if cstor, set create cas template to cstor,
-		// if jiva or for jiva and if absent then default to jiva
+		// check for cas-type, if cstor, set create cas template to cstor
 		if casType == string(v1alpha1.CstorVolume) {
 			castName = menv.Get(menv.CASTemplateToResizeCStorVolumeENVK)
 		}

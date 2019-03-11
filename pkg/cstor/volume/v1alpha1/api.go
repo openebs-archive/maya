@@ -22,7 +22,9 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
+	file "github.com/openebs/maya/pkg/file"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/validation"
 	"golang.org/x/net/context"
 )
 
@@ -50,7 +52,7 @@ type CommandStatus struct {
 }
 
 //APIFileOperatorVar is used for doing File Operations
-var APIFileOperatorVar util.FileOperator
+var APIFileOperatorVar file.FileOperator
 
 //APIUnixSockVar is unix socker variable
 var APIUnixSockVar util.UnixSock
@@ -61,7 +63,7 @@ type Server struct {
 
 func init() {
 	APIUnixSockVar = util.RealUnixSock{}
-	APIFileOperatorVar = util.RealFileOperator{}
+	APIFileOperatorVar = file.RealFileOperator{}
 }
 
 // RunVolumeSnapCreateCommand performs snapshot create operation and sends back the response
@@ -81,7 +83,7 @@ func (s *Server) RunVolumeSnapDeleteCommand(ctx context.Context, in *v1alpha1.Vo
 
 // RunVolumeResizeCommand perform volume resize operation and sends back the response
 func (s *Server) RunVolumeResizeCommand(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alpha1.VolumeResizeResponse, error) {
-	glog.Infof("Received volume resize request. volname = %s, capacity = %s", in.Volume, in.Size)
+	glog.Infof("Received volume resize request. volname: '%s', capacity: '%s'", in.Volume, in.Size)
 	volcmd, err := ResizeVolume(ctx, in)
 	return volcmd, err
 }
@@ -135,16 +137,15 @@ func ResizeVolume(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alp
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("Updated the %s file with capacity %s", util.IstgtConfPath, in.Size)
+	glog.Infof("Updated the '%s' file with capacity '%s'", util.IstgtConfPath, in.Size)
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %v %v",
 		CmdVolResize, IoWaitTime, TotalWaitTime))
-	if err != nil {
-		glog.Infof("Reverting the changes in file %s", util.IstgtConfPath)
+	if err != nil || validation.Checkforstring(sockresp, "ERR") {
+		glog.Infof("Reverting the changes to file '%s'", util.IstgtConfPath)
 		errOp := APIFileOperatorVar.Updatefile(util.IstgtConfPath, oldStorageVal, index, 0644)
 		if errOp != nil {
-			glog.Errorf("Failed to revert the size of the file %v", errOp)
+			glog.Errorf("Failed to revert the changes on file '%v'", errOp)
 		}
-		return nil, errors.Wrapf(err, "resize request failed")
 	}
 
 	respstr := "ERR"

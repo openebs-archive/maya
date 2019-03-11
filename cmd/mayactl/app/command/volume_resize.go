@@ -19,10 +19,10 @@ package command
 import (
 	"errors"
 	"fmt"
-	"regexp"
 
 	"github.com/openebs/maya/pkg/client/mapiserver"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/validation"
 	"github.com/spf13/cobra"
 )
 
@@ -62,20 +62,19 @@ func NewCmdVolumeResize() *cobra.Command {
 // ValidateResize validates the flag values
 func (c *CmdVolumeOptions) ValidateResize(cmd *cobra.Command) error {
 	if len(c.volName) == 0 {
-		return errors.New("--volname is missing. Please specify the name of the volume to be resized")
+		return errors.New("--volname is missing. Please specify the name of the volume to resize")
 	}
 	if len(c.size) == 0 {
 		return errors.New("--size is missing. Please specify value")
 	}
 
-	// Regex to say only positive integers and valid size units are accepted
-	reg, err := regexp.Compile("^[0-9]+[MGTPE][i]{0,1}$")
+	// Validate capacity
+	isValid, err := validation.ValidateString(c.size, "^[0-9]+[MGTPE][i]{0,1}$")
 	if err != nil {
-		return errors.New("failed to process regular expresion")
+		return err
 	}
-
-	if !reg.MatchString(c.size) {
-		return errors.New("invalid size. Please specify valid size and units")
+	if !isValid {
+		return errors.New("invalid size. please specify valid size and size must match to regular expression '^[0-9]+[MGTPE][i]{0,1}$'")
 	}
 	return nil
 }
@@ -86,9 +85,9 @@ func (c *CmdVolumeOptions) RunVolumeResize(cmd *cobra.Command) error {
 
 	resp := mapiserver.ResizeVolume(c.volName, c.size, c.namespace)
 	if resp != nil {
-		return fmt.Errorf("Volume resize failed: %v", resp)
+		return fmt.Errorf("Volume resize failed: '%v'", resp)
 	}
 
-	fmt.Printf("Volume resize is successfull for volume: %s with size: %s in %s namespace\n", c.volName, c.size, c.namespace)
+	fmt.Printf("Volume resize successfull for volume: '%s' with size: '%s' in '%s' namespace\n", c.volName, c.size, c.namespace)
 	return nil
 }
