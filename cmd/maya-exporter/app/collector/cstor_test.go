@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }"
+	SplittedResponse             = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"Degraded\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"Healthy\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"Healthy\"}] }"
 	NilCstorResponse             = "OK IOSTATS\r\n"
-	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }\r\nOK IOSTATS\r\n"
-	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }"
-	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"DEGRADED\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"HEALTHY\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"HEALTHY\"}] }\r\nOK IOSTATS\r\n`
+	CstorResponse                = "IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"Degraded\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"Healthy\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"Healthy\"}] }\r\nOK IOSTATS\r\n"
+	JSONFormatedResponse         = "{ \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"Degraded\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"Healthy\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"Healthy\"}] }"
+	ImproperJSONFormatedResponse = `IOSTATS  { \"iqn\": \"iqn.2017-08.OpenEBS.cstor:vol1\", \"WriteIOPS\": \"0\", \"ReadIOPS\": \"0\", \"TotalWriteBytes\": \"0\", \"TotalReadBytes\": \"0\", \"Size\": \"10737418240\", \"UsedLogicalBlocks\":\"19\", \"SectorSize\":\"512\", \"UpTime\":\"20\", \"TotalReadBlockCount\":\"12\", \"TotalWriteBlockCount\":\"15\", \"TotalReadTime\":\"13\", \"TotalWriteTime\":\"132\", \"RevisionCounter\":\"1000\", \"ReplicaCounter\":\"3\", \"Replicas\":[{\"Address\":\"tcp://172.18.0.3:9502\",\"Mode\":\"Degraded\"},{\"Address\":\"tcp://172.18.0.4:9502\",\"Mode\":\"Healthy\"},{\"Address\":\"tcp://172.18.0.5:9502\",\"Mode\":\"Healthy\"}] }\r\nOK IOSTATS\r\n`
 )
 
 func fakeCstor(path string) *cstor {
@@ -214,15 +214,15 @@ func TestUnmarshal(t *testing.T) {
 				Replicas: []v1.Replica{
 					{
 						Address: "tcp://172.18.0.3:9502",
-						Mode:    "DEGRADED",
+						Mode:    "Degraded",
 					},
 					{
 						Address: "tcp://172.18.0.4:9502",
-						Mode:    "HEALTHY",
+						Mode:    "Healthy",
 					},
 					{
 						Address: "tcp://172.18.0.5:9502",
-						Mode:    "HEALTHY",
+						Mode:    "Healthy",
 					},
 				},
 			},
