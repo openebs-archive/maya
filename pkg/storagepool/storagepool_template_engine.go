@@ -19,9 +19,10 @@ package storagepool
 
 import (
 	"fmt"
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/engine"
 	"strings"
+
+	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 )
 
 // storagePoolEngine is capable of creating a storagepool via CAS template
@@ -32,14 +33,14 @@ import (
 // NOTE:
 //  It overrides the Create method exposed by generic engine
 type storagePoolEngine struct {
-	engine        engine.Interface  // generic CAS template engine
+	engine        cast.Interface    // generic CAS template engine
 	defaultConfig []v1alpha1.Config // default cas storagepool config found in CASTemplate
 	openebsConfig []v1alpha1.Config // openebsConfig is the config that is provided
 }
 
 // NewStoragePoolEngine returns a new instance of storagePoolEngine
 func NewStoragePoolEngine(
-	cast *v1alpha1.CASTemplate,
+	castObj *v1alpha1.CASTemplate,
 	openebsConfig string,
 	key string,
 	storagePoolValues map[string]interface{}) (e *storagePoolEngine, err error) {
@@ -52,17 +53,17 @@ func NewStoragePoolEngine(
 		err = fmt.Errorf("Failed to create cas template engine: nil storagepool values was provided")
 		return
 	}
-	openebsConf, err := engine.UnMarshallToConfig(openebsConfig)
+	openebsConf, err := cast.UnMarshallToConfig(openebsConfig)
 	if err != nil {
 		return
 	}
-	cEngine, err := engine.New(cast, key, storagePoolValues)
+	cEngine, err := cast.Engine(castObj, key, storagePoolValues)
 	if err != nil {
 		return
 	}
 	e = &storagePoolEngine{
 		engine:        cEngine,
-		defaultConfig: cast.Spec.Defaults,
+		defaultConfig: castObj.Spec.Defaults,
 		openebsConfig: openebsConf,
 	}
 	return
@@ -70,7 +71,7 @@ func NewStoragePoolEngine(
 
 // Create creates a storagepool
 func (c *storagePoolEngine) Create() (op []byte, err error) {
-	m, err := engine.ConfigToMap(engine.MergeConfig(c.openebsConfig, c.defaultConfig))
+	m, err := cast.ConfigToMap(cast.MergeConfig(c.openebsConfig, c.defaultConfig))
 	if err != nil {
 		return
 	}

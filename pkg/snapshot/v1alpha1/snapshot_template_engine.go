@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/engine"
+	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 )
 
 // snapshotEngine is capable of creating a CAS snapshot via CAS template
@@ -33,7 +33,7 @@ import (
 //  It overrides the Create method exposed by generic CASEngine
 type snapshotEngine struct {
 	// engine exposes generic CAS template operations
-	engine engine.Interface
+	engine cast.Interface
 	// TODO:
 	// All the below fields are common to specific implementation
 	// of engine therefore it could be moved to core cast engine.
@@ -55,9 +55,9 @@ type snapshotEngine struct {
 //  VolumeSnapshot >> StorageClass >> CAS Template Default Config
 func (c *snapshotEngine) prepareFinalConfig() (final []v1alpha1.Config) {
 	// merge unique config elements from SC with config from PVC
-	mc := engine.MergeConfig(c.casConfigSnap, c.casConfigSC)
+	mc := cast.MergeConfig(c.casConfigSnap, c.casConfigSC)
 	// merge above resulting config with default config from CASTemplate
-	return engine.MergeConfig(mc, c.defaultConfig)
+	return cast.MergeConfig(mc, c.defaultConfig)
 }
 
 // SnapshotEngine returns a new instance of snapshotEngine based on
@@ -82,19 +82,19 @@ func SnapshotEngine(
 		return
 	}
 	// CAS config from StorageClass
-	casConfSC, err := engine.UnMarshallToConfig(casConfigSC)
+	casConfSC, err := cast.UnMarshallToConfig(casConfigSC)
 	if err != nil {
 		return
 	}
 
 	// CAS config from VolumeSnapshot
-	casConfSnap, err := engine.UnMarshallToConfig(casConfigSnap)
+	casConfSnap, err := cast.UnMarshallToConfig(casConfigSnap)
 	if err != nil {
 		return
 	}
 
 	// make use of the generic CAS template engine
-	cEngine, err := engine.New(casTemplate, key, snapshotValues)
+	cEngine, err := cast.Engine(casTemplate, key, snapshotValues)
 	if err != nil {
 		return
 	}
@@ -110,7 +110,7 @@ func SnapshotEngine(
 
 // Run executes a CAS volume related operation
 func (c *snapshotEngine) Run() (op []byte, err error) {
-	m, err := engine.ConfigToMap(c.prepareFinalConfig())
+	m, err := cast.ConfigToMap(c.prepareFinalConfig())
 	if err != nil {
 		return
 	}
