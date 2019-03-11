@@ -123,9 +123,7 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 		if err.Error() == string(zpool.NoPoolAvailable) {
 			p.noPoolAvailableErrorCounter.Inc()
 			p.noPoolAvailableErrorCounter.Collect(ch)
-		}
-
-		if err.Error() == zpool.InCompleteStdoutErr {
+		} else {
 			p.incompleteOutputErrorCounter.Inc()
 			p.incompleteOutputErrorCounter.Collect(ch)
 		}
@@ -142,10 +140,9 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 	p.Lock()
 	if p.isRequestInProgress() {
 		p.zpoolRejectRequestCounter.Inc()
-		p.zpoolRejectRequestCounter.Collect(ch)
 		p.Unlock()
+		p.zpoolRejectRequestCounter.Collect(ch)
 		return
-
 	}
 
 	p.request = true

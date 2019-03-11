@@ -87,8 +87,8 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 	v.Lock()
 	if v.isRequestInProgress() {
 		v.zfsListRequestRejectCounter.Inc()
-		v.zfsListRequestRejectCounter.Collect(ch)
 		v.Unlock()
+		v.zfsListRequestRejectCounter.Collect(ch)
 		return
 
 	}
