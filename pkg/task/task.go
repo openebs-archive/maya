@@ -28,6 +28,7 @@ import (
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
+	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
@@ -405,6 +406,10 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getBatchV1Job()
 	} else if m.metaTaskExec.isPutBatchV1Job() {
 		err = m.putBatchV1Job()
+	} else if m.metaTaskExec.isPutAppsV1STS() {
+		err = m.putAppsV1STS()
+	} else if m.metaTaskExec.isDeleteAppsV1STS() {
+		err = m.deleteAppsV1STS()
 	} else {
 		err = fmt.Errorf("un-supported task operation: failed to execute task: '%+v'", m.metaTaskExec.getMetaInfo())
 	}
@@ -443,6 +448,16 @@ func (m *taskExecutor) asBatchV1Job() (*api_batch_v1.Job, error) {
 		return nil, err
 	}
 	return j.AsBatchV1Job()
+}
+
+// asAppsV1STS generates a kubernetes StatefulSet api
+// instance from the yaml string specification
+func (m *taskExecutor) asAppsV1STS() (*api_apps_v1.StatefulSet, error) {
+	s, err := m_k8s.NewSTSYml("AppsV1StatefulSet", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return nil, err
+	}
+	return s.AsAppsV1STS()
 }
 
 // asAppsV1B1Deploy generates a K8s Deployment object
@@ -533,6 +548,22 @@ func (m *taskExecutor) putBatchV1Job() (err error) {
 		return
 	}
 	util.SetNestedField(m.templateValues, job, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// putAppsV1STS will create a new StatefulSet
+// object in the cluster and store the response
+// in a json format
+func (m *taskExecutor) putAppsV1STS() (err error) {
+	j, err := m.asAppsV1STS()
+	if err != nil {
+		return
+	}
+	sts, err := m.getK8sClient().CreateAppsV1STSAsRaw(j)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, sts, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -883,6 +914,18 @@ func (m *taskExecutor) deleteBatchV1Job() (err error) {
 	jobs := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
 	for _, name := range jobs {
 		err = m.getK8sClient().DeleteBatchV1Job(strings.TrimSpace(name))
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// deleteAppsV1STS will delete one or more StatefulSets
+func (m *taskExecutor) deleteAppsV1STS() (err error) {
+	stss := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
+	for _, name := range stss {
+		err = m.getK8sClient().DeleteAppsV1STS(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
