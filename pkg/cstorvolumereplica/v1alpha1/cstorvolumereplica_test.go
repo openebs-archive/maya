@@ -60,7 +60,7 @@ func TestWithListObject(t *testing.T) {
 				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{cstorPoolUIDLabelKey: p}}})
 			}
 
-			b := ListBuilder().WithListObject(&apis.CStorVolumeReplicaList{Items: cvrItems})
+			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems})
 			for index, ob := range b.list.items {
 				if !reflect.DeepEqual(ob.object, cvrItems[index]) {
 					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, cvrItems[index], ob.object)
@@ -92,7 +92,7 @@ func TestList(t *testing.T) {
 				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{cstorPoolUIDLabelKey: p}}})
 			}
 
-			b := ListBuilder().WithListObject(&apis.CStorVolumeReplicaList{Items: cvrItems}).List()
+			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems}).List()
 			if len(b.items) != len(cvrItems) {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, len(cvrItems), len(b.items))
 			}

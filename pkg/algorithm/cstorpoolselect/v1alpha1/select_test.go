@@ -6,54 +6,470 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	cstorPoolUIDLabelKey string = "cstorpool.openebs.io/uid"
+	fakeValidHost                    string = "validHost"
+	fakeinvalidHost                  string = "invalidHost"
+	cstorPoolUIDLabelKey             string = "cstorpool.openebs.io/uid"
+	fakeAntiAffinitySelector         string = "openebs.io/replica-anti-affinity=fake"
+	fakePreferAntiAffinitySelector   string = "openebs.io/preferred-replica-anti-affinity=fake"
+	fakePreferScheduleOnHostSelector string = "volume.kubernetes.io/selected-node=fake"
+	fakeValue                        string = "fake"
 )
 
-func TestPreferAntiAffinityLabel(t *testing.T) {
-	tests := map[string]struct {
-		label          string
-		expectedoutput policy
-	}{
-		"Mock Test 1": {"label1", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label1"}}},
-		"Mock Test 2": {"label2", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label2"}}},
-		"Mock Test 3": {"label3", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label3"}}},
-		"Mock Test 4": {"label4", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label4"}}},
-	}
+type fakeLowPolicy struct{}
 
+func (l fakeLowPolicy) name() policyName                               { return "" }
+func (l fakeLowPolicy) priority() priority                             { return lowPriority }
+func (l fakeLowPolicy) filter(pool *csp.CSPList) (*csp.CSPList, error) { return pool, nil }
+
+type fakeMediumPolicy struct{}
+
+func (l fakeMediumPolicy) name() policyName                               { return "" }
+func (l fakeMediumPolicy) priority() priority                             { return mediumPriority }
+func (l fakeMediumPolicy) filter(pool *csp.CSPList) (*csp.CSPList, error) { return pool, nil }
+
+type fakeHighPolicy struct{}
+
+func (l fakeHighPolicy) name() policyName                               { return "" }
+func (l fakeHighPolicy) priority() priority                             { return highPriority }
+func (l fakeHighPolicy) filter(pool *csp.CSPList) (*csp.CSPList, error) { return pool, nil }
+
+type fakeFilterFirst struct{}
+
+func (l fakeFilterFirst) name() policyName   { return "" }
+func (l fakeFilterFirst) priority() priority { return highPriority }
+func (l fakeFilterFirst) filter(pool *csp.CSPList) (*csp.CSPList, error) {
+	return pool, nil
+}
+
+func fakeBuildOptionNoFilter() buildOption {
+	return func(s *selection) {
+		p := fakeLowPolicy{}
+		s.policies.add(p)
+	}
+}
+
+func fakePolicyListOk(policies []policy) *policyList {
+	pl := &policyList{map[priority][]policy{}}
+	for _, p := range policies {
+		pl.add(p)
+	}
+	return pl
+}
+
+func fakeCSPListOk(uids ...string) *csp.CSPList {
+	return csp.ListBuilder().WithUIDs(uids...).List()
+}
+
+func fakeCSPListScheduleOnHostOk(hostuid string, uids ...string) *csp.CSPList {
+	fakeMap := map[string]string{}
+	for _, uid := range uids {
+		if hostuid == uid {
+			fakeMap[hostuid] = fakeValidHost
+		} else {
+			fakeMap[uid] = fakeinvalidHost
+		}
+	}
+	return csp.ListBuilder().WithUIDNode(fakeMap).List()
+}
+
+func fakeCVRListOk(uids ...string) cvrListFn {
+	return func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+		l := &apis.CStorVolumeReplicaList{}
+		for _, uid := range uids {
+			l.Items = append(l.Items,
+				apis.CStorVolumeReplica{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							string(cstorPoolUIDLabelKey): uid,
+						},
+					},
+				},
+			)
+		}
+		return l, nil
+	}
+}
+
+func fakeCVRListErr() cvrListFn {
+	return func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+		return nil, errors.New("fake error")
+	}
+}
+
+func TestAntiAffinityFilter(t *testing.T) {
+	tests := map[string]struct {
+		cvrList                       cvrListFn
+		availablePools, expectedPools []string
+		isError                       bool
+	}{
+		"Test 1": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+			isError:        false,
+		},
+		"Test 2": {
+			cvrList:        fakeCVRListOk("pool 4", "pool 2", "pool 7"),
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			cvrList:        fakeCVRListOk("pool 4", "pool 2", "pool 7"),
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+			isError:        false,
+		},
+		"Test 5": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+			isError:        false,
+		},
+		"Test 6": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3"),
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+			isError:        false,
+		},
+		"Test 8": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3"),
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 9": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 11": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+		"Test 12": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"pool 1"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			bo := PreferAntiAffinityLabel(test.label)
-			s := &selection{}
-			bo(s)
-			if s.policies[len(s.policies)-1].name() != test.expectedoutput.name() {
-				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies[len(s.policies)-1])
+			a := antiAffinityLabel{
+				labelSelector: "should not be empty",
+				cvrList:       test.cvrList,
+			}
+			output, err := a.filter(fakeCSPListOk(test.availablePools...))
+			if test.isError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.isError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if output != nil && len(test.expectedPools) != len(output.GetPoolUIDs()) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output.GetPoolUIDs())
+			} else if output != nil && len(output.GetPoolUIDs()) != 0 && !reflect.DeepEqual(test.expectedPools, output.GetPoolUIDs()) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output.GetPoolUIDs())
 			}
 		})
 	}
 }
 
-func TestAntiAffinityLabel(t *testing.T) {
+func TestPreferredAntiAffinityFilter(t *testing.T) {
 	tests := map[string]struct {
-		mocklabel      string
-		expectedoutput policy
+		cvrList                       cvrListFn
+		availablePools, expectedPools []string
+		isError                       bool
 	}{
-		"Mock Test 1": {"label1", antiAffinityLabel{labelSelector: "label1"}},
-		"Mock Test 2": {"label2", antiAffinityLabel{labelSelector: "label2"}},
-		"Mock Test 3": {"label3", antiAffinityLabel{labelSelector: "label3"}},
-		"Mock Test 4": {"label4", antiAffinityLabel{labelSelector: "label4"}},
+		"Test 1": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+			isError:        false,
+		},
+		"Test 2": {
+			cvrList:        fakeCVRListOk("pool 4", "pool 2", "pool 7"),
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			cvrList:        fakeCVRListOk("pool 4", "pool 2", "pool 7"),
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+			isError:        false,
+		},
+		"Test 5": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+		},
+		"Test 6": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3"),
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			cvrList:        fakeCVRListOk(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+			isError:        false,
+		},
+		"Test 8": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3"),
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 9": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 11": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+		"Test 12": {
+			cvrList:        fakeCVRListErr(),
+			availablePools: []string{"pool 1"},
+			expectedPools:  []string{},
+			isError:        true,
+		},
+		"Test 13": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1"},
+			expectedPools:  []string{"pool 1"},
+			isError:        false,
+		},
+		"Test 14": {
+			cvrList:        fakeCVRListOk("pool 1", "pool 2", "pool 3", "pool 4"),
+			availablePools: []string{"pool 1", "pool 2"},
+			expectedPools:  []string{"pool 1", "pool 2"},
+			isError:        false,
+		},
 	}
-
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			bo := AntiAffinityLabel(test.mocklabel)
-			s := &selection{}
-			bo(s)
-			if s.policies[len(s.policies)-1].name() != test.expectedoutput.name() {
-				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies[len(s.policies)-1])
+			a := preferAntiAffinityLabel{
+				antiAffinityLabel: antiAffinityLabel{
+					labelSelector: "should not be empty",
+					cvrList:       test.cvrList,
+				},
+			}
+
+			output, err := a.filter(fakeCSPListOk(test.availablePools...))
+			if test.isError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.isError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if output != nil && len(test.expectedPools) != len(output.GetPoolUIDs()) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output.GetPoolUIDs())
+			}
+		})
+	}
+}
+
+func TestScheduleOnHostFilter(t *testing.T) {
+	tests := map[string]struct {
+		hostedPool                    string
+		availablePools, expectedPools []string
+		isError                       bool
+	}{
+		"Test 1": {
+			hostedPool:     "pool 1",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1"},
+			isError:        false,
+		},
+		"Test 2": {
+			hostedPool:     "pool 6",
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			hostedPool:     "pool 6",
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			hostedPool:     "pool 2",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 2"},
+			isError:        false,
+		},
+		"Test 5": {
+			hostedPool:     "pool 3",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+		},
+		"Test 6": {
+			hostedPool:     "pool 5",
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			hostedPool:     "not valid pool",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{},
+			isError:        false,
+		},
+		"Test 8": {
+			hostedPool:     "pool 1",
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 1"},
+			isError:        false,
+		},
+		"Test 9": {
+			hostedPool:     "pool 5",
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			hostedPool:     "pool 4",
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{},
+			isError:        false,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			a := scheduleOnHost{hostName: fakeValidHost}
+
+			output, err := a.filter(fakeCSPListScheduleOnHostOk(test.hostedPool, test.availablePools...))
+			if test.isError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.isError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if output != nil && len(test.expectedPools) != len(output.GetPoolUIDs()) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output.GetPoolUIDs())
+			}
+		})
+	}
+}
+
+func TestPreferScheduleOnHostFilter(t *testing.T) {
+	tests := map[string]struct {
+		hostedPool                    string
+		availablePools, expectedPools []string
+		isError                       bool
+	}{
+		"Test 1": {
+			hostedPool:     "pool 1",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1"},
+			isError:        false,
+		},
+		"Test 2": {
+			hostedPool:     "pool 6",
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 3": {
+			hostedPool:     "pool 6",
+			availablePools: []string{"pool 6"},
+			expectedPools:  []string{"pool 6"},
+			isError:        false,
+		},
+		"Test 4": {
+			hostedPool:     "pool 2",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 2"},
+			isError:        false,
+		},
+		"Test 5": {
+			hostedPool:     "pool 3",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 3"},
+		},
+		"Test 6": {
+			hostedPool:     "pool 5",
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 7": {
+			hostedPool:     "not valid pool",
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+			isError:        false,
+		},
+		"Test 8": {
+			hostedPool:     "pool 1",
+			availablePools: []string{"pool 1", "pool 5", "pool 3"},
+			expectedPools:  []string{"pool 1"},
+			isError:        false,
+		},
+		"Test 9": {
+			hostedPool:     "pool 5",
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 5"},
+			isError:        false,
+		},
+		"Test 10": {
+			hostedPool:     "pool 4",
+			availablePools: []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3", "pool 5"},
+			isError:        false,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			a := preferScheduleOnHost{scheduleOnHost{hostName: fakeValidHost}}
+
+			output, err := a.filter(fakeCSPListScheduleOnHostOk(test.hostedPool, test.availablePools...))
+			if test.isError && err == nil {
+				t.Fatalf("test %q failed: expected error not to be nil", name)
+			} else if !test.isError && err != nil {
+				t.Fatalf("test %q failed: expected error to be nil", name)
+			} else if output != nil && len(test.expectedPools) != len(output.GetPoolUIDs()) {
+				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedPools, output.GetPoolUIDs())
 			}
 		})
 	}
@@ -72,7 +488,7 @@ func TestValidate(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockSelection := &selection{}
+			mockSelection := &selection{policies: &policyList{map[priority][]policy{}}}
 			if test.isAntiAffinity {
 				p := AntiAffinityLabel("antiAffinity")
 				p(mockSelection)
@@ -98,7 +514,7 @@ func TestTemplateFunctionsCount(t *testing.T) {
 	tests := map[string]struct {
 		expectedLength int
 	}{
-		"Test 1": {4},
+		"Test 1": {5},
 	}
 
 	for name, test := range tests {
@@ -110,7 +526,6 @@ func TestTemplateFunctionsCount(t *testing.T) {
 		})
 	}
 }
-
 func TestName(t *testing.T) {
 	tests := map[string]struct {
 		Invoker      policy
@@ -118,6 +533,8 @@ func TestName(t *testing.T) {
 	}{
 		"Test 1": {antiAffinityLabel{}, "anti-affinity-label"},
 		"Test 2": {preferAntiAffinityLabel{}, "prefer-anti-affinity-label"},
+		"Test 3": {preferScheduleOnHost{}, "prefer-schedule-on-host"},
+		"Test 4": {scheduleOnHost{}, "schedule-on-host"},
 	}
 
 	for name, test := range tests {
@@ -130,187 +547,162 @@ func TestName(t *testing.T) {
 	}
 }
 
-func TestNewSelection(t *testing.T) {
+func TestPreferAntiAffinityLabel(t *testing.T) {
 	tests := map[string]struct {
-		expectedUIDs, expectedBuildOptions                 int
-		UIDs, preferAntiAffinityLabels, AntiAffinityLabels []string
+		label          string
+		expectedoutput policy
 	}{
-		"Test 1": {1, 2, []string{"uid1"}, []string{"PAlabel1"}, []string{"Alabel1"}},
-		"Test 2": {2, 3, []string{"uid1", "uid2"}, []string{"PAlabel1", "PAlabel2"}, []string{"Alabel1"}},
-		"Test 3": {3, 3, []string{"uid1", "uid2", "uid3"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2"}},
-		"Test 4": {4, 4, []string{"uid1", "uid2", "uid3", "uid4"}, []string{"PAlabel1", "PAlabel2", "PAlabel3"}, []string{"Alabel1"}},
-		"Test 5": {5, 4, []string{"uid1", "uid2", "uid3", "uid4", "uid5"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2", "Alabel3"}},
-		"Test 6": {6, 5, []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6"}, []string{"PAlabel1", "PAlabel2", "PAlabel3", "PAlabel4"}, []string{"Alabel1"}},
-		"Test 7": {7, 5, []string{"uid1", "uid2", "uid3", "uid4", "uid5", "uid6", "uid7"}, []string{"PAlabel1"}, []string{"Alabel1", "Alabel2", "Alabel3", "Alabel4"}},
+		"Mock Test 1": {"label1", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label1"}}},
+		"Mock Test 2": {"label2", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label2"}}},
+		"Mock Test 3": {"label3", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label3"}}},
+		"Mock Test 4": {"label4", preferAntiAffinityLabel{antiAffinityLabel{labelSelector: "label4"}}},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			mockBuildOptions := []buildOption{}
-			for _, lab := range test.AntiAffinityLabels {
-				mockBuildOptions = append(mockBuildOptions, AntiAffinityLabel(lab))
-			}
-
-			for _, lab := range test.preferAntiAffinityLabels {
-				mockBuildOptions = append(mockBuildOptions, PreferAntiAffinityLabel(lab))
-			}
-
-			p := newSelection(test.UIDs, mockBuildOptions...)
-			if len(p.policies) != test.expectedBuildOptions {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedBuildOptions, len(p.policies))
-			}
-			if len(p.poolUIDs) != test.expectedUIDs {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUIDs, p.poolUIDs)
+			bo := PreferAntiAffinityLabel(test.label)
+			s := &selection{policies: &policyList{map[priority][]policy{}}}
+			bo(s)
+			policyPriority := test.expectedoutput.priority()
+			if s.policies.items[policyPriority][len(s.policies.items[policyPriority])-1].name() != test.expectedoutput.name() {
+				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies.items[policyPriority][len(s.policies.items[policyPriority])-1])
 			}
 		})
 	}
 }
 
-func TestAntiAffinityFilter(t *testing.T) {
+func TestPreferScheduleOnHostAnnotation(t *testing.T) {
 	tests := map[string]struct {
-		CVRUid, poolUids, expectedUids []string
-		labelSelector                  string
-		expectError                    bool
+		hostName       string
+		expectedoutput policy
 	}{
-		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
-		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
-		"Test 3":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
-		"Test 4":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
-		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
-		"Test 6":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
-		"Test 7":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
-		"Test 8":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
-		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
-		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+		"Mock Test 1": {"host 1", preferScheduleOnHost{scheduleOnHost{hostName: "host 1"}}},
+		"Mock Test 2": {"host 2", preferScheduleOnHost{scheduleOnHost{hostName: "host 2"}}},
+		"Mock Test 3": {"host 3", preferScheduleOnHost{scheduleOnHost{hostName: "host 3"}}},
+		"Mock Test 4": {"host 4", preferScheduleOnHost{scheduleOnHost{hostName: "host 4"}}},
 	}
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeList := &apis.CStorVolumeReplicaList{}
-			for _, uid := range test.CVRUid {
-				fakeList.Items = append(fakeList.Items,
-					apis.CStorVolumeReplica{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								string(replicaAntiAffinityLabel): test.labelSelector,
-								cstorPoolUIDLabelKey:             uid,
-							},
-						},
-					},
-				)
-			}
-
-			var fakeErr error
-			if test.expectError {
-				fakeErr = errors.New("Some fake error")
-			}
-
-			a := antiAffinityLabel{
-				labelSelector: test.labelSelector,
-				cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
-					return fakeList, fakeErr
-				},
-			}
-
-			output, err := a.filter(test.poolUids)
-			if test.expectError && err == nil {
-				t.Fatalf("test %q failed: expected error not to be nil", name)
-			} else if !test.expectError && err != nil {
-				t.Fatalf("test %q failed: expected error to be nil", name)
-			} else if len(test.expectedUids) != len(output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
-			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			bo := PreferScheduleOnHostAnnotation(test.hostName)
+			s := &selection{policies: &policyList{map[priority][]policy{}}}
+			bo(s)
+			policyPriority := test.expectedoutput.priority()
+			if s.policies.items[policyPriority][len(s.policies.items[policyPriority])-1].name() != test.expectedoutput.name() {
+				t.Fatalf("test %q failed : expected %v but got %v", name, test.expectedoutput, s.policies.items[policyPriority][len(s.policies.items[policyPriority])-1])
 			}
 		})
 	}
 }
 
-func TestPreferredAntiAffinityFilter(t *testing.T) {
+func TestGetTopPriority(t *testing.T) {
 	tests := map[string]struct {
-		CVRUid, poolUids, expectedUids []string
-		labelSelector                  string
-		expectError                    bool
+		policies          []policy
+		prioritisedPolicy policy
 	}{
-		"Test 1":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label3", true},
-		"Test 2":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{}, "label1", true},
-		"Test 3":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1"}, []string{}, "label4", true},
-		"Test 4":  {[]string{"uid 4", "uid 2", "uid 7"}, []string{"uid 6"}, []string{"uid 6"}, "label1", false},
-		"Test 5":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{}, "label2", true},
-		"Test 6":  {[]string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 3"}, "label2", false},
-		"Test 7":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{}, "label4", true},
-		"Test 8":  {[]string{}, []string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 2", "uid 3"}, "label3", false},
-		"Test 9":  {[]string{"uid 1", "uid 2", "uid 3"}, []string{"uid 1", "uid 5", "uid 3"}, []string{"uid 5"}, "label4", false},
-		"Test 10": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2"}, []string{"uid 1", "uid 2"}, "label5", false},
-		"Test 11": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{}, "label6", true},
-		"Test 12": {[]string{"uid 1", "uid 2", "uid 3", "uid 4"}, []string{"uid 1", "uid 2", "uid 3", "uid 5"}, []string{"uid 5"}, "label5", false},
+		"Test 1": {policies: []policy{}, prioritisedPolicy: nil},
+		"Test 2": {policies: []policy{fakeLowPolicy{}, fakeLowPolicy{}}, prioritisedPolicy: fakeLowPolicy{}},
+		"Test 3": {policies: []policy{fakeHighPolicy{}, fakeMediumPolicy{}}, prioritisedPolicy: fakeHighPolicy{}},
+		"Test 4": {policies: []policy{fakeMediumPolicy{}, fakeLowPolicy{}}, prioritisedPolicy: fakeMediumPolicy{}},
 	}
+
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			fakeList := &apis.CStorVolumeReplicaList{}
-			for _, uid := range test.CVRUid {
-				fakeList.Items = append(fakeList.Items,
-					apis.CStorVolumeReplica{
-						ObjectMeta: metav1.ObjectMeta{
-							Labels: map[string]string{
-								string(replicaAntiAffinityLabel): test.labelSelector,
-								cstorPoolUIDLabelKey:             uid,
-							},
-						},
-					},
-				)
-			}
-
-			var fakeErr error
-			if test.expectError {
-				fakeErr = errors.New("Some fake error")
-			}
-
-			a := preferAntiAffinityLabel{
-				antiAffinityLabel: antiAffinityLabel{
-					labelSelector: test.labelSelector,
-					cvrList: func(name string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
-						return fakeList, fakeErr
-					},
-				},
-			}
-
-			output, err := a.filter(test.poolUids)
-			if test.expectError && err == nil {
-				t.Fatalf("test %q failed: expected error not to be nil", name)
-			} else if !test.expectError && err != nil {
-				t.Fatalf("test %q failed: expected error to be nil", name)
-			} else if len(test.expectedUids) != len(output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
-			} else if len(output) != 0 && !reflect.DeepEqual(test.expectedUids, output) {
-				t.Fatalf("test %q failed: expected %v but got %v", name, test.expectedUids, output)
+			fakePolicies := fakePolicyListOk(test.policies)
+			topPolicy := fakePolicies.getTopPriority()
+			if topPolicy != nil && test.prioritisedPolicy != nil && topPolicy.priority() != test.prioritisedPolicy.priority() {
+				t.Fatalf("Test %v failed: expected %v but got %v", name, test.prioritisedPolicy, topPolicy)
 			}
 		})
 	}
 }
 
-func TestIsPolicy(t *testing.T) {
+func TestGetPolicies(t *testing.T) {
 	tests := map[string]struct {
-		policies     []policy
-		expectpolicy policyName
-		isPresent    bool
+		selectors            []string
+		expectedBuildoptions []buildOption
 	}{
-		"Test 1": {[]policy{&antiAffinityLabel{}}, antiAffinityLabelPolicyName, true},
-		"Test 2": {[]policy{&antiAffinityLabel{}}, antiAffinityLabelPolicyName, true},
-		"Test 3": {[]policy{&preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
-		"Test 4": {[]policy{&preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
-		"Test 5": {[]policy{&preferAntiAffinityLabel{}, &preferAntiAffinityLabel{}}, antiAffinityLabelPolicyName, false},
-		"Test 6": {[]policy{&preferAntiAffinityLabel{}, &preferAntiAffinityLabel{}}, preferAntiAffinityLabelPolicyName, true},
+		"Test 1": {selectors: []string{}, expectedBuildoptions: []buildOption{}},
+		"Test 2": {selectors: []string{fakeAntiAffinitySelector}, expectedBuildoptions: []buildOption{AntiAffinityLabel(fakeAntiAffinitySelector)}},
+		"Test 3": {selectors: []string{fakePreferAntiAffinitySelector}, expectedBuildoptions: []buildOption{PreferAntiAffinityLabel(fakePreferAntiAffinitySelector)}},
+		"Test 4": {selectors: []string{fakePreferScheduleOnHostSelector}, expectedBuildoptions: []buildOption{PreferScheduleOnHostAnnotation(fakePreferScheduleOnHostSelector)}},
 	}
-
 	for name, test := range tests {
-		s := &selection{}
-		for _, p := range test.policies {
-			s.policies = append(s.policies, p)
-		}
+		t.Run(name, func(t *testing.T) {
+			output := GetPolicies(test.selectors...)
+			if len(output) != len(test.expectedBuildoptions) {
+				t.Fatalf("Test %v failed: Expected %+v but got %+v", name, test.expectedBuildoptions, output)
+			}
+			for i, b := range output {
+				if reflect.ValueOf(b).Pointer() != reflect.ValueOf(test.expectedBuildoptions[i]).Pointer() {
+					t.Fatalf("Test %v failed: Expected %v but got %v", name, test.expectedBuildoptions[i], b)
+				}
+			}
+		})
+	}
+}
 
-		output := s.isPolicy(test.expectpolicy)
-		if output != test.isPresent {
-			t.Fatalf("test %q failed: expected %v but got %v", name, test.isPresent, output)
-		}
+func TestFilter(t *testing.T) {
+	tests := map[string]struct {
+		availablePools []string
+		buildOptions   []buildOption
+		expectedPools  []string
+	}{
+		"Test 1": {
+			availablePools: []string{},
+			buildOptions:   []buildOption{},
+			expectedPools:  []string{},
+		},
+		"Test 2": {
+			availablePools: []string{},
+			buildOptions:   []buildOption{ExecutionMode(multiExecution)},
+			expectedPools:  []string{},
+		},
+		"Test 3": {
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			buildOptions:   []buildOption{fakeBuildOptionNoFilter()},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			sl := newSelection(fakeCSPListOk(test.availablePools...), test.buildOptions...)
+			filtered, _ := sl.filter()
+			if len(test.expectedPools) != len(filtered.GetPoolUIDs()) {
+				t.Fatalf("Test %v failed: Expected %v but got %v", name, test.expectedPools, filtered.GetPoolUIDs())
+			}
+		})
+	}
+}
+
+func TestFilterPoolIDs(t *testing.T) {
+	tests := map[string]struct {
+		availablePools []string
+		buildOptions   []buildOption
+		expectedPools  []string
+	}{
+		"Test 1": {
+			availablePools: []string{},
+			buildOptions:   []buildOption{},
+			expectedPools:  []string{},
+		},
+		"Test 2": {
+			availablePools: []string{},
+			buildOptions:   []buildOption{ExecutionMode(multiExecution)},
+			expectedPools:  []string{},
+		},
+		"Test 3": {
+			availablePools: []string{"pool 1", "pool 2", "pool 3"},
+			buildOptions:   []buildOption{fakeBuildOptionNoFilter()},
+			expectedPools:  []string{"pool 1", "pool 2", "pool 3"},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			output, _ := FilterPoolIDs(fakeCSPListOk(test.availablePools...), test.buildOptions)
+			if len(test.expectedPools) != len(output) {
+				t.Fatalf("Test %v failed: Expected %v but got %v", name, test.expectedPools, output)
+			}
+		})
 	}
 }
