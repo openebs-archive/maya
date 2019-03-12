@@ -27,6 +27,7 @@ import (
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 
+	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
@@ -51,6 +52,9 @@ import (
 type K8sKind string
 
 const (
+	// STSKK refers to Kubernetes StatefulSet kind
+	STSKK K8sKind = "StatefulSet"
+
 	// JobKK is a Kubernetes Job kind
 	JobKK K8sKind = "Job"
 
@@ -107,6 +111,10 @@ type K8sAPIVersion string
 const (
 	// ExtensionsV1Beta1KA is the extensions/v1beta API
 	ExtensionsV1Beta1KA K8sAPIVersion = "extensions/v1beta1"
+
+	// AppsV1KA refers to kubernetes API version
+	// apps/v1
+	AppsV1KA K8sAPIVersion = "apps/v1"
 
 	// AppsV1B1KA is the apps/v1beta1 API
 	AppsV1B1KA K8sAPIVersion = "apps/v1beta1"
@@ -849,6 +857,15 @@ func (k *K8sClient) DeleteBatchV1Job(name string) error {
 		&mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
 }
 
+// DeleteAppsV1STS deletes a kubernetes StatefulSet
+// object
+func (k *K8sClient) DeleteAppsV1STS(name string) error {
+	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
+	return k.cs.AppsV1().StatefulSets(k.ns).Delete(
+		name,
+		&mach_apis_meta_v1.DeleteOptions{PropagationPolicy: &deletePropagation})
+}
+
 // TODO deprecate
 //
 // deploymentOps is a utility function that provides a instance capable of
@@ -1032,6 +1049,15 @@ func (k *K8sClient) CreateBatchV1JobAsRaw(j *api_batch_v1.Job) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(job)
+}
+
+// CreateAppsV1STSAsRaw creates a kubernetes StatefulSet
+func (k *K8sClient) CreateAppsV1STSAsRaw(sts *api_apps_v1.StatefulSet) ([]byte, error) {
+	s, err := k.cs.AppsV1().StatefulSets(k.ns).Create(sts)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(s)
 }
 
 // appsV1B1DeploymentOps is a utility function that provides a instance capable of

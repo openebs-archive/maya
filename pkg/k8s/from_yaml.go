@@ -23,11 +23,44 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
+	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
 )
+
+// STSYml helps generating kubernetes StatefulSet
+// object
+type STSYml struct {
+	// YmlInBytes represents a kubernetes StatefulSet
+	// in yaml format
+	YmlInBytes []byte
+}
+
+// NewSTSYml returns a new instance of STSYml
+func NewSTSYml(context, yml string, values map[string]interface{}) (*STSYml, error) {
+	b, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		return nil, err
+	}
+	return &STSYml{
+		YmlInBytes: b,
+	}, nil
+}
+
+// AsAppsV1STS returns a apps/v1 StatefulSet instance
+func (m *STSYml) AsAppsV1STS() (*api_apps_v1.StatefulSet, error) {
+	if m.YmlInBytes == nil {
+		return nil, fmt.Errorf("missing statefulset yaml")
+	}
+	sts := &api_apps_v1.StatefulSet{}
+	err := yaml.Unmarshal(m.YmlInBytes, sts)
+	if err != nil {
+		return nil, err
+	}
+	return sts, nil
+}
 
 // JobYml helps generating kubernetes Job object
 type JobYml struct {
