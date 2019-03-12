@@ -86,6 +86,10 @@ func (i taskIdentifier) isJob() bool {
 	return i.identity.Kind == string(m_k8s_client.JobKK)
 }
 
+func (i taskIdentifier) isSTS() bool {
+	return i.identity.Kind == string(m_k8s_client.STSKK)
+}
+
 func (i taskIdentifier) isService() bool {
 	return i.identity.Kind == string(m_k8s_client.ServiceKK)
 }
@@ -120,6 +124,10 @@ func (i taskIdentifier) isBatchV1() bool {
 
 func (i taskIdentifier) isAppsV1B1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.AppsV1B1KA)
+}
+
+func (i taskIdentifier) isAppsV1() bool {
+	return i.identity.APIVersion == string(m_k8s_client.AppsV1KA)
 }
 
 func (i taskIdentifier) isCoreV1() bool {
@@ -172,6 +180,10 @@ func (i taskIdentifier) isExtnV1B1Deploy() bool {
 
 func (i taskIdentifier) isBatchV1Job() bool {
 	return i.isBatchV1() && i.isJob()
+}
+
+func (i taskIdentifier) isAppsV1STS() bool {
+	return i.isAppsV1() && i.isSTS()
 }
 
 func (i taskIdentifier) isAppsV1B1Deploy() bool {
