@@ -43,10 +43,10 @@ func ListBuilder() *listBuilder {
 	return &listBuilder{list: &cvrList{}}
 }
 
-// WithListObject builds the list of cvr
+// WithAPIList builds the list of cvr
 // instances based on the provided
 // cvr api instances
-func (b *listBuilder) WithListObject(list *apis.CStorVolumeReplicaList) *listBuilder {
+func (b *listBuilder) WithAPIList(list *apis.CStorVolumeReplicaList) *listBuilder {
 	if list == nil {
 		return b
 	}
