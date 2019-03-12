@@ -30,6 +30,7 @@ import (
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
@@ -794,6 +795,7 @@ func runtaskFuncs() (f template.FuncMap) {
 		"splitListTrim":      splitListTrim,
 		"randomize":          randomize,
 		"IfNotNil":           ifNotNil,
+		"getMapofString":     util.GetNestedMap,
 	}
 }
 
@@ -810,6 +812,10 @@ func allCustomFuncs() template.FuncMap {
 	}
 	ver := kubever.TemplateFunctions()
 	for k, v := range ver {
+		f[k] = v
+	}
+	sp := csp.TemplateFunctions()
+	for k, v := range sp {
 		f[k] = v
 	}
 	ps := poolselection.TemplateFunctions()
