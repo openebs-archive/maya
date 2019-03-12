@@ -271,16 +271,19 @@ func newMetrics() metrics {
 	}
 }
 
-func parseFloat64(e string, m *listMetrics, ch chan<- prometheus.Metric) float64 {
+func parseFloat64(e string, m *listMetrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		m.zfsListParseErrorCounter.Inc()
-		m.zfsListParseErrorCounter.Collect(ch)
 	}
 	return num
 }
 
-func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) []fields {
+func listParser(stdout []byte, m *listMetrics) []fields {
+	if len(string(stdout)) == 0 {
+		m.zfsListParseErrorCounter.Inc()
+		return nil
+	}
 	list := make([]fields, 0)
 	vols := strings.Split(string(stdout), "\n")
 	for _, v := range vols {
@@ -290,8 +293,8 @@ func listParser(stdout []byte, m *listMetrics, ch chan<- prometheus.Metric) []fi
 		}
 		vol := fields{
 			name:      f[0],
-			used:      parseFloat64(f[1], m, ch),
-			available: parseFloat64(f[2], m, ch),
+			used:      parseFloat64(f[1], m),
+			available: parseFloat64(f[2], m),
 		}
 		list = append(list, vol)
 	}

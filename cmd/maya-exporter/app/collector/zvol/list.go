@@ -44,17 +44,6 @@ func (v *volumeList) collectors() []prometheus.Collector {
 	}
 }
 
-// gaugeVec returns list of zfs Gauge vectors (prometheus's type)
-// in which values will be set.
-// NOTE: Please donot edit the order, add new metrics at the end
-// of the list
-func (v *volumeList) gaugeVec() []*prometheus.GaugeVec {
-	return []*prometheus.GaugeVec{
-		v.used,
-		v.available,
-	}
-}
-
 // Describe is implementation of Describe method of prometheus.Collector
 // interface.
 func (v *volumeList) Describe(ch chan<- *prometheus.Desc) {
@@ -77,9 +66,9 @@ func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	}
 
 	glog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
-	list := listParser(stdout, &v.listMetrics, ch)
+	list := listParser(stdout, &v.listMetrics)
 
-	return list, err
+	return list, nil
 }
 
 // Collect is implementation of prometheus's prometheus.Collector interface
