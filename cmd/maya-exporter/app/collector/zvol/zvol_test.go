@@ -31,18 +31,7 @@ func (r testRunner) RunStdoutPipe(cmd string, args ...string) ([]byte, error) {
 
 func (r testRunner) RunCommandWithTimeoutContext(timeout time.Duration, cmd string, args ...string) ([]byte, error) {
 	if r.isError {
-		switch count {
-		case 1:
-			count++
-			return []byte("no pools available"), nil
-		case 2:
-			return []byte("ONLINE"), nil
-		case 3:
-			count = 1
-			return nil, errors.New("some dummy error")
-		default:
-			return nil, errors.New("some dummy error")
-		}
+		return nil, errors.New("some dummy error")
 	}
 	return r.stdout, nil
 }
