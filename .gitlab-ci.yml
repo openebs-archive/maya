@@ -42,7 +42,7 @@ build-maya:
     - kubectl get deployment -n openebs
     - sleep 20
     - make all
-    - ./ci/travis-ci.sh
+  #  - ./ci/travis-ci.sh
     - make deploy-images
 
 baseline-image:
