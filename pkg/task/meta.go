@@ -418,6 +418,10 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isGetOEV1alpha1UR() bool {
+	return m.identifier.isOEV1alpha1UR() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }

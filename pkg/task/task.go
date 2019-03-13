@@ -372,6 +372,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getOEV1alpha1SPC()
 	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
+	} else if m.metaTaskExec.isGetOEV1alpha1UR() {
+		err = m.getOEV1alpha1UR()
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
 	} else if m.metaTaskExec.isPutOEV1alpha1CSP() {
@@ -853,6 +855,17 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, sp, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
+func (m *taskExecutor) getOEV1alpha1UR() (err error) {
+	ur, err := m.getK8sClient().GetOEV1alpha1URAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
