@@ -410,6 +410,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.putAppsV1STS()
 	} else if m.metaTaskExec.isDeleteAppsV1STS() {
 		err = m.deleteAppsV1STS()
+	} else if m.metaTaskExec.isExecCoreV1Pod() {
+		err = m.execCoreV1Pod()
 	} else {
 		err = fmt.Errorf("un-supported task operation: failed to execute task: '%+v'", m.metaTaskExec.getMetaInfo())
 	}
@@ -1050,6 +1052,29 @@ func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
 		}
 	}
 
+	return
+}
+
+// execCoreV1Pod runs given command remotely in given container of given pod
+// and post stdout and and stderr in JsonResult. You can get it using -
+// {{- jsonpath .JsonResult "{.Stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
+func (m *taskExecutor) execCoreV1Pod() (err error) {
+	exec, err := asTaskExec("execCoreV1Pod", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return
+	}
+
+	pe, err := newTaskExecExecutor(exec)
+	if err != nil {
+		return
+	}
+
+	result, err := m.getK8sClient().ExecCoreV1Pod(pe.toPodExecOptions(), m.getTaskObjectName(), nil)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, result, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
