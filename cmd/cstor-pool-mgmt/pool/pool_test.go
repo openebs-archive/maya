@@ -35,6 +35,11 @@ type TestRunner struct {
 	expectedError string
 }
 
+// RunCommandWithTimeoutContext is to mock Real runner exec.
+func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
 // RunCombinedOutput is to mock Real runner exec.
 func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
 	var cs []string

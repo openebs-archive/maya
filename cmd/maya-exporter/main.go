@@ -6,7 +6,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/command"
 	mayalogger "github.com/openebs/maya/pkg/logs"
+	"github.com/openebs/maya/pkg/version"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+func init() {
+	prometheus.MustRegister(version.NewVersionCollector("maya_exporter"))
+}
 
 func main() {
 	if err := run(); err != nil {

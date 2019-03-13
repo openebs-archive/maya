@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -58,6 +59,11 @@ func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, e
 	cmd.Env = env
 	stdout, err := cmd.CombinedOutput()
 	return stdout, err
+}
+
+// RunCommandWithTimeoutContext is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
 }
 
 // RunStdoutPipe is to mock real runner exec with stdoutpipe.
