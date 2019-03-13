@@ -104,6 +104,15 @@ func update(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
 	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().UpdateAction())
 }
 
+// resize returns a new instance of resize based runtask command
+//
+// Examples:
+// ---------
+// {{- resize cstor volume | run -}}
+func resize(ml ...cmd.RunCommandMiddleware) *cmd.RunCommand {
+	return cmd.RunCommandMiddlewareList(ml).Update(cmd.Command().ResizeAction())
+}
+
 // http returns a new instance of http based runtask command
 //
 // Examples:
@@ -292,6 +301,7 @@ func runCommandFuncs() template.FuncMap {
 		"post":            post,
 		"patch":           patch,
 		"update":          update,
+		"resize":          resize,
 		"put":             put,
 		"jiva":            jiva,
 		"cstor":           cstor,

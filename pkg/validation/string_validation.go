@@ -2,7 +2,6 @@ package validation
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -16,14 +15,4 @@ func ValidateString(str, expr string) (bool, error) {
 	}
 
 	return reg.MatchString(str), nil
-}
-
-// Checkforstring returns true if searching string present in given slices
-func Checkforstring(stringArray []string, searchStr string) bool {
-	for _, str := range stringArray {
-		if strings.Contains(str, searchStr) {
-			return true
-		}
-	}
-	return false
 }

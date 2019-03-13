@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
+	cstor_volume_mgmt_client "github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
@@ -24,7 +24,7 @@ type CommandStatus struct {
 }
 
 //ResizeVolume resizes cStor volume
-func ResizeVolume(ip, volName, capacity string) (*v1alpha1.VolumeResizeResponse, error) {
+func ResizeVolume(ip, volName, capacity string) (*cstor_volume_mgmt_client.VolumeResizeResponse, error) {
 	var conn *grpc.ClientConn
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", ip, VolumeGrpcListenPort), grpc.WithInsecure())
 	if err != nil {
@@ -32,9 +32,9 @@ func ResizeVolume(ip, volName, capacity string) (*v1alpha1.VolumeResizeResponse,
 	}
 	defer conn.Close()
 
-	c := v1alpha1.NewRunCommandClient(conn)
+	c := cstor_volume_mgmt_client.NewRunCommandClient(conn)
 	response, err := c.RunVolumeResizeCommand(context.Background(),
-		&v1alpha1.VolumeResizeRequest{
+		&cstor_volume_mgmt_client.VolumeResizeRequest{
 			Volume: volName,
 			Size:   capacity,
 		})

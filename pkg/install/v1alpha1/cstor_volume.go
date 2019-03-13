@@ -155,7 +155,6 @@ spec:
     - cstor-volume-resize-resizevolume-default
     - cstor-volume-resize-patchcstorvolume
     - cstor-volume-resize-patchpv
-    - cstor-volume-resize-patchpvc
   output: cstor-volume-resize-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -1097,9 +1096,11 @@ spec:
     id: resizecstorvolume
     kind: Command
   post: |
-    {{- $runCommand := update cstor volume | withoption "ip" .TaskResult.resizelistsvc.clusterIP -}}
-    {{- $runCommand := $runCommand | withoption "volname" .Volume.owner -}}
-    {{- $runCommand | withoption "capacity" .Volume.capacity | run | saveas "resizecstorvolume" .TaskResult -}}
+    {{- $cmd := resize cstor volume -}}
+    {{- $cmd = $cmd | withoption "ip" .TaskResult.resizelistsvc.clusterIP -}}
+    {{- $cmd = $cmd | withoption "volname" .Volume.owner -}}
+    {{- $cmd = $cmd | withoption "capacity" .Volume.capacity -}}
+    {{- run $cmd | saveas "resizecstorvolume" .TaskResult -}}
     {{- $err := .TaskResult.resizecstorvolume.error | default "" | toString -}}
     {{- $err | empty | not | verifyErr $err | saveIf "resizecstorvolume.verifyErr" .TaskResult | noop -}}
 ---
@@ -1144,29 +1145,6 @@ spec:
   post: |
     {{- $err := .TaskResult.createpatchpv.error | default "" | toString -}}
     {{- $err | empty | not | verifyErr $err | saveIf "createpatchpv.verifyErr" .TaskResult | noop -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: cstor-volume-resize-patchpvc
-spec:
-  meta: |
-    id: createpatchpvc
-    runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    objectName: {{ .TaskResult.resizelistsvc.pvcName }}
-    action: patch
-  task: |
-      type: strategic
-      pspec: |-
-        spec:
-          resources:
-            requests:
-              storage: {{ .Volume.capacity }}
-  post: |
-    {{- $err := .TaskResult.createpatchpvc.error | default "" | toString -}}
-    {{- $err | empty | not | verifyErr $err | saveIf "createpatchpvc.verifyErr" .TaskResult | noop -}}
 ---
 # runTask to render volume resize output as CASVolume
 apiVersion: openebs.io/v1alpha1

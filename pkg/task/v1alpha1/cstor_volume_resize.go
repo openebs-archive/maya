@@ -35,9 +35,8 @@ func (c *cstorVolumeResize) Run() (r RunCommandResult) {
 		return c.AddError(errors.Errorf("failed to resize the cstor volume: '%s'", err)).Result(nil)
 	}
 	ip, _ := c.Data["ip"].(string)
-	volOps := cstor.Cstor()
-	volOps.IP = ip
-	volOps.Vol = c.casVolumeResize()
+	cstorClientBuilder := cstor.ClientBuilder()
+	volOps := cstorClientBuilder.WithIP(ip).WithVolume(c.asCASVolume()).Build()
 
 	response, err := volOps.Resize()
 	if err != nil {

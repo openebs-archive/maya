@@ -23,8 +23,8 @@ import (
 
 	"github.com/openebs/maya/pkg/client/generated/cstor-volume-mgmt/v1alpha1"
 	file "github.com/openebs/maya/pkg/file"
+	v1_strings "github.com/openebs/maya/pkg/string/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/openebs/maya/pkg/validation"
 	"golang.org/x/net/context"
 )
 
@@ -140,7 +140,8 @@ func ResizeVolume(ctx context.Context, in *v1alpha1.VolumeResizeRequest) (*v1alp
 	glog.Infof("Updated the '%s' file with capacity '%s'", util.IstgtConfPath, in.Size)
 	sockresp, err := APIUnixSockVar.SendCommand(fmt.Sprintf("%s %v %v",
 		CmdVolResize, IoWaitTime, TotalWaitTime))
-	if err != nil || validation.Checkforstring(sockresp, "ERR") {
+	list := v1_strings.List(sockresp...)
+	if err != nil || list.Contains("ERR") {
 		glog.Infof("Reverting the changes to file '%s'", util.IstgtConfPath)
 		errOp := APIFileOperatorVar.Updatefile(util.IstgtConfPath, oldStorageVal, index, 0644)
 		if errOp != nil {

@@ -22,7 +22,7 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/start-controller"
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/volume"
-	"github.com/openebs/maya/pkg/cstor/volume/v1alpha1"
+	"github.com/openebs/maya/pkg/volume/cstor/v1alpha1"
 	"github.com/spf13/cobra"
 )
 

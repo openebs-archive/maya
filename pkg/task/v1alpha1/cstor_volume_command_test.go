@@ -14,7 +14,8 @@ func TestCstorVolumeCommand(t *testing.T) {
 		"test 103": {ListCommandAction, false},
 		"test 104": {GetCommandAction, false},
 		"test 105": {PatchCommandAction, false},
-		"test 106": {UpdateCommandAction, true},
+		"test 106": {UpdateCommandAction, false},
+		"test 107": {ResizeCommandAction, true},
 	}
 
 	for name, mock := range tests {

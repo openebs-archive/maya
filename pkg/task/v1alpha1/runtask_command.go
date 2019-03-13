@@ -51,6 +51,8 @@ const (
 	UpdateCommandAction RunCommandAction = "update"
 	// PutCommandAction represents a run command as a put action
 	PutCommandAction RunCommandAction = "put"
+	// ResizeCommandAction represents a run command as a resize action
+	ResizeCommandAction RunCommandAction = "resize"
 )
 
 // RunCommandCategory represents the category of the run command. It helps
@@ -429,6 +431,12 @@ func (c *RunCommand) ListAction() (u *RunCommand) {
 // UpdateAction updates RunCommand instance with update action
 func (c *RunCommand) UpdateAction() (u *RunCommand) {
 	c.Action = UpdateCommandAction
+	return c
+}
+
+// ResizeAction updates RunCommand instance with reize action
+func (c *RunCommand) ResizeAction() (u *RunCommand) {
+	c.Action = ResizeCommandAction
 	return c
 }
 

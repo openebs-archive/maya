@@ -33,7 +33,7 @@ type cstorVolumeCommand struct {
 // on the command's action
 func (c *cstorVolumeCommand) instance() (r Runner) {
 	switch c.Action {
-	case UpdateCommandAction:
+	case ResizeCommandAction:
 		r = &cstorVolumeResize{c}
 	default:
 		r = &notSupportedActionCommand{c.RunCommand}
@@ -64,8 +64,8 @@ func (c *cstorVolumeCommand) validateOptions() error {
 	return nil
 }
 
-// casVolumeResize returns a filled object of CASVolume
-func (c *cstorVolumeCommand) casVolumeResize() *apis.CASVolume {
+// asCASVolume returns a filled object of CASVolume
+func (c *cstorVolumeCommand) asCASVolume() *apis.CASVolume {
 	volName, _ := c.Data["volname"].(string)
 	capacity, _ := c.Data["capacity"].(string)
 	return &apis.CASVolume{

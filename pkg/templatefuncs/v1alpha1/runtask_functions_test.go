@@ -203,7 +203,7 @@ func TestNotSupportedActionCommand(t *testing.T) {
 	}
 }
 
-func TestUpdateCstorVolumeCommand(t *testing.T) {
+func TestResizeCstorVolumeCommand(t *testing.T) {
 	mockval := map[string]interface{}{"Values": map[string]interface{}{}}
 	tests := map[string]struct {
 		template       string
@@ -211,22 +211,22 @@ func TestUpdateCstorVolumeCommand(t *testing.T) {
 		expectedOutput error
 	}{
 		"101": {
-			template:       `{{- update cstor volume | run -}}`,
+			template:       `{{- resize cstor volume | run -}}`,
 			tvalues:        mockval,
 			expectedOutput: fmt.Errorf("missing ip address"),
 		},
 		"102": {
-			template:       `{{- update cstor volume | withoption "ip" "0.0.0.0" | withoption "volname" "vol1" | withoption "capacity" "10G" | run -}}`,
+			template:       `{{- resize cstor volume | withoption "ip" "0.0.0.0" | withoption "volname" "vol1" | withoption "capacity" "10G" | run -}}`,
 			tvalues:        mockval,
 			expectedOutput: fmt.Errorf("Error while dialing dial tcp 0.0.0.0:7777: connect"),
 		},
 		"103": {
-			template:       `{{- update cstor volume | withoption "ip" "" | withoption "volname" "vol1" | withoption "capacity" "9Zi" | run -}}`,
+			template:       `{{- resize cstor volume | withoption "ip" "" | withoption "volname" "vol1" | withoption "capacity" "9Zi" | run -}}`,
 			tvalues:        mockval,
 			expectedOutput: fmt.Errorf("missing ip address"),
 		},
 		"104": {
-			template:       `{{- update cstor volume | withoption "ip" "0.0.0.0" | run -}}`,
+			template:       `{{- resize cstor volume | withoption "ip" "0.0.0.0" | run -}}`,
 			tvalues:        mockval,
 			expectedOutput: fmt.Errorf("missing volume name"),
 		},
