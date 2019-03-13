@@ -78,6 +78,7 @@ func (p *pool) collectors() []prometheus.Collector {
 		p.zpoolRejectRequestCounter,
 		p.zpoolListparseErrorCounter,
 		p.noPoolAvailableErrorCounter,
+		p.incompleteOutputErrorCounter,
 	}
 }
 

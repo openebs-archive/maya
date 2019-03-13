@@ -158,9 +158,7 @@ func (o *VolumeExporterOptions) RegisterPool() {
 	// Blocking call with retry timeout of 2s and context timeout of 5 sec,
 	// pool container may be starting.
 	p.GetInitStatus(5 * time.Second)
-	prometheus.MustRegister(p)
-	prometheus.MustRegister(z)
-	prometheus.MustRegister(l)
+	prometheus.MustRegister(p, z, l)
 	glog.Info("Registered maya exporter for cstor")
 
 	return
