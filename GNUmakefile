@@ -235,7 +235,7 @@ exporter-image: exporter
 	@echo "--> m-exporter image         "
 	@echo "----------------------------"
 	@cp bin/exporter/${EXPORTER} buildscripts/exporter/
-	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/exporter && sudo docker build -t openebs/m-exporter:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} --build-arg BASE_IMAGE=${CSTOR_BASE_IMAGE} .
 	@rm buildscripts/exporter/${EXPORTER}
 
 # Use this to build only the maya apiserver.

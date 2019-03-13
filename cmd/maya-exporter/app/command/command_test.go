@@ -17,7 +17,7 @@ It can be deployed alongside the openebs volume or pool containers as sidecars.`
 	}
 )
 
-func TestRegisterJivaStatsExporter(t *testing.T) {
+func TestRegisterJiva(t *testing.T) {
 	cases := map[string]struct {
 		option *VolumeExporterOptions
 		output error
@@ -44,7 +44,7 @@ func TestRegisterJivaStatsExporter(t *testing.T) {
 
 	for name, tt := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := tt.option.RegisterJivaStatsExporter()
+			got := tt.option.RegisterJiva()
 			if !reflect.DeepEqual(got, tt.output) {
 				t.Fatalf("RegisterJivaStatsExporter() => [%v], want [%v]", got, tt.output)
 			}

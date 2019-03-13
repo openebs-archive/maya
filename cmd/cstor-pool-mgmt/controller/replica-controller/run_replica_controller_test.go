@@ -185,6 +185,11 @@ var RunnerVar util.Runner
 
 type TestRunner struct{}
 
+// RunCommandWithTimeoutContext is to mock real runner exec with stdoutpipe.
+func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
 // RunCombinedOutput is to mock binaries with fake test binaries.
 func (r TestRunner) RunCombinedOutput(command string, args ...string) ([]byte, error) {
 	var cs []string
