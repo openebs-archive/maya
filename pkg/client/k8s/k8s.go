@@ -219,7 +219,7 @@ type K8sClient struct {
 	// during unit testing
 	CASTemplate *api_oe_v1alpha1.CASTemplate
 
-	// UpgradeResult refers to a K8s CStorVolumeReplica CRD object
+	// UpgradeResult refers to a K8s UpgradeResult CRD object
 	// NOTE: This property is useful to mock
 	// during unit testing
 	UpgradeResult *api_upgrade_v1alpha1.UpgradeResult
