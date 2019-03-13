@@ -1,12 +1,10 @@
-FROM alpine:3.6
+#openebs/cstor-base is the image that contains cstor related binaries and
+#libraries - zpool, zfs, zrepl
+#FROM openebs/cstor-base:ci
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
 ADD maya-exporter /usr/local/bin
-RUN apk add --no-cache \
-     iproute2 \
-     curl \
-     net-tools \
-     mii-tool \
-     procps \
-     libc6-compat
 
 ARG BUILD_DATE
 LABEL org.label-schema.name="m-exporter"

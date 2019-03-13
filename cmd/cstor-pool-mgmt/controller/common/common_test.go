@@ -117,6 +117,11 @@ func (r TestRunner) RunStdoutPipe(command string, args ...string) ([]byte, error
 	return data, nil
 }
 
+// RunCommandWithTimeoutContext is to mock Real runner exec.
+func (r TestRunner) RunCommandWithTimeoutContext(timeout time.Duration, command string, args ...string) ([]byte, error) {
+	return []byte("success"), nil
+}
+
 // TestGetterProcess is to fake get process
 func TestGetterProcess(*testing.T) {
 	if os.Getenv("poolName") != "cstor-123abc" {

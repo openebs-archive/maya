@@ -22,6 +22,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -150,4 +152,22 @@ func GetGitCommit() string {
 
 func GetVersionDetails() string {
 	return strings.Join([]string{GetVersion(), GetGitCommit()[0:7]}, "-")
+}
+
+// NewVersionCollector returns a collector which exports metrics
+// about current version information.
+// Note: program name should be similar to maya_exporter (with
+// underscore not with dash)
+func NewVersionCollector(program string) *prometheus.GaugeVec {
+	buildInfo := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Subsystem: program,
+			Name:      "version",
+			Help:      "A metric with a constant '1' value labeled by commit and version from which maya-exporter was built.",
+		},
+		[]string{"commit", "version", "metaversion"},
+	)
+	buildInfo.WithLabelValues(GitCommit, Version, VersionMeta).Set(1)
+	return buildInfo
 }

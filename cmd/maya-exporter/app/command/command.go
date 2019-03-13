@@ -4,9 +4,12 @@ import (
 	"errors"
 	goflag "flag"
 	"net/url"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
+	"github.com/openebs/maya/cmd/maya-exporter/app/collector/pool"
+	"github.com/openebs/maya/cmd/maya-exporter/app/collector/zvol"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
@@ -99,13 +102,16 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	switch options.CASType {
 	case "cstor":
 		glog.Infof("Initialising maya-exporter for the cstor")
-		options.RegisterCstorStatsExporter()
+		options.RegisterCstor()
 	case "jiva":
 		glog.Infof("Initialising maya-exporter for the jiva")
-		if err := options.RegisterJivaStatsExporter(); err != nil {
+		if err := options.RegisterJiva(); err != nil {
 			glog.Fatal(err)
 			return nil
 		}
+	case "pool":
+		glog.Infof("Initialising maya-exporter for the cstor pool")
+		options.RegisterPool()
 	default:
 		return errors.New("unsupported CAS")
 	}
@@ -113,10 +119,10 @@ func Run(cmd *cobra.Command, options *VolumeExporterOptions) error {
 	return nil
 }
 
-// RegisterJivaStatsExporter parses the jiva controller URL and
-// initialises an instance of JivaStatsExporter.This returns err
+// RegisterJiva parses the jiva controller URL and
+// initialises an instance of Jiva.This returns err
 // if the URL is not correct.
-func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
+func (o *VolumeExporterOptions) RegisterJiva() error {
 	url, err := url.ParseRequestURI(o.ControllerAddress)
 	if err != nil {
 		glog.Error(err)
@@ -129,13 +135,31 @@ func (o *VolumeExporterOptions) RegisterJivaStatsExporter() error {
 	return nil
 }
 
-// RegisterCstorStatsExporter initiates the connection with the cstor and register
+// RegisterCstor initiates the connection with the cstor and register
 // the exporter with Prometheus for collecting the metrics.This doesn't returns
 // error because that case is handled in InitiateConnection().
-func (o *VolumeExporterOptions) RegisterCstorStatsExporter() {
+func (o *VolumeExporterOptions) RegisterCstor() {
 	cstor := collector.Cstor(socketPath)
 	exporter := collector.New(cstor)
 	prometheus.MustRegister(exporter)
 	glog.Info("Registered maya exporter for cstor")
+	return
+}
+
+// RegisterPool registers pool collector which collects
+// pool level metrics
+func (o *VolumeExporterOptions) RegisterPool() {
+	pool.InitVar()
+	zvol.InitVar()
+	p := pool.New()
+	z := zvol.New()
+	l := zvol.NewVolumeList()
+
+	// Blocking call with retry timeout of 2s and context timeout of 5 sec,
+	// pool container may be starting.
+	p.GetInitStatus(5 * time.Second)
+	prometheus.MustRegister(p, z, l)
+	glog.Info("Registered maya exporter for cstor")
+
 	return
 }
