@@ -303,6 +303,10 @@ spec:
     apiVersion: v1
     kind: Service
     metadata:
+      annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/target-service: cstor-target-svc
         openebs.io/storage-engine-type: cstor
@@ -359,6 +363,9 @@ spec:
       annotations:
         openebs.io/fs-type: {{ .Config.FSType.value }}
         openebs.io/lun: {{ .Config.Lun.value }}
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/version: {{ .CAST.version }}
@@ -423,6 +430,9 @@ spec:
         openebs.io/volume-monitor: "true"
         {{- end}}
         openebs.io/volume-type: cstor
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
     spec:
       replicas: 1
       strategy:
@@ -441,13 +451,17 @@ spec:
             app: cstor-volume-manager
             openebs.io/target: cstor-target
             openebs.io/persistent-volume: {{ .Volume.owner }}
+            openebs.io/storage-class: {{ .Volume.storageclass }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
-          {{- if eq $isMonitor "true" }}
           annotations:
+            openebs.io/storage-class-ref: | 
+              name: {{ .Volume.storageclass }}
+              resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
+            {{- if eq $isMonitor "true" }}
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
-          {{- end}}
+            {{- end}}
         spec:
           {{- if ne $hasNodeSelector "none" }}
           nodeSelector:

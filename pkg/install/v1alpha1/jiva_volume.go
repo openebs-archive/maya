@@ -579,6 +579,10 @@ spec:
     apiVersion: v1
     Kind: Service
     metadata:
+      annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
         openebs.io/storage-engine-type: jiva
         openebs.io/cas-type: jiva
@@ -784,6 +788,9 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
         {{- end}}
@@ -809,6 +816,9 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
           annotations:
+            openebs.io/storage-class-ref: | 
+                name: {{ .Volume.storageclass }}
+                resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/fs-type: {{ .Config.FSType.value }}
             openebs.io/lun: {{ .Config.Lun.value }}
             {{- if eq $isMonitor "true" }}
@@ -967,6 +977,9 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
+        openebs.io/storage-class-ref: | 
+          name: {{ .Volume.storageclass }}
+          resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         openebs.io/capacity: {{ .Volume.capacity }}
         openebs.io/storage-pool: {{ .Config.StoragePool.value }}
       name: {{ .Volume.owner }}-rep
@@ -988,6 +1001,9 @@ spec:
             openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
             {{- end }}
           annotations:
+            openebs.io/storage-class-ref: | 
+              name: {{ .Volume.storageclass }}
+              resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/capacity: {{ .Volume.capacity }}
             openebs.io/storage-pool: {{ .Config.StoragePool.value }}
         spec:
