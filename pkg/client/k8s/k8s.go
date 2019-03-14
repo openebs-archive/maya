@@ -19,7 +19,6 @@ package k8s
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 
@@ -46,7 +45,6 @@ import (
 	typed_ext_v1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	typed_storage_v1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
@@ -1134,24 +1132,16 @@ func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 
 // ExecCoreV1Pod run a command remotely in a container of a pod
 func (k *K8sClient) ExecCoreV1Pod(podExecOptions *api_core_v1.PodExecOptions,
-	name string, stdin io.Reader) (result []byte, err error) {
+	name string) (result []byte, err error) {
 
-	// create request object for exec
+	// create request object for exec with pod exec options and ParameterCodec.
+	// ParameterCodec used to transform url values into versioned objects
 	req := k.cs.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(name).
 		Namespace(k.ns).
-		SubResource("exec")
-
-	scheme := runtime.NewScheme()
-	err = api_core_v1.AddToScheme(scheme)
-	if err != nil {
-		return
-	}
-	parameter := runtime.NewParameterCodec(scheme)
-
-	// add PodExecOptions and parameterCodec in url
-	req.VersionedParams(podExecOptions, parameter)
+		SubResource("exec").
+		VersionedParams(podExecOptions, scheme.ParameterCodec)
 
 	config, err := getK8sConfig()
 	if err != nil {
@@ -1167,7 +1157,7 @@ func (k *K8sClient) ExecCoreV1Pod(podExecOptions *api_core_v1.PodExecOptions,
 	// Stream initiates the transport of the standard shell streams. It will transport any
 	// non-nil stream to a remote system, and return an error if a problem occurs.
 	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
+		Stdin:  nil,
 		Stdout: &stdout,
 		Stderr: &stderr,
 		Tty:    podExecOptions.TTY,
