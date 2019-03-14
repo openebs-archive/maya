@@ -8,7 +8,7 @@ type list struct {
 	items []string
 }
 
-// List will make list of sstring slices
+// List will make list of string slices
 func List(entry ...string) *list {
 	l := &list{items: []string{}}
 	l.items = append(l.items, entry...)

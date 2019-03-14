@@ -122,9 +122,8 @@ func (v *volumeAPIOpsV1alpha1) httpPut() (interface{}, error) {
 	path := strings.TrimSpace(strings.TrimPrefix(v.req.URL.Path, "/latest/volumes"))
 	if strings.Contains(path, "/resize/") {
 		return v.resize()
-	} else {
-		return nil, CodedError(405, fmt.Sprintf("failed to process a PUT request"))
 	}
+	return nil, CodedError(405, fmt.Sprintf("failed to process a PUT request"))
 }
 
 // httpDelete deals with http DELETE request

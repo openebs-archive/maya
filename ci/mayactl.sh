@@ -58,6 +58,16 @@ if [[ $rc != 0 ]]; then
 	exit $rc;
 fi
 
+### TODO Remove comments for volume resize operation once istgt resize is supported
+#echo "************** Running Cstor mayactl volume resize *************************"
+#sleep 10
+#${MAYACTL} volume resize --volname  $CSTORVOL  --size 6G
+#rc=$?;
+#echo $rc
+#if [[ $rc != 0 ]]; then
+#	kubectl logs --tail=10 $MAPIPOD -n openebs
+#	exit $rc;
+#fi
 #sleep 60
 #echo "************** Running Jiva mayactl snapshot create **********************"
 #${MAYACTL} snapshot create --volname $JIVAVOL --snapname snap1
@@ -137,4 +147,3 @@ if [ -f /var/openebs/$JIVAVOL/volume.meta ]; then
 else
    echo "Jiva replica data is cleared successfully"
 fi
-
