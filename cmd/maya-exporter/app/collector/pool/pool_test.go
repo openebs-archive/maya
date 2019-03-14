@@ -239,7 +239,7 @@ func TestGetInitStatus(t *testing.T) {
 }
 
 func TestRejectRequestCounter(t *testing.T) {
-	reqCount := 100
+	reqCount := 200
 	output := regexp.MustCompile(`openebs_zpool_reject_request_count\s\d+`)
 	runner = testRunner{
 		stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	3000	23423 1341	-	0	iauwb	1.00 REMOVED	-"),
