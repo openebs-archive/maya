@@ -52,6 +52,8 @@ type CStorVolumeReplica struct {
 type CStorVolumeReplicaSpec struct {
 	TargetIP string `json:"targetIP"`
 	Capacity string `json:"capacity"`
+	// ZvolWorkers represents number of threads that executes client IOs
+	ZvolWorkers string `json:"zvolWorkers"`
 }
 
 // CStorVolumeReplicaPhase is to hold result of action.
