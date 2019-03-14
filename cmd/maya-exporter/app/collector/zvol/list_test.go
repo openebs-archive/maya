@@ -177,7 +177,7 @@ func TestRejectRequestCounter(t *testing.T) {
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
 			},
-			reqCount: 100,
+			reqCount: 200,
 			col:      NewVolumeList(),
 			output:   regexp.MustCompile(`openebs_zfs_list_request_reject_count\s\d+`),
 		},
@@ -185,7 +185,7 @@ func TestRejectRequestCounter(t *testing.T) {
 			run: testRunner{
 				stdout: []byte(`{"stats": [{"name": "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a/pvc-1c1698bb-2dc6-11e9-bbe3-42010a80017a","status": "Rebuilding","rebuildStatus": "SNAP REBUILD INPROGRESS","runningIONum": 0,"rebuildBytes": 500,"rebuildCnt": 3,"rebuildDoneCnt": 2,"rebuildFailedCnt": 0,"readCount": 1000,"readLatency": 150,"readByte": 1024,"writeCount": 1000,"writeLatency": 200,"writeByte": 1024,"syncCount": 100,"syncLatency": 10,"inflightIOCnt": 2000,"dispatchedIOCnt": 50}]}`),
 			},
-			reqCount: 100,
+			reqCount: 200,
 			col:      New(),
 			output:   regexp.MustCompile(`openebs_zfs_stats_reject_request_count\s\d+`),
 		},
