@@ -12,7 +12,7 @@ import (
 // ZVolStatus is zvol's status
 type ZVolStatus string
 
-// ZVolRebuildingStatus is zvol's rebuilding status
+// ZVolRebuildStatus is zvol's rebuilding status
 type ZVolRebuildStatus string
 
 const (
