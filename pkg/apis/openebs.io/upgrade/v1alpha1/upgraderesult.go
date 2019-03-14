@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors
+Copyright 2019 The OpenEBS Authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,76 +20,123 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func init() {
+	// Register adds UpgradeResult and UpgradeResultList objects to
+	// SchemeBuilder so they can be added to a Scheme
+	SchemeBuilder.Register(&UpgradeResult{}, &UpgradeResultList{})
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=upgrade
 
-// UpgradeResult forms the desired specification of
-// upgrade task's result that should be available for
-// all the upgrade tasks
+// UpgradeResult contains the desired specifications of an
+// upgrade result
 type UpgradeResult struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   UpgradeResultSpec   `json:"spec"`
+	Config UpgradeResultConfig `json:"config"`
 	Status UpgradeResultStatus `json:"status"`
 }
 
-// UpgradeResultSpec is the specifications of
-// upgrade result
-type UpgradeResultSpec struct {
-	// TODO: Add task-executor config spec here
-
-	// BaseVersion is the current version of openebs
-	BaseVersion string `json:"baseVersion"`
-	// TargetVersion is the version to which openebs
-	// components needs to be upgraded
-	TargetVersion string `json:"targetVersion"`
-	// ResourceName contains comma separated name of
-	// the resources which needs to be upgraded
-	ResourceName string `json:"resourceName"`
+// UpgradeResultStatus represents the current state of UpgradeResult
+type UpgradeResultStatus struct {
+	// ResourceToUpgrade is the total no resources that
+	// needs to be upgraded to a desired version
+	ResourcesToUpgrade int `json:"resourcesToUpgrade"`
+	// UpgradedResource represents the no of resources
+	// that has been successfully upgraded
+	UpgradedResources int `json:"upgradedResources"`
+	// FailedResourcesUpgrade represents the no of resources
+	// that has failed to upgrade
+	FailedResourcesUpgrade int `json:"failedResourcesUpgrade"`
+	// Resources is the list of resources that needs to
+	// be upgraded
+	Resources []UpgradeResource `json:"resources"`
 }
 
-// UpgradeResultStatus represents the current
-// status of UpgradeTaskResult
-type UpgradeResultStatus struct {
-	// TotalTaskCount is the total no tasks that
-	// needs to be executed to upgrade a particular
-	// openebs component to desired version
-	TotalTaskCount int `json:"totalTaskCount"`
-	// CompletedTaskCount represents the no of tasks
-	// that has successfully completed
-	CompletedTaskCount int `json:"completedTaskCount"`
-	// FailedTaskCount represents the no of tasks
-	// that has failed
-	FailedTaskCount int `json:"failedTaskCount"`
-	// Tasks represents the list of tasks
+// UpgradeResource represents a resource that needs to
+// be upgraded to a desired version
+type UpgradeResource struct {
+	// Name of the resource to be upgraded
+	Name string `json:"name"`
+	// Kind is the type of resource i.e.
+	// PVC, SPC, ..
+	Kind string `json:"kind"`
+	// APIVersion of the resource
+	APIVersion string `json:"apiVersion"`
+	// Namespace of the resource
+	Namespace string `json:"namespace"`
+	// BeforeUpgrade represents the state of the
+	// related resources before upgrade i.e. for a
+	// PV, related resources could be cvr, target
+	// deployment, target svc, etc.
+	BeforeUpgrade []ResourceState `json:"beforeUpgrade"`
+	// AfterUpgrade represents the state of the
+	// related resources after upgrade
+	AfterUpgrade []ResourceState `json:"afterUpgrade"`
+	// Tasks are the runtasks that needs to be
+	// executed to perform this upgrade
 	Tasks []Task `json:"tasks"`
 }
 
-// Task represents an upgrade task and its subtasks details
+// Task represents details of a task(runtask) required
+// to be executed for upgrading a particular resource
 type Task struct {
 	// Name of the task
 	Name string `json:"name"`
-	// TotalSubTaskCount is the no of subtasks
-	// i.e. runtasks that needs to be executed
-	// to complete a task
-	TotalSubTaskCount int `json:"totalSubTaskCount"`
-	// CompletedSubTaskCount is the no of subtasks
-	// that has successfully executed
-	CompletedSubTaskCount int `json:"completedSubTaskCount"`
-	// FailedSubTaskCount is the no of subtasks that has
-	// failed
-	FailedSubTaskCount int `json:"failedSubTaskCount"`
-	// LastCompletedSubTaskID is the id of the last successfully
-	// completed runtask of a particular task
-	LastCompletedSubTaskID string `json:"lastCompletedSubTaskID"`
+	// Status is the status of the task which
+	// could be successful or failed
+	Status string `json:"status"`
+	// LastTransitionTime is the last time the status
+	// transitioned from one status to another.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+	// Message is a human readable message
+	// indicating details about the task
+	Message string `json:"message"`
+	// LastError is the last error occurred
+	// while executing this task
+	LastError string `json:"lastError"`
+	// StartTime of the task
+	StartTime *metav1.Time `json:"startTime"`
+	// EndTime of the task
+	EndTime *metav1.Time `json:"endTime"`
+	// Retries is the no of times this task
+	// has tried to execute
+	Retries int `json:"retries"`
+}
+
+// ResourceState represents the state of a resource
+type ResourceState struct {
+	// Name of the resource
+	Name string `json:"name"`
+	// Kind is the type of resource i.e.
+	// cvr, deployment, ..
+	Kind string `json:"kind"`
+	// APIVersion of the resource
+	APIVersion string `json:"apiVersion"`
+	// Namespace of the resource
+	Namespace string `json:"namespace"`
+	// Status of the resource
+	Status string `json:"status"`
+	// LastTransitionTime is the last time the status
+	// transitioned from one status to another.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+	// Message is a human readable message indicating details about the transition.
+	Message string `json:"message"`
+}
+
+// UpgradeResultConfig represents the entire config
+// of UpgradeResult i.e. same as task-executor job config
+type UpgradeResultConfig struct {
+	// TODO: Add Task-executor job config here
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=upgrade
+// +resource:path=upgrades
 
-// UpgradeResultList is a list of upgrade results
+// UpgradeResultList is a list of UpgradeResults
 type UpgradeResultList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
