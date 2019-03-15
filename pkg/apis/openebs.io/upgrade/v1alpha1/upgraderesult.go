@@ -42,18 +42,18 @@ type UpgradeResult struct {
 
 // UpgradeResultStatus represents the current state of UpgradeResult
 type UpgradeResultStatus struct {
-	// ResourceToUpgrade is the total no resources that
+	// Resources is the total no of resources that
 	// needs to be upgraded to a desired version
-	ResourcesToUpgrade int `json:"resourcesToUpgrade"`
-	// UpgradedResource represents the no of resources
+	Resources int `json:"resources"`
+	// UpgradedResources represents the no of resources
 	// that has been successfully upgraded
 	UpgradedResources int `json:"upgradedResources"`
-	// FailedResourcesUpgrade represents the no of resources
+	// FailedResources represents the no of resources
 	// that has failed to upgrade
-	FailedResourcesUpgrade int `json:"failedResourcesUpgrade"`
-	// Resources is the list of resources that needs to
+	FailedResources int `json:"failedResources"`
+	// ResourceList is the list of resources that needs to
 	// be upgraded
-	Resources []UpgradeResource `json:"resources"`
+	ResourceList []UpgradeResource `json:"resourceList"`
 }
 
 // UpgradeResource represents a resource that needs to
@@ -68,6 +68,11 @@ type UpgradeResource struct {
 	APIVersion string `json:"apiVersion"`
 	// Namespace of the resource
 	Namespace string `json:"namespace"`
+	// Status is the status of the resource
+	Status string `json:"status"`
+	// Message is a human readable message
+	// indicating details about the resource state
+	Message string `json:"message"`
 	// BeforeUpgrade represents the state of the
 	// related resources before upgrade i.e. for a
 	// PV, related resources could be cvr, target
