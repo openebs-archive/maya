@@ -63,12 +63,12 @@ func (ac *Config) getUsedDiskMap() (map[string]int, error) {
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
 func (ac *Config) getUsedNodeMap() (map[string]int, error) {
-	spList, err := ac.SpClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	spList, err := ac.CspClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", ac.Spc.Name)
+		return nil, errors.Wrapf(err, "unable to get the list of CSPs for stragepoolclaim %s", ac.Spc.Name)
 	}
 	usedNodeMap := make(map[string]int)
-	for _, sp := range spList.StoragePoolList.Items {
+	for _, sp := range spList.CStorPoolList.Items {
 		usedNodeMap[sp.Labels[string(apis.HostNameCPK)]]++
 	}
 	return usedNodeMap, nil

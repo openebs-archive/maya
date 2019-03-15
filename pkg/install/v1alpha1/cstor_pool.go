@@ -84,7 +84,6 @@ spec:
     - cstor-pool-create-getspc-default
     - cstor-pool-create-putcstorpoolcr-default
     - cstor-pool-create-putcstorpooldeployment-default
-    - cstor-pool-create-putstoragepoolcr-default
     - cstor-pool-create-patchstoragepoolclaim-default
 ---
 # This run task get StoragePoolClaim

@@ -18,6 +18,7 @@ package spc
 
 import (
 	"encoding/json"
+	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	"github.com/openebs/maya/pkg/hash/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"strings"
@@ -35,6 +36,12 @@ const (
 	// DEFAULTPOOlCOUNT will be set to maxPool field of spc if maxPool field is not provided.
 	DEFAULTPOOlCOUNT = 3
 )
+
+type DiskOperations struct {
+	spc        *apis.StoragePoolClaim
+	cspList    *apis.CStorPoolList
+	controller *Controller
+}
 
 var (
 	supportedPool = map[apis.CasPoolValString]bool{
@@ -287,45 +294,302 @@ func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error
 	return pendingPoolCount, nil
 }
 
-func (c *Controller) handleDiskHashChange(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+// TODO: Add unit test for following functions
 
-	// Make a map containing all the disks present in spc.
-	spcDisks := make(map[string]bool)
-	for _, disk := range spc.Spec.Disks.DiskList {
-		spcDisks[disk] = true
+func (c *Controller) handleDiskHashChange(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+	removalDiskOperations, err := c.NewDiskOperations(spc)
+	if err != nil {
+		return nil, err
+	}
+	spcGot, err := removalDiskOperations.handleDiskRemovalHashChange()
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not remove/replace disks for spc %s", spc.Name)
 	}
 
+	additionDiskOperations, err := c.NewDiskOperations(spc)
+	if err != nil {
+		return nil, err
+	}
+	err = additionDiskOperations.handleDiskAdditionHashChange()
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not remove/replace disks for spc %s", spc.Name)
+	}
+
+	spc, err = c.patchSpcWithDiskHash(spcGot)
+	if err != nil {
+		return nil, errors.Wrapf(err, "could not patch spc %s with newer disk hash for disk operations", spcGot.Name)
+	}
+	return spc, nil
+}
+
+func (c *Controller) NewDiskOperations(spc *apis.StoragePoolClaim) (*DiskOperations, error) {
+	cspList, err := c.getCsp(spc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not list CSP for SPC %s", spc.Name)
+	}
+	newDiskOperations := &DiskOperations{
+		spc:        spc,
+		cspList:    cspList,
+		controller: c,
+	}
+	return newDiskOperations, nil
+}
+
+func (do *DiskOperations) handleDiskRemovalHashChange() (*apis.StoragePoolClaim, error) {
+	removedDisks, err := do.getRemovedDisks()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not get list of removed disks for SPC %s", do.spc.Name)
+	}
+	for _, disk := range removedDisks {
+		do.removeDisk(disk)
+	}
+	for _, csp := range do.cspList.Items {
+		csp, err := do.controller.updateCsp(&csp)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update csp %s for disk operations for spc %s", csp.Name, do.spc.Name)
+		}
+		if isTopVdevLost(csp) {
+			err := do.controller.deleteCsp(csp)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to delete csp %s for disk operations for spc %s", csp.Name, do.spc.Name)
+			}
+
+		}
+	}
+	return do.spc, nil
+}
+
+func (do *DiskOperations) handleDiskAdditionHashChange() error {
+	dettachedDisk := do.getDettachedCspDisks()
+	for disk, _ := range dettachedDisk {
+		do.reAttachDisk(disk)
+	}
+
+	replacementDisks, err := do.getAddedDisks()
+	if err != nil {
+		return errors.Wrapf(err, "could not get newely added disks for replacement for spc %s", do.spc.Name)
+	}
+
+	for _, disk := range replacementDisks {
+		do.replaceDisk(disk)
+	}
+
+	for i, csp := range do.cspList.Items {
+		csp, err := do.controller.updateCsp(&csp)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update csp %s for disk replacement operations for spc %s", csp.Name, do.spc.Name)
+		}
+		do.cspList.Items[i] = *csp
+	}
+
+	newDisks, err := do.getAddedDisks()
+	nodeDisk := do.getnodeDiskMap(newDisks)
+	err = do.addDisk(nodeDisk)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add disk for spc %s", do.spc.Name)
+	}
+	return nil
+}
+
+func (do *DiskOperations) addDisk(nodeDisk map[string][]string) error {
+	defaultDiskCount := nodeselect.DefaultDiskCount[do.spc.Spec.PoolSpec.PoolType]
+	nodeCspMap := do.getCspNodeMap()
+	var newGroup apis.DiskGroup
+	var cspdisk []apis.CspDisk
+	for node, disks := range nodeDisk {
+		csp := nodeCspMap[node]
+		if csp == nil {
+			continue
+		}
+		diskCount := 0
+		if len(disks) >= defaultDiskCount {
+			diskCount = (len(disks) / defaultDiskCount) * defaultDiskCount
+
+			for i := 0; i < defaultDiskCount; i = i + defaultDiskCount {
+				for j := 0; j < diskCount; j++ {
+					var item apis.CspDisk
+					item.Name = disks[j]
+					item.InUseByPool = true
+					cspdisk = append(cspdisk, item)
+				}
+				newGroup.Item = cspdisk
+				csp.Spec.Group = append(csp.Spec.Group, newGroup)
+
+			}
+			_, err := do.controller.updateCsp(csp)
+			if err != nil {
+				return errors.Wrapf(err, "failed to update csp %s for spc %s for disk addition operations", csp.Name, do.spc.Name)
+			}
+		}
+	}
+	return nil
+}
+
+func (do *DiskOperations) getnodeDiskMap(disks []string) map[string][]string {
+	nodeDiskMap := make(map[string][]string)
+	for _, disk := range disks {
+		gotDisk, err := do.controller.clientset.OpenebsV1alpha1().Disks().Get(disk, metav1.GetOptions{})
+		if err != nil {
+			return nil
+		}
+		if gotDisk == nil {
+			return nil
+		}
+		nodeDiskMap[gotDisk.Labels[string(apis.HostNameCPK)]] = append(nodeDiskMap[gotDisk.Labels[string(apis.HostNameCPK)]], disk)
+	}
+	return nodeDiskMap
+}
+
+func (do *DiskOperations) getCspNodeMap() map[string]*apis.CStorPool {
+	cspNodeMap := make(map[string]*apis.CStorPool)
+	for _, csp := range do.cspList.Items {
+		cspNodeMap[csp.Labels[string(apis.HostNameCPK)]] = &csp
+	}
+	return cspNodeMap
+}
+
+func isTopVdevLost(csp *apis.CStorPool) bool {
+	for _, group := range csp.Spec.Group {
+		count := 0
+		for _, disk := range group.Item {
+			if disk.InUseByPool == false {
+				count++
+			}
+		}
+		// TODO: Remove hardcoding
+		if count >= 1 && csp.Spec.PoolSpec.PoolType == "striped" {
+			return true
+		}
+		if count >= 2 && csp.Spec.PoolSpec.PoolType == "mirrored" {
+			return true
+		}
+	}
+	return false
+}
+
+func (do *DiskOperations) reAttachDisk(diskName string) {
+	for i, csp := range do.cspList.Items {
+		for j, group := range csp.Spec.Group {
+			for k, disk := range group.Item {
+				if disk.Name == diskName {
+					do.cspList.Items[i].Spec.Group[j].Item[k].InUseByPool = true
+				}
+			}
+		}
+	}
+}
+
+func (do *DiskOperations) replaceDisk(diskName string) {
+	for i, csp := range do.cspList.Items {
+		for j, group := range csp.Spec.Group {
+			for k, disk := range group.Item {
+				if disk.InUseByPool == false {
+					do.cspList.Items[i].Spec.Group[j].Item[k].Name = diskName
+					do.cspList.Items[i].Spec.Group[j].Item[k].InUseByPool = true
+				}
+			}
+		}
+	}
+}
+
+func (do *DiskOperations) removeDisk(diskName string) {
+	for i, csp := range do.cspList.Items {
+		for j, group := range csp.Spec.Group {
+			for k, disk := range group.Item {
+				if disk.Name == diskName {
+					do.cspList.Items[i].Spec.Group[j].Item[k].InUseByPool = false
+				}
+			}
+		}
+	}
+}
+
+// getSpcDisks returns map of spc disks present on SPC.
+func (do *DiskOperations) getSpcDisks() map[string]bool {
+	// Make a map containing all the disks present in spc.
+	spcDisks := make(map[string]bool)
+	for _, disk := range do.spc.Spec.Disks.DiskList {
+		spcDisks[disk] = true
+	}
+	return spcDisks
+}
+
+func (do *DiskOperations) getCspDisks() (map[string]bool, error) {
+	// Make a map containing all the disks present in csp
 	// Get all CSP corresponding to the SPC
+	cspDisks := make(map[string]bool)
+	for _, csp := range do.cspList.Items {
+		for _, group := range csp.Spec.Group {
+			for _, disk := range group.Item {
+				cspDisks[disk.Name] = true
+			}
+		}
+	}
+	return cspDisks, nil
+}
+
+func (do *DiskOperations) getDettachedCspDisks() map[string]bool {
+	// Make a map containing all the disks present in csp whis in not present in SPC.
+	spcDisks := do.getSpcDisks()
+	cspDisks := make(map[string]bool)
+	for _, csp := range do.cspList.Items {
+		for _, group := range csp.Spec.Group {
+			for _, disk := range group.Item {
+				if spcDisks[disk.Name] == true && disk.InUseByPool == false {
+					cspDisks[disk.Name] = true
+				}
+			}
+		}
+	}
+	return cspDisks
+}
+
+// getRemovedDisks return a list of disks present on all CSPs for a given SPC, which has been removed from SPC
+func (do *DiskOperations) getRemovedDisks() ([]string, error) {
+	var removedDisk []string
+	// Get the disks present on CSPs
+	cspDisks, err := do.getCspDisks()
+	if err != nil {
+		return []string{}, errors.Wrapf(err, "Could not get removed disks for SPC %s", do.spc.Name)
+	}
+	// get the disk present on SPC
+	spcDisks := do.getSpcDisks()
+	for disk, _ := range cspDisks {
+		if spcDisks[disk] == false {
+			removedDisk = append(removedDisk, disk)
+		}
+	}
+	return removedDisk, nil
+}
+
+// getAddedDisks returns a list of disk that is added to SPC.
+func (do *DiskOperations) getAddedDisks() ([]string, error) {
+	var addedDisk []string
+	// get the disks present on CSPs
+	cspDisks, err := do.getCspDisks()
+	if err != nil {
+		return []string{}, errors.Wrapf(err, "Could not get removed disks for SPC %s", do.spc.Name)
+	}
+	// get the disk present on SPC
+	spcDisks := do.getSpcDisks()
+	for disk, _ := range spcDisks {
+		if cspDisks[disk] == false {
+			addedDisk = append(addedDisk, disk)
+		}
+	}
+	return addedDisk, nil
+}
+
+func (c *Controller) getCsp(spc *apis.StoragePoolClaim) (*apis.CStorPoolList, error) {
 	cspList, err := c.clientset.OpenebsV1alpha1().CStorPools().List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + spc.Name})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get csp objects for spc %s", spc.Name)
 	}
+	return cspList, nil
 
-	// TODO: Handle for disk addition cases
-	// For all the CSPs mark the disk present on CSP as not in use if not found in spcDisks map.
-	for i, csp := range cspList.Items {
-		for j, group := range csp.Spec.Group {
-			for k, disk := range group.Item {
-				if spcDisks[disk.Name] == false {
-					cspList.Items[i].Spec.Group[j].Item[k].InUseByPool = false
-				}
-			}
-		}
-		// TODO: Think about taking lease before updating CSP object
-		_, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(&csp)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update CSP %s for disk changes", csp.Name)
-		}
-	}
-
-	// Patch spc with new disk list hash
-	spcGot, err := c.patchSpcWithDiskHash(spc)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to patch spc %s for disk changes", spc.Name)
-	}
-	return spcGot, nil
 }
 
+// TODO: Patch using patch package.
 func (c *Controller) patchSpcWithDiskHash(spc *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
 
 	diskHash, _ := hash.Hash(spc.Spec.Disks)
@@ -336,22 +600,25 @@ func (c *Controller) patchSpcWithDiskHash(spc *apis.StoragePoolClaim) (*apis.Sto
 		return nil, errors.Errorf("No annotation found in spc %s", spc.Name)
 	}
 	if spc.Annotations[spcDiskHashKey] == "" {
-		return nil, errors.Errorf("Annotation %s found in spc %s", spcDiskHashKey, spc.Name)
-	}
-
-	// TODO: Move following to above if block
-	if spc.Annotations[spcDiskHashKey] == "" {
 		spcPatch[0].Op = PatchOperationAdd
 	}
-
 	spcPatch[0].Path = spcDiskHashKeyPath
 	spcPatch[0].Value = diskHash
 	spcPatchJSON, err := json.Marshal(spcPatch)
-
-	spc, err = c.clientset.OpenebsV1alpha1().StoragePoolClaims().Patch(spc.Name, types.JSONPatchType, spcPatchJSON)
-
+	spcGot, err := c.clientset.OpenebsV1alpha1().StoragePoolClaims().Patch(spc.Name, types.JSONPatchType, spcPatchJSON)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to patch spc %s with the new disk list hash", spc.Name)
 	}
-	return spc, nil
+
+	return spcGot, nil
+}
+
+func (c *Controller) updateCsp(csp *apis.CStorPool) (*apis.CStorPool, error) {
+	csp, err := c.clientset.OpenebsV1alpha1().CStorPools().Update(csp)
+	return csp, err
+}
+
+func (c *Controller) deleteCsp(csp *apis.CStorPool) error {
+	err := c.clientset.OpenebsV1alpha1().CStorPools().Delete(csp.Name, &metav1.DeleteOptions{})
+	return err
 }
