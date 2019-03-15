@@ -1131,8 +1131,8 @@ func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 }
 
 // ExecCoreV1Pod run a command remotely in a container of a pod
-func (k *K8sClient) ExecCoreV1Pod(podExecOptions *api_core_v1.PodExecOptions,
-	name string) (result []byte, err error) {
+func (k *K8sClient) ExecCoreV1Pod(name string,
+	podExecOptions *api_core_v1.PodExecOptions) (result []byte, err error) {
 
 	// create request object for exec with pod exec options and ParameterCodec.
 	// ParameterCodec used to transform url values into versioned objects

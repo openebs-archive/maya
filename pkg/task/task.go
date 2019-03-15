@@ -26,7 +26,7 @@ import (
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
-	m_k8s_podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
+	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
@@ -1060,16 +1060,13 @@ func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
 // and post stdout and and stderr in JsonResult. You can get it using -
 // {{- jsonpath .JsonResult "{.Stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
 func (m *taskExecutor) execCoreV1Pod() (err error) {
-	podexecoptsFromTemplate, err := m_k8s_podexec.WithTemplate("execCoreV1Pod", m.runtask.Spec.Task, m.templateValues)
-	if err != nil {
-		return
-	}
-	podexecopts, err := podexecoptsFromTemplate.AsAPIPodExec()
+	podexecopts, err := podexec.WithTemplate("execCoreV1Pod", m.runtask.Spec.Task, m.templateValues).
+		AsAPIPodExec()
 	if err != nil {
 		return
 	}
 
-	result, err := m.getK8sClient().ExecCoreV1Pod(podexecopts, m.getTaskObjectName())
+	result, err := m.getK8sClient().ExecCoreV1Pod(m.getTaskObjectName(), podexecopts)
 	if err != nil {
 		return
 	}

@@ -17,9 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/template"
-	"github.com/pkg/errors"
 	api_core_v1 "k8s.io/api/core/v1"
 )
 
@@ -31,8 +32,8 @@ type podexec struct {
 
 // AsAPIPodExec validate and returns PodExecOptions object pointer and error
 // depending on ignoreErrors opt and errors
-func (p *podexec) AsAPIPodExec() (podExecOptions *api_core_v1.PodExecOptions, err error) {
-	err = p.Validate()
+func (p *podexec) AsAPIPodExec() (*api_core_v1.PodExecOptions, error) {
+	err := p.Validate()
 	if err != nil && !p.ignoreErrors {
 		return nil, err
 	}
@@ -41,32 +42,34 @@ func (p *podexec) AsAPIPodExec() (podExecOptions *api_core_v1.PodExecOptions, er
 
 // WithTemplate takes Yaml values which is given in runtask and key in which configuration
 // is present and unmarshal it with PodExecOptions.
-func WithTemplate(context, yamlString string, values map[string]interface{}) (p *podexec, err error) {
+func WithTemplate(context, yamlString string, values map[string]interface{}) (p *podexec) {
 	p = &podexec{}
 	b, err := template.AsTemplatedBytes(context, yamlString, values)
 	if err != nil {
-		return nil, err
+		p.errs = append(p.errs, err)
+		return
 	}
 	exec := &api_core_v1.PodExecOptions{}
 	err = yaml.Unmarshal(b, exec)
 	if err != nil {
-		return nil, err
+		p.errs = append(p.errs, err)
+		return
 	}
 	p.object = exec
-	return p, nil
+	return
 }
 
 // Validate validates PodExecOptions it mainly checks for container name is present or not and
 // commands are present or not.
 func (p *podexec) Validate() error {
 	if len(p.errs) != 0 {
-		return errors.Errorf("validation failed: %v", p.errs)
+		return fmt.Errorf("validation failed: %v", p.errs)
 	}
 	if len(p.object.Command) == 0 {
-		return errors.New("validation failed: command not provided")
+		return fmt.Errorf("validation failed: command not provided")
 	}
 	if p.object.Container == "" {
-		return errors.New("validation failed: container name not provided")
+		return fmt.Errorf("validation failed: container name not provided")
 	}
 	return nil
 }
@@ -81,9 +84,9 @@ func IgnoreErrors() buildOption {
 }
 
 // Apply applies all build options in podexec
-func (p *podexec) Apply(opts ...buildOption) (*podexec, error) {
+func (p *podexec) Apply(opts ...buildOption) *podexec {
 	for _, o := range opts {
 		o(p)
 	}
-	return p, nil
+	return p
 }
