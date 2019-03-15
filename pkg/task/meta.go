@@ -65,6 +65,9 @@ const (
 	// PatchTA flags a action as patch. Typically used to
 	// patch an object.
 	PatchTA MetaTaskAction = "patch"
+	// ExecTA flags a action as exec. Typically used to
+	// exec inside a container of a pod.
+	ExecTA MetaTaskAction = "exec"
 	// OutputTA flags the task action as output. Typically used to
 	// provide a schema (i.e. a custom defined) based output after
 	// running one or more tasks.
@@ -311,6 +314,10 @@ func (m *metaTaskExecutor) isPatch() bool {
 	return m.metaTask.Action == PatchTA
 }
 
+func (m *metaTaskExecutor) isExec() bool {
+	return m.metaTask.Action == ExecTA
+}
+
 func (m *metaTaskExecutor) isPutExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPut()
 }
@@ -484,6 +491,10 @@ func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
 
 func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isList()
+}
+
+func (m *metaTaskExecutor) isExecCoreV1Pod() bool {
+	return m.identifier.isCoreV1Pod() && m.isExec()
 }
 
 // getRollbackMetaInstances is a utility function that provides objects

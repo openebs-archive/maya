@@ -26,6 +26,7 @@ import (
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
+	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
@@ -410,6 +411,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.putAppsV1STS()
 	} else if m.metaTaskExec.isDeleteAppsV1STS() {
 		err = m.deleteAppsV1STS()
+	} else if m.metaTaskExec.isExecCoreV1Pod() {
+		err = m.execCoreV1Pod()
 	} else {
 		err = fmt.Errorf("un-supported task operation: failed to execute task: '%+v'", m.metaTaskExec.getMetaInfo())
 	}
@@ -1050,6 +1053,25 @@ func (m *taskExecutor) deleteOEV1alpha1CSV() (err error) {
 		}
 	}
 
+	return
+}
+
+// execCoreV1Pod runs given command remotely in given container of given pod
+// and post stdout and and stderr in JsonResult. You can get it using -
+// {{- jsonpath .JsonResult "{.Stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
+func (m *taskExecutor) execCoreV1Pod() (err error) {
+	podexecopts, err := podexec.WithTemplate("execCoreV1Pod", m.runtask.Spec.Task, m.templateValues).
+		AsAPIPodExec()
+	if err != nil {
+		return
+	}
+
+	result, err := m.getK8sClient().ExecCoreV1Pod(m.getTaskObjectName(), podexecopts)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, result, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 

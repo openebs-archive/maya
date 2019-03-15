@@ -17,6 +17,7 @@ limitations under the License.
 package k8s
 
 import (
+	"bytes"
 	"encoding/json"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
@@ -46,6 +47,7 @@ import (
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // K8sKind represents the Kinds understood by Kubernetes
@@ -1126,6 +1128,55 @@ func (k *K8sClient) DeleteOEV1alpha1CVR(name string) error {
 	return cvrops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
 		PropagationPolicy: &deletePropagation,
 	})
+}
+
+// ExecCoreV1Pod run a command remotely in a container of a pod
+func (k *K8sClient) ExecCoreV1Pod(name string,
+	podExecOptions *api_core_v1.PodExecOptions) (result []byte, err error) {
+
+	// create request object for exec with pod exec options and ParameterCodec.
+	// ParameterCodec used to transform url values into versioned objects
+	req := k.cs.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(name).
+		Namespace(k.ns).
+		SubResource("exec").
+		VersionedParams(podExecOptions, scheme.ParameterCodec)
+
+	config, err := getK8sConfig()
+	if err != nil {
+		return
+	}
+
+	// create exec executor which is an interface for transporting shell-style streams.
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return
+	}
+	var stdout, stderr bytes.Buffer
+	// Stream initiates the transport of the standard shell streams. It will transport any
+	// non-nil stream to a remote system, and return an error if a problem occurs.
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  nil,
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Tty:    podExecOptions.TTY,
+	})
+	if err != nil {
+		return
+	}
+
+	// exec output struct contaons stdout and std error
+	type execOutput struct {
+		Stdout string `json:"Stdout"`
+		Stderr string `json:"Stderr"`
+	}
+
+	op := execOutput{
+		Stdout: stdout.String(),
+		Stderr: stderr.String(),
+	}
+	return json.Marshal(op)
 }
 
 func getK8sConfig() (config *rest.Config, err error) {

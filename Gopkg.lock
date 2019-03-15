@@ -50,6 +50,17 @@
   version = "v0.3.3"
 
 [[projects]]
+  branch = "master"
+  digest = "1:ecdc8e0fe3bc7d549af1c9c36acf3820523b707d6c071b6d0c3860882c6f7b42"
+  name = "github.com/docker/spdystream"
+  packages = [
+    ".",
+    "spdy",
+  ]
+  pruneopts = "UT"
+  revision = "6480d4af844c189cf5dd913db24ddd339d3a4f85"
+
+[[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -732,7 +743,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:f9e57fe82defaffc4b08beec93c4257edce482b124989c8239b7fc6077e8b020"
+  digest = "1:14f8604409a2fe151e87f7ee6f6c954043393eb0813e3cc8bb7d309465cf7a4f"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -761,11 +772,14 @@
     "pkg/util/diff",
     "pkg/util/errors",
     "pkg/util/framer",
+    "pkg/util/httpstream",
+    "pkg/util/httpstream/spdy",
     "pkg/util/intstr",
     "pkg/util/json",
     "pkg/util/mergepatch",
     "pkg/util/naming",
     "pkg/util/net",
+    "pkg/util/remotecommand",
     "pkg/util/runtime",
     "pkg/util/sets",
     "pkg/util/strategicpatch",
@@ -777,6 +791,7 @@
     "pkg/version",
     "pkg/watch",
     "third_party/forked/golang/json",
+    "third_party/forked/golang/netutil",
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
@@ -784,7 +799,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:a4c2744c0ed6d108da1fe74edfa53bf4ee09d274b0297768258d52ffa77953d6"
+  digest = "1:6b0d933ac51a032b259ba19eed9d1923f1c527428b047a961010369015db5f70"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -948,10 +963,13 @@
     "tools/pager",
     "tools/record",
     "tools/reference",
+    "tools/remotecommand",
     "transport",
+    "transport/spdy",
     "util/buffer",
     "util/cert",
     "util/connrotation",
+    "util/exec",
     "util/flowcontrol",
     "util/homedir",
     "util/integer",
@@ -1118,6 +1136,7 @@
     "k8s.io/client-go/tools/cache",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/client-go/tools/record",
+    "k8s.io/client-go/tools/remotecommand",
     "k8s.io/client-go/util/flowcontrol",
     "k8s.io/client-go/util/jsonpath",
     "k8s.io/client-go/util/testing",
