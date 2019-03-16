@@ -27,6 +27,7 @@ import (
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
+	rollout "github.com/openebs/maya/pkg/kubernetes/rollout/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
@@ -343,7 +344,9 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		return m.postExecuteIt()
 	}
 
-	if m.metaTaskExec.isPutExtnV1B1Deploy() {
+	if m.metaTaskExec.isRolloutstatus() {
+		err = m.rolloutStatus()
+	} else if m.metaTaskExec.isPutExtnV1B1Deploy() {
 		err = m.putExtnV1B1Deploy()
 	} else if m.metaTaskExec.isPutAppsV1B1Deploy() {
 		err = m.putAppsV1B1Deploy()
@@ -1072,6 +1075,24 @@ func (m *taskExecutor) execCoreV1Pod() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, result, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// rolloutStatus generates rollout status of a given resource form it's object details
+func (m *taskExecutor) rolloutStatus() (err error) {
+	var op []byte
+	if m.metaTaskExec.isRolloutstatusExtnV1B1Deploy() {
+		op, err = m.getK8sClient().RolloutstatusExtnV1B1Deploy(m.getTaskObjectName(),
+			rollout.ExtnV1Beta1DeployRolloutStatusGenerator)
+	} else if m.metaTaskExec.isRolloutstatusAppsV1Deploy() {
+		op, err = m.getK8sClient().RolloutstatusAppsV1Deploy(m.getTaskObjectName(),
+			rollout.AppsV1DeployRolloutStatusGenerator)
+	} else {
+		err = fmt.Errorf("failed to get rollout status : meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
+	}
+	if err == nil {
+		util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
+	}
 	return
 }
 
