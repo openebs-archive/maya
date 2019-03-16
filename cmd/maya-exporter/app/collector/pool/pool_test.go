@@ -1,7 +1,6 @@
 package pool
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -21,8 +22,10 @@ import (
 var count int
 
 type testRunner struct {
-	stdout  []byte
-	isError bool
+	stdout       []byte
+	istimeoutErr bool
+	isError      bool
+	injectDelay  bool
 }
 
 func (r testRunner) RunCombinedOutput(cmd string, args ...string) ([]byte, error) {
@@ -48,6 +51,14 @@ func (r testRunner) RunCommandWithTimeoutContext(timeout time.Duration, cmd stri
 			return nil, errors.New("some dummy error")
 		}
 	}
+	if r.istimeoutErr {
+		return nil, fmt.Errorf("Failed to run command: %v %v, context deadline exceeded err signal: killed", cmd, args)
+	}
+	if r.injectDelay {
+		time.Sleep(50 * time.Millisecond)
+		return r.stdout, nil
+	}
+
 	return r.stdout, nil
 }
 
@@ -141,7 +152,17 @@ func TestGetZpoolStats(t *testing.T) {
 				regexp.MustCompile(`openebs_zpool_command_error 1`),
 			},
 		},
+
 		"Test8": {
+			run: testRunner{
+				istimeoutErr: true,
+			},
+			match: []*regexp.Regexp{
+				regexp.MustCompile(`openebs_zpool_command_error 1`),
+			},
+		},
+
+		"Test9": {
 			run: testRunner{
 				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	iaueb7	aiwub	aliubv	-	0	iauwb	1.00 REMOVED	-"),
 			},
@@ -239,10 +260,11 @@ func TestGetInitStatus(t *testing.T) {
 }
 
 func TestRejectRequestCounter(t *testing.T) {
-	reqCount := 200
+	reqCount := 10
 	output := regexp.MustCompile(`openebs_zpool_reject_request_count\s\d+`)
 	runner = testRunner{
-		stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	3000	23423 1341	-	0	iauwb	1.00 REMOVED	-"),
+		injectDelay: true,
+		stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	3000	23423 1341	-	0	10	1.00 REMOVED	-"),
 	}
 	col := New()
 	if err := prometheus.Register(col); err != nil {

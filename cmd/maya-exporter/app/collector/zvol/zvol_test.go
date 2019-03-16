@@ -17,8 +17,9 @@ import (
 var count int
 
 type testRunner struct {
-	stdout  []byte
-	isError bool
+	stdout      []byte
+	isError     bool
+	injectDelay bool
 }
 
 func (r testRunner) RunCombinedOutput(cmd string, args ...string) ([]byte, error) {
@@ -32,6 +33,10 @@ func (r testRunner) RunStdoutPipe(cmd string, args ...string) ([]byte, error) {
 func (r testRunner) RunCommandWithTimeoutContext(timeout time.Duration, cmd string, args ...string) ([]byte, error) {
 	if r.isError {
 		return nil, errors.New("some dummy error")
+	}
+	if r.injectDelay {
+		time.Sleep(50 * time.Millisecond)
+		return r.stdout, nil
 	}
 	return r.stdout, nil
 }
