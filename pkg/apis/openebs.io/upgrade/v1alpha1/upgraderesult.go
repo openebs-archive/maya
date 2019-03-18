@@ -37,6 +37,9 @@ type UpgradeResult struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Config UpgradeResultConfig `json:"config"`
+	// Tasks are the runtasks that needs to be
+	// executed to perform this upgrade
+	Tasks  []UpgradeResultTask `json:"tasks"`
 	Status UpgradeResultStatus `json:"status"`
 }
 
@@ -57,9 +60,9 @@ type UpgradeResultStatus struct {
 	// FailedCount represents the no of resources
 	// that has failed to upgrade
 	FailedCount int `json:"failedCount"`
-	// ResourceList is the list of resources that needs to
+	// Resource is the resource that needs to
 	// be upgraded
-	ResourceList []UpgradeResource `json:"resourceList"`
+	Resource UpgradeResource `json:"resource"`
 }
 
 // UpgradeResource represents a resource that needs to
@@ -72,9 +75,6 @@ type UpgradeResource struct {
 	// PostState represents the state of the resource
 	// after upgrade
 	PostState ResourceState `json:"postState"`
-	// Tasks are the runtasks that needs to be
-	// executed to perform this upgrade
-	Tasks []UpgradeResultTask `json:"tasks"`
 	// SubResources are the resources related to
 	// this resource which needs to be upgraded
 	SubResources []UpgradeSubResource `json:"subResources"`
