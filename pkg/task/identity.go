@@ -106,6 +106,10 @@ func (i taskIdentifier) isStoragePool() bool {
 	return i.identity.Kind == string(m_k8s_client.StroagePoolCRKK)
 }
 
+func (i taskIdentifier) isUpgradeResult() bool {
+	return i.identity.Kind == string(m_k8s_client.UpgradeResultCRKK)
+}
+
 func (i taskIdentifier) isConfigMap() bool {
 	return i.identity.Kind == string(m_k8s_client.ConfigMapKK)
 }
@@ -220,6 +224,10 @@ func (i taskIdentifier) isOEV1alpha1SPC() bool {
 
 func (i taskIdentifier) isOEV1alpha1SP() bool {
 	return i.isOEV1alpha1() && i.isStoragePool()
+}
+
+func (i taskIdentifier) isOEV1alpha1UR() bool {
+	return i.isOEV1alpha1() && i.isUpgradeResult()
 }
 
 func (i taskIdentifier) isOEV1alpha1CV() bool {
