@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	snapclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
 )
 
 var (
@@ -48,7 +49,13 @@ func main() {
 		glog.Errorf("Error building openebs clientset: %s", err.Error())
 	}
 
-	wh, err := webhook.New(parameters, kubeClient, openebsClient)
+	// Building Snapshot Clientset
+	snapClient, err := snapclientset.NewForConfig(cfg)
+	if err != nil {
+		glog.Errorf("Error building openebs clientset: %s", err.Error())
+	}
+
+	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
 	if err != nil {
 		glog.Errorf("failed to create validation webhook: %s", err.Error())
 	}
