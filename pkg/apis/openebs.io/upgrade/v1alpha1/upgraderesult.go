@@ -40,17 +40,23 @@ type UpgradeResult struct {
 	Status UpgradeResultStatus `json:"status"`
 }
 
+// UpgradeResultConfig represents the entire config
+// of UpgradeResult i.e. same as task-executor job config
+type UpgradeResultConfig struct {
+	// TODO: Add Task-executor job config here
+}
+
 // UpgradeResultStatus represents the current state of UpgradeResult
 type UpgradeResultStatus struct {
-	// Resources is the total no of resources that
+	// DesiredCount is the total no of resources that
 	// needs to be upgraded to a desired version
-	Resources int `json:"resources"`
-	// UpgradedResources represents the no of resources
+	DesiredCount int `json:"desiredCount"`
+	// ActualCount represents the no of resources
 	// that has been successfully upgraded
-	UpgradedResources int `json:"upgradedResources"`
-	// FailedResources represents the no of resources
+	ActualCount int `json:"actualCount"`
+	// FailedCount represents the no of resources
 	// that has failed to upgrade
-	FailedResources int `json:"failedResources"`
+	FailedCount int `json:"failedCount"`
 	// ResourceList is the list of resources that needs to
 	// be upgraded
 	ResourceList []UpgradeResource `json:"resourceList"`
@@ -59,36 +65,24 @@ type UpgradeResultStatus struct {
 // UpgradeResource represents a resource that needs to
 // be upgraded to a desired version
 type UpgradeResource struct {
-	// Name of the resource to be upgraded
-	Name string `json:"name"`
-	// Kind is the type of resource i.e.
-	// PVC, SPC, ..
-	Kind string `json:"kind"`
-	// APIVersion of the resource
-	APIVersion string `json:"apiVersion"`
-	// Namespace of the resource
-	Namespace string `json:"namespace"`
-	// Status is the status of the resource
-	Status string `json:"status"`
-	// Message is a human readable message
-	// indicating details about the resource state
-	Message string `json:"message"`
-	// BeforeUpgrade represents the state of the
-	// related resources before upgrade i.e. for a
-	// PV, related resources could be cvr, target
-	// deployment, target svc, etc.
-	BeforeUpgrade []ResourceState `json:"beforeUpgrade"`
-	// AfterUpgrade represents the state of the
-	// related resources after upgrade
-	AfterUpgrade []ResourceState `json:"afterUpgrade"`
+	ResourceDetails
+	// PreState represents the state of the resource
+	// before upgrade
+	PreState ResourceState `json:"preState"`
+	// PostState represents the state of the resource
+	// after upgrade
+	PostState ResourceState `json:"postState"`
 	// Tasks are the runtasks that needs to be
 	// executed to perform this upgrade
-	Tasks []Task `json:"tasks"`
+	Tasks []UpgradeResultTask `json:"tasks"`
+	// SubResources are the resources related to
+	// this resource which needs to be upgraded
+	SubResources []UpgradeSubResource `json:"subResources"`
 }
 
-// Task represents details of a task(runtask) required
+// UpgradeResultTask represents details of a task(runtask) required
 // to be executed for upgrading a particular resource
-type Task struct {
+type UpgradeResultTask struct {
 	// Name of the task
 	Name string `json:"name"`
 	// Status is the status of the task which
@@ -112,17 +106,34 @@ type Task struct {
 	Retries int `json:"retries"`
 }
 
-// ResourceState represents the state of a resource
-type ResourceState struct {
+// UpgradeSubResource represents the details of
+// a subresource which needs to be upgraded
+type UpgradeSubResource struct {
+	ResourceDetails
+	// PreState represents the state of the
+	// subresource before upgrade
+	PreState ResourceState `json:"preState"`
+	// PostState represents the state of the
+	// subresource after upgrade
+	PostState ResourceState `json:"postState"`
+}
+
+// ResourceDetails represents the basic details
+// of a particular resource
+type ResourceDetails struct {
 	// Name of the resource
 	Name string `json:"name"`
 	// Kind is the type of resource i.e.
-	// cvr, deployment, ..
+	// PVC, SPC, ..
 	Kind string `json:"kind"`
 	// APIVersion of the resource
 	APIVersion string `json:"apiVersion"`
 	// Namespace of the resource
 	Namespace string `json:"namespace"`
+}
+
+// ResourceState represents the state of a resource
+type ResourceState struct {
 	// Status of the resource
 	Status string `json:"status"`
 	// LastTransitionTime is the last time the status
@@ -130,12 +141,6 @@ type ResourceState struct {
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// Message is a human readable message indicating details about the transition.
 	Message string `json:"message"`
-}
-
-// UpgradeResultConfig represents the entire config
-// of UpgradeResult i.e. same as task-executor job config
-type UpgradeResultConfig struct {
-	// TODO: Add Task-executor job config here
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
