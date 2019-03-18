@@ -124,7 +124,7 @@ type ResourceDetails struct {
 	// Name of the resource
 	Name string `json:"name"`
 	// Kind is the type of resource i.e.
-	// PVC, SPC, ..
+	// cvr, deployment, ..
 	Kind string `json:"kind"`
 	// APIVersion of the resource
 	APIVersion string `json:"apiVersion"`
