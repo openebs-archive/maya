@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,8 +46,19 @@ type UpgradeResult struct {
 
 // UpgradeResultConfig represents the entire config
 // of UpgradeResult i.e. same as task-executor job config
+// with single unit of upgrade in resource details. pv or sp
+// will be single unit of upgrade.
 type UpgradeResultConfig struct {
-	// TODO: Add Task-executor job config here
+	ResourceDetails
+	Versions
+	Options
+	// Castemplate contain castemplate name which task executor
+	// will use to upgrade single unit of resources.
+	Castemplate string `json:"castemplate"`
+	// RuntimeConfig is used to provide some runtime config to
+	// castemplate engine. Task executor will directly copy this
+	// config to castemplate engine.
+	RuntimeConfig apis.Config `json:"runtimeConfig"`
 }
 
 // UpgradeResultStatus represents the current state of UpgradeResult
