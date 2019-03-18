@@ -154,12 +154,17 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 	if !quorum {
 		quorumValue = "quorum=off"
 	}
-
-	createVolCmd = append(createVolCmd, CreateCmd,
-		"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
-		"-o", openebsTargetIP, "-o", openebsVolname, "-o", openebsZvolWorkers,
-		"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
-
+	if len(cStorVolumeReplica.Spec.ZvolWorkers) != 0 {
+		createVolCmd = append(createVolCmd, CreateCmd,
+			"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
+			"-o", openebsTargetIP, "-o", openebsVolname, "-o", openebsZvolWorkers,
+			"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
+	} else {
+		createVolCmd = append(createVolCmd, CreateCmd,
+			"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
+			"-o", openebsTargetIP, "-o", openebsVolname,
+			"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
+	}
 	return createVolCmd
 }
 
@@ -172,10 +177,15 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 	// ZvolWorkers represents number of threads that executes client IOs
 	openebsZvolWorkers := "io.openebs:zvol_workers=" + cStorVolumeReplica.Spec.ZvolWorkers
 
-	cloneVolCmd = append(cloneVolCmd, CloneCmd,
-		"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
-		"-o", openebsZvolWorkers, "-o", openebsVolname, snapName, fullVolName)
-
+	if len(cStorVolumeReplica.Spec.ZvolWorkers) != 0 {
+		cloneVolCmd = append(cloneVolCmd, CloneCmd,
+			"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
+			"-o", openebsZvolWorkers, "-o", openebsVolname, snapName, fullVolName)
+	} else {
+		cloneVolCmd = append(cloneVolCmd, CloneCmd,
+			"-o", "compression=on", "-o", openebsTargetIP, "-o", "quorum=on",
+			"-o", openebsVolname, snapName, fullVolName)
+	}
 	return cloneVolCmd
 }
 
