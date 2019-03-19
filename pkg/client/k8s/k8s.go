@@ -1179,54 +1179,6 @@ func (k *K8sClient) ExecCoreV1Pod(name string,
 	return json.Marshal(op)
 }
 
-// RolloutstatusExtnV1B1Deploy generates rollout status for a given deployment from deployment object
-func (k *K8sClient) RolloutstatusExtnV1B1Deploy(name string,
-	statusGenerator func(d api_extn_v1beta1.Deployment) ([]byte, error)) (result []byte, err error) {
-	// fetch raw object
-	b, err := k.cs.ExtensionsV1beta1().RESTClient().
-		Get().
-		Namespace(k.ns).
-		Resource("deployments").
-		Name(name).
-		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
-	if err != nil {
-		return
-	}
-	// convert raw bytes to api_extn_v1beta1.Deployment object
-	d := &api_extn_v1beta1.Deployment{}
-	err = json.Unmarshal(b, d)
-	if err != nil {
-		return
-	}
-	// return generated rollout status for this deployment
-	return statusGenerator(*d)
-}
-
-// RolloutstatusAppsV1Deploy generates rollout status for a given deployment from deployment object
-func (k *K8sClient) RolloutstatusAppsV1Deploy(name string,
-	statusGenerator func(d api_apps_v1.Deployment) ([]byte, error)) (result []byte, err error) {
-	// fetch raw object
-	b, err := k.cs.AppsV1().RESTClient().
-		Get().
-		Namespace(k.ns).
-		Resource("deployments").
-		Name(name).
-		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-		DoRaw()
-	if err != nil {
-		return
-	}
-	// convert raw bytes to api_apps_v1.Deployment oject
-	d := &api_apps_v1.Deployment{}
-	err = json.Unmarshal(b, d)
-	if err != nil {
-		return
-	}
-	// return generated rollout status for this deployment
-	return statusGenerator(*d)
-}
-
 func getK8sConfig() (config *rest.Config, err error) {
 	k8sMaster := env.Get(env.KubeMaster)
 	kubeConfig := env.Get(env.KubeConfig)

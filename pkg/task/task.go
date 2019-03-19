@@ -26,8 +26,8 @@ import (
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
+	deployment "github.com/openebs/maya/pkg/kubernetes/deployment/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
-	rollout "github.com/openebs/maya/pkg/kubernetes/rollout/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
@@ -864,22 +864,49 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 
 // getExtnV1B1Deployment will get the Deployment as specified in the RunTask
 func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
-	deploy, err := m.getK8sClient().GetExtnV1B1DeploymentAsRaw(m.getTaskObjectName())
+	dclient := deployment.KubeClient(deployment.WithKubeClient(m.getK8sClient().GetKCS()))
+	d, err := dclient.GetExtnV1Beta1(m.getTaskObjectName(), m.getTaskRunNamespace())
 	if err != nil {
 		return
 	}
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
+
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// getAppsV1B1Deployment will get the Deployment as specified in the RunTask
-func (m *taskExecutor) getAppsV1B1Deployment() (err error) {
-	deploy, err := m.getK8sClient().GetAppsV1B1DeploymentAsRaw(m.getTaskObjectName())
+// extnV1B1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
+func (m *taskExecutor) extnV1B1DeploymentRollOutStatus() (err error) {
+	dclient := deployment.KubeClient(deployment.WithKubeClient(m.getK8sClient().GetKCS()))
+	res, err := dclient.RollOutStatusExtnV1Beta1(m.getTaskObjectName(), m.getTaskRunNamespace())
 	if err != nil {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getAppsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
+func (m *taskExecutor) appsV1DeploymentRollOutStatus() (err error) {
+	dclient := deployment.KubeClient(deployment.WithKubeClient(m.getK8sClient().GetKCS()))
+	res, err := dclient.RollOutStatusAppsV1(m.getTaskObjectName(), m.getTaskRunNamespace())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getAppsV1Deployment will get the Deployment as specified in the RunTask
+func (m *taskExecutor) getAppsV1Deployment() (err error) {
+	dclient := deployment.KubeClient(deployment.WithKubeClient(m.getK8sClient().GetKCS()))
+	d, err := dclient.GetAppsV1(m.getTaskObjectName(), m.getTaskRunNamespace())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -1080,18 +1107,12 @@ func (m *taskExecutor) execCoreV1Pod() (err error) {
 
 // rolloutStatus generates rollout status of a given resource form it's object details
 func (m *taskExecutor) rolloutStatus() (err error) {
-	var op []byte
 	if m.metaTaskExec.isRolloutstatusExtnV1B1Deploy() {
-		op, err = m.getK8sClient().RolloutstatusExtnV1B1Deploy(m.getTaskObjectName(),
-			rollout.ExtnV1Beta1DeployRolloutStatusGenerator)
+		err = m.extnV1B1DeploymentRollOutStatus()
 	} else if m.metaTaskExec.isRolloutstatusAppsV1Deploy() {
-		op, err = m.getK8sClient().RolloutstatusAppsV1Deploy(m.getTaskObjectName(),
-			rollout.AppsV1DeployRolloutStatusGenerator)
+		err = m.appsV1DeploymentRollOutStatus()
 	} else {
 		err = fmt.Errorf("failed to get rollout status : meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
-	}
-	if err == nil {
-		util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
 	}
 	return
 }
