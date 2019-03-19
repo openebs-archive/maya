@@ -54,7 +54,7 @@ type UpgradeResultConfig struct {
 	Options
 	// Castemplate contain castemplate name which task executor
 	// will use to upgrade single unit of resources.
-	Castemplate string `json:"castemplate"`
+	Castemplate string `json:"casTemplate"`
 	// RuntimeConfig is used to provide some runtime config to
 	// castemplate engine. Task executor will directly copy this
 	// config to castemplate engine.
