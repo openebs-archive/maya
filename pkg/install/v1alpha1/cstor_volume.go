@@ -420,6 +420,8 @@ spec:
     {{- $nodeSelectorVal := fromYaml .Config.TargetNodeSelector.value -}}
     {{- $hasTargetToleration := .Config.TargetTolerations.value | default "none" -}}
     {{- $targetTolerationVal := fromYaml .Config.TargetTolerations.value -}}
+    {{- $isQueueDepth := .Config.QueueDepth.value | default "" -}}
+    {{- $isLuworkers := .Config.Luworkers.value | default "" -}}
     apiVersion: apps/v1beta1
     Kind: Deployment
     metadata:
@@ -549,10 +551,14 @@ spec:
             - containerPort: 3260
               protocol: TCP
             env:
+            {{- if ne $isQueueDepth "" }}
             - name: QueueDepth
               value: {{ .Config.QueueDepth.value }}
+            {{- end }}
+            {{- if ne $isLuworkers "" }}
             - name: Luworkers
               value: {{ .Config.Luworkers.value }}
+            {{- end }}
             securityContext:
               privileged: true
             volumeMounts:
