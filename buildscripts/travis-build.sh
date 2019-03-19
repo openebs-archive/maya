@@ -43,6 +43,13 @@ rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi
 checkGitDiff "make format"
 printf "\n"
 
+echo "Running : dep check"
+dep check
+rc=$?; if [[ $rc != 0 ]]; then echo "dep check failed"; exit $rc; fi
+checkGitDiff "dep check"
+printf "\n"
+
+
 echo "Running : make kubegen"
 make kubegen
 rc=$?; if [[ $rc != 0 ]]; then echo "make kubegen failed"; exit $rc; fi
