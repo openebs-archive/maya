@@ -142,6 +142,8 @@ type ResourceDetails struct {
 	APIVersion string `json:"apiVersion"`
 	// Namespace of the resource
 	Namespace string `json:"namespace"`
+	// Generation of resource
+	Generation string `json:"generation"`
 }
 
 // ResourceState represents the state of a resource

@@ -16,23 +16,20 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-)
-
-// ExecutorConfig represents task executor config using these config
-// task executor runs castemplate engine for each given resources.
+// ExecutorConfig represents task executor config.
 // This contains Versions, upgrade Options and castemplate name.
 type ExecutorConfig struct {
 	Versions
 	Options
 	// Castemplate contain castemplate name which task executor
 	// will use to upgrade single unit of resources.
-	Castemplate string `json:"Castemplate"`
-	// RuntimeConfig is used to provide some runtime config to
+	Castemplate string `json:"casTemplate"`
+	// RuntimeConfigs is used to provide some runtime config to
 	// castemplate engine. Task executor will directly copy this
 	// config to castemplate engine.
-	RuntimeConfig apis.Config `json:"runtimeConfig"`
+	RuntimeConfigs []RuntimeConfig `json:"runtimeConfig"`
+	// JobId contains unique id for each job
+	JobId string `json:"jobId"`
 	// Resources contains list of resources which we are going to upgrade
 	Resources []ResourceDetails `json:"Resources"`
 }
@@ -50,4 +47,15 @@ type Versions struct {
 type Options struct {
 	RetryOnError    bool `json:"retryOnError"`
 	RollbackOnError bool `json:"rollbackOnError"`
+}
+
+// RuntimeConfig holds a runtime configuration for executor
+type RuntimeConfig struct {
+	// Name of the config
+	Name string `json:"name"`
+	// Value represents any specific value that is applicable
+	// to this config
+	Value string `json:"value"`
+	// Data represents an arbitrary map of key value pairs
+	Data map[string]string `json:"data"`
 }
