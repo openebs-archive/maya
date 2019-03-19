@@ -47,7 +47,7 @@ type deployAppsv1 struct {
 	checks []predicateAppsv1       // predicate list for deployAppsv1
 }
 
-// KubeClient returns a new instance of kubeclient meant for deployment
+// DeployAppsv1 returns a new instance of deployAppsv1 meant for deployment
 func DeployAppsv1(opts ...deployAppsv1BuildOption) *deployAppsv1 {
 	k := &deployAppsv1{}
 	for _, o := range opts {

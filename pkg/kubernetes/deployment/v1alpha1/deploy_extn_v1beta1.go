@@ -85,7 +85,7 @@ func rolloutMessage(p predicateKey) string {
 	return rolloutMessages[p]
 }
 
-// KubeClient returns a new instance of kubeclient meant for deployment
+// DeployExtnV1Beta1 returns a new instance of deployExtnV1Beta1 meant for deployment
 func DeployExtnV1Beta1(opts ...deployExtnV1Beta1BuildOption) *deployExtnV1Beta1 {
 	k := &deployExtnV1Beta1{}
 	for _, o := range opts {
