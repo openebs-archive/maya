@@ -126,8 +126,8 @@ func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool 
 	return required
 }
 
-// validatePVCDeleterequest validates the persistentvolumeclaim(PVC) delete request
-func (wh *webhook) validatePVCDeleterequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+// validatePVCDeleteRequest validates the persistentvolumeclaim(PVC) delete request
+func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
 
@@ -200,8 +200,8 @@ func (wh *webhook) validatePVCDeleterequest(req *v1beta1.AdmissionRequest) *v1be
 	return response
 }
 
-// validatePVCCreaterequest validates persistentvolumeclaim(PVC) create request
-func (wh *webhook) validatePVCCreaterequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+// validatePVCCreateRequest validates persistentvolumeclaim(PVC) create request
+func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	response := &v1beta1.AdmissionResponse{}
 	response.Allowed = true
 
@@ -276,9 +276,9 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	}
 	// validates only if requested operation is CREATE or DELETE
 	if req.Operation == v1beta1.Create {
-		return wh.validatePVCCreaterequest(req)
+		return wh.validatePVCCreateRequest(req)
 	} else if req.Operation == v1beta1.Delete {
-		return wh.validatePVCDeleterequest(req)
+		return wh.validatePVCDeleteRequest(req)
 	}
 	return response
 }
