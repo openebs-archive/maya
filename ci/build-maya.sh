@@ -6,6 +6,10 @@ echo "*****************************Retagging images and setting up env**********
 # depending on when and from where it is being downloaded. For ex:
 # - during the release time, the image tags can be versioned like 0.7.0-RC..
 # - from a branch, the image tags can be the branch names like v0.7.x-ci
+
+set -e
+# If any of the images aren't present the script will exit returning
+# a non zero exit code, which will result in a build failure.
 if [ ${CI_TAG} != "ci" ]; then
   sudo docker tag openebs/m-apiserver:ci openebs/m-apiserver:${CI_TAG}
   sudo docker tag openebs/m-exporter:ci openebs/m-exporter:${CI_TAG}
