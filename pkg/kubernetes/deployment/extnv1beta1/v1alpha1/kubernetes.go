@@ -30,8 +30,8 @@ type kubeclient struct {
 
 // rolloutOutput struct contaons message and boolean value to show rolloutstatus
 type rolloutOutput struct {
-	IsRolledout bool   `json:"IsRolledout"`
-	Message     string `json:"Message"`
+	IsRolledout bool   `json:"isRolledout"`
+	Message     string `json:"message"`
 }
 
 // kubeclientBuildOption defines the abstraction to build a kubeclient instance
