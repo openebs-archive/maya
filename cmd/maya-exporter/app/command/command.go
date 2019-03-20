@@ -24,6 +24,8 @@ import (
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector/pool"
 	"github.com/openebs/maya/cmd/maya-exporter/app/collector/zvol"
+	types "github.com/openebs/maya/pkg/exec"
+	exec "github.com/openebs/maya/pkg/exec/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
@@ -44,6 +46,8 @@ const (
 	// casType is the type of container attached storage (CAS) from which
 	// the metrics need to be exported. Default is Jiva"
 	casType = "jiva"
+	// timeout is the timeout for executing a command
+	timeout = 30 * time.Second
 )
 
 // VolumeExporterOptions is used to create flags for the monitoring command
@@ -163,17 +167,18 @@ func (o *VolumeExporterOptions) RegisterCstor() {
 // RegisterPool registers pool collector which collects
 // pool level metrics
 func (o *VolumeExporterOptions) RegisterPool() {
-	pool.InitVar()
-	zvol.InitVar()
-	p := pool.New()
-	z := zvol.New()
-	l := zvol.NewVolumeList()
-
-	// Blocking call with retry timeout of 2s and context timeout of 5 sec,
-	// pool container may be starting.
-	p.GetInitStatus(5 * time.Second)
+	p := pool.New(buildRunner(timeout, "zpool", "list", "-Hp"))
+	z := zvol.New(buildRunner(timeout, "zfs", "stats"))
+	l := zvol.NewVolumeList(buildRunner(timeout, "zfs", "list", "-Hp"))
 	prometheus.MustRegister(p, z, l)
-	glog.Info("Registered maya exporter for cstor")
-
+	glog.Info("Registered maya exporter for cstor pool")
 	return
+}
+
+func buildRunner(timeout time.Duration, cmd string, args ...string) types.Runner {
+	return exec.StdoutBuilder().
+		WithTimeout(timeout).
+		WithCommand(cmd).
+		WithArgs(args...).
+		Build()
 }
