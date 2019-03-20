@@ -33,7 +33,7 @@ type getClientsetFunc func() (cs *clientset.Clientset, err error)
 
 // listFunc is a typed function that abstracts
 // listing upgrade result instances
-type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error)
+type listFunc func(cs *clientset.Clientset, opts metav1.ListOptions) (*apis.UpgradeResultList, error)
 
 // getFunc is a typed function that abstracts
 // getting upgrade result instances
@@ -51,6 +51,7 @@ type kubeclient struct {
 	getConfig kclient.GetConfigFunc
 	// functions useful during mocking
 	getClientset getClientsetFunc
+	namespace    string
 	list         listFunc
 	get          getFunc
 }
@@ -72,8 +73,13 @@ func (k *kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
-			return cs.OpenebsV1alpha1().UpgradeResults(namespace).List(opts)
+		k.list = func(cs *clientset.Clientset, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
+			return cs.OpenebsV1alpha1().UpgradeResults(k.namespace).List(opts)
+		}
+	}
+	if k.get == nil {
+		k.get = func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+			return cs.OpenebsV1alpha1().UpgradeResults(k.namespace).Get(name, opts)
 		}
 	}
 }
@@ -97,6 +103,14 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 	return k
 }
 
+// WithNamespace sets namespace that should be used during
+// kuberenets API calls against runtask resource
+func WithNamespace(namespace string) kubeclientBuildOption {
+	return func(k *kubeclient) {
+		k.namespace = namespace
+	}
+}
+
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
@@ -113,15 +127,12 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of upgrade result
 // instances present in kubernetes cluster
-func (k *kubeclient) List(namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
-	if strings.TrimSpace(namespace) == "" {
-		return nil, errors.New("failed to get namespace for upgrade result: missing upgradeResult namespace")
-	}
+func (k *kubeclient) List(opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.list(cs, namespace, opts)
+	return k.list(cs, opts)
 }
 
 // Get returns an upgrade result instance from kubernetes cluster

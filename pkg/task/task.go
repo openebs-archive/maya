@@ -1141,8 +1141,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 // ListOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
 func (m *taskExecutor) ListOEV1alpha1URRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
-	uc := upgrade.KubeClient(upgrade.WithClientset(m.getK8sClient().GetUCS()))
-	urList, err := uc.List(m.getTaskRunNamespace(), opts)
+	uc := upgrade.KubeClient(upgrade.WithClientset(m.getK8sClient().GetUCS()), upgrade.WithNamespace(m.getTaskRunNamespace()))
+	urList, err := uc.List(opts)
 	if err != nil {
 		return
 	}
