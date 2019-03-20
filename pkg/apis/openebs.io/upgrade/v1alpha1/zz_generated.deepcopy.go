@@ -112,8 +112,8 @@ func (in *RuntimeConfig) DeepCopy() *RuntimeConfig {
 func (in *UpgradeConfig) DeepCopyInto(out *UpgradeConfig) {
 	*out = *in
 	out.ResourceDetails = in.ResourceDetails
-	if in.RuntimeConfig != nil {
-		in, out := &in.RuntimeConfig, &out.RuntimeConfig
+	if in.RuntimeConfigs != nil {
+		in, out := &in.RuntimeConfigs, &out.RuntimeConfigs
 		*out = make([]RuntimeConfig, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])

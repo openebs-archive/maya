@@ -48,10 +48,10 @@ type UpgradeResult struct {
 // all runtime configuration.
 type UpgradeConfig struct {
 	ResourceDetails
-	// RuntimeConfig is used to provide some runtime config to
+	// RuntimeConfigs is used to provide some runtime config to
 	// castemplate engine. Task executor will directly copy this
 	// config to castemplate engine.
-	RuntimeConfig []RuntimeConfig `json:"runtimeConfig"`
+	RuntimeConfigs []RuntimeConfig `json:"runtimeConfigs"`
 }
 
 // UpgradeResultStatus represents the current state of UpgradeResult
