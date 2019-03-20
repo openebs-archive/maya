@@ -16,11 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-// ExecutorConfig represents task executor config.
-// This contains Versions, upgrade Options and castemplate name.
-type ExecutorConfig struct {
-	Versions
-	Options
+// Config represents configuration for a job or executor or some other
+// coomponent. This contains Resources, JobId, Castemplate and RuntimeConfigs
+// Mentioned Resources will be updated using mention castemplate
+type Config struct {
 	// Castemplate contain castemplate name which task executor
 	// will use to upgrade single unit of resources.
 	Castemplate string `json:"casTemplate"`
@@ -32,21 +31,6 @@ type ExecutorConfig struct {
 	JobId string `json:"jobId"`
 	// Resources contains list of resources which we are going to upgrade
 	Resources []ResourceDetails `json:"Resources"`
-}
-
-// Versions contains different version that executor will use at upgrade time.
-// It mainly contains base and target version
-type Versions struct {
-	Base   string `json:"base"`
-	Target string `json:"target"`
-}
-
-// Options contains different options that executor will use at upgrade time.
-// These are used to take decision on what to do if an error occurred during
-// update
-type Options struct {
-	RetryOnError    bool `json:"retryOnError"`
-	RollbackOnError bool `json:"rollbackOnError"`
 }
 
 // RuntimeConfig holds a runtime configuration for executor

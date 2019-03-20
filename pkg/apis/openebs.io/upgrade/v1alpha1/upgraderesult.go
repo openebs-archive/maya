@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -37,28 +36,22 @@ type UpgradeResult struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Config UpgradeResultConfig `json:"config"`
+	Config UpgradeConfig `json:"config"`
 	// Tasks are the runtasks that needs to be
 	// executed to perform this upgrade
 	Tasks  []UpgradeResultTask `json:"tasks"`
 	Status UpgradeResultStatus `json:"status"`
 }
 
-// UpgradeResultConfig represents the entire config
-// of UpgradeResult i.e. same as task-executor job config
-// with single unit of upgrade in resource details. pv or sp
-// will be single unit of upgrade.
-type UpgradeResultConfig struct {
+// UpgradeConfig represents the config of UpgradeResult i.e.
+// It contains resource details of single unit of upgrade and
+// all runtime configuration.
+type UpgradeConfig struct {
 	ResourceDetails
-	Versions
-	Options
-	// Castemplate contain castemplate name which task executor
-	// will use to upgrade single unit of resources.
-	Castemplate string `json:"casTemplate"`
 	// RuntimeConfig is used to provide some runtime config to
 	// castemplate engine. Task executor will directly copy this
 	// config to castemplate engine.
-	RuntimeConfig apis.Config `json:"runtimeConfig"`
+	RuntimeConfig []RuntimeConfig `json:"runtimeConfig"`
 }
 
 // UpgradeResultStatus represents the current state of UpgradeResult
