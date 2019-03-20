@@ -4,8 +4,11 @@ stages:
   - cleanup
 build-maya:
    stage: build
+   only:
+     refs:
+       - /^(v[0-9][.][0-9][.]x|master)?$/
    before_script:
-     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - export GOPATH=$HOME/go
      - export PATH=$HOME/go/bin:$PATH
      - mkdir -p $HOME/go/src/github.com/openebs/maya
@@ -39,18 +42,22 @@ build-maya:
     - kubectl get deployment -n openebs
     - sleep 20
     - make all
-    - ./ci/travis-ci.sh
+  # - ./ci/travis-ci.sh
     - make deploy-images
 
 baseline-image:
   stage: baseline
+  only:
+    refs:
+      - /^(v[0-9][.][0-9][.]x|master)?$/
   script:
      - pwd
      - export BRANCH=${CI_COMMIT_REF_NAME}
      - echo $BRANCH
-     - export COMMIT=${CI_COMMIT_SHA:0:8}
+     - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - echo $COMMIT
      - git clone https://github.com/$REPO/e2e-infrastructure.git
+     - git checkout $BRANCH
      - cd e2e-infrastructure/baseline
      - ansible-playbook commit-writer.yml --extra-vars "branch=$BRANCH repo=$CI_PROJECT_NAME commit=$COMMIT"
      - git status
@@ -58,16 +65,14 @@ baseline-image:
      - git status
      - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
      - git push  https://$user:$pass@github.com/$REPO/e2e-infrastructure.git --all
-     - curl -X POST -F token=$MAWS -F ref=infra-chaos https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
-     - curl -X POST -F token=$MAWS -F ref=master https://gitlab.openebs.ci/api/v4/projects/20/trigger/pipeline
-     - curl -X POST -F token=$MGCP -F ref=master https://gitlab.openebs.ci/api/v4/projects/21/trigger/pipeline
-     - curl -X POST -F token=$MAZURE -F ref=master https://gitlab.openebs.ci/api/v4/projects/25/trigger/pipeline
-     - curl -X POST -F token=$MPACKET -F ref=master https://gitlab.openebs.ci/api/v4/projects/23/trigger/pipeline
-     - curl -X POST -F token=$MEKS -F ref=master https://gitlab.openebs.ci/api/v4/projects/19/trigger/pipeline
-     - curl -X POST -F token=$MGKE -F ref=master https://gitlab.openebs.ci/api/v4/projects/22/trigger/pipeline 
+     - curl -X POST -F variables[INFRA_BRANCH]=$BRANCH -F token=$OPENSHIFT -F ref=openebsbase https://gitlab.openebs.ci/api/v4/projects/15/trigger/pipeline
+
 clean-maya:
   when: always
   stage: cleanup
+  only:
+    refs:
+      - /^(v[0-9][.][0-9][.]x|master)?$/
   script:
     - sudo minikube delete
     - sudo rm -r ~/go
