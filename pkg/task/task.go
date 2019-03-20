@@ -377,7 +377,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isGetOEV1alpha1UR() {
-		err = m.GetOEV1alpha1UR()
+		err = m.getOEV1alpha1UR()
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
 	} else if m.metaTaskExec.isPutOEV1alpha1CSP() {
@@ -864,8 +864,8 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 	return
 }
 
-// GetOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
-func (m *taskExecutor) GetOEV1alpha1UR() (err error) {
+// getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
+func (m *taskExecutor) getOEV1alpha1UR() (err error) {
 	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
 	uresult, err := uc.Get(m.getTaskObjectName(), mach_apis_meta_v1.GetOptions{})
 	if err != nil {
@@ -1128,7 +1128,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 	} else if m.metaTaskExec.isListOEV1alpha1CV() {
 		op, err = kc.ListOEV1alpha1CVRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1UR() {
-		op, err = m.ListOEV1alpha1URRaw(opts)
+		op, err = m.listOEV1alpha1URRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
 	}
@@ -1142,9 +1142,9 @@ func (m *taskExecutor) listK8sResources() (err error) {
 	return
 }
 
-// ListOEV1alpha1URRaw fetches a list of UpgradeResults as per the
+// listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
-func (m *taskExecutor) ListOEV1alpha1URRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+func (m *taskExecutor) listOEV1alpha1URRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
 	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
 	urList, err := uc.List(opts)
 	if err != nil {
