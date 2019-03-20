@@ -24,8 +24,12 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
-	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 )
+
+// getClientFunc is a typed function that
+// abstracts fetching kubernetes client
+type getClientFunc func() (cli *client.Client)
 
 // getClientsetFunc is a typed function that
 // abstracts fetching internal clientset
@@ -42,13 +46,14 @@ type getFunc func(cs *clientset.Clientset, name string, opts metav1.GetOptions) 
 // kubeclient enables kubernetes API operations
 // on upgrade result instance
 type kubeclient struct {
-	*kclient.Client
+	client    *client.Client
+	getClient getClientFunc
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 	// handle to get kubernetes config
-	getConfig kclient.GetConfigFunc
+	getConfig client.GetConfigFunc
 	// functions useful during mocking
 	getClientset getClientsetFunc
 	namespace    string
@@ -63,9 +68,14 @@ type kubeclientBuildOption func(*kubeclient)
 // withDefaults sets the default options
 // of kubeclient instance
 func (k *kubeclient) withDefaults() {
+	if k.getClient == nil {
+		k.getClient = func() (cli *client.Client) {
+			return client.New()
+		}
+	}
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.GetConfig(k.Client)
+		k.getClientset = func() (cs *clientset.Clientset, err error) {
+			config, err := client.GetConfig(k.getClient())
 			if err != nil {
 				return nil, err
 			}
@@ -84,7 +94,15 @@ func (k *kubeclient) withDefaults() {
 	}
 }
 
-// WithClientset sets the kubernetes client against
+// WithClient sets the kubernetes client against
+// the kubeclient instance
+func WithClient(c *client.Client) kubeclientBuildOption {
+	return func(k *kubeclient) {
+		k.client = c
+	}
+}
+
+// WithClientset sets the kubernetes clientset against
 // the kubeclient instance
 func WithClientset(c *clientset.Clientset) kubeclientBuildOption {
 	return func(k *kubeclient) {
@@ -104,7 +122,7 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 }
 
 // WithNamespace sets namespace that should be used during
-// kuberenets API calls against runtask resource
+// kuberenets API calls against upgradeResult resource
 func WithNamespace(namespace string) kubeclientBuildOption {
 	return func(k *kubeclient) {
 		k.namespace = namespace

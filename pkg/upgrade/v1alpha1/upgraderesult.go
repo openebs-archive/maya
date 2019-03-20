@@ -22,24 +22,24 @@ import (
 
 type upgradeResult struct {
 	// upgrade result object
-	object apis.UpgradeResult
+	object *apis.UpgradeResult
 }
 
-type urList struct {
+type upgradeResultList struct {
 	// list of upgrade results
-	items []upgradeResult
+	items []*upgradeResult
 }
 
 // ListBuilder enables building
 // an instance of urList
 type listBuilder struct {
-	list *urList
+	list *upgradeResultList
 }
 
 // ListBuilder returns a new instance
 // of listBuilder
 func ListBuilder() *listBuilder {
-	return &listBuilder{list: &urList{}}
+	return &listBuilder{list: &upgradeResultList{}}
 }
 
 // WithAPIList builds the list of ur
@@ -50,7 +50,7 @@ func (b *listBuilder) WithAPIList(list *apis.UpgradeResultList) *listBuilder {
 		return b
 	}
 	for _, c := range list.Items {
-		b.list.items = append(b.list.items, upgradeResult{object: c})
+		b.list.items = append(b.list.items, &upgradeResult{object: &c})
 	}
 	return b
 }
@@ -58,6 +58,6 @@ func (b *listBuilder) WithAPIList(list *apis.UpgradeResultList) *listBuilder {
 // List returns the list of ur
 // instances that was built by this
 // builder
-func (b *listBuilder) List() *urList {
+func (b *listBuilder) List() *upgradeResultList {
 	return b.list
 }

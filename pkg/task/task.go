@@ -377,7 +377,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isGetOEV1alpha1UR() {
-		err = m.getOEV1alpha1UR()
+		err = m.GetOEV1alpha1UR()
 	} else if m.metaTaskExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
 	} else if m.metaTaskExec.isPutOEV1alpha1CSP() {
@@ -864,13 +864,17 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 	return
 }
 
-// getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
-func (m *taskExecutor) getOEV1alpha1UR() (err error) {
-	ur, err := m.getK8sClient().GetOEV1alpha1URAsRaw(m.getTaskObjectName())
+// GetOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
+func (m *taskExecutor) GetOEV1alpha1UR() (err error) {
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uresult, err := uc.Get(m.getTaskObjectName(), mach_apis_meta_v1.GetOptions{})
 	if err != nil {
 		return
 	}
-
+	ur, err := json.Marshal(uresult)
+	if err != nil {
+		return
+	}
 	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -1141,7 +1145,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 // ListOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
 func (m *taskExecutor) ListOEV1alpha1URRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
-	uc := upgrade.KubeClient(upgrade.WithClientset(m.getK8sClient().GetUCS()), upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
 	urList, err := uc.List(opts)
 	if err != nil {
 		return
