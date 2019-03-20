@@ -78,10 +78,18 @@ func (k *kubeclient) withDefaults() {
 	}
 }
 
+// WithClientset sets the kubernetes client against
+// the kubeclient instance
+func WithClientset(c *clientset.Clientset) kubeclientBuildOption {
+	return func(k *kubeclient) {
+		k.clientset = c
+	}
+}
+
 // KubeClient returns a new instance of kubeclient meant for
 // upgrade result related operations
 func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{Client: kclient.New()}
+	k := &kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}

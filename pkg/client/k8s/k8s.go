@@ -274,6 +274,12 @@ func (k *K8sClient) GetKCS() *kubernetes.Clientset {
 	return k.cs
 }
 
+// GetUCS is a getter method for fetching upgrade clientset as
+// the upgrade clientset is not exported.
+func (k *K8sClient) GetUCS() *upgrade.Clientset {
+	return k.upgradecs
+}
+
 // scOps is a utility function that provides a instance capable of
 // executing various K8s StorageClass related operations
 func (k *K8sClient) storageV1SCOps() typed_storage_v1.StorageClassInterface {
