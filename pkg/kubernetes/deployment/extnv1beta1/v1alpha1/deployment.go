@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
+	extnv1beta1 "k8s.io/api/extensions/v1beta1"
 )
 
 // predicate abstracts conditional logic w.r.t the deployment instance
@@ -44,71 +44,72 @@ type deployBuildOption func(*deploy)
 // rolloutStatus  is a typed function that abstracts status message formation logic
 type rolloutStatus func(*deploy) string
 
-// deploy is a wrapper over api_extn_v1beta1.Deployment
+// deploy is a wrapper over extnv1beta1.Deployment
 type deploy struct {
-	object *api_extn_v1beta1.Deployment // kubernetes deployment instance
-	checks []predicate                  // predicate list for deploy
+	object *extnv1beta1.Deployment // kubernetes deployment instance
+	checks []predicate             // predicate list for deploy
 }
 
-// predicateKey is wrapper over string. It is used to get predicate function and status msg.
-type predicateKey string
+// predicateName type is wrapper over string.
+// It is used to get predicate and status msg.
+type predicateName string
 
 // rolloutStatuses contains a group of status message for each predicate checks.
-// It useses predicateKey as key.
-var rolloutStatuses = map[predicateKey]rolloutStatus{
-	// ProgressDeadlineExceededPK refer to rolloutStatus for predicate IsProgressDeadlineExceeded.
-	ProgressDeadlineExceededPK: func(d *deploy) string {
+// It useses predicateName as key.
+var rolloutStatuses = map[predicateName]rolloutStatus{
+	// PredicateProgressDeadlineExceeded refer to rolloutStatus for predicate IsProgressDeadlineExceeded.
+	PredicateProgressDeadlineExceeded: func(d *deploy) string {
 		return "Deployment exceeded its progress deadline"
 	},
-	// OlderReplicaActivePK refer to rolloutStatus for predicate IsOlderReplicaActive.
-	OlderReplicaActivePK: func(d *deploy) string {
-		if d.object.Spec.Replicas != nil {
-			return fmt.Sprintf("Waiting for deployment rollout to finish: %d out of %d new replicas have been updated",
-				d.object.Status.UpdatedReplicas, *d.object.Spec.Replicas)
+	// PredicateOlderReplicaActive refer to rolloutStatus for predicate IsOlderReplicaActive.
+	PredicateOlderReplicaActive: func(d *deploy) string {
+		if d.object.Spec.Replicas == nil {
+			return "Replica update in progress : some older replicas have been updated"
 		}
-		return "Waiting for deployment rollout to finish: some older replicas have been updated"
+		return fmt.Sprintf("Replica update in progress : %d out of %d new replicas have been updated",
+			d.object.Status.UpdatedReplicas, *d.object.Spec.Replicas)
 	},
-	// TerminationInProgressPK refer rolloutStatus for predicate IsTerminationInProgress.
-	TerminationInProgressPK: func(d *deploy) string {
-		return fmt.Sprintf("Waiting for deployment rollout to finish: %d old replicas are pending termination",
+	// PredicateTerminationInProgress refer rolloutStatus for predicate IsTerminationInProgress.
+	PredicateTerminationInProgress: func(d *deploy) string {
+		return fmt.Sprintf("Replica termination in progress : %d old replicas are pending termination",
 			d.object.Status.Replicas-d.object.Status.UpdatedReplicas)
 	},
-	// UpdationInProgressPK refer to rolloutStatus for predicate IsUpdationInProgress.
-	UpdationInProgressPK: func(d *deploy) string {
-		return fmt.Sprintf("Waiting for deployment rollout to finish: %d of %d updated replicas are available",
+	// PredicateUpdateInProgress refer to rolloutStatus for predicate IsUpdateInProgress.
+	PredicateUpdateInProgress: func(d *deploy) string {
+		return fmt.Sprintf("Replica update in progress : %d of %d updated replicas are available",
 			d.object.Status.AvailableReplicas, d.object.Status.UpdatedReplicas)
 	},
-	// NotSyncSpecPK refer to status rolloutStatus for predicate IsNotSyncSpec.
-	NotSyncSpecPK: func(d *deploy) string {
-		return "Waiting for deployment spec update to be observed"
+	// PredicateNotSpecSynced refer to status rolloutStatus for predicate IsNotSyncSpec.
+	PredicateNotSpecSynced: func(d *deploy) string {
+		return "Deployment rollout in-progress : deployment rollout in-progress : waiting for deployment spec update to be observed"
 	},
 }
 
-// rolloutChecks contains a group of predicate it useses predicateKey as key.
-var rolloutChecks = map[predicateKey]predicate{
-	// ProgressDeadlineExceededPK refer to predicate IsProgressDeadlineExceeded.
-	ProgressDeadlineExceededPK: IsProgressDeadlineExceeded(),
-	// OlderReplicaActivePK refer to predicate IsOlderReplicaActive.
-	OlderReplicaActivePK: IsOlderReplicaActive(),
-	// TerminationInProgressPK refer to predicate IsTerminationInProgress.
-	TerminationInProgressPK: IsTerminationInProgress(),
-	// UpdationInProgressPK refer to predicate IsUpdationInProgress.
-	UpdationInProgressPK: IsUpdationInProgress(),
-	// NotSyncSpecPK refer to predicate IsSyncSpec.
-	NotSyncSpecPK: IsNotSyncSpec(),
+// rolloutChecks contains a group of predicate it useses predicateName as key.
+var rolloutChecks = map[predicateName]predicate{
+	// PredicateProgressDeadlineExceeded refer to predicate IsProgressDeadlineExceeded.
+	PredicateProgressDeadlineExceeded: IsProgressDeadlineExceeded(),
+	// PredicateOlderReplicaActive refer to predicate IsOlderReplicaActive.
+	PredicateOlderReplicaActive: IsOlderReplicaActive(),
+	// PredicateTerminationInProgress refer to predicate IsTerminationInProgress.
+	PredicateTerminationInProgress: IsTerminationInProgress(),
+	// PredicateUpdateInProgress refer to predicate IsUpdationInProgress.
+	PredicateUpdateInProgress: IsUpdationInProgress(),
+	// PredicateNotSpecSynced refer to predicate IsSyncSpec.
+	PredicateNotSpecSynced: IsNotSyncSpec(),
 }
 
 const (
-	// ProgressDeadlineExceededPK refer to predicate IsProgressDeadlineExceeded.
-	ProgressDeadlineExceededPK predicateKey = "ProgressDeadlineExceeded"
-	// NotSyncSpecPK refer to predicate IsSyncSpec.
-	NotSyncSpecPK predicateKey = "NotSyncSpec"
-	// OlderReplicaActivePK refer to predicate IsOlderReplicaActive.
-	OlderReplicaActivePK predicateKey = "OlderReplicaActive"
-	// TerminationInProgressPK refer to predicate IsTerminationInProgress.
-	TerminationInProgressPK predicateKey = "TerminationInProgress"
-	// UpdationInProgressPK refer to predicate IsUpdationInProgress.
-	UpdationInProgressPK predicateKey = "UpdationInProgress"
+	// PredicateProgressDeadlineExceeded refer to predicate IsProgressDeadlineExceeded.
+	PredicateProgressDeadlineExceeded predicateName = "ProgressDeadlineExceeded"
+	// PredicateNotSpecSynced refer to predicate IsNotSpecSynced
+	PredicateNotSpecSynced predicateName = "NotSpecSynced"
+	// PredicateOlderReplicaActive refer to predicate IsOlderReplicaActive
+	PredicateOlderReplicaActive predicateName = "OlderReplicaActive"
+	// PredicateTerminationInProgress refer to predicate IsTerminationInProgress
+	PredicateTerminationInProgress predicateName = "TerminationInProgress"
+	// PredicateUpdateInProgress refer to predicate IsUpdateInProgress.
+	PredicateUpdateInProgress predicateName = "UpdateInProgress"
 )
 
 // New returns a new instance of deploy meant for deployment
@@ -122,7 +123,7 @@ func New(opts ...deployBuildOption) *deploy {
 
 // WithAPIObject is a deployBuildOption caller can pass deployment schema
 // with this function to create deploy object
-func WithAPIObject(deployment *api_extn_v1beta1.Deployment) deployBuildOption {
+func WithAPIObject(deployment *extnv1beta1.Deployment) deployBuildOption {
 	return func(d *deploy) {
 		d.object = deployment
 	}
@@ -130,14 +131,16 @@ func WithAPIObject(deployment *api_extn_v1beta1.Deployment) deployBuildOption {
 
 // isRollout range over rolloutChecks map and check status of each predicate
 // also it generates status message from rolloutStatuses using predicate key
-func (d *deploy) isRollout() (msg string, ok bool) {
+func (d *deploy) isRollout() (string, bool) {
+	msg := ""
+	ok := false
 	for pk, p := range rolloutChecks {
 		if ok = p(d); ok {
 			msg = rolloutStatuses[pk](d)
 			return msg, !ok
 		}
 	}
-	return "", !ok
+	return msg, !ok
 }
 
 // RolloutStatus runs checks against deployment instance
@@ -190,7 +193,7 @@ func IsProgressDeadlineExceeded() predicate {
 // `Progressing` condition's reason is `ProgressDeadlineExceeded` then it is not rolled out.
 func (d *deploy) IsProgressDeadlineExceeded() bool {
 	for _, cond := range d.object.Status.Conditions {
-		if cond.Type == api_extn_v1beta1.DeploymentProgressing &&
+		if cond.Type == extnv1beta1.DeploymentProgressing &&
 			cond.Reason == "ProgressDeadlineExceeded" {
 			return true
 		}

@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
+	extnv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -10,10 +10,10 @@ import (
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
 // getFn is a typed function that abstracts get of deployment instances
-type getFn func(cli *kubernetes.Clientset, name, namespace string) (*api_extn_v1beta1.Deployment, error)
+type getFn func(cli *kubernetes.Clientset, name, namespace string) (*extnv1beta1.Deployment, error)
 
 // rolloutStatusFn is a typed function that abstracts rollout status of deployment instances
-type rolloutStatusFn func(cli *kubernetes.Clientset, name, namespace string) ([]byte, error)
+type rolloutStatusFn func(d *extnv1beta1.Deployment) ([]byte, error)
 
 // kubeclient enables kubernetes API operations on deployment instance
 type kubeclient struct {
@@ -51,8 +51,8 @@ func (k *kubeclient) withDefaults() {
 
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, name,
-			namespace string) (d *api_extn_v1beta1.Deployment, err error) {
-			d = &api_extn_v1beta1.Deployment{}
+			namespace string) (d *extnv1beta1.Deployment, err error) {
+			d = &extnv1beta1.Deployment{}
 			err = cli.ExtensionsV1beta1().
 				RESTClient().
 				Get().
@@ -66,12 +66,7 @@ func (k *kubeclient) withDefaults() {
 	}
 
 	if k.rolloutStatus == nil {
-		k.rolloutStatus = func(cli *kubernetes.Clientset, name,
-			namespace string) (op []byte, err error) {
-			d, err := k.get(cli, name, namespace)
-			if err != nil {
-				return nil, err
-			}
+		k.rolloutStatus = func(d *extnv1beta1.Deployment) (op []byte, err error) {
 			return New(WithAPIObject(d)).
 				RolloutStatusf()
 		}
@@ -118,7 +113,7 @@ func (k *kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 }
 
 // Get returns deployment object for given name
-func (k *kubeclient) Get(name string) (*api_extn_v1beta1.Deployment, error) {
+func (k *kubeclient) Get(name string) (*extnv1beta1.Deployment, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -132,5 +127,9 @@ func (k *kubeclient) RolloutStatus(name string) (op []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return k.rolloutStatus(cli, name, k.namespace)
+	d, err := k.get(cli, name, k.namespace)
+	if err != nil {
+		return nil, err
+	}
+	return k.rolloutStatus(d)
 }
