@@ -51,7 +51,7 @@ type deploy struct {
 }
 
 // predicateName type is wrapper over string.
-// It is used to get predicate and status msg.
+// It is used to refer predicate and status msg.
 type predicateName string
 
 // rolloutStatuses contains a group of status message for each predicate checks.
@@ -81,7 +81,7 @@ var rolloutStatuses = map[predicateName]rolloutStatus{
 	},
 	// PredicateNotSpecSynced refer to status rolloutStatus for predicate IsNotSyncSpec.
 	PredicateNotSpecSynced: func(d *deploy) string {
-		return "Deployment rollout in-progress : waiting for deployment spec update to be observed"
+		return "Deployment rollout in-progress: waiting for deployment spec update to be observed"
 	},
 }
 
