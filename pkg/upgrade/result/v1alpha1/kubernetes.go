@@ -27,27 +27,21 @@ import (
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 )
 
-// getClientFunc is a typed function that
-// abstracts fetching kubernetes client
-type getClientFunc func() (cli *client.Client)
-
 // getClientsetFunc is a typed function that
 // abstracts fetching internal clientset
 type getClientsetFunc func() (cs *clientset.Clientset, err error)
 
 // listFunc is a typed function that abstracts
 // listing upgrade result instances
-type listFunc func(cs *clientset.Clientset, opts metav1.ListOptions) (*apis.UpgradeResultList, error)
+type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error)
 
 // getFunc is a typed function that abstracts
 // getting upgrade result instances
-type getFunc func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.UpgradeResult, error)
+type getFunc func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error)
 
 // kubeclient enables kubernetes API operations
 // on upgrade result instance
 type kubeclient struct {
-	client    *client.Client
-	getClient getClientFunc
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
@@ -68,14 +62,9 @@ type kubeclientBuildOption func(*kubeclient)
 // withDefaults sets the default options
 // of kubeclient instance
 func (k *kubeclient) withDefaults() {
-	if k.getClient == nil {
-		k.getClient = func() (cli *client.Client) {
-			return client.New()
-		}
-	}
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
-			config, err := client.GetConfig(k.getClient())
+			config, err := client.GetConfig(client.New())
 			if err != nil {
 				return nil, err
 			}
@@ -83,22 +72,14 @@ func (k *kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cs *clientset.Clientset, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
-			return cs.OpenebsV1alpha1().UpgradeResults(k.namespace).List(opts)
+		k.list = func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
+			return cs.OpenebsV1alpha1().UpgradeResults(namespace).List(opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
-			return cs.OpenebsV1alpha1().UpgradeResults(k.namespace).Get(name, opts)
+		k.get = func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+			return cs.OpenebsV1alpha1().UpgradeResults(namespace).Get(name, opts)
 		}
-	}
-}
-
-// WithClient sets the kubernetes client against
-// the kubeclient instance
-func WithClient(c *client.Client) kubeclientBuildOption {
-	return func(k *kubeclient) {
-		k.client = c
 	}
 }
 
@@ -150,7 +131,7 @@ func (k *kubeclient) List(opts metav1.ListOptions) (*apis.UpgradeResultList, err
 	if err != nil {
 		return nil, err
 	}
-	return k.list(cs, opts)
+	return k.list(cs, k.namespace, opts)
 }
 
 // Get returns an upgrade result instance from kubernetes cluster
@@ -162,5 +143,5 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cs, name, opts)
+	return k.get(cs, name, k.namespace, opts)
 }

@@ -29,14 +29,14 @@ import (
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
-	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
+	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
-	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TaskExecutor is the interface that provides a contract method to execute
@@ -867,7 +867,7 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 // getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1UR() (err error) {
 	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
-	uresult, err := uc.Get(m.getTaskObjectName(), mach_apis_meta_v1.GetOptions{})
+	uresult, err := uc.Get(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
 		return
 	}
@@ -1144,7 +1144,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 
 // listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
-func (m *taskExecutor) listOEV1alpha1URRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+func (m *taskExecutor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, err error) {
 	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
 	urList, err := uc.List(opts)
 	if err != nil {

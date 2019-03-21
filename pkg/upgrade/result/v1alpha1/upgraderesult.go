@@ -49,8 +49,8 @@ func (b *listBuilder) WithAPIList(list *apis.UpgradeResultList) *listBuilder {
 	if list == nil {
 		return b
 	}
-	for _, c := range list.Items {
-		b.list.items = append(b.list.items, &upgradeResult{object: &c})
+	for i := range list.Items {
+		b.list.items = append(b.list.items, &upgradeResult{object: &list.Items[i]})
 	}
 	return b
 }
