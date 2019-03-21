@@ -135,7 +135,10 @@ type ResourceDetails struct {
 	APIVersion string `json:"apiVersion"`
 	// Namespace of the resource
 	Namespace string `json:"namespace"`
-	// Generation of resource
+	// Generation of resource represents last successful Generation
+	// observed by resource controller (ie. - deployment controller).
+	// Every time we patched a resource it will assign a new Generation.
+	// This is helpful at the time of roll back.
 	Generation string `json:"generation"`
 }
 
