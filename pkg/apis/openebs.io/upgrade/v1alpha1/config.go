@@ -16,30 +16,28 @@ limitations under the License.
 
 package v1alpha1
 
-// Config represents configuration for a job or executor or some other
-// coomponent. This contains Resources, JobId, Castemplate and RuntimeConfigs
+// UpgradeConfig represents configuration for a job or executor or some other
+// coomponent. This contains Resources, Castemplate and RuntimeConfigs
 // Mentioned Resources will be updated using mention castemplate
-type Config struct {
-	// Castemplate contain castemplate name which task executor
+type UpgradeConfig struct {
+	// CASTemplate contain castemplate name which task executor
 	// will use to upgrade single unit of resources.
-	Castemplate string `json:"casTemplate"`
-	// RuntimeConfigs is used to provide some runtime config to
-	// castemplate engine. Task executor will directly copy this
-	// config to castemplate engine.
-	RuntimeConfigs []RuntimeConfig `json:"runtimeConfig"`
-	// JobId contains unique id for each job
-	JobId string `json:"jobId"`
+	CASTemplate string `json:"casTemplate"`
+	// Data is used to provide some runtime configurations to
+	// castemplate engine. Task executor will directly copy these
+	// configurations to castemplate engine.
+	Data []DataItem `json:"data"`
 	// Resources contains list of resources which we are going to upgrade
 	Resources []ResourceDetails `json:"Resources"`
 }
 
-// RuntimeConfig holds a runtime configuration for executor
-type RuntimeConfig struct {
-	// Name of the config
+// DataItem holds a runtime configuration for executor
+type DataItem struct {
+	// Name of the configuration
 	Name string `json:"name"`
 	// Value represents any specific value that is applicable
-	// to this config
+	// to this configuration
 	Value string `json:"value"`
-	// Data represents an arbitrary map of key value pairs
-	Data map[string]string `json:"data"`
+	// Entries represents an arbitrary map of key value pairs
+	Entries map[string]string `json:"entries"`
 }

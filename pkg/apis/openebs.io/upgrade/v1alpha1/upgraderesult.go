@@ -36,22 +36,22 @@ type UpgradeResult struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Config UpgradeConfig `json:"config"`
+	Config UpgradeResultConfig `json:"config"`
 	// Tasks are the runtasks that needs to be
 	// executed to perform this upgrade
 	Tasks  []UpgradeResultTask `json:"tasks"`
 	Status UpgradeResultStatus `json:"status"`
 }
 
-// UpgradeConfig represents the config of UpgradeResult i.e.
+// UpgradeResultConfig represents the config of UpgradeResult i.e.
 // It contains resource details of single unit of upgrade and
 // all runtime configuration.
-type UpgradeConfig struct {
+type UpgradeResultConfig struct {
 	ResourceDetails
-	// RuntimeConfigs is used to provide some runtime config to
-	// castemplate engine. Task executor will directly copy this
-	// config to castemplate engine.
-	RuntimeConfigs []RuntimeConfig `json:"runtimeConfigs"`
+	// data is used to provide some runtime configurations to
+	// castemplate engine. Task executor will directly copy these
+	// configurations to castemplate engine.
+	Data []DataItem `json:"data"`
 }
 
 // UpgradeResultStatus represents the current state of UpgradeResult
