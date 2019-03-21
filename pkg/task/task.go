@@ -886,8 +886,12 @@ func (m *taskExecutor) extnV1B1DeploymentRollOutStatus() (err error) {
 	if err != nil {
 		return
 	}
+	op, err := res.Raw()
+	if err != nil {
+		return
+	}
 
-	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 

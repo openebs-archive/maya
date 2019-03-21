@@ -94,7 +94,7 @@ var rolloutChecks = map[predicateName]predicate{
 	// PredicateTerminationInProgress refer to predicate IsTerminationInProgress.
 	PredicateTerminationInProgress: IsTerminationInProgress(),
 	// PredicateUpdateInProgress refer to predicate IsUpdationInProgress.
-	PredicateUpdateInProgress: IsUpdationInProgress(),
+	PredicateUpdateInProgress: IsUpdateInProgress(),
 	// PredicateNotSpecSynced refer to predicate IsSyncSpec.
 	PredicateNotSpecSynced: IsNotSyncSpec(),
 }
@@ -229,17 +229,17 @@ func (d *deploy) IsTerminationInProgress() bool {
 	return d.object.Status.Replicas > d.object.Status.UpdatedReplicas
 }
 
-// IsUpdationInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
+// IsUpdateInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
 // then all the older replicas are not there but there are less number of availableReplicas
-func IsUpdationInProgress() predicate {
+func IsUpdateInProgress() predicate {
 	return func(d *deploy) bool {
-		return d.IsUpdationInProgress()
+		return d.IsUpdateInProgress()
 	}
 }
 
-// IsUpdationInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
+// IsUpdateInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
 // then all the older replicas are not there but there are less number of availableReplicas
-func (d *deploy) IsUpdationInProgress() bool {
+func (d *deploy) IsUpdateInProgress() bool {
 	return d.object.Status.AvailableReplicas < d.object.Status.UpdatedReplicas
 }
 
