@@ -132,15 +132,21 @@ func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOpe
 			return string(apis.CVRStatusDeletionFailed), err
 		}
 		return "", nil
+	case common.QOpModify:
+		fallthrough
 	case common.QOpSync:
-		glog.Infof("Synchronizing CstorVolumeReplica status for volume %s", cVR.ObjectMeta.Name)
+		if operation == common.QOpModify {
+			glog.Infof("Synchronizing CstorVolumeReplica status for volume: %s", cVR.ObjectMeta.Name)
+		} else if operation == common.QOpSync {
+			glog.Infof("Modify event for CstorVolumeReplica volume: %s", cVR.ObjectMeta.Name)
+		}
 		status, err := c.getCVRStatus(cVR)
 		if err != nil {
 			glog.Errorf("Unable to get volume status:%s", err.Error())
 		}
 		return status, err
 	}
-	glog.Warningf("No matching event handlers for cvr %s", cVR.ObjectMeta.Name)
+	glog.Warningf("No matching event handlers, please handle '%s' event fot cvr '%s'", operation, cVR.ObjectMeta.Name)
 	return string(apis.CVRStatusInvalid), nil
 }
 
@@ -159,13 +165,6 @@ func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeR
 		}
 	} else {
 		common.SyncResources.Mux.Unlock()
-	}
-	// If volumereplica is already present.
-	existingvol, _ := volumereplica.GetVolumes()
-	if common.CheckIfPresent(existingvol, fullVolName) {
-		glog.Warningf("CStorVolumeReplica %v is already present", string(cVR.GetUID()))
-		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-		return string(apis.CVRStatusErrorDuplicate), nil
 	}
 
 	// Setting quorum to true for newly creating Volumes.
@@ -252,7 +251,7 @@ func IsOnlineStatus(cVR *apis.CStorVolumeReplica) bool {
 		glog.Infof("cVR Healthy status: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof("Not Healthy status: %v", string(cVR.ObjectMeta.UID))
+	glog.Infof("Not Healthy status: %v, %v phase: %v", string(cVR.ObjectMeta.Name), string(cVR.ObjectMeta.UID), cVR.Status.Phase)
 	return false
 }
 
@@ -262,7 +261,7 @@ func IsEmptyStatus(cVR *apis.CStorVolumeReplica) bool {
 		glog.Infof("cVR empty status: %v", string(cVR.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof("Not empty status: %v", string(cVR.ObjectMeta.UID))
+	glog.Infof("Not empty status: %v, %v phase: %v", string(cVR.ObjectMeta.Name), string(cVR.ObjectMeta.UID), cVR.Status.Phase)
 	return false
 }
 
