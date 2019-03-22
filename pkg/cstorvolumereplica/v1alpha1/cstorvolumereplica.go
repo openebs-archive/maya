@@ -4,8 +4,11 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
+type labelKey string
+
 const (
-	cstorPoolUIDLabelKey string = "cstorpool.openebs.io/uid"
+	cstorPoolUIDLabel  labelKey = "cstorpool.openebs.io/uid"
+	cstorpoolNameLabel labelKey = "cstorpool.openebs.io/name"
 )
 
 type cvr struct {
@@ -25,10 +28,40 @@ type cvrList struct {
 func (l *cvrList) GetPoolUIDs() []string {
 	var uids []string
 	for _, cvr := range l.items {
-		uid := cvr.object.GetLabels()[cstorPoolUIDLabelKey]
+		uid := cvr.object.GetLabels()[string(cstorPoolUIDLabel)]
 		uids = append(uids, uid)
 	}
 	return uids
+}
+
+// GetPoolNames returns a list of cstor pool
+// name corresponding to cstor volume replica
+// instances
+func (l *cvrList) GetPoolNames() []string {
+	var pools []string
+	for _, cvr := range l.items {
+		pool := cvr.object.GetLabels()[string(cstorpoolNameLabel)]
+		if pool == "" {
+			pools = append(pools, pool)
+		}
+	}
+	return pools
+}
+
+// GetUniquePoolNames returns a list of cstor pool
+// name corresponding to cstor volume replica
+// instances
+func (l *cvrList) GetUniquePoolNames() []string {
+	registerd := map[string]bool{}
+	var unique []string
+	for _, cvr := range l.items {
+		pool := cvr.object.GetLabels()[string(cstorpoolNameLabel)]
+		if pool != "" && !registerd[pool] {
+			registerd[pool] = true
+			unique = append(unique, pool)
+		}
+	}
+	return unique
 }
 
 // listBuilder enables building
