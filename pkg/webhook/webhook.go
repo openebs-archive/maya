@@ -26,7 +26,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1/clientset/internalclientset"
+	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/apps/v1"
@@ -55,6 +55,7 @@ var (
 		metav1.NamespaceSystem,
 		metav1.NamespacePublic,
 	}
+	snapshotAnnotation = "snapshot.alpha.kubernetes.io/snapshot"
 )
 
 // webhook implements a validating webhook.
@@ -221,7 +222,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 
 	// If snapshot.alpha.kubernetes.io/snapshot annotation represents the clone pvc
 	// create request
-	snapname := pvc.Annotations["snapshot.alpha.kubernetes.io/snapshot"]
+	snapname := pvc.Annotations[snapshotAnnotation]
 	if len(snapname) == 0 {
 		return response
 	}
@@ -229,7 +230,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	glog.Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
-	snapObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
+	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{
@@ -241,7 +242,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	glog.V(1).Infof("snapshotdata name: '%s'", snapDataName)
 
 	// get the snapDataObj to get the snapshotdataname
-	snapDataObj, err := wh.snapClientSet.VolumesnapshotV1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
+	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
 	if err != nil {
 		response.Allowed = false
 		response.Result = &metav1.Status{

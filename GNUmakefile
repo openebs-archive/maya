@@ -15,7 +15,7 @@ ALL_API_GROUPS=\
 	openebs.io/catalog/v1alpha1 \
 	openebs.io/kubeassert/v1alpha1 \
 	openebs.io/upgrade/v1alpha1 \
-	openebs.io/snapshot/v1
+	openebs.io/snapshot/v1alpha1
 
 # API_GROUPS sets api version of the resources exposed by maya
 ifeq (${API_GROUPS}, )
