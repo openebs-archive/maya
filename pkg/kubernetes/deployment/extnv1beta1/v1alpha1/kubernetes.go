@@ -24,14 +24,21 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 )
 
-// getClientsetFn is a typed function that abstracts fetching of internal clientset
+// getClientsetFn is a typed function that
+// abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
 // getFn is a typed function that abstracts get of deployment instances
-type getFn func(cli *kubernetes.Clientset, name, namespace string, opts *metav1.GetOptions) (*extnv1beta1.Deployment, error)
+type getFn func(cli *kubernetes.Clientset, name, namespace string,
+	opts *metav1.GetOptions) (*extnv1beta1.Deployment, error)
 
-// rolloutStatusFn is a typed function that abstracts rollout status of deployment instances
-type rolloutStatusFn func(d *extnv1beta1.Deployment) (*rolloutOutputBuilder, error)
+// rolloutStatusFn is a typed function that abstracts
+// rollout status of deployment instances
+type rolloutStatusFn func(d *extnv1beta1.Deployment) (*rolloutOutput, error)
+
+// rolloutStatusfFn is a typed function that abstracts
+// rollout status of deployment instances
+type rolloutStatusfFn func(d *extnv1beta1.Deployment) ([]byte, error)
 
 // kubeclient enables kubernetes API operations on deployment instance
 type kubeclient struct {
@@ -41,9 +48,10 @@ type kubeclient struct {
 	namespace string
 
 	// functions useful during mocking
-	getClientset  getClientsetFn
-	get           getFn
-	rolloutStatus rolloutStatusFn
+	getClientset   getClientsetFn
+	get            getFn
+	rolloutStatus  rolloutStatusFn
+	rolloutStatusf rolloutStatusfFn
 }
 
 // kubeclientBuildOption defines the abstraction to build a kubeclient instance
@@ -63,7 +71,8 @@ func (k *kubeclient) withDefaults() {
 
 	if k.get == nil {
 		k.get = func(cli *kubernetes.Clientset, name,
-			namespace string, opts *metav1.GetOptions) (d *extnv1beta1.Deployment, err error) {
+			namespace string, opts *metav1.GetOptions) (
+			d *extnv1beta1.Deployment, err error) {
 			d = &extnv1beta1.Deployment{}
 			err = cli.ExtensionsV1beta1().
 				RESTClient().
@@ -79,13 +88,30 @@ func (k *kubeclient) withDefaults() {
 	}
 
 	if k.rolloutStatus == nil {
-		k.rolloutStatus = func(d *extnv1beta1.Deployment) (*rolloutOutputBuilder, error) {
+		k.rolloutStatus = func(d *extnv1beta1.Deployment) (
+			*rolloutOutput, error) {
 			status, err := New(WithAPIObject(d)).
 				RolloutStatus()
 			if err != nil {
 				return nil, err
 			}
-			return rolloutStatusf(withOutputObject(status)), nil
+			return rolloutStatusf(
+				withOutputObject(status)).
+				AsRolloutOutput()
+		}
+	}
+
+	if k.rolloutStatusf == nil {
+		k.rolloutStatusf = func(d *extnv1beta1.Deployment) (
+			[]byte, error) {
+			status, err := New(WithAPIObject(d)).
+				RolloutStatus()
+			if err != nil {
+				return nil, err
+			}
+			return rolloutStatusf(
+				withOutputObject(status)).
+				Raw()
 		}
 	}
 
@@ -116,7 +142,8 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance of kubernetes client or its cached copy
+// getClientOrCached returns either a new
+// instance of kubernetes client or its cached copy
 func (k *kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
@@ -139,7 +166,8 @@ func (k *kubeclient) Get(name string) (*extnv1beta1.Deployment, error) {
 }
 
 // RolloutStatus returns deployment's rollout status for given name
-func (k *kubeclient) RolloutStatus(name string) (*rolloutOutputBuilder, error) {
+func (k *kubeclient) RolloutStatus(name string) (
+	*rolloutOutput, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -149,4 +177,19 @@ func (k *kubeclient) RolloutStatus(name string) (*rolloutOutputBuilder, error) {
 		return nil, err
 	}
 	return k.rolloutStatus(d)
+}
+
+// RolloutStatusf returns deployment's rollout status for given name
+// in raw bytes
+func (k *kubeclient) RolloutStatusf(name string) (
+	[]byte, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return k.rolloutStatusf(d)
 }

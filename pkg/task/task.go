@@ -882,16 +882,12 @@ func (m *taskExecutor) extnV1B1DeploymentRollOutStatus() (err error) {
 	dclient := deploy_extnv1beta1.KubeClient(
 		deploy_extnv1beta1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
-	res, err := dclient.RolloutStatus(m.getTaskObjectName())
-	if err != nil {
-		return
-	}
-	op, err := res.Raw()
+	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -900,7 +896,7 @@ func (m *taskExecutor) appsV1DeploymentRollOutStatus() (err error) {
 	dclient := deploy_appsv1.KubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
-	res, err := dclient.RolloutStatus(m.getTaskObjectName())
+	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
 	if err != nil {
 		return
 	}

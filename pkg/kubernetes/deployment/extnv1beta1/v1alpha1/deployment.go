@@ -49,7 +49,8 @@ type deploy struct {
 type predicateName string
 
 const (
-	// PredicateProgressDeadlineExceeded refer to predicate IsProgressDeadlineExceeded.
+	// PredicateProgressDeadlineExceeded refer to
+	// predicate IsProgressDeadlineExceeded.
 	PredicateProgressDeadlineExceeded predicateName = "ProgressDeadlineExceeded"
 	// PredicateNotSpecSynced refer to predicate IsNotSpecSynced
 	PredicateNotSpecSynced predicateName = "NotSpecSynced"
@@ -94,16 +95,46 @@ func (d *deploy) AddChecks(p []predicate) *deploy {
 	return d
 }
 
-// IsProgressDeadlineExceeded is used to check updation is timed out or not. If
-// `Progressing` condition's reason is `ProgressDeadlineExceeded` then it is not rolled out.
+// isRollout range over rolloutChecks map and check status of each predicate
+// also it generates status message from rolloutStatuses using predicate key
+func (d *deploy) isRollout() (string, bool) {
+	msg := ""
+	ok := false
+	for pk, p := range rolloutChecks {
+		if ok = p(d); ok {
+			msg = rolloutStatuses[pk](d)
+			return msg, !ok
+		}
+	}
+	return msg, !ok
+}
+
+// RolloutStatus runs checks against deployment instance
+// and generates rollout status as rolloutOutput
+func (d *deploy) RolloutStatus() (op *rolloutOutput, err error) {
+	op = &rolloutOutput{}
+	msg, ok := d.isRollout()
+	op.IsRolledout = ok
+	if !ok {
+		op.Message = msg
+		return
+	}
+	op.Message = "Deployment successfully rolled out"
+	return
+}
+
+// IsProgressDeadlineExceeded is used to check update is timed out or not.
+// If `Progressing` condition's reason is `ProgressDeadlineExceeded` then
+// it is not rolled out.
 func IsProgressDeadlineExceeded() predicate {
 	return func(d *deploy) bool {
 		return d.IsProgressDeadlineExceeded()
 	}
 }
 
-// IsProgressDeadlineExceeded is used to check updation is timed out or not. If
-// `Progressing` condition's reason is `ProgressDeadlineExceeded` then it is not rolled out.
+// IsProgressDeadlineExceeded is used to check update is timed out or not.
+// If `Progressing` condition's reason is `ProgressDeadlineExceeded` then
+// it is not rolled out.
 func (d *deploy) IsProgressDeadlineExceeded() bool {
 	for _, cond := range d.object.Status.Conditions {
 		if cond.Type == extnv1beta1.DeploymentProgressing &&
@@ -114,60 +145,70 @@ func (d *deploy) IsProgressDeadlineExceeded() bool {
 	return false
 }
 
-// IsOlderReplicaActive check if older replica's are stil active or not if Status.UpdatedReplicas
-// < *Spec.Replicas then some of the replicas are updated and some of them are not.
+// IsOlderReplicaActive check if older replica's are still active or not
+// if Status.UpdatedReplicas < *Spec.Replicas then some of the replicas
+// are updated and some of them are not.
 func IsOlderReplicaActive() predicate {
 	return func(d *deploy) bool {
 		return d.IsOlderReplicaActive()
 	}
 }
 
-// IsOlderReplicaActive check if older replica's are stil active or not if Status.UpdatedReplicas
-// < *Spec.Replicas then some of the replicas are updated and some of them are not.
+// IsOlderReplicaActive check if older replica's are still active or not
+// if Status.UpdatedReplicas < *Spec.Replicas then some of the replicas
+// are updated and some of them are not.
 func (d *deploy) IsOlderReplicaActive() bool {
 	return d.object.Spec.Replicas != nil && d.object.Status.UpdatedReplicas < *d.object.Spec.Replicas
 }
 
-// IsTerminationInProgress checks for older replicas are waiting to terminate or not.
-// if Status.Replicas > Status.UpdatedReplicas then some of the older replicas are in running state because newer
-// replicas are not in running state. It waits for newer replica to come into reunning state then terminate.
+// IsTerminationInProgress checks for older replicas are waiting to
+// terminate or not. If Status.Replicas > Status.UpdatedReplicas then
+// some of the older replicas are in running state because newer
+// replicas are not in running state. It waits for newer replica to
+// come into running state then terminate.
 func IsTerminationInProgress() predicate {
 	return func(d *deploy) bool {
 		return d.IsTerminationInProgress()
 	}
 }
 
-// IsTerminationInProgress checks for older replicas are waiting to terminate or not.
-// if Status.Replicas > Status.UpdatedReplicas then some of the older replicas are in running state because newer
-// replicas are not in running state. It waits for newer replica to come into reunning state then terminate.
+// IsTerminationInProgress checks for older replicas are waiting to
+// terminate or not. If Status.Replicas > Status.UpdatedReplicas then
+// some of the older replicas are in running state because newer
+// replicas are not in running state. It waits for newer replica to
+// come into running state then terminate.
 func (d *deploy) IsTerminationInProgress() bool {
 	return d.object.Status.Replicas > d.object.Status.UpdatedReplicas
 }
 
-// IsUpdateInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
-// then all the older replicas are not there but there are less number of availableReplicas
+// IsUpdateInProgress Checks if all the replicas are updated or not. If
+// Status.AvailableReplicas < Status.UpdatedReplicas then all the older
+// replicas are not there but there are less number of availableReplicas
 func IsUpdateInProgress() predicate {
 	return func(d *deploy) bool {
 		return d.IsUpdateInProgress()
 	}
 }
 
-// IsUpdateInProgress Checks if all the replicas are updated or not. If Status.AvailableReplicas < Status.UpdatedReplicas
-// then all the older replicas are not there but there are less number of availableReplicas
+// IsUpdateInProgress Checks if all the replicas are updated or not. If
+// Status.AvailableReplicas < Status.UpdatedReplicas then all the older
+// replicas are not there but there are less number of availableReplicas
 func (d *deploy) IsUpdateInProgress() bool {
 	return d.object.Status.AvailableReplicas < d.object.Status.UpdatedReplicas
 }
 
-// IsNotSyncSpec compare generation in status and spec and check if deployment spec is synced or not.
-// If Generation <= Status.ObservedGeneration then deployment spec is not updated yet.
+// IsNotSyncSpec compare generation in status and spec and check if deployment
+// spec is synced or not. If Generation <= Status.ObservedGeneration then
+// deployment spec is not updated yet.
 func IsNotSyncSpec() predicate {
 	return func(d *deploy) bool {
 		return d.IsNotSyncSpec()
 	}
 }
 
-// IsNotSyncSpec compare generation in status and spec and check if deployment spec is synced or not.
-// If Generation <= Status.ObservedGeneration then deployment spec is not updated yet.
+// IsNotSyncSpec compare generation in status and spec and check if deployment
+// spec is synced or not. If Generation <= Status.ObservedGeneration then
+// deployment spec is not updated yet.
 func (d *deploy) IsNotSyncSpec() bool {
 	return d.object.Generation > d.object.Status.ObservedGeneration
 }
