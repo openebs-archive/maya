@@ -87,7 +87,7 @@ func ListBuilder() *listBuilder {
 
 // predicate defines an abstraction
 // to determine conditional checks
-// against the provided csp instance
+// against the provided pod instance
 type predicate func(*pod) bool
 
 // IsRunning retuns true if the pod is in running
