@@ -46,11 +46,9 @@ type kubeclient struct {
 	// clientset that will be responsible to
 	// make kubernetes API calls
 	clientset *clientset.Clientset
-	// handle to get kubernetes config
-	getConfig client.GetConfigFunc
+	namespace string
 	// functions useful during mocking
 	getClientset getClientsetFunc
-	namespace    string
 	list         listFunc
 	get          getFunc
 }
