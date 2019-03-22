@@ -93,7 +93,7 @@ func ListBuilder() *listBuilder {
 
 // predicate defines an abstraction
 // to determine conditional checks
-// against the provided csp instance
+// against the provided pvc instance
 type predicate func(*pvc) bool
 
 // IsBound returns true if the pvc is bounded
