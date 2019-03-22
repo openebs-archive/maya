@@ -43,10 +43,15 @@ type UpgradeResult struct {
 	Status UpgradeResultStatus `json:"status"`
 }
 
-// UpgradeResultConfig represents the entire config
-// of UpgradeResult i.e. same as task-executor job config
+// UpgradeResultConfig represents the config of UpgradeResult i.e.
+// It contains resource details of single unit of upgrade and
+// all runtime configuration.
 type UpgradeResultConfig struct {
-	// TODO: Add Task-executor job config here
+	ResourceDetails
+	// data is used to provide some runtime configurations to
+	// castemplate engine. Task executor will directly copy these
+	// configurations to castemplate engine.
+	Data []DataItem `json:"data"`
 }
 
 // UpgradeResultStatus represents the current state of UpgradeResult
@@ -130,6 +135,11 @@ type ResourceDetails struct {
 	APIVersion string `json:"apiVersion"`
 	// Namespace of the resource
 	Namespace string `json:"namespace"`
+	// Generation of resource represents last successful Generation
+	// observed by resource controller (ie. - deployment controller).
+	// Every time we patched a resource it will assign a new Generation.
+	// This is helpful at the time of roll back.
+	Generation string `json:"generation"`
 }
 
 // ResourceState represents the state of a resource
