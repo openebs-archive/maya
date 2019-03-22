@@ -17,8 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"encoding/json"
-
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -104,15 +102,6 @@ func (d *deploy) RolloutStatus() (op *rolloutOutput, err error) {
 	}
 	op.Message = "Deployment successfully rolled out"
 	return
-}
-
-// RolloutStatus converts rolloutOutput to byte
-func (d *deploy) RolloutStatusf() (op []byte, err error) {
-	res, err := d.RolloutStatus()
-	if err != nil {
-		return
-	}
-	return json.Marshal(res)
 }
 
 // AddCheck adds the predicate as a condition to be validated

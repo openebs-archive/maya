@@ -95,7 +95,7 @@ func (k *kubeclient) withDefaults() {
 			if err != nil {
 				return nil, err
 			}
-			return rolloutStatusf(
+			return NewRollout(
 				withOutputObject(status)).
 				AsRolloutOutput()
 		}
@@ -109,7 +109,7 @@ func (k *kubeclient) withDefaults() {
 			if err != nil {
 				return nil, err
 			}
-			return rolloutStatusf(
+			return NewRollout(
 				withOutputObject(status)).
 				Raw()
 		}

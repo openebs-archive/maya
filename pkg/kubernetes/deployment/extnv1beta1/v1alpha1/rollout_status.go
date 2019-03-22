@@ -101,10 +101,10 @@ type rollout struct {
 // abstraction to build a rollout instance
 type rolloutBuildOption func(*rollout)
 
-// rolloutStatusf returns new instance of rollout
+// NewRollout returns new instance of rollout
 // meant for rolloutOutput. caller can configure it with different
 // rolloutOutputBuildOption
-func rolloutStatusf(opts ...rolloutBuildOption) *rollout {
+func NewRollout(opts ...rolloutBuildOption) *rollout {
 	r := &rollout{}
 	for _, o := range opts {
 		o(r)

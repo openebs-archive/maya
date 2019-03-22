@@ -90,12 +90,13 @@ func (k *kubeclient) withDefaults() {
 	if k.rolloutStatus == nil {
 		k.rolloutStatus = func(d *appsv1.Deployment) (
 			*rolloutOutput, error) {
-			status, err := New(WithAPIObject(d)).
+			status, err := New(
+				WithAPIObject(d)).
 				RolloutStatus()
 			if err != nil {
 				return nil, err
 			}
-			return rolloutStatusf(
+			return NewRollout(
 				withOutputObject(status)).
 				AsRolloutOutput()
 		}
@@ -104,12 +105,13 @@ func (k *kubeclient) withDefaults() {
 	if k.rolloutStatusf == nil {
 		k.rolloutStatusf = func(d *appsv1.Deployment) (
 			[]byte, error) {
-			status, err := New(WithAPIObject(d)).
+			status, err := New(
+				WithAPIObject(d)).
 				RolloutStatus()
 			if err != nil {
 				return nil, err
 			}
-			return rolloutStatusf(
+			return NewRollout(
 				withOutputObject(status)).
 				Raw()
 		}
