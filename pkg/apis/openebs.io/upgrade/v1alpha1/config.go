@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 // UpgradeConfig represents configuration for a job or executor or some other
-// coomponent. This contains Resources, Castemplate and RuntimeConfigs
+// component. This contains Resources, Castemplate and RuntimeConfigs
 // Mentioned Resources will be updated using mention castemplate
 type UpgradeConfig struct {
 	// CASTemplate contain castemplate name which task executor
@@ -28,7 +28,7 @@ type UpgradeConfig struct {
 	// configurations to castemplate engine.
 	Data []DataItem `json:"data"`
 	// Resources contains list of resources which we are going to upgrade
-	Resources []ResourceDetails `json:"Resources"`
+	Resources []ResourceDetails `json:"resources"`
 }
 
 // DataItem holds a runtime configuration for executor
