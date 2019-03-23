@@ -124,7 +124,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
 	}
-	glog.Errorf("Please handle cStorPool '%s' event on '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
+	glog.Errorf("ignored event '%s' for cstor pool '%s'", string(operation), string(cStorPoolGot.ObjectMeta.Name))
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
@@ -357,7 +357,7 @@ func IsEmptyStatus(cStorPool *apis.CStorPool) bool {
 		glog.Infof("cStorPool empty status: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.Infof("Not empty status: %v, %v phase: %v", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
+	glog.Infof("cstor pool '%s': uid '%s': phase '%s': is_empty_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
 	return false
 }
 
@@ -367,7 +367,7 @@ func IsPendingStatus(cStorPool *apis.CStorPool) bool {
 		glog.Infof("cStorPool pending: %v", string(cStorPool.ObjectMeta.UID))
 		return true
 	}
-	glog.V(4).Infof("Not pending status: %v Phase: '%s'", string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
+	glog.V(4).Infof("cstor pool '%s': uid '%s': phase '%s': is_pending_status: false", string(cStorPool.ObjectMeta.Name), string(cStorPool.ObjectMeta.UID), cStorPool.Status.Phase)
 	return false
 }
 

@@ -274,6 +274,10 @@ spec:
               postStart:
                  exec:
                     command: ["/bin/sh", "-c", "sleep 2"]
+              # Removes the sock file that is used for communication between
+              # cstor-pool and cstor-pool-mgmt containers, so that, cstor-pool-mgmt
+              # of new pool pod instance will NOT communicate with cstor-pool
+              # container of terminating pod instance.
               preStop:
                  exec:
                     command: ["/bin/bash", "-c", "rm /tmp/uzfs.sock"]
