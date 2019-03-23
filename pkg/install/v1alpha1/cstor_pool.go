@@ -80,6 +80,10 @@ spec:
   # resync the resource status
   - name: ResyncInterval
     value: "30"
+  # Toleration allows you to set tolerations for the cstor pool deployments
+  # against the nodes which has been tainted
+  - name: Tolerations
+    value: "none"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -161,7 +165,9 @@ spec:
     id: putcstorpooldeployment
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpooldeployment.objectName" .TaskResult | noop -}}
-  task: |-
+  task: |
+    {{- $isTolerations := .Config.Tolerations.value | default "none" -}}
+    {{- $tolerationsVal := fromYaml .Config.Tolerations.value -}}
     {{- $setResourceRequests := .Config.PoolResourceRequests.value | default "none" -}}
     {{- $resourceRequestsVal := fromYaml .Config.PoolResourceRequests.value -}}
     {{- $setResourceLimits := .Config.PoolResourceLimits.value | default "none" -}}
@@ -335,6 +341,15 @@ spec:
               name: sparse
             - mountPath: /run/udev
               name: udev
+          tolerations:
+          {{- if ne $isTolerations "none" }}
+          {{- range $k, $v := $tolerationsVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
           volumes:
           - name: device
             hostPath:
