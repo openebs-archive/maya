@@ -53,7 +53,7 @@ spec:
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   # PoolResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from PoolResourceLimits or the default requests set in the cluster. 
+  # from PoolResourceLimits or the default requests set in the cluster.
   - name: PoolResourceRequests
     value: "none"
   # PoolResourceLimits allow you to set the limits on memory and cpu for pool pods
@@ -76,6 +76,10 @@ spec:
   # resync the resource status
   - name: ResyncInterval
     value: "30"
+  # Toleration allows you to set tolerations for the cstor pool deployments
+  # against the nodes which has been tainted
+  - name: Tolerations
+    value: "none"
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -157,7 +161,10 @@ spec:
     id: putcstorpooldeployment
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpooldeployment.objectName" .TaskResult | noop -}}
-  task: |-
+    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpooldeployment.objectUID" .TaskResult | noop -}}
+  task: |
+    {{- $isTolerations := .Config.Tolerations.value | default "none" -}}
+    {{- $tolerationsVal := fromYaml .Config.Tolerations.value -}}
     {{- $setResourceRequests := .Config.PoolResourceRequests.value | default "none" -}}
     {{- $resourceRequestsVal := fromYaml .Config.PoolResourceRequests.value -}}
     {{- $setResourceLimits := .Config.PoolResourceLimits.value | default "none" -}}
@@ -289,6 +296,46 @@ spec:
                   fieldPath: metadata.namespace
             - name: RESYNC_INTERVAL
               value: {{ .Config.ResyncInterval.value }}
+          - name: maya-exporter
+            image: {{ .Config.CstorPoolExporterImage.value }}
+            resources:
+              {{- if ne $setAuxResourceRequests "none" }}
+              requests:
+              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+              {{- if ne $setAuxResourceLimits "none" }}
+              limits:
+              {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
+                {{ $rKey }}: {{ $rLimit }}
+              {{- end }}
+              {{- end }}
+            command:
+            - maya-exporter
+            args:
+            - "-e=pool"
+            ports:
+            - containerPort: 9500
+              protocol: TCP
+            volumeMounts:
+            - mountPath: /dev
+              name: device
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: {{ .Config.SparseDir.value }}
+              name: sparse
+            - mountPath: /run/udev
+              name: udev
+          tolerations:
+          {{- if ne $isTolerations "none" }}
+          {{- range $k, $v := $tolerationsVal }}
+          -
+          {{- range $kk, $vv := $v }}
+            {{ $kk }}: {{ $vv }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
           volumes:
           - name: device
             hostPath:
