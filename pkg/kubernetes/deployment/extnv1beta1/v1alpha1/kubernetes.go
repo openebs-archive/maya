@@ -21,7 +21,6 @@ import (
 	extnv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // getClientsetFn is a typed function that
@@ -73,16 +72,9 @@ func (k *kubeclient) withDefaults() {
 		k.get = func(cli *kubernetes.Clientset, name,
 			namespace string, opts *metav1.GetOptions) (
 			d *extnv1beta1.Deployment, err error) {
-			d = &extnv1beta1.Deployment{}
-			err = cli.ExtensionsV1beta1().
-				RESTClient().
-				Get().
-				Namespace(namespace).
-				Name(name).
-				Resource("deployments").
-				VersionedParams(opts, scheme.ParameterCodec).
-				Do().
-				Into(d)
+			d, err = cli.ExtensionsV1beta1().
+				Deployments(namespace).
+				Get(name, *opts)
 			return
 		}
 	}

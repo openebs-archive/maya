@@ -17,6 +17,7 @@ limitations under the License.
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -873,7 +874,11 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
+	b, err := json.Marshal(d)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, b, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -912,7 +917,11 @@ func (m *taskExecutor) getAppsV1Deployment() (err error) {
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	d, err := dclient.Get(m.getTaskObjectName())
 
-	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
+	b, err := json.Marshal(d)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, b, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
