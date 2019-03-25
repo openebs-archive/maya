@@ -10,62 +10,62 @@ import (
 )
 
 func TestWithAPIList(t *testing.T) {
+	inputURItems := []apis.UpgradeResult{apis.UpgradeResult{
+		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}
+	outputURItems := []*upgradeResult{&upgradeResult{object: &apis.UpgradeResult{
+		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
-		expectedURName []string
+		inputURList    *apis.UpgradeResultList
+		expectedOutput *upgradeResultList
 	}{
-		"Name set 1": {[]string{}},
-		"Name set 2": {[]string{"ur1"}},
-		"Name set 3": {[]string{"ur1", "ur2"}},
-		"Name set 4": {[]string{"ur1", "ur2", "ur3"}},
-		"Name set 5": {[]string{"ur1", "ur2", "ur3", "ur4"}},
-		"Name set 6": {[]string{"ur1", "ur2", "ur3", "ur4", "ur5"}},
-		"Name set 7": {[]string{"ur1", "ur2", "ur3", "ur4", "ur5", "ur6"}},
+		"empty upgrade result list": {&apis.UpgradeResultList{},
+			&upgradeResultList{}},
+		"using nil input": {nil, &upgradeResultList{}},
+		"non-empty upgrade result list": {&apis.UpgradeResultList{Items: inputURItems},
+			&upgradeResultList{items: outputURItems}},
 	}
+
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			urItems := []apis.UpgradeResult{}
-			for i := range mock.expectedURName {
-				urItems = append(urItems, apis.UpgradeResult{ObjectMeta: metav1.ObjectMeta{Name: mock.expectedURName[i]}})
+			b := ListBuilder().WithAPIList(mock.inputURList)
+			if len(b.list.items) != len(mock.expectedOutput.items) {
+				t.Fatalf("test %s failed, expected len: %d got: %d",
+					name, len(mock.expectedOutput.items), len(b.list.items))
 			}
-
-			b := ListBuilder().WithAPIList(&apis.UpgradeResultList{Items: urItems})
-			for i := range b.list.items {
-				if !reflect.DeepEqual(*b.list.items[i].object, urItems[i]) {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, urItems[i], *b.list.items[i].object)
-				}
+			if !reflect.DeepEqual(b.list, mock.expectedOutput) {
+				t.Fatalf("test %s failed, expected : %+v got : %+v",
+					name, mock.expectedOutput, b.list)
 			}
 		})
 	}
 }
 
 func TestList(t *testing.T) {
+	inputURItems := []apis.UpgradeResult{apis.UpgradeResult{
+		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}
+	outputURItems := []*upgradeResult{&upgradeResult{object: &apis.UpgradeResult{
+		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
-		expectedURName []string
+		inputURList    *apis.UpgradeResultList
+		expectedOutput *upgradeResultList
 	}{
-		"Name set 1": {[]string{}},
-		"Name set 2": {[]string{"ur1"}},
-		"Name set 3": {[]string{"ur1", "ur2"}},
-		"Name set 4": {[]string{"ur1", "ur2", "ur3"}},
-		"Name set 5": {[]string{"ur1", "ur2", "ur3", "ur4"}},
-		"Name set 6": {[]string{"ur1", "ur2", "ur3", "ur4", "ur5"}},
-		"Name set 7": {[]string{"ur1", "ur2", "ur3", "ur4", "ur5", "ur6"}},
+		"empty upgrade result list": {&apis.UpgradeResultList{},
+			&upgradeResultList{}},
+		"using nil input": {nil, &upgradeResultList{}},
+		"non-empty upgrade result list": {&apis.UpgradeResultList{Items: inputURItems},
+			&upgradeResultList{items: outputURItems}},
 	}
+
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			urItems := []apis.UpgradeResult{}
-			for i := range mock.expectedURName {
-				urItems = append(urItems, apis.UpgradeResult{ObjectMeta: metav1.ObjectMeta{Name: mock.expectedURName[i]}})
+			b := ListBuilder().WithAPIList(mock.inputURList).List()
+			if len(b.items) != len(mock.expectedOutput.items) {
+				t.Fatalf("test %s failed, expected len: %d got: %d",
+					name, len(mock.expectedOutput.items), len(b.items))
 			}
-
-			b := ListBuilder().WithAPIList(&apis.UpgradeResultList{Items: urItems}).List()
-			if len(b.items) != len(urItems) {
-				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, len(urItems), len(b.items))
-			}
-
-			for i := range b.items {
-				if !reflect.DeepEqual(*b.items[i].object, urItems[i]) {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, urItems[i], *b.items[i].object)
-				}
+			if !reflect.DeepEqual(b, mock.expectedOutput) {
+				t.Fatalf("test %s failed, expected : %+v got : %+v",
+					name, mock.expectedOutput, b)
 			}
 		})
 	}
