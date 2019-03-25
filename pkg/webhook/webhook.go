@@ -227,26 +227,44 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 		return response
 	}
 
-	glog.Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+	glog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
 	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
 	if err != nil {
+		glog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
+			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
 		response.Allowed = false
 		response.Result = &metav1.Status{
-			Message: fmt.Sprintf("error retrieving snapshot: %v", err.Error()),
+			Message: fmt.Sprintf("Failed to get the snapshot object for snapshot name: '%s' namespace: '%s' "+
+				"error: '%v'", snapname, pvc.Namespace, err.Error()),
 		}
 		return response
 	}
-	snapDataName := snapObj.Spec.SnapshotDataName
-	glog.V(1).Infof("snapshotdata name: '%s'", snapDataName)
 
-	// get the snapDataObj to get the snapshotdataname
-	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
-	if err != nil {
+	snapDataName := snapObj.Spec.SnapshotDataName
+	if len(snapDataName) == 0 {
+		glog.Errorf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s' PVC: '%s'",
+			snapname, snapObj.ObjectMeta.Namespace, pvc.Name)
 		response.Allowed = false
 		response.Result = &metav1.Status{
-			Message: fmt.Sprintf("error retrieving snapshot data: %v", err.Error()),
+			Message: fmt.Sprintf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s'",
+				snapname, snapObj.ObjectMeta.Namespace),
+		}
+		return response
+	}
+	glog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
+
+	// get the snapDataObj to get the snapshotdataname
+	// Note: If snapDataName is empty then below call will retrun error
+	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
+			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
+				"snapName: '%s' namespace: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, err.Error()),
 		}
 		return response
 	}
@@ -256,9 +274,13 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	pvcSize := pvc.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
 
 	if pvcSize.Cmp(snapCapacity) != 0 {
+		glog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
+			"snapshot Namespace: '%s' VolumeSnapshotData '%s'", snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName)
 		response.Allowed = false
 		response.Result = &metav1.Status{
-			Message: fmt.Sprintf("Requested pvc size must be equal to snapshot size '%s'", snapSizeString),
+			Message: fmt.Sprintf("Requested pvc size must be equal to snapshot size '%s' "+
+				"which belongs to snapshot name: '%s' snapshot NameSpace: '%s' volumesnapshotdata: '%s'",
+				snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName),
 		}
 		return response
 	}

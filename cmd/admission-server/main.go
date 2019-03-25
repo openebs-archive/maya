@@ -52,7 +52,7 @@ func main() {
 	// Building Snapshot Clientset
 	snapClient, err := snapclientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Error building openebs clientset: %s", err.Error())
+		glog.Errorf("Error building openebs snapshot clientset: %s", err.Error())
 	}
 
 	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
