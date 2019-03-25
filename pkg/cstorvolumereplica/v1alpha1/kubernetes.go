@@ -24,6 +24,10 @@ type kubeclient struct {
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 
+	// namespace holds the namespace on which
+	// kubeclient has to operate
+	namespace string
+
 	// functions useful during mocking
 	getClientset getClientsetFn
 	list         listFn
@@ -60,6 +64,14 @@ func WithKubeClient(c *clientset.Clientset) kubeclientBuildOption {
 	}
 }
 
+// WithNamespace sets the kubernetes client against
+// the provided namespace
+func WithNamespace(namespace string) kubeclientBuildOption {
+	return func(k *kubeclient) {
+		k.namespace = namespace
+	}
+}
+
 // KubeClient returns a new instance of kubeclient meant for
 // cstor volume replica operations
 func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
@@ -87,10 +99,10 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of cstor volume replica
 // instances present in kubernetes cluster
-func (k *kubeclient) List(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+func (k *kubeclient) List(opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.list(cli, namespace, opts)
+	return k.list(cli, k.namespace, opts)
 }

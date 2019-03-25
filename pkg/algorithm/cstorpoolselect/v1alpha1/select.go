@@ -164,7 +164,9 @@ type antiAffinityLabel struct {
 }
 
 func defaultCVRList() cvrListFn {
-	return cvr.KubeClient().List
+	return func(namespace string, opts metav1.ListOptions) (*apis.CStorVolumeReplicaList, error) {
+		return cvr.KubeClient(cvr.WithNamespace(namespace)).List(opts)
+	}
 }
 
 // priority returns the priority of

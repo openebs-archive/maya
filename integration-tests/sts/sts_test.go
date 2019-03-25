@@ -91,6 +91,7 @@ var _ = Describe("StatefulSet", func() {
 
 		// Generating label selector for stsResources
 		stsApplicationLabel := "app=" + STSUnstructured.GetName()
+		replicaAntiAffinityLabel := "openebs.io/replica-anti-affinity=" + STSUnstructured.GetName()
 
 		// Apply sts storageclass
 		cu := k8s.CreateOrUpdate(
@@ -125,6 +126,22 @@ var _ = Describe("StatefulSet", func() {
 		},
 			defaultTimeOut, defaultPollingInterval).
 			Should(Equal(3), "PVC count should be "+string(3))
+
+		// Check for CVR to get healthy
+		Eventually(func() int {
+			cvrs, err := cvr.
+				KubeClient(cvr.WithNamespace("")).
+				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
+			Expect(err).ShouldNot(HaveOccurred())
+			return cvr.
+				ListBuilder().
+				WithAPIList(cvrs).
+				WithFilter(cvr.IsHealthy()).
+				List().
+				Len()
+		},
+			defaultTimeOut, defaultPollingInterval).
+			Should(Equal(3), "CVR count should be "+string(3))
 
 		// Check for statefulset pods to get created and running
 		Eventually(func() int {
@@ -233,8 +250,8 @@ var _ = Describe("StatefulSet", func() {
 			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))
 
 			cvrs, err := cvr.
-				KubeClient().
-				List("", metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
+				KubeClient(cvr.WithNamespace("")).
+				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
 			Expect(cvrs.Items).Should(HaveLen(3), "cvr count should be "+string(3))
 
 			poolNames := cvr.

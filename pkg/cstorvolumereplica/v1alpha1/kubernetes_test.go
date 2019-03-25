@@ -129,10 +129,10 @@ func TesKubernetestGetClientOrCached(t *testing.T) {
 		KubeClient *kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &kubeclient{nil, fakeGetNilErrClientSet, fakeListfn}},
-		"Positive 2": {false, &kubeclient{&client.Clientset{}, fakeGetNilErrClientSet, fakeListfn}},
+		"Positive 1": {false, &kubeclient{nil, "", fakeGetNilErrClientSet, fakeListfn}},
+		"Positive 2": {false, &kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeListfn}},
 		// Negative tests
-		"Negative 1": {true, &kubeclient{nil, fakeGetErrClientSet, fakeListfn}},
+		"Negative 1": {true, &kubeclient{nil, "", fakeGetErrClientSet, fakeListfn}},
 	}
 
 	for name, mock := range tests {
@@ -162,7 +162,7 @@ func TestKubenetesList(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := kubeclient{getClientset: mock.getClientset, list: mock.list}
-			_, err := k.List("", metav1.ListOptions{})
+			_, err := k.List(metav1.ListOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
