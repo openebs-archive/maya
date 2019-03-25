@@ -155,8 +155,8 @@ but got %v`, name, c.clientset)
 }
 func TestWithNamespace(t *testing.T) {
 	tests := map[string]struct {
-		namespace       string
-		expectNamespace string
+		namespace         string
+		expectedNamespace string
 	}{
 		"Namespace is empty":     {"", ""},
 		"Namespace is not empty": {"abc", "abc"},
@@ -167,9 +167,9 @@ func TestWithNamespace(t *testing.T) {
 			h := WithNamespace(mock.namespace)
 			fake := &kubeclient{}
 			h(fake)
-			if fake.namespace != mock.expectNamespace {
+			if fake.namespace != mock.expectedNamespace {
 				t.Fatalf(`test %s failed, expected %v got %v`,
-					name, mock.expectNamespace, fake.namespace)
+					name, mock.expectedNamespace, fake.namespace)
 			}
 		})
 	}
