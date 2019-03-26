@@ -363,8 +363,9 @@ spec:
               type: Directory
           - name: tmp
             hostPath:
-              # From host, dir called /var/openebs/shared-<uid> is created to avoid clash if two replicas run on same node.
-              path: /var/openebs/shared-{{.Storagepool.owner}}
+              # host dir {{ .Config.SparseDir.value }}/shared-<uid> is 
+              # created to avoid clash if two replicas run on same node.
+              path: {{ .Config.SparseDir.value }}/shared-{{.Storagepool.owner}}
               type: {{ .Config.HostPathType.value }}
           - name: sparse
             hostPath:
