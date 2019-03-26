@@ -34,6 +34,9 @@ spec:
     value: {{env "OPENEBS_IO_VOLUME_MONITOR_IMAGE" | default "openebs/m-exporter:latest"}}
   - name: ReplicaCount
     value: "3"
+  # Target Dir is a hostPath directory for target pod
+  - name: TargetDir
+    value: {{env "OPENEBS_IO_CSTOR_TARGET_DIR" | default "/var/openebs"}}
   # TargetResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
   # from TargetResourceLimits or the default requests set in the cluster.
@@ -647,7 +650,7 @@ spec:
             emptyDir: {}
           - name: tmp
             hostPath:
-              path: /var/openebs/shared-{{ .Volume.owner }}-target
+              path: {{ .Config.TargetDir.value }}/shared-{{ .Volume.owner }}-target
               type: DirectoryOrCreate
 ---
 # runTask to create cStorVolumeReplica/(s)
