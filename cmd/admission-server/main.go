@@ -36,28 +36,28 @@ func main() {
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		glog.Errorf("Error building kubeconfig: %s", err.Error())
+		glog.Fatalf("Error building kubeconfig: %s", err.Error())
 	}
 	// Building Kubernetes Clientset
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Error building kubernetes clientset: %s", err.Error())
+		glog.Fatalf("Error building kubernetes clientset: %s", err.Error())
 	}
 	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Error building openebs clientset: %s", err.Error())
+		glog.Fatalf("Error building openebs clientset: %s", err.Error())
 	}
 
 	// Building Snapshot Clientset
 	snapClient, err := snapclientset.NewForConfig(cfg)
 	if err != nil {
-		glog.Errorf("Error building openebs snapshot clientset: %s", err.Error())
+		glog.Fatalf("Error building openebs snapshot clientset: %s", err.Error())
 	}
 
 	wh, err := webhook.New(parameters, kubeClient, openebsClient, snapClient)
 	if err != nil {
-		glog.Errorf("failed to create validation webhook: %s", err.Error())
+		glog.Fatalf("failed to create validation webhook: %s", err.Error())
 	}
 
 	// define http server and server handler

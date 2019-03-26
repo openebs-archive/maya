@@ -230,6 +230,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	glog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
 		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
 	// get the snapshot object to get snapshotdata object
+	// Note: If snapname is empty then below call will retrun error
 	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
@@ -256,7 +257,7 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	glog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
 
 	// get the snapDataObj to get the snapshotdataname
-	// Note: If snapDataName is empty then below call will retrun error
+	// Note: If snapDataName is empty then below call will return error
 	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
 	if err != nil {
 		glog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
@@ -270,9 +271,19 @@ func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1be
 	}
 
 	snapSizeString := snapDataObj.Spec.OpenEBSSnapshot.Capacity
+	// If snapshotdata object doesn't consist Capacity field then we will log it and return false.
+	if len(snapSizeString) == 0 {
+		glog.Infof("snapshot size not found for snapshot name: '%s' snapshot namespace: '%s' snapshotdata name: '%s'",
+			snapname, snapObj.ObjectMeta.Namespace, snapDataName)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("PVC: '%s' creation requires upgrade of volumesnapshotdata name: '%s'", pvc.ObjectMeta.Name, snapDataName),
+		}
+		return response
+	}
+
 	snapCapacity := resource.MustParse(snapSizeString)
 	pvcSize := pvc.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
-
 	if pvcSize.Cmp(snapCapacity) != 0 {
 		glog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
 			"snapshot Namespace: '%s' VolumeSnapshotData '%s'", snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName)
