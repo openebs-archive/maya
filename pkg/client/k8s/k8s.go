@@ -21,12 +21,10 @@ import (
 	"encoding/json"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	upgrade "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	api_upgrade_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 
@@ -41,7 +39,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/typed/openebs.io/v1alpha1"
-	typed_upgrade_v1alpha1 "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset/typed/upgrade/v1alpha1"
 
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -154,10 +151,6 @@ type K8sClient struct {
 	// within the current K8s cluster for OpenEBS objects
 	oecs *openebs.Clientset
 
-	// upgradecs refers to the Clientset capable of communicating
-	// within the current K8s cluster for OpenEBS upgrade objects
-	upgradecs *upgrade.Clientset
-
 	// PV refers to a K8s PersistentVolume object
 	PV *api_core_v1.PersistentVolume
 
@@ -221,11 +214,6 @@ type K8sClient struct {
 	// during unit testing
 	CASTemplate *api_oe_v1alpha1.CASTemplate
 
-	// UpgradeResult refers to a K8s UpgradeResult CRD object
-	// NOTE: This property is useful to mock
-	// during unit testing
-	UpgradeResult *api_upgrade_v1alpha1.UpgradeResult
-
 	// various cert related to connecting to K8s API
 	caCert     string
 	caPath     string
@@ -248,17 +236,10 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 		return nil, err
 	}
 
-	// get the appropriate openebs upgrade clientset
-	upgradecs, err := getInClusterUpgradeCS()
-	if err != nil {
-		return nil, err
-	}
-
 	return &K8sClient{
-		ns:        ns,
-		cs:        cs,
-		oecs:      oecs,
-		upgradecs: upgradecs,
+		ns:   ns,
+		cs:   cs,
+		oecs: oecs,
 	}, nil
 }
 
@@ -337,12 +318,6 @@ func (k *K8sClient) oeV1alpha1CSPOps() typed_oe_v1alpha1.CStorPoolInterface {
 	return k.oecs.OpenebsV1alpha1().CStorPools()
 }
 
-// oeV1alpha1UROps is a utility function that provides an instance capable of
-// executing various OpenEBS UpgradeResult related operations
-func (k *K8sClient) oeV1alpha1UROps() typed_upgrade_v1alpha1.UpgradeResultInterface {
-	return k.upgradecs.OpenebsV1alpha1().UpgradeResults(k.ns)
-}
-
 // GetOEV1alpha1CSP fetches the OpenEBS CStorPool specs based on
 // the provided name
 func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, error) {
@@ -385,17 +360,6 @@ func (k *K8sClient) GetOEV1alpha1SP(name string) (*api_oe_v1alpha1.StoragePool, 
 
 	spOps := k.oeV1alpha1SPOps()
 	return spOps.Get(name, mach_apis_meta_v1.GetOptions{})
-}
-
-// GetOEV1alpha1UR fetches the OpenEBS UpgradeResult specs based on
-// the provided name
-func (k *K8sClient) GetOEV1alpha1UR(name string) (*api_upgrade_v1alpha1.UpgradeResult, error) {
-	if k.UpgradeResult != nil {
-		return k.UpgradeResult, nil
-	}
-
-	urOps := k.oeV1alpha1UROps()
-	return urOps.Get(name, mach_apis_meta_v1.GetOptions{})
 }
 
 // CreateOEV1alpha1CSP creates a CStorPool
@@ -692,31 +656,6 @@ func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error)
 	//	Get().
 	//	Namespace(k.ns).
 	//	Resource("storagepools").
-	//	Name(name).
-	//	VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
-	//	DoRaw()
-
-	//return
-}
-
-// GetOEV1alpha1URAsRaw fetches the OpenEBS UR with the provided name
-func (k *K8sClient) GetOEV1alpha1URAsRaw(name string) (result []byte, err error) {
-	ur, err := k.GetOEV1alpha1UR(name)
-	if err != nil {
-		return
-	}
-
-	return json.Marshal(ur)
-
-	// TODO
-	//  A better way needs to be determined to get or use raw bytes of a resource.
-	// These lines will be removed or refactor-ed once we conclude on this better
-	// approach.
-	//
-	//result, err = k.oecs.OpenebsV1alpha1().RESTClient().
-	//	Get().
-	//	Namespace(k.ns).
-	//	Resource("upgraderesults").
 	//	Name(name).
 	//	VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
 	//	DoRaw()
@@ -1283,23 +1222,6 @@ func getInClusterOECS() (clientset *openebs.Clientset, err error) {
 
 	// creates the in-cluster openebs clientset
 	clientset, err = openebs.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset, nil
-}
-
-// getInClusterUpgradeCS is used to initialize and return a new http client capable
-// of invoking OpenEBS upgrade CRD APIs within the cluster
-func getInClusterUpgradeCS() (clientset *upgrade.Clientset, err error) {
-	config, err := getK8sConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	// creates the in-cluster openebs upgrade clientset
-	clientset, err = upgrade.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

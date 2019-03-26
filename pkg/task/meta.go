@@ -493,6 +493,10 @@ func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isList()
 }
 
+func (m *metaTaskExecutor) isListOEV1alpha1UR() bool {
+	return m.identifier.isOEV1alpha1UR() && m.isList()
+}
+
 func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isList()
 }

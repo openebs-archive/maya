@@ -17,6 +17,7 @@ limitations under the License.
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -28,12 +29,14 @@ import (
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
+	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	api_batch_v1 "k8s.io/api/batch/v1"
 	api_core_v1 "k8s.io/api/core/v1"
 	api_extn_v1beta1 "k8s.io/api/extensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TaskExecutor is the interface that provides a contract method to execute
@@ -863,11 +866,15 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 
 // getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1UR() (err error) {
-	ur, err := m.getK8sClient().GetOEV1alpha1URAsRaw(m.getTaskObjectName())
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uresult, err := uc.Get(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
 		return
 	}
-
+	ur, err := json.Marshal(uresult)
+	if err != nil {
+		return
+	}
 	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -1120,6 +1127,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = kc.ListOEV1alpha1CVRRaw(opts)
 	} else if m.metaTaskExec.isListOEV1alpha1CV() {
 		op, err = kc.ListOEV1alpha1CVRaw(opts)
+	} else if m.metaTaskExec.isListOEV1alpha1UR() {
+		op, err = m.listOEV1alpha1URRaw(opts)
 	} else {
 		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
 	}
@@ -1130,5 +1139,17 @@ func (m *taskExecutor) listK8sResources() (err error) {
 
 	// set the json doc result
 	util.SetNestedField(m.templateValues, op, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
+// provided options
+func (m *taskExecutor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, err error) {
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	urList, err := uc.List(opts)
+	if err != nil {
+		return
+	}
+	result, err = json.Marshal(urList)
 	return
 }
