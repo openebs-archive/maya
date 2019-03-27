@@ -10,7 +10,8 @@ API_PKG := github.com/openebs/maya/pkg
 
 # API_GROUPS sets api version of the resources exposed by maya
 ifeq (${API_GROUPS}, )
-  API_GROUPS = openebs.io/v1alpha1
+  API_GROUPS = openebs.io/v1alpha1 \
+               openebs.io/snapshot
   export API_GROUPS
 endif
 
