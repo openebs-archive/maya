@@ -47,6 +47,22 @@ func fakeUnstructObject(name string) *unstructured.Unstructured {
 	return u
 }
 
+func fakeK8sResourceList(resource string, count int) string {
+	result := ""
+	for i := 0; i < count; i++ {
+		result += resource + "---"
+	}
+	return result
+}
+
+func fakeUnstructObjectList(name string, count int) []*unstructured.Unstructured {
+	result := []*unstructured.Unstructured{}
+	for i := 0; i < count; i++ {
+		result = append(result, fakeUnstructObject(name))
+	}
+	return result
+}
+
 func TestUnstructBuilderForYAML(t *testing.T) {
 	tests := map[string]struct {
 		resourceYAML, expectedName string
@@ -100,6 +116,51 @@ func TestUnstructBuilderForYamlBuild(t *testing.T) {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
 			} else if b != nil && b.object.GetName() != mock.expectedName {
 				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.object.GetName())
+			}
+		})
+	}
+}
+
+func TestListUnstructBuilderForYaml(t *testing.T) {
+	tests := map[string]struct {
+		resourceYAML          string
+		expectedResourceCount int
+		expectErr             bool
+	}{
+		"Test 1": {fakeK8sResourceList(fakeK8sResource, 1), 1, false},
+		"Test 2": {fakeK8sResourceList(fakeK8sResource, 2), 2, false},
+		"Test 3": {fakeK8sResourceList(fakeInvalidK8sResource, 1), 1, true},
+		"Test 4": {fakeK8sResourceList(fakeInvalidK8sResource, 2), 2, true},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			lb := ListUnstructBuilderForYaml(mock.resourceYAML)
+			if mock.expectErr && len(lb.errs) == 0 {
+				t.Fatalf("Test %s failed, expected err but got nil", name)
+			} else if len(lb.items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.items))
+			}
+		})
+	}
+}
+
+func TestListUnstructBuilderForObject(t *testing.T) {
+	tests := map[string]struct {
+		availableResourceCount, expectedResourceCount int
+		expectErr                                     bool
+	}{
+		"Test 1": {1, 1, false},
+		"Test 2": {2, 2, false},
+		"Test 3": {3, 3, false},
+		"Test 4": {4, 4, false},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			lb := ListUnstructBuilderForObject(fakeUnstructObjectList("Test", mock.availableResourceCount)...)
+			if mock.expectErr && len(lb.errs) == 0 {
+				t.Fatalf("Test %s failed, expected err but got nil", name)
+			} else if len(lb.items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.items))
 			}
 		})
 	}
