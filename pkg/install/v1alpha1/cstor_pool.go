@@ -206,12 +206,12 @@ spec:
         metadata:
           labels:
             app: cstor-pool
+            openebs.io/storage-pool-claim: {{.Storagepool.owner}}
           annotations:
             openebs.io/monitoring: pool_exporter_prometheus
             prometheus.io/path: /metrics
             prometheus.io/port: "9500"
             prometheus.io/scrape: "true"
-            openebs.io/storage-pool-claim: {{.Storagepool.owner}}
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           nodeSelector:
