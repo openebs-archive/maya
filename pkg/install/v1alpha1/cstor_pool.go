@@ -141,7 +141,7 @@ spec:
         controller: true
         kind: StoragePoolClaim
         name: {{.Storagepool.owner}}
-        uid: {{ .TaskResult.getspc.objectUID }} 
+        uid: {{ .TaskResult.getspc.objectUID }}
     spec:
       disks:
         diskList:
@@ -274,6 +274,13 @@ spec:
               postStart:
                  exec:
                     command: ["/bin/sh", "-c", "sleep 2"]
+              # Removes the sock file that is used for communication between
+              # cstor-pool and cstor-pool-mgmt containers, so that, cstor-pool-mgmt
+              # of new pool pod instance will NOT communicate with cstor-pool
+              # container of terminating pod instance.
+              preStop:
+                 exec:
+                    command: ["/bin/bash", "-c", "rm /tmp/uzfs.sock"]
           - name: cstor-pool-mgmt
             image: {{ .Config.CstorPoolMgmtImage.value }}
             resources:
@@ -407,7 +414,7 @@ spec:
         controller: true
         kind: Deployment
         name: {{ .TaskResult.putcstorpooldeployment.objectName }}
-        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}  
+        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}
     spec:
       disks:
         diskList:

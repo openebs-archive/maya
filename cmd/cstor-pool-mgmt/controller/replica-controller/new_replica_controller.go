@@ -118,6 +118,8 @@ func NewCStorVolumeReplicaController(
 			// For New request phase of cVR will be empty
 			// ToDO: Need to have an annotation in CSP and CVR which will state
 			// about recreation events.
+			// For every restart of the cstor-pool-mgmt container replica
+			// watcher will get add event
 			if IsEmptyStatus(cVR) {
 				cVR.Status.Phase = apis.CVRStatusInit
 			} else {
