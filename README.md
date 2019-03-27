@@ -1,6 +1,7 @@
 ## Overview
 
 [![Build Status](https://travis-ci.org/openebs/maya.svg?branch=master)](https://travis-ci.org/openebs/maya)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/703aa9066b2e4c3499971856eb50f72c)](https://www.codacy.com/app/OpenEBS/maya?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=openebs/maya&amp;utm_campaign=Badge_Grade)
 [![Go Report](https://goreportcard.com/badge/github.com/openebs/maya)](https://goreportcard.com/report/github.com/openebs/maya)
 [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya)
 [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
