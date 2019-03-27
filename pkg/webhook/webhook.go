@@ -26,11 +26,13 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	snapclient "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset"
 	"k8s.io/api/admission/v1beta1"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -53,6 +55,7 @@ var (
 		metav1.NamespaceSystem,
 		metav1.NamespacePublic,
 	}
+	snapshotAnnotation = "snapshot.alpha.kubernetes.io/snapshot"
 )
 
 // webhook implements a validating webhook.
@@ -65,6 +68,9 @@ type webhook struct {
 
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
+
+	// snapClientSet is a snaphot custom resource package generated from custom API group.
+	snapClientSet snapclient.Interface
 }
 
 // Parameters are server configures parameters
@@ -86,7 +92,7 @@ func init() {
 }
 
 // New creates a new instance of a webhook.
-func New(p Parameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface) (*webhook, error) {
+func New(p Parameters, kubeClient kubernetes.Interface, openebsClient clientset.Interface, snapClient snapclient.Interface) (*webhook, error) {
 
 	pair, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
 	if err != nil {
@@ -97,8 +103,9 @@ func New(p Parameters, kubeClient kubernetes.Interface, openebsClient clientset.
 			Addr:      fmt.Sprintf(":%v", p.Port),
 			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
 		},
-		kubeClient: kubeClient,
-		clientset:  openebsClient,
+		kubeClient:    kubeClient,
+		clientset:     openebsClient,
+		snapClientSet: snapClient,
 	}
 	return wh, nil
 }
@@ -120,21 +127,14 @@ func validationRequired(ignoredList []string, metadata *metav1.ObjectMeta) bool 
 	return required
 }
 
-// validate validates the persistentvolumeclaim(PVC) delete request
-func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	req := ar.Request
+// validatePVCDeleteRequest validates the persistentvolumeclaim(PVC) delete request
+func (wh *webhook) validatePVCDeleteRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	response := &v1beta1.AdmissionResponse{}
-
-	// validates only if requested operation is DELETE and request kind is PVC
-	if ar.Request.Operation != v1beta1.Delete || req.Kind.Kind != "PersistentVolumeClaim" {
-		response.Allowed = true
-		return response
-	}
+	response.Allowed = true
 
 	// ignore the Delete request of PVC if resource name is empty which
 	// can happen as part of cleanup process of namespace
-	if ar.Request.Name == "" {
-		response.Allowed = true
+	if req.Name == "" {
 		return response
 	}
 
@@ -167,9 +167,7 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 
 	if !validationRequired(ignoredNamespaces, &pvc.ObjectMeta) {
 		glog.V(4).Infof("Skipping validation for %s/%s due to policy check", pvc.Namespace, pvc.Name)
-		return &v1beta1.AdmissionResponse{
-			Allowed: true,
-		}
+		return response
 	}
 
 	// construct source-volume label to list all the matched cstorVolumes
@@ -183,7 +181,6 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 	// if source-volume label matches with name of PV, failed the pvc
 	// deletion operation.
 
-	response.Allowed = true
 	cStorVolumes, err := wh.getCstorVolumes(listOptions)
 	if err != nil {
 		response.Allowed = false
@@ -199,7 +196,123 @@ func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespo
 			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: "PVC with cloned volumes can't be deleted",
 			Message: fmt.Sprintf("pvc %q has '%v' cloned volume(s)", pvc.Name, len(cStorVolumes.Items)),
 		}
+		return response
+	}
+	return response
+}
 
+// validatePVCCreateRequest validates persistentvolumeclaim(PVC) create request
+func (wh *webhook) validatePVCCreateRequest(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+
+	var pvc corev1.PersistentVolumeClaim
+	err := json.Unmarshal(req.Object.Raw, &pvc)
+	if err != nil {
+		glog.Errorf("Could not unmarshal raw object: %v, %v", err, req.Object.Raw)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Status:  metav1.StatusFailure,
+			Code:    http.StatusBadRequest,
+			Reason:  metav1.StatusReasonBadRequest,
+			Message: err.Error(),
+		}
+		return response
+	}
+
+	// If snapshot.alpha.kubernetes.io/snapshot annotation represents the clone pvc
+	// create request
+	snapname := pvc.Annotations[snapshotAnnotation]
+	if len(snapname) == 0 {
+		return response
+	}
+
+	glog.V(4).Infof("AdmissionReview for creating a clone volume Kind=%v, Namespace=%v Name=%v UID=%v patchOperation=%v UserInfo=%v",
+		req.Kind, req.Namespace, req.Name, req.UID, req.Operation, req.UserInfo)
+	// get the snapshot object to get snapshotdata object
+	// Note: If snapname is empty then below call will retrun error
+	snapObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshots(pvc.Namespace).Get(snapname, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("failed to get the snapshot object for snapshot name: '%s' namespace: '%s' PVC: '%s'"+
+			"error: '%v'", snapname, pvc.Namespace, pvc.Name, err)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("Failed to get the snapshot object for snapshot name: '%s' namespace: '%s' "+
+				"error: '%v'", snapname, pvc.Namespace, err.Error()),
+		}
+		return response
+	}
+
+	snapDataName := snapObj.Spec.SnapshotDataName
+	if len(snapDataName) == 0 {
+		glog.Errorf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s' PVC: '%s'",
+			snapname, snapObj.ObjectMeta.Namespace, pvc.Name)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("Snapshotdata name is empty for snapshot: '%s' snapshot Namespace: '%s'",
+				snapname, snapObj.ObjectMeta.Namespace),
+		}
+		return response
+	}
+	glog.V(4).Infof("snapshotdata name: '%s'", snapDataName)
+
+	// get the snapDataObj to get the snapshotdataname
+	// Note: If snapDataName is empty then below call will return error
+	snapDataObj, err := wh.snapClientSet.OpenebsV1alpha1().VolumeSnapshotDatas().Get(snapDataName, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
+			"snapName: '%s' namespace: '%s' PVC: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, pvc.Name, err)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("Failed to get the snapshotdata object for snapshotdata  name: '%s' "+
+				"snapName: '%s' namespace: '%s' error: '%v'", snapDataName, snapname, snapObj.ObjectMeta.Namespace, err.Error()),
+		}
+		return response
+	}
+
+	snapSizeString := snapDataObj.Spec.OpenEBSSnapshot.Capacity
+	// If snapshotdata object doesn't consist Capacity field then we will log it and return false.
+	if len(snapSizeString) == 0 {
+		glog.Infof("snapshot size not found for snapshot name: '%s' snapshot namespace: '%s' snapshotdata name: '%s'",
+			snapname, snapObj.ObjectMeta.Namespace, snapDataName)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("PVC: '%s' creation requires upgrade of volumesnapshotdata name: '%s'", pvc.ObjectMeta.Name, snapDataName),
+		}
+		return response
+	}
+
+	snapCapacity := resource.MustParse(snapSizeString)
+	pvcSize := pvc.Spec.Resources.Requests[corev1.ResourceName(corev1.ResourceStorage)]
+	if pvcSize.Cmp(snapCapacity) != 0 {
+		glog.Errorf("Requested pvc size not matched the snapshot size '%s' belongs to snapshot name: '%s' "+
+			"snapshot Namespace: '%s' VolumeSnapshotData '%s'", snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName)
+		response.Allowed = false
+		response.Result = &metav1.Status{
+			Message: fmt.Sprintf("Requested pvc size must be equal to snapshot size '%s' "+
+				"which belongs to snapshot name: '%s' snapshot NameSpace: '%s' volumesnapshotdata: '%s'",
+				snapSizeString, snapObj.ObjectMeta.Name, snapObj.ObjectMeta.Namespace, snapDataName),
+		}
+		return response
+	}
+	return response
+}
+
+// validate validates the persistentvolumeclaim(PVC) create, delete request
+func (wh *webhook) validate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	req := ar.Request
+	response := &v1beta1.AdmissionResponse{}
+	response.Allowed = true
+
+	// validates only if request kind is pvc
+	if req.Kind.Kind != "PersistentVolumeClaim" {
+		return response
+	}
+	// validates only if requested operation is CREATE or DELETE
+	if req.Operation == v1beta1.Create {
+		return wh.validatePVCCreateRequest(req)
+	} else if req.Operation == v1beta1.Delete {
+		return wh.validatePVCDeleteRequest(req)
 	}
 	return response
 }
