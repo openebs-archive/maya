@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
@@ -39,6 +40,16 @@ type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOp
 // getting upgrade result instances
 type getFunc func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error)
 
+// createFunc is a typed function that abstracts
+// creating upgrade result instances
+type createFunc func(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error)
+
+// patchFunc is a typed function that abstracts
+// patching upgrade result instances
+type patchFunc func(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+	namespace string) (*apis.UpgradeResult, error)
+
 // kubeclient enables kubernetes API operations
 // on upgrade result instance
 type kubeclient struct {
@@ -51,6 +62,8 @@ type kubeclient struct {
 	getClientset getClientsetFunc
 	list         listFunc
 	get          getFunc
+	create       createFunc
+	patch        patchFunc
 }
 
 // kubeclientBuildOption defines the abstraction
@@ -77,6 +90,23 @@ func (k *kubeclient) withDefaults() {
 	if k.get == nil {
 		k.get = func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
 			return cs.OpenebsV1alpha1().UpgradeResults(namespace).Get(name, opts)
+		}
+	}
+	if k.create == nil {
+		k.create = func(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+			namespace string) (*apis.UpgradeResult, error) {
+			return cs.OpenebsV1alpha1().
+				UpgradeResults(namespace).
+				Create(upgradeResultObj)
+		}
+	}
+	if k.patch == nil {
+		k.patch = func(cs *clientset.Clientset, name string,
+			pt types.PatchType, patchObj []byte,
+			namespace string) (*apis.UpgradeResult, error) {
+			return cs.OpenebsV1alpha1().
+				UpgradeResults(namespace).
+				Patch(name, pt, patchObj)
 		}
 	}
 }
@@ -142,4 +172,23 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 		return nil, err
 	}
 	return k.get(cs, name, k.namespace, opts)
+}
+
+// Create creates an upgrade result instance in kubernetes cluster
+func (k *kubeclient) Create(upgradeResultObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
+	cs, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.create(cs, upgradeResultObj, k.namespace)
+}
+
+// Patch returns the patched upgrade result instance
+func (k *kubeclient) Patch(name string, pt types.PatchType,
+	patchObj []byte) (*apis.UpgradeResult, error) {
+	cs, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.patch(cs, name, pt, patchObj, k.namespace)
 }

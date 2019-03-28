@@ -29,6 +29,7 @@ import (
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
+	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
@@ -404,6 +405,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchOEV1alpha1CSV()
 	} else if m.metaTaskExec.isPatchOEV1alpha1CVR() {
 		err = m.patchOEV1alpha1CVR()
+	} else if m.metaTaskExec.isPatchOEV1alpha1UR() {
+		err = m.patchOEV1alpha1UR()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else if m.metaTaskExec.isGetStorageV1SC() {
@@ -684,6 +687,28 @@ func (m *taskExecutor) patchOEV1alpha1CVR() (err error) {
 		return
 	}
 	util.SetNestedField(m.templateValues, cvr, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchOEV1alpha1UR will patch an UpgradeResult as defined in the task
+func (m *taskExecutor) patchOEV1alpha1UR() (err error) {
+	// build a runtask patch instance
+	patch, err := patch.BuilderForRuntask("patchUR", m.runtask.Spec.Task,
+		m.templateValues).AddCheck(patch.IsValidPatchType()).Build()
+	if err != nil {
+		return
+	}
+	raw, err := patch.ToJSON()
+	if err != nil {
+		return
+	}
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	// patch Upgrade Result
+	ur, err := uc.Patch(m.getTaskObjectName(), patch.Type, raw)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
