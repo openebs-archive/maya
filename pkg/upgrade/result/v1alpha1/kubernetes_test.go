@@ -8,6 +8,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func fakeGetClientset() (cs *clientset.Clientset, err error) {
@@ -52,20 +53,34 @@ func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
 
 func fakeClientSet(k *kubeclient) {}
 
+func fakeCreatefn(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, nil
+}
+
+func fakePatchfn(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, nil
+}
+
 func TestWithDefaults(t *testing.T) {
 	tests := map[string]struct {
 		listFn             listFunc
 		getFn              getFunc
 		getClientsetFn     getClientsetFunc
+		createFn           createFunc
+		patchFn            patchFunc
 		expectList         bool
 		expectGet          bool
 		expectGetClientset bool
+		expectCreate       bool
+		expectPatch        bool
 	}{
 		// The current implementation of WithDefaults method can be
 		// tested using these two combinations only.
-		"When mockclient is empty": {nil, nil, nil, false, false, false},
+		"When mockclient is empty": {nil, nil, nil, nil, nil, false, false, false, false, false},
 		"When mockclient contains all of them": {fakeListfn, fakeGetfn,
-			fakeGetClientset, false, false, false},
+			fakeGetClientset, fakeCreatefn, fakePatchfn, false, false, false, false, false},
 	}
 
 	for name, mock := range tests {
@@ -74,6 +89,8 @@ func TestWithDefaults(t *testing.T) {
 			fc.list = mock.listFn
 			fc.get = mock.getFn
 			fc.getClientset = mock.getClientsetFn
+			fc.create = mock.createFn
+			fc.patch = mock.patchFn
 
 			fc.withDefaults()
 			list := (fc.list == nil)
@@ -90,6 +107,16 @@ but got %v`, name, fc.get)
 			if getClientset != mock.expectGetClientset {
 				t.Fatalf(`test %s failed: expected non-nil fc.getClientset
 but got %v`, name, fc.getClientset)
+			}
+			create := (fc.create == nil)
+			if create != mock.expectCreate {
+				t.Fatalf(`test %s failed: expected non-nil fc.create
+but got %v`, name, fc.create)
+			}
+			patch := (fc.patch == nil)
+			if patch != mock.expectPatch {
+				t.Fatalf(`test %s failed: expected non-nil fc.patch
+but got %v`, name, fc.patch)
 			}
 		})
 	}
@@ -181,12 +208,12 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"When clientset is nil": {&kubeclient{nil, "default",
-			fakeGetNilErrClientSet, fakeListfn, fakeGetfn}, false},
+			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, false},
 		"When clientset is not nil": {&kubeclient{&clientset.Clientset{},
-			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn}, false},
+			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, false},
 		// Negative tests
 		"When getting clientset throws error": {&kubeclient{nil, "",
-			fakeGetErrClientSet, fakeListfn, fakeGetfn}, true},
+			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, true},
 	}
 
 	for name, mock := range tests {
