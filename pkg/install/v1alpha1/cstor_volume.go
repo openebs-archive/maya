@@ -155,7 +155,6 @@ spec:
     - cstor-volume-read-listcstorvolumecr-default
     - cstor-volume-read-listcstorvolumereplicacr-default
     - cstor-volume-read-listtargetpod-default
-    - cstor-volume-read-listpods-default
   output: cstor-volume-read-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -307,8 +306,7 @@ spec:
     kind: Service
     metadata:
       annotations:
-        openebs.io/pvc-namespace: {{ .Volume.runNamespace }}
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
@@ -922,7 +920,6 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistsvc.items | notFoundErr "target service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/pvc-namespace}" | default "" | trim | saveAs "readlistsvc.pvcNs" .TaskResult | noop -}}
 ---
 # runTask to list cstor volume cr
@@ -989,25 +986,6 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistctrl.targetNodeName" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistctrl.status" .TaskResult | noop -}}
 ---
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
-  name: cstor-volume-read-listpods-default
-spec:
-  meta: |
-    id: readlistpod
-    apiVersion: v1
-    kind: Pod
-    runNamespace: {{ .TaskResult.readlistsvc.pvcNs }}
-    disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
-    action: list
-  post: |
-    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
-    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
-    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
-    {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
-    {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
----
 # runTask to render output of read volume task as CAS Volume
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -1034,8 +1012,6 @@ spec:
         openebs.io/node-names: {{ .TaskResult.readlistrep.hostname | default "" | splitList " " | join "," }}
         openebs.io/pool-names: {{ .TaskResult.readlistrep.poolname | default "" | splitList " " | join "," }}
         openebs.io/controller-node-name: {{ .TaskResult.readlistctrl.targetNodeName | default ""}}
-        openebs.io/application-pod-name: {{ .TaskResult.readlistpod.applicationPodName | default "N/A" }}
-        openebs.io/application-pod-namespace: {{ .TaskResult.readlistpod.applicationPodNamespace | default "N/A" }}
     spec:
       capacity: {{ $capacity }}
       iqn: iqn.2016-09.com.openebs.cstor:{{ .Volume.owner }}
