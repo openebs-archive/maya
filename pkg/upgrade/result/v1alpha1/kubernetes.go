@@ -186,6 +186,9 @@ func (k *kubeclient) Create(upgradeResultObj *apis.UpgradeResult) (*apis.Upgrade
 // Patch returns the patched upgrade result instance
 func (k *kubeclient) Patch(name string, pt types.PatchType,
 	patchObj []byte) (*apis.UpgradeResult, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("failed to patch upgrade result: missing upgradeResult name")
+	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

@@ -58,9 +58,19 @@ func fakeCreatefn(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
 	return &apis.UpgradeResult{}, nil
 }
 
+func fakeCreateErrfn(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, errors.New("some error")
+}
+
 func fakePatchfn(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, nil
+}
+
+func fakePatchErrfn(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, errors.New("some error")
 }
 
 func TestWithDefaults(t *testing.T) {
@@ -274,6 +284,77 @@ func TestKubernetesGet(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			k := kubeclient{getClientset: mock.getClientset, get: mock.get}
 			_, err := k.Get(mock.resourceName, metav1.GetOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("test %s failed: expected error but got %v", name, err)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("test %s failed: expected nil but got %v", name, err)
+			}
+		})
+	}
+}
+
+func TestKubernetesCreate(t *testing.T) {
+	var upgradeResultObject = &apis.UpgradeResult{
+		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResult1"}}
+	tests := map[string]struct {
+		upgradeResultObj *apis.UpgradeResult
+		getClientset     getClientsetFunc
+		create           createFunc
+		expectErr        bool
+	}{
+		"When getting clientset throws error": {&apis.UpgradeResult{},
+			fakeGetErrClientSet, fakeCreatefn, true},
+		"When creating resource throws error": {&apis.UpgradeResult{},
+			fakeGetClientset, fakeCreateErrfn, true},
+		"When upgradeResult object is nil": {nil, fakeGetClientset,
+			fakeCreatefn, false},
+		"When an empty upgradeResult struct is given": {&apis.UpgradeResult{},
+			fakeGetClientset, fakeCreatefn, false},
+		"When non-empty upgradeResult struct is given": {upgradeResultObject,
+			fakeGetClientset, fakeCreatefn, false},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := kubeclient{getClientset: mock.getClientset, create: mock.create}
+			_, err := k.Create(mock.upgradeResultObj)
+			if mock.expectErr && err == nil {
+				t.Fatalf("test %s failed: expected error but got %v", name, err)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("test %s failed: expected nil but got %v", name, err)
+			}
+		})
+	}
+}
+
+func TestKubernetesPatch(t *testing.T) {
+	var patchObjStr = "{status:{actualCount:611,desiredCount:611}}"
+	tests := map[string]struct {
+		resourceName     string
+		patchType        types.PatchType
+		upgradeResultObj []byte
+		getClientset     getClientsetFunc
+		patch            patchFunc
+		expectErr        bool
+	}{
+		"When getting clientset throws error": {"ur1", "application/merge-patch+json",
+			[]byte{}, fakeGetErrClientSet, fakePatchfn, true},
+		"When patching resource throws error": {"ur2", "application/json-patch+json",
+			[]byte{}, fakeGetClientset, fakePatchErrfn, true},
+		"When patch object name is empty string": {"", "application/merge-patch+json",
+			nil, fakeGetClientset, fakePatchfn, true},
+		"When patch object is nil": {"ur3", "application/merge-patch+json", nil,
+			fakeGetClientset, fakePatchfn, false},
+		"When non-empty patch obj is given": {"ur5", "application/strategic-merge-patch+json",
+			[]byte(patchObjStr), fakeGetClientset, fakePatchfn, false},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := kubeclient{getClientset: mock.getClientset, patch: mock.patch}
+			_, err := k.Patch(mock.resourceName, mock.patchType, mock.upgradeResultObj)
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %s failed: expected error but got %v", name, err)
 			}
