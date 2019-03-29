@@ -296,37 +296,6 @@ spec:
                   fieldPath: metadata.namespace
             - name: RESYNC_INTERVAL
               value: {{ .Config.ResyncInterval.value }}
-          - name: maya-exporter
-            image: {{ .Config.CstorPoolExporterImage.value }}
-            resources:
-              {{- if ne $setAuxResourceRequests "none" }}
-              requests:
-              {{- range $rKey, $rLimit := $auxResourceRequestsVal }}
-                {{ $rKey }}: {{ $rLimit }}
-              {{- end }}
-              {{- end }}
-              {{- if ne $setAuxResourceLimits "none" }}
-              limits:
-              {{- range $rKey, $rLimit := $auxResourceLimitsVal }}
-                {{ $rKey }}: {{ $rLimit }}
-              {{- end }}
-              {{- end }}
-            command:
-            - maya-exporter
-            args:
-            - "-e=pool"
-            ports:
-            - containerPort: 9500
-              protocol: TCP
-            volumeMounts:
-            - mountPath: /dev
-              name: device
-            - mountPath: /tmp
-              name: tmp
-            - mountPath: {{ .Config.SparseDir.value }}
-              name: sparse
-            - mountPath: /run/udev
-              name: udev
           tolerations:
           {{- if ne $isTolerations "none" }}
           {{- range $k, $v := $tolerationsVal }}
