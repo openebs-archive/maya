@@ -6,7 +6,7 @@
     - allow-privileged=true
     - To enable the above feature gates in Kubelet add the foloowing line to /etc/default/kubelet in all the nodes and restart kubelet
         - KUBELET_EXTRA_ARGS=--feature-gates=CSINodeInfo=true,CSIDriverRegistry=true,KubeletPluginsWatcher=true --allow-privileged=true
-    - To enable the above feature gates in Kube-apiserver add the foloowing lines to ./kubernetes/manifests/kube-apiserver.yaml in the master node and restart kube-apiserver. These lines have to be added in spec->containers->command: section
+    - To enable the above feature gates in Kube-apiserver add the foloowing lines to /etc/kubernetes/manifests/kube-apiserver.yaml in the master node and restart kube-apiserver. These lines have to be added in spec->containers->command: section
         - --feature-gates=CSINodeInfo=true,CSIDriverRegistry=true,KubeletPluginsWatcher=true
         - --allow-privileged=true
 * Apply csidriver and csinodeinfo crds
