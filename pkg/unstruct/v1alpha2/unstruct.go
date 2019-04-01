@@ -81,19 +81,25 @@ func (b *builder) Build() (*unstruct, error) {
 	return b.unstruct, nil
 }
 
+// unstructList contains a list of unstructured
+// items
+type unstructList struct {
+	items []*unstruct
+}
+
 // listBuilder enables building a list
 // of an unstruct instance
 type listBuilder struct {
-	items []*unstruct
-	errs  []error
+	list unstructList
+	errs []error
 }
 
-// ListUnstructBuilderForYaml returns a mew instance of
+// ListUnstructBuilderForYamls returns a mew instance of
 // list unstruct builder by making use of the provided YAMLs
-func ListUnstructBuilderForYaml(docs string) *listBuilder {
+func ListUnstructBuilderForYamls(docs string) *listBuilder {
 	lb := &listBuilder{}
-	sepYamlfiles := strings.Split(docs, "---")
-	for _, f := range sepYamlfiles {
+	yamls := strings.Split(docs, "---")
+	for _, f := range yamls {
 		if f == "\n" || f == "" {
 			// ignore empty cases
 			continue
@@ -102,19 +108,20 @@ func ListUnstructBuilderForYaml(docs string) *listBuilder {
 		a, err := UnstructBuilderForYaml(f).Build()
 		if err != nil {
 			lb.errs = append(lb.errs, err)
+			continue
 		}
-		lb.items = append(lb.items, a)
+		lb.list.items = append(lb.list.items, a)
 	}
 	return lb
 }
 
-// ListUnstructBuilderForObject returns a mew instance of
+// ListUnstructBuilderForObjects returns a mew instance of
 // list unstruct builder by making use of the provided
 // unstructured object
-func ListUnstructBuilderForObject(objs ...*unstructured.Unstructured) *listBuilder {
+func ListUnstructBuilderForObjects(objs ...*unstructured.Unstructured) *listBuilder {
 	lb := &listBuilder{}
 	for _, obj := range objs {
-		lb.items = append(lb.items, &unstruct{obj})
+		lb.list.items = append(lb.list.items, &unstruct{obj})
 	}
 	return lb
 }
@@ -122,5 +129,8 @@ func ListUnstructBuilderForObject(objs ...*unstructured.Unstructured) *listBuild
 // Build returns the list of unstruct objects created by
 // the builder
 func (l *listBuilder) Build() ([]*unstruct, error) {
-	return l.items, errors.Errorf("%v", l.errs)
+	if len(l.errs) > 0 {
+		return nil, errors.Errorf("%v", l.errs)
+	}
+	return l.list.items, nil
 }

@@ -121,7 +121,7 @@ func TestUnstructBuilderForYamlBuild(t *testing.T) {
 	}
 }
 
-func TestListUnstructBuilderForYaml(t *testing.T) {
+func TestListUnstructBuilderForYamls(t *testing.T) {
 	tests := map[string]struct {
 		resourceYAML          string
 		expectedResourceCount int
@@ -134,17 +134,17 @@ func TestListUnstructBuilderForYaml(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			lb := ListUnstructBuilderForYaml(mock.resourceYAML)
+			lb := ListUnstructBuilderForYamls(mock.resourceYAML)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.items))
+			} else if len(lb.list.items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
 			}
 		})
 	}
 }
 
-func TestListUnstructBuilderForObject(t *testing.T) {
+func TestListUnstructBuilderForObjects(t *testing.T) {
 	tests := map[string]struct {
 		availableResourceCount, expectedResourceCount int
 		expectErr                                     bool
@@ -156,11 +156,11 @@ func TestListUnstructBuilderForObject(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			lb := ListUnstructBuilderForObject(fakeUnstructObjectList("Test", mock.availableResourceCount)...)
+			lb := ListUnstructBuilderForObjects(fakeUnstructObjectList("Test", mock.availableResourceCount)...)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.items))
+			} else if len(lb.list.items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
 			}
 		})
 	}
