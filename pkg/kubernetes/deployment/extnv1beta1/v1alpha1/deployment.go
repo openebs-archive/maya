@@ -117,8 +117,8 @@ func (d *deploy) failedRollout(name predicateName) *rolloutOutput {
 // failedRollout returns rollout status message for success condition
 func (d *deploy) successRollout(name predicateName) *rolloutOutput {
 	return &rolloutOutput{
-		Message:     "Deployment successfully rolled out",
-		IsRolledout: false,
+		Message:     "deployment successfully rolled out",
+		IsRolledout: true,
 	}
 }
 

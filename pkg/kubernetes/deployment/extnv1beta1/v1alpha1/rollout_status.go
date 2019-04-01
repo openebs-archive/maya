@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // rolloutStatus  is a typed function that
@@ -127,7 +129,7 @@ func (r *rollout) withDefaults() {
 // Raw returns raw bytes outpot of rollout
 func (r *rollout) Raw() ([]byte, error) {
 	if r.output == nil {
-		return nil, fmt.Errorf("Unable to get rollout status output")
+		return nil, errors.New("unable to get rollout status output")
 	}
 	return r.raw(r.output)
 }
