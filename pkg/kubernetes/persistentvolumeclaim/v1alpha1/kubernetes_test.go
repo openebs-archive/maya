@@ -15,6 +15,10 @@ func fakeGetClientset() (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
+func fakeGetfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaim, error) {
+	return &v1.PersistentVolumeClaim{}, nil
+}
+
 func fakeListfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	return &v1.PersistentVolumeClaimList{}, nil
 }
@@ -129,11 +133,11 @@ func TestGetClientOrCached(t *testing.T) {
 		KubeClient *kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &kubeclient{nil, "", fakeGetNilErrClientSet, fakeListfn, nil, nil}},
-		"Positive 2": {false, &kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeListfn, nil, nil}},
+		"Positive 1": {false, &kubeclient{nil, "", fakeGetNilErrClientSet, fakeListfn, nil, nil, nil}},
+		"Positive 2": {false, &kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeListfn, nil, nil, nil}},
 
 		// Negative tests
-		"Negative 1": {true, &kubeclient{nil, "", fakeGetErrClientSet, fakeListfn, nil, nil}},
+		"Negative 1": {true, &kubeclient{nil, "", fakeGetErrClientSet, fakeListfn, nil, nil, nil}},
 	}
 
 	for name, mock := range tests {

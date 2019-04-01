@@ -1,4 +1,4 @@
-package webhook
+package admission
 
 import (
 	"flag"
@@ -23,7 +23,7 @@ import (
 const (
 	// defaultTimeOut is the default time in seconds
 	// for Eventually block
-	defaultTimeOut int = 5000000
+	defaultTimeOut int = 600
 	// defaultPollingInterval is the default polling
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
@@ -34,7 +34,7 @@ const (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "StatefulSet")
+	RunSpecs(t, "Admission")
 }
 
 func init() {
@@ -53,7 +53,7 @@ var _ = BeforeSuite(func() {
 	cl, err := kubernetes.GetClientSet()
 	Expect(err).ShouldNot(HaveOccurred())
 
-	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
+	// Checking appropriate node numbers.
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 

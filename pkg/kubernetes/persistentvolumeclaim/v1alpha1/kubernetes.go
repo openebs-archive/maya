@@ -14,7 +14,7 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // getpvcFn is a typed function that
 // abstracts fetching of pvc
-type getFn func(cli *clientset.Clientset, name string, namespace string) (*v1.PersistentVolumeClaim, error)
+type getFn func(cli *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error)
 
 // listFn is a typed function that abstracts
 // listing of pvcs
@@ -65,8 +65,8 @@ func (k *kubeclient) withDefaults() {
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace string, name string) (*v1.PersistentVolumeClaim, error) {
-			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, metav1.GetOptions{})
+		k.get = func(cli *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)
 		}
 	}
 	if k.list == nil {
@@ -129,12 +129,12 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // Get returns a pvc resource
 // instances present in kubernetes cluster
-func (k *kubeclient) Get(ns, name string) (*v1.PersistentVolumeClaim, error) {
+func (k *kubeclient) Get(ns, name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cli, name, ns)
+	return k.get(cli, name, ns, opts)
 }
 
 // List returns a list of pvc
