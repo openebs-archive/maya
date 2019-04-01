@@ -16,6 +16,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,30 +84,18 @@ func (k *kubeclient) withDefaults() {
 	if k.rolloutStatus == nil {
 		k.rolloutStatus = func(d *appsv1.Deployment) (
 			*rolloutOutput, error) {
-			status, err := New(
+			return New(
 				WithAPIObject(d)).
 				RolloutStatus()
-			if err != nil {
-				return nil, err
-			}
-			return NewRollout(
-				withOutputObject(status)).
-				AsRolloutOutput()
 		}
 	}
 
 	if k.rolloutStatusf == nil {
 		k.rolloutStatusf = func(d *appsv1.Deployment) (
 			[]byte, error) {
-			status, err := New(
+			return New(
 				WithAPIObject(d)).
-				RolloutStatus()
-			if err != nil {
-				return nil, err
-			}
-			return NewRollout(
-				withOutputObject(status)).
-				Raw()
+				RolloutStatusRaw()
 		}
 	}
 
@@ -157,6 +147,19 @@ func (k *kubeclient) Get(name string) (*appsv1.Deployment, error) {
 		return nil, err
 	}
 	return k.get(cli, name, k.namespace, &metav1.GetOptions{})
+}
+
+// GetRaw returns deployment object for given name
+func (k *kubeclient) GetRaw(name string) ([]byte, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(d)
 }
 
 // RolloutStatusf returns deployment's rollout status for given name

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	extnv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,28 +84,16 @@ func (k *kubeclient) withDefaults() {
 	if k.rolloutStatus == nil {
 		k.rolloutStatus = func(d *extnv1beta1.Deployment) (
 			*rolloutOutput, error) {
-			status, err := New(WithAPIObject(d)).
+			return New(WithAPIObject(d)).
 				RolloutStatus()
-			if err != nil {
-				return nil, err
-			}
-			return NewRollout(
-				withOutputObject(status)).
-				AsRolloutOutput()
 		}
 	}
 
 	if k.rolloutStatusf == nil {
 		k.rolloutStatusf = func(d *extnv1beta1.Deployment) (
 			[]byte, error) {
-			status, err := New(WithAPIObject(d)).
-				RolloutStatus()
-			if err != nil {
-				return nil, err
-			}
-			return NewRollout(
-				withOutputObject(status)).
-				Raw()
+			return New(WithAPIObject(d)).
+				RolloutStatusRaw()
 		}
 	}
 
@@ -157,9 +147,21 @@ func (k *kubeclient) Get(name string) (*extnv1beta1.Deployment, error) {
 	return k.get(cli, name, k.namespace, &metav1.GetOptions{})
 }
 
+// GetRaw returns deployment object for given name in byte format
+func (k *kubeclient) GetRaw(name string) ([]byte, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	d, err := k.get(cli, name, k.namespace, &metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(d)
+}
+
 // RolloutStatus returns deployment's rollout status for given name
-func (k *kubeclient) RolloutStatus(name string) (
-	*rolloutOutput, error) {
+func (k *kubeclient) RolloutStatus(name string) (*rolloutOutput, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -173,8 +175,7 @@ func (k *kubeclient) RolloutStatus(name string) (
 
 // RolloutStatusf returns deployment's rollout status for given name
 // in raw bytes
-func (k *kubeclient) RolloutStatusf(name string) (
-	[]byte, error) {
+func (k *kubeclient) RolloutStatusf(name string) ([]byte, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

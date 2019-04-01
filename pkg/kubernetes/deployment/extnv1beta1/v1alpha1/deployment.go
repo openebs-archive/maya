@@ -97,30 +97,50 @@ func (d *deploy) AddChecks(p []predicate) *deploy {
 
 // isRollout range over rolloutChecks map and check status of each predicate
 // also it generates status message from rolloutStatuses using predicate key
-func (d *deploy) isRollout() (string, bool) {
-	msg := ""
-	ok := false
+func (d *deploy) isRollout() (predicateName, bool) {
 	for pk, p := range rolloutChecks {
-		if ok = p(d); ok {
-			msg = rolloutStatuses[pk](d)
-			return msg, !ok
+		if p(d) {
+			return pk, false
 		}
 	}
-	return msg, !ok
+	return "", true
 }
 
-// RolloutStatus runs checks against deployment instance
-// and generates rollout status as rolloutOutput
-func (d *deploy) RolloutStatus() (op *rolloutOutput, err error) {
-	op = &rolloutOutput{}
-	msg, ok := d.isRollout()
-	op.IsRolledout = ok
-	if !ok {
-		op.Message = msg
-		return
+// failedRollout returns rollout status message for fail condition
+func (d *deploy) failedRollout(name predicateName) *rolloutOutput {
+	return &rolloutOutput{
+		Message:     rolloutStatuses[name](d),
+		IsRolledout: false,
 	}
-	op.Message = "Deployment successfully rolled out"
-	return
+}
+
+// failedRollout returns rollout status message for success condition
+func (d *deploy) successRollout(name predicateName) *rolloutOutput {
+	return &rolloutOutput{
+		Message:     "Deployment successfully rolled out",
+		IsRolledout: false,
+	}
+}
+
+// RolloutStatus returns rollout message of deployment instance
+func (d *deploy) RolloutStatus() (op *rolloutOutput, err error) {
+	pk, ok := d.isRollout()
+	if ok {
+		return d.successRollout(pk), nil
+	}
+	return d.failedRollout(pk), nil
+}
+
+// RolloutStatus returns rollout message of deployment instance
+// in byte format
+func (d *deploy) RolloutStatusRaw() (op []byte, err error) {
+	message, err := d.RolloutStatus()
+	if err != nil {
+		return nil, err
+	}
+	return NewRollout(
+		withOutputObject(message)).
+		Raw()
 }
 
 // IsProgressDeadlineExceeded is used to check update is timed out or not.

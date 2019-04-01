@@ -17,7 +17,6 @@ limitations under the License.
 package task
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -869,16 +868,12 @@ func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
 	dclient := deploy_extnv1beta1.KubeClient(
 		deploy_extnv1beta1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
-	d, err := dclient.Get(m.getTaskObjectName())
+	d, err := dclient.GetRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
 
-	b, err := json.Marshal(d)
-	if err != nil {
-		return
-	}
-	util.SetNestedField(m.templateValues, b, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -915,13 +910,9 @@ func (m *taskExecutor) getAppsV1Deployment() (err error) {
 	dclient := deploy_appsv1.KubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
-	d, err := dclient.Get(m.getTaskObjectName())
+	d, err := dclient.GetRaw(m.getTaskObjectName())
 
-	b, err := json.Marshal(d)
-	if err != nil {
-		return
-	}
-	util.SetNestedField(m.templateValues, b, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
