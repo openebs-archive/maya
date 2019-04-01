@@ -42,9 +42,9 @@ type builder struct {
 	errs     []error
 }
 
-// UnstructBuilder returns a new instance of
-// empty unstruct builder
-func UnstructBuilder() *builder {
+// Builder returns a new instance of
+// empty builder
+func Builder() *builder {
 	return &builder{
 		unstruct: &unstruct{
 			&unstructured.Unstructured{
@@ -54,20 +54,22 @@ func UnstructBuilder() *builder {
 	}
 }
 
-// UnstructBuilderForYaml returns a new instance of
+// BuilderForYaml returns a new instance of
 // unstruct builder by making use of the provided
 // YAML
-func UnstructBuilderForYaml(doc string) *builder {
-	b := UnstructBuilder()
+func BuilderForYaml(doc string) *builder {
+	b := Builder()
 	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object)
-	b.errs = append(b.errs, err)
+	if err != nil {
+		b.errs = append(b.errs, err)
+	}
 	return b
 }
 
-// UnstructBuilderForObject returns a new instance of
+// BuilderForObject returns a new instance of
 // unstruct builder by making use of the provided object
-func UnstructBuilderForObject(obj *unstructured.Unstructured) *builder {
-	b := UnstructBuilder()
+func BuilderForObject(obj *unstructured.Unstructured) *builder {
+	b := Builder()
 	b.unstruct.object = obj
 	return b
 }
@@ -94,10 +96,10 @@ type listBuilder struct {
 	errs []error
 }
 
-// ListUnstructBuilderForYamls returns a mew instance of
+// ListBuilderForYamls returns a mew instance of
 // list unstruct builder by making use of the provided YAMLs
-func ListUnstructBuilderForYamls(docs string) *listBuilder {
-	lb := &listBuilder{}
+func ListBuilderForYamls(docs string) *listBuilder {
+	lb := &listBuilder{list: unstructList{}}
 	yamls := strings.Split(docs, "---")
 	for _, f := range yamls {
 		if f == "\n" || f == "" {
@@ -105,7 +107,7 @@ func ListUnstructBuilderForYamls(docs string) *listBuilder {
 			continue
 		}
 		f = strings.TrimSpace(f)
-		a, err := UnstructBuilderForYaml(f).Build()
+		a, err := BuilderForYaml(f).Build()
 		if err != nil {
 			lb.errs = append(lb.errs, err)
 			continue
@@ -115,10 +117,10 @@ func ListUnstructBuilderForYamls(docs string) *listBuilder {
 	return lb
 }
 
-// ListUnstructBuilderForObjects returns a mew instance of
+// ListBuilderForObjects returns a mew instance of
 // list unstruct builder by making use of the provided
 // unstructured object
-func ListUnstructBuilderForObjects(objs ...*unstructured.Unstructured) *listBuilder {
+func ListBuilderForObjects(objs ...*unstructured.Unstructured) *listBuilder {
 	lb := &listBuilder{}
 	for _, obj := range objs {
 		lb.list.items = append(lb.list.items, &unstruct{obj})

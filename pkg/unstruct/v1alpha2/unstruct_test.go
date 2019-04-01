@@ -38,8 +38,36 @@ spec:
   selector:
     app: icstcee
   type: LoadBalancer
-	`
+`
 )
+
+func fakePodObject() *unstructured.Unstructured {
+	n := &unstructured.Unstructured{}
+	n.SetKind("Pod")
+	n.SetName("fake pod")
+	return n
+}
+
+func fakeDeploymentObject() *unstructured.Unstructured {
+	n := &unstructured.Unstructured{}
+	n.SetKind("Deployment")
+	n.SetName("fake deployment")
+	return n
+}
+
+func fakeServiceObject() *unstructured.Unstructured {
+	n := &unstructured.Unstructured{}
+	n.SetKind("Service")
+	n.SetName("fake service")
+	return n
+}
+
+func fakeNamespaceObject() *unstructured.Unstructured {
+	n := &unstructured.Unstructured{}
+	n.SetKind("Namespace")
+	n.SetName("fake namespace")
+	return n
+}
 
 func fakeUnstructObject(name string) *unstructured.Unstructured {
 	u := &unstructured.Unstructured{}
@@ -55,15 +83,7 @@ func fakeK8sResourceList(resource string, count int) string {
 	return result
 }
 
-func fakeUnstructObjectList(name string, count int) []*unstructured.Unstructured {
-	result := []*unstructured.Unstructured{}
-	for i := 0; i < count; i++ {
-		result = append(result, fakeUnstructObject(name))
-	}
-	return result
-}
-
-func TestUnstructBuilderForYAML(t *testing.T) {
+func TestBuilderForYAML(t *testing.T) {
 	tests := map[string]struct {
 		resourceYAML, expectedName string
 		expectError                bool
@@ -73,7 +93,7 @@ func TestUnstructBuilderForYAML(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := UnstructBuilderForYaml(mock.resourceYAML)
+			b := BuilderForYaml(mock.resourceYAML)
 			if mock.expectError && len(b.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got 0", name)
 			} else if b.unstruct.object.GetName() != mock.expectedName {
@@ -83,7 +103,7 @@ func TestUnstructBuilderForYAML(t *testing.T) {
 	}
 }
 
-func TestUnstructBuilderForObject(t *testing.T) {
+func TestBuilderForObject(t *testing.T) {
 	tests := map[string]struct {
 		resourceName, expectedName string
 	}{
@@ -93,7 +113,7 @@ func TestUnstructBuilderForObject(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			mockObj := fakeUnstructObject(mock.resourceName)
-			b := UnstructBuilderForObject(mockObj)
+			b := BuilderForObject(mockObj)
 			if b.unstruct.object.GetName() != mock.expectedName {
 				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.object.GetName())
 			}
@@ -101,7 +121,7 @@ func TestUnstructBuilderForObject(t *testing.T) {
 	}
 }
 
-func TestUnstructBuilderForYamlBuild(t *testing.T) {
+func TestBuilderForYamlBuild(t *testing.T) {
 	tests := map[string]struct {
 		resourceYAML, expectedName string
 		expectError                bool
@@ -111,7 +131,7 @@ func TestUnstructBuilderForYamlBuild(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b, err := UnstructBuilderForYaml(mock.resourceYAML).Build()
+			b, err := BuilderForYaml(mock.resourceYAML).Build()
 			if mock.expectError && err == nil {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
 			} else if b != nil && b.object.GetName() != mock.expectedName {
@@ -121,7 +141,7 @@ func TestUnstructBuilderForYamlBuild(t *testing.T) {
 	}
 }
 
-func TestListUnstructBuilderForYamls(t *testing.T) {
+func TestListBuilderForYamls(t *testing.T) {
 	tests := map[string]struct {
 		resourceYAML          string
 		expectedResourceCount int
@@ -129,12 +149,12 @@ func TestListUnstructBuilderForYamls(t *testing.T) {
 	}{
 		"Test 1": {fakeK8sResourceList(fakeK8sResource, 1), 1, false},
 		"Test 2": {fakeK8sResourceList(fakeK8sResource, 2), 2, false},
-		"Test 3": {fakeK8sResourceList(fakeInvalidK8sResource, 1), 1, true},
-		"Test 4": {fakeK8sResourceList(fakeInvalidK8sResource, 2), 2, true},
+		"Test 3": {fakeK8sResourceList(fakeInvalidK8sResource, 1), 0, true},
+		"Test 4": {fakeK8sResourceList(fakeInvalidK8sResource, 2), 0, true},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			lb := ListUnstructBuilderForYamls(mock.resourceYAML)
+			lb := ListBuilderForYamls(mock.resourceYAML)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
 			} else if len(lb.list.items) != mock.expectedResourceCount {
@@ -146,17 +166,18 @@ func TestListUnstructBuilderForYamls(t *testing.T) {
 
 func TestListUnstructBuilderForObjects(t *testing.T) {
 	tests := map[string]struct {
-		availableResourceCount, expectedResourceCount int
-		expectErr                                     bool
+		availableResources    []*unstructured.Unstructured
+		expectedResourceCount int
+		expectErr             bool
 	}{
-		"Test 1": {1, 1, false},
-		"Test 2": {2, 2, false},
-		"Test 3": {3, 3, false},
-		"Test 4": {4, 4, false},
+		"Test 1": {[]*unstructured.Unstructured{fakePodObject()}, 1, false},
+		"Test 2": {[]*unstructured.Unstructured{fakePodObject(), fakeDeploymentObject()}, 2, false},
+		"Test 3": {[]*unstructured.Unstructured{fakePodObject(), fakeDeploymentObject(), fakeServiceObject()}, 3, false},
+		"Test 4": {[]*unstructured.Unstructured{fakePodObject(), fakeDeploymentObject(), fakeServiceObject(), fakeNamespaceObject()}, 4, false},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			lb := ListUnstructBuilderForObjects(fakeUnstructObjectList("Test", mock.availableResourceCount)...)
+			lb := ListBuilderForObjects(mock.availableResources...)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
 			} else if len(lb.list.items) != mock.expectedResourceCount {
