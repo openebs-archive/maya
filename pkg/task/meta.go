@@ -68,6 +68,9 @@ const (
 	// ExecTA flags a action as exec. Typically used to
 	// exec inside a container of a pod.
 	ExecTA MetaTaskAction = "exec"
+	// RolloutstatusTA flags a action as rollouttatus. Typically used to
+	// get rollout satus of resource
+	RolloutstatusTA MetaTaskAction = "rolloutstatus"
 	// OutputTA flags the task action as output. Typically used to
 	// provide a schema (i.e. a custom defined) based output after
 	// running one or more tasks.
@@ -318,6 +321,10 @@ func (m *metaTaskExecutor) isExec() bool {
 	return m.metaTask.Action == ExecTA
 }
 
+func (m *metaTaskExecutor) isRolloutstatus() bool {
+	return m.metaTask.Action == RolloutstatusTA
+}
+
 func (m *metaTaskExecutor) isPutExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPut()
 }
@@ -503,6 +510,14 @@ func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
 
 func (m *metaTaskExecutor) isExecCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isExec()
+}
+
+func (m *metaTaskExecutor) isRolloutstatusExtnV1B1Deploy() bool {
+	return m.identifier.isExtnV1B1Deploy() && m.isRolloutstatus()
+}
+
+func (m *metaTaskExecutor) isRolloutstatusAppsV1Deploy() bool {
+	return m.identifier.isAppsV1B1Deploy() && m.isRolloutstatus()
 }
 
 // getRollbackMetaInstances is a utility function that provides objects

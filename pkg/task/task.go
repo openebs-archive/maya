@@ -27,6 +27,8 @@ import (
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
+	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
@@ -346,7 +348,9 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		return m.postExecuteIt()
 	}
 
-	if m.metaTaskExec.isPutExtnV1B1Deploy() {
+	if m.metaTaskExec.isRolloutstatus() {
+		err = m.rolloutStatus()
+	} else if m.metaTaskExec.isPutExtnV1B1Deploy() {
 		err = m.putExtnV1B1Deploy()
 	} else if m.metaTaskExec.isPutAppsV1B1Deploy() {
 		err = m.putAppsV1B1Deploy()
@@ -881,22 +885,54 @@ func (m *taskExecutor) getOEV1alpha1UR() (err error) {
 
 // getExtnV1B1Deployment will get the Deployment as specified in the RunTask
 func (m *taskExecutor) getExtnV1B1Deployment() (err error) {
-	deploy, err := m.getK8sClient().GetExtnV1B1DeploymentAsRaw(m.getTaskObjectName())
+	dclient := deploy_extnv1beta1.KubeClient(
+		deploy_extnv1beta1.WithNamespace(m.getTaskRunNamespace()),
+		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
+	d, err := dclient.GetRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
+
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// getAppsV1B1Deployment will get the Deployment as specified in the RunTask
-func (m *taskExecutor) getAppsV1B1Deployment() (err error) {
-	deploy, err := m.getK8sClient().GetAppsV1B1DeploymentAsRaw(m.getTaskObjectName())
+// extnV1B1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
+func (m *taskExecutor) extnV1B1DeploymentRollOutStatus() (err error) {
+	dclient := deploy_extnv1beta1.KubeClient(
+		deploy_extnv1beta1.WithNamespace(m.getTaskRunNamespace()),
+		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
+	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
 
-	util.SetNestedField(m.templateValues, deploy, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getAppsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
+func (m *taskExecutor) appsV1DeploymentRollOutStatus() (err error) {
+	dclient := deploy_appsv1.KubeClient(
+		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
+		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
+	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, res, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getAppsV1Deployment will get the Deployment as specified in the RunTask
+func (m *taskExecutor) getAppsV1Deployment() (err error) {
+	dclient := deploy_appsv1.KubeClient(
+		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
+		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
+	d, err := dclient.GetRaw(m.getTaskObjectName())
+
+	util.SetNestedField(m.templateValues, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -1092,6 +1128,18 @@ func (m *taskExecutor) execCoreV1Pod() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, result, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// rolloutStatus generates rollout status of a given resource form it's object details
+func (m *taskExecutor) rolloutStatus() (err error) {
+	if m.metaTaskExec.isRolloutstatusExtnV1B1Deploy() {
+		err = m.extnV1B1DeploymentRollOutStatus()
+	} else if m.metaTaskExec.isRolloutstatusAppsV1Deploy() {
+		err = m.appsV1DeploymentRollOutStatus()
+	} else {
+		err = fmt.Errorf("failed to get rollout status : meta task not supported: task details '%+v'", m.metaTaskExec.getTaskIdentity())
+	}
 	return
 }
 
