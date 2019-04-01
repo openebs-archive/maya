@@ -393,6 +393,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.putCStorVolume()
 	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
 		err = m.putCStorVolumeReplica()
+	} else if m.metaTaskExec.isPutOEV1alpha1UR() {
+		err = m.putUpgradeResult()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1SP() {
 		err = m.deleteOEV1alpha1SP()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CSP() {
@@ -1089,6 +1091,19 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, cstorVolumeReplica, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// putUpgradeResult will put an upgrade result as defined in the task
+func (m *taskExecutor) putUpgradeResult() (err error) {
+	uresult, err := upgrade.BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).Build()
+	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	// put Upgrade Result
+	ur, err := uc.CreateAsRaw(uresult)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 

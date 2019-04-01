@@ -460,6 +460,10 @@ func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
+func (m *metaTaskExecutor) isPutOEV1alpha1UR() bool {
+	return m.identifier.isOEV1alpha1UR() && m.isPut()
+}
+
 func (m *metaTaskExecutor) isDeleteOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isDelete()
 }

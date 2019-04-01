@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/ghodss/yaml"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	"github.com/openebs/maya/pkg/template"
+	"github.com/pkg/errors"
 )
 
 type upgradeResult struct {
@@ -30,8 +33,66 @@ type upgradeResultList struct {
 	items []*upgradeResult
 }
 
-// ListBuilder enables building
-// an instance of urList
+// builder enables building an instance of
+// upgradeResult
+type builder struct {
+	*upgradeResult
+	checks []Predicate
+	errors []error
+}
+
+// Predicate abstracts conditional logic w.r.t the patch instance
+//
+// NOTE:
+// Predicate is a functional approach versus traditional approach to mix
+// conditions such as *if-else* within blocks of business logic
+//
+// NOTE:
+// Predicate approach enables clear separation of conditionals from
+// imperatives i.e. actions that form the business logic
+type Predicate func(*upgradeResult) (message string, ok bool)
+
+// predicateFailedError returns the provided predicate as an error
+func predicateFailedError(message string) error {
+	return errors.Errorf("predicatefailed: %s", message)
+}
+
+// Builder returns a new instance of builder
+func Builder() *builder {
+	return &builder{upgradeResult: &upgradeResult{
+		object: &apis.UpgradeResult{},
+	}}
+}
+
+// BuilderForRuntask returns a new instance
+// of builder for runtasks
+func BuilderForRuntask(context, yml string, values map[string]interface{}) *builder {
+	b := &builder{}
+	uresult := &apis.UpgradeResult{}
+
+	raw, err := template.AsTemplatedBytes(context, yml, values)
+	if err != nil {
+		b.errors = append(b.errors, err)
+		return b
+	}
+	err = yaml.Unmarshal(raw, uresult)
+	if err != nil {
+		b.errors = append(b.errors, err)
+		return b
+	}
+	b.upgradeResult = &upgradeResult{
+		object: uresult,
+	}
+	return b
+}
+
+// Build returns the final instance of upgradeResult
+func (b *builder) Build() (*apis.UpgradeResult, error) {
+	return b.upgradeResult.object, nil
+}
+
+// listBuilder enables building
+// an instance of upgradeResultList
 type listBuilder struct {
 	list *upgradeResultList
 }

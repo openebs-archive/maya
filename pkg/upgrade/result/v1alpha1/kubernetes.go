@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 
@@ -172,6 +173,16 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 		return nil, err
 	}
 	return k.get(cs, name, k.namespace, opts)
+}
+
+// Create creates an upgrade result instance
+// and returns raw upgradeResult instance
+func (k *kubeclient) CreateAsRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, error) {
+	ur, err := k.Create(upgradeResultObj)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(ur)
 }
 
 // Create creates an upgrade result instance in kubernetes cluster
