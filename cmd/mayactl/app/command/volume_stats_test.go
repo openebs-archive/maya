@@ -146,7 +146,7 @@ func TestProcessStats(t *testing.T) {
 				"openebs_size_of_volume":    v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 5}},
 				"openebs_volume_uptime":     v1alpha1.MetricsFamily{Label: []v1alpha1.LabelItem{v1alpha1.LabelItem{Name: "castype", Value: "jiva"}, v1alpha1.LabelItem{Name: "iqn", Value: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}, v1alpha1.LabelItem{Name: "portal", Value: "127.0.0.1"}, v1alpha1.LabelItem{Name: "volName", Value: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}}},
 			},
-			Output: v1alpha1.StatsJSON{IQN: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Portal: "127.0.0.1", Size: "5.000000", CASType: "jiva", ReadIOPS: 4096, WriteIOPS: 4096, ReadThroughput: 0, WriteThroughput: 0, ReadLatency: 0, WriteLatency: 0, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52587890625e-05},
+			Output: v1alpha1.StatsJSON{Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Size: "5.000000", CASType: "jiva", ReadIOPS: 4096, WriteIOPS: 4096, ReadThroughput: 0, WriteThroughput: 0, ReadLatency: 0, WriteLatency: 0, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52587890625e-05},
 		},
 		"When length of stats1 is  equal to stat2": {
 			stats1: map[string]v1alpha1.MetricsFamily{
@@ -175,7 +175,7 @@ func TestProcessStats(t *testing.T) {
 				"openebs_size_of_volume":    v1alpha1.MetricsFamily{Gauge: v1alpha1.Gauge{Value: 5}},
 				"openebs_volume_uptime":     v1alpha1.MetricsFamily{Label: []v1alpha1.LabelItem{v1alpha1.LabelItem{Name: "castype", Value: "jiva"}, v1alpha1.LabelItem{Name: "iqn", Value: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}, v1alpha1.LabelItem{Name: "portal", Value: "127.0.0.1"}, v1alpha1.LabelItem{Name: "volName", Value: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff"}}},
 			},
-			Output: v1alpha1.StatsJSON{IQN: "iqn.2016-09.com.openebs.jiva:pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Portal: "127.0.0.1", Size: "5.000000", CASType: "jiva", ReadIOPS: 2048, WriteIOPS: 2048, ReadThroughput: 1.9073650038576458e-06, WriteThroughput: 1.9073650038576458e-06, ReadLatency: 9.765625e-10, WriteLatency: 9.765625e-10, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52687890625e-05},
+			Output: v1alpha1.StatsJSON{Volume: "pvc-66a9a0b4-e7ef-11e8-a279-b4b686bd0cff", Size: "5.000000", CASType: "jiva", ReadIOPS: 2048, WriteIOPS: 2048, ReadThroughput: 1.9073650038576458e-06, WriteThroughput: 1.9073650038576458e-06, ReadLatency: 9.765625e-10, WriteLatency: 9.765625e-10, AvgReadBlockSize: 0, AvgWriteBlockSize: 0, SectorSize: 4096, ActualUsed: 4096, LogicalSize: 1.52687890625e-05},
 		},
 	}
 

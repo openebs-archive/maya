@@ -22,7 +22,7 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/mapiserver"
-	"github.com/openebs/maya/types/v1"
+	v1 "github.com/openebs/maya/types/v1"
 
 	"github.com/openebs/maya/pkg/util"
 	"github.com/spf13/cobra"
@@ -40,9 +40,7 @@ Usage: mayactl volume stats --volname <vol> [-size <size>]
 const statsTemplate = ` 
 Portal Details :
 ---------------
-IQN     :   {{.IQN}}
 Volume  :   {{.Volume}}
-Portal  :   {{.Portal}}
 Size    :   {{.Size}}
 
 Performance Stats :
@@ -146,11 +144,7 @@ func processStats(statsInitial, statsFinal map[string]v1alpha1.MetricsFamily) (s
 
 	if val, p := statsFinal["openebs_volume_uptime"]; p {
 		for _, v := range val.Label {
-			if v.Name == "iqn" {
-				stats.IQN = v.Value
-			} else if v.Name == "portal" {
-				stats.Portal = v.Value
-			} else if v.Name == "volName" {
+			if v.Name == "volName" {
 				stats.Volume = v.Value
 			} else if v.Name == "castype" {
 				stats.CASType = v.Value
