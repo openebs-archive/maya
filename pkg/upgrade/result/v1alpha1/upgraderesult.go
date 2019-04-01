@@ -41,7 +41,7 @@ type builder struct {
 	errors []error
 }
 
-// Predicate abstracts conditional logic w.r.t the patch instance
+// Predicate abstracts conditional logic w.r.t the upgradeResult instance
 //
 // NOTE:
 // Predicate is a functional approach versus traditional approach to mix
@@ -88,7 +88,41 @@ func BuilderForRuntask(context, yml string, values map[string]interface{}) *buil
 
 // Build returns the final instance of upgradeResult
 func (b *builder) Build() (*apis.UpgradeResult, error) {
+	err := b.validate()
+	if err != nil {
+		return nil, err
+	}
 	return b.upgradeResult.object, nil
+}
+
+// validate will run checks against upgrade
+// result instance
+func (b *builder) validate() error {
+	for _, c := range b.checks {
+		if m, ok := c(b.upgradeResult); !ok {
+			b.errors = append(b.errors, predicateFailedError(m))
+		}
+	}
+	if len(b.errors) == 0 {
+		return nil
+	}
+	return errors.New("upgrade result build validation failed")
+}
+
+// AddCheck adds the predicate as a condition to be validated against the
+// upgradeResult instance
+func (b *builder) AddCheck(p Predicate) *builder {
+	b.checks = append(b.checks, p)
+	return b
+}
+
+// AddChecks adds the provided predicates as conditions to be validated against
+// the upgradeResult instance
+func (b *builder) AddChecks(p []Predicate) *builder {
+	for _, check := range p {
+		b.AddCheck(check)
+	}
+	return b
 }
 
 // listBuilder enables building
