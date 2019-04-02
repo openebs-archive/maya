@@ -1,12 +1,14 @@
 package admission
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openebs/maya/integration-tests/artifacts"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
+	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	vwebhook "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,11 +21,11 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: cstor-test
+  namespace: default
+  labels:
+    name: cstor-test
 spec:
   storageClassName: openebs-cstor-class
-  selector:
-    matchLabels:
-      openebs.io/casType: cstor
   accessModes:
     - ReadWriteOnce
   resources:
@@ -54,13 +56,13 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: test-snap-claim
+  namespace: default
+  labels:
+    name: test-snap-claim
   annotations:
-    snapshot.alpha.kubernetes.io/snapshot: fastfurious
+    snapshot.alpha.kubernetes.io/snapshot: snapshot-cstor
 spec:
   storageClassName: openebs-snapshot-promoter
-  selector:
-    matchLabels:
-      openebs.io/casType: cstor
   accessModes: [ "ReadWriteOnce" ]
   resources:
     requests:
@@ -101,13 +103,6 @@ var _ = Describe("AdmissionWebhook", func() {
 		PVCNamespace := PVCUnst.GetNamespace()
 
 		// Webhook stuffs
-		client, err := k8s.Clientset().Get()
-		_, err = client.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().List(metav1.ListOptions{})
-		if errors.IsNotFound(err) {
-			Skip("dynamic configuration of webhooks requires the admissionregistration.k8s.io group to be enabled")
-		}
-		Expect(err).ShouldNot(HaveOccurred())
-
 		_, err = vwebhook.KubeClient().List(metav1.ListOptions{})
 		if errors.IsNotFound(err) {
 			Skip("dynamic configuration of webhooks requires the admissionregistration.k8s.io group to be enabled")
@@ -123,22 +118,10 @@ var _ = Describe("AdmissionWebhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("verifying pvc to be created and bound with pv")
-		//	Eventually(func() string {
-		//		pvclaim, err := pvc.
-		//			KubeClient(pvc.WithNamespace(PVCNamespace)).Get(PVCNamespace, PVCUnst.GetName(), metav1.GetOptions{})
-		//		Expect(err).ShouldNot(HaveOccurred())
-		//		return string(pvclaim.Status.Phase)
-		//	},
-		//		defaultTimeOut, defaultPollingInterval).
-		//		Should(Receive((ContainSubstring("Bound")), "PVC phase should bound"))
-
-		// Generating label selector for stsResources
-		PVCLabel := "openebs.io/casType=" + "cstor"
-
 		Eventually(func() int {
 			pvcs, err := pvc.
 				KubeClient(pvc.WithNamespace(PVCNamespace)).
-				List(metav1.ListOptions{LabelSelector: PVCLabel})
+				List(metav1.ListOptions{LabelSelector: "name=cstor-test"})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pvc.
 				ListBuilder().
@@ -152,14 +135,14 @@ var _ = Describe("AdmissionWebhook", func() {
 
 		// Check for CVR to get healthy
 		Eventually(func() int {
-			cvrs, err := cvr.
-				KubeClient(cvr.WithNamespace("openebs")).
-				List(metav1.ListOptions{LabelSelector: PVCLabel})
+			cvs, err := cv.
+				KubeClient(cv.WithNamespace("openebs")).
+				List(metav1.ListOptions{LabelSelector: ""})
 			Expect(err).ShouldNot(HaveOccurred())
-			return cvr.
+			return cv.
 				ListBuilder().
-				WithAPIList(cvrs).
-				WithFilter(cvr.IsHealthy()).
+				WithAPIList(cvs).
+				WithFilter(cv.IsHealthy()).
 				List().
 				Len()
 		},
@@ -176,47 +159,33 @@ var _ = Describe("AdmissionWebhook", func() {
 		// Extracting pvc namespace
 		PVCNamespace := PVCUnst.GetNamespace()
 
-		// Generating label selector for stsResources
-		PVCLabel := "openebs.io/casType=" + "cstor"
-
-		// Fetch PVCs to be deleted
-		pvcs, err := pvc.KubeClient(pvc.WithNamespace(PVCNamespace)).
-			List(metav1.ListOptions{LabelSelector: PVCLabel})
-		Expect(err).ShouldNot(HaveOccurred())
-
-		// Delete PVCs
-		for _, p := range pvcs.Items {
-			err = pvc.KubeClient(pvc.WithNamespace(PVCNamespace)).
-				Delete(p.GetName(), &metav1.DeleteOptions{})
-			Expect(err).ShouldNot(HaveOccurred())
-		}
-
+		By("Delete persistentvolumeclaim as part of cleanup")
 		// Delete the PVC artifacts
 		cu := k8s.DeleteResource(
 			k8s.GroupVersionResourceFromGVK(PVCUnst),
 			PVCNamespace,
 		)
 		err = cu.Delete(PVCUnst)
-		Expect(err).ShouldNot(HaveOccurred())
-
+		//Expect(err).ShouldNot(HaveOccurred())
+		if err != nil {
+			Fail(fmt.Sprintf("could not delete volume %q: %v", PVCUnst.GetName(), err))
+		}
 		// Verify deletion of pvc instances
 		Eventually(func() int {
 			pvcs, err := pvc.
 				KubeClient(pvc.WithNamespace(PVCNamespace)).
-				List(metav1.ListOptions{LabelSelector: PVCLabel})
+				List(metav1.ListOptions{LabelSelector: "name=cstor-test"})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
 		},
 			defaultTimeOut, defaultPollingInterval).
 			Should(Equal(0), "pvc count should be 0")
-
 	})
 
 	Context("Test admission server validation for pvc delete", func() {
 		It("should deny the deletion of source volume", func() {
 
 			// Step-1 Create the snapshot
-			//CreateSnapshot()
 			// Extracting snapshot artifacts unstructured
 			By("Create a snapshot for a given volume")
 			SnapUnst, err := artifacts.GetArtifactUnstructured(cstorSnapshotYaml)
@@ -226,12 +195,10 @@ var _ = Describe("AdmissionWebhook", func() {
 				k8s.GroupVersionResourceFromGVK(SnapUnst),
 				SnapUnst.GetNamespace(),
 			)
-
 			_, err = cu.Apply(SnapUnst)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Step-2 Create Clone PVC
-			//CreateClonePVC()
 			// Create pvc using storageclass 'cstor-sparse-pool'
 			// Extracting PVC artifacts unstructured
 			By("Create a clone volume using snapshot")
@@ -239,7 +206,7 @@ var _ = Describe("AdmissionWebhook", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Extracting pvc namespace
-			//PVCNamespace := ClonePVCUnst.GetNamespace()
+			clonePVCNamespace := ClonePVCUnst.GetNamespace()
 
 			cu = k8s.CreateOrUpdate(
 				k8s.GroupVersionResourceFromGVK(ClonePVCUnst),
@@ -248,33 +215,63 @@ var _ = Describe("AdmissionWebhook", func() {
 			_, err = cu.Apply(ClonePVCUnst)
 			Expect(err).ShouldNot(HaveOccurred())
 
+			By("verifying clone pvc to be created and bound with pv")
+			Eventually(func() int {
+				pvcs, err := pvc.
+					KubeClient(pvc.WithNamespace(clonePVCNamespace)).
+					List(metav1.ListOptions{LabelSelector: "name=test-snap-claim"})
+				Expect(err).ShouldNot(HaveOccurred())
+				return pvc.
+					ListBuilder().
+					WithAPIList(pvcs).
+					WithFilter(pvc.IsBound()).
+					List().
+					Len()
+			},
+				defaultTimeOut, defaultPollingInterval).
+				Should(Equal(1), "PVC count should be "+string(1))
+
 			// Step-3 Delete Source-volume
-			//DeletePVC()
 			By("Deleting source PVC should fail with error")
 			PVCUnst, err := artifacts.GetArtifactUnstructured(cStorPVC)
 			Expect(err).ShouldNot(HaveOccurred())
 
+			By("Try Delete source persistentvolumeclaim")
 			// Extracting pvc namespace
 			PVCNamespace := PVCUnst.GetNamespace()
 
-			_ = k8s.DeleteResource(
+			del := k8s.DeleteResource(
 				k8s.GroupVersionResourceFromGVK(PVCUnst),
 				PVCNamespace,
 			)
-			err = cu.Delete(PVCUnst)
-			Expect(err).Should(HaveOccurred())
+			err = del.Delete(PVCUnst)
+			Expect(err).ToNot(BeNil())
 
-		})
+			By("Delete clone persistentvolumeclaim ")
+			err = del.Delete(ClonePVCUnst)
+			if err != nil {
+				Fail(fmt.Sprintf("could not delete volume %q: %v", ClonePVCUnst.GetName(), err))
+			}
+			// Verify deletion of pvc instances
+			Eventually(func() int {
+				pvcs, err := pvc.
+					KubeClient(pvc.WithNamespace(PVCNamespace)).
+					List(metav1.ListOptions{LabelSelector: "name=test-snap-claim"})
+				Expect(err).ShouldNot(HaveOccurred())
+				return len(pvcs.Items)
+			},
+				defaultTimeOut, defaultPollingInterval).
+				Should(Equal(0), "pvc count should be 0")
 
-		PIt("should delete volume b/c clone volume not exists", func() {
-
-			// Step-1 Create the snapshot
-			//
-			//
-			// Step-2 Create Clone PVC
-			//
-			//
-			// Step-3 Delete Source-volume
+			By("Delete volume snapshot")
+			snap := k8s.DeleteResource(
+				k8s.GroupVersionResourceFromGVK(SnapUnst),
+				PVCNamespace,
+			)
+			err = snap.Delete(SnapUnst)
+			if err != nil {
+				Fail(fmt.Sprintf("could not delete snapshot %q: %v", SnapUnst.GetName(), err))
+			}
 
 		})
 	})
