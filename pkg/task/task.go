@@ -796,10 +796,9 @@ func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
 
 // getExtnV1B1ReplicaSet will get the Replicaset as specified in the RunTask
 func (m *taskExecutor) getExtnV1B1ReplicaSet() (err error) {
-	client := replicaset.KubeClient(
-		replicaset.WithNamespace(m.getTaskRunNamespace()))
-
-	rs, err := client.GetRaw(m.getTaskObjectName())
+	rs, err := replicaset.
+		KubeClient(replicaset.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -825,9 +824,9 @@ func (m *taskExecutor) deleteExtnV1B1ReplicaSet() (err error) {
 }
 
 func (m *taskExecutor) listExtnV1B1ReplicaSet(opt metav1.ListOptions) ([]byte, error) {
-	client := replicaset.KubeClient(
-		replicaset.WithNamespace(m.getTaskRunNamespace()))
-	return client.ListRaw(&opt)
+	return replicaset.
+		KubeClient(replicaset.WithNamespace(m.getTaskRunNamespace())).
+		ListRaw(opt)
 }
 
 // putCoreV1Service will put a Service whose specs are configured in the RunTask
