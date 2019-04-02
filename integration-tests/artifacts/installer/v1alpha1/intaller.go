@@ -67,6 +67,20 @@ func (i *installer) Install() error {
 	return err
 }
 
+// Delete triggers delete process for the
+// install client
+func (i *installer) Delete() error {
+	if i.object != nil && i.namespace != "" {
+		i.object.SetNamespace(i.namespace)
+	}
+	k, err := unstruct.KubeClient(unstruct.WithClient(i.clientset))
+	if err != nil {
+		return err
+	}
+	err = k.Delete(i.object)
+	return err
+}
+
 // listInstaller holds a list of install
 // client
 type listInstaller struct {
@@ -134,6 +148,21 @@ func (l *listInstaller) FromYAMLs(doc string) *listInstaller {
 func (l *listInstaller) Install() error {
 	for _, i := range l.installers {
 		err := i.Install()
+		if err != nil {
+			l.errors = append(l.errors, err)
+		}
+	}
+	if len(l.errors) > 0 {
+		return errors.Errorf("%v", l.errors)
+	}
+	return nil
+}
+
+// Delete triggers the the deletion process
+// for the given list
+func (l *listInstaller) Delete() error {
+	for _, i := range l.installers {
+		err := i.Delete()
 		if err != nil {
 			l.errors = append(l.errors, err)
 		}
