@@ -175,9 +175,9 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 	return k.get(cs, name, k.namespace, opts)
 }
 
-// Create creates an upgrade result instance
+// CreateRaw creates an upgrade result instance
 // and returns raw upgradeResult instance
-func (k *kubeclient) CreateAsRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, error) {
+func (k *kubeclient) CreateRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, error) {
 	ur, err := k.Create(upgradeResultObj)
 	if err != nil {
 		return nil, err

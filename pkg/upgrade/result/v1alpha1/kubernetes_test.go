@@ -53,22 +53,22 @@ func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
 
 func fakeClientSet(k *kubeclient) {}
 
-func fakeCreatefn(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+func fakeCreateOk(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, nil
 }
 
-func fakeCreateErrfn(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
+func fakeCreateErr(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, errors.New("some error")
 }
 
-func fakePatchfn(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+func fakePatch(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, nil
 }
 
-func fakePatchErrfn(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+func fakePatchErr(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, errors.New("some error")
 }
@@ -90,7 +90,7 @@ func TestWithDefaults(t *testing.T) {
 		// tested using these two combinations only.
 		"When mockclient is empty": {nil, nil, nil, nil, nil, false, false, false, false, false},
 		"When mockclient contains all of them": {fakeListfn, fakeGetfn,
-			fakeGetClientset, fakeCreatefn, fakePatchfn, false, false, false, false, false},
+			fakeGetClientset, fakeCreateOk, fakePatch, false, false, false, false, false},
 	}
 
 	for name, mock := range tests {
@@ -218,12 +218,12 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"When clientset is nil": {&kubeclient{nil, "default",
-			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, false},
+			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, false},
 		"When clientset is not nil": {&kubeclient{&clientset.Clientset{},
-			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, false},
+			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, false},
 		// Negative tests
 		"When getting clientset throws error": {&kubeclient{nil, "",
-			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreatefn, fakePatchfn}, true},
+			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, true},
 	}
 
 	for name, mock := range tests {
@@ -304,15 +304,15 @@ func TestKubernetesCreate(t *testing.T) {
 		expectErr        bool
 	}{
 		"When getting clientset throws error": {&apis.UpgradeResult{},
-			fakeGetErrClientSet, fakeCreatefn, true},
+			fakeGetErrClientSet, fakeCreateOk, true},
 		"When creating resource throws error": {&apis.UpgradeResult{},
-			fakeGetClientset, fakeCreateErrfn, true},
+			fakeGetClientset, fakeCreateErr, true},
 		"When upgradeResult object is nil": {nil, fakeGetClientset,
-			fakeCreatefn, false},
+			fakeCreateOk, false},
 		"When an empty upgradeResult struct is given": {&apis.UpgradeResult{},
-			fakeGetClientset, fakeCreatefn, false},
+			fakeGetClientset, fakeCreateOk, false},
 		"When non-empty upgradeResult struct is given": {upgradeResultObject,
-			fakeGetClientset, fakeCreatefn, false},
+			fakeGetClientset, fakeCreateOk, false},
 	}
 
 	for name, mock := range tests {
@@ -339,16 +339,31 @@ func TestKubernetesPatch(t *testing.T) {
 		patch            patchFunc
 		expectErr        bool
 	}{
-		"When getting clientset throws error": {"ur1", "application/merge-patch+json",
-			[]byte{}, fakeGetErrClientSet, fakePatchfn, true},
-		"When patching resource throws error": {"ur2", "application/json-patch+json",
-			[]byte{}, fakeGetClientset, fakePatchErrfn, true},
-		"When patch object name is empty string": {"", "application/merge-patch+json",
-			nil, fakeGetClientset, fakePatchfn, true},
-		"When patch object is nil": {"ur3", "application/merge-patch+json", nil,
-			fakeGetClientset, fakePatchfn, false},
-		"When non-empty patch obj is given": {"ur5", "application/strategic-merge-patch+json",
-			[]byte(patchObjStr), fakeGetClientset, fakePatchfn, false},
+		"When get clientset throws error": {
+			"ur1", "application/merge-patch+json", []byte{},
+			fakeGetErrClientSet,
+			fakePatch,
+			true},
+		"When patch resource throws error": {
+			"ur2", "application/json-patch+json", []byte{},
+			fakeGetClientset,
+			fakePatchErr,
+			true},
+		"When patch object name is empty string": {
+			"", "application/merge-patch+json", nil,
+			fakeGetClientset,
+			fakePatch,
+			true},
+		"When patch object is nil": {
+			"ur3", "application/merge-patch+json", nil,
+			fakeGetClientset,
+			fakePatch,
+			false},
+		"When non-empty patch obj is given": {
+			"ur5", "application/strategic-merge-patch+json", []byte(patchObjStr),
+			fakeGetClientset,
+			fakePatch,
+			false},
 	}
 
 	for name, mock := range tests {

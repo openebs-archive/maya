@@ -32,7 +32,7 @@ import (
 	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
-	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
@@ -408,7 +408,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isPatchOEV1alpha1CVR() {
 		err = m.patchOEV1alpha1CVR()
 	} else if m.metaTaskExec.isPatchOEV1alpha1UR() {
-		err = m.patchOEV1alpha1UR()
+		err = m.patchUpgradeResult()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else if m.metaTaskExec.isGetStorageV1SC() {
@@ -692,11 +692,13 @@ func (m *taskExecutor) patchOEV1alpha1CVR() (err error) {
 	return
 }
 
-// patchOEV1alpha1UR will patch an UpgradeResult as defined in the task
-func (m *taskExecutor) patchOEV1alpha1UR() (err error) {
+// patchUpgradeResult will patch an UpgradeResult as defined in the task
+func (m *taskExecutor) patchUpgradeResult() (err error) {
 	// build a runtask patch instance
-	patch, err := patch.BuilderForRuntask("patchUR", m.runtask.Spec.Task,
-		m.templateValues).AddCheck(patch.IsValidPatchType()).Build()
+	patch, err := patch.
+		BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+		AddCheck(patch.IsValidType(), "IsValidType").
+		Build()
 	if err != nil {
 		return
 	}
@@ -704,13 +706,14 @@ func (m *taskExecutor) patchOEV1alpha1UR() (err error) {
 	if err != nil {
 		return
 	}
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
 	// patch Upgrade Result
-	ur, err := uc.Patch(m.getTaskObjectName(), patch.Type, raw)
+	p, err := upgraderesult.
+		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+		Patch(m.getTaskObjectName(), patch.Type, raw)
 	if err != nil {
 		return
 	}
-	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
+	util.SetNestedField(m.templateValues, p, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -897,7 +900,7 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 
 // getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1UR() (err error) {
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uc := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace()))
 	uresult, err := uc.Get(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
 		return
@@ -1096,14 +1099,19 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 
 // putUpgradeResult will put an upgrade result as defined in the task
 func (m *taskExecutor) putUpgradeResult() (err error) {
-	uresult, err := upgrade.BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).Build()
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
-	// put Upgrade Result
-	ur, err := uc.CreateAsRaw(uresult)
+	uresult, err := upgraderesult.
+		BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+		Build()
 	if err != nil {
 		return
 	}
-	util.SetNestedField(m.templateValues, ur, string(v1alpha1.CurrentJSONResultTLP))
+	uraw, err := upgraderesult.
+		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+		CreateRaw(uresult)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, uraw, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -1233,7 +1241,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 // listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
 func (m *taskExecutor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, err error) {
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uc := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace()))
 	urList, err := uc.List(opts)
 	if err != nil {
 		return
