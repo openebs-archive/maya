@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,9 +29,9 @@ type unstruct struct {
 	object *unstructured.Unstructured
 }
 
-// ToUnstructured converts unstruct object
+// GetUnstructured converts unstruct object
 // to API's unstructured
-func (u *unstruct) ToUnstructured() *unstructured.Unstructured {
+func (u *unstruct) GetUnstructured() *unstructured.Unstructured {
 	return u.object
 }
 
@@ -40,9 +42,9 @@ type builder struct {
 	errs     []error
 }
 
-// UnstructBuilder returns a new instance of
-// empty unstruct builder
-func UnstructBuilder() *builder {
+// Builder returns a new instance of
+// empty builder
+func Builder() *builder {
 	return &builder{
 		unstruct: &unstruct{
 			&unstructured.Unstructured{
@@ -52,20 +54,22 @@ func UnstructBuilder() *builder {
 	}
 }
 
-// UnstructBuilderForYaml returns a new instance of
+// BuilderForYaml returns a new instance of
 // unstruct builder by making use of the provided
 // YAML
-func UnstructBuilderForYaml(doc string) *builder {
-	b := UnstructBuilder()
-	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object.Object)
-	b.errs = append(b.errs, err)
+func BuilderForYaml(doc string) *builder {
+	b := Builder()
+	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object)
+	if err != nil {
+		b.errs = append(b.errs, err)
+	}
 	return b
 }
 
-// UnstructBuilderForObject returns a new instance of
+// BuilderForObject returns a new instance of
 // unstruct builder by making use of the provided object
-func UnstructBuilderForObject(obj *unstructured.Unstructured) *builder {
-	b := UnstructBuilder()
+func BuilderForObject(obj *unstructured.Unstructured) *builder {
+	b := Builder()
 	b.unstruct.object = obj
 	return b
 }
@@ -77,4 +81,58 @@ func (b *builder) Build() (*unstruct, error) {
 		return nil, errors.Errorf("%v", b.errs)
 	}
 	return b.unstruct, nil
+}
+
+// unstructList contains a list of unstructured
+// items
+type unstructList struct {
+	items []*unstruct
+}
+
+// listBuilder enables building a list
+// of an unstruct instance
+type listBuilder struct {
+	list unstructList
+	errs []error
+}
+
+// ListBuilderForYamls returns a mew instance of
+// list unstruct builder by making use of the provided YAMLs
+func ListBuilderForYamls(docs string) *listBuilder {
+	lb := &listBuilder{list: unstructList{}}
+	yamls := strings.Split(docs, "---")
+	for _, f := range yamls {
+		if f == "\n" || f == "" {
+			// ignore empty cases
+			continue
+		}
+		f = strings.TrimSpace(f)
+		a, err := BuilderForYaml(f).Build()
+		if err != nil {
+			lb.errs = append(lb.errs, err)
+			continue
+		}
+		lb.list.items = append(lb.list.items, a)
+	}
+	return lb
+}
+
+// ListBuilderForObjects returns a mew instance of
+// list unstruct builder by making use of the provided
+// unstructured object
+func ListBuilderForObjects(objs ...*unstructured.Unstructured) *listBuilder {
+	lb := &listBuilder{}
+	for _, obj := range objs {
+		lb.list.items = append(lb.list.items, &unstruct{obj})
+	}
+	return lb
+}
+
+// Build returns the list of unstruct objects created by
+// the builder
+func (l *listBuilder) Build() ([]*unstruct, error) {
+	if len(l.errs) > 0 {
+		return nil, errors.Errorf("%v", l.errs)
+	}
+	return l.list.items, nil
 }
