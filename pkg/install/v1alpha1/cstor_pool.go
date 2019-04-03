@@ -161,7 +161,6 @@ spec:
     id: putcstorpooldeployment
   post: |
     {{- jsonpath .JsonResult "{.metadata.name}" | trim | addTo "putcstorpooldeployment.objectName" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpooldeployment.objectUID" .TaskResult | noop -}}
   task: |
     {{- $isTolerations := .Config.Tolerations.value | default "none" -}}
     {{- $tolerationsVal := fromYaml .Config.Tolerations.value -}}
