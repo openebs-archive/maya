@@ -16,18 +16,18 @@ func TestWithAPIList(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.UpgradeResultList
-		expectedOutput *upgradeResultList
+		expectedOutput *UpgradeResultList
 	}{
 		"empty upgrade result list": {&apis.UpgradeResultList{},
-			&upgradeResultList{}},
-		"using nil input": {nil, &upgradeResultList{}},
+			&UpgradeResultList{}},
+		"using nil input": {nil, &UpgradeResultList{}},
 		"non-empty upgrade result list": {&apis.UpgradeResultList{Items: inputURItems},
-			&upgradeResultList{items: outputURItems}},
+			&UpgradeResultList{items: outputURItems}},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(mock.inputURList)
+			b := NewListBuilder().WithAPIList(mock.inputURList)
 			if len(b.list.items) != len(mock.expectedOutput.items) {
 				t.Fatalf("test %s failed, expected len: %d got: %d",
 					name, len(mock.expectedOutput.items), len(b.list.items))
@@ -47,18 +47,18 @@ func TestList(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.UpgradeResultList
-		expectedOutput *upgradeResultList
+		expectedOutput *UpgradeResultList
 	}{
 		"empty upgrade result list": {&apis.UpgradeResultList{},
-			&upgradeResultList{}},
-		"using nil input": {nil, &upgradeResultList{}},
+			&UpgradeResultList{}},
+		"using nil input": {nil, &UpgradeResultList{}},
 		"non-empty upgrade result list": {&apis.UpgradeResultList{Items: inputURItems},
-			&upgradeResultList{items: outputURItems}},
+			&UpgradeResultList{items: outputURItems}},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(mock.inputURList).List()
+			b := NewListBuilder().WithAPIList(mock.inputURList).List()
 			if len(b.items) != len(mock.expectedOutput.items) {
 				t.Fatalf("test %s failed, expected len: %d got: %d",
 					name, len(mock.expectedOutput.items), len(b.items))

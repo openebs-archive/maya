@@ -63,7 +63,7 @@ func fakeCreateErr(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult
 	return &apis.UpgradeResult{}, errors.New("some error")
 }
 
-func fakePatch(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
+func fakePatchOk(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
 	namespace string) (*apis.UpgradeResult, error) {
 	return &apis.UpgradeResult{}, nil
 }
@@ -90,7 +90,7 @@ func TestWithDefaults(t *testing.T) {
 		// tested using these two combinations only.
 		"When mockclient is empty": {nil, nil, nil, nil, nil, false, false, false, false, false},
 		"When mockclient contains all of them": {fakeListfn, fakeGetfn,
-			fakeGetClientset, fakeCreateOk, fakePatch, false, false, false, false, false},
+			fakeGetClientset, fakeCreateOk, fakePatchOk, false, false, false, false, false},
 	}
 
 	for name, mock := range tests {
@@ -218,12 +218,12 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"When clientset is nil": {&kubeclient{nil, "default",
-			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, false},
+			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, false},
 		"When clientset is not nil": {&kubeclient{&clientset.Clientset{},
-			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, false},
+			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, false},
 		// Negative tests
 		"When getting clientset throws error": {&kubeclient{nil, "",
-			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatch}, true},
+			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, true},
 	}
 
 	for name, mock := range tests {
@@ -342,7 +342,7 @@ func TestKubernetesPatch(t *testing.T) {
 		"When get clientset throws error": {
 			"ur1", "application/merge-patch+json", []byte{},
 			fakeGetErrClientSet,
-			fakePatch,
+			fakePatchOk,
 			true},
 		"When patch resource throws error": {
 			"ur2", "application/json-patch+json", []byte{},
@@ -352,17 +352,17 @@ func TestKubernetesPatch(t *testing.T) {
 		"When patch object name is empty string": {
 			"", "application/merge-patch+json", nil,
 			fakeGetClientset,
-			fakePatch,
+			fakePatchOk,
 			true},
 		"When patch object is nil": {
 			"ur3", "application/merge-patch+json", nil,
 			fakeGetClientset,
-			fakePatch,
+			fakePatchOk,
 			false},
 		"When non-empty patch obj is given": {
 			"ur5", "application/strategic-merge-patch+json", []byte(patchObjStr),
 			fakeGetClientset,
-			fakePatch,
+			fakePatchOk,
 			false},
 	}
 

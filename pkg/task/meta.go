@@ -460,8 +460,8 @@ func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
-// isPutOEV1alpha1UR returns true if put operation is
-// defined for upgradeResult
+// isPutOEV1alpha1UR returns true if RunTask.Spec.meta
+// is set with action=put and kind=UpgradeResult
 func (m *metaTaskExecutor) isPutOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isPut()
 }
@@ -490,8 +490,8 @@ func (m *metaTaskExecutor) isPatchOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPatch()
 }
 
-// isPatchOEV1alpha1UR returns true if patch operation is
-// defined for upgradeResult
+// isPatchOEV1alpha1UR returns true if RunTask.Spec.meta
+// is set with action=patch and kind=UpgradeResult
 func (m *metaTaskExecutor) isPatchOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isPatch()
 }

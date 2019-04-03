@@ -57,6 +57,7 @@ type Patch struct {
 	// Type determines the type of patch to be applied
 	Type types.PatchType `json:"type"`
 	// object determines the actual patch object
+	// in json format
 	Object []byte `json:"object"`
 }
 
@@ -67,13 +68,13 @@ func (p *Patch) GoString() string {
 
 // String provides the essential Patch details
 func (p *Patch) String() string {
-	return fmt.Sprintf("patch with type '%s'", p.Type)
+	return p.GoString()
 }
 
 // Builder returns a new instance of builder
 type Builder struct {
 	patch  *Patch
-	checks []*Predicate
+	checks map[*Predicate]string
 	errors []error
 }
 
@@ -88,26 +89,23 @@ type Builder struct {
 // imperatives i.e. actions that form the business logic
 type Predicate func(*Patch) bool
 
-// predicateFailedError returns the provided predicate as an error
-func predicateFailedError(message string) error {
-	return errors.Errorf("predicatefailed: %s", message)
-}
-
 // NewBuilder returns a new instance of builder
 func NewBuilder() *Builder {
 	return &Builder{
-		patch: &Patch{},
+		patch:  &Patch{},
+		checks: make(map[*Predicate]string),
 	}
 }
 
 // BuilderForObject returns a new instance of builder
 // when a patch obj and patch type is given
-func BuilderForObject(Type types.PatchType, obj []byte) *Builder {
+func BuilderForObject(t types.PatchType, obj []byte) *Builder {
 	return &Builder{
 		patch: &Patch{
-			Type:   Type,
+			Type:   t,
 			Object: obj,
 		},
+		checks: make(map[*Predicate]string),
 	}
 }
 
@@ -124,37 +122,54 @@ func BuilderForRuntask(context, templateYaml string,
 		Spec string `json:"pspec"`
 	}
 	t := &runTaskPatch{}
-	b := &Builder{}
+	// This will be used to unmarshal spec
+	// field of patch runtask
+	m := map[string]interface{}{}
+	b := &Builder{
+		patch:  &Patch{},
+		checks: make(map[*Predicate]string),
+	}
 	p, err := template.AsTemplatedBytes(context, templateYaml, templateValues)
 	if err != nil {
 		b.errors = append(b.errors, err)
 		return b
 	}
-	// unmarshall into taskPatch
+	// unmarshal task yaml into taskPatch
 	err = yaml.Unmarshal(p, t)
+	if err != nil {
+		b.errors = append(b.errors, err)
+		return b
+	}
+	// unmarshal rawSpec into map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(t.Spec), &m)
+	if err != nil {
+		return b
+	}
+	raw, err := json.Marshal(m)
 	if err != nil {
 		b.errors = append(b.errors, err)
 		return b
 	}
 	b.patch = &Patch{
 		Type:   kubePatchTypes[t.Type],
-		Object: []byte(t.Spec),
+		Object: raw,
 	}
 	return b
 }
 
 // validate will run checks against patch instance
 func (b *Builder) validate() error {
-	for _, c := range b.checks {
-		if ok := (*c)(b.patch); !ok {
+	for cond := range b.checks {
+		pass := (*cond)(b.patch)
+		if !pass {
 			b.errors = append(b.errors,
-				errors.Errorf("predicatefailed: %s", predicatesInfo[c]))
+				errors.Errorf("validation failed: %s", b.checks[cond]))
 		}
 	}
 	if len(b.errors) == 0 {
 		return nil
 	}
-	return errors.Errorf("patch validation failed: %v", b.errors)
+	return errors.Errorf("%v", b.errors)
 }
 
 // Build returns the final instance of patch
@@ -169,40 +184,28 @@ func (b *Builder) Build() (*Patch, error) {
 	return b.patch, nil
 }
 
+// AddCheckf adds the predicate as a condition to be validated against the
+// patch instance and format the message string according to format specifier.
+// If only predicate and message string is provided, it will treat it as the
+// value for the corresponding predicate.
+func (b *Builder) AddCheckf(p Predicate, predicateMsg string, args ...interface{}) *Builder {
+	b.checks[&p] = fmt.Sprintf(predicateMsg, args...)
+	return b
+}
+
 // AddCheck adds the predicate as a condition to be validated against the
 // patch instance
-func (b *Builder) AddCheck(p Predicate, predicateInfo string) *Builder {
-	predicatesInfo[&p] = predicateInfo
-	b.checks = append(b.checks, &p)
-	return b
+func (b *Builder) AddCheck(p Predicate) *Builder {
+	return b.AddCheckf(p, "")
 }
 
 // AddChecks adds the provided predicates as conditions to be validated against
 // the patch instance
 func (b *Builder) AddChecks(predicates ...Predicate) *Builder {
 	for _, check := range predicates {
-		b.AddCheck(check, "")
+		b.AddCheck(check)
 	}
 	return b
-}
-
-// ToJSON converts the patch to json format
-func (p *Patch) ToJSON() ([]byte, error) {
-	m := map[string]interface{}{}
-	err := yaml.Unmarshal(p.Object, &m)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(m)
-}
-
-// JSON builds and returns JSON format of the patch object
-func (b *Builder) JSON() ([]byte, error) {
-	p, err := b.Build()
-	if err != nil {
-		return nil, err
-	}
-	return p.ToJSON()
 }
 
 // IsValidType returns a predicate for

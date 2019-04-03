@@ -697,19 +697,15 @@ func (m *taskExecutor) patchUpgradeResult() (err error) {
 	// build a runtask patch instance
 	patch, err := patch.
 		BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
-		AddCheck(patch.IsValidType(), "IsValidType").
+		AddCheckf(patch.IsValidType(), "IsValidType").
 		Build()
-	if err != nil {
-		return
-	}
-	raw, err := patch.ToJSON()
 	if err != nil {
 		return
 	}
 	// patch Upgrade Result
 	p, err := upgraderesult.
 		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
-		Patch(m.getTaskObjectName(), patch.Type, raw)
+		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
 	if err != nil {
 		return
 	}
