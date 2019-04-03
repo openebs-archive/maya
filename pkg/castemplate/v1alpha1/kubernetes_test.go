@@ -152,64 +152,41 @@ but got %v`, name, c.clientset)
 func TestGetClientOrCached(t *testing.T) {
 
 	tests := map[string]struct {
-		kubeClient *Kubeclient
-		expectErr  bool
+		clientset    *clientset.Clientset
+		getClientset getClientsetFunc
+		get          getFunc
+		expectErr    bool
 	}{
 		// Positive tests
-		"When clientset is nil": {
-			KubeClient(WithClientset(nil),
-				func(getClientset getClientsetFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.getClientset = getClientset
-					}
-				}(fakeGetClientsetNil),
-				func(get getFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.get = get
-					}
-				}(fakeGetOk)),
-			false},
-		"When clientset is not nil": {
-			KubeClient(WithClientset(&clientset.Clientset{}),
-				func(getClientset getClientsetFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.getClientset = getClientset
-					}
-				}(fakeGetClientsetNil),
-				func(get getFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.get = get
-					}
-				}(fakeGetOk)),
-			false},
+		"When clientset is nil":     {nil, fakeGetClientsetNil, fakeGetOk, false},
+		"When clientset is not nil": {&clientset.Clientset{}, fakeGetClientsetNil, fakeGetOk, false},
 		// Negative tests
-		"When getting clientset throws error": {
-			KubeClient(WithClientset(nil),
-				func(getClientset getClientsetFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.getClientset = getClientset
-					}
-				}(fakeGetClientsetErr),
-				func(get getFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.get = get
-					}
-				}(fakeGetOk)),
-			true},
+		"When getting clientset throws error": {nil, fakeGetClientsetErr, fakeGetOk, true},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			c, err := mock.kubeClient.getClientOrCached()
+			kc := KubeClient(WithClientset(mock.clientset),
+				func(getClientset getClientsetFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.getClientset = getClientset
+					}
+				}(mock.getClientset),
+				func(get getFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.get = get
+					}
+				}(mock.get))
+			c, err := kc.getClientOrCached()
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %s failed : expected error but got %v", name, err)
 			}
 			if !mock.expectErr && err != nil {
 				t.Fatalf("test %s failed : expected nil error but got %v", name, err)
 			}
-			if !reflect.DeepEqual(c, mock.kubeClient.clientset) {
+			if !reflect.DeepEqual(c, kc.clientset) {
 				t.Fatalf(`test %s failed : expected clientset %v
-but got %v`, name, mock.kubeClient.clientset, c)
+but got %v`, name, kc.clientset, c)
 			}
 		})
 	}
