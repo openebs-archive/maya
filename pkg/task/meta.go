@@ -397,6 +397,10 @@ func (m *metaTaskExecutor) isListExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isList()
 }
 
+func (m *metaTaskExecutor) isListExtnV1B1ReplicaSet() bool {
+	return m.identifier.isExtnV1B1ReplicaSet() && m.isList()
+}
+
 func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
@@ -411,6 +415,10 @@ func (m *metaTaskExecutor) isGetBatchV1Job() bool {
 
 func (m *metaTaskExecutor) isGetExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isGet()
+}
+
+func (m *metaTaskExecutor) isGetExtnV1B1ReplicaSet() bool {
+	return m.identifier.isExtnV1B1ReplicaSet() && m.isGet()
 }
 
 func (m *metaTaskExecutor) isDeleteBatchV1Job() bool {

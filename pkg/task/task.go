@@ -30,6 +30,7 @@ import (
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
+	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -370,6 +371,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.deleteExtnV1B1ReplicaSet()
 	} else if m.metaTaskExec.isGetExtnV1B1Deploy() {
 		err = m.getExtnV1B1Deployment()
+	} else if m.metaTaskExec.isGetExtnV1B1ReplicaSet() {
+		err = m.getExtnV1B1ReplicaSet()
 	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteCoreV1Service() {
@@ -791,17 +794,39 @@ func (m *taskExecutor) deleteExtnV1B1Deployment() (err error) {
 	return
 }
 
+// getExtnV1B1ReplicaSet will get the Replicaset as specified in the RunTask
+func (m *taskExecutor) getExtnV1B1ReplicaSet() (err error) {
+	rs, err := replicaset.
+		KubeClient(replicaset.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, rs, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
 // deleteExtnV1B1ReplicaSet will delete one or more ReplicaSets as specified in
 // the RunTask
 func (m *taskExecutor) deleteExtnV1B1ReplicaSet() (err error) {
 	objectNames := strings.Split(strings.TrimSpace(m.getTaskObjectName()), ",")
+	client := replicaset.KubeClient(
+		replicaset.WithNamespace(m.getTaskRunNamespace()))
+
 	for _, name := range objectNames {
-		err = m.getK8sClient().DeleteExtnV1B1ReplicaSet(strings.TrimSpace(name))
+		err = client.Delete(strings.TrimSpace(name))
 		if err != nil {
 			return
 		}
 	}
 	return
+}
+
+func (m *taskExecutor) listExtnV1B1ReplicaSet(opt metav1.ListOptions) ([]byte, error) {
+	return replicaset.
+		KubeClient(replicaset.WithNamespace(m.getTaskRunNamespace())).
+		ListRaw(opt)
 }
 
 // putCoreV1Service will put a Service whose specs are configured in the RunTask
@@ -1159,6 +1184,8 @@ func (m *taskExecutor) listK8sResources() (err error) {
 		op, err = kc.ListCoreV1ServiceAsRaw(opts)
 	} else if m.metaTaskExec.isListExtnV1B1Deploy() {
 		op, err = kc.ListExtnV1B1DeploymentAsRaw(opts)
+	} else if m.metaTaskExec.isListExtnV1B1ReplicaSet() {
+		op, err = m.listExtnV1B1ReplicaSet(opts)
 	} else if m.metaTaskExec.isListAppsV1B1Deploy() {
 		op, err = kc.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListCoreV1PVC() {

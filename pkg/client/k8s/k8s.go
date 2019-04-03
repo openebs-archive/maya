@@ -1037,16 +1037,6 @@ func (k *K8sClient) DeleteExtnV1B1Deployment(name string) error {
 	})
 }
 
-// DeleteExtnV1B1ReplicaSet deletes the K8s ReplicaSet with the provided name
-func (k *K8sClient) DeleteExtnV1B1ReplicaSet(name string) error {
-	dops := k.extnV1B1ReplicaSetOps()
-	// ensure all the dependants are deleted
-	deletePropagation := mach_apis_meta_v1.DeletePropagationForeground
-	return dops.Delete(name, &mach_apis_meta_v1.DeleteOptions{
-		PropagationPolicy: &deletePropagation,
-	})
-}
-
 // CreateBatchV1JobAsRaw creates a kubernetes Job
 func (k *K8sClient) CreateBatchV1JobAsRaw(j *api_batch_v1.Job) ([]byte, error) {
 	job, err := k.cs.BatchV1().Jobs(k.ns).Create(j)
