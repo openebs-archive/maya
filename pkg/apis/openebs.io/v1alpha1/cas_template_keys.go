@@ -103,6 +103,17 @@ const (
 	// {{- .ListItems.volumes.openebs.mypv.ip -}}
 	// {{- .ListItems.volumes.openebs.mypv.status -}}
 	ListItemsTLP TopLevelProperty = "ListItems"
+
+	// TaskConfigTLP is a top level property supported by CAS template engine
+	//
+	// The properties provided by the caller are placed with TaskConfigTLP
+	// as the top level property
+	//
+	// NOTE:
+	//  CAS template engine cannot modify these properties. These are the
+	// runtime properties that are provided as inputs to CAS template
+	// engine.
+	TaskConfigTLP TopLevelProperty = "TaskConfig"
 )
 
 // StoragePoolTLPProperty is used to define properties that comes
@@ -311,4 +322,19 @@ const (
 	//
 	// Above templating will give the current repeat resource name
 	CurrentRepeatResourceLITP ListItemsTLPProperty = "currentRepeatResource"
+)
+
+// TaskConfigTLPProperty is used to define properties that comes after TaskConfigTLP
+type TaskConfigTLPProperty string
+
+const (
+	// ObjectNameTCTP is a property of TaskConfig
+	// this is name of the resource which is going to be updated
+	ObjectNameTCTP TaskConfigTLPProperty = "objectName"
+	// ObjectNamespaceTCTP is a property of TaskConfig
+	// this is namespace of the resource which is going to be updated
+	ObjectNamespaceTCTP TaskConfigTLPProperty = "objectNamespace"
+	// ObjectKindTCTP is a property of TaskConfig
+	// this is kind of the resource which is going to be updated
+	ObjectKindTCTP TaskConfigTLPProperty = "objectKind"
 )

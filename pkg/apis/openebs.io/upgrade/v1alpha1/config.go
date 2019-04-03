@@ -41,3 +41,19 @@ type DataItem struct {
 	// Entries represents an arbitrary map of key value pairs
 	Entries map[string]string `json:"entries"`
 }
+
+func (di DataItem) GetName() string {
+	return di.Name
+}
+
+func (di DataItem) GetValue() string {
+	return di.Value
+}
+
+func (di DataItem) GetData() map[string]string {
+	return di.Entries
+}
+
+func (di DataItem) IsEnabled() string {
+	return "true"
+}
