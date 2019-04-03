@@ -27,33 +27,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func fakeGetClientset() (cs *clientset.Clientset, err error) {
+func fakeGetClientsetOk() (cs *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
-func fakeGetfn(cs *clientset.Clientset, name string,
+func fakeGetOk(cs *clientset.Clientset, name string,
 	opts metav1.GetOptions) (*apis.CASTemplate, error) {
 	return &apis.CASTemplate{}, nil
 }
 
-func fakeGetErrfn(cs *clientset.Clientset, name string,
+func fakeGetErr(cs *clientset.Clientset, name string,
 	opts metav1.GetOptions) (*apis.CASTemplate, error) {
 	return &apis.CASTemplate{}, errors.New("some error")
 }
 
-func fakeSetClientset(k *Kubeclient) {
+func fakeSetClientsetOk(k *Kubeclient) {
 	k.clientset = &clientset.Clientset{}
 }
 
-func fakeSetNilClientset(k *Kubeclient) {
+func fakeSetClientsetNil(k *Kubeclient) {
 	k.clientset = nil
 }
 
-func fakeGetNilErrClientSet() (clientset *clientset.Clientset, err error) {
+func fakeGetClientsetNil() (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
+func fakeGetClientsetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
@@ -69,24 +69,23 @@ func TestWithDefaults(t *testing.T) {
 		// The current implementation of WithDefaults method can be
 		// tested using these two combinations only.
 		"When mockclient is empty": {nil, nil, false, false},
-		"When mockclient contains all of them": {fakeGetfn,
-			fakeGetClientset, false, false},
+		"When mockclient contains all of them": {fakeGetOk,
+			fakeGetClientsetOk, false, false},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			fc := &Kubeclient{}
-			fc.get = mock.getFn
-			fc.getClientset = mock.getClientsetFn
+			fc := &Kubeclient{
+				get:          mock.getFn,
+				getClientset: mock.getClientsetFn,
+			}
 
 			fc.withDefaults()
-			get := (fc.get == nil)
-			if get != mock.expectGet {
+			if mock.expectGet && fc.get == nil {
 				t.Fatalf(`test %s failed: expected non-nil fc.get
 but got %v`, name, fc.get)
 			}
-			getClientset := (fc.getClientset == nil)
-			if getClientset != mock.expectGetClientset {
+			if mock.expectGetClientset && fc.getClientset == nil {
 				t.Fatalf(`test %s failed: expected non-nil fc.getClientset
 but got %v`, name, fc.getClientset)
 			}
@@ -95,7 +94,7 @@ but got %v`, name, fc.getClientset)
 }
 func TestWithClientset(t *testing.T) {
 	tests := map[string]struct {
-		clientSet    *clientset.Clientset
+		clientset    *clientset.Clientset
 		isKubeClient bool
 	}{
 		"Clientset is empty":     {nil, false},
@@ -104,38 +103,35 @@ func TestWithClientset(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			h := WithClientset(mock.clientSet)
-			fake := &Kubeclient{}
-			h(fake)
-			if mock.isKubeClient && fake.clientset == nil {
+			kc := KubeClient(WithClientset(mock.clientset))
+			if mock.isKubeClient && kc.clientset == nil {
 				t.Fatalf(`test %s failed, expected non-nil fake.clientset
-but got %v`, name, fake.clientset)
+but got %v`, name, kc.clientset)
 			}
-			if !mock.isKubeClient && fake.clientset != nil {
+			if !mock.isKubeClient && kc.clientset != nil {
 				t.Fatalf(`test %s failed, expected nil fake.clientset
-but got %v`, name, fake.clientset)
+but got %v`, name, kc.clientset)
 			}
 		})
 	}
 }
 func TestKubeClientWithClientset(t *testing.T) {
 	tests := map[string]struct {
-		expectClientSet bool
 		opts            []KubeclientBuildOption
+		expectClientSet bool
 	}{
-		"When non-nil clientset is passed": {true,
-			[]KubeclientBuildOption{fakeSetClientset}},
-		"When two options with a non-nil clientset are passed": {true,
-			[]KubeclientBuildOption{fakeSetClientset, fakeClientSet}},
-		"When three options with a non-nil clientset are passed": {true,
-			[]KubeclientBuildOption{fakeSetClientset, fakeClientSet, fakeClientSet}},
-
-		"When nil clientset is passed": {false,
-			[]KubeclientBuildOption{fakeSetNilClientset}},
-		"When two options with a nil clientset are passed": {false,
-			[]KubeclientBuildOption{fakeSetNilClientset, fakeClientSet}},
-		"When three options with a nil clientset are passed": {false,
-			[]KubeclientBuildOption{fakeSetNilClientset, fakeClientSet, fakeClientSet}},
+		"When non-nil clientset is passed": {
+			[]KubeclientBuildOption{fakeSetClientsetOk}, true},
+		"When two options with a non-nil clientset are passed": {
+			[]KubeclientBuildOption{fakeSetClientsetOk, fakeClientSet}, true},
+		"When three options with a non-nil clientset are passed": {
+			[]KubeclientBuildOption{fakeSetClientsetOk, fakeClientSet, fakeClientSet}, true},
+		"When nil clientset is passed": {
+			[]KubeclientBuildOption{fakeSetClientsetNil}, false},
+		"When two options with a nil clientset are passed": {
+			[]KubeclientBuildOption{fakeSetClientsetNil, fakeClientSet}, false},
+		"When three options with a nil clientset are passed": {
+			[]KubeclientBuildOption{fakeSetClientsetNil, fakeClientSet, fakeClientSet}, false},
 	}
 
 	for name, mock := range tests {
@@ -154,18 +150,52 @@ but got %v`, name, c.clientset)
 }
 
 func TestGetClientOrCached(t *testing.T) {
+
 	tests := map[string]struct {
 		kubeClient *Kubeclient
 		expectErr  bool
 	}{
 		// Positive tests
-		"When clientset is nil": {&Kubeclient{nil,
-			fakeGetNilErrClientSet, fakeGetfn}, false},
-		"When clientset is not nil": {&Kubeclient{&clientset.Clientset{},
-			fakeGetNilErrClientSet, fakeGetfn}, false},
+		"When clientset is nil": {
+			KubeClient(WithClientset(nil),
+				func(getClientset getClientsetFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.getClientset = getClientset
+					}
+				}(fakeGetClientsetNil),
+				func(get getFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.get = get
+					}
+				}(fakeGetOk)),
+			false},
+		"When clientset is not nil": {
+			KubeClient(WithClientset(&clientset.Clientset{}),
+				func(getClientset getClientsetFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.getClientset = getClientset
+					}
+				}(fakeGetClientsetNil),
+				func(get getFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.get = get
+					}
+				}(fakeGetOk)),
+			false},
 		// Negative tests
-		"When getting clientset throws error": {&Kubeclient{nil,
-			fakeGetErrClientSet, fakeGetfn}, true},
+		"When getting clientset throws error": {
+			KubeClient(WithClientset(nil),
+				func(getClientset getClientsetFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.getClientset = getClientset
+					}
+				}(fakeGetClientsetErr),
+				func(get getFunc) KubeclientBuildOption {
+					return func(k *Kubeclient) {
+						k.get = get
+					}
+				}(fakeGetOk)),
+			true},
 	}
 
 	for name, mock := range tests {
@@ -192,10 +222,10 @@ func TestKubernetesGet(t *testing.T) {
 		get          getFunc
 		expectErr    bool
 	}{
-		"When getting clientset throws error": {"ur1", fakeGetErrClientSet, fakeGetfn, true},
-		"When getting resource throws error":  {"ur2", fakeGetClientset, fakeGetErrfn, true},
-		"When resource name is empty string":  {"", fakeGetClientset, fakeGetfn, true},
-		"When none of them throws error":      {"ur3", fakeGetClientset, fakeGetfn, false},
+		"When getting clientset throws error": {"ur1", fakeGetClientsetErr, fakeGetOk, true},
+		"When getting resource throws error":  {"ur2", fakeGetClientsetOk, fakeGetErr, true},
+		"When resource name is empty string":  {"", fakeGetClientsetOk, fakeGetOk, true},
+		"When none of them throws error":      {"ur3", fakeGetClientsetOk, fakeGetOk, false},
 	}
 
 	for name, mock := range tests {
