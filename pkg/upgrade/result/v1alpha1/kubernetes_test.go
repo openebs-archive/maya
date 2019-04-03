@@ -303,16 +303,30 @@ func TestKubernetesCreate(t *testing.T) {
 		create           createFunc
 		expectErr        bool
 	}{
-		"When getting clientset throws error": {&apis.UpgradeResult{},
-			fakeGetErrClientSet, fakeCreateOk, true},
-		"When creating resource throws error": {&apis.UpgradeResult{},
-			fakeGetClientset, fakeCreateErr, true},
-		"When upgradeResult object is nil": {nil, fakeGetClientset,
-			fakeCreateOk, false},
-		"When an empty upgradeResult struct is given": {&apis.UpgradeResult{},
-			fakeGetClientset, fakeCreateOk, false},
-		"When non-empty upgradeResult struct is given": {upgradeResultObject,
-			fakeGetClientset, fakeCreateOk, false},
+		"When getting clientset throws error": {
+			&apis.UpgradeResult{},
+			fakeGetErrClientSet,
+			fakeCreateOk, true},
+		"When creating resource throws error": {
+			&apis.UpgradeResult{},
+			fakeGetClientset,
+			fakeCreateErr,
+			true},
+		"When upgradeResult object is nil": {
+			nil,
+			fakeGetClientset,
+			fakeCreateOk,
+			false},
+		"When an empty upgradeResult struct is given": {
+			&apis.UpgradeResult{},
+			fakeGetClientset,
+			fakeCreateOk,
+			false},
+		"When non-empty upgradeResult struct is given": {
+			upgradeResultObject,
+			fakeGetClientset,
+			fakeCreateOk,
+			false},
 	}
 
 	for name, mock := range tests {
