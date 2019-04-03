@@ -166,17 +166,11 @@ func TestGetClientOrCached(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			kc := KubeClient(WithClientset(mock.clientset),
-				func(getClientset getClientsetFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.getClientset = getClientset
-					}
-				}(mock.getClientset),
-				func(get getFunc) KubeclientBuildOption {
-					return func(k *Kubeclient) {
-						k.get = get
-					}
-				}(mock.get))
+			kc := &Kubeclient{
+				clientset:    mock.clientset,
+				getClientset: mock.getClientset,
+				get:          mock.get,
+			}
 			c, err := kc.getClientOrCached()
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %s failed : expected error but got %v", name, err)
