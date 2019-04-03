@@ -116,6 +116,7 @@ func DefaultMayaConfig() *MayaConfig {
 		Addresses:      &Addresses{},
 		AdvertiseAddrs: &AdvertiseAddrs{},
 		SyslogFacility: "LOCAL0",
+		LeaveOnTerm:    true,
 	}
 }
 
