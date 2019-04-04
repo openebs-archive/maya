@@ -32,7 +32,6 @@ spec:
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
-    - jiva-volume-read-listpods-default
   output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
@@ -448,7 +447,6 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "readlistsvc.items" .TaskResult | noop -}}
     {{- .TaskResult.readlistsvc.items | notFoundErr "controller service not found" | saveIf "readlistsvc.notFoundErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.clusterIP}" | trim | saveAs "readlistsvc.clusterIP" .TaskResult | noop -}}
-    {{- jsonpath .JsonResult "{.items[*].metadata.labels.openebs\\.io/persistent-volume-claim}" | default "" | trim | saveAs "readlistsvc.pvcName" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -495,25 +493,6 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: jiva-volume-read-listpods-default
-spec:
-  meta: |
-    id: readlistpod
-    apiVersion: v1
-    kind: Pod
-    runNamespace: {{ .Volume.runNamespace }}
-    disable: {{ $length := len .TaskResult.readlistsvc.pvcName }}{{ if gt $length 0 }}false{{ else }}true{{ end }}
-    action: list
-  post: |
-    {{- $pvcName:= .TaskResult.readlistsvc.pvcName -}}
-    {{- $applicationNamePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.name}" $pvcName -}}
-    {{- $applicationNamespacePath:= printf "{.items[?(@.spec.volumes[*].persistentVolumeClaim.claimName=='%s')].metadata.namespace}" $pvcName -}}
-    {{- jsonpath .JsonResult $applicationNamePath | saveAs "readlistpod.applicationPodName" .TaskResult -}}
-    {{- jsonpath .JsonResult $applicationNamespacePath | saveAs "readlistpod.applicationPodNamespace" .TaskResult -}}
----
-apiVersion: openebs.io/v1alpha1
-kind: RunTask
-metadata:
   name: jiva-volume-read-output-default
 spec:
   meta: |
@@ -548,8 +527,6 @@ spec:
         openebs.io/replica-status: {{ .TaskResult.readlistrep.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/controller-status: {{ .TaskResult.readlistctrl.status | default "" | splitList " " | join "," | replace "true" "running" | replace "false" "notready" }}
         openebs.io/targetportals: {{ .TaskResult.readlistsvc.clusterIP }}:3260
-        openebs.io/application-pod-name: {{ .TaskResult.readlistpod.applicationPodName | default "N/A" }}
-        openebs.io/application-pod-namespace: {{ .TaskResult.readlistpod.applicationPodNamespace | default "N/A" }}
     spec:
       capacity: {{ $capacity }}
       targetPortal: {{ .TaskResult.readlistsvc.clusterIP }}:3260
