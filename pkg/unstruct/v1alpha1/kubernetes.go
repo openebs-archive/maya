@@ -27,20 +27,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// kubeclient enables kubernetes API operations on catalog
+// Kubeclient enables kubernetes API operations on catalog
 // instance
-type kubeclient struct {
-	client.Client  // kubernetes client
-	kclient.Handle // manage kubernetes client & enable mocking
+type Kubeclient struct {
+	client.Client   // kubernetes client
+	*kclient.Handle // manage kubernetes client & enable mocking
 }
 
-// kubeclientBuildOption defines the abstraction to build
+// KubeclientBuildOption defines the abstraction to build
 // a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+type KubeclientBuildOption func(*Kubeclient)
 
-func withDefaults(k *kubeclient) error {
-	if k.Client == nil {
-		cli, err := kclient.New()
+func withDefaults(k *Kubeclient) error {
+	if k.Handle == nil {
+		handle, err := kclient.New()
+		if err != nil {
+			return err
+		}
+		k.Handle = handle
+	}
+	if k.Client == nil && k.Handle != nil {
+		cli, err := k.Handle.GetClientFn()
 		if err != nil {
 			return err
 		}
@@ -51,16 +58,16 @@ func withDefaults(k *kubeclient) error {
 
 // WithKubeClient sets the kubernetes client against
 // the kubeclient instance
-func WithKubeClient(c client.Client) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithKubeClient(c client.Client) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.Client = c
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for
 // catalog operations
-func KubeClient(opts ...kubeclientBuildOption) (*kubeclient, error) {
-	k := &kubeclient{}
+func KubeClient(opts ...KubeclientBuildOption) (*Kubeclient, error) {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -73,11 +80,11 @@ func KubeClient(opts ...kubeclientBuildOption) (*kubeclient, error) {
 
 // compile time check to ensure kubeclient
 // implements unstruct Interface
-var _ Interface = &kubeclient{}
+var _ Interface = &Kubeclient{}
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (client.Client, error) {
+func (k *Kubeclient) getClientOrCached() (client.Client, error) {
 	if k.Client != nil {
 		return k.Client, nil
 	}
@@ -91,7 +98,7 @@ func (k *kubeclient) getClientOrCached() (client.Client, error) {
 
 // Get returns an unstructured instance from kubernetes
 // cluster
-func (k *kubeclient) Get(name string, opts ...provider.GetOptionFn) (*unstructured.Unstructured, error) {
+func (k *Kubeclient) Get(name string, opts ...provider.GetOptionFn) (*unstructured.Unstructured, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get unstructured instance: missing name")
 	}
@@ -102,6 +109,7 @@ func (k *kubeclient) Get(name string, opts ...provider.GetOptionFn) (*unstructur
 	getopt := provider.NewGetOptions(opts...)
 	var un unstructured.Unstructured
 	key := client.ObjectKey{Namespace: getopt.Namespace, Name: name}
+	un.SetGroupVersionKind(getopt.GKV)
 	err = k.GetFn(cli, context.TODO(), key, &un)
 	if err != nil {
 		return nil, err
@@ -112,7 +120,7 @@ func (k *kubeclient) Get(name string, opts ...provider.GetOptionFn) (*unstructur
 // CreateAllOrNone creates all the provided
 // unstructured instances at kubernetes cluster
 // or none in case of any error
-func (k *kubeclient) CreateAllOrNone(u ...*unstructured.Unstructured) []error {
+func (k *Kubeclient) CreateAllOrNone(u ...*unstructured.Unstructured) []error {
 	var (
 		errs    []error
 		created []*unstructured.Unstructured
@@ -133,7 +141,7 @@ func (k *kubeclient) CreateAllOrNone(u ...*unstructured.Unstructured) []error {
 
 // DeleteAll deletes all the provided unstructured
 // instances at kubernetes cluster
-func (k *kubeclient) DeleteAll(u ...*unstructured.Unstructured) []error {
+func (k *Kubeclient) DeleteAll(u ...*unstructured.Unstructured) []error {
 	var errs []error
 	for _, ustruct := range u {
 		err := k.Delete(ustruct)
@@ -146,7 +154,7 @@ func (k *kubeclient) DeleteAll(u ...*unstructured.Unstructured) []error {
 
 // Create creates an unstructured instance at
 // kubernetes cluster
-func (k *kubeclient) Create(u *unstructured.Unstructured) error {
+func (k *Kubeclient) Create(u *unstructured.Unstructured) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err
@@ -156,7 +164,7 @@ func (k *kubeclient) Create(u *unstructured.Unstructured) error {
 
 // Delete deletes the unstructured instance from
 // kubernetes cluster
-func (k *kubeclient) Delete(u *unstructured.Unstructured) error {
+func (k *Kubeclient) Delete(u *unstructured.Unstructured) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err

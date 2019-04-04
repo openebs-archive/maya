@@ -24,29 +24,29 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// unstruct holds an object of unstructured
-type unstruct struct {
+// Unstruct holds an object of Unstructured
+type Unstruct struct {
 	object *unstructured.Unstructured
 }
 
-// GetUnstructured converts unstruct object
-// to API's unstructured
-func (u *unstruct) GetUnstructured() *unstructured.Unstructured {
+// GetUnstructured converts Unstruct object
+// to API's Unstructured
+func (u *Unstruct) GetUnstructured() *unstructured.Unstructured {
 	return u.object
 }
 
-// builder enables building of an
-// unstructured instance
-type builder struct {
-	unstruct *unstruct
+// Builder enables building of an
+// Unstructured instance
+type Builder struct {
+	Unstruct *Unstruct
 	errs     []error
 }
 
-// Builder returns a new instance of
-// empty builder
-func Builder() *builder {
-	return &builder{
-		unstruct: &unstruct{
+// NewBuilder returns a new instance of
+// empty Builder
+func NewBuilder() *Builder {
+	return &Builder{
+		Unstruct: &Unstruct{
 			&unstructured.Unstructured{
 				Object: map[string]interface{}{},
 			},
@@ -55,11 +55,11 @@ func Builder() *builder {
 }
 
 // BuilderForYaml returns a new instance of
-// unstruct builder by making use of the provided
+// Unstruct Builder by making use of the provided
 // YAML
-func BuilderForYaml(doc string) *builder {
-	b := Builder()
-	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object)
+func BuilderForYaml(doc string) *Builder {
+	b := NewBuilder()
+	err := yaml.Unmarshal([]byte(doc), &b.Unstruct.object)
 	if err != nil {
 		b.errs = append(b.errs, err)
 	}
@@ -67,39 +67,39 @@ func BuilderForYaml(doc string) *builder {
 }
 
 // BuilderForObject returns a new instance of
-// unstruct builder by making use of the provided object
-func BuilderForObject(obj *unstructured.Unstructured) *builder {
-	b := Builder()
-	b.unstruct.object = obj
+// Unstruct Builder by making use of the provided object
+func BuilderForObject(obj *unstructured.Unstructured) *Builder {
+	b := NewBuilder()
+	b.Unstruct.object = obj
 	return b
 }
 
-// Build returns the unstruct object created by
-// the builder
-func (b *builder) Build() (*unstruct, error) {
+// Build returns the Unstruct object created by
+// the Builder
+func (b *Builder) Build() (*Unstruct, error) {
 	if len(b.errs) != 0 {
 		return nil, errors.Errorf("%v", b.errs)
 	}
-	return b.unstruct, nil
+	return b.Unstruct, nil
 }
 
-// unstructList contains a list of unstructured
+// UnstructList contains a list of Unstructured
 // items
-type unstructList struct {
-	items []*unstruct
+type UnstructList struct {
+	items []*Unstruct
 }
 
-// listBuilder enables building a list
-// of an unstruct instance
-type listBuilder struct {
-	list unstructList
+// ListBuilder enables building a list
+// of an Unstruct instance
+type ListBuilder struct {
+	list UnstructList
 	errs []error
 }
 
 // ListBuilderForYamls returns a mew instance of
-// list unstruct builder by making use of the provided YAMLs
-func ListBuilderForYamls(docs string) *listBuilder {
-	lb := &listBuilder{list: unstructList{}}
+// list Unstruct Builder by making use of the provided YAMLs
+func ListBuilderForYamls(docs string) *ListBuilder {
+	lb := &ListBuilder{list: UnstructList{}}
 	yamls := strings.Split(docs, "---")
 	for _, f := range yamls {
 		if f == "\n" || f == "" {
@@ -118,19 +118,19 @@ func ListBuilderForYamls(docs string) *listBuilder {
 }
 
 // ListBuilderForObjects returns a mew instance of
-// list unstruct builder by making use of the provided
-// unstructured object
-func ListBuilderForObjects(objs ...*unstructured.Unstructured) *listBuilder {
-	lb := &listBuilder{}
+// list Unstruct Builder by making use of the provided
+// Unstructured object
+func ListBuilderForObjects(objs ...*unstructured.Unstructured) *ListBuilder {
+	lb := &ListBuilder{}
 	for _, obj := range objs {
-		lb.list.items = append(lb.list.items, &unstruct{obj})
+		lb.list.items = append(lb.list.items, &Unstruct{obj})
 	}
 	return lb
 }
 
-// Build returns the list of unstruct objects created by
-// the builder
-func (l *listBuilder) Build() ([]*unstruct, error) {
+// Build returns the list of Unstruct objects created by
+// the Builder
+func (l *ListBuilder) Build() ([]*Unstruct, error) {
 	if len(l.errs) > 0 {
 		return nil, errors.Errorf("%v", l.errs)
 	}

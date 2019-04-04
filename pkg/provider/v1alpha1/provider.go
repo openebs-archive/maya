@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -76,10 +77,19 @@ func WithGetNamespace(namespace string) GetOptionFn {
 	}
 }
 
+// WithGroupVersionKind sets the GKV against
+// the provided GetOptions instance
+func WithGroupVersionKind(gkv schema.GroupVersionKind) GetOptionFn {
+	return func(opt *GetOptions) {
+		opt.GKV = gkv
+	}
+}
+
 // GetOptions consists of the options required
 // during a get call
 type GetOptions struct {
 	Namespace string // scope within which 'get' call is executed
+	GKV       schema.GroupVersionKind
 }
 
 // NewGetOptions returns a new instance of GetOptions
