@@ -31,8 +31,8 @@ import (
 // kubeclient enables kubernetes API operations on catalog
 // instance
 type kubeclient struct {
-	client.Client  // kubernetes client
-	kclient.Handle // manage kubernetes client & enable mocking
+	client.Client   // kubernetes client
+	*kclient.Handle // manage kubernetes client & enable mocking
 }
 
 // kubeclientBuildOption defines the abstraction to build
@@ -40,8 +40,15 @@ type kubeclient struct {
 type kubeclientBuildOption func(*kubeclient)
 
 func (k *kubeclient) withDefaults() error {
-	if k.Client == nil {
-		cli, err := kclient.New()
+	if k.Handle == nil {
+		handle, err := kclient.New()
+		if err != nil {
+			return err
+		}
+		k.Handle = handle
+	}
+	if k.Client == nil && k.Handle != nil {
+		cli, err := k.Handle.GetClientFn()
 		if err != nil {
 			return err
 		}
@@ -150,11 +157,11 @@ func (k *kubeclient) CreateResource(r apis.CatalogResource) error {
 	if err != nil {
 		return err
 	}
-	u, err := unstruct.Unmarshal(r.Template)
+	u, err := unstruct.BuilderForYaml(r.Template).Build()
 	if err != nil {
 		return err
 	}
-	return k.CreateFn(cli, context.TODO(), u)
+	return k.CreateFn(cli, context.TODO(), u.GetUnstructured())
 }
 
 // DeleteResource deletes the resource from kubernetes cluster
@@ -163,9 +170,9 @@ func (k *kubeclient) DeleteResource(r apis.CatalogResource) error {
 	if err != nil {
 		return err
 	}
-	u, err := unstruct.Unmarshal(r.Template)
+	u, err := unstruct.BuilderForYaml(r.Template).Build()
 	if err != nil {
 		return err
 	}
-	return k.DeleteFn(cli, context.TODO(), u)
+	return k.DeleteFn(cli, context.TODO(), u.GetUnstructured())
 }
