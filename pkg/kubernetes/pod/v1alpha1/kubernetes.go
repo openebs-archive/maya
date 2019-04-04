@@ -44,7 +44,7 @@ type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav
 // to get pod
 type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
 
-// kubeclient enables kubernetes API operations
+// KubeClient enables kubernetes API operations
 // on pod instance
 type KubeClient struct {
 	// clientset refers to pod clientset

@@ -1,4 +1,4 @@
-package jiva_sanity
+package replicadeletion
 
 import (
 	"flag"
@@ -34,7 +34,8 @@ const (
 	// neede to run this test
 	minNodeCount int = 3
 	// jiva-test namespace to deploy jiva ctrl & replicas
-	nameSpaceYaml artifacts.Artifact = `
+	parentDir     artifacts.ArtifactSource = "../"
+	nameSpaceYaml artifacts.Artifact       = `
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -93,7 +94,7 @@ var _ = BeforeSuite(func() {
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 
 	// Fetching the openebs component artifacts
-	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
+	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
 	// Installing the artifacts to kubernetes cluster
@@ -118,6 +119,7 @@ var _ = BeforeSuite(func() {
 	_, err = cu.Apply(testNameSpaceUnstructured)
 	Expect(err).ShouldNot(HaveOccurred())
 
+	By("Started deploying OpenEBS components")
 	// Check for maya-apiserver pod to get created and running
 	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
@@ -135,11 +137,13 @@ var _ = BeforeSuite(func() {
 
 	// Check for cstor storage pool pods to get created and running
 	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+
+	By("OpenEBS components are in running state")
 })
 
 var _ = AfterSuite(func() {
 	// Fetching the openebs component artifacts
-	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
+	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
 	// Deleting the artifacts to kubernetes cluster

@@ -1,4 +1,4 @@
-package jiva_sanity
+package replicadeletion
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -8,9 +8,8 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	// auth plugins
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	//	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 const (
@@ -85,7 +84,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 			jivaSCUnstructured.GetNamespace(),
 		)
 
-		By("Deploy jiva-1r storageClass")
+		By("Deploying jiva-1r storageClass")
 		_, err = cu.Apply(jivaSCUnstructured)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -95,7 +94,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 			pvcUnstructured.GetNamespace(),
 		)
 
-		By("Deploy PVC using jiva-1r storageClass in jiva-test namespace")
+		By("Deploying PVC using jiva-1r storageClass in jiva-test namespace")
 		_, err = cu.Apply(pvcUnstructured)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -129,7 +128,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 			k8s.GroupVersionResourceFromGVK(pvcUnstructured),
 			string(jivaTestNamespace),
 		)
-		By("Delete PVC in jiva-test namespace")
+		By("Deleting PVC in jiva-test namespace")
 		err = cu.Delete(pvcUnstructured)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -138,7 +137,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 			k8s.GroupVersionResourceFromGVK(jivaSCUnstructured),
 			jivaSCUnstructured.GetNamespace(),
 		)
-		By("Delete jiva-1r storageClass")
+		By("Deleting jiva-1r storageClass")
 		err = cu.Delete(jivaSCUnstructured)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -158,12 +157,21 @@ var _ = Describe("jiva replica pod delete test", func() {
 					assert.Equal(GinkgoT(), pods.Items[0].Spec.NodeName, nodeName)
 				}
 
-				By("Delete jiva replica pod")
 				// Delete the jiva replica pod
 				err := pod.
 					KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
 					Delete(podName, &metav1.DeleteOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
+
+				// Makesure that pod is deleted successfully
+				Eventually(func() error {
+					_, err := pod.
+						KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
+						Get(podName, metav1.GetOptions{})
+					return err
+				},
+					defaultTimeOut, defaultPollingInterval).
+					Should(HaveOccurred(), "Pod not found")
 			}
 		})
 	})
