@@ -17,7 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
+	"github.com/ghodss/yaml"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	"github.com/openebs/maya/pkg/template"
+	"github.com/pkg/errors"
 )
 
 type upgradeResult struct {
@@ -25,27 +30,132 @@ type upgradeResult struct {
 	object *apis.UpgradeResult
 }
 
-type upgradeResultList struct {
+// UpgradeResultList is the list of
+// upgradeResults
+type UpgradeResultList struct {
 	// list of upgrade results
 	items []*upgradeResult
 }
 
-// ListBuilder enables building
-// an instance of urList
-type listBuilder struct {
-	list *upgradeResultList
+// Builder enables building an instance of
+// upgradeResult
+type Builder struct {
+	*upgradeResult
+	checks map[*Predicate]string
+	errors []error
 }
 
-// ListBuilder returns a new instance
-// of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &upgradeResultList{}}
+// Predicate abstracts conditional logic w.r.t the upgradeResult instance
+//
+// NOTE:
+// Predicate is a functional approach versus traditional approach to mix
+// conditions such as *if-else* within blocks of business logic
+//
+// NOTE:
+// Predicate approach enables clear separation of conditionals from
+// imperatives i.e. actions that form the business logic
+type Predicate func(*upgradeResult) bool
+
+// NewBuilder returns a new instance of Builder
+func NewBuilder() *Builder {
+	return &Builder{
+		upgradeResult: &upgradeResult{
+			object: &apis.UpgradeResult{},
+		},
+		checks: make(map[*Predicate]string),
+	}
+}
+
+// BuilderForRuntask returns a new instance
+// of Builder for runtasks
+func BuilderForRuntask(context, templateYaml string, templateValues map[string]interface{}) *Builder {
+	b := &Builder{
+		upgradeResult: &upgradeResult{
+			object: &apis.UpgradeResult{},
+		},
+		checks: make(map[*Predicate]string),
+	}
+	raw, err := template.AsTemplatedBytes(context, templateYaml, templateValues)
+	if err != nil {
+		b.errors = append(b.errors, err)
+		return b
+	}
+	err = yaml.Unmarshal(raw, b.object)
+	if err != nil {
+		b.errors = append(b.errors, err)
+		return b
+	}
+	return b
+}
+
+// Build returns the final instance of upgradeResult
+func (b *Builder) Build() (*apis.UpgradeResult, error) {
+	if len(b.errors) != 0 {
+		return nil, errors.Errorf("%v", b.errors)
+	}
+	err := b.validate()
+	if err != nil {
+		return nil, err
+	}
+	return b.upgradeResult.object, nil
+}
+
+// validate will run checks against upgrade
+// result instance
+func (b *Builder) validate() error {
+	for cond := range b.checks {
+		pass := (*cond)(b.upgradeResult)
+		if !pass {
+			b.errors = append(b.errors,
+				errors.Errorf("validation failed: %s", b.checks[cond]))
+		}
+	}
+	if len(b.errors) == 0 {
+		return nil
+	}
+	return errors.Errorf("%v", b.errors)
+}
+
+// AddCheckf adds the predicate as a condition to be validated against the
+// upgrade result instance and format the message string according to format specifier.
+// If only predicate and message string is provided, it will treat it as the
+// value for the corresponding predicate.
+func (b *Builder) AddCheckf(p Predicate, predicateMsg string, args ...interface{}) *Builder {
+	b.checks[&p] = fmt.Sprintf(predicateMsg, args...)
+	return b
+}
+
+// AddCheck adds the predicate as a condition to be validated against the
+// upgrade result instance
+func (b *Builder) AddCheck(p Predicate) *Builder {
+	return b.AddCheckf(p, "")
+}
+
+// AddChecks adds the provided predicates as conditions to be validated against
+// the upgrade result instance
+func (b *Builder) AddChecks(predicates ...Predicate) *Builder {
+	for _, check := range predicates {
+		b.AddCheck(check)
+	}
+	return b
+}
+
+// ListBuilder enables building
+// an instance of upgradeResultList
+type ListBuilder struct {
+	list *UpgradeResultList
+}
+
+// NewListBuilder returns a new instance
+// of ListBuilder
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{list: &UpgradeResultList{}}
 }
 
 // WithAPIList builds the list of ur
 // instances based on the provided
 // ur api instances
-func (b *listBuilder) WithAPIList(list *apis.UpgradeResultList) *listBuilder {
+func (b *ListBuilder) WithAPIList(list *apis.UpgradeResultList) *ListBuilder {
 	if list == nil {
 		return b
 	}
@@ -57,7 +167,7 @@ func (b *listBuilder) WithAPIList(list *apis.UpgradeResultList) *listBuilder {
 
 // List returns the list of ur
 // instances that was built by this
-// builder
-func (b *listBuilder) List() *upgradeResultList {
+// Builder
+func (b *ListBuilder) List() *UpgradeResultList {
 	return b.list
 }

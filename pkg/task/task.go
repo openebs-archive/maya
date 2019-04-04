@@ -29,10 +29,11 @@ import (
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
+	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
-	upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
 	api_apps_v1beta1 "k8s.io/api/apps/v1beta1"
@@ -395,6 +396,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.putCStorVolume()
 	} else if m.metaTaskExec.isPutOEV1alpha1CVR() {
 		err = m.putCStorVolumeReplica()
+	} else if m.metaTaskExec.isPutOEV1alpha1UR() {
+		err = m.putUpgradeResult()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1SP() {
 		err = m.deleteOEV1alpha1SP()
 	} else if m.metaTaskExec.isDeleteOEV1alpha1CSP() {
@@ -407,6 +410,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchOEV1alpha1CSV()
 	} else if m.metaTaskExec.isPatchOEV1alpha1CVR() {
 		err = m.patchOEV1alpha1CVR()
+	} else if m.metaTaskExec.isPatchOEV1alpha1UR() {
+		err = m.patchUpgradeResult()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else if m.metaTaskExec.isGetStorageV1SC() {
@@ -690,6 +695,27 @@ func (m *taskExecutor) patchOEV1alpha1CVR() (err error) {
 	return
 }
 
+// patchUpgradeResult will patch an UpgradeResult as defined in the task
+func (m *taskExecutor) patchUpgradeResult() (err error) {
+	// build a runtask patch instance
+	patch, err := patch.
+		BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+		AddCheckf(patch.IsValidType(), "IsValidType").
+		Build()
+	if err != nil {
+		return
+	}
+	// patch Upgrade Result
+	p, err := upgraderesult.
+		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, p, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
 // patchAppsV1B1Deploy will patch a Deployment object in a kubernetes cluster.
 // The patch specifications as configured in the RunTask
 func (m *taskExecutor) patchAppsV1B1Deploy() (err error) {
@@ -895,7 +921,7 @@ func (m *taskExecutor) getOEV1alpha1SP() (err error) {
 
 // getOEV1alpha1UR will get the UpgradeResult as specified in the RunTask
 func (m *taskExecutor) getOEV1alpha1UR() (err error) {
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uc := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace()))
 	uresult, err := uc.Get(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
 		return
@@ -1092,6 +1118,24 @@ func (m *taskExecutor) putCStorVolumeReplica() (err error) {
 	return
 }
 
+// putUpgradeResult will put an upgrade result as defined in the task
+func (m *taskExecutor) putUpgradeResult() (err error) {
+	uresult, err := upgraderesult.
+		BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+		Build()
+	if err != nil {
+		return
+	}
+	uraw, err := upgraderesult.
+		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+		CreateRaw(uresult)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, uraw, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
 // deleteOEV1alpha1SP will delete one or more StoragePool as specified in
 // the RunTask
 func (m *taskExecutor) deleteOEV1alpha1SP() (err error) {
@@ -1220,7 +1264,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 // listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
 func (m *taskExecutor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, err error) {
-	uc := upgrade.KubeClient(upgrade.WithNamespace(m.getTaskRunNamespace()))
+	uc := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace()))
 	urList, err := uc.List(opts)
 	if err != nil {
 		return

@@ -468,6 +468,12 @@ func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
+// isPutOEV1alpha1UR returns true if RunTask.Spec.meta
+// is set with action=put and kind=UpgradeResult
+func (m *metaTaskExecutor) isPutOEV1alpha1UR() bool {
+	return m.identifier.isOEV1alpha1UR() && m.isPut()
+}
+
 func (m *metaTaskExecutor) isDeleteOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isDelete()
 }
@@ -490,6 +496,12 @@ func (m *metaTaskExecutor) isPatchOEV1alpha1CSV() bool {
 
 func (m *metaTaskExecutor) isPatchOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPatch()
+}
+
+// isPatchOEV1alpha1UR returns true if RunTask.Spec.meta
+// is set with action=patch and kind=UpgradeResult
+func (m *metaTaskExecutor) isPatchOEV1alpha1UR() bool {
+	return m.identifier.isOEV1alpha1UR() && m.isPatch()
 }
 
 func (m *metaTaskExecutor) isListOEV1alpha1Disk() bool {
