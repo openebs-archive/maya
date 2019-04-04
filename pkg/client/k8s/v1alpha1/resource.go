@@ -212,8 +212,11 @@ func (r *createOrUpdate) Apply(obj *unstructured.Unstructured, subresources ...s
 		return
 	}
 	resource, err = r.options.Getter.Get(obj.GetName(), metav1.GetOptions{})
-	if err != nil && apierrors.IsNotFound(errors.Cause(err)) {
-		return r.options.Creator.Create(obj, subresources...)
+	if err != nil {
+		if apierrors.IsNotFound(errors.Cause(err)) {
+			return r.options.Creator.Create(obj, subresources...)
+		}
+		return nil, err
 	}
 	return r.options.Updater.Update(resource, obj, subresources...)
 }
