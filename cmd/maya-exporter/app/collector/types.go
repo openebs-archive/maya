@@ -23,11 +23,12 @@ const (
 )
 
 const (
+	errored         = v1.ReplicaMode("ERR")
 	writeOnly       = v1.ReplicaMode("WO")
 	readOnly        = v1.ReplicaMode("RO")
-	degraded        = v1.ReplicaMode("DEGRADED")
+	degraded        = v1.ReplicaMode("Degraded")
 	readWrite       = v1.ReplicaMode("RW")
-	healthy         = v1.ReplicaMode("HEALTHY")
+	healthy         = v1.ReplicaMode("Healthy")
 	targetOffline   = v1.TargetMode("Offline")
 	targetDegraded  = v1.TargetMode("Degraded")
 	targetHealthy   = v1.TargetMode("Healthy")
