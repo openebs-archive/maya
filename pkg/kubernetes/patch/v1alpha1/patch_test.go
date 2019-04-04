@@ -24,15 +24,13 @@ func TestNewBuilder(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := NewBuilder()
-			patch := (b.patch != nil)
-			if patch != mock.expectPatch {
-				t.Fatalf("test %s failed, expected non-nil patch but got : %+v",
-					name, b.patch)
+			if (b.patch != nil) != mock.expectPatch {
+				t.Fatalf("test %s failed, expect patch: %t but got: %t",
+					name, mock.expectPatch, b.patch != nil)
 			}
-			checks := (b.checks != nil)
-			if checks != mock.expectChecks {
-				t.Fatalf("test %s failed, expected non-nil checks but got : %+v",
-					name, b.checks)
+			if (b.checks != nil) != mock.expectChecks {
+				t.Fatalf("test %s failed, expect checks: %t but got: %t",
+					name, mock.expectChecks, b.checks != nil)
 			}
 		})
 	}
@@ -107,7 +105,12 @@ func TestAddCheck(t *testing.T) {
 		expectedChecksLength int
 	}{
 		"When a predicate is given": {
-			fakePredicate(), 1,
+			fakePredicate(),
+			1,
+		},
+		"When nil is given": {
+			nil,
+			0,
 		},
 	}
 	for name, mock := range tests {

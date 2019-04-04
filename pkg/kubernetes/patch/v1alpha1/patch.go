@@ -49,8 +49,6 @@ var kubePatchTypes = map[PatchType]types.PatchType{
 	PatchTypeStrategic: types.StrategicMergePatchType,
 }
 
-var predicatesInfo = map[*Predicate]string{}
-
 // Patch will consist of patch that gets applied
 // against a particular resource
 type Patch struct {
@@ -129,18 +127,22 @@ func BuilderForRuntask(context, templateYaml string,
 		patch:  &Patch{},
 		checks: make(map[*Predicate]string),
 	}
+	// Here, we are running go templating on the given runtask yaml
 	p, err := template.AsTemplatedBytes(context, templateYaml, templateValues)
 	if err != nil {
 		b.errors = append(b.errors, err)
 		return b
 	}
-	// unmarshal task yaml into taskPatch
+	// unmarshal task yaml into taskPatch struct
+	// to get the type and the actual patch object
 	err = yaml.Unmarshal(p, t)
 	if err != nil {
 		b.errors = append(b.errors, err)
 		return b
 	}
 	// unmarshal rawSpec into map[string]interface{}{}
+	// since the patch operation supports this format
+	// for patching a k8s resource
 	err = yaml.Unmarshal([]byte(t.Spec), &m)
 	if err != nil {
 		return b
@@ -189,6 +191,11 @@ func (b *Builder) Build() (*Patch, error) {
 // If only predicate and message string is provided, it will treat it as the
 // value for the corresponding predicate.
 func (b *Builder) AddCheckf(p Predicate, predicateMsg string, args ...interface{}) *Builder {
+	if p == nil {
+		b.errors = append(b.errors,
+			errors.New("nil predicate given"))
+		return b
+	}
 	b.checks[&p] = fmt.Sprintf(predicateMsg, args...)
 	return b
 }

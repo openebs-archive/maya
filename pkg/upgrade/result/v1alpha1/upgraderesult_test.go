@@ -26,15 +26,13 @@ func TestNewBuilder(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := NewBuilder()
-			upgradeResult := (b.upgradeResult != nil)
-			if upgradeResult != mock.expectUpgradeResult {
-				t.Fatalf("test %s failed, expected non-nil upgraderesult but got : %+v",
-					name, b.upgradeResult)
+			if (b.upgradeResult != nil) != mock.expectUpgradeResult {
+				t.Fatalf("test %s failed, expect upgraderesult: %t but got: %t",
+					name, mock.expectUpgradeResult, b.upgradeResult != nil)
 			}
-			checks := (b.checks != nil)
-			if checks != mock.expectChecks {
-				t.Fatalf("test %s failed, expected non-nil checks but got : %+v",
-					name, b.checks)
+			if (b.checks != nil) != mock.expectChecks {
+				t.Fatalf("test %s failed, expect checks: %t but got: %t",
+					name, mock.expectChecks, b.checks != nil)
 			}
 		})
 	}
