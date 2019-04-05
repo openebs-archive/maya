@@ -137,7 +137,7 @@ var _ = Describe("[single-node] AdmissionWebhook", func() {
 				List(metav1.ListOptions{LabelSelector: ""})
 			Expect(err).ShouldNot(HaveOccurred())
 			return cv.
-				ListBuilder().
+				NewListBuilder().
 				WithAPIList(cvs).
 				WithFilter(cv.IsHealthy()).
 				List().

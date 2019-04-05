@@ -15,6 +15,7 @@ import (
 	"github.com/openebs/maya/integration-tests/artifacts"
 	"github.com/openebs/maya/integration-tests/kubernetes"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	// auth plugins
 	//_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -34,7 +35,7 @@ const (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Admission")
+	RunSpecs(t, "[single-node] Admission server")
 }
 
 func init() {
@@ -53,7 +54,7 @@ var _ = BeforeSuite(func() {
 	cl, err := kubernetes.GetClientSet()
 	Expect(err).ShouldNot(HaveOccurred())
 
-	// Checking appropriate node numbers.
+	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 
@@ -61,7 +62,7 @@ var _ = BeforeSuite(func() {
 	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
-	// Installing the artifacts to kubernetes cluster
+	By("Deploying OpenEBS components in openebs namespace")
 	for _, artifact := range artifactsOpenEBS {
 		cu := k8s.CreateOrUpdate(
 			k8s.GroupVersionResourceFromGVK(artifact),
@@ -71,104 +72,34 @@ var _ = BeforeSuite(func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
-	// Check for maya-apiserver pod to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.MayaAPIServerLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(1), "Maya-APIServer pod count should be 1")
+	By("Verifying 'maya-apiserver' pod status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
-	// Check for provisioner pod to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSProvisionerLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(1), "OpenEBS provisioner pod count should be 1")
+	By("Verifying 'openebs-provisioner' pod status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 
-	// Check for snapshot operator to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSSnapshotOperatorLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(1), "OpenEBS snapshot pod count should be 1")
+	By("Verifying 'snapshot-operator' pod status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
 
-	// Check for admission server to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSAdmissionServerLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(1), "OpenEBS admission server pod count should be 1")
+	By("Verifying 'admission-server' pod status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
 
-	// Check for NDM pods to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSNDMLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(minNodeCount), "NDM pod count should be "+string(minNodeCount))
+	By("Verifying 'Node-device-manager' pods status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
 
-	// Check for cstor storage pool pods to get created and running
-	Eventually(func() int {
-		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
-			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSCStorPoolLabelSelector)})
-		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
-			WithFilter(pod.IsRunning()).
-			List().
-			Len()
-	},
-		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(minNodeCount), "CStor pool pod count should be "+string(minNodeCount))
+	By("Verifying 'cstor-pool' pods status as running")
+	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+
+	By("OpenEBS control-plane components are in running state")
 })
 
 var _ = AfterSuite(func() {
 	// Fetching the openebs component artifacts
-	artifacts, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
+	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
 	// Deleting the artifacts to kubernetes cluster
-	for _, artifact := range artifacts {
+	for _, artifact := range artifactsOpenEBS {
 		cu := k8s.DeleteResource(
 			k8s.GroupVersionResourceFromGVK(artifact),
 			artifact.GetNamespace(),
@@ -176,8 +107,24 @@ var _ = AfterSuite(func() {
 		err := cu.Delete(artifact)
 		Expect(err).ShouldNot(HaveOccurred())
 	}
-
-	// Unsetting the environment variable
-	err := os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
-	Expect(err).ShouldNot(HaveOccurred())
 })
+
+func checkComponentStatus(namespace, lselector string, podCount int) (pods *corev1.PodList) {
+	// Verify phase of the pod
+	var err error
+	Eventually(func() int {
+		pods, err = pod.
+			KubeClient(pod.WithNamespace(namespace)).
+			List(metav1.ListOptions{LabelSelector: lselector})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pod.
+			ListBuilder().
+			WithAPIList(pods).
+			WithFilter(pod.IsRunning()).
+			List().
+			Len()
+	},
+		defaultTimeOut, defaultPollingInterval).
+		Should(Equal(podCount), "Pod count should be "+string(podCount))
+	return
+}

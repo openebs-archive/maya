@@ -30,7 +30,7 @@ type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpt
 
 // kubeclient enables kubernetes API operations
 // on pvc instance
-type kubeclient struct {
+type Kubeclient struct {
 	// clientset refers to pvc clientset
 	// that will be responsible to
 	// make kubernetes API calls
@@ -50,11 +50,11 @@ type kubeclient struct {
 
 // kubeclientBuildOption abstracts creating an
 // instance of kubeclient
-type kubeclientBuildOption func(*kubeclient)
+type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options
 // of kubeclient instance
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			config, err := kclient.Config().Get()
@@ -88,24 +88,24 @@ func (k *kubeclient) withDefaults() {
 
 // WithNamespace sets the kubernetes client against
 // the provided namespace
-func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithNamespace(namespace string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
 }
 
 // WithClientSet sets the kubernetes client against
 // the kubeclient instance
-func WithClientSet(c *clientset.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithClientSet(c *clientset.Clientset) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for
 // cstor volume replica operations
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -115,7 +115,7 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -129,7 +129,7 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // Get returns a pvc resource
 // instances present in kubernetes cluster
-func (k *kubeclient) Get(name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func (k *Kubeclient) Get(name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -139,7 +139,7 @@ func (k *kubeclient) Get(name, namespace string, opts metav1.GetOptions) (*v1.Pe
 
 // List returns a list of pvc
 // instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func (k *kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimLis
 
 // Delete deletes a pvc instance from the
 // kubecrnetes cluster
-func (k *kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func (k *kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 
 // DeleteCollection deletes collection of pvc
 // instance from the kubernetes cluster
-func (k *kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err

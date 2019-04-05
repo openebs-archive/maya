@@ -40,9 +40,9 @@ type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOp
 // getting validatingWebhookConfiguration instances
 type getFunc func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error)
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on upgrade result instance
-type kubeclient struct {
+type Kubeclient struct {
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
@@ -54,13 +54,13 @@ type kubeclient struct {
 	get          getFunc
 }
 
-// kubeclientBuildOption defines the abstraction
+// KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options
 // of kubeclient instance
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
 			config, err := client.GetConfig(client.New())
@@ -84,16 +84,16 @@ func (k *kubeclient) withDefaults() {
 
 // WithClientset sets the kubernetes clientset against
 // the kubeclient instance
-func WithClientset(c *clientset.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithClientset(c *clientset.Clientset) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for
 // admission webhook related operations
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -103,15 +103,15 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // WithNamespace sets namespace that should be used during
 // kuberenets API calls against namespaced resource
-func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithNamespace(namespace string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
 }
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -125,7 +125,7 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List takes label and field selectors, and returns the list of ValidatingWebhookConfigurations
 // that match those selectors.
-func (k *kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (k *kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookCo
 
 // Get takes name of the validatingWebhookConfiguration, and returns the
 // corresponding validatingWebhookConfiguration object, and an error if there is any.
-func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get upgrade result: missing upgradeResult name")
 	}

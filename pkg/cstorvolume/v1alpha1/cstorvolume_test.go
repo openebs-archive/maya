@@ -12,22 +12,22 @@ import (
 func TestWithAPIList(t *testing.T) {
 	inputURItems := []apis.CStorVolume{apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1"}}}
-	outputURItems := []cv{cv{object: apis.CStorVolume{
+	outputURItems := []CStorVolume{CStorVolume{object: apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.CStorVolumeList
-		expectedOutput *cvList
+		expectedOutput *CStorVolumeList
 	}{
 		"empty cstorvolume list": {&apis.CStorVolumeList{},
-			&cvList{}},
-		"using nil input list": {nil, &cvList{}},
+			&CStorVolumeList{}},
+		"using nil input list": {nil, &CStorVolumeList{}},
 		"non-empty cstorvolume list": {&apis.CStorVolumeList{Items: inputURItems},
-			&cvList{items: outputURItems}},
+			&CStorVolumeList{items: outputURItems}},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(mock.inputURList)
+			b := NewListBuilder().WithAPIList(mock.inputURList)
 			if len(b.list.items) != len(mock.expectedOutput.items) {
 				t.Fatalf("test %s failed, expected len: %d got: %d",
 					name, len(mock.expectedOutput.items), len(b.list.items))
@@ -43,22 +43,22 @@ func TestWithAPIList(t *testing.T) {
 func TestList(t *testing.T) {
 	inputURItems := []apis.CStorVolume{apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test1"}}}
-	outputURItems := []cv{cv{object: apis.CStorVolume{
+	outputURItems := []CStorVolume{CStorVolume{object: apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.CStorVolumeList
-		expectedOutput *cvList
+		expectedOutput *CStorVolumeList
 	}{
 		"empty cstor volume list": {&apis.CStorVolumeList{},
-			&cvList{}},
-		"using nil input list": {nil, &cvList{}},
+			&CStorVolumeList{}},
+		"using nil input list": {nil, &CStorVolumeList{}},
 		"non-empty cstorvolume list": {&apis.CStorVolumeList{Items: inputURItems},
-			&cvList{items: outputURItems}},
+			&CStorVolumeList{items: outputURItems}},
 	}
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(mock.inputURList).List()
+			b := NewListBuilder().WithAPIList(mock.inputURList).List()
 			if len(b.items) != len(mock.expectedOutput.items) {
 				t.Fatalf("test %s failed, expected len: %d got: %d",
 					name, len(mock.expectedOutput.items), len(b.items))

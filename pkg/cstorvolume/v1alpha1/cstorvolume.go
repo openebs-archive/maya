@@ -10,39 +10,41 @@ const (
 	cstorVolumeLabel labelKey = "openebs.io/persistent-volume"
 )
 
-type cv struct {
+// CStorVolume a wrapper for CStorVolume object
+type CStorVolume struct {
 	// actual cstor volume replica
 	// object
 	object apis.CStorVolume
 }
 
-type cvList struct {
+// CStorVolumeList is a list of cstorvolume objects
+type CStorVolumeList struct {
 	// list of cstor volumes
-	items []cv
+	items []CStorVolume
 }
 
-// listBuilder enables building
+// ListBuilder enables building
 // an instance of cvList
-type listBuilder struct {
-	list    *cvList
-	filters predicateList
+type ListBuilder struct {
+	list    *CStorVolumeList
+	filters PredicateList
 }
 
-// ListBuilder returns a new instance
+// NewListBuilder returns a new instance
 // of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &cvList{}}
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{list: &CStorVolumeList{}}
 }
 
 // WithAPIList builds the list of cvr
 // instances based on the provided
 // cvr api instances
-func (b *listBuilder) WithAPIList(list *apis.CStorVolumeList) *listBuilder {
+func (b *ListBuilder) WithAPIList(list *apis.CStorVolumeList) *ListBuilder {
 	if list == nil {
 		return b
 	}
 	for _, c := range list.Items {
-		b.list.items = append(b.list.items, cv{object: c})
+		b.list.items = append(b.list.items, CStorVolume{object: c})
 	}
 	return b
 }
@@ -50,11 +52,11 @@ func (b *listBuilder) WithAPIList(list *apis.CStorVolumeList) *listBuilder {
 // List returns the list of cstorvolume (cv)
 // instances that was built by this
 // builder
-func (b *listBuilder) List() *cvList {
+func (b *ListBuilder) List() *CStorVolumeList {
 	if b.filters == nil || len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := ListBuilder().List()
+	filtered := NewListBuilder().List()
 	for _, cv := range b.list.items {
 		if b.filters.all(&cv) {
 			filtered.items = append(filtered.items, cv)
@@ -65,36 +67,36 @@ func (b *listBuilder) List() *cvList {
 
 // Len returns the number of items present
 // in the CStorVolumeList
-func (l *cvList) Len() int {
+func (l *CStorVolumeList) Len() int {
 	return len(l.items)
 }
 
-// predicate defines an abstraction
+// Predicate defines an abstraction
 // to determine conditional checks
 // against the provided cvr instance
-type predicate func(*cv) bool
+type Predicate func(*CStorVolume) bool
 
 // IsHealthy returns true if the CVR is in
 // healthy state
-func (p *cv) IsHealthy() bool {
+func (p *CStorVolume) IsHealthy() bool {
 	return p.object.Status.Phase == "Healthy"
 }
 
 // IsHealthy is a predicate to filter out cvrs
 // which is healthy
-func IsHealthy() predicate {
-	return func(p *cv) bool {
+func IsHealthy() Predicate {
+	return func(p *CStorVolume) bool {
 		return p.IsHealthy()
 	}
 }
 
-// predicateList holds a list of predicate
-type predicateList []predicate
+// PredicateList holds a list of predicate
+type PredicateList []Predicate
 
 // all returns true if all the predicates
 // succeed against the provided cvr
 // instance
-func (l predicateList) all(p *cv) bool {
+func (l PredicateList) all(p *CStorVolume) bool {
 	for _, pred := range l {
 		if !pred(p) {
 			return false
@@ -103,8 +105,8 @@ func (l predicateList) all(p *cv) bool {
 	return true
 }
 
-// WithFilter adds filters on which the cvr's has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
+// WithFilter adds filters on which the cstorvolume has to be filtered
+func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }
