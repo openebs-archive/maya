@@ -129,12 +129,12 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // Get returns a pvc resource
 // instances present in kubernetes cluster
-func (k *kubeclient) Get(ns, name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func (k *kubeclient) Get(name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cli, name, ns, opts)
+	return k.get(cli, name, namespace, opts)
 }
 
 // List returns a list of pvc

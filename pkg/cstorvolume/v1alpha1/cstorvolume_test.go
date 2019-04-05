@@ -20,7 +20,7 @@ func TestWithAPIList(t *testing.T) {
 	}{
 		"empty cstorvolume list": {&apis.CStorVolumeList{},
 			&cvList{}},
-		"using nil input": {nil, &cvList{}},
+		"using nil input list": {nil, &cvList{}},
 		"non-empty cstorvolume list": {&apis.CStorVolumeList{Items: inputURItems},
 			&cvList{items: outputURItems}},
 	}
@@ -49,10 +49,10 @@ func TestList(t *testing.T) {
 		inputURList    *apis.CStorVolumeList
 		expectedOutput *cvList
 	}{
-		"empty upgrade result list": {&apis.CStorVolumeList{},
+		"empty cstor volume list": {&apis.CStorVolumeList{},
 			&cvList{}},
-		"using nil input": {nil, &cvList{}},
-		"non-empty upgrade result list": {&apis.CStorVolumeList{Items: inputURItems},
+		"using nil input list": {nil, &cvList{}},
+		"non-empty cstorvolume list": {&apis.CStorVolumeList{Items: inputURItems},
 			&cvList{items: outputURItems}},
 	}
 

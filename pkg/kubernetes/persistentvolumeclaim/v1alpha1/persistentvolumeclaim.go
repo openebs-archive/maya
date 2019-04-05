@@ -3,12 +3,12 @@ package v1alpha1
 import (
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // pvc holds the api's pvc objects
 type pvc struct {
-	object *v1.PersistentVolumeClaim
+	object *corev1.PersistentVolumeClaim
 }
 
 // pvcList holds the list of pvc instances
@@ -26,7 +26,7 @@ type listBuilder struct {
 // WithAPIList builds the list of pvc
 // instances based on the provided
 // pvc list api instance
-func (b *listBuilder) WithAPIList(pvcs *v1.PersistentVolumeClaimList) *listBuilder {
+func (b *listBuilder) WithAPIList(pvcs *corev1.PersistentVolumeClaimList) *listBuilder {
 	if pvcs == nil {
 		return b
 	}
@@ -45,7 +45,7 @@ func (b *listBuilder) WithObject(pvcs ...*pvc) *listBuilder {
 // WithAPIList builds the list of pvc
 // instances based on the provided
 // pvc's api instances
-func (b *listBuilder) WithAPIObject(pvcs ...v1.PersistentVolumeClaim) *listBuilder {
+func (b *listBuilder) WithAPIObject(pvcs ...corev1.PersistentVolumeClaim) *listBuilder {
 	if len(pvcs) == 0 {
 		return b
 	}
@@ -78,8 +78,8 @@ func (p *pvcList) Len() int {
 }
 
 // ToAPIList converts PVCList to API PVCList
-func (p *pvcList) ToAPIList() *v1.PersistentVolumeClaimList {
-	plist := &v1.PersistentVolumeClaimList{}
+func (p *pvcList) ToAPIList() *corev1.PersistentVolumeClaimList {
+	plist := &corev1.PersistentVolumeClaimList{}
 	for _, pvc := range p.items {
 		plist.Items = append(plist.Items, *pvc.object)
 	}
@@ -89,6 +89,13 @@ func (p *pvcList) ToAPIList() *v1.PersistentVolumeClaimList {
 // ListBuilder returns a instance of listBuilder
 func ListBuilder() *listBuilder {
 	return &listBuilder{list: &pvcList{items: []*pvc{}}}
+}
+
+// NewForAPIObject returns a new instance of Builder
+func NewForAPIObject(obj *corev1.PersistentVolumeClaim) *pvc {
+	return &pvc{
+		object: obj,
+	}
 }
 
 // predicate defines an abstraction

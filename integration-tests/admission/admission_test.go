@@ -10,7 +10,7 @@ import (
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
-	vwebhook "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
+	validatehook "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -20,7 +20,7 @@ const (
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: cstor-test
+  name: cstor-source-volume
   namespace: default
   labels:
     name: cstor-test
@@ -76,11 +76,11 @@ metadata:
   name: snapshot-cstor
   namespace: default
 spec:
-  persistentVolumeClaimName: cstor-test
+  persistentVolumeClaimName: cstor-source-volume
 `
 )
 
-var _ = Describe("AdmissionWebhook", func() {
+var _ = Describe("[single-node] AdmissionWebhook", func() {
 	BeforeEach(func() {
 		// Extracting storageclass artifacts unstructured
 		SCUnst, err := artifacts.GetArtifactUnstructured(singleReplicaSC)
@@ -103,13 +103,14 @@ var _ = Describe("AdmissionWebhook", func() {
 		PVCNamespace := PVCUnst.GetNamespace()
 
 		// Webhook stuffs
-		_, err = vwebhook.KubeClient().List(metav1.ListOptions{})
+		_, err = validatehook.KubeClient().List(metav1.ListOptions{})
 		if errors.IsNotFound(err) {
 			Skip("dynamic configuration of webhooks requires the admissionregistration.k8s.io group to be enabled")
 		}
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// Create pvc using storageclass 'cstor-sparse-pool'
+		// Create pvc using storageclass 'cstor-sparse-class'
+		By(fmt.Sprintf("Create pvc %s in default namespace", PVCUnst.GetName()))
 		cu = k8s.CreateOrUpdate(
 			k8s.GroupVersionResourceFromGVK(PVCUnst),
 			PVCUnst.GetNamespace(),
@@ -118,20 +119,16 @@ var _ = Describe("AdmissionWebhook", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("verifying pvc to be created and bound with pv")
-		Eventually(func() int {
-			pvcs, err := pvc.
+		Eventually(func() bool {
+			pvclaim, err := pvc.
 				KubeClient(pvc.WithNamespace(PVCNamespace)).
-				List(metav1.ListOptions{LabelSelector: "name=cstor-test"})
+				Get(PVCUnst.GetName(), PVCNamespace, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pvc.
-				ListBuilder().
-				WithAPIList(pvcs).
-				WithFilter(pvc.IsBound()).
-				List().
-				Len()
+				NewForAPIObject(pvclaim).IsBound()
 		},
 			defaultTimeOut, defaultPollingInterval).
-			Should(Equal(1), "PVC count should be "+string(1))
+			Should(BeTrue())
 
 		// Check for CVR to get healthy
 		Eventually(func() int {
@@ -159,7 +156,7 @@ var _ = Describe("AdmissionWebhook", func() {
 		// Extracting pvc namespace
 		PVCNamespace := PVCUnst.GetNamespace()
 
-		By("Delete persistentvolumeclaim as part of cleanup")
+		By(fmt.Sprintf("deleting PVC '%s' as part of teardown", PVCUnst.GetName()))
 		// Delete the PVC artifacts
 		cu := k8s.DeleteResource(
 			k8s.GroupVersionResourceFromGVK(PVCUnst),
@@ -174,7 +171,7 @@ var _ = Describe("AdmissionWebhook", func() {
 		Eventually(func() int {
 			pvcs, err := pvc.
 				KubeClient(pvc.WithNamespace(PVCNamespace)).
-				List(metav1.ListOptions{LabelSelector: "name=cstor-test"})
+				List(metav1.ListOptions{LabelSelector: "name=cstor-source-volume"})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
 		},
@@ -215,28 +212,23 @@ var _ = Describe("AdmissionWebhook", func() {
 			_, err = cu.Apply(ClonePVCUnst)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			By("verifying clone pvc to be created and bound with pv")
-			Eventually(func() int {
-				pvcs, err := pvc.
+			By(fmt.Sprintf("verifying clone pvc '%s' to be created and bound with pv", ClonePVCUnst.GetName()))
+			Eventually(func() bool {
+				pvclaim, err := pvc.
 					KubeClient(pvc.WithNamespace(clonePVCNamespace)).
-					List(metav1.ListOptions{LabelSelector: "name=test-snap-claim"})
+					Get(ClonePVCUnst.GetName(), clonePVCNamespace, metav1.GetOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 				return pvc.
-					ListBuilder().
-					WithAPIList(pvcs).
-					WithFilter(pvc.IsBound()).
-					List().
-					Len()
+					NewForAPIObject(pvclaim).IsBound()
 			},
 				defaultTimeOut, defaultPollingInterval).
-				Should(Equal(1), "PVC count should be "+string(1))
+				Should(BeTrue())
 
 			// Step-3 Delete Source-volume
-			By("Deleting source PVC should fail with error")
 			PVCUnst, err := artifacts.GetArtifactUnstructured(cStorPVC)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			By("Try Delete source persistentvolumeclaim")
+			By(fmt.Sprintf("Deleting source PVC '%s' should fail with error", PVCUnst.GetName()))
 			// Extracting pvc namespace
 			PVCNamespace := PVCUnst.GetNamespace()
 

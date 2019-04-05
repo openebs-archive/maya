@@ -15,7 +15,7 @@ func fakeGetClientset() (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
-func fakeGetfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaim, error) {
+func fakeGetfn(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 	return &v1.PersistentVolumeClaim{}, nil
 }
 
@@ -23,8 +23,20 @@ func fakeListfn(cli *clientset.Clientset, namespace string, opts metav1.ListOpti
 	return &v1.PersistentVolumeClaimList{}, nil
 }
 
+func fakeDelfn(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+	return nil
+}
+
 func fakeListErrfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	return &v1.PersistentVolumeClaimList{}, errors.New("some error")
+}
+
+func fakeGetErrfn(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+	return &v1.PersistentVolumeClaim{}, errors.New("some error")
+}
+
+func fakeDelErrfn(cli *clientset.Clientset, name, namespace string, opts *metav1.DeleteOptions) error {
+	return errors.New("some error")
 }
 
 func fakeSetClientset(k *kubeclient) {
@@ -153,7 +165,7 @@ func TestGetClientOrCached(t *testing.T) {
 	}
 }
 
-func TestKubenetesPodList(t *testing.T) {
+func TestKubenetesPVCList(t *testing.T) {
 	tests := map[string]struct {
 		getClientset getClientsetFn
 		list         listFn
@@ -192,6 +204,59 @@ func TestWithNamespaceBuildOption(t *testing.T) {
 			k := KubeClient(WithNamespace(mock.namespace))
 			if k.namespace != mock.namespace {
 				t.Fatalf("Test %q failed: expected %v got %v", name, mock.namespace, k.namespace)
+			}
+		})
+	}
+}
+
+func TestKubenetesGetPVC(t *testing.T) {
+	tests := map[string]struct {
+		getClientset    getClientsetFn
+		get             getFn
+		expectErr       bool
+		name, namespace string
+	}{
+		"Test 1": {fakeGetErrClientSet, fakeGetfn, true, "testvol", "test-ns"},
+		"Test 2": {fakeGetClientset, fakeGetfn, false, "testvol", "test-ns"},
+		"Test 3": {fakeGetClientset, fakeGetErrfn, true, "testvol", ""},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := kubeclient{getClientset: mock.getClientset, get: mock.get}
+			_, err := k.Get(mock.name, mock.namespace, metav1.GetOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestKubenetesDelete(t *testing.T) {
+	tests := map[string]struct {
+		getClientset getClientsetFn
+		del          deleteFn
+		expectErr    bool
+		name         string
+	}{
+		"Test 1": {fakeGetErrClientSet, fakeDelfn, true, "testvol"},
+		"Test 2": {fakeGetClientset, fakeDelfn, false, "testvol"},
+		"Test 3": {fakeGetClientset, fakeDelErrfn, true, "testvol"},
+		"Test 4": {fakeGetClientset, fakeDelErrfn, true, ""},
+	}
+
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			k := kubeclient{getClientset: mock.getClientset, del: mock.del}
+			err := k.Delete(mock.name, &metav1.DeleteOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
 	}
