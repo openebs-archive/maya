@@ -1,6 +1,9 @@
 package v1alpha1
 
 import (
+	"errors"
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -64,6 +67,11 @@ func (k *Kubeclient) withDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
+	// If namespace is nil set the default namespace
+	if len(k.namespace) == 0 {
+		k.namespace = "default"
+	}
+
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)
@@ -129,12 +137,15 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // Get returns a pvc resource
 // instances present in kubernetes cluster
-func (k *Kubeclient) Get(name, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("failed to get pvc: missing pvc name")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cli, name, namespace, opts)
+	return k.get(cli, name, k.namespace, opts)
 }
 
 // List returns a list of pvc
@@ -150,6 +161,9 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimLis
 // Delete deletes a pvc instance from the
 // kubecrnetes cluster
 func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to delete pvc: missing pvc name")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err

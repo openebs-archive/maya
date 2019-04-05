@@ -126,12 +126,12 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 }
 
 // Get returns deployment object for given name
-func (k *Kubeclient) Get(name, namespace string) (*apis.CStorVolume, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorVolume, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cli, name, namespace, metav1.GetOptions{})
+	return k.get(cli, name, k.namespace, opts)
 }
 
 // List returns a list of cstor volume replica

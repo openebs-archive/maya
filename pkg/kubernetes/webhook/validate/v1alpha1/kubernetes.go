@@ -34,11 +34,11 @@ type getClientsetFunc func() (cs *clientset.Clientset, err error)
 
 // listFunc is a typed function that abstracts
 // listing validatingWebhookConfiguration instances
-type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error)
+type listFunc func(cs *clientset.Clientset, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error)
 
 // getFunc is a typed function that abstracts
 // getting validatingWebhookConfiguration instances
-type getFunc func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error)
+type getFunc func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error)
 
 // Kubeclient enables kubernetes API operations
 // on upgrade result instance
@@ -71,12 +71,12 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
+		k.list = func(cs *clientset.Clientset, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
 			return cs.Admissionregistration().ValidatingWebhookConfigurations().List(opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
+		k.get = func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
 			return cs.Admissionregistration().ValidatingWebhookConfigurations().Get(name, opts)
 		}
 	}
@@ -130,7 +130,7 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookCo
 	if err != nil {
 		return nil, err
 	}
-	return k.list(cs, k.namespace, opts)
+	return k.list(cs, opts)
 }
 
 // Get takes name of the validatingWebhookConfiguration, and returns the
@@ -143,5 +143,5 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1beta1.Validati
 	if err != nil {
 		return nil, err
 	}
-	return k.get(cs, name, k.namespace, opts)
+	return k.get(cs, name, opts)
 }

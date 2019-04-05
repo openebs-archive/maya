@@ -224,7 +224,7 @@ func TestKubenetesGetPVC(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := Kubeclient{getClientset: mock.getClientset, get: mock.get}
-			_, err := k.Get(mock.name, mock.namespace, metav1.GetOptions{})
+			_, err := k.Get(mock.name, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
