@@ -42,18 +42,22 @@ type DataItem struct {
 	Entries map[string]string `json:"entries"`
 }
 
+// GetName returns name present in DataItem
 func (di DataItem) GetName() string {
 	return di.Name
 }
 
+// GetValue returns value present in DataItem
 func (di DataItem) GetValue() string {
 	return di.Value
 }
 
+// GetData returns data present in DataItem
 func (di DataItem) GetData() map[string]string {
 	return di.Entries
 }
 
+// IsEnabled returns true
 func (di DataItem) IsEnabled() string {
 	return "true"
 }

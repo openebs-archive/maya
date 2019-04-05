@@ -26,13 +26,6 @@ import (
 	"github.com/openebs/maya/pkg/util"
 )
 
-type ConfigInterface interface {
-	GetName() string
-	GetValue() string
-	IsEnabled() string
-	GetData() map[string]string
-}
-
 // UnMarshallToConfig un-marshalls the given cas template config in a yaml
 // string format to a typed list of cas template config
 func UnMarshallToConfig(config string) (configs []v1alpha1.Config, err error) {
@@ -47,30 +40,6 @@ func MergeConfig(highPriority, lowPriority []v1alpha1.Config) (final []v1alpha1.
 	for _, h := range highPriority {
 		final = append(final, h)
 		book = append(book, strings.TrimSpace(h.Name))
-	}
-	for _, l := range lowPriority {
-		// include only if the config was not present earlier in high priority
-		// configuration
-		if !util.ContainsString(book, strings.TrimSpace(l.Name)) {
-			final = append(final, l)
-		}
-	}
-	return
-}
-
-// MergeConfig will merge the unique configuration elements of lowPriority
-// into highPriority and return the result
-func MergeConfigf(highPriority []ConfigInterface, lowPriority []v1alpha1.Config) (final []v1alpha1.Config) {
-	var book []string
-	for _, h := range highPriority {
-		c := v1alpha1.Config{
-			Name:    h.GetName(),
-			Enabled: h.IsEnabled(),
-			Value:   h.GetValue(),
-			Data:    h.GetData(),
-		}
-		final = append(final, c)
-		book = append(book, strings.TrimSpace(h.GetName()))
 	}
 	for _, l := range lowPriority {
 		// include only if the config was not present earlier in high priority
