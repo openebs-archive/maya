@@ -1,6 +1,8 @@
 package replicadeletion
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
@@ -157,6 +159,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 					assert.Equal(GinkgoT(), pods.Items[0].Spec.NodeName, nodeName)
 				}
 
+				fmt.Printf("Delete pod: '%s' count: %d\n", podName, i)
 				// Delete the jiva replica pod
 				err := pod.
 					KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
