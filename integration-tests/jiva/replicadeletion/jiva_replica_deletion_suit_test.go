@@ -31,7 +31,7 @@ const (
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
 	// minNodeCount is the minimum number of nodes
-	// neede to run this test
+	// need to run this test
 	minNodeCount int = 3
 	// jiva-test namespace to deploy jiva ctrl & replicas
 	parentDir     artifacts.ArtifactSource = "../"
