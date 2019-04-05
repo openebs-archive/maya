@@ -100,12 +100,8 @@ type ListBuilder struct {
 // list Unstruct Builder by making use of the provided YAMLs
 func ListBuilderForYamls(docs string) *ListBuilder {
 	lb := &ListBuilder{list: UnstructList{}}
-	yamls := strings.Split(docs, "---")
+	yamls := strings.Split(strings.Trim(docs, "---"), "---")
 	for _, f := range yamls {
-		if f == "\n" || f == "" {
-			// ignore empty cases
-			continue
-		}
 		f = strings.TrimSpace(f)
 		a, err := BuilderForYaml(f).Build()
 		if err != nil {

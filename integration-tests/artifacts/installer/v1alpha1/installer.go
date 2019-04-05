@@ -11,14 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// Installer abstracts the installation/deletion of a
-// resource
+// Installer enables installing/uninstalling
+// of resources in container orchestrator
 type Installer struct {
 	object     *unstructured.Unstructured
 	predicates []Predicate
 }
 
-// Predicate is an abstracts the verification of
+// Predicate abstracts the verification of
 // a resource
 type Predicate func(*unstructured.Unstructured) bool
 

@@ -33,15 +33,23 @@ type getClientsetFn func() (clientset k8sdynamic.Interface, err error)
 
 // CreateFn is a typed function that abstracts
 // creating of unstructured object
-type CreateFn func(cli k8sdynamic.Interface, obj *unstructured.Unstructured, opts metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error)
+type CreateFn func(cli k8sdynamic.Interface,
+	obj *unstructured.Unstructured,
+	opts metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error)
 
 // GetFn is a typed function that abstracts
 // fetching of unstructured object
-type GetFn func(cli k8sdynamic.Interface, name string, namespace string, gvr schema.GroupVersionResource, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
+type GetFn func(cli k8sdynamic.Interface,
+	name string,
+	namespace string,
+	gvr schema.GroupVersionResource,
+	opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
 
 // DeleteFn is a typed function that abstract  deletion
 // of unstructured object
-type DeleteFn func(cli k8sdynamic.Interface, obj *unstructured.Unstructured, opts *metav1.DeleteOptions, subresources ...string) error
+type DeleteFn func(cli k8sdynamic.Interface,
+	obj *unstructured.Unstructured,
+	opts *metav1.DeleteOptions, subresources ...string) error
 
 // Kubeclient enables kubernetes API operations on catalog
 // instance
@@ -72,8 +80,17 @@ func withDefaults(k *Kubeclient) error {
 		k.clientset = cli
 	}
 	if k.get == nil {
-		k.get = func(cli k8sdynamic.Interface, name string, namespace string, gvr schema.GroupVersionResource, opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error) {
-			u, err := cli.Resource(gvr).Namespace(namespace).Get(name, opts, subresources...)
+		k.get = func(
+			cli k8sdynamic.Interface,
+			name string,
+			namespace string,
+			gvr schema.GroupVersionResource,
+			opts metav1.GetOptions,
+			subresources ...string) (*unstructured.Unstructured, error) {
+			u, err := cli.
+				Resource(gvr).
+				Namespace(namespace).
+				Get(name, opts, subresources...)
 			if err != nil {
 				return nil, err
 			}
@@ -81,13 +98,27 @@ func withDefaults(k *Kubeclient) error {
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli k8sdynamic.Interface, obj *unstructured.Unstructured, opts metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error) {
-			return cli.Resource(clientset.GroupVersionResourceFromGVK(obj)).Namespace(obj.GetNamespace()).Create(obj, opts, subresources...)
+		k.create = func(
+			cli k8sdynamic.Interface,
+			obj *unstructured.Unstructured,
+			opts metav1.CreateOptions,
+			subresources ...string) (*unstructured.Unstructured, error) {
+			return cli.
+				Resource(clientset.GroupVersionResourceFromGVK(obj)).
+				Namespace(obj.GetNamespace()).
+				Create(obj, opts, subresources...)
 		}
 	}
 	if k.delete == nil {
-		k.delete = func(cli k8sdynamic.Interface, obj *unstructured.Unstructured, opts *metav1.DeleteOptions, subresources ...string) error {
-			return cli.Resource(clientset.GroupVersionResourceFromGVK(obj)).Namespace(obj.GetNamespace()).Delete(obj.GetName(), opts, subresources...)
+		k.delete = func(
+			cli k8sdynamic.Interface,
+			obj *unstructured.Unstructured,
+			opts *metav1.DeleteOptions,
+			subresources ...string) error {
+			return cli.
+				Resource(clientset.GroupVersionResourceFromGVK(obj)).
+				Namespace(obj.GetNamespace()).
+				Delete(obj.GetName(), opts, subresources...)
 		}
 	}
 	return nil
@@ -131,7 +162,7 @@ func (k *Kubeclient) getClientOrCached() (k8sdynamic.Interface, error) {
 
 // Get returns an unstructured instance from kubernetes
 // cluster
-func (k *Kubeclient) Get(name string, gOpts ...GetOptionFn) (*unstructured.Unstructured, error) {
+func (k *Kubeclient) Get(name string, opts ...GetOptionFn) (*unstructured.Unstructured, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get unstructured instance: missing name")
 	}
@@ -139,8 +170,15 @@ func (k *Kubeclient) Get(name string, gOpts ...GetOptionFn) (*unstructured.Unstr
 	if err != nil {
 		return nil, err
 	}
-	getOptions := NewGetOption(gOpts...)
-	return k.get(cli, name, getOptions.namespace, getOptions.grv, getOptions.getOption, getOptions.subresources...)
+	getOptions := NewGetOption(opts...)
+	return k.get(
+		cli,
+		name,
+		getOptions.namespace,
+		getOptions.grv,
+		getOptions.getOption,
+		getOptions.subresources...,
+	)
 }
 
 // CreateAllOrNone creates all the provided
@@ -180,7 +218,7 @@ func (k *Kubeclient) DeleteAll(u ...*unstructured.Unstructured) []error {
 
 // Create creates an unstructured instance at
 // kubernetes cluster
-func (k *Kubeclient) Create(u *unstructured.Unstructured, cOpts ...CreateOptionFn) error {
+func (k *Kubeclient) Create(u *unstructured.Unstructured, opts ...CreateOptionFn) error {
 	if u == nil {
 		return errors.Errorf("create failed: nil unstruct instance was provided")
 	}
@@ -188,20 +226,20 @@ func (k *Kubeclient) Create(u *unstructured.Unstructured, cOpts ...CreateOptionF
 	if err != nil {
 		return err
 	}
-	opt := NewCreateOption(cOpts...)
-	_, err = k.create(cli, u, opt.createOptions, opt.subresources...)
+	cOptions := NewCreateOption(opts...)
+	_, err = k.create(cli, u, cOptions.createOptions, cOptions.subresources...)
 	return err
 }
 
 // Delete deletes the unstructured instance from
 // kubernetes cluster
-func (k *Kubeclient) Delete(u *unstructured.Unstructured, dOpts ...DeleteOptionFn) error {
+func (k *Kubeclient) Delete(u *unstructured.Unstructured, opts ...DeleteOptionFn) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err
 	}
-	opts := NewDeleteOption(dOpts...)
-	return k.delete(cli, u, opts.deleteOptions)
+	dOptions := NewDeleteOption(opts...)
+	return k.delete(cli, u, dOptions.deleteOptions)
 }
 
 // GetOption holds the kubernetes options
