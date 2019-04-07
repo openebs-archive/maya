@@ -96,11 +96,11 @@ type handleBuildOption func(*Handle)
 
 // New returns a new instance of kubernetes
 // client
-func New(opts ...handleBuildOption) (client.Client, error) {
+func New(opts ...handleBuildOption) (*Handle, error) {
 	h := &Handle{}
 	for _, o := range opts {
 		o(h)
 	}
 	withDefaults(h)
-	return h.GetClientFn()
+	return h, nil
 }
