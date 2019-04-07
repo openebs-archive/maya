@@ -8,7 +8,6 @@ import (
 
 	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,6 +16,7 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kube "k8s.io/client-go/kubernetes"
 
 	// auth plugins
@@ -89,6 +89,7 @@ var _ = BeforeSuite(func() {
 	cl, err = kubernetes.GetClientSet()
 	Expect(err).ShouldNot(HaveOccurred())
 
+	//TODO: Implement the node package in path pkg/kubernetes/v1alpha1/
 	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))

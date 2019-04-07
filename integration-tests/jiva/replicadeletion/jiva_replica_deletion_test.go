@@ -8,7 +8,7 @@ import (
 	"github.com/openebs/maya/integration-tests/artifacts"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	"github.com/stretchr/testify/assert"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	// auth plugins
 	//	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -53,7 +53,7 @@ const (
 	testTimes                   = 20
 )
 
-var _ = Describe("jiva replica pod delete test", func() {
+var _ = Describe("[jiva] [node-stickiness] jiva replica pod delete test", func() {
 	var (
 		// defaultReplicaLabel represents the jiva replica
 		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
@@ -65,6 +65,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 		// ctrlLabel consist of defaultReplicaLabel and coressponding
 		// pvcLabel
 		ctrlLabel string
+		podObjs   *v1.PodList
 	)
 	BeforeEach(func() {
 
@@ -109,7 +110,7 @@ var _ = Describe("jiva replica pod delete test", func() {
 		_ = checkPodUpandRunning(string(jivaTestNamespace), ctrlLabel, 1)
 
 		// Verify creation of jiva replica pod
-		_ = checkPodUpandRunning(string(jivaTestNamespace), replicaLabel, 1)
+		podObjs = checkPodUpandRunning(string(jivaTestNamespace), replicaLabel, 1)
 	})
 
 	AfterEach(func() {
@@ -144,23 +145,18 @@ var _ = Describe("jiva replica pod delete test", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	Context("jiva replica deletion test", func() {
-		It("Deletion of jiva replica pod", func() {
-			By("Get the jiva replica pod details and perform test")
-			var nodeName, podName string
-			for i := 0; i < testTimes; i++ {
-				pods := checkPodUpandRunning(string(jivaTestNamespace), replicaLabel, 1)
-				// Deployed volume using single replica
-				podName = pods.Items[0].ObjectMeta.Name
-				if i == 0 {
-					// nodeName consist where the replica pod deployed
-					nodeName = pods.Items[0].Spec.NodeName
-				} else {
-					assert.Equal(GinkgoT(), pods.Items[0].Spec.NodeName, nodeName)
-				}
+	Context("node stickiness with jiva replica pod deletion", func() {
+		var nodeName, podName string
 
-				fmt.Printf("Delete pod: '%s' count: %d\n", podName, i)
-				// Delete the jiva replica pod
+		It("should verify jiva replica pod sticks to one node", func() {
+
+			for i := 0; i < testTimes; i++ {
+				By("fetching node name and podName of jiva replica pod")
+				//nodeName holds name of the node where the replica pod deployed
+				nodeName = podObjs.Items[0].Spec.NodeName
+				podName = podObjs.Items[0].ObjectMeta.Name
+
+				By(fmt.Sprintf("deleting the running jiva replica pod: '%s'", podName))
 				err := pod.
 					KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
 					Delete(podName, &metav1.DeleteOptions{})
@@ -175,6 +171,12 @@ var _ = Describe("jiva replica pod delete test", func() {
 				},
 					defaultTimeOut, defaultPollingInterval).
 					Should(HaveOccurred(), "Pod not found")
+
+				By("waiting till jiva replica pod starts running")
+				podObjs = checkPodUpandRunning(string(jivaTestNamespace), replicaLabel, 1)
+
+				By("verifying jiva replica pod node matches with its old instance node")
+				Expect(podObjs.Items[0].Spec.NodeName).Should(Equal(nodeName))
 			}
 		})
 	})
