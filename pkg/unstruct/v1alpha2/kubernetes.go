@@ -19,37 +19,41 @@ package v1alpha2
 import (
 	"strings"
 
-	clientset "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	k8sdynamic "k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic"
 )
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func() (clientset k8sdynamic.Interface, err error)
+type getClientsetFn func() (clientset dynamic.Interface, err error)
 
 // CreateFn is a typed function that abstracts
 // creating of unstructured object
-type CreateFn func(cli k8sdynamic.Interface,
+type CreateFn func(
+	cli dynamic.Interface,
 	obj *unstructured.Unstructured,
-	opts metav1.CreateOptions, subresources ...string) (*unstructured.Unstructured, error)
+	opts *CreateOption,
+) (*unstructured.Unstructured, error)
 
 // GetFn is a typed function that abstracts
 // fetching of unstructured object
-type GetFn func(cli k8sdynamic.Interface,
+type GetFn func(
+	cli dynamic.Interface,
 	name string,
-	namespace string,
-	gvr schema.GroupVersionResource,
-	opts metav1.GetOptions, subresources ...string) (*unstructured.Unstructured, error)
+	namespace string, opt *GetOption,
+) (*unstructured.Unstructured, error)
 
 // DeleteFn is a typed function that abstract  deletion
 // of unstructured object
-type DeleteFn func(cli k8sdynamic.Interface,
+type DeleteFn func(
+	cli dynamic.Interface,
 	obj *unstructured.Unstructured,
-	opts *metav1.DeleteOptions, subresources ...string) error
+	opt *DeleteOption,
+) error
 
 // Kubeclient enables kubernetes API operations on catalog
 // instance
@@ -57,7 +61,7 @@ type Kubeclient struct {
 	// clientset refers to clientset
 	// that will be responsible to
 	// make kubernetes API calls
-	clientset k8sdynamic.Interface
+	clientset dynamic.Interface
 
 	// functions useful during mocking
 	getClientset getClientsetFn
@@ -73,7 +77,7 @@ type KubeclientBuildOption func(*Kubeclient)
 // withDefaults sets default options for Kubeclient
 func withDefaults(k *Kubeclient) error {
 	if k.clientset == nil {
-		cli, err := clientset.Dynamic().Provide()
+		cli, err := k8s.Dynamic().Provide()
 		if err != nil {
 			return err
 		}
@@ -81,16 +85,13 @@ func withDefaults(k *Kubeclient) error {
 	}
 	if k.get == nil {
 		k.get = func(
-			cli k8sdynamic.Interface,
+			cli dynamic.Interface,
 			name string,
-			namespace string,
-			gvr schema.GroupVersionResource,
-			opts metav1.GetOptions,
-			subresources ...string) (*unstructured.Unstructured, error) {
+			namespace string, opt *GetOption) (*unstructured.Unstructured, error) {
 			u, err := cli.
-				Resource(gvr).
+				Resource(opt.gvr).
 				Namespace(namespace).
-				Get(name, opts, subresources...)
+				Get(name, *opt.GetOptions, opt.subresources...)
 			if err != nil {
 				return nil, err
 			}
@@ -99,26 +100,23 @@ func withDefaults(k *Kubeclient) error {
 	}
 	if k.create == nil {
 		k.create = func(
-			cli k8sdynamic.Interface,
+			cli dynamic.Interface,
 			obj *unstructured.Unstructured,
-			opts metav1.CreateOptions,
-			subresources ...string) (*unstructured.Unstructured, error) {
+			opt *CreateOption) (*unstructured.Unstructured, error) {
 			return cli.
-				Resource(clientset.GroupVersionResourceFromGVK(obj)).
+				Resource(k8s.GroupVersionResourceFromGVK(obj)).
 				Namespace(obj.GetNamespace()).
-				Create(obj, opts, subresources...)
+				Create(obj, *opt.CreateOptions, opt.subresources...)
 		}
 	}
 	if k.delete == nil {
 		k.delete = func(
-			cli k8sdynamic.Interface,
-			obj *unstructured.Unstructured,
-			opts *metav1.DeleteOptions,
-			subresources ...string) error {
+			cli dynamic.Interface,
+			obj *unstructured.Unstructured, opt *DeleteOption) error {
 			return cli.
-				Resource(clientset.GroupVersionResourceFromGVK(obj)).
+				Resource(k8s.GroupVersionResourceFromGVK(obj)).
 				Namespace(obj.GetNamespace()).
-				Delete(obj.GetName(), opts, subresources...)
+				Delete(obj.GetName(), opt.DeleteOptions, opt.subresources...)
 		}
 	}
 	return nil
@@ -126,7 +124,7 @@ func withDefaults(k *Kubeclient) error {
 
 // WithClient sets the kubernetes client against
 // the Kubeclient instance
-func WithClient(c k8sdynamic.Interface) KubeclientBuildOption {
+func WithClient(c dynamic.Interface) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
 	}
@@ -148,7 +146,7 @@ func KubeClient(opts ...KubeclientBuildOption) (*Kubeclient, error) {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (k8sdynamic.Interface, error) {
+func (k *Kubeclient) getClientOrCached() (dynamic.Interface, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -175,9 +173,7 @@ func (k *Kubeclient) Get(name string, opts ...GetOptionFn) (*unstructured.Unstru
 		cli,
 		name,
 		getOptions.namespace,
-		getOptions.grv,
-		getOptions.getOption,
-		getOptions.subresources...,
+		getOptions,
 	)
 }
 
@@ -227,7 +223,7 @@ func (k *Kubeclient) Create(u *unstructured.Unstructured, opts ...CreateOptionFn
 		return err
 	}
 	cOptions := NewCreateOption(opts...)
-	_, err = k.create(cli, u, cOptions.createOptions, cOptions.subresources...)
+	_, err = k.create(cli, u, cOptions)
 	return err
 }
 
@@ -239,15 +235,18 @@ func (k *Kubeclient) Delete(u *unstructured.Unstructured, opts ...DeleteOptionFn
 		return err
 	}
 	dOptions := NewDeleteOption(opts...)
-	return k.delete(cli, u, dOptions.deleteOptions)
+	return k.delete(cli, u, dOptions)
 }
+
+// TODO:
+// Implement builder pattern for the below functions
 
 // GetOption holds the kubernetes options
 // to get a resource
 type GetOption struct {
-	namespace    string
-	getOption    metav1.GetOptions
-	grv          schema.GroupVersionResource
+	namespace string
+	*metav1.GetOptions
+	gvr          schema.GroupVersionResource
 	subresources []string
 }
 
@@ -266,7 +265,7 @@ func WithGetNamespace(namespace string) GetOptionFn {
 // kubernetes getoption
 func WithGetOption(getOption metav1.GetOptions) GetOptionFn {
 	return func(opt *GetOption) {
-		opt.getOption = getOption
+		opt.GetOptions = &getOption
 	}
 }
 
@@ -274,7 +273,7 @@ func WithGetOption(getOption metav1.GetOptions) GetOptionFn {
 // GroupResourceVersion
 func WithGroupVersionResource(r schema.GroupVersionResource) GetOptionFn {
 	return func(opt *GetOption) {
-		opt.grv = r
+		opt.gvr = r
 	}
 }
 
@@ -288,7 +287,7 @@ func WithGetSubResources(r ...string) GetOptionFn {
 
 // NewGetOption returns a new instance of GetOption
 func NewGetOption(gOpts ...GetOptionFn) *GetOption {
-	opts := &GetOption{getOption: metav1.GetOptions{}, grv: schema.GroupVersionResource{}}
+	opts := &GetOption{GetOptions: &metav1.GetOptions{}, gvr: schema.GroupVersionResource{}}
 	for _, o := range gOpts {
 		o(opts)
 	}
@@ -298,14 +297,14 @@ func NewGetOption(gOpts ...GetOptionFn) *GetOption {
 // DeleteOption holds kubernetes options to delete a
 // resource
 type DeleteOption struct {
-	deleteOptions *metav1.DeleteOptions
-	subresources  []string
+	*metav1.DeleteOptions
+	subresources []string
 }
 
 // NewDeleteOption returns a new instance of
 // DeleteOption
 func NewDeleteOption(dOpts ...DeleteOptionFn) *DeleteOption {
-	opts := &DeleteOption{deleteOptions: &metav1.DeleteOptions{}}
+	opts := &DeleteOption{DeleteOptions: &metav1.DeleteOptions{}}
 	for _, o := range dOpts {
 		o(opts)
 	}
@@ -320,7 +319,7 @@ type DeleteOptionFn func(*DeleteOption)
 // kubernetes delete option
 func WithDeleteOption(deleteOpt *metav1.DeleteOptions) DeleteOptionFn {
 	return func(opt *DeleteOption) {
-		opt.deleteOptions = deleteOpt
+		opt.DeleteOptions = deleteOpt
 	}
 }
 
@@ -334,13 +333,13 @@ func WithDeleteSubResources(r ...string) DeleteOptionFn {
 
 // CreateOption holds the kubernetes option to create a resource
 type CreateOption struct {
-	createOptions metav1.CreateOptions
-	subresources  []string
+	*metav1.CreateOptions
+	subresources []string
 }
 
 // NewCreateOption returns a new instance of CreateOption
 func NewCreateOption(cOpts ...CreateOptionFn) *CreateOption {
-	opts := &CreateOption{metav1.CreateOptions{}, []string{}}
+	opts := &CreateOption{&metav1.CreateOptions{}, []string{}}
 	for _, o := range cOpts {
 		o(opts)
 	}
@@ -354,7 +353,7 @@ type CreateOptionFn func(*CreateOption)
 // createOption for creating a resource
 func WithCreateOption(opt metav1.CreateOptions) CreateOptionFn {
 	return func(createOpt *CreateOption) {
-		createOpt.createOptions = opt
+		createOpt.CreateOptions = &opt
 	}
 }
 

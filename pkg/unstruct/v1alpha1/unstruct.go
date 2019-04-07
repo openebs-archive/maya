@@ -38,7 +38,7 @@ func (u *Unstruct) GetUnstructured() *unstructured.Unstructured {
 // Builder enables building of an
 // Unstructured instance
 type Builder struct {
-	Unstruct *Unstruct
+	unstruct *Unstruct
 	errs     []error
 }
 
@@ -46,7 +46,7 @@ type Builder struct {
 // empty Builder
 func NewBuilder() *Builder {
 	return &Builder{
-		Unstruct: &Unstruct{
+		unstruct: &Unstruct{
 			&unstructured.Unstructured{
 				Object: map[string]interface{}{},
 			},
@@ -59,7 +59,7 @@ func NewBuilder() *Builder {
 // YAML
 func BuilderForYaml(doc string) *Builder {
 	b := NewBuilder()
-	err := yaml.Unmarshal([]byte(doc), &b.Unstruct.object)
+	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object)
 	if err != nil {
 		b.errs = append(b.errs, err)
 	}
@@ -70,7 +70,7 @@ func BuilderForYaml(doc string) *Builder {
 // Unstruct Builder by making use of the provided object
 func BuilderForObject(obj *unstructured.Unstructured) *Builder {
 	b := NewBuilder()
-	b.Unstruct.object = obj
+	b.unstruct.object = obj
 	return b
 }
 
@@ -78,9 +78,9 @@ func BuilderForObject(obj *unstructured.Unstructured) *Builder {
 // the Builder
 func (b *Builder) Build() (*Unstruct, error) {
 	if len(b.errs) != 0 {
-		return nil, errors.Errorf("%v", b.errs)
+		return nil, errors.Errorf("errors {%+v}", b.errs)
 	}
-	return b.Unstruct, nil
+	return b.unstruct, nil
 }
 
 // UnstructList contains a list of Unstructured
@@ -92,23 +92,25 @@ type UnstructList struct {
 // ListBuilder enables building a list
 // of an Unstruct instance
 type ListBuilder struct {
-	list UnstructList
+	list *UnstructList
 	errs []error
 }
 
 // ListBuilderForYamls returns a new instance of
 // list Unstruct Builder by making use of the provided YAMLs
-func ListBuilderForYamls(docs string) *ListBuilder {
-	lb := &ListBuilder{list: UnstructList{}}
-	yamls := strings.Split(strings.Trim(docs, "---"), "---")
-	for _, f := range yamls {
-		f = strings.TrimSpace(f)
-		a, err := BuilderForYaml(f).Build()
-		if err != nil {
-			lb.errs = append(lb.errs, err)
-			continue
+func ListBuilderForYamls(yamls ...string) *ListBuilder {
+	lb := &ListBuilder{list: &UnstructList{}}
+	for _, yaml := range yamls {
+		y := strings.Split(strings.Trim(yaml, "---"), "---")
+		for _, f := range y {
+			f = strings.TrimSpace(f)
+			a, err := BuilderForYaml(f).Build()
+			if err != nil {
+				lb.errs = append(lb.errs, err)
+				continue
+			}
+			lb.list.items = append(lb.list.items, a)
 		}
-		lb.list.items = append(lb.list.items, a)
 	}
 	return lb
 }
@@ -117,7 +119,7 @@ func ListBuilderForYamls(docs string) *ListBuilder {
 // list Unstruct Builder by making use of the provided
 // Unstructured object
 func ListBuilderForObjects(objs ...*unstructured.Unstructured) *ListBuilder {
-	lb := &ListBuilder{}
+	lb := &ListBuilder{list: &UnstructList{}}
 	for _, obj := range objs {
 		lb.list.items = append(lb.list.items, &Unstruct{obj})
 	}
@@ -128,7 +130,7 @@ func ListBuilderForObjects(objs ...*unstructured.Unstructured) *ListBuilder {
 // the Builder
 func (l *ListBuilder) Build() ([]*Unstruct, error) {
 	if len(l.errs) > 0 {
-		return nil, errors.Errorf("%v", l.errs)
+		return nil, errors.Errorf("errors {%+v}", l.errs)
 	}
 	return l.list.items, nil
 }

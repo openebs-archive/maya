@@ -3,46 +3,48 @@ package v1alpha1
 import (
 	"fmt"
 
-	provider "github.com/openebs/maya/pkg/provider/v1alpha1"
-	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha1"
+	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	"gopkg.in/yaml.v2"
 
-	unstructuredUtil "github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// Installer enables installing/uninstalling
+// DefaultInstaller enables installing/uninstalling
 // of resources in container orchestrator
-type Installer struct {
+type DefaultInstaller struct {
 	object     *unstructured.Unstructured
 	predicates []Predicate
 }
 
 // Predicate abstracts the verification of
 // a resource
-type Predicate func(*unstructured.Unstructured) bool
+type Predicate func(*DefaultInstaller) bool
 
-// String returns the meta information of the
-// installing resource
-func (i *Installer) String() string {
-	if i.object == nil {
-		return "installer - object=nil"
-	}
-	return fmt.Sprintf("installer - name=%s namespace=%s kind=%s",
-		i.object.GetName(),
-		i.object.GetNamespace(),
-		i.object.GetKind(),
-	)
+// String implements Stringer interface
+func (i *DefaultInstaller) String() string {
+	return StringYaml("default installer", i.object)
 }
 
-// GoString returns the go string of the installer
-func (i *Installer) GoString() string {
+// StringYaml returns the provided object
+// as a yaml formatted string
+func StringYaml(ctx string, obj interface{}) string {
+	if obj == nil {
+		return ""
+	}
+	b, _ := yaml.Marshal(obj)
+	return fmt.Sprintf("\n%s {%s}", ctx, string(b))
+}
+
+// GoString implements GoStringer interface
+func (i *DefaultInstaller) GoString() string {
 	return i.String()
 }
 
 // Install triggers the installation of resource
 // in the kubernetes cluster
-func (i *Installer) Install() error {
+func (i *DefaultInstaller) Install() error {
 	k, err := unstruct.KubeClient()
 	if err != nil {
 		return err
@@ -52,7 +54,7 @@ func (i *Installer) Install() error {
 
 // UnInstall triggers deletion of resource from
 // kubernetes cluster
-func (i *Installer) UnInstall() error {
+func (i *DefaultInstaller) UnInstall() error {
 	k, err := unstruct.KubeClient()
 	if err != nil {
 		return err
@@ -62,25 +64,23 @@ func (i *Installer) UnInstall() error {
 
 // Verify returns the installation of resource.
 // It returns true if all the predicates passes
-func (i *Installer) Verify() (bool, error) {
+func (i *DefaultInstaller) Verify() (bool, error) {
 	k, err := unstruct.KubeClient()
 	if err != nil {
 		return false, err
 	}
 	obj, err := k.Get(
 		i.object.GetName(),
-		provider.WithGetNamespace(i.object.GetNamespace()),
-		provider.WithGroupVersionKind(i.object.GroupVersionKind()),
+		unstruct.WithGetNamespace(i.object.GetNamespace()),
+		unstruct.WithGroupVersionResource(k8s.GroupVersionResourceFromGVK(i.object)),
 	)
 	if err != nil {
 		return false, err
 	}
+
 	for _, p := range i.predicates {
-		if p != nil {
-			result := p(obj)
-			if !result {
-				return result, nil
-			}
+		if !p(&DefaultInstaller{object: obj}) {
+			return false, nil
 		}
 	}
 	return true, nil
@@ -88,7 +88,7 @@ func (i *Installer) Verify() (bool, error) {
 
 // Builder abstracts the construction of the builder
 type Builder struct {
-	installer *Installer
+	installer *DefaultInstaller
 	errs      []error
 }
 
@@ -100,7 +100,7 @@ func BuilderForObject(obj *unstructured.Unstructured) *Builder {
 		b.errs = append(b.errs, errors.Errorf("failed to build for object: nil unstruct instance provided"))
 		return b
 	}
-	b.installer = &Installer{object: obj}
+	b.installer = &DefaultInstaller{object: obj}
 	return b
 }
 
@@ -113,7 +113,7 @@ func BuilderForYaml(yaml string) *Builder {
 		b.errs = append(b.errs, err)
 		return b
 	}
-	b.installer = &Installer{object: obj.GetUnstructured()}
+	b.installer = &DefaultInstaller{object: obj.GetUnstructured()}
 	return b
 }
 
@@ -128,9 +128,9 @@ func (b *Builder) AddCheck(p ...Predicate) *Builder {
 }
 
 // Build triggers the building of the installer
-func (b *Builder) Build() (*Installer, error) {
+func (b *Builder) Build() (*DefaultInstaller, error) {
 	if len(b.errs) > 0 {
-		return nil, errors.Errorf("%v", b.errs)
+		return nil, errors.Errorf("errors {%+v}", b.errs)
 	}
 	return b.installer, nil
 }
@@ -138,8 +138,8 @@ func (b *Builder) Build() (*Installer, error) {
 // IsPodRunning returns true if the pod is in running
 // state
 func IsPodRunning() Predicate {
-	return func(u *unstructured.Unstructured) bool {
-		v := unstructuredUtil.GetNestedString(u.Object, "status", "phase")
+	return func(d *DefaultInstaller) bool {
+		v := unstruct.GetNestedString(d.object.Object, "status", "phase")
 		return v == "Running"
 	}
 }

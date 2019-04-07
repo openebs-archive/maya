@@ -96,8 +96,8 @@ func TestBuilderForYAML(t *testing.T) {
 			b := BuilderForYaml(mock.resourceYAML)
 			if mock.expectError && len(b.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got 0", name)
-			} else if b.Unstruct.object.GetName() != mock.expectedName {
-				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.Unstruct.object.GetName())
+			} else if b.unstruct.object.GetName() != mock.expectedName {
+				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.object.GetName())
 			}
 		})
 	}
@@ -114,8 +114,8 @@ func TestBuilderForObject(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			mockObj := fakeUnstructObject(mock.resourceName)
 			b := BuilderForObject(mockObj)
-			if b.Unstruct.object.GetName() != mock.expectedName {
-				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.Unstruct.object.GetName())
+			if b.unstruct.object.GetName() != mock.expectedName {
+				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.object.GetName())
 			}
 		})
 	}

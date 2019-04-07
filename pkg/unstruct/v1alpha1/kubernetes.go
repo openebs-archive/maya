@@ -46,7 +46,7 @@ func withDefaults(k *Kubeclient) error {
 		}
 		k.Handle = handle
 	}
-	if k.Client == nil && k.Handle != nil {
+	if k.Client == nil {
 		cli, err := k.Handle.GetClientFn()
 		if err != nil {
 			return err
@@ -108,8 +108,8 @@ func (k *Kubeclient) Get(name string, opts ...provider.GetOptionFn) (*unstructur
 	}
 	getopt := provider.NewGetOptions(opts...)
 	var un unstructured.Unstructured
+	// TODO add some way to get GroupVersionKind
 	key := client.ObjectKey{Namespace: getopt.Namespace, Name: name}
-	un.SetGroupVersionKind(getopt.GKV)
 	err = k.GetFn(cli, context.TODO(), key, &un)
 	if err != nil {
 		return nil, err

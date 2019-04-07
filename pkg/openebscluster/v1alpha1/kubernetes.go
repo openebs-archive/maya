@@ -46,7 +46,7 @@ func withDefaults(k *kubeclient) error {
 		}
 		k.Handle = handle
 	}
-	if k.Client == nil && k.Handle != nil {
+	if k.Client == nil {
 		cli, err := k.Handle.GetClientFn()
 		if err != nil {
 			return err
