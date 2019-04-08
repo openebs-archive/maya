@@ -31,7 +31,7 @@ type deleteFn func(cli *clientset.Clientset, namespace string, name string, dele
 // deletion of pvc's collection
 type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on pvc instance
 type Kubeclient struct {
 	// clientset refers to pvc clientset
@@ -51,7 +51,7 @@ type Kubeclient struct {
 	delCollection deleteCollectionFn
 }
 
-// kubeclientBuildOption abstracts creating an
+// KubeclientBuildOption abstracts creating an
 // instance of kubeclient
 type KubeclientBuildOption func(*Kubeclient)
 
@@ -67,11 +67,6 @@ func (k *Kubeclient) withDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
-	// If namespace is nil set the default namespace
-	if len(k.namespace) == 0 {
-		k.namespace = "default"
-	}
-
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)

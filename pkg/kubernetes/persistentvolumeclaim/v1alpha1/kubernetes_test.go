@@ -195,8 +195,8 @@ func TestWithNamespaceBuildOption(t *testing.T) {
 		namespace string
 	}{
 		"Test 1": {""},
-		"Test 2": {"namespace 1"},
-		"Test 3": {"namespace 2"},
+		"Test 2": {"alpha"},
+		"Test 3": {"beta"},
 	}
 
 	for name, mock := range tests {

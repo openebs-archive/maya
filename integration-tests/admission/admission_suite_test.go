@@ -6,19 +6,20 @@ import (
 
 	"testing"
 
-	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
 	"github.com/openebs/maya/integration-tests/kubernetes"
+	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	validatehook "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	// auth plugins
-	//_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 const (
@@ -29,7 +30,7 @@ const (
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
 	// minNodeCount is the minimum number of nodes
-	// neede to run this test
+	// needed to run this test
 	minNodeCount int = 1
 )
 
@@ -54,7 +55,7 @@ var _ = BeforeSuite(func() {
 	cl, err := kubernetes.GetClientSet()
 	Expect(err).ShouldNot(HaveOccurred())
 
-	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
+	// Checking appropriate node numbers
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 
@@ -89,6 +90,10 @@ var _ = BeforeSuite(func() {
 
 	By("Verifying 'cstor-pool' pods status as running")
 	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+
+	// check validationWebhookConfiguration API enable in cluster
+	_, err = validatehook.KubeClient().List(metav1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
 
 	By("OpenEBS control-plane components are in running state")
 })

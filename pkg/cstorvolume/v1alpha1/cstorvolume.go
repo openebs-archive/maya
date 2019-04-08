@@ -12,19 +12,18 @@ const (
 
 // CStorVolume a wrapper for CStorVolume object
 type CStorVolume struct {
-	// actual cstor volume replica
-	// object
-	object apis.CStorVolume
+	// actual cstorvolume object
+	object *apis.CStorVolume
 }
 
 // CStorVolumeList is a list of cstorvolume objects
 type CStorVolumeList struct {
 	// list of cstor volumes
-	items []CStorVolume
+	items []*CStorVolume
 }
 
 // ListBuilder enables building
-// an instance of cvList
+// an instance of CstorVolumeList
 type ListBuilder struct {
 	list    *CStorVolumeList
 	filters PredicateList
@@ -36,15 +35,15 @@ func NewListBuilder() *ListBuilder {
 	return &ListBuilder{list: &CStorVolumeList{}}
 }
 
-// WithAPIList builds the list of cvr
+// WithAPIList builds the list of cstorvolume
 // instances based on the provided
-// cvr api instances
+// cstorvolume api instances
 func (b *ListBuilder) WithAPIList(list *apis.CStorVolumeList) *ListBuilder {
 	if list == nil {
 		return b
 	}
 	for _, c := range list.Items {
-		b.list.items = append(b.list.items, CStorVolume{object: c})
+		b.list.items = append(b.list.items, &CStorVolume{object: &c})
 	}
 	return b
 }
@@ -58,7 +57,7 @@ func (b *ListBuilder) List() *CStorVolumeList {
 	}
 	filtered := NewListBuilder().List()
 	for _, cv := range b.list.items {
-		if b.filters.all(&cv) {
+		if b.filters.all(cv) {
 			filtered.items = append(filtered.items, cv)
 		}
 	}
@@ -73,7 +72,7 @@ func (l *CStorVolumeList) Len() int {
 
 // Predicate defines an abstraction
 // to determine conditional checks
-// against the provided cvr instance
+// against the provided cstorvolume instance
 type Predicate func(*CStorVolume) bool
 
 // IsHealthy returns true if the CVR is in
@@ -82,7 +81,7 @@ func (p *CStorVolume) IsHealthy() bool {
 	return p.object.Status.Phase == "Healthy"
 }
 
-// IsHealthy is a predicate to filter out cvrs
+// IsHealthy is a predicate to filter out cstorvolumes
 // which is healthy
 func IsHealthy() Predicate {
 	return func(p *CStorVolume) bool {
@@ -94,7 +93,7 @@ func IsHealthy() Predicate {
 type PredicateList []Predicate
 
 // all returns true if all the predicates
-// succeed against the provided cvr
+// succeed against the provided cstorvolume
 // instance
 func (l PredicateList) all(p *CStorVolume) bool {
 	for _, pred := range l {
@@ -109,4 +108,11 @@ func (l PredicateList) all(p *CStorVolume) bool {
 func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
+}
+
+// NewForAPIObject returns a new instance of cstorvolume
+func NewForAPIObject(obj *apis.CStorVolume) *CStorVolume {
+	return &CStorVolume{
+		object: obj,
+	}
 }

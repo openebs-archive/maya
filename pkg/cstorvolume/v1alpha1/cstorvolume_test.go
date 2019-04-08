@@ -12,7 +12,7 @@ import (
 func TestWithAPIList(t *testing.T) {
 	inputURItems := []apis.CStorVolume{apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1"}}}
-	outputURItems := []CStorVolume{CStorVolume{object: apis.CStorVolume{
+	outputURItems := []*CStorVolume{&CStorVolume{object: &apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "test1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.CStorVolumeList
@@ -43,7 +43,7 @@ func TestWithAPIList(t *testing.T) {
 func TestList(t *testing.T) {
 	inputURItems := []apis.CStorVolume{apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test1"}}}
-	outputURItems := []CStorVolume{CStorVolume{object: apis.CStorVolume{
+	outputURItems := []*CStorVolume{&CStorVolume{object: &apis.CStorVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "Test1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.CStorVolumeList
