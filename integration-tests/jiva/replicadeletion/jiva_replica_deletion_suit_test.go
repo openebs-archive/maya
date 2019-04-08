@@ -13,10 +13,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
 	"github.com/openebs/maya/integration-tests/kubernetes"
+	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kube "k8s.io/client-go/kubernetes"
 
 	// auth plugins
@@ -85,14 +85,17 @@ var _ = BeforeSuite(func() {
 	// Setting the path in environemnt variable
 	err = os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), configPath)
 	Expect(err).ShouldNot(HaveOccurred())
-	// Getting clientset
-	cl, err = kubernetes.GetClientSet()
-	Expect(err).ShouldNot(HaveOccurred())
 
-	//TODO: Implement the node package in path pkg/kubernetes/v1alpha1/
-	// Checking appropriate node numbers. This test is designed to run on a 3 node cluster
-	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
-	Expect(nodes.Items).Should(HaveLen(minNodeCount))
+	// Check the running node count
+	nodes, err := node.
+		KubeClient().List(metav1.ListOptions{})
+	nodeCnt := node.
+		ListBuilderFunc().
+		WithAPIList(nodes).
+		WithFilter(node.IsReady()).
+		List().
+		Len()
+	Expect(nodeCnt).Should(Equal(minNodeCount), "Running node count should be "+string(nodeCnt))
 
 	// Fetching the openebs component artifacts
 	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
@@ -168,7 +171,6 @@ var _ = AfterSuite(func() {
 	)
 	err = cu.Delete(testNameSpaceUnstructured)
 	Expect(err).ShouldNot(HaveOccurred())
-
 	// Unsetting the environment variable
 	err = os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
 	Expect(err).ShouldNot(HaveOccurred())

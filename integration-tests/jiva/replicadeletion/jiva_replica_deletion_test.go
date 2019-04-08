@@ -10,8 +10,9 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	// auth plugins
-	//	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 const (
@@ -53,7 +54,7 @@ const (
 	testTimes                   = 20
 )
 
-var _ = Describe("[jiva] [node-stickiness] jiva replica pod delete test", func() {
+var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test", func() {
 	var (
 		// defaultReplicaLabel represents the jiva replica
 		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
@@ -68,7 +69,6 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod delete test", func()
 		podObjs   *v1.PodList
 	)
 	BeforeEach(func() {
-
 		//Extracting storageclass artifacts unstructured
 		jivaSCUnstructured, err := artifacts.GetArtifactUnstructured(
 			artifacts.Artifact(jivaSCYaml),
