@@ -234,7 +234,7 @@ informer2:
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \
-			--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
 			--output-package $(API_PKG)/client/generated/$$apigrp/informer \
 			--versioned-clientset-package $(API_PKG)/client/generated/$$apigrp/clientset/internalclientset \
 			--listers-package $(API_PKG)/client/generated/$$apigrp/lister \
