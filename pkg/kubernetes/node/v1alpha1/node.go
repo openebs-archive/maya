@@ -2,13 +2,17 @@ package v1alpha1
 
 import "k8s.io/api/core/v1"
 
+const (
+	kubeletReady = "KubeletReady"
+)
+
 // node holds the api's node object
 type node struct {
 	object *v1.Node
 }
 
-// node list holds the list of node instances
-type nodeList struct {
+// NodeList holds the list of node instances
+type NodeList struct {
 	items []*node
 }
 
@@ -20,16 +24,16 @@ type Predicate func(*node) bool
 // predicateList holds the list of predicates
 type predicateList []Predicate
 
-// listBuilder enables building an instance of nodeList
-type listBuilder struct {
-	list    *nodeList
+// ListBuilder enables building an instance of NodeList
+type ListBuilder struct {
+	list    *NodeList
 	filters predicateList
 }
 
 // WithAPIList builds the list of node
 // instances based on the provided
 // node list
-func (b *listBuilder) WithAPIList(nodes *v1.NodeList) *listBuilder {
+func (b *ListBuilder) WithAPIList(nodes *v1.NodeList) *ListBuilder {
 	if nodes == nil {
 		return b
 	}
@@ -37,13 +41,15 @@ func (b *listBuilder) WithAPIList(nodes *v1.NodeList) *listBuilder {
 	return b
 }
 
-func (b *listBuilder) WithObject(nodes ...*node) *listBuilder {
+// WithObject builds the list of node instances based on the provided
+// node list instance
+func (b *ListBuilder) WithObject(nodes ...*node) *ListBuilder {
 	b.list.items = append(b.list.items, nodes...)
 	return b
 }
 
 // WithAPIObject builds the list of node instances based on node api instances
-func (b *listBuilder) WithAPIObject(nodes ...v1.Node) *listBuilder {
+func (b *ListBuilder) WithAPIObject(nodes ...v1.Node) *ListBuilder {
 	for _, n := range nodes {
 		b.list.items = append(b.list.items, &node{&n})
 	}
@@ -51,11 +57,11 @@ func (b *listBuilder) WithAPIObject(nodes ...v1.Node) *listBuilder {
 }
 
 // List returns the list of node instances that was built by this builder
-func (b *listBuilder) List() *nodeList {
+func (b *ListBuilder) List() *NodeList {
 	if b.filters == nil && len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := &nodeList{}
+	filtered := &NodeList{}
 	for _, node := range b.list.items {
 		if b.filters.all(node) {
 			filtered.items = append(filtered.items, node)
@@ -64,13 +70,13 @@ func (b *listBuilder) List() *nodeList {
 	return filtered
 }
 
-// ListBuilder returns a instance of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &nodeList{items: []*node{}}}
+// ListBuilderFunc returns a instance of ListBuilder
+func ListBuilderFunc() *ListBuilder {
+	return &ListBuilder{list: &NodeList{items: []*node{}}}
 }
 
-// ToAPIList converts nodeList to API nodeList
-func (n *nodeList) ToAPIList() *v1.NodeList {
+// ToAPIList converts NodeList to API NodeList
+func (n *NodeList) ToAPIList() *v1.NodeList {
 	nlist := &v1.NodeList{}
 	for _, node := range n.items {
 		nlist.Items = append(nlist.Items, *node.object)
@@ -90,10 +96,10 @@ func (l predicateList) all(n *node) bool {
 	return true
 }
 
-// IsReady retuns true if the node is in running state
+// IsReady retuns true if the node is in ready state
 func (n *node) IsReady() bool {
 	for _, nodeCond := range n.object.Status.Conditions {
-		if nodeCond.Reason == "KubeletReady" && nodeCond.Type == v1.NodeReady {
+		if nodeCond.Reason == kubeletReady && nodeCond.Type == v1.NodeReady {
 			return true
 		}
 	}
@@ -108,12 +114,12 @@ func IsReady() Predicate {
 }
 
 // WithFilter add filters on which the node has to be filtered
-func (b *listBuilder) WithFilter(pred ...Predicate) *listBuilder {
+func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }
 
-// Len returns the number of items present in the nodeList
-func (n *nodeList) Len() int {
+// Len returns the number of items present in the NodeList
+func (n *NodeList) Len() int {
 	return len(n.items)
 }

@@ -4,24 +4,23 @@ import (
 	"github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func() (clientset *clientset.Clientset, err error)
+type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of nodes
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error)
+type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error)
 
-// kubeclient enables kubernetes API operations on node instance
-type kubeclient struct {
+// Kubeclient enables kubernetes API operations on node instance
+type Kubeclient struct {
 	// clientset refers to node clientset
 	// that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.Clientset
+	clientset *kubernetes.Clientset
 
 	// functions useful during mocking
 	getClientset getClientsetFn
@@ -30,31 +29,34 @@ type kubeclient struct {
 
 // kubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+type kubeclientBuildOption func(*Kubeclient)
 
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.Clientset, err error) {
+		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
 			return v1alpha1.New(v1alpha1.NotInCluster()).Clientset()
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error) {
+		k.list = func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error) {
 			return cli.CoreV1().Nodes().List(opts)
 		}
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for node
-func KubeClient() *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
+	for _, o := range opts {
+		o(k)
+	}
 	k.withDefaults()
 	return k
 }
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -67,7 +69,7 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 }
 
 // List returns a list of nodes instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

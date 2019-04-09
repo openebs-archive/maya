@@ -3,54 +3,62 @@ package v1alpha1
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func fakeAPINodeList(nodeNames []string) *v1.NodeList {
+func fakeEmptyNodeList(noOfNodes int) *corev1.NodeList {
+	list := &corev1.NodeList{}
+	for i := 0; i < noOfNodes; i++ {
+		node := corev1.Node{}
+		list.Items = append(list.Items, node)
+	}
+	return list
+}
+
+func fakeAPINodeList(nodeNames []string) *corev1.NodeList {
 	if len(nodeNames) == 0 {
 		return nil
 	}
-
-	list := &v1.NodeList{}
+	list := &corev1.NodeList{}
 	for _, name := range nodeNames {
-		node := v1.Node{}
+		node := corev1.Node{}
 		node.SetName(name)
 		list.Items = append(list.Items, node)
 	}
 	return list
 }
 
-func fakeRunningAPINodeObject(nodeNames []string) []v1.Node {
-	nlist := []v1.Node{}
-	fakeNodeCondition := v1.NodeCondition{
-		Reason: "KubeletReady",
-		Type:   v1.NodeReady,
+func fakeAPINodeListRunning(nodeNames []string) *corev1.NodeList {
+	list := &corev1.NodeList{}
+	fakeNodeCondition := corev1.NodeCondition{
+		Reason: kubeletReady,
+		Type:   corev1.NodeReady,
 	}
 	for _, nodeName := range nodeNames {
-		node := v1.Node{}
+		node := corev1.Node{}
 		node.SetName(nodeName)
 		node.Status.Conditions = append(node.Status.Conditions, fakeNodeCondition)
-		nlist = append(nlist, node)
+		list.Items = append(list.Items, node)
 	}
-	return nlist
+	return list
 }
 
-func fakeNonRunningNodeList(nodeNames []string) []v1.Node {
-	nlist := []v1.Node{}
+func fakeAPINodeListNotRunning(nodeNames []string) *corev1.NodeList {
+	list := &corev1.NodeList{}
 	for _, nodeName := range nodeNames {
-		node := v1.Node{}
+		node := corev1.Node{}
 		node.SetName(nodeName)
-		nlist = append(nlist, node)
+		list.Items = append(list.Items, node)
 	}
-	return nlist
+	return list
 }
 
-func fakeAPINodeListFromNameStatusMap(nodes map[string]v1.NodeConditionType) []*node {
+func fakeAPINodeListFromNameStatusMap(nodes map[string]corev1.NodeConditionType) []*node {
 	nlist := []*node{}
 	for k := range nodes {
-		n := &v1.Node{}
-		fakeNodeCondition := v1.NodeCondition{
-			Reason: "KubeletReady",
+		n := &corev1.Node{}
+		fakeNodeCondition := corev1.NodeCondition{
+			Reason: kubeletReady,
 			Type:   nodes[k],
 		}
 		n.SetName(k)
@@ -60,7 +68,7 @@ func fakeAPINodeListFromNameStatusMap(nodes map[string]v1.NodeConditionType) []*
 	return nlist
 }
 
-func TestListBuilderWithAPIList(t *testing.T) {
+func TestListBuilderFuncWithAPIList(t *testing.T) {
 	tests := map[string]struct {
 		availableNodes  []string
 		expectedNodeLen int
@@ -78,7 +86,23 @@ func TestListBuilderWithAPIList(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPINodeList(mock.availableNodes))
+			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes))
+			if mock.expectedNodeLen != len(b.list.items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
+			}
+		})
+	}
+}
+
+func TestListBuilderFuncWithEmptyNodeList(t *testing.T) {
+	tests := map[string]struct {
+		nodeCount, expectedNodeLen int
+	}{
+		"Two nodes": {5, 5},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			b := ListBuilderFunc().WithAPIList(fakeEmptyNodeList(mock.nodeCount))
 			if mock.expectedNodeLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
 			}
@@ -103,7 +127,7 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIObject(fakeAPINodeList(mock.availableNodes).Items...)
+			b := ListBuilderFunc().WithAPIObject(fakeAPINodeList(mock.availableNodes).Items...)
 			if mock.expectedNodeLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
 			}
@@ -129,7 +153,7 @@ func TestListBuilderToAPIList(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPINodeList(mock.availableNodes)).List().ToAPIList()
+			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes)).List().ToAPIList()
 			if mock.expectedNodeLen != len(b.Items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.Items))
 			}
@@ -139,29 +163,29 @@ func TestListBuilderToAPIList(t *testing.T) {
 
 func TestFilterList(t *testing.T) {
 	tests := map[string]struct {
-		availableNodes map[string]v1.NodeConditionType
+		availableNodes map[string]corev1.NodeConditionType
 		filteredNodes  []string
 		filters        predicateList
 	}{
 		"Nodes Set 1": {
-			availableNodes: map[string]v1.NodeConditionType{"Node 1": v1.NodeReady, "Node 2": v1.NodeOutOfDisk},
+			availableNodes: map[string]corev1.NodeConditionType{"Node 1": corev1.NodeReady, "Node 2": corev1.NodeOutOfDisk},
 			filteredNodes:  []string{"Node 1"},
 			filters:        predicateList{IsReady()},
 		},
 		"Nodes Set 2": {
-			availableNodes: map[string]v1.NodeConditionType{"Node 1": v1.NodeReady, "Node 2": v1.NodeReady},
+			availableNodes: map[string]corev1.NodeConditionType{"Node 1": corev1.NodeReady, "Node 2": corev1.NodeReady},
 			filteredNodes:  []string{"Node 1", "Node 2"},
 			filters:        predicateList{IsReady()},
 		},
 		"Nodes Set 3": {
-			availableNodes: map[string]v1.NodeConditionType{"Node 1": v1.NodeDiskPressure, "Node 2": v1.NodeMemoryPressure},
+			availableNodes: map[string]corev1.NodeConditionType{"Node 1": corev1.NodeDiskPressure, "Node 2": corev1.NodeMemoryPressure},
 			filteredNodes:  []string{},
 			filters:        predicateList{IsReady()},
 		},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			list := ListBuilder().WithObject(fakeAPINodeListFromNameStatusMap(mock.availableNodes)...).WithFilter(mock.filters...).List()
+			list := ListBuilderFunc().WithObject(fakeAPINodeListFromNameStatusMap(mock.availableNodes)...).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredNodes) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredNodes), len(list.items))
 			}
