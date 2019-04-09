@@ -24,8 +24,8 @@ import (
 	time "time"
 
 	internalclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/catalog/v1alpha1/clientset/internalclientset"
+	catalog "github.com/openebs/maya/pkg/client/generated/openebs.io/catalog/v1alpha1/informer/externalversions/catalog"
 	internalinterfaces "github.com/openebs/maya/pkg/client/generated/openebs.io/catalog/v1alpha1/informer/externalversions/internalinterfaces"
-	openebsio "github.com/openebs/maya/pkg/client/generated/openebs.io/catalog/v1alpha1/informer/externalversions/openebs.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Openebs() openebsio.Interface
+	Openebs() catalog.Interface
 }
 
-func (f *sharedInformerFactory) Openebs() openebsio.Interface {
-	return openebsio.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Openebs() catalog.Interface {
+	return catalog.New(f, f.namespace, f.tweakListOptions)
 }
