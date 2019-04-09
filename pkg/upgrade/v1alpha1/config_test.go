@@ -23,19 +23,19 @@ import (
 )
 
 func fakePredicateTrue() Predicate {
-	return func(p *UpgradeConfig) bool {
+	return func(p *Config) bool {
 		return true
 	}
 }
 
 func fakePredicateFalse() Predicate {
-	return func(p *UpgradeConfig) bool {
+	return func(p *Config) bool {
 		return false
 	}
 }
 
-func fakeUpgradeConfigValid() *UpgradeConfig {
-	return &UpgradeConfig{
+func fakeConfigValid() *Config {
+	return &Config{
 		object: &apis.UpgradeConfig{
 			CASTemplate: "fake-castemplate",
 			Data: []apis.DataItem{
@@ -66,8 +66,8 @@ func fakeUpgradeConfigValid() *UpgradeConfig {
 
 func TestNewBuilder(t *testing.T) {
 	tests := map[string]struct {
-		expectUpgradeConfig bool
-		expectChecks        bool
+		expectConfig bool
+		expectChecks bool
 	}{
 		"call NewBuilder": {
 			true, true,
@@ -75,10 +75,10 @@ func TestNewBuilder(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewBuilder()
-			if (b.UpgradeConfig != nil) != mock.expectUpgradeConfig {
+			b := NewConfigBuilder()
+			if (b.Config != nil) != mock.expectConfig {
 				t.Fatalf("test %s failed, expect patch: %t but got: %t",
-					name, mock.expectUpgradeConfig, b.UpgradeConfig != nil)
+					name, mock.expectConfig, b.Config != nil)
 			}
 			if (b.checks != nil) != mock.expectChecks {
 				t.Fatalf("test %s failed, expect checks: %t but got: %t",
@@ -114,8 +114,7 @@ resources:
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewBuilder().
-				WithYamlString(mock.yaml)
+			b := ConfigBuilderForYaml(mock.yaml)
 			if (len(b.errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
 					name, mock.expectedError, len(b.errors) != 0)
@@ -150,8 +149,7 @@ resources:
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewBuilder().
-				WithRawBytes(mock.raw)
+			b := ConfigBuilderForRaw(mock.raw)
 			if (len(b.errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
 					name, mock.expectedError, len(b.errors) != 0)
@@ -180,7 +178,7 @@ func TestValidate(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewBuilder()
+			b := NewConfigBuilder()
 			b.AddChecks(mock.checks...)
 			err := b.validate()
 			if (err != nil) != mock.expectedError {
@@ -191,17 +189,17 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestIsCASTemplateNamePresent(t *testing.T) {
+func TestIsCASTemplateName(t *testing.T) {
 	tests := map[string]struct {
-		config         *UpgradeConfig
+		config         *Config
 		expectedOutput bool
 	}{
 		"valid upgrade config": {
-			fakeUpgradeConfigValid(),
+			fakeConfigValid(),
 			true,
 		},
 		"invalid upgrade config": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data:      []apis.DataItem{},
 					Resources: []apis.ResourceDetails{},
@@ -211,7 +209,7 @@ func TestIsCASTemplateNamePresent(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		op := IsCASTemplateNamePresent()(mock.config)
+		op := IsCASTemplateName()(mock.config)
 		if op != mock.expectedOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
 				name, mock.expectedOutput, op)
@@ -219,17 +217,17 @@ func TestIsCASTemplateNamePresent(t *testing.T) {
 	}
 }
 
-func TestIsResourcePresent(t *testing.T) {
+func TestIsResource(t *testing.T) {
 	tests := map[string]struct {
-		config         *UpgradeConfig
+		config         *Config
 		expectedOutput bool
 	}{
 		"valid upgrade config": {
-			fakeUpgradeConfigValid(),
+			fakeConfigValid(),
 			true,
 		},
 		"invalid upgrade config": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data:      []apis.DataItem{},
 					Resources: []apis.ResourceDetails{},
@@ -239,7 +237,7 @@ func TestIsResourcePresent(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		op := IsResourcePresent()(mock.config)
+		op := IsResource()(mock.config)
 		if op != mock.expectedOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
 				name, mock.expectedOutput, op)
@@ -249,15 +247,15 @@ func TestIsResourcePresent(t *testing.T) {
 
 func TestIsValidResource(t *testing.T) {
 	tests := map[string]struct {
-		config         *UpgradeConfig
+		config         *Config
 		expectedOutput bool
 	}{
 		"valid upgrade config": {
-			fakeUpgradeConfigValid(),
+			fakeConfigValid(),
 			true,
 		},
 		"invalid upgrade config namespace not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -272,7 +270,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config name not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -287,7 +285,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config kind not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -302,7 +300,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config name, namespace not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -317,7 +315,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config kind, namespace not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -332,7 +330,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config name, kind not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -347,7 +345,7 @@ func TestIsValidResource(t *testing.T) {
 			false,
 		},
 		"invalid upgrade config name, namespace, kind not present": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -374,15 +372,15 @@ func TestIsValidResource(t *testing.T) {
 
 func TestIsSameKind(t *testing.T) {
 	tests := map[string]struct {
-		config         *UpgradeConfig
+		config         *Config
 		expectedOutput bool
 	}{
 		"valid upgrade config": {
-			fakeUpgradeConfigValid(),
+			fakeConfigValid(),
 			true,
 		},
 		"invalid upgrade config": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
@@ -411,26 +409,26 @@ func TestIsSameKind(t *testing.T) {
 
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
-		config        *UpgradeConfig
+		config        *Config
 		checks        []Predicate
 		expectedError bool
 	}{
 		"predicate returns true": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateTrue()},
 			false,
 		},
 		"predicate returns false": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateFalse()},
 			true,
 		},
 		"predicate returns both true and false": {
-			&UpgradeConfig{
+			&Config{
 				object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateFalse(), fakePredicateFalse()},
@@ -438,9 +436,9 @@ func TestBuild(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		b := &Builder{
-			UpgradeConfig: mock.config,
-			checks:        make(map[*Predicate]string),
+		b := &ConfigBuilder{
+			Config: mock.config,
+			checks: make(map[*Predicate]string),
 		}
 		b.AddChecks(mock.checks...)
 		_, err := b.Build()

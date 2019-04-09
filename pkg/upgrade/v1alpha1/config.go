@@ -25,15 +25,15 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 )
 
-// UpgradeConfig is wrapper over apis.UpgradeConfig which is
+// Config is wrapper over apis.UpgradeConfig which is
 // upgrade config for a particular job.
-type UpgradeConfig struct {
+type Config struct {
 	object *apis.UpgradeConfig
 }
 
-// Builder helps to build UpgradeConfig instance
-type Builder struct {
-	*UpgradeConfig
+// ConfigBuilder helps to build UpgradeConfig instance
+type ConfigBuilder struct {
+	*Config
 	checks map[*Predicate]string
 	errors []error
 }
@@ -47,127 +47,143 @@ type Builder struct {
 // NOTE:
 // Predicate approach enables clear separation of conditionals from
 // imperatives i.e. actions that form the business logic
-type Predicate func(*UpgradeConfig) bool
+type Predicate func(*Config) bool
 
 // AddCheckf adds the predicate as a condition to be validated against the
 // upgrade config instance and format the message string according to format specifier.
 // If only predicate and message string is provided, it will treat it as the
 // value for the corresponding predicate.
-func (b *Builder) AddCheckf(p Predicate, predicateMsg string, args ...interface{}) *Builder {
-	b.checks[&p] = fmt.Sprintf(predicateMsg, args...)
-	return b
+func (cb *ConfigBuilder) AddCheckf(p Predicate, predicateMsg string, args ...interface{}) *ConfigBuilder {
+	cb.checks[&p] = fmt.Sprintf(predicateMsg, args...)
+	return cb
 }
 
 // AddCheck adds the predicate as a condition to be validated against the
 // upgrade config instance
-func (b *Builder) AddCheck(p Predicate) *Builder {
-	return b.AddCheckf(p, "")
+func (cb *ConfigBuilder) AddCheck(p Predicate) *ConfigBuilder {
+	return cb.AddCheckf(p, "")
 }
 
 // AddChecks adds the provided predicates as conditions to be validated against
 // the upgrade config instance
-func (b *Builder) AddChecks(predicates ...Predicate) *Builder {
+func (cb *ConfigBuilder) AddChecks(predicates ...Predicate) *ConfigBuilder {
 	for _, check := range predicates {
-		b.AddCheck(check)
+		cb.AddCheck(check)
 	}
-	return b
+	return cb
 }
 
 // Build returns the final instance of UpgradeConfig
-func (b *Builder) Build() (*apis.UpgradeConfig, error) {
-	if len(b.errors) != 0 {
-		return nil, errors.Errorf("%v", b.errors)
-	}
-	err := b.validate()
+func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
+	err := cb.validate()
 	if err != nil {
 		return nil, err
 	}
-	return b.UpgradeConfig.object, nil
+	return cb.Config.object, nil
 }
 
 // validate will run checks against UpgradeConfig instance
-func (b *Builder) validate() error {
-	for cond := range b.checks {
-		pass := (*cond)(b.UpgradeConfig)
+func (cb *ConfigBuilder) validate() error {
+	if len(cb.errors) != 0 {
+		return errors.Errorf("builder error: %v", cb.errors)
+	}
+	validationError := []error{}
+	for cond := range cb.checks {
+		pass := (*cond)(cb.Config)
 		if !pass {
-			b.errors = append(b.errors,
-				errors.Errorf("%v", b.checks[cond]))
+			validationError = append(validationError,
+				errors.Errorf("failed to validate: %s", cb.checks[cond]))
 		}
 	}
-	if len(b.errors) == 0 {
+	if len(validationError) == 0 {
 		return nil
 	}
-	return errors.Errorf("%v", b.errors)
+	cb.errors = append(cb.errors, validationError...)
+	return errors.Errorf("validation error: %v", validationError)
 }
 
-// NewBuilder returns a new instance of Builder
-func NewBuilder() *Builder {
-	return &Builder{
-		UpgradeConfig: &UpgradeConfig{
+// NewConfigBuilder returns a new instance of ConfigBuilder
+func NewConfigBuilder() *ConfigBuilder {
+	return &ConfigBuilder{
+		Config: &Config{
 			object: &apis.UpgradeConfig{},
 		},
 		checks: make(map[*Predicate]string),
 	}
 }
 
-// WithYamlString add object in builder struct.
-func (b *Builder) WithYamlString(yamlString string) *Builder {
-	err := yaml.Unmarshal([]byte(yamlString), b.object)
+// ConfigBuilderForYaml add object in ConfigBuilder struct.
+// with the help of yaml string
+func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
+	cb := &ConfigBuilder{
+		Config: &Config{
+			object: &apis.UpgradeConfig{},
+		},
+		checks: make(map[*Predicate]string),
+	}
+	err := yaml.Unmarshal([]byte(yamlString), cb.object)
 	if err != nil {
-		b.errors = append(b.errors, err)
+		cb.errors = append(cb.errors, err)
 	}
-	return b
+	return cb
 }
 
-// WithRawBytes add object in builder struct.
-func (b *Builder) WithRawBytes(raw []byte) *Builder {
-	err := yaml.Unmarshal(raw, b.object)
+// ConfigBuilderForRaw add object in ConfigBuilder struct.
+// With the help of raw bytes
+func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
+	cb := &ConfigBuilder{
+		Config: &Config{
+			object: &apis.UpgradeConfig{},
+		},
+		checks: make(map[*Predicate]string),
+	}
+	err := yaml.Unmarshal(raw, cb.object)
 	if err != nil {
-		b.errors = append(b.errors, err)
+		cb.errors = append(cb.errors, err)
 	}
-	return b
+	return cb
 }
 
-// IsCASTemplateNamePresent returns predicate to check
+// IsCASTemplateName returns predicate to check
 // castemplate is present in object or not.
-func IsCASTemplateNamePresent() Predicate {
-	return func(uc *UpgradeConfig) bool {
-		return uc.isCASTemplateNamePresent()
+func IsCASTemplateName() Predicate {
+	return func(uc *Config) bool {
+		return uc.isCASTemplateName()
 	}
 }
 
-// isCASTemplateNamePresent is a Predicate that checks
+// isCASTemplateName is a Predicate that checks
 // castemplate is present in object or not.
-func (uc *UpgradeConfig) isCASTemplateNamePresent() bool {
-	return len(uc.object.CASTemplate) != 0
+func (c *Config) isCASTemplateName() bool {
+	return len(c.object.CASTemplate) != 0
 }
 
-// IsResourcePresent returns predicate to check
+// IsResource returns predicate to check
 // resources are present in object or not.
-func IsResourcePresent() Predicate {
-	return func(uc *UpgradeConfig) bool {
-		return uc.isResourcePresent()
+func IsResource() Predicate {
+	return func(c *Config) bool {
+		return c.isResource()
 	}
 }
 
-// isResourcePresent is a Predicate that checks
+// isResource is a Predicate that checks
 // resources are present in object or not.
-func (uc *UpgradeConfig) isResourcePresent() bool {
-	return len(uc.object.Resources) != 0
+func (c *Config) isResource() bool {
+	return len(c.object.Resources) != 0
 }
 
 // IsValidResource returns predicate to check present resources
 // in object contains name, namespace and kind or not.
 func IsValidResource() Predicate {
-	return func(uc *UpgradeConfig) bool {
-		return uc.isValidResource()
+	return func(c *Config) bool {
+		return c.isValidResource()
 	}
 }
 
 // isValidResource is a Predicate that checks present resources
 // in object contains name, namespace and kind or not.
-func (uc *UpgradeConfig) isValidResource() bool {
-	for _, resource := range uc.object.Resources {
+func (c *Config) isValidResource() bool {
+	for _, resource := range c.object.Resources {
 		if resource.Kind == "" || resource.Name == "" || resource.Namespace == "" {
 			return false
 		}
@@ -178,16 +194,16 @@ func (uc *UpgradeConfig) isValidResource() bool {
 // IsSameKind returns predicate to check present
 // resources in object are in same kind or not.
 func IsSameKind() Predicate {
-	return func(uc *UpgradeConfig) bool {
-		return uc.isSameKind()
+	return func(c *Config) bool {
+		return c.isSameKind()
 	}
 }
 
 // isSameKind is a Predicate that checks present
 // resources in object are in same kind or not.
-func (uc *UpgradeConfig) isSameKind() bool {
+func (c *Config) isSameKind() bool {
 	var kind string
-	for _, resource := range uc.object.Resources {
+	for _, resource := range c.object.Resources {
 		if kind == "" {
 			kind = resource.Kind
 		}

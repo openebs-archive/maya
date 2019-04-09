@@ -21,20 +21,38 @@ import (
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	castkey "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 )
 
-// Builder helps to build a new instance of castEngine
-type Builder struct {
+const (
+	// upgradeItemProperty Property used to store task configuration
+	// to get these value use {{ .UpgradeItem.<key> }} in runtask
+	upgradeItemProperty string = "UpgradeItem"
+	// configProperty Property used to store default configuration
+	// present in castemplate
+	// to get these value use {{ .Config.<key>.value }} in runtask
+	configProperty string = "Config"
+	// runtimeProperty Property used to store runtime configuration
+	// to get these value use {{ .Runtime.<key>.value }} in runtask
+	runtimeProperty string = "Runtime"
+	// nameKey is a property of TaskConfig this is name of the resource.
+	nameKey string = "name"
+	// namespaceKey is a property of TaskConfig this is namespace of the resource.
+	namespaceKey string = "namespace"
+	// kindKey is a property of TaskConfig this is kind of the resource.
+	kindKey string = "kind"
+)
+
+// EngineBuilder helps to build a new instance of castEngine
+type EngineBuilder struct {
 	runtimeConfig []apis.Config
 	casTemplate   *apis.CASTemplate
 	unitOfUpgrade *upgrade.ResourceDetails
 	errors        []error
 }
 
-// WithRuntimeConfig sets runtime config in builder.
-func (b *Builder) WithRuntimeConfig(configs []upgrade.DataItem) *Builder {
+// WithRuntimeConfig sets runtime config in EngineBuilder.
+func (b *EngineBuilder) WithRuntimeConfig(configs []upgrade.DataItem) *EngineBuilder {
 	runtimeConfig := []apis.Config{}
 	for _, config := range configs {
 		c := apis.Config{
@@ -49,20 +67,20 @@ func (b *Builder) WithRuntimeConfig(configs []upgrade.DataItem) *Builder {
 	return b
 }
 
-// WithUnitOfUpgrade sets unitOfUpgrade details in builder.
-func (b *Builder) WithUnitOfUpgrade(item *upgrade.ResourceDetails) *Builder {
+// WithUnitOfUpgrade sets unitOfUpgrade details in EngineBuilder.
+func (b *EngineBuilder) WithUnitOfUpgrade(item *upgrade.ResourceDetails) *EngineBuilder {
 	b.unitOfUpgrade = item
 	return b
 }
 
-// WithCASTemplate sets casTemplate object in builder.
-func (b *Builder) WithCASTemplate(casTemplate *apis.CASTemplate) *Builder {
+// WithCASTemplate sets casTemplate object in EngineBuilder.
+func (b *EngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *EngineBuilder {
 	b.casTemplate = casTemplate
 	return b
 }
 
-// validate validates builder struct.
-func (b *Builder) validate() error {
+// validate validates EngineBuilder struct.
+func (b *EngineBuilder) validate() error {
 	if b.casTemplate == nil {
 		errors.New("failed to create cas template engine: nil castTemplate provided")
 	}
@@ -75,8 +93,8 @@ func (b *Builder) validate() error {
 	return nil
 }
 
-// Build builds a new instance of engine with the helps of builder struct.
-func (b *Builder) Build() (e cast.Interface, err error) {
+// Build builds a new instance of engine with the helps of EngineBuilder struct.
+func (b *EngineBuilder) Build() (e cast.Interface, err error) {
 	err = b.validate()
 	if err != nil {
 		return
@@ -98,23 +116,17 @@ func (b *Builder) Build() (e cast.Interface, err error) {
 	}
 
 	taskConfig := map[string]interface{}{
-		string(castkey.NameTCTP):      b.unitOfUpgrade.Name,
-		string(castkey.NamespaceTCTP): b.unitOfUpgrade.Namespace,
-		string(castkey.KindTCTP):      b.unitOfUpgrade.Kind,
+		nameKey:      b.unitOfUpgrade.Name,
+		namespaceKey: b.unitOfUpgrade.Namespace,
+		kindKey:      b.unitOfUpgrade.Kind,
 	}
-	// set taskconfig against UpgradeItem key
-	// to get these value use {{ .UpgradeItem.<key> }} in runtask
-	e.SetValues(string(castkey.UpgradeItemTLP), taskConfig)
-	// set defaultconfig against Config key
-	// to get these value use {{ .Config.<key>.value }} in runtask
-	e.SetValues(string(castkey.ConfigTLP), defaultConfig)
-	// set runtimeconfig against Runtime key
-	// to get these value use {{ .Runtime.<key>.value }} in runtask
-	e.SetValues(string(castkey.RuntimeTLP), runtimeConfig)
+	e.SetValues(upgradeItemProperty, taskConfig)
+	e.SetValues(configProperty, defaultConfig)
+	e.SetValues(runtimeProperty, runtimeConfig)
 	return
 }
 
-// New returns an empty instance of builder
-func New() *Builder {
-	return &Builder{}
+// NewEngine returns an empty instance of EngineBuilder
+func NewEngine() *EngineBuilder {
+	return &EngineBuilder{}
 }

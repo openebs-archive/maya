@@ -26,16 +26,17 @@ import (
 
 func main() {
 	flag.Set("logtostderr", "true")
-	configPath := flag.String("config-path", "/config/config", "Path to Job config file.")
+	configPath := flag.String("config-path", "/etc/config/upgrade", "path to config file.")
 	defer log.Flush()
 	flag.Parse()
 
-	runOptions := &upgrade.StartOptions{
+	runOptions := &upgrade.Upgrade{
 		ConfigPath: *configPath,
 	}
 	err := runOptions.Run()
 
 	if err != nil {
+		log.Error(err)
 		os.Exit(1)
 	}
 	os.Exit(0)
