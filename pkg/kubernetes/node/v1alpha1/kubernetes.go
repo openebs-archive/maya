@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
-	"github.com/openebs/maya/integration-tests/kubernetes"
-	v1 "k8s.io/api/core/v1"
+	"github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clientset "k8s.io/client-go/kubernetes"
@@ -14,7 +14,7 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of nodes
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error)
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error)
 
 // kubeclient enables kubernetes API operations on node instance
 type kubeclient struct {
@@ -35,11 +35,11 @@ type kubeclientBuildOption func(*kubeclient)
 func (k *kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			return kubernetes.GetClientSet()
+			return v1alpha1.New(v1alpha1.NotInCluster()).Clientset()
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error) {
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error) {
 			return cli.CoreV1().Nodes().List(opts)
 		}
 	}
@@ -67,7 +67,7 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 }
 
 // List returns a list of nodes instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*v1.NodeList, error) {
+func (k *kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

@@ -17,12 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"strings"
 )
 
 const (
@@ -137,6 +138,13 @@ func withDefaults(c *Client) {
 func InCluster() OptionFunc {
 	return func(c *Client) {
 		c.IsInCluster = true
+	}
+}
+
+//NotInCluster disables IsInCluster flag
+func NotInCluster() OptionFunc {
+	return func(c *Client) {
+		c.IsInCluster = false
 	}
 }
 

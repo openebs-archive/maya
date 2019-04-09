@@ -12,13 +12,13 @@ type nodeList struct {
 	items []*node
 }
 
-// predicate defines an abstraction
+// Predicate defines an abstraction
 // to determine conditional checks
 // against the provided node instance
-type predicate func(*node) bool
+type Predicate func(*node) bool
 
 // predicateList holds the list of predicates
-type predicateList []predicate
+type predicateList []Predicate
 
 // listBuilder enables building an instance of nodeList
 type listBuilder struct {
@@ -100,15 +100,15 @@ func (n *node) IsReady() bool {
 	return false
 }
 
-// IsReady is a predicate to filter out nodes which are in running state
-func IsReady() predicate {
+// IsReady is a Predicate to filter out nodes which are in running state
+func IsReady() Predicate {
 	return func(n *node) bool {
 		return n.IsReady()
 	}
 }
 
 // WithFilter add filters on which the node has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
+func (b *listBuilder) WithFilter(pred ...Predicate) *listBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }

@@ -47,7 +47,7 @@ func fakeNonRunningNodeList(nodeNames []string) []v1.Node {
 
 func fakeAPINodeListFromNameStatusMap(nodes map[string]v1.NodeConditionType) []*node {
 	nlist := []*node{}
-	for k, _ := range nodes {
+	for k := range nodes {
 		n := &v1.Node{}
 		fakeNodeCondition := v1.NodeCondition{
 			Reason: "KubeletReady",

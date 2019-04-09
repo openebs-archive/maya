@@ -11,15 +11,15 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-func fakeGetClientset() (cli *clientset.Clientset, err error) {
+func fakeGetClientsetOk() (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
-func fakeListfn(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error) {
+func fakeListfnOk(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error) {
 	return &v1.NodeList{}, nil
 }
 
-func fakeListErrfn(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error) {
+func fakeListfnErr(cli *clientset.Clientset, opts metav1.ListOptions) (*v1.NodeList, error) {
 	return &v1.NodeList{}, errors.New("some error")
 }
 
@@ -35,7 +35,7 @@ func fakeGetNilErrClientSet() (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
@@ -54,10 +54,10 @@ func TestWithDefaultOptions(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fc := &kubeclient{}
 			if !mock.expectListFn {
-				fc.list = fakeListfn
+				fc.list = fakeListfnOk
 			}
 			if !mock.expectGetClientset {
-				fc.getClientset = fakeGetClientset
+				fc.getClientset = fakeGetClientsetOk
 			}
 			fc.withDefaults()
 			if mock.expectListFn && fc.list == nil {
@@ -76,11 +76,11 @@ func TestGetClientOrCached(t *testing.T) {
 		KubeClient *kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &kubeclient{nil, fakeGetNilErrClientSet, fakeListfn}},
-		"Positive 2": {false, &kubeclient{&client.Clientset{}, fakeGetNilErrClientSet, fakeListfn}},
+		"Positive 1": {false, &kubeclient{nil, fakeGetNilErrClientSet, fakeListfnOk}},
+		"Positive 2": {false, &kubeclient{&client.Clientset{}, fakeGetNilErrClientSet, fakeListfnOk}},
 
 		// Negative tests
-		"Negative 1": {true, &kubeclient{nil, fakeGetErrClientSet, fakeListfn}},
+		"Negative 1": {true, &kubeclient{nil, fakeGetClientSetErr, fakeListfnOk}},
 	}
 
 	for name, mock := range tests {
@@ -102,9 +102,9 @@ func TestKubenetesNodeList(t *testing.T) {
 		list         listFn
 		expectErr    bool
 	}{
-		"Test 1": {fakeGetErrClientSet, fakeListfn, true},
-		"Test 2": {fakeGetClientset, fakeListfn, false},
-		"Test 3": {fakeGetClientset, fakeListErrfn, true},
+		"Test 1": {fakeGetClientSetErr, fakeListfnOk, true},
+		"Test 2": {fakeGetClientsetOk, fakeListfnOk, false},
+		"Test 3": {fakeGetClientsetOk, fakeListfnErr, true},
 	}
 
 	for name, mock := range tests {
