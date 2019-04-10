@@ -46,17 +46,7 @@ func (c Config) GoString() string {
 type ConfigBuilder struct {
 	Config *Config
 	checks map[*Predicate]string
-	Errors []error
-}
-
-// String implements Stringer interface
-func (cb ConfigBuilder) String() string {
-	return stringer.Yaml("upgrade config builder", cb)
-}
-
-// GoString implements GoStringer interface
-func (cb ConfigBuilder) GoString() string {
-	return cb.String()
+	errors []error
 }
 
 // Predicate abstracts conditional logic w.r.t the upgradeConfig instance
@@ -105,8 +95,8 @@ func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
 
 // validate will run checks against UpgradeConfig instance
 func (cb *ConfigBuilder) validate() error {
-	if len(cb.Errors) != 0 {
-		return errors.Errorf("builder error: %v %+v", cb.Errors, cb)
+	if len(cb.errors) != 0 {
+		return errors.Errorf("builder error: %v %+v", cb.errors, cb)
 	}
 	validationError := []error{}
 	for cond := range cb.checks {
@@ -119,7 +109,7 @@ func (cb *ConfigBuilder) validate() error {
 	if len(validationError) == 0 {
 		return nil
 	}
-	cb.Errors = append(cb.Errors, validationError...)
+	cb.errors = append(cb.errors, validationError...)
 	return errors.Errorf("validation error: %s %+v", validationError, cb.Config)
 }
 
@@ -144,7 +134,7 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 	}
 	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
-		cb.Errors = append(cb.Errors, errors.Wrapf(err, "file content: %s", yamlString))
+		cb.errors = append(cb.errors, errors.Wrapf(err, "file content: %s", yamlString))
 	}
 	return cb
 }
@@ -160,7 +150,7 @@ func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
 	}
 	err := yaml.Unmarshal(raw, cb.Config.Object)
 	if err != nil {
-		cb.Errors = append(cb.Errors, errors.Wrapf(err, "file content: %s", string(raw)))
+		cb.errors = append(cb.errors, errors.Wrapf(err, "file content: %s", string(raw)))
 	}
 	return cb
 }

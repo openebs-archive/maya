@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
@@ -115,9 +116,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
-			if (len(b.Errors) != 0) != mock.expectedError {
+			if (len(b.errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.Errors) != 0)
+					name, mock.expectedError, len(b.errors) != 0)
 			}
 		})
 	}
@@ -150,9 +151,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
-			if (len(b.Errors) != 0) != mock.expectedError {
+			if (len(b.errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.Errors) != 0)
+					name, mock.expectedError, len(b.errors) != 0)
 			}
 		})
 	}
@@ -446,5 +447,85 @@ func TestBuild(t *testing.T) {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
 				name, mock.expectedError, err)
 		}
+	}
+}
+
+func TestConfigString(t *testing.T) {
+	tests := map[string]struct {
+		config              *Config
+		expectedStringParts []string
+	}{
+		"upgrade config": {
+			&Config{
+				Object: &apis.UpgradeConfig{
+					CASTemplate: "my-template",
+					Data: []apis.DataItem{
+						apis.DataItem{
+							Name:  "key-1",
+							Value: "value-1",
+						},
+					},
+					Resources: []apis.ResourceDetails{
+						apis.ResourceDetails{
+							Name:      "pool-ddas",
+							Kind:      "CStorPool",
+							Namespace: "openebs",
+						},
+					},
+				},
+			},
+			[]string{"casTemplate: my-template", "data:", "name: key-1", "value: value-1",
+				"resources:", "name: pool-ddas", "kind: CStorPool", "namespace: openebs"},
+		},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ymlstr := mock.config.String()
+			for _, expect := range mock.expectedStringParts {
+				if !strings.Contains(ymlstr, expect) {
+					t.Errorf("test '%s' failed: expected '%s' in '%s'", name, expect, ymlstr)
+				}
+			}
+		})
+	}
+}
+
+func TestConfigGoString(t *testing.T) {
+	tests := map[string]struct {
+		config              *Config
+		expectedStringParts []string
+	}{
+		"upgrade config": {
+			&Config{
+				Object: &apis.UpgradeConfig{
+					CASTemplate: "my-template",
+					Data: []apis.DataItem{
+						apis.DataItem{
+							Name:  "key-1",
+							Value: "value-1",
+						},
+					},
+					Resources: []apis.ResourceDetails{
+						apis.ResourceDetails{
+							Name:      "pool-ddas",
+							Kind:      "CStorPool",
+							Namespace: "openebs",
+						},
+					},
+				},
+			},
+			[]string{"casTemplate: my-template", "data:", "name: key-1", "value: value-1",
+				"resources:", "name: pool-ddas", "kind: CStorPool", "namespace: openebs"},
+		},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			ymlstr := mock.config.GoString()
+			for _, expect := range mock.expectedStringParts {
+				if !strings.Contains(ymlstr, expect) {
+					t.Errorf("test '%s' failed: expected '%s' in '%s'", name, expect, ymlstr)
+				}
+			}
+		})
 	}
 }

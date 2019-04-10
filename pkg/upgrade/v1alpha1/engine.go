@@ -93,13 +93,13 @@ func (eb *EngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *EngineB
 // validate validates EngineBuilder struct.
 func (eb *EngineBuilder) validate() error {
 	if eb.CASTemplate == nil {
-		errors.New("nil castTemplate provided %+v")
+		return errors.New("nil castTemplate provided %+v")
 	}
 	if eb.UnitOfUpgrade == nil {
-		errors.New("nil upgrade item provided")
+		return errors.New("nil upgrade item provided")
 	}
 	if len(eb.Errors) > 0 {
-		errors.Errorf("validation error : %v ", eb.Errors)
+		return errors.Errorf("validation error : %v ", eb.Errors)
 	}
 	return nil
 }
