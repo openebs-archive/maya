@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 )
 
@@ -29,12 +30,22 @@ type Upgrade struct {
 	ConfigPath string
 }
 
+// String implements Stringer interface
+func (u Upgrade) String() string {
+	return stringer.Yaml("run config", u)
+}
+
+// GoString implements GoStringer interface
+func (u Upgrade) GoString() string {
+	return u.String()
+}
+
 // Run runs various steps to upgrade unit of upgrades
 // present in config.
-func (opt *Upgrade) Run() error {
-	data, err := ioutil.ReadFile(opt.ConfigPath)
+func (u *Upgrade) Run() error {
+	data, err := ioutil.ReadFile(u.ConfigPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to run: failed to read config: %s", err)
+		return errors.Errorf("failed to read config: config: %+v error: %+v", u, err)
 	}
 
 	cfg, err := upgrade.ConfigBuilderForRaw(data).
@@ -46,18 +57,18 @@ func (opt *Upgrade) Run() error {
 			"invalid resources: all resources should belong to same kind").
 		Build()
 	if err != nil {
-		return errors.Wrapf(err, "failed to run: failed to get config: %s", cfg)
+		return errors.Wrapf(err, "failed to get config: %v", u)
 	}
 
 	el, err := ListEngineBuilderForResources(cfg).
 		Build()
 	if err != nil {
-		return errors.Wrapf(err, "failed to run: failed to list engine: %s", cfg)
+		return errors.Wrapf(err, "failed to list engine: %+v", cfg)
 	}
 
 	err = el.Run()
 	if err != nil {
-		return errors.Wrapf(err, "failed to run: failed to run engine: %s", cfg)
+		return errors.Wrapf(err, "failed to run engine: %+v ", cfg)
 	}
 
 	return nil

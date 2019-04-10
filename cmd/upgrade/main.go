@@ -36,7 +36,7 @@ func main() {
 	err := runOptions.Run()
 
 	if err != nil {
-		log.Error(err)
+		log.Errorf("failed to run: %+v", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

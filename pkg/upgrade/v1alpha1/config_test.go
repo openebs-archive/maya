@@ -36,7 +36,7 @@ func fakePredicateFalse() Predicate {
 
 func fakeConfigValid() *Config {
 	return &Config{
-		object: &apis.UpgradeConfig{
+		Object: &apis.UpgradeConfig{
 			CASTemplate: "fake-castemplate",
 			Data: []apis.DataItem{
 				apis.DataItem{
@@ -115,9 +115,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
-			if (len(b.errors) != 0) != mock.expectedError {
+			if (len(b.Errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.errors) != 0)
+					name, mock.expectedError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -150,9 +150,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
-			if (len(b.errors) != 0) != mock.expectedError {
+			if (len(b.Errors) != 0) != mock.expectedError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.errors) != 0)
+					name, mock.expectedError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -200,7 +200,7 @@ func TestIsCASTemplateName(t *testing.T) {
 		},
 		"invalid upgrade config": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data:      []apis.DataItem{},
 					Resources: []apis.ResourceDetails{},
 				},
@@ -228,7 +228,7 @@ func TestIsResource(t *testing.T) {
 		},
 		"invalid upgrade config": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data:      []apis.DataItem{},
 					Resources: []apis.ResourceDetails{},
 				},
@@ -256,7 +256,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config namespace not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -271,7 +271,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config name not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -286,7 +286,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config kind not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -301,7 +301,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config name, namespace not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -316,7 +316,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config kind, namespace not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -331,7 +331,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config name, kind not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -346,7 +346,7 @@ func TestIsValidResource(t *testing.T) {
 		},
 		"invalid upgrade config name, namespace, kind not present": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -381,7 +381,7 @@ func TestIsSameKind(t *testing.T) {
 		},
 		"invalid upgrade config": {
 			&Config{
-				object: &apis.UpgradeConfig{
+				Object: &apis.UpgradeConfig{
 					Data: []apis.DataItem{},
 					Resources: []apis.ResourceDetails{
 						apis.ResourceDetails{
@@ -415,21 +415,21 @@ func TestBuild(t *testing.T) {
 	}{
 		"predicate returns true": {
 			&Config{
-				object: &apis.UpgradeConfig{},
+				Object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateTrue()},
 			false,
 		},
 		"predicate returns false": {
 			&Config{
-				object: &apis.UpgradeConfig{},
+				Object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateFalse()},
 			true,
 		},
 		"predicate returns both true and false": {
 			&Config{
-				object: &apis.UpgradeConfig{},
+				Object: &apis.UpgradeConfig{},
 			},
 			[]Predicate{fakePredicateFalse(), fakePredicateFalse()},
 			true,

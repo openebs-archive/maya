@@ -16,6 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+)
+
 // UpgradeConfig represents configuration for a job or executor or some other
 // component. This contains Resources, Castemplate and RuntimeConfigs
 // Mentioned Resources will be updated using mention castemplate
@@ -29,6 +33,16 @@ type UpgradeConfig struct {
 	Data []DataItem `json:"data"`
 	// Resources contains list of resources which we are going to upgrade
 	Resources []ResourceDetails `json:"resources"`
+}
+
+// String implements Stringer interface
+func (uc UpgradeConfig) String() string {
+	return stringer.Yaml("engine list", uc)
+}
+
+// GoString implements GoStringer interface
+func (uc UpgradeConfig) GoString() string {
+	return uc.String()
 }
 
 // DataItem holds a runtime configuration for executor

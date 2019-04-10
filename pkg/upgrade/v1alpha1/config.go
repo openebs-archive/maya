@@ -23,19 +23,40 @@ import (
 	"github.com/pkg/errors"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 )
 
 // Config is wrapper over apis.UpgradeConfig which is
 // upgrade config for a particular job.
 type Config struct {
-	object *apis.UpgradeConfig
+	Object *apis.UpgradeConfig
+}
+
+// String implements Stringer interface
+func (c Config) String() string {
+	return stringer.Yaml("upgrade config", c)
+}
+
+// GoString implements GoStringer interface
+func (c Config) GoString() string {
+	return c.String()
 }
 
 // ConfigBuilder helps to build UpgradeConfig instance
 type ConfigBuilder struct {
-	*Config
+	Config *Config
 	checks map[*Predicate]string
-	errors []error
+	Errors []error
+}
+
+// String implements Stringer interface
+func (cb ConfigBuilder) String() string {
+	return stringer.Yaml("upgrade config builder", cb)
+}
+
+// GoString implements GoStringer interface
+func (cb ConfigBuilder) GoString() string {
+	return cb.String()
 }
 
 // Predicate abstracts conditional logic w.r.t the upgradeConfig instance
@@ -79,34 +100,34 @@ func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cb.Config.object, nil
+	return cb.Config.Object, nil
 }
 
 // validate will run checks against UpgradeConfig instance
 func (cb *ConfigBuilder) validate() error {
-	if len(cb.errors) != 0 {
-		return errors.Errorf("builder error: %v", cb.errors)
+	if len(cb.Errors) != 0 {
+		return errors.Errorf("builder error: %v %+v", cb.Errors, cb)
 	}
 	validationError := []error{}
 	for cond := range cb.checks {
 		pass := (*cond)(cb.Config)
 		if !pass {
 			validationError = append(validationError,
-				errors.Errorf("failed to validate: %s", cb.checks[cond]))
+				errors.Errorf("failed to validate: %s ", cb.checks[cond]))
 		}
 	}
 	if len(validationError) == 0 {
 		return nil
 	}
-	cb.errors = append(cb.errors, validationError...)
-	return errors.Errorf("validation error: %v", validationError)
+	cb.Errors = append(cb.Errors, validationError...)
+	return errors.Errorf("validation error: %s %+v", validationError, cb.Config)
 }
 
 // NewConfigBuilder returns a new instance of ConfigBuilder
 func NewConfigBuilder() *ConfigBuilder {
 	return &ConfigBuilder{
 		Config: &Config{
-			object: &apis.UpgradeConfig{},
+			Object: &apis.UpgradeConfig{},
 		},
 		checks: make(map[*Predicate]string),
 	}
@@ -117,13 +138,13 @@ func NewConfigBuilder() *ConfigBuilder {
 func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 	cb := &ConfigBuilder{
 		Config: &Config{
-			object: &apis.UpgradeConfig{},
+			Object: &apis.UpgradeConfig{},
 		},
 		checks: make(map[*Predicate]string),
 	}
-	err := yaml.Unmarshal([]byte(yamlString), cb.object)
+	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
-		cb.errors = append(cb.errors, err)
+		cb.Errors = append(cb.Errors, errors.Wrapf(err, "file content: %s", yamlString))
 	}
 	return cb
 }
@@ -133,13 +154,13 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
 	cb := &ConfigBuilder{
 		Config: &Config{
-			object: &apis.UpgradeConfig{},
+			Object: &apis.UpgradeConfig{},
 		},
 		checks: make(map[*Predicate]string),
 	}
-	err := yaml.Unmarshal(raw, cb.object)
+	err := yaml.Unmarshal(raw, cb.Config.Object)
 	if err != nil {
-		cb.errors = append(cb.errors, err)
+		cb.Errors = append(cb.Errors, errors.Wrapf(err, "file content: %s", string(raw)))
 	}
 	return cb
 }
@@ -155,7 +176,7 @@ func IsCASTemplateName() Predicate {
 // isCASTemplateName is a Predicate that checks
 // castemplate is present in object or not.
 func (c *Config) isCASTemplateName() bool {
-	return len(c.object.CASTemplate) != 0
+	return len(c.Object.CASTemplate) != 0
 }
 
 // IsResource returns predicate to check
@@ -169,7 +190,7 @@ func IsResource() Predicate {
 // isResource is a Predicate that checks
 // resources are present in object or not.
 func (c *Config) isResource() bool {
-	return len(c.object.Resources) != 0
+	return len(c.Object.Resources) != 0
 }
 
 // IsValidResource returns predicate to check present resources
@@ -183,7 +204,7 @@ func IsValidResource() Predicate {
 // isValidResource is a Predicate that checks present resources
 // in object contains name, namespace and kind or not.
 func (c *Config) isValidResource() bool {
-	for _, resource := range c.object.Resources {
+	for _, resource := range c.Object.Resources {
 		if resource.Kind == "" || resource.Name == "" || resource.Namespace == "" {
 			return false
 		}
@@ -203,7 +224,7 @@ func IsSameKind() Predicate {
 // resources in object are in same kind or not.
 func (c *Config) isSameKind() bool {
 	var kind string
-	for _, resource := range c.object.Resources {
+	for _, resource := range c.Object.Resources {
 		if kind == "" {
 			kind = resource.Kind
 		}

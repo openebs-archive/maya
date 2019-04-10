@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,6 +37,16 @@ type EngineListBuilder struct {
 	errors []error
 }
 
+// String implements Stringer interface
+func (elb EngineListBuilder) String() string {
+	return stringer.Yaml("engine list builder", elb)
+}
+
+// GoString implements GoStringer interface
+func (elb EngineListBuilder) GoString() string {
+	return elb.String()
+}
+
 // ListEngineBuilderForResources returns an instance of EngineListBuilder
 //It adds object in EngineListBuilder struct with the help of config
 func ListEngineBuilderForResources(cfg *apis.UpgradeConfig) (b *EngineListBuilder) {
@@ -43,7 +54,8 @@ func ListEngineBuilderForResources(cfg *apis.UpgradeConfig) (b *EngineListBuilde
 	castObj, err := cast.KubeClient().
 		Get(cfg.CASTemplate, metav1.GetOptions{})
 	if err != nil {
-		b.errors = append(b.errors, errors.Errorf("error getting castemplate: %v", err))
+		b.errors = append(b.errors, errors.Wrapf(err,
+			"error getting castemplate: %+v", cfg))
 		return
 	}
 
@@ -55,9 +67,9 @@ func ListEngineBuilderForResources(cfg *apis.UpgradeConfig) (b *EngineListBuilde
 			WithRuntimeConfig(cfg.Data).
 			Build()
 		if err != nil {
-			b.errors = append(b.errors, errors.Errorf(
-				"error creating castengine for resource: %#v  error: %v", resource, err))
-			continue
+			b.errors = append(b.errors, errors.Wrapf(err,
+				"error creating castengine for resource: %+v", resource))
+			return
 		}
 
 		engines = append(engines, e)
@@ -69,7 +81,7 @@ func ListEngineBuilderForResources(cfg *apis.UpgradeConfig) (b *EngineListBuilde
 // validate will run checks errors in  EngineListBuilder instance
 func (elb *EngineListBuilder) validate() error {
 	if len(elb.errors) != 0 {
-		return errors.Errorf("builder error: %v", elb.errors)
+		return errors.Errorf("%+v", elb.errors)
 	}
 	return nil
 }

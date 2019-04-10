@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -140,6 +141,16 @@ type ResourceDetails struct {
 	// Every time we patched a resource it will assign a new Generation.
 	// This is helpful at the time of roll back.
 	Generation string `json:"generation"`
+}
+
+// String implements Stringer interface
+func (rd ResourceDetails) String() string {
+	return stringer.Yaml("engine list", rd)
+}
+
+// GoString implements GoStringer interface
+func (rd ResourceDetails) GoString() string {
+	return rd.String()
 }
 
 // ResourceState represents the state of a resource
