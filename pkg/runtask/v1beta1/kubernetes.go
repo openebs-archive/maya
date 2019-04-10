@@ -17,14 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	"errors"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/pkg/errors"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // getClientsetFunc is a typed function that
@@ -106,7 +106,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	}
 	c, err := k.getClientset()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -119,7 +119,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.RunTask, er
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get runtask '%s'", name)
 	}
 	return k.get(cs, name, k.namespace, opts)
 }

@@ -93,7 +93,7 @@ but got %v`, name, fc.getClientset)
 	}
 }
 
-func TestWithClientset(t *testing.T) {
+func TestExpectKubeClient(t *testing.T) {
 	tests := map[string]struct {
 		clientset    *clientset.Clientset
 		isKubeClient bool
@@ -117,7 +117,7 @@ but got %v`, name, kc.clientset)
 	}
 }
 
-func TestWithNamespace(t *testing.T) {
+func TestExpectNamespace(t *testing.T) {
 	tests := map[string]struct {
 		namespace    string
 		isKubeClient bool
