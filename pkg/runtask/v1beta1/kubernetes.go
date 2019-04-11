@@ -56,7 +56,7 @@ func (k *Kubeclient) withDefaults() {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
 			config, err := client.GetConfig(client.New())
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrapf(err, "failed to get clientset")
 			}
 			return clientset.NewForConfig(config)
 		}
@@ -87,9 +87,9 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for
+// NewKubeClient returns a new instance of kubeclient meant for
 // runtask related operations
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -121,5 +121,10 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.RunTask, er
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get runtask '%s'", name)
 	}
-	return k.get(cs, name, k.namespace, opts)
+	rt, err := k.get(cs, name, k.namespace, opts)
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get runtask '%s' with namespace '%s'", name, k.namespace)
+	}
+	return rt, nil
 }

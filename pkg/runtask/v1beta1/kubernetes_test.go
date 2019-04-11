@@ -57,8 +57,6 @@ func fakeGetClientsetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeClientSet(k *Kubeclient) {}
-
 func TestWithDefaults(t *testing.T) {
 	tests := map[string]struct {
 		getFn              getFunc
@@ -74,6 +72,8 @@ func TestWithDefaults(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			fc := &Kubeclient{
 				get:          mock.getFn,
@@ -93,23 +93,25 @@ but got %v`, name, fc.getClientset)
 	}
 }
 
-func TestExpectKubeClient(t *testing.T) {
+func TestWithClientset(t *testing.T) {
 	tests := map[string]struct {
-		clientset    *clientset.Clientset
-		isKubeClient bool
+		clientset       *clientset.Clientset
+		expectClientset bool
 	}{
 		"Clientset is empty":     {nil, false},
 		"Clientset is not empty": {&clientset.Clientset{}, true},
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			kc := KubeClient(WithClientset(mock.clientset))
-			if mock.isKubeClient && kc.clientset == nil {
+			kc := NewKubeClient(WithClientset(mock.clientset))
+			if mock.expectClientset && kc.clientset == nil {
 				t.Fatalf(`test %s failed, expected non-nil fake.clientset
 but got %v`, name, kc.clientset)
 			}
-			if !mock.isKubeClient && kc.clientset != nil {
+			if !mock.expectClientset && kc.clientset != nil {
 				t.Fatalf(`test %s failed, expected nil fake.clientset
 but got %v`, name, kc.clientset)
 			}
@@ -117,23 +119,25 @@ but got %v`, name, kc.clientset)
 	}
 }
 
-func TestExpectNamespace(t *testing.T) {
+func TestWithNamespace(t *testing.T) {
 	tests := map[string]struct {
-		namespace    string
-		isKubeClient bool
+		namespace       string
+		expectNamespace bool
 	}{
 		"namespace is empty":     {"", false},
 		"namespace is not empty": {"test-ns", true},
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			kc := KubeClient(WithNamespace(mock.namespace))
-			if mock.isKubeClient && kc.namespace == "" {
+			kc := NewKubeClient(WithNamespace(mock.namespace))
+			if mock.expectNamespace && kc.namespace == "" {
 				t.Fatalf(`test %s failed, expected non-nil namespace
 but got %v`, name, kc.clientset)
 			}
-			if !mock.isKubeClient && kc.namespace != "" {
+			if !mock.expectNamespace && kc.namespace != "" {
 				t.Fatalf(`test %s failed, expected nil namespace
 but got %v`, name, kc.clientset)
 			}
@@ -143,26 +147,22 @@ but got %v`, name, kc.clientset)
 
 func TestKubeClientWithClientset(t *testing.T) {
 	tests := map[string]struct {
-		opts            []KubeclientBuildOption
+		opt             KubeclientBuildOption
 		expectClientSet bool
 	}{
 		"When non-nil clientset is passed": {
-			[]KubeclientBuildOption{fakeSetClientsetOk}, true},
-		"When two options with a non-nil clientset are passed": {
-			[]KubeclientBuildOption{fakeSetClientsetOk, fakeClientSet}, true},
-		"When three options with a non-nil clientset are passed": {
-			[]KubeclientBuildOption{fakeSetClientsetOk, fakeClientSet, fakeClientSet}, true},
+			fakeSetClientsetOk,
+			true},
 		"When nil clientset is passed": {
-			[]KubeclientBuildOption{fakeSetClientsetNil}, false},
-		"When two options with a nil clientset are passed": {
-			[]KubeclientBuildOption{fakeSetClientsetNil, fakeClientSet}, false},
-		"When three options with a nil clientset are passed": {
-			[]KubeclientBuildOption{fakeSetClientsetNil, fakeClientSet, fakeClientSet}, false},
+			fakeSetClientsetNil,
+			false},
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			c := KubeClient(mock.opts...)
+			c := NewKubeClient(mock.opt)
 			if !mock.expectClientSet && c.clientset != nil {
 				t.Fatalf(`test %s failed, expected nil c.clientset
 but got %v`, name, c.clientset)
@@ -191,6 +191,8 @@ func TestGetClientOrCached(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			kc := &Kubeclient{
 				clientset:    mock.clientset,
@@ -226,6 +228,8 @@ func TestKubernetesGet(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			k := Kubeclient{getClientset: mock.getClientset, get: mock.get}
 			_, err := k.Get(mock.resourceName, metav1.GetOptions{})
