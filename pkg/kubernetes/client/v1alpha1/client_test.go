@@ -72,13 +72,6 @@ func TestNewInCluster(t *testing.T) {
 	}
 }
 
-func TestNewNotInCluster(t *testing.T) {
-	c := New(NotInCluster())
-	if c.IsInCluster {
-		t.Fatalf("test failed: expected IsInCluster as 'false' actual '%t'", c.IsInCluster)
-	}
-}
-
 func TestConfig(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster        bool

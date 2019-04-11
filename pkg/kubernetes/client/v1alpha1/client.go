@@ -141,13 +141,6 @@ func InCluster() OptionFunc {
 	}
 }
 
-//NotInCluster disables IsInCluster flag
-func NotInCluster() OptionFunc {
-	return func(c *Client) {
-		c.IsInCluster = false
-	}
-}
-
 // Config returns the kubernetes config instance based on available criteria
 func (c *Client) Config() (config *rest.Config, err error) {
 	if c.IsInCluster {

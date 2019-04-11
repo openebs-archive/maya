@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	"github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -34,7 +34,7 @@ type kubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
-			return v1alpha1.New(v1alpha1.NotInCluster()).Clientset()
+			return client.New().Clientset()
 		}
 	}
 	if k.list == nil {

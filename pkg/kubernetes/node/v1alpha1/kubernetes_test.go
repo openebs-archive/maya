@@ -1,10 +1,10 @@
 package v1alpha1
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
@@ -36,9 +36,9 @@ func TestWithDefaultOptions(t *testing.T) {
 	}{
 		"When both listFn and getClientsetFn are error": {&Kubeclient{nil, fakeGetClientSetErr, fakeListErr}},
 		"When both listFn and getClientsetFn are nil":   {&Kubeclient{}},
-		"When listFn nil":                               {&Kubeclient{nil, fakeGetClientsetOk, nil}},
-		"When getClientsetFn nil":                       {&Kubeclient{nil, nil, fakeListfnOk}},
-		"When getClientsetFn and listFn are ok":         {&Kubeclient{nil, fakeGetClientsetOk, fakeListfnOk}},
+		"When listFn nil":                       {&Kubeclient{nil, fakeGetClientsetOk, nil}},
+		"When getClientsetFn nil":               {&Kubeclient{nil, nil, fakeListfnOk}},
+		"When getClientsetFn and listFn are ok": {&Kubeclient{nil, fakeGetClientsetOk, fakeListfnOk}},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
