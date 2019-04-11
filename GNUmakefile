@@ -92,6 +92,7 @@ VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 OPENEBS_CLUSTER=openebs-cluster
 UPGRADE=upgrade
+CSI_DRIVER=csi-driver
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -362,6 +363,22 @@ rhel-apiserver-image: mayactl apiserver
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} -f Dockerfile.rhel --build-arg VERSION=${VERSION} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
+
+#Use this to build cstor-volume-mgmt
+csi-driver:
+	@echo "----------------------------"
+	@echo "--> csi-driver         "
+	@echo "----------------------------"
+	@PNAME="csi-driver" CTLNAME=${CSI_DRIVER} sh -c "'$(PWD)/buildscripts/build.sh'"
+
+
+csi-driver-image: csi-driver
+	@echo "----------------------------"
+	@echo "--> csi-driver image         "
+	@echo "----------------------------"
+	@cp bin/csi-driver/${CSI_DRIVER} buildscripts/csi-driver/
+	cd buildscripts/csi-driver && sudo docker build -t payes/csi-driver:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/csi-driver/${CSI_DRIVER}
 
 # Push images
 deploy-images:
