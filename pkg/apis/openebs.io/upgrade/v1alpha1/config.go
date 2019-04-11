@@ -37,7 +37,7 @@ type UpgradeConfig struct {
 
 // String implements Stringer interface
 func (uc UpgradeConfig) String() string {
-	return stringer.Yaml("engine list", uc)
+	return stringer.Yaml("upgrade config", uc)
 }
 
 // GoString implements GoStringer interface

@@ -32,7 +32,7 @@ type Upgrade struct {
 
 // String implements Stringer interface
 func (u Upgrade) String() string {
-	return stringer.Yaml("run config", u)
+	return stringer.Yaml("upgrade config", u)
 }
 
 // GoString implements GoStringer interface
@@ -45,7 +45,8 @@ func (u Upgrade) GoString() string {
 func (u *Upgrade) Run() error {
 	data, err := ioutil.ReadFile(u.ConfigPath)
 	if err != nil {
-		return errors.Errorf("failed to read config: config: %+v error: %+v", u, err)
+		return errors.WithMessagef(err,
+			"failed to run upgrade: failed to read config: %+v", u)
 	}
 
 	cfg, err := upgrade.ConfigBuilderForRaw(data).
@@ -57,18 +58,21 @@ func (u *Upgrade) Run() error {
 			"invalid resources: all resources should belong to same kind").
 		Build()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get config: %v", u)
+		return errors.WithMessagef(err,
+			"failed to run upgrade: %+v", u)
 	}
 
-	el, err := ListEngineBuilderForResources(cfg).
+	el, err := ListEngineBuilderForConfig(cfg).
 		Build()
 	if err != nil {
-		return errors.Wrapf(err, "failed to list engine: %+v", cfg)
+		return errors.WithMessagef(err,
+			"failed to run upgrade: %+v", cfg)
 	}
 
 	err = el.Run()
 	if err != nil {
-		return errors.Wrapf(err, "failed to run engine: %+v ", cfg)
+		return errors.WithMessagef(err,
+			"failed to run upgrade: %+v", cfg)
 	}
 
 	return nil

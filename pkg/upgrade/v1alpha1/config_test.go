@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"strings"
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
@@ -91,8 +90,8 @@ func TestNewBuilder(t *testing.T) {
 
 func TestWithYamlString(t *testing.T) {
 	tests := map[string]struct {
-		yaml          string
-		expectedError bool
+		yaml        string
+		expectError bool
 	}{
 		"valid yaml string": {
 			`
@@ -116,9 +115,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
-			if (len(b.errors) != 0) != mock.expectedError {
+			if (len(b.errors) != 0) != mock.expectError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.errors) != 0)
+					name, mock.expectError, len(b.errors) != 0)
 			}
 		})
 	}
@@ -126,8 +125,8 @@ resources:
 
 func TestWithRawBytes(t *testing.T) {
 	tests := map[string]struct {
-		raw           []byte
-		expectedError bool
+		raw         []byte
+		expectError bool
 	}{
 		"valid yaml string": {
 			[]byte(`
@@ -151,9 +150,9 @@ resources:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
-			if (len(b.errors) != 0) != mock.expectedError {
+			if (len(b.errors) != 0) != mock.expectError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectedError, len(b.errors) != 0)
+					name, mock.expectError, len(b.errors) != 0)
 			}
 		})
 	}
@@ -161,8 +160,8 @@ resources:
 
 func TestValidate(t *testing.T) {
 	tests := map[string]struct {
-		checks        []Predicate
-		expectedError bool
+		checks      []Predicate
+		expectError bool
 	}{
 		"predicate returns true": {
 			[]Predicate{fakePredicateTrue()},
@@ -182,9 +181,9 @@ func TestValidate(t *testing.T) {
 			b := NewConfigBuilder()
 			b.AddChecks(mock.checks...)
 			err := b.validate()
-			if (err != nil) != mock.expectedError {
+			if (err != nil) != mock.expectError {
 				t.Fatalf("test %s failed, expected error: %t but got: %t",
-					name, mock.expectedError, err)
+					name, mock.expectError, err)
 			}
 		})
 	}
@@ -192,8 +191,8 @@ func TestValidate(t *testing.T) {
 
 func TestIsCASTemplateName(t *testing.T) {
 	tests := map[string]struct {
-		config         *Config
-		expectedOutput bool
+		config       *Config
+		expectOutput bool
 	}{
 		"valid upgrade config": {
 			fakeConfigValid(),
@@ -211,17 +210,17 @@ func TestIsCASTemplateName(t *testing.T) {
 	}
 	for name, mock := range tests {
 		op := IsCASTemplateName()(mock.config)
-		if op != mock.expectedOutput {
+		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
-				name, mock.expectedOutput, op)
+				name, mock.expectOutput, op)
 		}
 	}
 }
 
 func TestIsResource(t *testing.T) {
 	tests := map[string]struct {
-		config         *Config
-		expectedOutput bool
+		config       *Config
+		expectOutput bool
 	}{
 		"valid upgrade config": {
 			fakeConfigValid(),
@@ -239,17 +238,17 @@ func TestIsResource(t *testing.T) {
 	}
 	for name, mock := range tests {
 		op := IsResource()(mock.config)
-		if op != mock.expectedOutput {
+		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
-				name, mock.expectedOutput, op)
+				name, mock.expectOutput, op)
 		}
 	}
 }
 
 func TestIsValidResource(t *testing.T) {
 	tests := map[string]struct {
-		config         *Config
-		expectedOutput bool
+		config       *Config
+		expectOutput bool
 	}{
 		"valid upgrade config": {
 			fakeConfigValid(),
@@ -363,9 +362,9 @@ func TestIsValidResource(t *testing.T) {
 	}
 	for name, mock := range tests {
 		op := IsValidResource()(mock.config)
-		if op != mock.expectedOutput {
+		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
-				name, mock.expectedOutput, op)
+				name, mock.expectOutput, op)
 		}
 	}
 
@@ -373,8 +372,8 @@ func TestIsValidResource(t *testing.T) {
 
 func TestIsSameKind(t *testing.T) {
 	tests := map[string]struct {
-		config         *Config
-		expectedOutput bool
+		config       *Config
+		expectOutput bool
 	}{
 		"valid upgrade config": {
 			fakeConfigValid(),
@@ -401,18 +400,18 @@ func TestIsSameKind(t *testing.T) {
 	}
 	for name, mock := range tests {
 		op := IsSameKind()(mock.config)
-		if op != mock.expectedOutput {
+		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
-				name, mock.expectedOutput, op)
+				name, mock.expectOutput, op)
 		}
 	}
 }
 
 func TestBuild(t *testing.T) {
 	tests := map[string]struct {
-		config        *Config
-		checks        []Predicate
-		expectedError bool
+		config      *Config
+		checks      []Predicate
+		expectError bool
 	}{
 		"predicate returns true": {
 			&Config{
@@ -443,89 +442,9 @@ func TestBuild(t *testing.T) {
 		}
 		b.AddChecks(mock.checks...)
 		_, err := b.Build()
-		if (err != nil) != mock.expectedError {
+		if (err != nil) != mock.expectError {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
-				name, mock.expectedError, err)
+				name, mock.expectError, err)
 		}
-	}
-}
-
-func TestConfigString(t *testing.T) {
-	tests := map[string]struct {
-		config              *Config
-		expectedStringParts []string
-	}{
-		"upgrade config": {
-			&Config{
-				Object: &apis.UpgradeConfig{
-					CASTemplate: "my-template",
-					Data: []apis.DataItem{
-						apis.DataItem{
-							Name:  "key-1",
-							Value: "value-1",
-						},
-					},
-					Resources: []apis.ResourceDetails{
-						apis.ResourceDetails{
-							Name:      "pool-ddas",
-							Kind:      "CStorPool",
-							Namespace: "openebs",
-						},
-					},
-				},
-			},
-			[]string{"casTemplate: my-template", "data:", "name: key-1", "value: value-1",
-				"resources:", "name: pool-ddas", "kind: CStorPool", "namespace: openebs"},
-		},
-	}
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			ymlstr := mock.config.String()
-			for _, expect := range mock.expectedStringParts {
-				if !strings.Contains(ymlstr, expect) {
-					t.Errorf("test '%s' failed: expected '%s' in '%s'", name, expect, ymlstr)
-				}
-			}
-		})
-	}
-}
-
-func TestConfigGoString(t *testing.T) {
-	tests := map[string]struct {
-		config              *Config
-		expectedStringParts []string
-	}{
-		"upgrade config": {
-			&Config{
-				Object: &apis.UpgradeConfig{
-					CASTemplate: "my-template",
-					Data: []apis.DataItem{
-						apis.DataItem{
-							Name:  "key-1",
-							Value: "value-1",
-						},
-					},
-					Resources: []apis.ResourceDetails{
-						apis.ResourceDetails{
-							Name:      "pool-ddas",
-							Kind:      "CStorPool",
-							Namespace: "openebs",
-						},
-					},
-				},
-			},
-			[]string{"casTemplate: my-template", "data:", "name: key-1", "value: value-1",
-				"resources:", "name: pool-ddas", "kind: CStorPool", "namespace: openebs"},
-		},
-	}
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			ymlstr := mock.config.GoString()
-			for _, expect := range mock.expectedStringParts {
-				if !strings.Contains(ymlstr, expect) {
-					t.Errorf("test '%s' failed: expected '%s' in '%s'", name, expect, ymlstr)
-				}
-			}
-		})
 	}
 }

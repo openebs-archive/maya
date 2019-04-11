@@ -153,7 +153,7 @@ func TestValidateEngineBuilder(t *testing.T) {
 			&EngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
-				Errors: []error{
+				errors: []error{
 					errors.New("123"),
 				},
 			},

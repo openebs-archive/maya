@@ -49,7 +49,7 @@ type EngineBuilder struct {
 	RuntimeConfig []apis.Config
 	CASTemplate   *apis.CASTemplate
 	UnitOfUpgrade *upgrade.ResourceDetails
-	Errors        []error
+	errors        []error
 }
 
 // String implements Stringer interface
@@ -93,13 +93,13 @@ func (eb *EngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *EngineB
 // validate validates EngineBuilder struct.
 func (eb *EngineBuilder) validate() error {
 	if eb.CASTemplate == nil {
-		return errors.New("nil castTemplate provided %+v")
+		return errors.New("nil castTemplate provided")
 	}
 	if eb.UnitOfUpgrade == nil {
 		return errors.New("nil upgrade item provided")
 	}
-	if len(eb.Errors) > 0 {
-		return errors.Errorf("validation error : %v ", eb.Errors)
+	if len(eb.errors) > 0 {
+		return errors.Errorf("%v", eb.errors)
 	}
 	return nil
 }
@@ -108,25 +108,25 @@ func (eb *EngineBuilder) validate() error {
 func (eb *EngineBuilder) Build() (e cast.Interface, err error) {
 	err = eb.validate()
 	if err != nil {
-		err = errors.Wrapf(err, "validation error: %+v", eb)
+		err = errors.WithMessagef(err, "validation error: %+v", eb)
 		return
 	}
 
 	// creating a new instance of CASTEngine
 	e, err = cast.Engine(eb.CASTemplate, "", nil)
 	if err != nil {
-		err = errors.Wrapf(err, "builder error: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
 		return
 	}
 
 	defaultConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.CASTemplate.Spec.Defaults))
 	if err != nil {
-		err = errors.Wrapf(err, "builder error: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
 		return
 	}
 	runtimeConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.RuntimeConfig))
 	if err != nil {
-		err = errors.Wrapf(err, "builder error: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
 		return
 	}
 

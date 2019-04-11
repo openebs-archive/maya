@@ -11,7 +11,7 @@ COPY upgrade /usr/local/bin/upgrade
 ARG BUILD_DATE
 
 LABEL org.label-schema.name="upgrade"
-LABEL org.label-schema.description="upgrade job for openebs"
+LABEL org.label-schema.description="upgrades openebs components"
 LABEL org.label-schema.url="https://openebs.io/"
 LABEL org.label-schema.vcs-url="https://github.com/openebs/maya"
 LABEL org.label-schema.schema-version="1.0"

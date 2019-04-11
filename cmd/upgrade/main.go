@@ -30,13 +30,13 @@ func main() {
 	defer log.Flush()
 	flag.Parse()
 
-	runOptions := &upgrade.Upgrade{
+	u := &upgrade.Upgrade{
 		ConfigPath: *configPath,
 	}
-	err := runOptions.Run()
+	err := u.Run()
 
 	if err != nil {
-		log.Errorf("failed to run: %+v", err)
+		log.Errorf("failed to upgrade: %+v", err)
 		os.Exit(1)
 	}
 	os.Exit(0)
