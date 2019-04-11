@@ -142,6 +142,10 @@ type K8sClient struct {
 	// NOTE: This property enables unit testing
 	PVC *api_core_v1.PersistentVolumeClaim
 
+	// Node refers to a K8s Node object
+	// NOTE: This property enables unit testing
+	Node *api_core_v1.Node
+
 	// Pod refers to a K8s Pod object
 	// NOTE: This property enables unit testing
 	Pod *api_core_v1.Pod
@@ -508,6 +512,22 @@ func (k *K8sClient) GetPVC(name string, opts mach_apis_meta_v1.GetOptions) (*api
 // executing various K8s PV related operations.
 func (k *K8sClient) coreV1PVOps() typed_core_v1.PersistentVolumeInterface {
 	return k.cs.CoreV1().PersistentVolumes()
+}
+
+// GetPV fetches the K8s PV with the provided name
+func (k *K8sClient) GetNode(name string, opts mach_apis_meta_v1.GetOptions) (*api_core_v1.Node, error) {
+	if k.Node != nil {
+		return k.Node, nil
+	}
+
+	pops := k.coreV1NodeOps()
+	return pops.Get(name, opts)
+}
+
+// coreV1PVOps is a utility function that provides an instance capable of
+// executing various K8s PV related operations.
+func (k *K8sClient) coreV1NodeOps() typed_core_v1.NodeInterface {
+	return k.cs.CoreV1().Nodes()
 }
 
 // GetPV fetches the K8s PV with the provided name
