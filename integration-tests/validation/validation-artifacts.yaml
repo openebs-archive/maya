@@ -6,7 +6,7 @@ metadata:
   annotations:
     openebs.io/cas-type: jiva
     cas.openebs.io/config: |
-      - name: TargetResourceLimits:
+      - name: TargetResourceLimits
         value: |-
             memory: 1Gi
             cpu: 200m
@@ -22,7 +22,7 @@ metadata:
   name: validation-pvc
   namespace: validation-ns
   labels:
-    name: validation-pvc
+   name: label-validation-pvc
 spec:
   storageClassName: validation-sc
   accessModes:

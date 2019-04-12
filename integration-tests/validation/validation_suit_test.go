@@ -2,7 +2,6 @@ package validation
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"testing"
@@ -12,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
-	instal "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
+	install "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
 	"github.com/openebs/maya/integration-tests/kubernetes"
 	node "github.com/openebs/maya/pkg/kubernetes/nodes/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -61,7 +60,8 @@ var (
 	//Client set
 	cl                    *kube.Clientset
 	artifactsOpenEBS      []*unstructured.Unstructured
-	defaultoebsComponents []*instal.DefaultInstaller
+	defaultoebsComponents []*install.DefaultInstaller
+	invalidChar           string
 )
 
 func TestSource(t *testing.T) {
@@ -70,7 +70,7 @@ func TestSource(t *testing.T) {
 }
 
 func init() {
-	flag.Parse()
+	flag.StringVar(&invalidChar, "injectErr", "", "Used to insert invalid charecter in yaml")
 }
 
 var _ = BeforeSuite(func() {
@@ -96,14 +96,14 @@ var _ = BeforeSuite(func() {
 
 	//builder := installer.BuilderForYaml(artifacts.OpenEBSArtifacts)
 
-	// Fetching the openebs component artifacts
+	// Fetch openebs component artifacts
 	artifactsOpenEBS, errs = artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
 	By("Installing OpenEBS components")
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range artifactsOpenEBS {
-		buildOpenebsComponents := instal.BuilderForObject(artifact)
+		buildOpenebsComponents := install.BuilderForObject(artifact)
 		oebsComponentInstaller, err := buildOpenebsComponents.Build()
 		Expect(err).ShouldNot(HaveOccurred())
 		err = oebsComponentInstaller.Install()
@@ -133,8 +133,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	fmt.Printf("In after suit")
-	By("Uinstalling OpenEBS Component")
+	By("Uinstalling OpenEBS Components")
 	for _, oebsComponent := range defaultoebsComponents {
 		err := oebsComponent.UnInstall()
 		Expect(err).ShouldNot(HaveOccurred())
