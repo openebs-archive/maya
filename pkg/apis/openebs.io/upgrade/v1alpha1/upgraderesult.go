@@ -145,7 +145,7 @@ type ResourceDetails struct {
 
 // String implements Stringer interface
 func (rd ResourceDetails) String() string {
-	return stringer.Yaml("engine list", rd)
+	return stringer.Yaml("resource details", rd)
 }
 
 // GoString implements GoStringer interface

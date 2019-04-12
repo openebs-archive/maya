@@ -45,7 +45,7 @@ func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) 
 	if err != nil {
 		b.errors = append(b.errors,
 			errors.WithMessagef(err,
-				"failed to instantiate list builder: %+v", cfg))
+				"failed to instantiate list builder: %s", cfg))
 		return
 	}
 
@@ -59,7 +59,7 @@ func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) 
 		if err != nil {
 			b.errors = append(b.errors,
 				errors.WithMessagef(err,
-					"failed to instantiate list builder: %+v: %+v", resource, cfg))
+					"failed to instantiate list builder: %s: %s", resource, cfg))
 			return
 		}
 
@@ -73,7 +73,7 @@ func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) 
 // EngineListBuilder instance
 func (elb *EngineListBuilder) Build() (*EngineList, error) {
 	if len(elb.errors) != 0 {
-		return nil, errors.Errorf("builder error: %+v", elb.errors)
+		return nil, errors.Errorf("builder error: %s", elb.errors)
 	}
 	return elb.object, nil
 }

@@ -359,7 +359,7 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
-	@DIMAGE="openebs/upgrade" ./buildscripts/push
+	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
 
 # build upgrade binary
 upgrade:
@@ -374,7 +374,7 @@ upgrade-image: upgrade
 	@echo "--> ${UPGRADE} image"
 	@echo "----------------------------"
 	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
-	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/${UPGRADE}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
 .PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade-image

@@ -108,25 +108,25 @@ func (eb *EngineBuilder) validate() error {
 func (eb *EngineBuilder) Build() (e cast.Interface, err error) {
 	err = eb.validate()
 	if err != nil {
-		err = errors.WithMessagef(err, "validation error: %+v", eb)
+		err = errors.WithMessagef(err, "validation error: %s", eb)
 		return
 	}
 
 	// creating a new instance of CASTEngine
 	e, err = cast.Engine(eb.CASTemplate, "", nil)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
 		return
 	}
 
 	defaultConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.CASTemplate.Spec.Defaults))
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
 		return
 	}
 	runtimeConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.RuntimeConfig))
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %+v", eb)
+		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
 		return
 	}
 

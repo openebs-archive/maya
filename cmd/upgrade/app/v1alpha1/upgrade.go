@@ -46,7 +46,7 @@ func (u *Upgrade) Run() error {
 	data, err := ioutil.ReadFile(u.ConfigPath)
 	if err != nil {
 		return errors.WithMessagef(err,
-			"failed to run upgrade: failed to read config: %+v", u)
+			"failed to run upgrade: failed to read config: %s", u)
 	}
 
 	cfg, err := upgrade.ConfigBuilderForRaw(data).
@@ -59,20 +59,20 @@ func (u *Upgrade) Run() error {
 		Build()
 	if err != nil {
 		return errors.WithMessagef(err,
-			"failed to run upgrade: %+v", u)
+			"failed to run upgrade: %s", u)
 	}
 
 	el, err := ListEngineBuilderForConfig(cfg).
 		Build()
 	if err != nil {
 		return errors.WithMessagef(err,
-			"failed to run upgrade: %+v", cfg)
+			"failed to run upgrade: %s", cfg)
 	}
 
 	err = el.Run()
 	if err != nil {
 		return errors.WithMessagef(err,
-			"failed to run upgrade: %+v", cfg)
+			"failed to run upgrade: %s", cfg)
 	}
 
 	return nil

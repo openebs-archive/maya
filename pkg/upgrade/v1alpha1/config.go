@@ -86,7 +86,7 @@ func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
 func (cb *ConfigBuilder) validate() error {
 	if len(cb.errors) != 0 {
 		return errors.Errorf(
-			"failed to validate: build errors were found: %+v", cb.errors)
+			"failed to validate: build errors were found: %v", cb.errors)
 	}
 	validationErrs := []error{}
 	for cond := range cb.checks {
@@ -100,7 +100,7 @@ func (cb *ConfigBuilder) validate() error {
 		return nil
 	}
 	cb.errors = append(cb.errors, validationErrs...)
-	return errors.Errorf("%+v : %+v", validationErrs, cb.Config)
+	return errors.Errorf("%v : %s", validationErrs, cb.Config)
 }
 
 // NewConfigBuilder returns a new instance of ConfigBuilder
@@ -125,7 +125,7 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
 		cb.errors = append(cb.errors,
-			errors.Wrapf(err, "failed to instantiate config builder: %+v", yamlString))
+			errors.Wrapf(err, "failed to instantiate config builder: %s", yamlString))
 	}
 	return cb
 }
@@ -151,13 +151,13 @@ func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
 // castemplate is present in object or not.
 func IsCASTemplateName() Predicate {
 	return func(uc *Config) bool {
-		return uc.isCASTemplateName()
+		return uc.IsCASTemplateName()
 	}
 }
 
-// isCASTemplateName is a Predicate that checks
+// IsCASTemplateName is a Predicate that checks
 // castemplate is present in object or not.
-func (c *Config) isCASTemplateName() bool {
+func (c *Config) IsCASTemplateName() bool {
 	return len(c.Object.CASTemplate) != 0
 }
 
@@ -165,13 +165,13 @@ func (c *Config) isCASTemplateName() bool {
 // resources are present in object or not.
 func IsResource() Predicate {
 	return func(c *Config) bool {
-		return c.isResource()
+		return c.IsResource()
 	}
 }
 
-// isResource is a Predicate that checks
+// IsResource is a Predicate that checks
 // resources are present in object or not.
-func (c *Config) isResource() bool {
+func (c *Config) IsResource() bool {
 	return len(c.Object.Resources) != 0
 }
 
@@ -179,13 +179,13 @@ func (c *Config) isResource() bool {
 // in object contains name, namespace and kind or not.
 func IsValidResource() Predicate {
 	return func(c *Config) bool {
-		return c.isValidResource()
+		return c.IsValidResource()
 	}
 }
 
-// isValidResource is a Predicate that checks present resources
+// IsValidResource is a Predicate that checks present resources
 // in object contains name, namespace and kind or not.
-func (c *Config) isValidResource() bool {
+func (c *Config) IsValidResource() bool {
 	for _, resource := range c.Object.Resources {
 		if resource.Kind == "" || resource.Name == "" || resource.Namespace == "" {
 			return false
@@ -198,13 +198,13 @@ func (c *Config) isValidResource() bool {
 // resources in object are in same kind or not.
 func IsSameKind() Predicate {
 	return func(c *Config) bool {
-		return c.isSameKind()
+		return c.IsSameKind()
 	}
 }
 
-// isSameKind is a Predicate that checks present
+// IsSameKind is a Predicate that checks present
 // resources in object are in same kind or not.
-func (c *Config) isSameKind() bool {
+func (c *Config) IsSameKind() bool {
 	var kind string
 	for _, resource := range c.Object.Resources {
 		if kind == "" {
