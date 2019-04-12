@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
+	api_runtask_v1beta2 "github.com/openebs/maya/pkg/apis/openebs.io/runtask/v1beta2"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -32,6 +33,7 @@ import (
 	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
+	post_v1beta2 "github.com/openebs/maya/pkg/task/post/v1beta2"
 	"github.com/openebs/maya/pkg/template"
 	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -305,14 +307,24 @@ func (m *taskExecutor) postExecuteIt() (err error) {
 		// nothing needs to be done
 		return
 	}
-
-	// post runtask operation
-	_, err = template.AsTemplatedBytes("PostRun", m.runtask.Spec.PostRun, m.templateValues)
+	metaTaskInfo := m.metaTaskExec.getMetaInfo()
+	// run go-templating against post yaml and
+	// get the post instance of a runtask
+	pte, err := post_v1beta2.NewBuilder().
+		WithTemplate("PostRun", m.runtask.Spec.PostRun, m.templateValues).
+		WithMetaID(metaTaskInfo.Identity).
+		WithMetaAPIVersion(metaTaskInfo.APIVersion).
+		WithMetaKind(metaTaskInfo.Kind).
+		WithMetaAction(string(metaTaskInfo.Action)).
+		Build()
 	if err != nil {
-		// return any un-handled runtime error
 		return
 	}
-
+	// execute all the post operations defined in the post yaml
+	err = pte.Execute()
+	if err != nil {
+		return
+	}
 	// verMismatchErr is a handled runtime error. It is thrown & handled during go
 	// template execution & set is in the template values. This needs to be
 	// extracted from template values and thrown as VersionMismatchError
@@ -857,6 +869,17 @@ func (m *taskExecutor) listExtnV1B1ReplicaSet(opt metav1.ListOptions) ([]byte, e
 		ListRaw(opt)
 }
 
+func (m *taskExecutor) listExtnV1B1DeploymentAsRaw(opts metav1.ListOptions) ([]byte, error) {
+	kc := m.getK8sClient()
+	ro, err := kc.ListExtnV1B1Deployment(opts)
+	if err != nil {
+		return nil, err
+	}
+	// set the runtime Object result
+	util.SetNestedField(m.templateValues, ro, string(api_runtask_v1beta2.CurrentRuntimeObjectTLP))
+	return json.Marshal(ro)
+}
+
 // putCoreV1Service will put a Service whose specs are configured in the RunTask
 func (m *taskExecutor) putCoreV1Service() (err error) {
 	s, err := m.asCoreV1Svc()
@@ -1240,7 +1263,7 @@ func (m *taskExecutor) listK8sResources() (err error) {
 	} else if m.metaTaskExec.isListCoreV1Service() {
 		op, err = kc.ListCoreV1ServiceAsRaw(opts)
 	} else if m.metaTaskExec.isListExtnV1B1Deploy() {
-		op, err = kc.ListExtnV1B1DeploymentAsRaw(opts)
+		op, err = m.listExtnV1B1DeploymentAsRaw(opts)
 	} else if m.metaTaskExec.isListExtnV1B1ReplicaSet() {
 		op, err = m.listExtnV1B1ReplicaSet(opts)
 	} else if m.metaTaskExec.isListAppsV1B1Deploy() {

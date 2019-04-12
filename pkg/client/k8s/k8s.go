@@ -36,6 +36,7 @@ import (
 	api_storage_v1 "k8s.io/api/storage/v1"
 
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/typed/openebs.io/v1alpha1"
@@ -743,16 +744,19 @@ func (k *K8sClient) ListCoreV1ServiceAsRaw(opts mach_apis_meta_v1.ListOptions) (
 	return
 }
 
-// ListExtnV1B1DeploymentAsRaw fetches a list of K8s Deployments as per the
+// ListExtnV1B1Deployment fetches a list of K8s Deployments as per the
 // provided options
-func (k *K8sClient) ListExtnV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptions) (result []byte, err error) {
+func (k *K8sClient) ListExtnV1B1Deployment(opts mach_apis_meta_v1.ListOptions) (result runtime.Object, err error) {
 	result, err = k.cs.ExtensionsV1beta1().RESTClient().Get().
 		Namespace(k.ns).
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
-		DoRaw()
-
-	return
+		Do().
+		Get()
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // ListAppsV1B1DeploymentAsRaw fetches a list of K8s Deployments as per the
