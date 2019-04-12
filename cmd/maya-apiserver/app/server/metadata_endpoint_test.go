@@ -46,8 +46,8 @@ func TestInvalidReqMetaData(t *testing.T) {
 		t.Fatalf("ERR: expected: %v, got: %v", ErrInvalidMethod, err)
 	}
 
-	if err.Error() != ErrInvalidMethod {
-		t.Fatalf("ERR: expected: %v, got: %v", ErrInvalidMethod, err.Error())
+	if err.Error() != ErrInvalidPath {
+		t.Fatalf("ERR: expected: %v, got: %v", ErrInvalidPath, err.Error())
 	}
 
 	if out != nil {
@@ -163,9 +163,9 @@ func TestInvalidReqPathMetaViaWrap1(t *testing.T) {
 		t.Fatalf("err content type, expected: nil, got: %s", contentType)
 	}
 
-	// This should be an invalid path/method error
-	if resp.Code != 405 {
-		t.Fatalf("err http resp code, expected: 405, got: %v", resp.Code)
+	// This should be an invalid path error
+	if resp.Code != 421 {
+		t.Fatalf("err http resp code, expected: 421, got: %v", resp.Code)
 	}
 
 	// actuals
@@ -175,8 +175,8 @@ func TestInvalidReqPathMetaViaWrap1(t *testing.T) {
 	}
 
 	// compare expectations with actuals
-	if !bytes.Equal([]byte(ErrInvalidMethod), actual) {
-		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", ErrInvalidMethod, string(actual))
+	if !bytes.Equal([]byte(ErrInvalidPath), actual) {
+		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", ErrInvalidPath, string(actual))
 	}
 }
 
@@ -210,9 +210,9 @@ func TestInvalidReqPathMetaViaWrap2(t *testing.T) {
 		t.Fatalf("err content type, expected: nil, got: %s", contentType)
 	}
 
-	// This should be an invalid path/method error
-	if resp.Code != 405 {
-		t.Fatalf("err http resp code, expected: 405, got: %v", resp.Code)
+	// This should be an invalid path error
+	if resp.Code != 421 {
+		t.Fatalf("err http resp code, expected: 421, got: %v", resp.Code)
 	}
 
 	// actuals
@@ -222,8 +222,8 @@ func TestInvalidReqPathMetaViaWrap2(t *testing.T) {
 	}
 
 	// compare expectations with actuals
-	if !bytes.Equal([]byte(ErrInvalidMethod), actual) {
-		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", ErrInvalidMethod, string(actual))
+	if !bytes.Equal([]byte(ErrInvalidPath), actual) {
+		t.Fatalf("bad:\nexpected:\t%q\n\nactual:\t\t%q", ErrInvalidPath, string(actual))
 	}
 }
 

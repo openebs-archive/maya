@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -169,4 +170,24 @@ type CASVolumeList struct {
 
 	// Items are the list of volumes
 	Items []CASVolume `json:"items"`
+}
+
+// String implements Stringer interface
+func (v *CASVolume) String() string {
+	return stringer.Yaml("casvolume", v)
+}
+
+// GoString implements GoStringer interface
+func (v *CASVolume) GoString() string {
+	return v.String()
+}
+
+// String implements Stringer interface
+func (v *CASVolumeList) String() string {
+	return stringer.Yaml("casvolumelist", v)
+}
+
+// GoString implements GoStringer interface
+func (v *CASVolumeList) GoString() string {
+	return v.String()
 }
