@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* You have Go 1.9 installed on your local host/development machine.
+* You have Go 1.10+ installed on your local host/development machine.
 * You have Docker installed on your local host/development machine. Docker is required for building maya component container images and to push them into a Kubernetes cluster for testing.
 
 ## Initial Setup
@@ -62,7 +62,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
  origin	https://github.com/$user/maya.git (fetch)
  origin	https://github.com/$user/maya.git (push)
  upstream	https://github.com/openebs/maya.git (fetch)
- upstream	https://github.com/openebs/maya.git (no_push)
+ upstream	no_push (push)
  ```
 
  If the upstream is missing, add it by using below command.
@@ -133,7 +133,7 @@ $ cd $GOPATH/src/github.com/openebs/maya
 
  ```sh
  cd $GOPATH/src/github.com/openebs/maya
- make dev
+ make all
  ```
 
 Check your linting.
