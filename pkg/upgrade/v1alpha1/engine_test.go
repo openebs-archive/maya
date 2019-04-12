@@ -36,6 +36,8 @@ func TestNewEngine(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := NewEngine()
 			if (b.CASTemplate != nil) != mock.expectCASTemplate {
@@ -74,6 +76,8 @@ func TestWithRuntimeConfig(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := &EngineBuilder{}
 			b.WithRuntimeConfig(mock.runtimeConfig)
@@ -100,6 +104,8 @@ func TestWithUnitOfUpgrade(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := &EngineBuilder{}
 			b.WithUnitOfUpgrade(mock.unitOfUpgrade)
@@ -126,6 +132,8 @@ func TestWithCASTemplate(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := &EngineBuilder{}
 			b.WithCASTemplate(mock.casTemplate)
@@ -173,6 +181,8 @@ func TestValidateEngineBuilder(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			e := mock.builder.validate()
 			if mock.expectError != (e != nil) {
@@ -208,6 +218,8 @@ func TestEngineBuilderString(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			ymlstr := mock.builder.String()
 			for _, expect := range mock.expectedStringParts {
@@ -244,6 +256,8 @@ func TestEngineBuilderGoString(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			ymlstr := mock.builder.GoString()
 			for _, expect := range mock.expectedStringParts {

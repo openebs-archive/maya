@@ -74,6 +74,8 @@ func TestNewBuilder(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := NewConfigBuilder()
 			if (b.Config != nil) != mock.expectConfig {
@@ -113,6 +115,8 @@ resources:
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
 			if (len(b.errors) != 0) != mock.expectError {
@@ -148,6 +152,8 @@ resources:
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
 			if (len(b.errors) != 0) != mock.expectError {
@@ -177,6 +183,8 @@ func TestValidate(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			b := NewConfigBuilder()
 			b.AddChecks(mock.checks...)
@@ -209,6 +217,8 @@ func TestIsCASTemplateName(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		op := IsCASTemplateName()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -237,6 +247,8 @@ func TestIsResource(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		op := IsResource()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -361,6 +373,8 @@ func TestIsValidResource(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		op := IsValidResource()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -399,6 +413,8 @@ func TestIsSameKind(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		op := IsSameKind()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -436,6 +452,8 @@ func TestBuild(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		b := &ConfigBuilder{
 			Config: mock.config,
 			checks: make(map[*Predicate]string),

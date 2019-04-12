@@ -51,6 +51,7 @@ func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) 
 
 	engines := []cast.Interface{}
 	for _, resource := range cfg.Resources {
+		resource := resource
 		e, err := upgrade.NewEngine().
 			WithCASTemplate(castObj).
 			WithUnitOfUpgrade(&resource).

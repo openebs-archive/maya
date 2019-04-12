@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	log "github.com/golang/glog"
@@ -25,7 +26,11 @@ import (
 )
 
 func main() {
-	flag.Set("logtostderr", "true")
+	err := flag.Set("logtostderr", "true")
+	if err != nil {
+		fmt.Printf("failed to upgrade: %s", err)
+		os.Exit(1)
+	}
 	configPath := flag.String("config-path", "/etc/config/upgrade", "path to config file.")
 	defer log.Flush()
 	flag.Parse()
@@ -33,7 +38,7 @@ func main() {
 	u := &upgrade.Upgrade{
 		ConfigPath: *configPath,
 	}
-	err := u.Run()
+	err = u.Run()
 
 	if err != nil {
 		log.Errorf("failed to upgrade: %+v", err)
