@@ -1,8 +1,6 @@
 package validation
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
@@ -48,7 +46,6 @@ func deployTestArtifacts(testArtifactsUn []*unstructured.Unstructured) {
 }
 
 const (
-	waitTime                               = 100
 	crctValueSC                            = "      - name: TargetResourceLimits"
 	crctValuePVC                           = "   name: label-validation-pvc"
 	testArtifacts artifacts.ArtifactSource = "validation-artifacts.yaml"
@@ -84,7 +81,6 @@ var _ = Describe("[SC] Test to validate Yamls", func() {
 		}
 	})
 	AfterEach(func() {
-		time.Sleep(time.Second * waitTime)
 		if len(invalidChar) > 0 {
 			By("Updating storage class artifact with original string")
 			err := FileOperatorVar.Updatefile(string(testArtifacts), crctValueSC, index, 0644)
@@ -134,7 +130,6 @@ var _ = Describe("[PVC] Test to validate Yamls", func() {
 	})
 
 	AfterEach(func() {
-		time.Sleep(time.Second * waitTime)
 		if len(invalidChar) > 0 {
 			By("Updating PVC artifact with original string")
 			err := FileOperatorVar.Updatefile(string(testArtifacts), crctValuePVC, index, 0644)
