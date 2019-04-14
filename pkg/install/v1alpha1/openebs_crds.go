@@ -264,6 +264,67 @@ spec:
     name: Age
     type: date
 ---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: backupcstors.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: backupcstors
+    singular: backupcstor
+    kind: BackupCStor
+    shortNames:
+    - bkp
+    - bkps
+    - backups
+    - backup
+  additionalPrinterColumns:
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which backup performed
+      type: string
+    - JSONPath: .spec.backupName
+      name: backup/schedule
+      description: Backup/schedule name
+      type: string
+    - JSONPath: .status
+      name: Status
+      description: Backup status
+      type: string
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: backupcstorlasts.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: backupcstorlasts
+    singular: backupcstorlast
+    kind: BackupCStorLast
+    shortNames:
+    - bkplast
+    - backuplast
+  additionalPrinterColumns:
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which backup performed
+      type: string
+    - JSONPath: .spec.backupName
+      name: backup/schedule
+      description: Backup/schedule name
+      type: string
+    - JSONPath: .spec.prevSnapName
+      name: lastSnap
+      description: Last successful backup snapshot
+      type: string
+---
 `
 
 // OpenEBSCRDArtifacts returns the CRDs required for latest version
