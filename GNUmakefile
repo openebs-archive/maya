@@ -65,9 +65,6 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
 all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
 
-dev: format
-	@PNAME="maya" MAYACTL=${MAYACTL} DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
-
 mayactl:
 	@echo "----------------------------"
 	@echo "--> mayactl                    "
@@ -117,7 +114,6 @@ golint-travis:
 golint:
 	@gometalinter.v1 --install
 	@gometalinter.v1 --vendor --deadline=600s ./...
-
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
