@@ -17,28 +17,29 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	v1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	admission "k8s.io/api/admissionregistration/v1beta1"
 
-	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getClientsetFunc is a typed function that
 // abstracts fetching internal clientset
-type getClientsetFunc func() (cs *clientset.Clientset, err error)
+type getClientsetFunc func() (cs *kubernetes.Clientset, err error)
 
 // listFunc is a typed function that abstracts
 // listing validatingWebhookConfiguration instances
-type listFunc func(cs *clientset.Clientset, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error)
+type listFunc func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error)
 
 // getFunc is a typed function that abstracts
 // getting validatingWebhookConfiguration instances
-type getFunc func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error)
+type getFunc func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error)
 
 // Kubeclient enables kubernetes API operations
 // on upgrade result instance
@@ -46,7 +47,7 @@ type Kubeclient struct {
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.Clientset
+	clientset *kubernetes.Clientset
 	namespace string
 	// functions useful during mocking
 	getClientset getClientsetFunc
@@ -62,21 +63,21 @@ type KubeclientBuildOption func(*Kubeclient)
 // of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (cs *clientset.Clientset, err error) {
+		k.getClientset = func() (cs *kubernetes.Clientset, err error) {
 			config, err := client.GetConfig(client.New())
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			return kubernetes.NewForConfig(config)
 		}
 	}
 	if k.list == nil {
-		k.list = func(cs *clientset.Clientset, opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
+		k.list = func(cs *kubernetes.Clientset, opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error) {
 			return cs.Admissionregistration().ValidatingWebhookConfigurations().List(opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cs *clientset.Clientset, name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
+		k.get = func(cs *kubernetes.Clientset, name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
 			return cs.Admissionregistration().ValidatingWebhookConfigurations().Get(name, opts)
 		}
 	}
@@ -84,7 +85,7 @@ func (k *Kubeclient) withDefaults() {
 
 // WithClientset sets the kubernetes clientset against
 // the kubeclient instance
-func WithClientset(c *clientset.Clientset) KubeclientBuildOption {
+func WithClientset(c *kubernetes.Clientset) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
 	}
@@ -111,7 +112,7 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -125,7 +126,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List takes label and field selectors, and returns the list of ValidatingWebhookConfigurations
 // that match those selectors.
-func (k *Kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookConfigurationList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*admission.ValidatingWebhookConfigurationList, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -135,9 +136,9 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*v1beta1.ValidatingWebhookCo
 
 // Get takes name of the validatingWebhookConfiguration, and returns the
 // corresponding validatingWebhookConfiguration object, and an error if there is any.
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1beta1.ValidatingWebhookConfiguration, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*admission.ValidatingWebhookConfiguration, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("failed to get upgrade result: missing upgradeResult name")
+		return nil, errors.New("failed to get ValidatingWebhookConfiguration: missing configuration name")
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {

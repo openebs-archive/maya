@@ -10,11 +10,21 @@ func fakeAPIPVCList(pvcNames []string) *v1.PersistentVolumeClaimList {
 	if len(pvcNames) == 0 {
 		return nil
 	}
-
 	list := &v1.PersistentVolumeClaimList{}
 	for _, name := range pvcNames {
 		pvc := v1.PersistentVolumeClaim{}
 		pvc.SetName(name)
+		list.Items = append(list.Items, pvc)
+	}
+	return list
+}
+
+func fakeAPIPVCListFromNameStatusMap(pvcs map[string]v1.PersistentVolumeClaimPhase) *v1.PersistentVolumeClaimList {
+	list := &v1.PersistentVolumeClaimList{}
+	for k, v := range pvcs {
+		pvc := v1.PersistentVolumeClaim{}
+		pvc.SetName(k)
+		pvc.Status.Phase = v
 		list.Items = append(list.Items, pvc)
 	}
 	return list
@@ -41,7 +51,7 @@ func fakeNonBoundPVCList(pvcNames []string) []v1.PersistentVolumeClaim {
 	return plist
 }
 
-func fakeAPIPVCListFromNameStatusMap(pvcs map[string]string) []*PVC {
+func fakePVCListFromNameStatusMap(pvcs map[string]string) []*PVC {
 	plist := []*PVC{}
 	for k, v := range pvcs {
 		p := &v1.PersistentVolumeClaim{}
@@ -70,7 +80,7 @@ func TestListBuilderWithAPIList(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewListBuilder().WithAPIList(fakeAPIPVCList(mock.availablePVCs))
+			b := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs))
 			if mock.expectedPVCLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPVCLen, len(b.list.items))
 			}
@@ -83,6 +93,7 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		availablePVCs  []string
 		expectedPVCLen int
 	}{
+		"PVC set 1":  {[]string{}, 0},
 		"PVC set 2":  {[]string{"pvc1"}, 1},
 		"PVC set 3":  {[]string{"pvc1", "pvc2"}, 2},
 		"PVC set 4":  {[]string{"pvc1", "pvc2", "pvc3"}, 3},
@@ -95,9 +106,9 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewListBuilder().WithAPIObject(fakeAPIPVCList(mock.availablePVCs).Items...)
-			if mock.expectedPVCLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.availablePVCs, len(b.list.items))
+			b, _ := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).APIList()
+			if mock.expectedPVCLen != len(b.Items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.availablePVCs, len(b.Items))
 			}
 		})
 	}
@@ -121,7 +132,7 @@ func TestListBuilderToAPIList(t *testing.T) {
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			b := NewListBuilder().WithAPIList(fakeAPIPVCList(mock.availablePVCs)).List().ToAPIList()
+			b := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).List().ToAPIList()
 			if mock.expectedPVCLen != len(b.Items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPVCLen, len(b.Items))
 			}
@@ -131,30 +142,31 @@ func TestListBuilderToAPIList(t *testing.T) {
 
 func TestFilterList(t *testing.T) {
 	tests := map[string]struct {
-		availablePVCs map[string]string
+		availablePVCs map[string]v1.PersistentVolumeClaimPhase
 		filteredPVCs  []string
 		filters       PredicateList
 	}{
 		"PVC Set 1": {
-			availablePVCs: map[string]string{"PVC 1": "Bound", "PVC 2": "Waiting"},
-			filteredPVCs:  []string{"PVC 1"},
+			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC5": v1.ClaimBound, "PVC6": v1.ClaimPending, "PVC7": v1.ClaimLost},
+			filteredPVCs:  []string{"PVC5"},
 			filters:       PredicateList{IsBound()},
 		},
+
 		"PVC Set 2": {
-			availablePVCs: map[string]string{"PVC 1": "Bound", "PVC 2": "Bound"},
-			filteredPVCs:  []string{"PVC 1", "PVC 2"},
+			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC3": v1.ClaimBound, "PVC4": v1.ClaimBound},
+			filteredPVCs:  []string{"PVC2", "PVC4"},
 			filters:       PredicateList{IsBound()},
 		},
 
 		"PVC Set 3": {
-			availablePVCs: map[string]string{"PVC 1": "Waiting", "PVC 2": "Waiting", "PVC 3": "Waiting"},
+			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC1": v1.ClaimLost, "PVC2": v1.ClaimPending, "PVC3": v1.ClaimPending},
 			filteredPVCs:  []string{},
 			filters:       PredicateList{IsBound()},
 		},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			list := NewListBuilder().WithObject(fakeAPIPVCListFromNameStatusMap(mock.availablePVCs)...).WithFilter(mock.filters...).List()
+			list := ListBuilderForAPIObjects(fakeAPIPVCListFromNameStatusMap(mock.availablePVCs)).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredPVCs) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredPVCs), len(list.items))
 			}

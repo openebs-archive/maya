@@ -7,6 +7,7 @@ import (
 type labelKey string
 
 const (
+	// cstorVolumeLabel label for cstorvolume resource
 	cstorVolumeLabel labelKey = "openebs.io/persistent-volume"
 )
 
@@ -55,7 +56,7 @@ func (b *ListBuilder) List() *CStorVolumeList {
 	if b.filters == nil || len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := NewListBuilder().List()
+	filtered := &CStorVolumeList{}
 	for _, cv := range b.list.items {
 		if b.filters.all(cv) {
 			filtered.items = append(filtered.items, cv)
