@@ -200,7 +200,6 @@ spec:
       selector:
         matchLabels:
           app: cstor-pool
-          openebs.io/version: {{ .CAST.version }}
       template:
         metadata:
           labels:

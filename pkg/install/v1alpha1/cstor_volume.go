@@ -456,7 +456,6 @@ spec:
           app: cstor-volume-manager
           openebs.io/target: cstor-target
           openebs.io/persistent-volume: {{ .Volume.owner }}
-          openebs.io/version: {{ .CAST.version }}
       template:
         metadata:
           labels:

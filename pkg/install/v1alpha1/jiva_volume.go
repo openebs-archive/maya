@@ -783,7 +783,6 @@ spec:
         matchLabels:
           openebs.io/controller: jiva-controller
           openebs.io/persistent-volume: {{ .Volume.owner }}
-          openebs.io/version: {{ .CAST.version }}
       template:
         metadata:
           labels:
@@ -970,7 +969,6 @@ spec:
         matchLabels:
           openebs.io/replica: jiva-replica
           openebs.io/persistent-volume: {{ .Volume.owner }}
-          openebs.io/version: {{ .CAST.version }}
       template:
         metadata:
           labels:
