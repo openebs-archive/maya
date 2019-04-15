@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -85,8 +86,8 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 	bkp.Name = bkp.Spec.SnapName + "-" + bkp.Spec.VolumeName
 
 	// find healthy CVR
-	cvr := findHealthyCVR(openebsClient, bkp.Spec.VolumeName)
-	if cvr == nil {
+	cvr, err := findHealthyCVR(openebsClient, bkp.Spec.VolumeName)
+	if err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to find healthy replica"))
 	}
 
@@ -168,24 +169,24 @@ func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.C
 }
 
 // findHealthyCVR will find a healthy CVR for a given volume
-func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) *v1alpha1.CStorVolumeReplica {
+func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (v1alpha1.CStorVolumeReplica, error) {
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + volume,
 	}
 
 	cvrList, err := openebsClient.OpenebsV1alpha1().CStorVolumeReplicas("").List(listOptions)
 	if err != nil {
-		return nil
+		return v1alpha1.CStorVolumeReplica{}, err
 	}
 
 	// Select a healthy cvr for backup
 	for _, cvr := range cvrList.Items {
 		if cvr.Status.Phase == v1alpha1.CVRStatusOnline {
-			return &cvr
+			return cvr, nil
 		}
 	}
 
-	return nil
+	return v1alpha1.CStorVolumeReplica{}, errors.New("unable to find healthy CVR")
 }
 
 // getLastBackupSnap will fetch the last successful backup's snapshot name
@@ -274,7 +275,10 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 
 	out, err := json.Marshal(b)
 	if err == nil {
-		bOps.resp.Write(out)
+		_, err = bOps.resp.Write(out)
+		if err != nil {
+			return nil, CodedError(400, fmt.Sprintf("Failed to send response data"))
+		}
 		return nil, nil
 	}
 
@@ -285,9 +289,9 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
 	var nodeDown = true
 
-	pod := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
-	if pod == nil {
-		glog.Errorf("Failed to find pod for backup:%v", bkp.Name)
+	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
+	if err != nil {
+		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
 		return nodeDown
 	}
 
@@ -313,9 +317,9 @@ func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.Backu
 func checkIfBKPPoolPodDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
 	var podDown = true
 
-	pod := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
-	if pod == nil {
-		glog.Errorf("Failed to find pod for backup:%v", bkp.Name)
+	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
+	if err != nil {
+		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
 		return podDown
 	}
 
@@ -329,7 +333,7 @@ func checkIfBKPPoolPodDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.Backup
 }
 
 // findPodFromCStorID will find the Pod having given cstorID
-func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) *corev1.Pod {
+func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1.Pod, error) {
 	cstorPodLabel := "app=cstor-pool"
 	podlistops := v1.ListOptions{
 		LabelSelector: cstorPodLabel,
@@ -337,24 +341,23 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) *corev1
 
 	openebsNs := os.Getenv("OPENEBS_NAMESPACE")
 	if openebsNs == "" {
-		glog.Errorf("Failed to fetch operator namespace")
-		return nil
+		return corev1.Pod{}, errors.New("Failed to fetch operator namespace")
 	}
 
 	podlist, err := k8sclient.CoreV1().Pods(openebsNs).List(podlistops)
 	if err != nil {
 		glog.Errorf("Failed to fetch pod list :%v", err)
-		return nil
+		return corev1.Pod{}, errors.New("Failed to fetch pod list")
 	}
 
 	for _, pod := range podlist.Items {
 		for _, env := range pod.Spec.Containers[0].Env {
 			if env.Name == "OPENEBS_IO_CSTOR_ID" && env.Value == cstorID {
-				return &pod
+				return pod, nil
 			}
 		}
 	}
-	return nil
+	return corev1.Pod{}, errors.New("No Pod exists")
 }
 
 // findLastBackupStat will find the status of given backup from last-backup
