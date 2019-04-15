@@ -20,9 +20,11 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/pkg/errors"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type upgradeResult struct {
@@ -64,6 +66,33 @@ func NewBuilder() *Builder {
 		},
 		checks: make(map[*Predicate]string),
 	}
+}
+
+// WithTypeMeta adds typemeta in upgrade result instance.
+func (b *Builder) WithTypeMeta(typeMeta metav1.TypeMeta) *Builder {
+	b.object.TypeMeta = typeMeta
+	return b
+}
+
+// WithObjectMeta adds objectMeta in upgrade result instance.
+func (b *Builder) WithObjectMeta(objectMeta metav1.ObjectMeta) *Builder {
+	b.object.ObjectMeta = objectMeta
+	return b
+}
+
+// WithTasks adds tasks details in upgrade result instance.
+func (b *Builder) WithTasks(tasks ...apis.UpgradeResultTask) *Builder {
+	b.object.Tasks = append(b.object.Tasks, tasks...)
+	return b
+}
+
+// WithResultConfig adds resource details and runtime
+// config in upgrade result instance.
+func (b *Builder) WithResultConfig(resource apis.ResourceDetails,
+	data ...apis.DataItem) *Builder {
+	b.object.Config.ResourceDetails = resource
+	b.object.Config.Data = append(b.object.Config.Data, data...)
+	return b
 }
 
 // BuilderForRuntask returns a new instance
