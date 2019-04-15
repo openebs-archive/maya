@@ -53,7 +53,7 @@ spec:
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   # PoolResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from PoolResourceLimits or the default requests set in the cluster. 
+  # from PoolResourceLimits or the default requests set in the cluster.
   - name: PoolResourceRequests
     value: "none"
   # PoolResourceLimits allow you to set the limits on memory and cpu for pool pods
@@ -200,11 +200,13 @@ spec:
       selector:
         matchLabels:
           app: cstor-pool
+          openebs.io/version: {{ .CAST.version }}
       template:
         metadata:
           labels:
             app: cstor-pool
             openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+            openebs.io/version: {{ .CAST.version }}
         spec:
           serviceAccountName: {{ .Config.ServiceAccountName.value }}
           nodeSelector:
