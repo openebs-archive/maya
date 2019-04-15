@@ -25,6 +25,9 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default
 spec:
+  defaultConfig:
+  - name: JivaRunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -33,7 +36,7 @@ spec:
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
   output: jiva-volume-read-output-default
-  fallback: jiva-volume-read-default-0.6.0
+  fallback: jiva-volume-read-default-0.8.2
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -219,6 +222,8 @@ spec:
   # to iSCSI Volume (i.e OpenEBS Persistent Volume)
   - name: Lun
     value: "0"
+  - name: JivaRunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -228,6 +233,8 @@ spec:
     - jiva-volume-create-getstoragepoolcr-default
     - jiva-volume-create-putreplicadeployment-default
     - jiva-volume-create-puttargetdeployment-default
+    - jiva-volume-create-listreplicapod-default
+    - jiva-volume-create-patchreplicadeployment-default
   output: jiva-volume-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -242,6 +249,8 @@ spec:
   # should be cleared or retained. 
   - name: RetainReplicaData
     enabled: "false"
+  - name: JivaRunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -255,13 +264,16 @@ spec:
     - jiva-volume-delete-deletereplicadeployment-default
     - jiva-volume-delete-putreplicascrub-default
   output: jiva-volume-delete-output-default
-  fallback: jiva-volume-delete-default-0.6.0
+  fallback: jiva-volume-delete-default-0.8.2
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
 metadata:
   name: jiva-volume-list-default
 spec:
+  defaultConfig:
+  - name: JivaRunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -277,16 +289,16 @@ metadata:
   name: jiva-volume-isvalidversion-default
 spec:
   meta: |
-    id: is070jivavolume
-    runNamespace: {{.Volume.runNamespace}}
+    id: is082jivavolume
+    runNamespace: {{ .Volume.runNamespace }}
     apiVersion: v1
     kind: Service
     action: list
     options: |-
-      labelSelector: vsm={{ .Volume.owner }}
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/version=0.8.2
   post: |
-    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is070jivavolume.name" .TaskResult | noop -}}
-    {{- .TaskResult.is070jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.7.0 version" | saveIf "is070jivavolume.versionMismatchErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is082jivavolume.name" .TaskResult | noop -}}
+    {{- .TaskResult.is082jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.8.2 version" | saveIf "is082jivavolume.versionMismatchErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -294,13 +306,8 @@ metadata:
   name: jiva-volume-list-listtargetservice-default
 spec:
   meta: |
-    {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistsvc
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: list
@@ -316,13 +323,8 @@ metadata:
   name: jiva-volume-list-listtargetpod-default
 spec:
   meta: |
-    {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistctrl
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -338,13 +340,8 @@ metadata:
   name: jiva-volume-list-listreplicapod-default
 spec:
   meta: |
-    {{- $nss := .Volume.runNamespace | default "" | splitList ", " -}}
     id: listlistrep
-    repeatWith:
-      metas:
-      {{- range $k, $ns := $nss }}
-      - runNamespace: {{ $ns }}
-      {{- end }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -437,7 +434,7 @@ metadata:
 spec:
   meta: |
     id: readlistsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: list
@@ -455,7 +452,7 @@ metadata:
 spec:
   meta: |
     id: readlistctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -477,7 +474,7 @@ metadata:
 spec:
   meta: |
     id: readlistrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -545,7 +542,7 @@ metadata:
 spec:
   meta: |
     id: createputsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: put
@@ -651,7 +648,7 @@ metadata:
 spec:
   meta: |
     id: createlistrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -672,7 +669,7 @@ metadata:
 spec:
   meta: |
     id: createpatchrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     objectName: {{ .Volume.owner }}-rep
@@ -729,7 +726,7 @@ metadata:
 spec:
   meta: |
     id: createputctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -923,7 +920,7 @@ metadata:
 spec:
   meta: |
     id: createputrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -1106,7 +1103,7 @@ metadata:
 spec:
   meta: |
     id: deletelistsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: list
@@ -1124,7 +1121,7 @@ metadata:
 spec:
   meta: |
     id: deletelistctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: list
@@ -1142,7 +1139,7 @@ metadata:
 spec:
   meta: |
     id: deletelistrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: list
@@ -1160,7 +1157,7 @@ metadata:
 spec:
   meta: |
     id: deletedeletesvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: delete
@@ -1173,7 +1170,7 @@ metadata:
 spec:
   meta: |
     id: deletedeletectrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: delete
@@ -1186,7 +1183,7 @@ metadata:
 spec:
   meta: |
     id: deletelistreppods
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     disable: {{ .Config.RetainReplicaData.enabled }}
     apiVersion: v1
     kind: Pod
@@ -1204,7 +1201,7 @@ metadata:
 spec:
   meta: |
     id: deletedeleterep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: delete
@@ -1217,7 +1214,7 @@ metadata:
 spec:
   meta: |
     apiVersion: batch/v1
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     disable: {{ .Config.RetainReplicaData.enabled }}
     kind: Job
     action: put

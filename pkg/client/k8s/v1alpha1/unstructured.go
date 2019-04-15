@@ -37,6 +37,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -46,7 +48,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"strings"
 )
 
 // kind represents the name of the kubernetes kind
@@ -131,7 +132,7 @@ func CreateUnstructuredFromYamlBytes(raw []byte) (*unstructured.Unstructured, er
 	m := map[string]interface{}{}
 	err := yaml.Unmarshal(raw, &m)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create unstructured instance from yaml bytes")
+		return nil, errors.Wrapf(err, "failed to create unstructured instance from yaml bytes for the runtask: \n%v", string(raw))
 	}
 
 	return &unstructured.Unstructured{
