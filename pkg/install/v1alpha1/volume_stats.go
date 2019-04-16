@@ -23,6 +23,9 @@ kind: CASTemplate
 metadata:
   name: cas-volume-stats-default
 spec:
+  defaultConfig:
+  - name: RunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -36,7 +39,7 @@ metadata:
 spec:
   meta: |
     id: readvolumesvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .Config.RunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: list

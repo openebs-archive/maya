@@ -132,7 +132,7 @@ func CreateUnstructuredFromYamlBytes(raw []byte) (*unstructured.Unstructured, er
 	m := map[string]interface{}{}
 	err := yaml.Unmarshal(raw, &m)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create unstructured instance from yaml bytes for the runtask: \n%v", string(raw))
+		return nil, errors.Wrapf(err, "failed to create unstructured instance from yaml bytes for the runtask: %v", string(raw))
 	}
 
 	return &unstructured.Unstructured{

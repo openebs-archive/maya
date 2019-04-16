@@ -25,6 +25,9 @@ kind: CASTemplate
 metadata:
   name: jiva-snapshot-create-default
 spec:
+  defaultConfig:
+  - name: JivaRunNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -39,7 +42,7 @@ metadata:
 spec:
   meta: |
     id: readSourceSvc
-    runNamespace: {{ .Snapshot.runNamespace }}
+    runNamespace: {{ .Config.JivaRunNamespace.value }}
     apiVersion: v1
     kind: Service
     action: list
