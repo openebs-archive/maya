@@ -64,7 +64,7 @@ UPGRADE=upgrade
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image
 
 mayactl:
 	@echo "----------------------------"
