@@ -59,6 +59,7 @@ POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 OPENEBS_CLUSTER=openebs-cluster
+UPGRADE=upgrade
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
@@ -84,6 +85,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
 	rm -rf ${GOPATH}/bin/${OPENEBS_CLUSTER}
+	rm -rf ${GOPATH}/bin/${UPGRADE}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -357,5 +359,22 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
+	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image
+# build upgrade binary
+upgrade:
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE}      "
+	@echo "----------------------------"
+	@PNAME=${UPGRADE} CTLNAME=${UPGRADE} CGO_ENABLED=0 sh -c "'$(PWD)/buildscripts/build.sh'"
+
+# build upgrade image
+upgrade-image: upgrade
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE} image"
+	@echo "----------------------------"
+	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
+	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${UPGRADE}/${UPGRADE}
+
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade-image
