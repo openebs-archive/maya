@@ -151,7 +151,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 		// Check for cstorvolume to get healthy
 		Eventually(func() bool {
 			cstorvolume, err := cv.
-				KubeClient(cv.WithNamespace("openebs")).
+				NewKubeclient(cv.WithNamespace("openebs")).
 				Get(pvclaim.Spec.VolumeName, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			return cv.
@@ -187,7 +187,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 		// verify deletion of cstorvolume
 		Eventually(func() int {
 			cvs, err := cv.
-				KubeClient(cv.WithNamespace("openebs")).
+				NewKubeclient(cv.WithNamespace("openebs")).
 				List(metav1.ListOptions{LabelSelector: CstorVolumeLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(cvs.Items)

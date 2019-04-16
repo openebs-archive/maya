@@ -57,6 +57,7 @@ var _ = BeforeSuite(func() {
 
 	// Checking appropriate node numbers
 	nodes, err := cl.CoreV1().Nodes().List(v1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
 	Expect(nodes.Items).Should(HaveLen(minNodeCount))
 
 	// Fetching the openebs component artifacts
@@ -73,23 +74,25 @@ var _ = BeforeSuite(func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
+	ns := string(artifacts.OpenebsNamespace)
+
 	By("Verifying 'maya-apiserver' pod status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
+	_ = checkComponentStatus(ns, string(artifacts.MayaAPIServerLabelSelector), 1)
 
 	By("Verifying 'openebs-provisioner' pod status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
+	_ = checkComponentStatus(ns, string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 
 	By("Verifying 'snapshot-operator' pod status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
+	_ = checkComponentStatus(ns, string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
 
 	By("Verifying 'admission-server' pod status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
+	_ = checkComponentStatus(ns, string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
 
 	By("Verifying 'Node-device-manager' pods status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
+	_ = checkComponentStatus(ns, string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
 
 	By("Verifying 'cstor-pool' pods status as running")
-	_ = checkComponentStatus(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+	_ = checkComponentStatus(ns, string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
 
 	// check validationWebhookConfiguration API enable in cluster
 	_, err = validatehook.KubeClient().List(metav1.ListOptions{})
@@ -114,7 +117,7 @@ var _ = AfterSuite(func() {
 	}
 })
 
-func checkComponentStatus(namespace, lselector string, podCount int) (pods *corev1.PodList) {
+func checkComponentStatus(namespace string, lselector string, podCount int) (pods *corev1.PodList) {
 	// Verify phase of the pod
 	var err error
 	Eventually(func() int {

@@ -67,6 +67,7 @@ func TestWithDefaultOptions(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			fc := &Kubeclient{}
 			if !mock.expectListFn {
@@ -97,6 +98,7 @@ func TestWithClientsetBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			h := WithClientSet(mock.Clientset)
 			fake := &Kubeclient{}
@@ -126,6 +128,7 @@ func TestKubeClientBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			c := NewKubeClient(mock.opts...)
 			if !mock.expectClientSet && c.clientset != nil {
@@ -152,6 +155,7 @@ func TestGetClientOrCached(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			c, err := mock.KubeClient.getClientOrCached()
 			if mock.expectErr && err == nil {
@@ -176,6 +180,7 @@ func TestKubenetesPVCList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			k := Kubeclient{getClientset: mock.getClientset, namespace: "", list: mock.list}
 			_, err := k.List(metav1.ListOptions{})
@@ -199,6 +204,7 @@ func TestWithNamespaceBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			k := NewKubeClient(WithNamespace(mock.namespace))
 			if k.namespace != mock.namespace {
@@ -221,6 +227,7 @@ func TestKubenetesGetPVC(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			k := Kubeclient{getClientset: mock.getClientset, get: mock.get}
 			_, err := k.Get(mock.name, metav1.GetOptions{})
@@ -248,8 +255,9 @@ func TestKubenetesDelete(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			k := Kubeclient{getClientset: mock.getClientset, delete: mock.del}
+			k := Kubeclient{getClientset: mock.getClientset, del: mock.del}
 			err := k.Delete(mock.name, &metav1.DeleteOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)

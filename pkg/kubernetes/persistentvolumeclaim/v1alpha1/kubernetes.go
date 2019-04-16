@@ -47,7 +47,7 @@ type Kubeclient struct {
 	getClientset  getClientsetFn
 	list          listFn
 	get           getFn
-	delete        deleteFn
+	del           deleteFn
 	delCollection deleteCollectionFn
 }
 
@@ -77,8 +77,8 @@ func (k *Kubeclient) withDefaults() {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).List(opts)
 		}
 	}
-	if k.delete == nil {
-		k.delete = func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+	if k.del == nil {
+		k.del = func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Delete(name, deleteOpts)
 		}
 	}
@@ -163,7 +163,7 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	if err != nil {
 		return err
 	}
-	return k.delete(cli, k.namespace, name, deleteOpts)
+	return k.del(cli, k.namespace, name, deleteOpts)
 }
 
 // DeleteCollection deletes a collection of pvc objects.

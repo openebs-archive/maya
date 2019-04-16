@@ -4,13 +4,6 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-type labelKey string
-
-const (
-	// cstorVolumeLabel label for cstorvolume resource
-	cstorVolumeLabel labelKey = "openebs.io/persistent-volume"
-)
-
 // CStorVolume a wrapper for CStorVolume object
 type CStorVolume struct {
 	// actual cstorvolume object
@@ -44,6 +37,7 @@ func (b *ListBuilder) WithAPIList(list *apis.CStorVolumeList) *ListBuilder {
 		return b
 	}
 	for _, c := range list.Items {
+		c := c
 		b.list.items = append(b.list.items, &CStorVolume{object: &c})
 	}
 	return b
@@ -90,15 +84,16 @@ func IsHealthy() Predicate {
 	}
 }
 
-// PredicateList holds a list of predicate
+// PredicateList holds a list of cstor volume
+// based predicates
 type PredicateList []Predicate
 
 // all returns true if all the predicates
 // succeed against the provided cstorvolume
 // instance
-func (l PredicateList) all(p *CStorVolume) bool {
-	for _, pred := range l {
-		if !pred(p) {
+func (l PredicateList) all(c *CStorVolume) bool {
+	for _, check := range l {
+		if !check(c) {
 			return false
 		}
 	}

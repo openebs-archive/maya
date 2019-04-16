@@ -1,11 +1,11 @@
 package v1alpha1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	kclient "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // getClientsetFn is a typed function that
@@ -51,7 +51,7 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.Config().Get()
+			config, err := client.GetConfig(client.New())
 			if err != nil {
 				return nil, err
 			}
@@ -84,9 +84,9 @@ func (k *Kubeclient) withDefaults() {
 	}
 }
 
-// WithKubeClient sets the kubernetes client against
+// WithClientSet sets the kubernetes client against
 // the kubeclient instance
-func WithKubeClient(c *clientset.Clientset) KubeclientBuildOption {
+func WithClientSet(c *clientset.Clientset) KubeclientBuildOption {
 	return func(k *Kubeclient) {
 		k.clientset = c
 	}
@@ -100,9 +100,9 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for
+// NewKubeclient returns a new instance of kubeclient meant for
 // cstor volume replica operations
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+func NewKubeclient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -127,6 +127,9 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // Get returns deployment object for given name
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorVolume, error) {
+	if len(name) == 0 {
+		return nil, errors.New("failed to get cstorvolume: name can't be empty")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

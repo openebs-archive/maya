@@ -26,6 +26,7 @@ func TestWithAPIList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := NewListBuilder().WithAPIList(mock.inputURList)
 			if len(b.list.items) != len(mock.expectedOutput.items) {
@@ -57,6 +58,7 @@ func TestList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := NewListBuilder().WithAPIList(mock.inputURList).List()
 			if len(b.items) != len(mock.expectedOutput.items) {

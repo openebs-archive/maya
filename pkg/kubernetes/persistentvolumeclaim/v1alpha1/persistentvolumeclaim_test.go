@@ -30,38 +30,6 @@ func fakeAPIPVCListFromNameStatusMap(pvcs map[string]v1.PersistentVolumeClaimPha
 	return list
 }
 
-func fakeBoundAPIPVCObject(pvcNames []string) []v1.PersistentVolumeClaim {
-	plist := []v1.PersistentVolumeClaim{}
-	for _, pvcName := range pvcNames {
-		pvc := v1.PersistentVolumeClaim{}
-		pvc.SetName(pvcName)
-		pvc.Status.Phase = "Bound"
-		plist = append(plist, pvc)
-	}
-	return plist
-}
-
-func fakeNonBoundPVCList(pvcNames []string) []v1.PersistentVolumeClaim {
-	plist := []v1.PersistentVolumeClaim{}
-	for _, pvcName := range pvcNames {
-		pvc := v1.PersistentVolumeClaim{}
-		pvc.SetName(pvcName)
-		plist = append(plist, pvc)
-	}
-	return plist
-}
-
-func fakePVCListFromNameStatusMap(pvcs map[string]string) []*PVC {
-	plist := []*PVC{}
-	for k, v := range pvcs {
-		p := &v1.PersistentVolumeClaim{}
-		p.SetName(k)
-		p.Status.Phase = v1.PersistentVolumeClaimPhase(v)
-		plist = append(plist, &PVC{p})
-	}
-	return plist
-}
-
 func TestListBuilderWithAPIList(t *testing.T) {
 	tests := map[string]struct {
 		availablePVCs  []string
@@ -79,6 +47,7 @@ func TestListBuilderWithAPIList(t *testing.T) {
 		"PVC set 10": {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7", "pvc8", "pvc9"}, 9},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs))
 			if mock.expectedPVCLen != len(b.list.items) {
@@ -105,6 +74,7 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		"PVC set 10": {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7", "pvc8", "pvc9"}, 9},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b, _ := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).APIList()
 			if mock.expectedPVCLen != len(b.Items) {
@@ -131,6 +101,8 @@ func TestListBuilderToAPIList(t *testing.T) {
 		"PVC set 10": {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7", "pvc8", "pvc9"}, 9},
 	}
 	for name, mock := range tests {
+
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).List().ToAPIList()
 			if mock.expectedPVCLen != len(b.Items) {
@@ -165,6 +137,7 @@ func TestFilterList(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			list := ListBuilderForAPIObjects(fakeAPIPVCListFromNameStatusMap(mock.availablePVCs)).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredPVCs) {
