@@ -99,6 +99,7 @@ func (b *listBuilder) List() *cvrList {
 	}
 	filtered := ListBuilder().List()
 	for _, cvr := range b.list.items {
+		cvr := cvr // pin it
 		if b.filters.all(&cvr) {
 			filtered.items = append(filtered.items, cvr)
 		}
