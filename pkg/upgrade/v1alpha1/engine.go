@@ -108,25 +108,25 @@ func (ceb *CASTEngineBuilder) validate() error {
 func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 	err = ceb.validate()
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build engine: failed to validate: %s", ceb)
+		err = errors.WithMessagef(err, "failed to build cast engine: failed to validate: %s", ceb)
 		return
 	}
 
 	// creating a new instance of CASTEngine
 	e, err = cast.Engine(ceb.CASTemplate, "", nil)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
+		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 
 	defaultConfig, err := cast.ConfigToMap(ceb.CASTemplate.Spec.Defaults)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
+		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 	runtimeConfig, err := cast.ConfigToMap(ceb.RuntimeConfig)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
+		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 

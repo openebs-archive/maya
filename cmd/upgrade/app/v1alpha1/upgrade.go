@@ -54,7 +54,7 @@ func NewUpgradeForConfigPath(filePath string) (*Upgrade, error) {
 	data, err := ioutil.ReadFile(path.Clean(filePath))
 	if err != nil {
 		return nil, errors.WithMessagef(err,
-			"failed to run upgrade: failed to read config: %s", filePath)
+			"failed to initialize upgrade instance: failed to read config: %s", filePath)
 	}
 
 	cfg, err := upgrade.ConfigBuilderForRaw(data).
@@ -67,7 +67,7 @@ func NewUpgradeForConfigPath(filePath string) (*Upgrade, error) {
 		Build()
 	if err != nil {
 		return nil, errors.WithMessagef(err,
-			"failed to run upgrade: %s", filePath)
+			"failed to instantiate upgrade instance: config path {%s}", filePath)
 	}
 	return &Upgrade{
 		ConfigPath: filePath,

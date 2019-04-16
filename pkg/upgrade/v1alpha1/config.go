@@ -119,7 +119,7 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 	cb := NewConfigBuilder()
 	if yamlString == "" {
 		cb.errors = append(cb.errors,
-			errors.New("failed to instantiate config builder: empty string provided"))
+			errors.New("failed to instantiate config builder: empty config yaml provided"))
 	}
 	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
@@ -135,7 +135,7 @@ func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
 	cb := NewConfigBuilder()
 	if len(raw) == 0 {
 		cb.errors = append(cb.errors,
-			errors.New("failed to instantiate config builder: empty byte provided"))
+			errors.New("failed to instantiate config builder: empty config byte provided"))
 	}
 	err := yaml.Unmarshal(raw, cb.Config.Object)
 	if err != nil {
