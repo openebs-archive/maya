@@ -28,7 +28,16 @@ func TestGetPoolUIDs(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []cvr{}
 			for _, p := range mock.cvrUIDs {
-				cvrItems = append(cvrItems, cvr{apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{string(cstorPoolUIDLabel): p}}}})
+				cvrItems = append(cvrItems, cvr{
+					apis.CStorVolumeReplica{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								string(cstorPoolUIDLabel): p,
+							},
+						},
+					},
+				},
+				)
 			}
 			cvr := &cvrList{items: cvrItems}
 			if output := cvr.GetPoolUIDs(); !reflect.DeepEqual(output, mock.expectedString) {
@@ -57,7 +66,15 @@ func TestWithListObject(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []apis.CStorVolumeReplica{}
 			for _, p := range mock.expectedUIDs {
-				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{string(cstorPoolUIDLabel): p}}})
+				cvrItems = append(cvrItems, apis.CStorVolumeReplica{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: p,
+						Labels: map[string]string{
+							string(cstorPoolUIDLabel): p,
+						},
+					},
+				},
+				)
 			}
 
 			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems})
@@ -89,7 +106,15 @@ func TestList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			cvrItems := []apis.CStorVolumeReplica{}
 			for _, p := range mock.expectedUIDs {
-				cvrItems = append(cvrItems, apis.CStorVolumeReplica{ObjectMeta: metav1.ObjectMeta{Name: p, Labels: map[string]string{string(cstorPoolUIDLabel): p}}})
+				cvrItems = append(cvrItems, apis.CStorVolumeReplica{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: p,
+						Labels: map[string]string{
+							string(cstorPoolUIDLabel): p,
+						},
+					},
+				},
+				)
 			}
 
 			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems}).List()
@@ -102,6 +127,71 @@ func TestList(t *testing.T) {
 					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, cvrItems[index], ob.object)
 				}
 			}
+		})
+	}
+}
+
+func TestListWithFilter(t *testing.T) {
+	tests := map[string]struct {
+		inputUIDs   []string
+		phases      []apis.CStorVolumeReplicaPhase
+		predicates  predicateList
+		expectedLen int
+	}{
+		"UID set 1": {
+			[]string{"uid1", "uid2"},
+			[]apis.CStorVolumeReplicaPhase{apis.CVRStatusOnline, apis.CVRStatusOnline},
+			predicateList{IsHealthy()},
+			2,
+		},
+		"UID set 2": {
+			[]string{"uid1", "uid2"},
+			[]apis.CStorVolumeReplicaPhase{apis.CVRStatusOnline, apis.CVRStatusOffline},
+			predicateList{IsHealthy()},
+			1,
+		},
+		"UID set 3": {
+			[]string{"uid1", "uid2"},
+			[]apis.CStorVolumeReplicaPhase{apis.CVRStatusOffline, apis.CVRStatusOnline},
+			predicateList{IsHealthy()},
+			1,
+		},
+		"UID set 4": {
+			[]string{"uid1", "uid2"},
+			[]apis.CStorVolumeReplicaPhase{apis.CVRStatusOffline, apis.CVRStatusOffline},
+			predicateList{IsHealthy()},
+			0,
+		},
+	}
+	for name, mock := range tests {
+		t.Run(name, func(t *testing.T) {
+			cvrItems := []apis.CStorVolumeReplica{}
+			for i, p := range mock.inputUIDs {
+				cvrItems = append(cvrItems, apis.CStorVolumeReplica{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: p,
+						Labels: map[string]string{
+							string(cstorPoolUIDLabel): p,
+						},
+					},
+					Status: apis.CStorVolumeReplicaStatus{
+						Phase: mock.phases[i],
+					},
+				},
+				)
+			}
+
+			b := ListBuilder().WithAPIList(&apis.CStorVolumeReplicaList{Items: cvrItems}).WithFilter(mock.predicates...).List()
+			if len(b.items) != mock.expectedLen {
+				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedLen, len(b.items))
+			}
+
+			for index, ob := range b.items {
+				if ob.object.Status.Phase != "Healthy" {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, cvrItems[index], ob.object)
+				}
+			}
+
 		})
 	}
 }
