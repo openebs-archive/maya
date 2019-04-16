@@ -1,27 +1,33 @@
+# Idiomatic Maya Guide
+
 ## Introduction
+
 Following are some of the explanations thats comes up when we search for the term "idiomatic". They are:
-1. using, containing, or denoting expressions that are natural to a native speaker
-2. appropriate to the style of art or music associated with a particular period, individual, or group.
+
+1. Using, containing, or denoting expressions that are natural to a native speaker
+2. Appropriate to the style of art or music associated with a particular period, individual, or group.
 
 I do not remember hearing anything about being idiomatic for other languages. I guess it has become synonymous with the advent of golang. Being idiomatic definitely means more than just good coding practices. It tries to provide a common ground for each member of the team to communicate in a way that is understood clearly. Obviously this is not solved by programming language, not even a high level programming language. IMO current day programming languages provide a bunch of dialects and lets its users (i.e. developers) choose the one they like the most. The fact that there is a choice, it hits the team hard later in the project's release lifecycle. The project code may not look as bad as sphagetti but no good either to understand fast and hence implement features, fixes, etc. faster.
 
 ## If Maya is Go then why not Idiomatic Go
+
 Being idiomatic in Maya includes all the idiomatic pieces in Go and also takes into consideration writing code that understands and responds to Kubernetes a lot better. In addition, team at Maya has tried to put all their storage learnings so far into what is being termed as Idiomatic Maya where Maya is control plane for OpenEBS.
 
+This document lists some of the guidelines and their corresponding examples that we are trying to follow in Maya to be idiomatic in true sense (there could be difference in opinions but we are trying to make sure that we all remain on the same page and hence it doesn't look confusing going further) -
 
-## Devil is in the details
-Below are some sample code reviews that describes with examples to write idiomatic maya code.
+## Naming Conventions
 
-### Naming - Thumb Rule
-- Use names based on what the logic provides and not based on what the logic contains
+- Try to use names based on what the logic provides and not based on what the logic contains
 
 ```go
 import (
+  // Bad
   // alias `algorithm` conveys about what it contains i.e. some algorithm
   algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
 
   // vs.
 
+  // Good
   // `nodeselect` tries to convey what the logic provides
   // this seems more natural way to express
   nodeselect "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
@@ -29,71 +35,145 @@ import (
 ```
 
 ```go
-nodeDisks, err := ac.NodeDiskSelector()
-// `disks` is repeated; does not seem natural
-if len(nodeDisks.Disks.Items) == 0 {
-  // ...
-}
+import(
+// Bad
+// upgrade looks more generic i.e upgrade package can have
+// different other sub-packages like result which can be imported
+upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+
+// vs
+
+// Good
+// upgraderesult looks more specific and to the point i.e. the alias
+// is for 'result' which is inside upgrade
+upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+```
+
+```go
+// Bad
+// taskPatch represents details for runtask patch operation
+type taskPatch struct {}
+
+// vs
+
+// Good
+// runTaskPatch represents details for runtask patch operation
+type runTaskPatch struct {}
+```
+
+```go
+// redundant (patch) -- not ok
+patch.IsValidPatchType()
 
 // vs.
 
-s, err := ac.NodeDiskSelector()
-if len(s.Disks.Items) == 0 {
-  // ...
-}
+// Good
+patch.IsValidType()
 ```
 
-### Do the names reflect their purpose?
+## Indentation (For enhancing readability)
+
+We try to keep a line of code limited to not more than 80 characters so that the visibility and readability of the code looks better and aligned.
+
 ```go
-// assume a file pkg/algorithm/nodeSelect/v1alpha1/select_node.go 
+// Bad
+p, err := patch.BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).AddCheck(patch.IsValidType()).Build()
+
+// vs
+
+// Good (looks more readable if aligned this way)
+p, err := patch.
+  BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+  AddCheck(patch.IsValidType()).
+  Build()
+```
+
+```go
+// Bad
+p, err := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getRunTaskNamespace())).Patch(m.getTaskObjectName(), patch.Type, raw)
+
+// vs
+
+// Good (looks more readable)
+p, err := upgraderesult.
+  KubeClient(upgraderesult.WithNamespace(m.getRunTaskNamespace())).
+  Patch(m.getTaskObjectName(), patch.Type, raw)
+```
+
+### How do you name your packages ?
+
+```go
+// Does below naming seem natural?
+// Does full path reflect what the logic intends to provide?
+// Does this adhere to golang's package naming convention?
+//  i.e. nodeSelect vs nodeselect
+//
+// refer - https://blog.golang.org/package-names
+// refer the other naming idioms mentioned in this doc
+
+// Not Ok
+pkg/upgrade/nodeSelect/v1alpha1
+
+// vs.
+
+// Good (no camelcase)
+pkg/nodeselect/v1alpha1
+```
+
+## Do the names reflect their purpose ?
+
+```go
+// Not Ok
+
+// assume a file pkg/upgrade/result/v1alpha1/kubernetes.go
 // contains below code
 
-// NodeDiskSelector selects a node and disks attached to it.
+// GetUpgradeResult returns an upgrade result instance
 //
 // Method name clashes with package name
-// These are few questions that comes to mind:
-//  1/ Does this logic return a node instance?
-//  2/ Does this logic return a disk instance?
 //
-// However, comment does help to some extent in understanding the purpose 
+// However, comment does help to some extent in understanding the purpose
 // of this logic
-func (ac *AlgorithmConfig) NodeDiskSelector() (*nodeDisk, error) {
-	listDisk, err := ac.getDisk()
-	if listDisk == nil || len(listDisk.Items) == 0 {
-		return nil, errors.Wrapf(err, "no disk object found")
-	}
-	nodeDiskMap, err := ac.getCandidateNode(listDisk)
-	if err != nil {
-		return nil, err
-	}
-	selectedDisk := ac.selectNode(nodeDiskMap)
-	return selectedDisk, nil
+func (k *kubeclient) GetUpgradeResult(name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+    if strings.TrimSpace(name) == "" {
+        return nil, errors.New("failed to get upgrade result: missing upgradeResult name")
+    }
+    cs, err := k.getClientOrCached()
+    if err != nil {
+        return nil, err
+    }
+    return k.get(cs, name, k.namespace, opts)
 }
+// Here the caller code will import this package as
+upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 
-vs.
+// And then the above method will be called as
+upgraderesult.GetUpgradeResult(name,opts)
+// The call above looks redundant since the word upgraderesult is being
+// repeated.
 
-// change the file path to below
-// pkg/nodeselect/v1alpha1/nodeselect.go
+// vs.
 
-// NodeDiskSelector selects and returns appropriate node
-//
-// Note: It is assumed that the information required to select is 
-// available in nodeselect instance
-//
-// Note: The return has to be an instance of node. This instance
-// should be defined in this package
-//
-// Note: Below might indicate a stripped off version, however it is
-// not. Code needs to be designed to place business logic in proper places.
-// A good code reflects in its Unit Testing as well as in its caller code.
-func (s *nodeselect) Get() (*node, error) {
-	d, err := s.getDisks()
-	if d == nil || len(d.Items) == 0 {
-		return nil, errors.Wrapf(err, "no disks provided")
-	}
-	dl := disk.NewList(disk.WithNames(d.Items)).Filter(disk.IsFree)
-	nl := node.NewList(node.WithDisks(dl.Item)).Filter(node.ContainsDisk)
-	return nl.Filter(node.IsPoolFeasible())
+// Good
+// Get returns an upgrade result instance from kubernetes cluster
+func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+    if strings.TrimSpace(name) == "" {
+        return nil, errors.New("failed to get upgrade result: missing upgradeResult name")
+    }
+    cs, err := k.getClientOrCached()
+    if err != nil {
+        return nil, err
+    }
+    return k.get(cs, name, k.namespace, opts)
+}
+// Here the caller code will import this package as
+upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+
+// And then the above method will be called as
+upgraderesult.Get(name,opts)
+// The call above looks more precise and clear since
+// calling Get will return for package upgradeResult
+// should return an upgrade result instance.
 }
 ```
 
@@ -102,26 +182,26 @@ func (s *nodeselect) Get() (*node, error) {
 ```go
 type poolCreateConfig struct {
   // the word algorithm is repeated
-	*algorithm.AlgorithmConfig
+  *algorithm.AlgorithmConfig
 }
 
 // vs.
 
 type poolCreateConfig struct {
-	*algorithm.Config
+  *algorithm.Config
 }
 ```
 
 ```go
 poolconfig = &poolCreateConfig{
   // here the word algorithm gets repeated
-	algorithm.NewAlgorithmConfig(spcGot),
+  algorithm.NewAlgorithmConfig(spcGot),
 }
 
 // vs.
 
 poolconfig = &poolCreateConfig{
-	algorithm.NewConfig(spcGot),
+  algorithm.NewConfig(spcGot),
 }
 ```
 
@@ -134,51 +214,60 @@ pool, err := newClientSet.NewCasPool(spcGot, poolconfig)
 p, err := cs.NewCasPool(spcGot, poolconfig)
 ```
 
-### How do you name your packages?
+## Make use of Builder Patterns
 
-```go
-// Does below naming seem natural?
-// Does full path reflect what the logic intends to provide?
-// Does this adhere to golang's package naming convention?
-//  i.e. nodeSelect vs nodeselect
-//
-// refer - https://blog.golang.org/package-names
-// refer the other naming idioms mentioned in this doc
-pkg/algorithm/nodeSelect/v1alpha1
-
-// vs.
-
-pkg/nodeselect/v1alpha1
-```
-
-### Caller code should show the intent
-
-```go
-pool, err := newClientSet.NewCasPool(spcGot, poolconfig)
-
-// vs.
-
-// if caller needs a new instance of cas pool
-p, err := caspool.New(...)
-
-// vs. 
-// if caller needs to fetch from some service
-p, err := caspool.Get(..)
-```
-
-### Closed for modification yet open to extension
-- Avoid changing function signature like the one shown below
-- This can be caught by compilers, but is still a good one to sort during the design phase itself
-- Think how readability suffers, if you need to add a few more arguments to below function
-
-```diff
-- func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
-+ func (newClientSet *clientSet) NewCasPool(spc *apis.StoragePoolClaim, algorithmConfig *poolCreateConfig) (*apis.CasPool, error) {
-```
-
-### Do we digress too much from original patterns : Builder Pattern
 - Patterns are meant to be an effective communication technique between the developer as well as the reader of the code
 - Once again remember natural way to express a specific thing (i.e. being idiomatic) helps us to achieve our overall objective
+
+```go
+// Without builder pattern
+// patchUpgradeResult will patch an UpgradeResult as defined in the task
+func (m *taskExecutor) patchUpgradeResult() (err error) {
+    patch, err := asTaskPatch("UpgradeResult", m.runtask.Spec.Task, m.templateValues)
+    if err != nil {
+        return
+    }
+    pe, err := newTaskPatchExecutor(patch)
+    if err != nil {
+        return
+    }
+    raw, err := pe.toJson()
+    if err != nil {
+        return
+    }
+    // patch the upgrade result
+    upgradeResult, err := m.getK8sClient().PatchUpgradeResult(m.getTaskObjectName(), m.getTaskRunNamespace(), pe.patchType(), raw)
+    if err != nil {
+        return
+    }
+    util.SetNestedField(m.templateValues, upgradeResult, string(v1alpha1.CurrentJSONResultTLP))
+    return
+}
+
+// vs
+
+// With Builder Pattern (recommended)
+// patchUpgradeResult will patch an UpgradeResult as defined in the task
+func (m *taskExecutor) patchUpgradeResult() (err error) {
+    // build a runtask patch instance
+    patch, err := patch.
+        BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+        AddCheckf(patch.IsValidType(), "IsValidType").
+        Build()
+    if err != nil {
+        return
+    }
+    // patch Upgrade Result
+    p, err := upgraderesult.
+        KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+        Patch(m.getTaskObjectName(), patch.Type, patch.Object)
+    if err != nil {
+        return
+    }
+    util.SetNestedField(m.templateValues, p, string(v1alpha1.CurrentJSONResultTLP))
+    return
+}
+```
 
 ```go
 // below does not express the builder pattern in its natural way
@@ -193,10 +282,69 @@ p, err := b.WithPool(casPool).
             Build()
 ```
 
-### Do you identify boilerplate in your code (TODO)
+## Make use of Predicates (instead of if{}, else{}) for condition checks
 
+- We are trying to make use of predicates instead of various blocks of if{}, else{}.
 
-### Do we understand Table Driven Tests
+```go
+// Predicate abstracts conditional logic w.r.t the patch instance
+//
+// NOTE:
+// Predicate is a functional approach versus traditional approach to mix
+// conditions such as *if-else* within blocks of business logic
+//
+// NOTE:
+// Predicate approach enables clear separation of conditionals from
+// imperatives i.e. actions that form the business logic
+type Predicate func(*Patch) bool
+
+// IsValidType returns true if provided patch
+// type is one of the valid patch types
+func (p *Patch) IsValidType() bool {
+    return p.Type == types.JSONPatchType || p.Type == types.MergePatchType ||
+        p.Type == types.StrategicMergePatchType
+}
+
+// Caller code can make use of these predicates in the following way :
+// build a runtask patch instance
+// checking if the patch type is valid or not
+patch, err := patch.
+    BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+    AddCheckf(patch.IsValidType(), "IsValidType").
+    Build()
+```
+
+## Caller code should show the intent
+
+```go
+// The caller code should have the logic and capability to call methods as
+// per requirement i.e. it should be provided with all the flexibilities
+// that it requires i.e if it want to pass a namespace then it should
+// be able to call some method such as WithNamespace() so that it can
+// pass the namespace.
+
+// An example caller code could look like -
+
+// putUpgradeResult will put an upgrade result as defined in the task
+func (m *taskExecutor) putUpgradeResult() (err error) {
+    uresult, err := upgraderesult.
+        BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
+        Build()
+    if err != nil {
+        return
+    }
+    uraw, err := upgraderesult.
+        KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+        CreateRaw(uresult)
+    if err != nil {
+        return
+    }
+    util.SetNestedField(m.templateValues, uraw, string(v1alpha1.CurrentJSONResultTLP))
+    return
+}
+```
+
+## Do we understand Table Driven Tests
 
 ```go
 // There is no clarity on 
@@ -397,22 +545,3 @@ func TestNewCasPoolManual(t *testing.T) {
 	}
 }
 ```
-
-### Do you identify boilerplate in your test code (TODO)
-- Understand what is boilerplate versus what you want to test
-- This will help you in writing readable & hence maintainable test cases
-
-### Enabling configurability at source code solves most of Unit Test's corner cases (TODO)
-- Over-parameterize structs to allow tests to fine-tune their behavior
-- It is okay to make these configurations unexported so only tests can set them
-
-
-### go test has lot more to offer (TODO)
-- go test as a tool is a fantastic taskrunner
-
-
-### Have you ever considered **testing** as a public API (TODO)
-- Practice of adopting testing.go or testing_*.go files
-- These are exported APIs for the sole purpose of providing mocks, tests, harnesses, helpers, etc
-- Allows other packages to test using above package's mocks without the need to write mocks
-- Above naming convention allows one to easily find test helpers
