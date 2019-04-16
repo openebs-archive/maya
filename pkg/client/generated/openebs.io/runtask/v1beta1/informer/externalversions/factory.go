@@ -25,7 +25,7 @@ import (
 
 	internalclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/runtask/v1beta1/clientset/internalclientset"
 	internalinterfaces "github.com/openebs/maya/pkg/client/generated/openebs.io/runtask/v1beta1/informer/externalversions/internalinterfaces"
-	openebsio "github.com/openebs/maya/pkg/client/generated/openebs.io/runtask/v1beta1/informer/externalversions/openebs.io"
+	runtask "github.com/openebs/maya/pkg/client/generated/openebs.io/runtask/v1beta1/informer/externalversions/runtask"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Openebs() openebsio.Interface
+	Openebs() runtask.Interface
 }
 
-func (f *sharedInformerFactory) Openebs() openebsio.Interface {
-	return openebsio.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Openebs() runtask.Interface {
+	return runtask.New(f, f.namespace, f.tweakListOptions)
 }

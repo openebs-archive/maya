@@ -31,11 +31,11 @@ func ToUnstructResources(c *apis.Catalog) ([]*unstructured.Unstructured, error) 
 		return nil, errors.New("failed to build unstruct instances for catalog resources: nil catalog")
 	}
 	for _, resource := range c.Spec.Items {
-		u, err := unstruct.Unmarshal(resource.Template)
+		u, err := unstruct.BuilderForYaml(resource.Template).Build()
 		if err != nil {
 			return nil, err
 		}
-		unstructs = append(unstructs, u)
+		unstructs = append(unstructs, u.GetUnstructured())
 	}
 	return unstructs, nil
 }
