@@ -312,3 +312,6 @@ const (
 	// Above templating will give the current repeat resource name
 	CurrentRepeatResourceLITP ListItemsTLPProperty = "currentRepeatResource"
 )
+
+// TaskConfigTLPProperty is used to define properties that comes after TaskConfigTLP
+type TaskConfigTLPProperty string
