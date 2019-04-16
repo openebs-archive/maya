@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func TestNewEngine(t *testing.T) {
+func TestNewCASTEngineBuilder(t *testing.T) {
 	tests := map[string]struct {
 		expectRuntimeConfig bool
 		expectCASTemplate   bool
@@ -36,10 +36,10 @@ func TestNewEngine(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := NewEngine()
+			b := NewCASTEngineBuilder()
 			if (b.CASTemplate != nil) != mock.expectCASTemplate {
 				t.Fatalf("test %s failed, expect CASTemplate: %t but got: %t",
 					name, mock.expectCASTemplate, b.CASTemplate != nil)
@@ -76,10 +76,10 @@ func TestWithRuntimeConfig(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := &EngineBuilder{}
+			b := &CASTEngineBuilder{}
 			b.WithRuntimeConfig(mock.runtimeConfig)
 			if mock.expectRuntimeConfig != (len(b.RuntimeConfig) != 0) {
 				t.Fatalf("test %s failed, expect runtimeConfig: %t but got: %t",
@@ -104,10 +104,10 @@ func TestWithUnitOfUpgrade(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := &EngineBuilder{}
+			b := &CASTEngineBuilder{}
 			b.WithUnitOfUpgrade(mock.unitOfUpgrade)
 			if mock.expectUnitOfUpgrade != (b.UnitOfUpgrade != nil) {
 				t.Fatalf("test %s failed, expect unitOfUpgrade: %t but got: %t",
@@ -132,10 +132,10 @@ func TestWithCASTemplate(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := &EngineBuilder{}
+			b := &CASTEngineBuilder{}
 			b.WithCASTemplate(mock.casTemplate)
 			if mock.expectCASTemplate != (b.CASTemplate != nil) {
 				t.Fatalf("test %s failed, expect CASTemplate: %t but got: %t",
@@ -147,18 +147,18 @@ func TestWithCASTemplate(t *testing.T) {
 
 func TestValidateEngineBuilder(t *testing.T) {
 	tests := map[string]struct {
-		builder     *EngineBuilder
+		builder     *CASTEngineBuilder
 		expectError bool
 	}{
 		"valid builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
 			},
 			false,
 		},
 		"error present in builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
 				errors: []error{
@@ -168,21 +168,21 @@ func TestValidateEngineBuilder(t *testing.T) {
 			true,
 		},
 		"castemplate not present in builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
 			},
 			true,
 		},
 		"unit of upgrade not present in builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				CASTemplate: &apis.CASTemplate{},
 			},
 			true,
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			e := mock.builder.validate()
 			if mock.expectError != (e != nil) {
@@ -195,11 +195,11 @@ func TestValidateEngineBuilder(t *testing.T) {
 
 func TestEngineBuilderString(t *testing.T) {
 	tests := map[string]struct {
-		builder             *EngineBuilder
+		builder             *CASTEngineBuilder
 		expectedStringParts []string
 	}{
 		"engine builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				RuntimeConfig: []apis.Config{
 					apis.Config{
 						Name:  "key-1",
@@ -218,8 +218,8 @@ func TestEngineBuilderString(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			ymlstr := mock.builder.String()
 			for _, expect := range mock.expectedStringParts {
@@ -233,11 +233,11 @@ func TestEngineBuilderString(t *testing.T) {
 
 func TestEngineBuilderGoString(t *testing.T) {
 	tests := map[string]struct {
-		builder             *EngineBuilder
+		builder             *CASTEngineBuilder
 		expectedStringParts []string
 	}{
 		"engine builder": {
-			&EngineBuilder{
+			&CASTEngineBuilder{
 				RuntimeConfig: []apis.Config{
 					apis.Config{
 						Name:  "key-1",
@@ -256,8 +256,8 @@ func TestEngineBuilderGoString(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			ymlstr := mock.builder.GoString()
 			for _, expect := range mock.expectedStringParts {

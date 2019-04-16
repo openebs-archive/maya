@@ -25,34 +25,34 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EngineList contains list of castEngine
-type EngineList struct {
+// Executor contains list of castEngine
+type Executor struct {
 	engines []cast.Interface
 }
 
-// EngineListBuilder helps to build EngineList instance
-type EngineListBuilder struct {
-	object *EngineList
+// ExecutorBuilder helps to build Executor instance
+type ExecutorBuilder struct {
+	object *Executor
 	errors []error
 }
 
-// ListEngineBuilderForConfig returns an instance of EngineListBuilder
-//It adds object in EngineListBuilder struct with the help of config
-func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) {
-	b = &EngineListBuilder{}
+// ExecutorBuilderForConfig returns an instance of ExecutorBuilder
+//It adds object in ExecutorBuilder struct with the help of config
+func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
+	b = &ExecutorBuilder{}
 	castObj, err := cast.KubeClient().
 		Get(cfg.CASTemplate, metav1.GetOptions{})
 	if err != nil {
 		b.errors = append(b.errors,
 			errors.WithMessagef(err,
-				"failed to instantiate list builder: %s", cfg))
+				"failed to instantiate executor builder: %s", cfg))
 		return
 	}
 
 	engines := []cast.Interface{}
 	for _, resource := range cfg.Resources {
-		resource := resource
-		e, err := upgrade.NewEngine().
+		resource := resource // pin it
+		e, err := upgrade.NewCASTEngineBuilder().
 			WithCASTemplate(castObj).
 			WithUnitOfUpgrade(&resource).
 			WithRuntimeConfig(cfg.Data).
@@ -60,30 +60,30 @@ func ListEngineBuilderForConfig(cfg *apis.UpgradeConfig) (b *EngineListBuilder) 
 		if err != nil {
 			b.errors = append(b.errors,
 				errors.WithMessagef(err,
-					"failed to instantiate list builder: %s: %s", resource, cfg))
+					"failed to instantiate executor builder: %s: %s", resource, cfg))
 			return
 		}
 
 		engines = append(engines, e)
 	}
-	b.object = &EngineList{engines: engines}
+	b.object = &Executor{engines: engines}
 	return b
 }
 
-// Build builds a new instance of EngineList with the help of
-// EngineListBuilder instance
-func (elb *EngineListBuilder) Build() (*EngineList, error) {
-	if len(elb.errors) != 0 {
-		return nil, errors.Errorf("builder error: %s", elb.errors)
+// Build builds a new instance of Executor with the help of
+// ExecutorBuilder instance
+func (eb *ExecutorBuilder) Build() (*Executor, error) {
+	if len(eb.errors) != 0 {
+		return nil, errors.Errorf("builder error: %s", eb.errors)
 	}
-	return elb.object, nil
+	return eb.object, nil
 }
 
-// Run runs list of castEngines. It returns error if there is any
-// while running these engines
-func (el *EngineList) Run() error {
-	for _, e := range el.engines {
-		_, err := e.Run()
+// Execute runs list of castEngines. It returns error
+// if there is any while running these engines
+func (e *Executor) Execute() error {
+	for _, engine := range e.engines {
+		_, err := engine.Run()
 		if err != nil {
 			return errors.WithMessagef(err, "failed to run upgrade engine")
 		}

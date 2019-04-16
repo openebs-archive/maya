@@ -44,8 +44,8 @@ const (
 	kindKey string = "kind"
 )
 
-// EngineBuilder helps to build a new instance of castEngine
-type EngineBuilder struct {
+// CASTEngineBuilder helps to build a new instance of castEngine
+type CASTEngineBuilder struct {
 	RuntimeConfig []apis.Config
 	CASTemplate   *apis.CASTemplate
 	UnitOfUpgrade *upgrade.ResourceDetails
@@ -53,17 +53,17 @@ type EngineBuilder struct {
 }
 
 // String implements Stringer interface
-func (eb EngineBuilder) String() string {
-	return stringer.Yaml("engine builder", eb)
+func (ceb CASTEngineBuilder) String() string {
+	return stringer.Yaml("cast engine builder", ceb)
 }
 
 // GoString implements GoStringer interface
-func (eb EngineBuilder) GoString() string {
-	return eb.String()
+func (ceb CASTEngineBuilder) GoString() string {
+	return ceb.String()
 }
 
-// WithRuntimeConfig sets runtime config in EngineBuilder.
-func (eb *EngineBuilder) WithRuntimeConfig(configs []upgrade.DataItem) *EngineBuilder {
+// WithRuntimeConfig sets runtime config in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithRuntimeConfig(configs []upgrade.DataItem) *CASTEngineBuilder {
 	runtimeConfig := []apis.Config{}
 	for _, config := range configs {
 		c := apis.Config{
@@ -74,66 +74,66 @@ func (eb *EngineBuilder) WithRuntimeConfig(configs []upgrade.DataItem) *EngineBu
 		}
 		runtimeConfig = append(runtimeConfig, c)
 	}
-	eb.RuntimeConfig = runtimeConfig
-	return eb
+	ceb.RuntimeConfig = runtimeConfig
+	return ceb
 }
 
-// WithUnitOfUpgrade sets unitOfUpgrade details in EngineBuilder.
-func (eb *EngineBuilder) WithUnitOfUpgrade(item *upgrade.ResourceDetails) *EngineBuilder {
-	eb.UnitOfUpgrade = item
-	return eb
+// WithUnitOfUpgrade sets unitOfUpgrade details in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithUnitOfUpgrade(item *upgrade.ResourceDetails) *CASTEngineBuilder {
+	ceb.UnitOfUpgrade = item
+	return ceb
 }
 
-// WithCASTemplate sets casTemplate object in EngineBuilder.
-func (eb *EngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *EngineBuilder {
-	eb.CASTemplate = casTemplate
-	return eb
+// WithCASTemplate sets casTemplate object in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *CASTEngineBuilder {
+	ceb.CASTemplate = casTemplate
+	return ceb
 }
 
-// validate validates EngineBuilder struct.
-func (eb *EngineBuilder) validate() error {
-	if eb.CASTemplate == nil {
-		return errors.New("nil castTemplate provided")
+// validate validates CASTEngineBuilder struct.
+func (ceb *CASTEngineBuilder) validate() error {
+	if ceb.CASTemplate == nil {
+		return errors.New("missing castemplate")
 	}
-	if eb.UnitOfUpgrade == nil {
-		return errors.New("nil upgrade item provided")
+	if ceb.UnitOfUpgrade == nil {
+		return errors.New("missing upgrade item")
 	}
-	if len(eb.errors) > 0 {
-		return errors.Errorf("%v", eb.errors)
+	if len(ceb.errors) > 0 {
+		return errors.Errorf("%v", ceb.errors)
 	}
 	return nil
 }
 
-// Build builds a new instance of engine with the helps of EngineBuilder struct.
-func (eb *EngineBuilder) Build() (e cast.Interface, err error) {
-	err = eb.validate()
+// Build builds a new instance of engine with the helps of CASTEngineBuilder struct.
+func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
+	err = ceb.validate()
 	if err != nil {
-		err = errors.WithMessagef(err, "validation error: %s", eb)
+		err = errors.WithMessagef(err, "failed to build engine: failed to validate: %s", ceb)
 		return
 	}
 
 	// creating a new instance of CASTEngine
-	e, err = cast.Engine(eb.CASTemplate, "", nil)
+	e, err = cast.Engine(ceb.CASTemplate, "", nil)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
+		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
 		return
 	}
 
-	defaultConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.CASTemplate.Spec.Defaults))
+	defaultConfig, err := cast.ConfigToMap(ceb.CASTemplate.Spec.Defaults)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
+		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
 		return
 	}
-	runtimeConfig, err := cast.ConfigToMap(cast.MergeConfig([]apis.Config{}, eb.RuntimeConfig))
+	runtimeConfig, err := cast.ConfigToMap(ceb.RuntimeConfig)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to create engine: %s", eb)
+		err = errors.WithMessagef(err, "failed to build engine: %s", ceb)
 		return
 	}
 
 	taskConfig := map[string]interface{}{
-		nameKey:      eb.UnitOfUpgrade.Name,
-		namespaceKey: eb.UnitOfUpgrade.Namespace,
-		kindKey:      eb.UnitOfUpgrade.Kind,
+		nameKey:      ceb.UnitOfUpgrade.Name,
+		namespaceKey: ceb.UnitOfUpgrade.Namespace,
+		kindKey:      ceb.UnitOfUpgrade.Kind,
 	}
 	e.SetValues(upgradeItemProperty, taskConfig)
 	e.SetValues(configProperty, defaultConfig)
@@ -141,7 +141,7 @@ func (eb *EngineBuilder) Build() (e cast.Interface, err error) {
 	return
 }
 
-// NewEngine returns an empty instance of EngineBuilder
-func NewEngine() *EngineBuilder {
-	return &EngineBuilder{}
+// NewCASTEngineBuilder returns an empty instance of CASTEngineBuilder
+func NewCASTEngineBuilder() *CASTEngineBuilder {
+	return &CASTEngineBuilder{}
 }

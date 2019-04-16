@@ -74,8 +74,8 @@ func TestNewBuilder(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := NewConfigBuilder()
 			if (b.Config != nil) != mock.expectConfig {
@@ -113,10 +113,14 @@ resources:
   nameSpace: openebs`,
 			true,
 		},
+		"empty yaml string": {
+			"",
+			true,
+		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
 			if (len(b.errors) != 0) != mock.expectError {
@@ -132,7 +136,7 @@ func TestWithRawBytes(t *testing.T) {
 		raw         []byte
 		expectError bool
 	}{
-		"valid yaml string": {
+		"valid raw byte": {
 			[]byte(`
 casTemplate: cstor-pool-081-082
 resources:
@@ -141,7 +145,7 @@ resources:
   nameSpace: openebs`),
 			false,
 		},
-		"invalid yaml string": {
+		"invalid raw byte": {
 			[]byte(`
 	casTemplate: cstor-pool-081-082
 resources:
@@ -150,10 +154,14 @@ resources:
   nameSpace: openebs`),
 			true,
 		},
+		"empty raw byte": {
+			[]byte(""),
+			true,
+		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
 			if (len(b.errors) != 0) != mock.expectError {
@@ -183,8 +191,8 @@ func TestValidate(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := NewConfigBuilder()
 			b.AddChecks(mock.checks...)
@@ -217,8 +225,8 @@ func TestIsCASTemplateName(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		op := IsCASTemplateName()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -247,8 +255,8 @@ func TestIsResource(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		op := IsResource()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -373,8 +381,8 @@ func TestIsValidResource(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		op := IsValidResource()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -413,8 +421,8 @@ func TestIsSameKind(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		op := IsSameKind()(mock.config)
 		if op != mock.expectOutput {
 			t.Fatalf("test %s failed, expected error: %t but got: %t",
@@ -452,8 +460,8 @@ func TestBuild(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
-		name := name
-		mock := mock
+		name := name // pin it
+		mock := mock // pin it
 		b := &ConfigBuilder{
 			Config: mock.config,
 			checks: make(map[*Predicate]string),

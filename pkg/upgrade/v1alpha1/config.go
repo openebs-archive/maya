@@ -116,11 +116,10 @@ func NewConfigBuilder() *ConfigBuilder {
 // ConfigBuilderForYaml add object in ConfigBuilder struct.
 // with the help of yaml string
 func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
-	cb := &ConfigBuilder{
-		Config: &Config{
-			Object: &apis.UpgradeConfig{},
-		},
-		checks: make(map[*Predicate]string),
+	cb := NewConfigBuilder()
+	if yamlString == "" {
+		cb.errors = append(cb.errors,
+			errors.New("failed to instantiate config builder: empty string provided"))
 	}
 	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
@@ -133,11 +132,10 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 // ConfigBuilderForRaw add object in ConfigBuilder struct.
 // With the help of raw bytes
 func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
-	cb := &ConfigBuilder{
-		Config: &Config{
-			Object: &apis.UpgradeConfig{},
-		},
-		checks: make(map[*Predicate]string),
+	cb := NewConfigBuilder()
+	if len(raw) == 0 {
+		cb.errors = append(cb.errors,
+			errors.New("failed to instantiate config builder: empty byte provided"))
 	}
 	err := yaml.Unmarshal(raw, cb.Config.Object)
 	if err != nil {

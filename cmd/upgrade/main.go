@@ -31,15 +31,17 @@ func main() {
 		fmt.Printf("failed to upgrade: %s", err)
 		os.Exit(1)
 	}
-	configPath := flag.String("config-path", "/etc/config/upgrade", "path to config file.")
+	configPath := flag.String("config-path", "/etc/config/upgrade", "path to upgrade config file.")
 	defer log.Flush()
 	flag.Parse()
 
-	u := &upgrade.Upgrade{
-		ConfigPath: *configPath,
+	u, err := upgrade.NewUpgradeForConfigPath(*configPath)
+	if err != nil {
+		log.Errorf("failed to upgrade: %+v", err)
+		os.Exit(1)
 	}
-	err = u.Run()
 
+	err = u.Run()
 	if err != nil {
 		log.Errorf("failed to upgrade: %+v", err)
 		os.Exit(1)

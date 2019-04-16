@@ -18,21 +18,29 @@ package v1alpha1
 
 import (
 	"io/ioutil"
+	"path"
 
 	"github.com/pkg/errors"
 
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 )
 
-// Upgrade contains start options for openebs upgrade
+// Upgrade contains configurations to perform upgrade
 type Upgrade struct {
+	// ConfigPath represents the configuration that
+	// is provided to upgrade as its input
 	ConfigPath string
+
+	// Config represents the config instance
+	// built from ConfigPath
+	Config *apis.UpgradeConfig
 }
 
 // String implements Stringer interface
 func (u Upgrade) String() string {
-	return stringer.Yaml("upgrade config", u)
+	return stringer.Yaml("upgrade", u)
 }
 
 // GoString implements GoStringer interface
@@ -40,40 +48,47 @@ func (u Upgrade) GoString() string {
 	return u.String()
 }
 
-// Run runs various steps to upgrade unit of upgrades
-// present in config.
-func (u *Upgrade) Run() error {
-	data, err := ioutil.ReadFile(u.ConfigPath)
+// NewUpgradeForConfigPath takes config file path and add
+// config in upgrade instance
+func NewUpgradeForConfigPath(filePath string) (*Upgrade, error) {
+	data, err := ioutil.ReadFile(path.Clean(filePath))
 	if err != nil {
-		return errors.WithMessagef(err,
-			"failed to run upgrade: failed to read config: %s", u)
+		return nil, errors.WithMessagef(err,
+			"failed to run upgrade: failed to read config: %s", filePath)
 	}
 
 	cfg, err := upgrade.ConfigBuilderForRaw(data).
 		AddCheckf(upgrade.IsCASTemplateName(), "missing castemplate name").
-		AddCheckf(upgrade.IsResource(), "missing resource(s) for upgrade").
+		AddCheckf(upgrade.IsResource(), "missing resource(s)").
 		AddCheckf(upgrade.IsValidResource(),
 			"invalid resource: verify if namespace, kind and name were provided").
 		AddCheckf(upgrade.IsSameKind(),
 			"invalid resources: all resources should belong to same kind").
 		Build()
 	if err != nil {
+		return nil, errors.WithMessagef(err,
+			"failed to run upgrade: %s", filePath)
+	}
+	return &Upgrade{
+		ConfigPath: filePath,
+		Config:     cfg,
+	}, nil
+}
+
+// Run runs various steps to upgrade unit of upgrades
+// present in config.
+func (u *Upgrade) Run() error {
+	e, err := ExecutorBuilderForConfig(u.Config).
+		Build()
+	if err != nil {
 		return errors.WithMessagef(err,
 			"failed to run upgrade: %s", u)
 	}
 
-	el, err := ListEngineBuilderForConfig(cfg).
-		Build()
+	err = e.Execute()
 	if err != nil {
 		return errors.WithMessagef(err,
-			"failed to run upgrade: %s", cfg)
+			"failed to run upgrade: %s", u)
 	}
-
-	err = el.Run()
-	if err != nil {
-		return errors.WithMessagef(err,
-			"failed to run upgrade: %s", cfg)
-	}
-
 	return nil
 }
