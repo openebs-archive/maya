@@ -45,6 +45,7 @@ func (b *listBuilder) WithObject(pods ...*pod) *listBuilder {
 // pod api instances
 func (b *listBuilder) WithAPIObject(pods ...v1.Pod) *listBuilder {
 	for _, p := range pods {
+		p := p //pin it
 		b.list.items = append(b.list.items, &pod{&p})
 	}
 	return b
