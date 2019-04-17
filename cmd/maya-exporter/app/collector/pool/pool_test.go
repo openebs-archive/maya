@@ -3,14 +3,10 @@ package pool
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
-	"strconv"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -236,51 +232,4 @@ func TestGetInitStatus(t *testing.T) {
 			pool.GetInitStatus(1 * time.Second)
 		})
 	}
-}
-
-func TestRejectRequestCounter(t *testing.T) {
-	reqCount := 200
-	output := regexp.MustCompile(`openebs_zpool_reject_request_count\s\d+`)
-	runner = testRunner{
-		stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	3000	23423 1341	-	0	iauwb	1.00 REMOVED	-"),
-	}
-	col := New()
-	if err := prometheus.Register(col); err != nil {
-		t.Fatalf("collector failed to register: %s", err)
-	}
-
-	server := httptest.NewServer(promhttp.Handler())
-	var body io.ReadCloser
-
-	wg := sync.WaitGroup{}
-	wg.Add(reqCount)
-	for i := 0; i < reqCount; i++ {
-		go func(server *httptest.Server) {
-			defer wg.Done()
-			client := http.DefaultClient
-			client.Timeout = 5 * time.Second
-			resp, err := client.Get(server.URL)
-			body = resp.Body
-			if err != nil {
-				t.Fatalf("unexpected failed response from prometheus: %s", err)
-			}
-		}(server)
-	}
-
-	wg.Wait()
-	defer body.Close()
-
-	buf, err := ioutil.ReadAll(body)
-	if err != nil {
-		t.Fatalf("failed reading server response: %s", err)
-	}
-
-	str := output.FindStringSubmatch(string(buf))
-	newStr := strings.Fields(str[0])
-	reqCount, _ = strconv.Atoi(newStr[1])
-	if reqCount <= 0 {
-		t.Fatalf("Failed to test reject request count, fount str: %s, buf: %s", str, string(buf))
-	}
-	prometheus.Unregister(col)
-	server.Close()
 }
