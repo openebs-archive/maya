@@ -139,6 +139,7 @@ func (b *listBuilder) WithAPIList(pools *apis.CStorPoolList) *listBuilder {
 		return b
 	}
 	for _, pool := range pools.Items {
+		pool := pool //pin it
 		b.list.items = append(b.list.items, &csp{&pool})
 	}
 
