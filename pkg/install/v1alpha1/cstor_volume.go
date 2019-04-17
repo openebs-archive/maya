@@ -467,6 +467,7 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/storage-class: {{ .Volume.storageclass }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            openebs.io/version: {{ .CAST.version }}
           annotations:
             openebs.io/storage-class-ref: |
               name: {{ .Volume.storageclass }}
