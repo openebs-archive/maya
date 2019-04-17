@@ -53,7 +53,7 @@ spec:
     value: {{env "OPENEBS_SERVICE_ACCOUNT"}}
   # PoolResourceRequests allow you to specify resource requests that need to be available
   # before scheduling the containers. If not specified, the default is to use the limits
-  # from PoolResourceLimits or the default requests set in the cluster. 
+  # from PoolResourceLimits or the default requests set in the cluster.
   - name: PoolResourceRequests
     value: "none"
   # PoolResourceLimits allow you to set the limits on memory and cpu for pool pods
@@ -366,9 +366,9 @@ spec:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
         controller: true
-        kind: Deployment
-        name: {{ .TaskResult.putcstorpooldeployment.objectName }}
-        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}
+        kind: CStorPool
+        name: {{ .TaskResult.putcstorpoolcr.objectName }}
+        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}
     spec:
       disks:
         diskList:
