@@ -31,12 +31,12 @@ func TestTypeMetaString(t *testing.T) {
 	}{
 		"typemeta": {
 			TypeMeta{
-				Object: &metav1.TypeMeta{
+				TypeMeta: &metav1.TypeMeta{
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 				},
 			},
-			[]string{"Object:", "kind: fake-kind", "apiVersion: fake-apiversion"},
+			[]string{"TypeMeta:", "kind: fake-kind", "apiVersion: fake-apiversion"},
 		},
 	}
 	for name, mock := range tests {
@@ -60,12 +60,12 @@ func TestTypeMetaGoString(t *testing.T) {
 	}{
 		"typemeta": {
 			TypeMeta{
-				Object: &metav1.TypeMeta{
+				TypeMeta: &metav1.TypeMeta{
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 				},
 			},
-			[]string{"Object:", "kind: fake-kind", "apiVersion: fake-apiversion"},
+			[]string{"TypeMeta:", "kind: fake-kind", "apiVersion: fake-apiversion"},
 		},
 	}
 	for name, mock := range tests {
@@ -124,13 +124,15 @@ func TestWithKind(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := &TypeMeta{
-			Object: &metav1.TypeMeta{},
+		b := &Builder{
+			Object: &TypeMeta{
+				TypeMeta: &metav1.TypeMeta{},
+			},
 		}
 		b.WithKind(mock.kind)
-		if b.Object.Kind != mock.expectedKind {
+		if b.Object.TypeMeta.Kind != mock.expectedKind {
 			t.Fatalf("test %s failed, expected kind %s, but got : %s",
-				name, mock.expectedKind, b.Object.Kind)
+				name, mock.expectedKind, b.Object.TypeMeta.Kind)
 		}
 	}
 }
@@ -152,13 +154,15 @@ func TestWithAPIVersion(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := &TypeMeta{
-			Object: &metav1.TypeMeta{},
+		b := &Builder{
+			Object: &TypeMeta{
+				TypeMeta: &metav1.TypeMeta{},
+			},
 		}
 		b.WithAPIVersion(mock.apiVersion)
-		if b.Object.APIVersion != mock.apiVersion {
+		if b.Object.TypeMeta.APIVersion != mock.apiVersion {
 			t.Fatalf("test %s failed, expected api version %s, but got : %s",
-				name, mock.apiVersion, b.Object.APIVersion)
+				name, mock.apiVersion, b.Object.TypeMeta.APIVersion)
 		}
 	}
 }
@@ -180,13 +184,15 @@ func TestWithAPIObject(t *testing.T) {
 	for name, mock := range tests {
 		name := name
 		mock := mock
-		b := &TypeMeta{
-			Object: &metav1.TypeMeta{},
+		b := &Builder{
+			Object: &TypeMeta{
+				TypeMeta: &metav1.TypeMeta{},
+			},
 		}
 		b.WithAPIObject(mock.typeMeta)
-		if (b.Object != nil) != mock.expectTypeMeta {
+		if (b.Object.TypeMeta != nil) != mock.expectTypeMeta {
 			t.Fatalf("test %s failed, expect typemeta %t, but got : %t",
-				name, mock.expectTypeMeta, b.Object != nil)
+				name, mock.expectTypeMeta, b.Object.TypeMeta != nil)
 		}
 	}
 }
@@ -219,8 +225,10 @@ func TestValidate(t *testing.T) {
 	for name, mock := range tests {
 		name := name
 		mock := mock
-		b := &TypeMeta{
-			Object: &mock.typeMeta,
+		b := &Builder{
+			Object: &TypeMeta{
+				TypeMeta: &mock.typeMeta,
+			},
 		}
 		err := b.validate()
 		if (err != nil) != mock.expecterr {
@@ -270,8 +278,10 @@ func TestBuild(t *testing.T) {
 	for name, mock := range tests {
 		name := name
 		mock := mock
-		b := &TypeMeta{
-			Object: &mock.typeMeta,
+		b := &Builder{
+			Object: &TypeMeta{
+				TypeMeta: &mock.typeMeta,
+			},
 			errors: mock.errors,
 		}
 		_, err := b.Build()

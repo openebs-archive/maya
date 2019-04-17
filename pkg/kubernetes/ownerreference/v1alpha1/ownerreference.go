@@ -24,10 +24,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Builder helps to build OwnerReference
+type Builder struct {
+	errors []error
+	Object *OwnerReference
+}
+
 // OwnerReference is a wrapper over metav1.OwnerReference
 type OwnerReference struct {
-	Object *metav1.OwnerReference
-	errors []error
+	OwnerReference *metav1.OwnerReference
 }
 
 // String implements Stringer interface
@@ -40,74 +45,88 @@ func (or OwnerReference) GoString() string {
 	return or.String()
 }
 
-// New returns a new instance of OwnerReference
-func New() *OwnerReference {
-	return &OwnerReference{
-		Object: &metav1.OwnerReference{},
+// New returns a new instance of Builder
+func New() *Builder {
+	return &Builder{
+		Object: &OwnerReference{
+			OwnerReference: &metav1.OwnerReference{},
+		},
 	}
 }
 
 // WithName sets name in OwnerReference instance
-func (or *OwnerReference) WithName(name string) *OwnerReference {
-	or.Object.Name = name
-	return or
+func (b *Builder) WithName(name string) *Builder {
+	b.Object.OwnerReference.Name = name
+	return b
 }
 
 // WithKind sets kind in OwnerReference instance
-func (or *OwnerReference) WithKind(kind string) *OwnerReference {
-	or.Object.Kind = kind
-	return or
+func (b *Builder) WithKind(kind string) *Builder {
+	b.Object.OwnerReference.Kind = kind
+	return b
 }
 
 // WithAPIVersion sets api version in OwnerReference instance
-func (or *OwnerReference) WithAPIVersion(apiVersion string) *OwnerReference {
-	or.Object.APIVersion = apiVersion
-	return or
+func (b *Builder) WithAPIVersion(apiVersion string) *Builder {
+	b.Object.OwnerReference.APIVersion = apiVersion
+	return b
 }
 
 // WithUID sets uid in OwnerReference instance
-func (or *OwnerReference) WithUID(uid types.UID) *OwnerReference {
-	or.Object.UID = uid
-	return or
+func (b *Builder) WithUID(uid types.UID) *Builder {
+	b.Object.OwnerReference.UID = uid
+	return b
 }
 
-// WithAPIObject sets Object property in OwnerReference instance
-func (or *OwnerReference) WithAPIObject(ownerReference *metav1.OwnerReference) *OwnerReference {
-	or.Object = ownerReference
-	return or
+// WithControllerOption sets Controller property in OwnerReference instance
+func (b *Builder) WithControllerOption(controller *bool) *Builder {
+	b.Object.OwnerReference.Controller = controller
+	return b
+}
+
+// WithBlockOwnerDeletionOption sets BlockOwnerDeletion property in OwnerReference instance
+func (b *Builder) WithBlockOwnerDeletionOption(blockOwnerDeletion *bool) *Builder {
+	b.Object.OwnerReference.BlockOwnerDeletion = blockOwnerDeletion
+	return b
+}
+
+// WithAPIObject sets OwnerReference property in OwnerReference instance
+func (b *Builder) WithAPIObject(ownerReference *metav1.OwnerReference) *Builder {
+	b.Object.OwnerReference = ownerReference
+	return b
 }
 
 // validate validates OwnerReference instance
-func (or *OwnerReference) validate() error {
-	if len(or.errors) != 0 {
-		return errors.Errorf("failed to validate: build errors were found: %v", or.errors)
+func (b *Builder) validate() error {
+	if len(b.errors) != 0 {
+		return errors.Errorf("failed to validate: build errors were found: %v", b.errors)
 	}
 	validationErrs := []error{}
-	if or.Object.Name == "" {
+	if b.Object.OwnerReference.Name == "" {
 		validationErrs = append(validationErrs, errors.New("missing name"))
 	}
-	if or.Object.Kind == "" {
+	if b.Object.OwnerReference.Kind == "" {
 		validationErrs = append(validationErrs, errors.New("missing kind"))
 	}
-	if or.Object.APIVersion == "" {
+	if b.Object.OwnerReference.APIVersion == "" {
 		validationErrs = append(validationErrs, errors.New("missing api version"))
 	}
-	if or.Object.UID == "" {
+	if b.Object.OwnerReference.UID == "" {
 		validationErrs = append(validationErrs, errors.New("missing uid"))
 	}
 	if len(validationErrs) != 0 {
-		or.errors = append(or.errors, validationErrs...)
+		b.errors = append(b.errors, validationErrs...)
 		return errors.Errorf("failed to validate: %v", validationErrs)
 	}
 	return nil
 }
 
 // Build builds a new instance of matav1.OwnerReference
-func (or *OwnerReference) Build() (*metav1.OwnerReference, error) {
-	err := or.validate()
+func (b *Builder) Build() (*metav1.OwnerReference, error) {
+	err := b.validate()
 	if err != nil {
 		return nil,
-			errors.WithMessagef(err, "failed to build OwnerReference: %s", or)
+			errors.WithMessagef(err, "failed to build OwnerReference: %s", b.Object)
 	}
-	return or.Object, nil
+	return b.Object.OwnerReference, nil
 }

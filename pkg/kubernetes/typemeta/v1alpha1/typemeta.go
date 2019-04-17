@@ -23,10 +23,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Builder helps to build TypeMeta
+type Builder struct {
+	errors []error
+	Object *TypeMeta
+}
+
 // TypeMeta is a wrapper over metav1.TypeMeta
 type TypeMeta struct {
-	Object *metav1.TypeMeta
-	errors []error
+	TypeMeta *metav1.TypeMeta
 }
 
 // String implements Stringer interface
@@ -39,56 +44,58 @@ func (tm TypeMeta) GoString() string {
 	return tm.String()
 }
 
-// New returns a new instance of TypeMeta
-func New() *TypeMeta {
-	return &TypeMeta{
-		Object: &metav1.TypeMeta{},
+// New returns a new instance of Builder
+func New() *Builder {
+	return &Builder{
+		Object: &TypeMeta{
+			TypeMeta: &metav1.TypeMeta{},
+		},
 	}
 }
 
 // WithKind sets Kind property in TypeMeta instance
-func (tm *TypeMeta) WithKind(kind string) *TypeMeta {
-	tm.Object.Kind = kind
-	return tm
+func (b *Builder) WithKind(kind string) *Builder {
+	b.Object.TypeMeta.Kind = kind
+	return b
 }
 
 // WithAPIVersion sets APIVersion property in TypeMeta instance
-func (tm *TypeMeta) WithAPIVersion(apiVersion string) *TypeMeta {
-	tm.Object.APIVersion = apiVersion
-	return tm
+func (b *Builder) WithAPIVersion(apiVersion string) *Builder {
+	b.Object.TypeMeta.APIVersion = apiVersion
+	return b
 }
 
 // WithAPIObject sets Object property in TypeMeta instance
-func (tm *TypeMeta) WithAPIObject(typeMeta *metav1.TypeMeta) *TypeMeta {
-	tm.Object = typeMeta
-	return tm
+func (b *Builder) WithAPIObject(typeMeta *metav1.TypeMeta) *Builder {
+	b.Object.TypeMeta = typeMeta
+	return b
 }
 
-// validate validates typeMeta instance
-func (tm *TypeMeta) validate() error {
-	if len(tm.errors) != 0 {
-		return errors.Errorf("failed to validate: build errors were found: %v", tm.errors)
+// validate validates Builder instance
+func (b *Builder) validate() error {
+	if len(b.errors) != 0 {
+		return errors.Errorf("failed to validate: build errors were found: %v", b.errors)
 	}
 	validationErrs := []error{}
-	if tm.Object.Kind == "" {
+	if b.Object.TypeMeta.Kind == "" {
 		validationErrs = append(validationErrs, errors.New("missing kind"))
 	}
-	if tm.Object.APIVersion == "" {
+	if b.Object.TypeMeta.APIVersion == "" {
 		validationErrs = append(validationErrs, errors.New("missing API version"))
 	}
 	if len(validationErrs) != 0 {
-		tm.errors = append(tm.errors, validationErrs...)
+		b.errors = append(b.errors, validationErrs...)
 		return errors.Errorf("failed to validate: %v", validationErrs)
 	}
 	return nil
 }
 
 // Build returns a new instance of metav1.TypeMeta
-func (tm *TypeMeta) Build() (*metav1.TypeMeta, error) {
-	err := tm.validate()
+func (b *Builder) Build() (*metav1.TypeMeta, error) {
+	err := b.validate()
 	if err != nil {
 		return nil,
-			errors.WithMessagef(err, "failed to build TypeMeta: %s", tm)
+			errors.WithMessagef(err, "failed to build TypeMeta: %s", b.Object)
 	}
-	return tm.Object, nil
+	return b.Object.TypeMeta, nil
 }
