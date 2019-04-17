@@ -28,31 +28,6 @@ func fakeAPINodeList(nodeNames []string) *corev1.NodeList {
 	return list
 }
 
-func fakeAPINodeListRunning(nodeNames []string) *corev1.NodeList {
-	list := &corev1.NodeList{}
-	fakeNodeCondition := corev1.NodeCondition{
-		Reason: kubeletReady,
-		Type:   corev1.NodeReady,
-	}
-	for _, nodeName := range nodeNames {
-		node := corev1.Node{}
-		node.SetName(nodeName)
-		node.Status.Conditions = append(node.Status.Conditions, fakeNodeCondition)
-		list.Items = append(list.Items, node)
-	}
-	return list
-}
-
-func fakeAPINodeListNotRunning(nodeNames []string) *corev1.NodeList {
-	list := &corev1.NodeList{}
-	for _, nodeName := range nodeNames {
-		node := corev1.Node{}
-		node.SetName(nodeName)
-		list.Items = append(list.Items, node)
-	}
-	return list
-}
-
 func fakeAPINodeListFromNameStatusMap(nodes map[string]corev1.NodeConditionType) []*node {
 	nlist := []*node{}
 	for k := range nodes {
@@ -85,6 +60,8 @@ func TestListBuilderFuncWithAPIList(t *testing.T) {
 		"Node set 10": {[]string{"node1", "node2", "node3", "node4", "node5", "node6", "node7", "node8", "node9"}, 9},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes))
 			if mock.expectedNodeLen != len(b.list.items) {
@@ -101,6 +78,8 @@ func TestListBuilderFuncWithEmptyNodeList(t *testing.T) {
 		"Two nodes": {5, 5},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderFunc().WithAPIList(fakeEmptyNodeList(mock.nodeCount))
 			if mock.expectedNodeLen != len(b.list.items) {
@@ -126,6 +105,8 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		"Node set 10": {[]string{"node1", "node2", "node3", "node4", "node5", "node6", "node7", "node8", "node9"}, 9},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderFunc().WithAPIObject(fakeAPINodeList(mock.availableNodes).Items...)
 			if mock.expectedNodeLen != len(b.list.items) {
@@ -152,6 +133,8 @@ func TestListBuilderToAPIList(t *testing.T) {
 		"Node set 10": {[]string{"node1", "node2", "node3", "node4", "node5", "node6", "node7", "node8", "node9"}, 9},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes)).List().ToAPIList()
 			if mock.expectedNodeLen != len(b.Items) {
@@ -184,6 +167,8 @@ func TestFilterList(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			list := ListBuilderFunc().WithObject(fakeAPINodeListFromNameStatusMap(mock.availableNodes)...).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredNodes) {

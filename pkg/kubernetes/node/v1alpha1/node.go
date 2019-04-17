@@ -1,6 +1,6 @@
 package v1alpha1
 
-import "k8s.io/api/core/v1"
+import v1 "k8s.io/api/core/v1"
 
 const (
 	kubeletReady = "KubeletReady"
@@ -51,6 +51,7 @@ func (b *ListBuilder) WithObject(nodes ...*node) *ListBuilder {
 // WithAPIObject builds the list of node instances based on node api instances
 func (b *ListBuilder) WithAPIObject(nodes ...v1.Node) *ListBuilder {
 	for _, n := range nodes {
+		n := n
 		b.list.items = append(b.list.items, &node{&n})
 	}
 	return b

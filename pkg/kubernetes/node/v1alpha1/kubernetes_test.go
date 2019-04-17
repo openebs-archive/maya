@@ -41,6 +41,8 @@ func TestWithDefaultOptions(t *testing.T) {
 		"When getClientsetFn and listFn are ok": {&Kubeclient{nil, fakeGetClientsetOk, fakeListfnOk}},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			mock.KubeClient.withDefaults()
 			if mock.KubeClient.getClientset == nil {
@@ -67,6 +69,8 @@ func TestGetClientOrCached(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			c, err := mock.KubeClient.getClientOrCached()
 			if mock.expectErr && err == nil {
@@ -91,6 +95,8 @@ func TestKubenetesNodeList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			k := Kubeclient{getClientset: mock.getClientset, list: mock.list}
 			_, err := k.List(metav1.ListOptions{})
