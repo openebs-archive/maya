@@ -32,12 +32,12 @@ import (
 )
 
 var (
-	chap_st = []string{
+	chapSt = []string{
 		"discovery.sendtargets.auth.username",
 		"discovery.sendtargets.auth.password",
 		"discovery.sendtargets.auth.username_in",
 		"discovery.sendtargets.auth.password_in"}
-	chap_sess = []string{
+	chapSess = []string{
 		"node.session.auth.username",
 		"node.session.auth.password",
 		"node.session.auth.username_in",
@@ -46,7 +46,7 @@ var (
 )
 
 func updateISCSIDiscoverydb(b iscsiDiskMounter, tp string) error {
-	if !b.chap_discovery {
+	if !b.chapDiscovery {
 		return nil
 	}
 	out, err := b.exec.Run("iscsiadm", "-m", "discoverydb", "-t", "sendtargets", "-p", tp, "-I", b.Iface, "-o", "update", "-n", "discovery.sendtargets.auth.authmethod", "-v", "CHAP")
@@ -54,7 +54,7 @@ func updateISCSIDiscoverydb(b iscsiDiskMounter, tp string) error {
 		return fmt.Errorf("iscsi: failed to update discoverydb with CHAP, output: %v", string(out))
 	}
 
-	for _, k := range chap_st {
+	for _, k := range chapSt {
 		v := b.secret[k]
 		if len(v) > 0 {
 			out, err := b.exec.Run("iscsiadm", "-m", "discoverydb", "-t", "sendtargets", "-p", tp, "-I", b.Iface, "-o", "update", "-n", k, "-v", v)
@@ -67,7 +67,7 @@ func updateISCSIDiscoverydb(b iscsiDiskMounter, tp string) error {
 }
 
 func updateISCSINode(b iscsiDiskMounter, tp string) error {
-	if !b.chap_session {
+	if !b.chapSession {
 		return nil
 	}
 
@@ -76,7 +76,7 @@ func updateISCSINode(b iscsiDiskMounter, tp string) error {
 		return fmt.Errorf("iscsi: failed to update node with CHAP, output: %v", string(out))
 	}
 
-	for _, k := range chap_sess {
+	for _, k := range chapSess {
 		v := b.secret[k]
 		if len(v) > 0 {
 			out, err := b.exec.Run("iscsiadm", "-m", "node", "-p", tp, "-T", b.Iqn, "-I", b.Iface, "-o", "update", "-n", k, "-v", v)
@@ -88,9 +88,11 @@ func updateISCSINode(b iscsiDiskMounter, tp string) error {
 	return nil
 }
 
-// stat a path, if not exists, retry maxRetries times
+// StatFunc stats a path, if not exists, retry maxRetries times
 // when iscsi transports other than default are used,  use glob instead as pci id of device is unknown
 type StatFunc func(string) (os.FileInfo, error)
+
+// GlobFunc returns an array of string
 type GlobFunc func(string) ([]string, error)
 
 func waitForPathToExist(devicePath *string, maxRetries int, deviceTransport string) bool {
@@ -132,6 +134,7 @@ func waitForPathToExistInternal(devicePath *string, maxRetries int, deviceTransp
 	return false
 }
 
+// ISCSIUtil is an empy struct type
 type ISCSIUtil struct{}
 
 func (util *ISCSIUtil) persistISCSI(conf iscsiDisk, mnt string) error {
@@ -143,7 +146,7 @@ func (util *ISCSIUtil) persistISCSI(conf iscsiDisk, mnt string) error {
 	defer fp.Close()
 	encoder := json.NewEncoder(fp)
 	if err = encoder.Encode(conf); err != nil {
-		return fmt.Errorf("iscsi: encode err: %v.", err)
+		return fmt.Errorf("iscsi: encode err: %v", err)
 	}
 	return nil
 }
@@ -158,11 +161,13 @@ func (util *ISCSIUtil) loadISCSI(conf *iscsiDisk, mnt string) error {
 	defer fp.Close()
 	decoder := json.NewDecoder(fp)
 	if err = decoder.Decode(conf); err != nil {
-		return fmt.Errorf("iscsi: decode err: %v.", err)
+		return fmt.Errorf("iscsi: decode err: %v", err)
 	}
 	return nil
 }
 
+// AttachDisk logs in to the iSCSI volume and returns the corresponding diskPath
+// of the volume which gets created on the node
 func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 	var devicePath string
 	var devicePaths []string
@@ -319,6 +324,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 	return devicePath, err
 }
 
+// DetachDisk logs out of the iSCSI volume and the corresponding path is removed
 func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, targetPath string) error {
 	_, cnt, err := mount.GetDeviceNameFromMount(c.mounter, targetPath)
 	if err != nil {
@@ -355,7 +361,7 @@ func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, targetPath string) error
 	}
 	portals := removeDuplicate(bkpPortal)
 	if len(portals) == 0 {
-		return fmt.Errorf("iscsi detach disk: failed to detach iscsi disk. Couldn't get connected portals from configurations.")
+		return fmt.Errorf("iscsi detach disk: failed to detach iscsi disk. Couldn't get connected portals from configurations")
 	}
 
 	for _, portal := range portals {
@@ -409,7 +415,6 @@ func extractTransportname(ifaceOutput string) (iscsiTransport string) {
 	return iscsiTransport
 }
 
-// Remove duplicates or string
 func removeDuplicate(s []string) []string {
 	m := map[string]bool{}
 	for _, v := range s {

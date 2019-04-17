@@ -32,7 +32,7 @@ type CSIVolumeInfo struct {
 	Spec              CSIVolumeInfoSpec `json:"spec"`
 }
 
-// CStorVolumeInfoSpec is the spec for a CStorVolume resource
+// CSIVolumeInfoSpec is the spec for a CStorVolumeInfo resource
 type CSIVolumeInfoSpec struct {
 	// Volname of a volume will hold the name of the CSI Volume
 	Volname string `json:"volname"`

@@ -13,21 +13,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type nodeServer struct {
+// NodeServer defines the structure of the csi node driver
+type NodeServer struct {
 	driver *CSIDriver
 }
 
-func NewNodeServer(d *CSIDriver) *nodeServer {
-	return &nodeServer{
+// NewNodeServer returns a new object of type NodeServer
+func NewNodeServer(d *CSIDriver) *NodeServer {
+	return &NodeServer{
 		driver: d,
 	}
 }
 
-func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+// NodePublishVolume publishes(mounts) the volume at the corresponding node at
+// a given path
+func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	var (
 		err        error
 		reVerified bool
-		retries    int
 	)
 	logrus.Infof("NodepublishVolume")
 
@@ -47,28 +50,25 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	//Check if volume is ready to server IOs
-checkVolumeStatus:
-	volStatus, err := getVolStatus(volumeID)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	} else if volStatus == "Healthy" || volStatus == "Degraded" {
-		logrus.Infof("Volume is ready to accept IOs")
-	} else if retries >= 6 {
+
+	//Check if volume is ready to serve IOs,
+	//info is fetched from the cstorvolume CR
+	if err := waitForVolumeToBeReady(volumeID); err != nil {
 		return nil,
-			status.Error(codes.Internal, "Volume is not ready: Replicas yet to connect to controller")
-	} else {
-		time.Sleep(2 * time.Second)
-		retries++
-		goto checkVolumeStatus
+			status.Error(codes.Internal, err.Error())
+	}
+
+	if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
+		return nil,
+			status.Error(codes.Internal, err.Error())
 	}
 
 	// Check if the volume has already been published
 verifyPublish:
 	monitorLock.Lock()
 	if _, ok := Volumes[volumeID]; ok {
-		for _, info := range mountPointInfoList {
-			if info.VolumeID == volumeID {
+		for _, info := range Volumes {
+			if info.Spec.Volname == volumeID {
 				monitorLock.Unlock()
 				return &csi.NodePublishVolumeResponse{}, nil
 			}
@@ -81,7 +81,12 @@ verifyPublish:
 		}
 		return nil, status.Error(codes.Internal, "Mount under progress")
 	}
-	deleteOldCSIVolumeInfoCR(vol)
+
+	if err = deleteOldCSIVolumeInfoCR(vol); err != nil {
+		monitorLock.Unlock()
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
 	err = createCSIVolumeInfoCR(vol, ns.driver.config.NodeID, mountPath)
 	if err != nil {
 		monitorLock.Unlock()
@@ -90,23 +95,19 @@ verifyPublish:
 	Volumes[volumeID] = vol
 	monitorLock.Unlock()
 
-	chmodMountPath(vol.Spec.MountPath)
-	devicePath, _ := mountDisk(vol)
-
-	mountPointInfo := &mountPointInfo{
-		VolumeID:   volumeID,
-		Path:       devicePath,
-		MountPoint: mountPath,
+	if err = chmodMountPath(vol.Spec.MountPath); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
-
-	monitorLock.Lock()
-	mountPointInfoList = append(mountPointInfoList, mountPointInfo)
-	monitorLock.Unlock()
+	if _, err = AttachAndMountDisk(vol); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
-func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+// NodeUnpublishVolume unpublishes(unmounts) the volume from the corresponding
+// node from the given path
+func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	logrus.Infof("NodeUnpublishVolume")
 
 	if len(req.GetVolumeId()) == 0 {
@@ -123,10 +124,17 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if !ok {
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
-	deleteCSIVolumeInfoCR(vol)
+	err := deleteCSIVolumeInfoCR(vol)
+	if err != nil {
+		return nil, status.Error(codes.Internal,
+			err.Error())
+	}
 	monitorLock.Lock()
-	removePathFromList(req.GetTargetPath())
-	unmount(vol, targetPath)
+	delete(Volumes, volumeID)
+	if err = UnmountAndDetachDisk(vol, req.GetTargetPath()); err != nil {
+		return nil, status.Error(codes.Internal,
+			err.Error())
+	}
 	monitorLock.Unlock()
 	glog.V(4).Infof("hostpath: volume %s/%s has been unmounted.",
 		targetPath, volumeID)
@@ -134,26 +142,34 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
-func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+// NodeStageVolume mounts the volume on the staging path
+func (ns *NodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	return &csi.NodeStageVolumeResponse{}, nil
 }
 
-func (ns *nodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+// NodeUnstageVolume unmounts the volume from the staging path
+func (ns *NodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
-func (ns *nodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+// NodeGetInfo returns the info of the corresponding node
+func (ns *NodeServer) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	return &csi.NodeGetInfoResponse{
 		NodeId:            ns.driver.config.NodeID,
 		MaxVolumesPerNode: 1,
 	}, nil
 }
 
-func (ns *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+// NodeExpandVolume resizes the filesystem if required
+// if ControllerExpandVolumeResponse returns true in
+// node_expansion_required then FileSystemResizePending condition will be added
+// to PVC and NodeExpandVolume operation will be queued on kubelet
+func (ns *NodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	return nil, nil
 }
 
-func (ns *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+// NodeGetCapabilities returns the capabilities supported by the node
+func (ns *NodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	glog.V(5).Infof("Using default NodeGetCapabilities")
 
 	return &csi.NodeGetCapabilitiesResponse{
@@ -168,6 +184,9 @@ func (ns *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetC
 		},
 	}, nil
 }
-func (ns *nodeServer) NodeGetVolumeStats(ctx context.Context, in *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+
+// NodeGetVolumeStats returns the volume capacity statistics
+// available for the volume
+func (ns *NodeServer) NodeGetVolumeStats(ctx context.Context, in *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }

@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// getNodeDetails fetches the nodeInfo for the current node
 func getNodeDetails(nodeID string) (node *api_core_v1.Node, err error) {
 	kc, err := m_k8s_client.NewK8sClient("")
 	if err != nil {
@@ -21,6 +22,7 @@ func getNodeDetails(nodeID string) (node *api_core_v1.Node, err error) {
 	return
 }
 
+// fetchPVDetails gets the PV related to this VolumeID
 func fetchPVDetails(volumeID string) (pv *api_core_v1.PersistentVolume, err error) {
 	kc, err := m_k8s_client.NewK8sClient("")
 	if err != nil {
@@ -44,6 +46,8 @@ func loadClientFromServiceAccount() (k8sClient *internalclientset.Clientset, err
 	return
 }
 
+// getVolStatus fetches the current VolumeStatus which specifies if the volume
+// is ready to serve IOs
 func getVolStatus(volumeID string) (string, error) {
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{
@@ -59,6 +63,7 @@ func getVolStatus(volumeID string) (string, error) {
 	return string(volumeList.Items[0].Status.Phase), nil
 }
 
+// createCSIVolumeInfoCR creates a new CSIVolumeInfo CR with this nodeID
 func createCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID string, mountPath string) (err error) {
 
 	csivol.Name = csivol.Spec.Volname + nodeID
@@ -84,6 +89,8 @@ func createCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID string, mountP
 	return
 }
 
+// deleteOldCSIVolumeInfoCR deletes all CSIVolumeInfos related to this volume so
+// that a new one can be created with node as current nodeID
 func deleteOldCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{
@@ -100,6 +107,8 @@ func deleteOldCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
 	return
 }
 
+// deleteCSIVolumeInfoCR removes the CSIVolumeInfo with this nodeID as
+// labelSelector from the list
 func deleteCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{
@@ -121,10 +130,17 @@ func deleteCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
 	return
 }
 
+// fetchAndUpdateVolInfos gets the list of CSIVolInfos that are supposed to be
+// mounted on this node and stores the info in memory
+// This is required when the CSI driver has restarted to start monitoring all
+// the volumes and to reject duplicate volume creation requests
 func fetchAndUpdateVolInfos(nodeID string) (err error) {
+	var listOptions v1.ListOptions
 	openebsClient, _ := loadClientFromServiceAccount()
-	listOptions := v1.ListOptions{
-		LabelSelector: "nodeID=" + nodeID,
+	if nodeID != "" {
+		listOptions = v1.ListOptions{
+			LabelSelector: "nodeID=" + nodeID,
+		}
 	}
 
 	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumeInfos("openebs").List(listOptions)

@@ -19,13 +19,13 @@ func getISCSIInfo(vol *v1alpha1.CSIVolumeInfo) (*iscsiDisk, error) {
 	chapSession := false
 
 	return &iscsiDisk{
-		VolName:        vol.Spec.Volname,
-		Portals:        portals,
-		Iqn:            vol.Spec.Iqn,
-		lun:            vol.Spec.Lun,
-		Iface:          vol.Spec.IscsiInterface,
-		chap_discovery: chapDiscovery,
-		chap_session:   chapSession}, nil
+		VolName:       vol.Spec.Volname,
+		Portals:       portals,
+		Iqn:           vol.Spec.Iqn,
+		lun:           vol.Spec.Lun,
+		Iface:         vol.Spec.IscsiInterface,
+		chapDiscovery: chapDiscovery,
+		chapSession:   chapSession}, nil
 }
 
 func getISCSIInfoFromPV(req *csi.NodePublishVolumeRequest) (*iscsiDisk, error) {
@@ -58,15 +58,15 @@ func getISCSIInfoFromPV(req *csi.NodePublishVolumeRequest) (*iscsiDisk, error) {
 	}
 
 	return &iscsiDisk{
-		VolName:        volName,
-		Portals:        portals,
-		Iqn:            iqn,
-		lun:            lun,
-		Iface:          iface,
-		chap_discovery: chapDiscovery,
-		chap_session:   chapSession,
-		secret:         secret,
-		InitiatorName:  initiatorName}, nil
+		VolName:       volName,
+		Portals:       portals,
+		Iqn:           iqn,
+		lun:           lun,
+		Iface:         iface,
+		chapDiscovery: chapDiscovery,
+		chapSession:   chapSession,
+		secret:        secret,
+		InitiatorName: initiatorName}, nil
 }
 
 func getISCSIDiskMounter(iscsiInfo *iscsiDisk, vol *v1alpha1.CSIVolumeInfo) *iscsiDiskMounter {

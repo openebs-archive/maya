@@ -9,17 +9,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type identityServer struct {
+// IdentityServer defines the structure for Identity Plugin
+type IdentityServer struct {
 	driver *CSIDriver
 }
 
-func NewIdentityServer(d *CSIDriver) *identityServer {
-	return &identityServer{
+// NewIdentityServer created and returns an instance of IdentityServer object
+func NewIdentityServer(d *CSIDriver) *IdentityServer {
+	return &IdentityServer{
 		driver: d,
 	}
 }
 
-func (ids *identityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
+// GetPluginInfo returns the version and name of the plugin
+func (ids *IdentityServer) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	glog.V(5).Infof("Using default GetPluginInfo")
 
 	if ids.driver.config.DriverName == "" {
@@ -36,11 +39,16 @@ func (ids *identityServer) GetPluginInfo(ctx context.Context, req *csi.GetPlugin
 	}, nil
 }
 
-func (ids *identityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
+// Probe can be used to check whether the plugin is running or not
+func (ids *IdentityServer) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
 	return &csi.ProbeResponse{}, nil
 }
 
-func (ids *identityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
+// GetPluginCapabilities returns the capabilities of the plugin
+// Currently it reports whether the plugin has the ability of serving the
+// Controller interface. Controller interface methods are called depending
+// on whether this method returns the capability or not
+func (ids *IdentityServer) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
 	glog.V(5).Infof("Using default capabilities")
 	return &csi.GetPluginCapabilitiesResponse{
 		Capabilities: []*csi.PluginCapability{
