@@ -366,9 +366,9 @@ spec:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
         controller: true
-        kind: StoragePoolClaim
-        name: {{.Storagepool.owner}}
-        uid: {{ .TaskResult.getspc.objectUID }}
+        kind: CStorPool
+        name: {{ .TaskResult.putcstorpoolcr.objectName }}
+        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}
     spec:
       disks:
         diskList:
