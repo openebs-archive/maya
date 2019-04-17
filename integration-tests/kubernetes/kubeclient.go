@@ -25,9 +25,11 @@ func GetConfigPath() (kubeConfigPath string, err error) {
 	if err != nil {
 		return
 	}
-
-	// Parse the kube config path
-	kubeConfigPath = home + "/.kube/config"
+	kubeConfigPath = os.Getenv("KUBECONFIG")
+	if kubeConfigPath == "" {
+		// Parse the kube config path
+		kubeConfigPath = home + "/.kube/config"
+	}
 	return kubeConfigPath, err
 }
 

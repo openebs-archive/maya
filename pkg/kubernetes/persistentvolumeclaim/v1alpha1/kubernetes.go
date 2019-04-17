@@ -1,36 +1,43 @@
 package v1alpha1
 
 import (
+	"strings"
+
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kclient "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	clientset "k8s.io/client-go/kubernetes"
+	client "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func() (clientset *clientset.Clientset, err error)
+type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
+
+// getpvcFn is a typed function that
+// abstracts fetching of pvc
+type getFn func(cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error)
 
 // listFn is a typed function that abstracts
 // listing of pvcs
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error)
+type listFn func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error)
 
 // deleteFn is a typed function that abstracts
 // deletion of pvcs
-type deleteFn func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
+type deleteFn func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error
 
 // deleteFn is a typed function that abstracts
 // deletion of pvc's collection
-type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+type deleteCollectionFn func(cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on pvc instance
-type kubeclient struct {
+type Kubeclient struct {
 	// clientset refers to pvc clientset
 	// that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.Clientset
+	clientset *kubernetes.Clientset
 
 	// namespace holds the namespace on which
 	// kubeclient has to operate
@@ -39,38 +46,44 @@ type kubeclient struct {
 	// functions useful during mocking
 	getClientset  getClientsetFn
 	list          listFn
+	get           getFn
 	del           deleteFn
 	delCollection deleteCollectionFn
 }
 
-// kubeclientBuildOption abstracts creating an
+// KubeclientBuildOption abstracts creating an
 // instance of kubeclient
-type kubeclientBuildOption func(*kubeclient)
+type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options
 // of kubeclient instance
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.Config().Get()
+		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
+			config, err := client.Config().Get()
 			if err != nil {
 				return nil, err
 			}
-			return clientset.NewForConfig(config)
+			return kubernetes.NewForConfig(config)
+		}
+	}
+	if k.get == nil {
+		k.get = func(cli *kubernetes.Clientset, name string, namespace string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+			return cli.CoreV1().PersistentVolumeClaims(namespace).Get(name, opts)
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+		k.list = func(cli *kubernetes.Clientset, namespace string, opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).List(opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
+		k.del = func(cli *kubernetes.Clientset, namespace string, name string, deleteOpts *metav1.DeleteOptions) error {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).Delete(name, deleteOpts)
 		}
 	}
 	if k.delCollection == nil {
-		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+		k.delCollection = func(cli *kubernetes.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 			return cli.CoreV1().PersistentVolumeClaims(namespace).DeleteCollection(deleteOpts, listOpts)
 		}
 	}
@@ -78,24 +91,24 @@ func (k *kubeclient) withDefaults() {
 
 // WithNamespace sets the kubernetes client against
 // the provided namespace
-func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithNamespace(namespace string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
 }
 
 // WithClientSet sets the kubernetes client against
 // the kubeclient instance
-func WithClientSet(c *clientset.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithClientSet(c *kubernetes.Clientset) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for
 // cstor volume replica operations
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -105,7 +118,7 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -117,9 +130,22 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	return k.clientset, nil
 }
 
+// Get returns a pvc resource
+// instances present in kubernetes cluster
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1.PersistentVolumeClaim, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, errors.New("failed to get pvc: missing pvc name")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.get(cli, name, k.namespace, opts)
+}
+
 // List returns a list of pvc
 // instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -129,7 +155,10 @@ func (k *kubeclient) List(opts metav1.ListOptions) (*v1.PersistentVolumeClaimLis
 
 // Delete deletes a pvc instance from the
 // kubecrnetes cluster
-func (k *kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to delete pvc: missing pvc name")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err
@@ -137,9 +166,8 @@ func (k *kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	return k.del(cli, k.namespace, name, deleteOpts)
 }
 
-// DeleteCollection deletes collection of pvc
-// instance from the kubernetes cluster
-func (k *kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+// DeleteCollection deletes a collection of pvc objects.
+func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return err

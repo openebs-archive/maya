@@ -3,66 +3,68 @@ package v1alpha1
 import (
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// pvc holds the api's pvc objects
-type pvc struct {
-	object *v1.PersistentVolumeClaim
+// PVC is a wrapper over persistentvolumeclaim api
+// object. It provides build, validations and other common
+// logic to be used by various feature specific callers.
+type PVC struct {
+	object *corev1.PersistentVolumeClaim
 }
 
-// pvcList holds the list of pvc instances
-type pvcList struct {
-	items []*pvc
+// PVCList is a wrapper over persistentvolumeclaim api
+// object. It provides build, validations and other common
+// logic to be used by various feature specific callers.
+type PVCList struct {
+	items []*PVC
 }
 
-// listBuilder enables building an instance of
-// pvclist
-type listBuilder struct {
-	list    *pvcList
-	filters predicateList
+// ListBuilder enables building an instance of
+// PVClist
+type ListBuilder struct {
+	list    *PVCList
+	filters PredicateList
 }
 
-// WithAPIList builds the list of pvc
-// instances based on the provided
-// pvc list api instance
-func (b *listBuilder) WithAPIList(pvcs *v1.PersistentVolumeClaimList) *listBuilder {
+// Build returns the final instance of patch
+// TODO add validations and error checks
+func (b *ListBuilder) Build() (*PVCList, error) {
+	return b.list, nil
+}
+
+// ListBuilderForAPIObjects ...
+func ListBuilderForAPIObjects(pvcs *corev1.PersistentVolumeClaimList) *ListBuilder {
+	b := &ListBuilder{list: &PVCList{}}
 	if pvcs == nil {
 		return b
 	}
-	b.WithAPIObject(pvcs.Items...)
+	for _, pvc := range pvcs.Items {
+		pvc := pvc
+		b.list.items = append(b.list.items, &PVC{object: &pvc})
+	}
 	return b
 }
 
-// WithObjects builds the list of pvc
-// instances based on the provided
-// pvc list instance
-func (b *listBuilder) WithObject(pvcs ...*pvc) *listBuilder {
-	b.list.items = append(b.list.items, pvcs...)
-	return b
-}
-
-// WithAPIList builds the list of pvc
-// instances based on the provided
-// pvc's api instances
-func (b *listBuilder) WithAPIObject(pvcs ...v1.PersistentVolumeClaim) *listBuilder {
-	if len(pvcs) == 0 {
+// ListBuilderForObjects builds the list of pvc
+// instances based on the provided PVC's
+func ListBuilderForObjects(pvcs *PVCList) *ListBuilder {
+	b := &ListBuilder{}
+	if pvcs == nil {
 		return b
 	}
-	for _, p := range pvcs {
-		b.list.items = append(b.list.items, &pvc{&p})
-	}
+	b.list = pvcs
 	return b
 }
 
 // List returns the list of pvc
 // instances that was built by this
 // builder
-func (b *listBuilder) List() *pvcList {
+func (b *ListBuilder) List() *PVCList {
 	if b.filters == nil || len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := ListBuilder().List()
+	filtered := &PVCList{}
 	for _, pvc := range b.list.items {
 		if b.filters.all(pvc) {
 			filtered.items = append(filtered.items, pvc)
@@ -73,71 +75,98 @@ func (b *listBuilder) List() *pvcList {
 
 // Len returns the number of items present
 // in the PVCList
-func (p *pvcList) Len() int {
+func (p *PVCList) Len() int {
+	return len(p.items)
+}
+
+// Len returns the number of items present
+// in the PVCList of a builder
+func (b *ListBuilder) Len() int {
+	p := &PVCList{}
 	return len(p.items)
 }
 
 // ToAPIList converts PVCList to API PVCList
-func (p *pvcList) ToAPIList() *v1.PersistentVolumeClaimList {
-	plist := &v1.PersistentVolumeClaimList{}
+func (p *PVCList) ToAPIList() *corev1.PersistentVolumeClaimList {
+	plist := &corev1.PersistentVolumeClaimList{}
 	for _, pvc := range p.items {
 		plist.Items = append(plist.Items, *pvc.object)
 	}
 	return plist
 }
 
-// ListBuilder returns a instance of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &pvcList{items: []*pvc{}}}
+// APIList builds core API PVC list using listbuilder
+func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, error) {
+	l, err := b.Build()
+	if err != nil {
+		return nil, err
+	}
+	return l.ToAPIList(), nil
 }
 
-// predicate defines an abstraction
+// NewListBuilder returns an instance of ListBuilder
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{list: &PVCList{}}
+}
+
+type pvcBuildOption func(*PVC)
+
+// NewForAPIObject returns a new instance of PVC
+func NewForAPIObject(obj *corev1.PersistentVolumeClaim, opts ...pvcBuildOption) *PVC {
+	p := &PVC{object: obj}
+	for _, o := range opts {
+		o(p)
+	}
+	return p
+}
+
+// Predicate defines an abstraction
 // to determine conditional checks
 // against the provided pvc instance
-type predicate func(*pvc) bool
+type Predicate func(*PVC) bool
 
 // IsBound returns true if the pvc is bounded
-func (p *pvc) IsBound() bool {
-	return p.object.Status.Phase == "Bound"
+func (p *PVC) IsBound() bool {
+	return p.object.Status.Phase == corev1.ClaimBound
 }
 
 // IsBound is a predicate to filter out pvcs
 // which is bounded
-func IsBound() predicate {
-	return func(p *pvc) bool {
+func IsBound() Predicate {
+	return func(p *PVC) bool {
 		return p.IsBound()
 	}
 }
 
 // IsNil returns true if the PVC instance
 // is nil
-func (p *pvc) IsNil() bool {
+func (p *PVC) IsNil() bool {
 	return p.object == nil
 }
 
 // IsNil is predicate to filter out nil PVC
 // instances
-func IsNil() predicate {
-	return func(p *pvc) bool {
+func IsNil() Predicate {
+	return func(p *PVC) bool {
 		return p.IsNil()
 	}
 }
 
 // ContainsName is filter function to filter pvc's
 // based on the name
-func ContainsName(name string) predicate {
-	return func(p *pvc) bool {
+func ContainsName(name string) Predicate {
+	return func(p *PVC) bool {
 		return strings.Contains(p.object.GetName(), name)
 	}
 }
 
-// predicateList holds a list of predicate
-type predicateList []predicate
+// PredicateList holds a list of predicate
+type PredicateList []Predicate
 
 // all returns true if all the predicates
 // succeed against the provided pvc
 // instance
-func (l predicateList) all(p *pvc) bool {
+func (l PredicateList) all(p *PVC) bool {
 	for _, pred := range l {
 		if !pred(p) {
 			return false
@@ -147,7 +176,7 @@ func (l predicateList) all(p *pvc) bool {
 }
 
 // WithFilter adds filters on which the pvc's has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
+func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }

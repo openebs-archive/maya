@@ -57,7 +57,7 @@ spec:
   - name: VolumeMonitor
     enabled: "true"
   # TargetTolerations allows you to specify the tolerations for target
-  # Example: 
+  # Example:
   # - name: TargetTolerations
   #   value: |-
   #      t1:
@@ -73,7 +73,7 @@ spec:
   - name: TargetTolerations
     value: "none"
   # ReplicaTolerations allows you to specify the tolerations for target
-  # Example: 
+  # Example:
   # - name: ReplicaTolerations
   #   value: |-
   #      t1:
@@ -245,8 +245,8 @@ spec:
   defaultConfig:
   - name: ScrubImage
     value: "quay.io/openebs/openebs-tools:3.8"
-  # RetainReplicaData specifies whether jiva replica data folder 
-  # should be cleared or retained. 
+  # RetainReplicaData specifies whether jiva replica data folder
+  # should be cleared or retained.
   - name: RetainReplicaData
     enabled: "false"
   - name: JivaRunNamespace
@@ -554,7 +554,7 @@ spec:
     Kind: Service
     metadata:
       annotations:
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
       labels:
@@ -762,7 +762,7 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         {{- if eq $isMonitor "true" }}
@@ -789,8 +789,9 @@ spec:
             openebs.io/controller: jiva-controller
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            openebs.io/version: {{ .CAST.version }}
           annotations:
-            openebs.io/storage-class-ref: | 
+            openebs.io/storage-class-ref: |
                 name: {{ .Volume.storageclass }}
                 resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/fs-type: {{ .Config.FSType.value }}
@@ -951,7 +952,7 @@ spec:
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
       annotations:
-        openebs.io/storage-class-ref: | 
+        openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
         openebs.io/capacity: {{ .Volume.capacity }}
@@ -971,11 +972,12 @@ spec:
             openebs.io/replica: jiva-replica
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            openebs.io/version: {{ .CAST.version }}
             {{- if ne $replicaAntiAffinityVal "none" }}
             openebs.io/replica-anti-affinity: {{ $replicaAntiAffinityVal }}
             {{- end }}
           annotations:
-            openebs.io/storage-class-ref: | 
+            openebs.io/storage-class-ref: |
               name: {{ .Volume.storageclass }}
               resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
             openebs.io/capacity: {{ .Volume.capacity }}
@@ -1248,7 +1250,7 @@ spec:
           containers:
           - name: sjr
             image: {{ .Config.ScrubImage.value }}
-            command: 
+            command:
             - sh
             - -c
             - 'rm -rf /mnt/replica/*; sync; date > /mnt/replica/scrubbed.txt; sync;'
