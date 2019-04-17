@@ -26,7 +26,6 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -143,10 +142,6 @@ func (c *BackupController) getBackupCStorResource(key string) (*apis.BackupCStor
 
 	bkp, err := c.clientset.OpenebsV1alpha1().BackupCStors(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		if errors.IsNotFound(err) {
-			runtime.HandleError(fmt.Errorf("bkp '%s' in work queue no longer exists", key))
-			return nil, nil
-		}
 		return nil, err
 	}
 	return bkp, nil

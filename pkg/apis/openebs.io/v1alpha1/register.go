@@ -65,6 +65,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&BackupCStor{},
 		&BackupCStorLast{},
 		&BackupCStorList{},
+		&CStorRestore{},
+		&CStorRestoreList{},
 		&Disk{},
 		&DiskList{},
 	)

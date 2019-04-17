@@ -325,6 +325,37 @@ spec:
       description: Last successful backup snapshot
       type: string
 ---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: cstorrestores.openebs.io
+spec:
+  group: openebs.io
+  version: v1alpha1
+  scope: Namespaced
+  names:
+    plural: cstorrestores
+    singular: cstorrestore
+    kind: CStorRestore
+    shortNames:
+    - rst
+    - rsts
+    - restores
+    - restore
+  additionalPrinterColumns:
+    - JSONPath: .spec.restoreName
+      name: backup
+      description: backup name which is  restored
+      type: string
+    - JSONPath: .spec.volumeName
+      name: volume
+      description: volume on which restore performed
+      type: string
+    - JSONPath: .status
+      name: Status
+      description: Restore status
+      type: string
+---
 `
 
 // OpenEBSCRDArtifacts returns the CRDs required for latest version
