@@ -15,31 +15,35 @@ import (
 )
 
 const (
-	deviceID           = "deviceID"
-	provisionRoot      = "/tmp/"
-	snapshotRoot       = "/tmp/"
 	maxStorageCapacity = tib
 	timeout            = 60 * time.Second
 )
 
-type controllerServer struct {
+// ControllerServer defines the data structure of the controller driver
+type ControllerServer struct {
 	driver *CSIDriver
 	cscap  []*csi.ControllerServiceCapability
 }
 
 var (
+	// supportedAccessMode specifies the AccessModes that can
+	// be supported by the volume
 	supportedAccessMode = &csi.VolumeCapability_AccessMode{
+		// Volume can only be published once as read/write on a single node, at
+		// any given time.
 		Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 	}
 )
 
-func NewControllerServer(d *CSIDriver) *controllerServer {
-	return &controllerServer{
+// NewControllerServer returns a new instance of controller server
+func NewControllerServer(d *CSIDriver) *ControllerServer {
+	return &ControllerServer{
 		driver: d,
 		cscap:  AddControllerServiceCaps(),
 	}
 }
 
+// AddControllerServiceCaps adds controller service capabilities of the driver
 func AddControllerServiceCaps() []*csi.ControllerServiceCapability {
 	newCap := func(cap csi.ControllerServiceCapability_RPC_Type) *csi.ControllerServiceCapability {
 		return &csi.ControllerServiceCapability{
@@ -64,14 +68,16 @@ func AddControllerServiceCaps() []*csi.ControllerServiceCapability {
 
 }
 
-func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+// CreateVolume dynamically provisions a volume on demand
+func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	logrus.Infof("Create Volume")
 	if err := cs.ValidateControllerServiceRequest(csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); err != nil {
 		logrus.Infof("invalid create volume req: %v", req)
 		return nil, err
 	}
+	volName := req.GetName()
 
-	if len(req.GetName()) == 0 {
+	if len(volName) == 0 {
 		return nil, status.Error(codes.InvalidArgument,
 			"Name missing in request")
 	}
@@ -86,7 +92,9 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 				"Block Volume not supported")
 		}
 	}
-	if exVol, err := getVolumeByName(req.GetName()); err == nil {
+
+	// Verify if the volume has already been created
+	if exVol, err := getVolumeByName(volName); err == nil {
 		capacity, _ := strconv.ParseInt(exVol.Spec.Capacity, 10, 64)
 		if capacity >= int64(req.GetCapacityRange().GetRequiredBytes()) {
 			return &csi.CreateVolumeResponse{
@@ -99,19 +107,26 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		}
 		return nil,
 			status.Error(codes.AlreadyExists,
-				fmt.Sprintf("Volume with the same name: %s but with different size already exist", req.GetName()))
+				fmt.Sprintf("Volume with the same name: %s but with different size already exist",
+					req.GetName()))
 	}
+
+	// Send volume creation request to m-apiserver
 	vol, _ := provisionVolume(req)
+	// Create a csi vol object from info returned by m-apiserver
 	csivol := generateCSIVolInfoFromCASVolume(vol)
 
-	volumeID := req.GetName()
+	volumeID := volName
+	// Keep a local copy of the volume info to catch duplicate requests
 	Volumes[volumeID] = csivol
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:      volumeID,
 			CapacityBytes: req.GetCapacityRange().GetRequiredBytes(),
+			// VolumeContext is essential for publishing volumes at nodes,
+			// for iscsi login, this will be stored in PV CR
 			VolumeContext: map[string]string{
-				"volname":        req.GetName(),
+				"volname":        volName,
 				"iqn":            vol.Spec.Iqn,
 				"targetPortal":   vol.Spec.TargetPortal,
 				"lun":            "0",
@@ -122,10 +137,10 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}, nil
 }
 
-func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+// DeleteVolume deletes the specified volume
+func (cs *ControllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	logrus.Infof("Delete Volume")
 
-	// Check arguments
 	if len(req.GetVolumeId()) == 0 {
 		return nil, status.Error(codes.InvalidArgument,
 			"Volume ID missing in request")
@@ -136,22 +151,32 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		return nil, err
 	}
 	volumeID := req.VolumeId
-	logrus.Infof("deleting volume %s", volumeID)
+
+	// This call is made just to fetch pvc namespace
 	pv, err := fetchPVDetails(volumeID)
 	if err != nil {
 		return nil, err
 	}
 	pvcNamespace := pv.Spec.ClaimRef.Namespace
-	DeleteVolume(volumeID, pvcNamespace)
+
+	//Send delete request to m-apiserver
+	if err := DeleteVolume(volumeID, pvcNamespace); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	// Remove entry from the volume list maintained
 	delete(Volumes, volumeID)
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
-func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+// ValidateVolumeCapabilities validates the capabilities required to create a
+// new volume
+func (cs *ControllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	return cs.ValidateVolumeCapabilities(ctx, req)
 }
 
-func (cs *controllerServer) ControllerGetCapabilities(ctx context.Context,
+// ControllerGetCapabilities fetches the controller capabilities
+func (cs *ControllerServer) ControllerGetCapabilities(ctx context.Context,
 	req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 
 	resp := &csi.ControllerGetCapabilitiesResponse{
@@ -161,11 +186,15 @@ func (cs *controllerServer) ControllerGetCapabilities(ctx context.Context,
 	return resp, nil
 }
 
-func (cs *controllerServer) ControllerExpandVolume(ctx context.Context,
+// ControllerExpandVolume can be used to resize the previously provisioned
+// volume
+func (cs *ControllerServer) ControllerExpandVolume(ctx context.Context,
 	req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	return nil, nil
 }
 
+// validateCapabilities validates if the corresponding capability is supported
+// by the driver
 func validateCapabilities(caps []*csi.VolumeCapability) bool {
 	vcaps := []*csi.VolumeCapability_AccessMode{supportedAccessMode}
 
@@ -189,7 +218,10 @@ func validateCapabilities(caps []*csi.VolumeCapability) bool {
 
 	return supported
 }
-func (cs *controllerServer) ValidateControllerServiceRequest(c csi.ControllerServiceCapability_RPC_Type) error {
+
+// ValidateControllerServiceRequest validates if the requested service is
+// supported by the driver
+func (cs *ControllerServer) ValidateControllerServiceRequest(c csi.ControllerServiceCapability_RPC_Type) error {
 	if c == csi.ControllerServiceCapability_RPC_UNKNOWN {
 		return nil
 	}
@@ -202,30 +234,41 @@ func (cs *controllerServer) ValidateControllerServiceRequest(c csi.ControllerSer
 	return status.Error(codes.InvalidArgument, fmt.Sprintf("%s", c))
 }
 
-func (cs *controllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+// CreateSnapshot can be used to create a snapsnhot for a particular volumeID
+// provided
+func (cs *ControllerServer) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+// DeleteSnapshot can be used to delete a particular snapshot of a specified
+// volume
+func (cs *ControllerServer) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+// ListSnapshots lists all the snapshots for the volume specified via VolumeID
+func (cs *ControllerServer) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
+// ControllerUnpublishVolume can be used to remove a previously attached volume
+// from the specified node
+func (cs *ControllerServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+// ControllerPublishVolume can be used to attach the volume at the specified
+// node
+func (cs *ControllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
+// GetCapacity return the capacity of the the storage pool
+func (cs *ControllerServer) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
-func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
+// ListVolumes lists the info of all the OpenEBS volumes created via m-apiserver
+func (cs *ControllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }

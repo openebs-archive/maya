@@ -27,7 +27,7 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi"
 )
 
-// Defines Non blocking GRPC server interfaces
+// NonBlockingGRPCServer defines Non blocking GRPC server interfaces
 type NonBlockingGRPCServer interface {
 	// Start services at the endpoint
 	Start(endpoint string, ids csi.IdentityServer, cs csi.ControllerServer, ns csi.NodeServer)
@@ -39,6 +39,7 @@ type NonBlockingGRPCServer interface {
 	ForceStop()
 }
 
+// NewNonBlockingGRPCServer returns a new instance of NonBlockingGRPCServer
 func NewNonBlockingGRPCServer() NonBlockingGRPCServer {
 	return &nonBlockingGRPCServer{}
 }
@@ -49,6 +50,7 @@ type nonBlockingGRPCServer struct {
 	server *grpc.Server
 }
 
+// Start grpc server for serving CSI endpoints
 func (s *nonBlockingGRPCServer) Start(endpoint string, ids csi.IdentityServer, cs csi.ControllerServer, ns csi.NodeServer) {
 
 	s.wg.Add(1)
@@ -58,21 +60,26 @@ func (s *nonBlockingGRPCServer) Start(endpoint string, ids csi.IdentityServer, c
 	return
 }
 
+// Wait for the service to stop
 func (s *nonBlockingGRPCServer) Wait() {
 	s.wg.Wait()
 }
 
+// Stop the service forcefully
 func (s *nonBlockingGRPCServer) Stop() {
 	s.server.GracefulStop()
 }
 
+// ForceStop the service
 func (s *nonBlockingGRPCServer) ForceStop() {
 	s.server.Stop()
 }
 
+// serve starts serving requests at the provided endpoint based on the type of
+// plugin
 func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, cs csi.ControllerServer, ns csi.NodeServer) {
 
-	proto, addr, err := ParseEndpoint(endpoint)
+	proto, addr, err := parseEndpoint(endpoint)
 	if err != nil {
 		glog.Fatal(err.Error())
 	}

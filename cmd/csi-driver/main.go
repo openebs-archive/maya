@@ -25,7 +25,6 @@ func main() {
 	}
 
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
-	cmd.PersistentFlags().StringVar(&config.Token, "token", "", "token")
 	cmd.PersistentFlags().StringVar(&config.RestURL, "url", "", "url")
 	cmd.PersistentFlags().StringVar(&config.NodeID, "nodeid", "node1", "node id")
 	cmd.PersistentFlags().StringVar(&config.Version, "version", "", "Print the version and exit")
