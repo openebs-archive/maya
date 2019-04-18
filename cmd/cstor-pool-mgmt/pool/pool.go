@@ -84,8 +84,8 @@ func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 }
 
 // CreatePool creates a new cStor pool.
-func CreatePool(cStorPool *apis.CStorPool) error {
-	createAttr := createPoolBuilder(cStorPool)
+func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
+	createAttr := createPoolBuilder(cStorPool, diskList)
 	glog.V(4).Info("createAttr : ", createAttr)
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
@@ -97,7 +97,7 @@ func CreatePool(cStorPool *apis.CStorPool) error {
 }
 
 // createPoolBuilder is to build create pool command.
-func createPoolBuilder(cStorPool *apis.CStorPool) []string {
+func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
 	// populate pool creation attributes.
 	var createAttr []string
 	// When disks of other file formats, say ext4, are used to create cstorpool,
@@ -114,7 +114,6 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	createAttr = append(createAttr, poolNameUID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
-	diskList := cStorPool.Spec.Disks.DiskList
 	if poolType == "striped" {
 		for _, disk := range diskList {
 			createAttr = append(createAttr, disk)
@@ -136,12 +135,12 @@ func createPoolBuilder(cStorPool *apis.CStorPool) []string {
 }
 
 // CheckValidPool checks for validity of CStorPool resource.
-func CheckValidPool(cStorPool *apis.CStorPool) error {
+func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
 	}
-	diskCount := len(cStorPool.Spec.Disks.DiskList)
+	diskCount := len(devID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
 		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
@@ -349,4 +348,18 @@ func LabelClear(disks []string) error {
 		return fmt.Errorf("Unable to clear labels from the disks of the pool")
 	}
 	return nil
+}
+
+// GetDeviceIDs returns the list of device IDs for the csp.
+func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
+	var diskDeviceID []string
+	for _, group := range csp.Spec.Group {
+		for _, disk := range group.Item {
+			diskDeviceID = append(diskDeviceID, disk.DeviceID)
+		}
+	}
+	if len(diskDeviceID) == 0 {
+		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
+	}
+	return diskDeviceID, nil
 }

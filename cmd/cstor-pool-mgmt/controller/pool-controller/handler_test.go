@@ -60,9 +60,6 @@ func TestGetPoolResource(t *testing.T) {
 					UID:  types.UID("abc"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img1.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool1.cache",
 						PoolType:         "mirrored",
@@ -81,9 +78,6 @@ func TestGetPoolResource(t *testing.T) {
 					UID:  types.UID("abcd"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -102,9 +96,6 @@ func TestGetPoolResource(t *testing.T) {
 					UID:  types.UID("existingpool"),
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img3.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool3.cache",
 						PoolType:         "striped",
@@ -159,9 +150,6 @@ func TestRemoveFinalizer(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -202,9 +190,6 @@ func TestIsRightCStorPoolMgmt(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -242,9 +227,6 @@ func TestIsRightCStorPoolMgmtNegative(t *testing.T) {
 					Finalizers: []string{"cstorpool.openebs.io/finalizer"},
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -284,9 +266,6 @@ func TestIsDestroyEvent(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -307,9 +286,6 @@ func TestIsDestroyEvent(t *testing.T) {
 					DeletionTimestamp: nil,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -348,9 +324,6 @@ func TestIsOnlyStatusChange(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -368,9 +341,6 @@ func TestIsOnlyStatusChange(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -391,9 +361,6 @@ func TestIsOnlyStatusChange(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -411,9 +378,6 @@ func TestIsOnlyStatusChange(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -451,9 +415,6 @@ func TestIsEmptyStatus(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -474,9 +435,6 @@ func TestIsEmptyStatus(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -514,9 +472,6 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",
@@ -537,9 +492,6 @@ func TestIsDeletionFailedBefore(t *testing.T) {
 					DeletionTimestamp: &deletionTimeStamp,
 				},
 				Spec: apis.CStorPoolSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"/tmp/img2.img"},
-					},
 					PoolSpec: apis.CStorPoolAttr{
 						CacheFile:        "/tmp/pool2.cache",
 						PoolType:         "striped",

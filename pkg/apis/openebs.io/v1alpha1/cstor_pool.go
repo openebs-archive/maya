@@ -38,8 +38,24 @@ type CStorPool struct {
 
 // CStorPoolSpec is the spec listing fields for a CStorPool resource.
 type CStorPoolSpec struct {
-	Disks    DiskAttr      `json:"disks"`
+	Group    []DiskGroup   `json:"group"`
 	PoolSpec CStorPoolAttr `json:"poolSpec"`
+}
+
+// DiskGroup contains a collection of disk for a given pool topology in CSP.
+type DiskGroup struct {
+	// Item contains a list of CspDisks.
+	Item []CspDisk `json:"disk"`
+}
+
+// CspDisk contains the details of disk present on CSP.
+type CspDisk struct {
+	// Name is the name of the disk resource.
+	Name string `json:"name"`
+	// DeviceID is the device id of the disk resource. In case of sparse disks, it contains the device path.
+	DeviceID string `json:"deviceID"`
+	// InUseByPool tells whether the disk is present on spc. If disk is present on SPC, it is true else false.
+	InUseByPool bool `json:"inUseByPool"`
 }
 
 // DiskAttr stores the disk related attributes.

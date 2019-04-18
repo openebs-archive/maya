@@ -17,237 +17,52 @@ package spc
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	"testing"
-	"time"
-
 	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"time"
+
+	"testing"
 )
 
-// TestEnqueueSpc function test enqueueSpc function to check whether the queueload is
-// properly formed for enqueue into the workqueue
-
-func TestEnqueueSpc(t *testing.T) {
-	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
-	// are arguments that is expected by the NewController function.
-	fakeKubeClient := fake.NewSimpleClientset()
-	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
-
-	// Make a map of string(key) to struct(value).
-	// Key of map describes test case behaviour.
-	// Value of map is the test object.
+func TestValidatePoolType(t *testing.T) {
 	tests := map[string]struct {
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.StoragePoolClaim
-		// queueload holds the queueLoad for the test case under run.
-		queueload QueueLoad
-		// expectedKey holds the key that should be extracted from queueload
-		expectedKey string
-	}{
-		// TestCase#1
-		// Make a queueload object
-		// Function under test should utilize the object and extract name from storagepoolcalim object as key
-		// Finally the queueload key filed should be filled with the extracted key.
-		"Forming queueload object": {
-			queueload: QueueLoad{
-				"",
-				"operation",
-				&apis.StoragePoolClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pool2",
-					},
-				},
-			},
-			expectedKey: "pool2"},
-	}
-
-	// Iterate over whole map to run the test cases.
-	for name, test := range tests {
-		// Instantiate the controller by passing the valid arguments.
-		controller := NewController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
-			openebsInformerFactory)
-		t.Run(name, func(t *testing.T) {
-			// enqueueSpc is the function under test.
-			controller.enqueueSpc(&test.queueload)
-			// If the key in queueload does not match the expectedKey, test case fails.
-			if test.queueload.Key != test.expectedKey {
-				t.Errorf("Test case failed : expected '%v' but got '%v' ", test.expectedKey, test.queueload.Key)
-			}
-		})
-	}
-}
-
-// TestGetSpcResource tests getSpcResource.
-
-// getSpcResource receives the name of the object and fetches the object
-// from kube apiserver
-
-func TestGetSpcResource(t *testing.T) {
-	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
-	// are arguments that is expected by the NewController function.
-	fakeKubeClient := fake.NewSimpleClientset()
-	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
-
-	// Make a map of string(key) to struct(value).
-	// Key of map describes test case behaviour.
-	// Value of map is the test object.
-	tests := map[string]struct {
-		// querySpcName is the name of object that will be queried.
-		querySpcName string
-		// expectedError tells whether the error should be there or not.
-		expectedError bool
-		// SpcObject is storagepoolclaim object whose fake creation will be done.
-		SpcObject *apis.StoragePoolClaim
-	}{
-		// TestCase#2
-		// Make a storagepoolcalim object named pool1.
-		// Query for pool1 object and there should be no error.
-		"Create spc object with name pool1 and query for the same object": {
-			querySpcName:  "pool1",
-			expectedError: false,
-			SpcObject: &apis.StoragePoolClaim{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-					UID:  types.UID("abc"),
-				},
-				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"disk-4268137899842721d2d4fc0c16c3b138"},
-					},
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool1.cache",
-						PoolType:         "mirrored",
-						OverProvisioning: false,
-					},
-				},
-				Status: apis.StoragePoolClaimStatus{},
-			},
-		},
-
-		// TestCase#2
-		// Make a storagepoolcalim object named pool3.
-		// Query for pool4 object which does not exists.
-		// Still the function under test should not error out but
-		// the error should be handled at runtime
-		"Create spc object with name pool3 and query for pool4 object which does not exists": {
-			querySpcName:  "pool4",
-			expectedError: false,
-			SpcObject: &apis.StoragePoolClaim{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool3",
-					UID:  types.UID("abcd"),
-				},
-				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{"disk-49c3f6bfe9906e8db04adda12815375c"},
-					},
-					PoolSpec: apis.CStorPoolAttr{
-						CacheFile:        "/tmp/pool3.cache",
-						PoolType:         "striped",
-						OverProvisioning: false,
-					},
-				},
-				Status: apis.StoragePoolClaimStatus{},
-			},
-		},
-	}
-
-	// Iterate over whole map to run the test cases.
-	for name, test := range tests {
-		// Instantiate the controller by passing the valid arguments.
-		controller := NewController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
-			openebsInformerFactory)
-		t.Run(name, func(t *testing.T) {
-			resultError := false
-
-			// Create the fake storagepoolclaim object
-			_, err := controller.clientset.OpenebsV1alpha1().StoragePoolClaims().Create(test.SpcObject)
-			if err != nil {
-				t.Fatalf("Desc:%v, Unable to create resource : %v", name, test.SpcObject.ObjectMeta.Name)
-			}
-
-			_, err = controller.getSpcResource(test.querySpcName)
-
-			// If any error occurs set resultError true
-			if err != nil {
-				resultError = true
-			}
-
-			// If expectedError does not matches resultError, test case fails.
-			if test.expectedError != resultError {
-				t.Errorf("Test case failed : expected '%v' but got '%v' ", test.expectedError, resultError)
-			}
-
-		})
-	}
-
-}
-
-// TestSyncHandler function tests syncHandler function which call the business handlers
-
-func TestSyncHandler(t *testing.T) {
-	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
-	// are arguments that is expected by the NewController function.
-	fakeKubeClient := fake.NewSimpleClientset()
-	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
-	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Second*30)
-	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
-
-	// Make a map of string(key) to struct(value).
-	// Key of map describes test case behaviour.
-	// Value of map is the test object.
-	tests := map[string]struct {
-		// key holds the name of storagepoolcalim object
-		key string
-		// operations holds the type of operation that happened for storagepoolclaim object
-		operation string
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.StoragePoolClaim
-		// expectedError tells whether the error should be there or not.
+		spc           *apis.StoragePoolClaim
 		expectedError bool
 	}{
-		// Function under test expects key,operation,and storagepoolcalim object as an argument
-		// If the event is addEvent , creation of  storagepool
-		// should be attempted.
-		// The attempt will fail because of the absence of cas template in go environment
-		// Hence addEvent should error out.
-		// For all other events there is no such attempt and no error should occur.
-
-		// TestCase#1
-		"Sync Operation for spc for any unrecognized operation tag": {
-			key:       "pool1",
-			operation: "Default Case In Switch",
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
+		"Empty pool type": {
+			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-				},
-			},
-			expectedError: false,
-		},
-		// TestCase#2
-		"Sync Operation for spc add event": {
-			key:       "pool1",
-			operation: addEvent,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
+					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type:     string(apis.TypeSparseCPV),
-					MaxPools: 3,
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: "",
+					},
+				},
+			},
+			expectedError: true,
+		},
+		"Wrong pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: "test",
+					},
+				},
+			},
+			expectedError: true,
+		},
+		"Striped pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
 					PoolSpec: apis.CStorPoolAttr{
 						PoolType: string(apis.PoolTypeStripedCPV),
 					},
@@ -255,44 +70,41 @@ func TestSyncHandler(t *testing.T) {
 			},
 			expectedError: false,
 		},
-		// TestCase#3
-		"Sync Operation for spc add event invalid pool type": {
-			key:       "pool3",
-			operation: addEvent,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
+		"Mirrored pool type": {
+			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool3",
+					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type:     string(apis.TypeDiskCPV),
-					MaxPools: 3,
 					PoolSpec: apis.CStorPoolAttr{
-						PoolType: "raidz1",
+						PoolType: string(apis.PoolTypeMirroredCPV),
 					},
-				},
-			},
-			expectedError: true,
-		},
-
-		// TestCase#4
-		"Sync Operation for spc update event": {
-			key:       "pool2",
-			operation: updateEvent,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool2",
 				},
 			},
 			expectedError: false,
 		},
-
-		// TestCase#5
-		"Sync Operation for spc ignored event": {
-			key:       "pool2",
-			operation: ignoreEvent,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
+		"Raidz pool type": {
+			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool2",
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidzCPV),
+					},
+				},
+			},
+			expectedError: false,
+		},
+		"Raidz2 pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidz2CPV),
+					},
 				},
 			},
 			expectedError: false,
@@ -300,28 +112,511 @@ func TestSyncHandler(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		// Instantiate the controller by passing the valid arguments.
-		controller := NewController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
-			openebsInformerFactory)
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
-			if test.operation == addEvent || test.operation == updateEvent {
-				// For addEvent and updateEvent storagepoolclaim object should exist
-				// Hence creating the objects
-				_, err := controller.clientset.OpenebsV1alpha1().StoragePoolClaims().Create(test.fakestoragepoolclaim)
-				if err != nil {
-					t.Fatalf("Test name: %v, Unable to create resource : %s, error: %v", name, test.key, err)
-				}
-			}
-
-			resultError := false
-			err := controller.syncHandler(test.key, test.operation, test.fakestoragepoolclaim)
-
+			err := validatePoolType(test.spc)
+			var gotError bool
 			if err != nil {
-				resultError = true
+				gotError = true
 			}
-			if test.expectedError != resultError {
-				t.Errorf("Test case: %v failed expected '%v' but got '%v' ", name, test.expectedError, resultError)
+			if gotError != test.expectedError {
+				t.Errorf("Test case failed as expected error %v but got error %v", test.expectedError, gotError)
 			}
 		})
 	}
+}
+
+func TestValidateDiskType(t *testing.T) {
+	tests := map[string]struct {
+		spc           *apis.StoragePoolClaim
+		expectedError bool
+	}{
+		"Sparse pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedError: false,
+		},
+		"Disk pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedError: false,
+		},
+		"Empty pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: "",
+				},
+			},
+			expectedError: true,
+		},
+		"Wrong pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: "gpd",
+				},
+			},
+			expectedError: true,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			err := validateDiskType(test.spc)
+			var gotError bool
+			if err != nil {
+				gotError = true
+			}
+			if gotError != test.expectedError {
+				t.Errorf("Test case failed as expected error %v but got error %v", test.expectedError, gotError)
+			}
+		})
+	}
+}
+
+func TestValidateAutoSpcMaxPool(t *testing.T) {
+	tests := map[string]struct {
+		spc           *apis.StoragePoolClaim
+		expectedError bool
+	}{
+		"Maxpool not specified on spc": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedError: true,
+		},
+		"Wrong maxpool specified on spc": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(-1),
+				},
+			},
+			expectedError: true,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			err := validateAutoSpcMaxPool(test.spc)
+			var gotError bool
+			if err != nil {
+				gotError = true
+			}
+			if gotError != test.expectedError {
+				t.Errorf("Test case failed as expected error %v but got error %v", test.expectedError, gotError)
+			}
+		})
+	}
+}
+
+func TestValidateSpc(t *testing.T) {
+	tests := map[string]struct {
+		spc           *apis.StoragePoolClaim
+		expectedError bool
+	}{
+		"Invalid SPC #1": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedError: true,
+		},
+		"Invalid SPC #2": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(-1),
+				},
+			},
+			expectedError: true,
+		},
+		"Valid Auto SPC #1": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidz2CPV),
+					},
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedError: false,
+		},
+		"Valid Manual SPC #1": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidz2CPV),
+					},
+					Disks: apis.DiskAttr{
+						DiskList: []string{"disk-1"},
+					},
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedError: false,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			err := validate(test.spc)
+			var gotError bool
+			if err != nil {
+				gotError = true
+			}
+			if gotError != test.expectedError {
+				t.Errorf("Test case failed as expected error %v but got error %v", test.expectedError, gotError)
+			}
+		})
+	}
+}
+
+func TestCurrentPoolCount(t *testing.T) {
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+	controller, err := NewControllerBuilder().
+		withKubeClient(fakeKubeClient).
+		withOpenEBSClient(fakeOpenebsClient).
+		withspcSynced(openebsInformerFactory).
+		withSpcLister(openebsInformerFactory).
+		withRecorder(fakeKubeClient).
+		withWorkqueueRateLimiting().
+		withEventHandler(openebsInformerFactory).
+		Build()
+
+	if err != nil {
+		t.Fatalf("failed to build controller instance: %s", err)
+	}
+	tests := map[string]struct {
+		spc               *apis.StoragePoolClaim
+		expectedPoolCount int
+	}{
+		"Invalid SPC #1": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+				},
+			},
+			expectedPoolCount: 0,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			c, err := controller.getCurrentPoolCount(test.spc)
+			if err != nil {
+				t.Fatalf("Test case failed duue to error %s", err)
+			}
+			if c != 0 {
+				t.Errorf("Test case failed as expected current pool count %d but got %d", test.expectedPoolCount, c)
+			}
+
+		})
+	}
+}
+
+func TestPendingPoolCount(t *testing.T) {
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+	controller, err := NewControllerBuilder().
+		withKubeClient(fakeKubeClient).
+		withOpenEBSClient(fakeOpenebsClient).
+		withspcSynced(openebsInformerFactory).
+		withSpcLister(openebsInformerFactory).
+		withRecorder(fakeKubeClient).
+		withWorkqueueRateLimiting().
+		withEventHandler(openebsInformerFactory).
+		Build()
+
+	if err != nil {
+		t.Fatalf("failed to build controller instance: %s", err)
+	}
+	tests := map[string]struct {
+		spc               *apis.StoragePoolClaim
+		expectedPoolCount int
+	}{
+		"Auto SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedPoolCount: 3,
+		},
+		"Manual SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+					Disks: apis.DiskAttr{
+						DiskList: []string{"disk-1"},
+					},
+				},
+			},
+			expectedPoolCount: 0,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			pc, err := controller.getPendingPoolCount(test.spc)
+			if err != nil {
+				t.Fatalf("Test case failed duue to error %s", err)
+			}
+			if pc != test.expectedPoolCount {
+				t.Errorf("Test case failed as expected current pool count %d but got %d", test.expectedPoolCount, pc)
+			}
+
+		})
+	}
+}
+
+func TestIsPoolPending(t *testing.T) {
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+	controller, err := NewControllerBuilder().
+		withKubeClient(fakeKubeClient).
+		withOpenEBSClient(fakeOpenebsClient).
+		withspcSynced(openebsInformerFactory).
+		withSpcLister(openebsInformerFactory).
+		withRecorder(fakeKubeClient).
+		withWorkqueueRateLimiting().
+		withEventHandler(openebsInformerFactory).
+		Build()
+
+	if err != nil {
+		t.Fatalf("failed to build controller instance: %s", err)
+	}
+	tests := map[string]struct {
+		spc               *apis.StoragePoolClaim
+		expectedIsPending bool
+	}{
+		"Auto SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedIsPending: true,
+		},
+		"Manual SPC": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeSparseCPV),
+					Disks: apis.DiskAttr{
+						DiskList: []string{"disk-1"},
+					},
+				},
+			},
+			expectedIsPending: false,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := controller.isPoolPending(test.spc)
+			if gotBool != test.expectedIsPending {
+				t.Errorf("Test case failed as expected %v but got %v", test.expectedIsPending, gotBool)
+			}
+
+		})
+	}
+}
+
+func TestIsValidPendingPoolCount(t *testing.T) {
+	tests := map[string]struct {
+		pendingPoolCount int
+		isValid          bool
+	}{
+		"Invalid Pending Pool Count": {
+			pendingPoolCount: -1,
+			isValid:          false,
+		},
+		"Valid Pending Pool Count": {
+			pendingPoolCount: 1,
+			isValid:          true,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := isValidPendingPoolCount(test.pendingPoolCount)
+			if gotBool != test.isValid {
+				t.Errorf("Test case failed as expected %v but got %v", test.isValid, gotBool)
+			}
+
+		})
+	}
+}
+
+func TestIsManualProvisioning(t *testing.T) {
+	tests := map[string]struct {
+		spc                *apis.StoragePoolClaim
+		manualProvisioning bool
+	}{
+		"A manual spc Config": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{},
+					},
+				},
+			},
+			manualProvisioning: true,
+		},
+		"Not a manual spc config": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					Disks: apis.DiskAttr{},
+				},
+			},
+			manualProvisioning: false,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := isManualProvisioning(test.spc)
+			if gotBool != test.manualProvisioning {
+				t.Errorf("Test case failed as expected %v but got %v", test.manualProvisioning, gotBool)
+			}
+
+		})
+	}
+}
+
+func TestIsAutoProvisioning(t *testing.T) {
+
+	tests := map[string]struct {
+		spc              *apis.StoragePoolClaim
+		autoProvisioning bool
+	}{
+		"A auto spc Config #1": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					Disks: apis.DiskAttr{},
+				},
+			},
+			autoProvisioning: true,
+		},
+		"A auto spc Config #2": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{},
+			},
+			autoProvisioning: true,
+		},
+		"A auto spc Config #3": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					Disks: apis.DiskAttr{
+						DiskList: nil,
+					},
+				},
+			},
+			autoProvisioning: true,
+		},
+		"Not a auto spc config": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					Disks: apis.DiskAttr{
+						DiskList: []string{},
+					},
+				},
+			},
+			autoProvisioning: false,
+		},
+	}
+
+	for name, test := range tests {
+		name := name
+		test := test
+		t.Run(name, func(t *testing.T) {
+			gotBool := isAutoProvisioning(test.spc)
+			if gotBool != test.autoProvisioning {
+				t.Errorf("Test case failed as expected %v but got %v", test.autoProvisioning, gotBool)
+			}
+
+		})
+	}
+}
+
+func newInt(val int) *int {
+	value := val
+	return &value
 }

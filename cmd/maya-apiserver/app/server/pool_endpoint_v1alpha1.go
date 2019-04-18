@@ -62,9 +62,8 @@ func (p *poolAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	return p.read(poolName)
 }
 
-func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
+func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.CStorPoolList, error) {
 	glog.Infof("received storage pool list request")
-
 	sOps, err := pool.NewStoragePoolOperation("")
 	if err != nil {
 		return nil, CodedErrorWrap(400, err)
@@ -80,9 +79,8 @@ func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
 	return pools, nil
 }
 
-func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.StoragePool, error) {
+func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.CStorPool, error) {
 	glog.Infof("received storage pool read request: %s", poolName)
-
 	sOps, err := pool.NewStoragePoolOperation(poolName)
 	if err != nil {
 		return nil, CodedErrorWrap(400, err)

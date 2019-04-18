@@ -663,6 +663,16 @@ func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error)
 	//return
 }
 
+// GetOEV1alpha1CSPAsRaw fetches the OpenEBS CSP with the provided name
+func (k *K8sClient) GetOEV1alpha1CSPAsRaw(name string) (result []byte, err error) {
+	csp, err := k.GetOEV1alpha1CSP(name)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(csp)
+}
+
 // podOps is a utility function that provides a instance capable of
 // executing various K8s pod related operations.
 func (k *K8sClient) podOps() typed_core_v1.PodInterface {
