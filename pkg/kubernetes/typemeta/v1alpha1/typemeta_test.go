@@ -31,12 +31,12 @@ func TestTypeMetaString(t *testing.T) {
 	}{
 		"typemeta": {
 			TypeMeta{
-				TypeMeta: &metav1.TypeMeta{
+				object: &metav1.TypeMeta{
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 				},
 			},
-			[]string{"TypeMeta:", "kind: fake-kind", "apiVersion: fake-apiversion"},
+			[]string{"kind: fake-kind", "apiVersion: fake-apiversion"},
 		},
 	}
 	for name, mock := range tests {
@@ -60,12 +60,12 @@ func TestTypeMetaGoString(t *testing.T) {
 	}{
 		"typemeta": {
 			TypeMeta{
-				TypeMeta: &metav1.TypeMeta{
+				object: &metav1.TypeMeta{
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 				},
 			},
-			[]string{"TypeMeta:", "kind: fake-kind", "apiVersion: fake-apiversion"},
+			[]string{"kind: fake-kind", "apiVersion: fake-apiversion"},
 		},
 	}
 	for name, mock := range tests {
@@ -82,7 +82,7 @@ func TestTypeMetaGoString(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewBuilder(t *testing.T) {
 	tests := map[string]struct {
 		expectObject bool
 		expectErrs   bool
@@ -95,10 +95,10 @@ func TestNew(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := New()
-		if (b.Object != nil) != mock.expectObject {
+		b := NewBuilder()
+		if (b.meta.object != nil) != mock.expectObject {
 			t.Fatalf("test %s failed, expect object %t, but got : %t",
-				name, mock.expectObject, b.Object != nil)
+				name, mock.expectObject, b.meta.object != nil)
 		}
 		if (len(b.errors) != 0) != mock.expectErrs {
 			t.Fatalf("test %s failed, expect error %t, but got : %t",
@@ -125,14 +125,14 @@ func TestWithKind(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &TypeMeta{
-				TypeMeta: &metav1.TypeMeta{},
+			meta: &TypeMeta{
+				object: &metav1.TypeMeta{},
 			},
 		}
 		b.WithKind(mock.kind)
-		if b.Object.TypeMeta.Kind != mock.expectedKind {
+		if b.meta.object.Kind != mock.expectedKind {
 			t.Fatalf("test %s failed, expected kind %s, but got : %s",
-				name, mock.expectedKind, b.Object.TypeMeta.Kind)
+				name, mock.expectedKind, b.meta.object.Kind)
 		}
 	}
 }
@@ -155,19 +155,19 @@ func TestWithAPIVersion(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &TypeMeta{
-				TypeMeta: &metav1.TypeMeta{},
+			meta: &TypeMeta{
+				object: &metav1.TypeMeta{},
 			},
 		}
 		b.WithAPIVersion(mock.apiVersion)
-		if b.Object.TypeMeta.APIVersion != mock.apiVersion {
+		if b.meta.object.APIVersion != mock.apiVersion {
 			t.Fatalf("test %s failed, expected api version %s, but got : %s",
-				name, mock.apiVersion, b.Object.TypeMeta.APIVersion)
+				name, mock.apiVersion, b.meta.object.APIVersion)
 		}
 	}
 }
 
-func TestWithAPIObject(t *testing.T) {
+func TestNewBuilderForAPIObject(t *testing.T) {
 	tests := map[string]struct {
 		typeMeta       *metav1.TypeMeta
 		expectTypeMeta bool
@@ -178,21 +178,16 @@ func TestWithAPIObject(t *testing.T) {
 		},
 		"nil typemeta present": {
 			nil,
-			false,
+			true,
 		},
 	}
 	for name, mock := range tests {
 		name := name
 		mock := mock
-		b := &Builder{
-			Object: &TypeMeta{
-				TypeMeta: &metav1.TypeMeta{},
-			},
-		}
-		b.WithAPIObject(mock.typeMeta)
-		if (b.Object.TypeMeta != nil) != mock.expectTypeMeta {
+		b := NewBuilderForAPIObject(mock.typeMeta)
+		if (b.meta.object != nil) != mock.expectTypeMeta {
 			t.Fatalf("test %s failed, expect typemeta %t, but got : %t",
-				name, mock.expectTypeMeta, b.Object.TypeMeta != nil)
+				name, mock.expectTypeMeta, b.meta.object != nil)
 		}
 	}
 }
@@ -226,8 +221,8 @@ func TestValidate(t *testing.T) {
 		name := name
 		mock := mock
 		b := &Builder{
-			Object: &TypeMeta{
-				TypeMeta: &mock.typeMeta,
+			meta: &TypeMeta{
+				object: &mock.typeMeta,
 			},
 		}
 		err := b.validate()
@@ -279,8 +274,8 @@ func TestBuild(t *testing.T) {
 		name := name
 		mock := mock
 		b := &Builder{
-			Object: &TypeMeta{
-				TypeMeta: &mock.typeMeta,
+			meta: &TypeMeta{
+				object: &mock.typeMeta,
 			},
 			errors: mock.errors,
 		}

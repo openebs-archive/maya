@@ -25,18 +25,18 @@ import (
 
 // Builder helps to build ObjectMeta
 type Builder struct {
+	meta   *ObjectMeta
 	errors []error
-	Object *ObjectMeta
 }
 
 // ObjectMeta is a wrapper over metav1.ObjectMeta
 type ObjectMeta struct {
-	ObjectMeta *metav1.ObjectMeta
+	object *metav1.ObjectMeta
 }
 
 // String implements Stringer interface
 func (om ObjectMeta) String() string {
-	return stringer.Yaml("objectmeta", om)
+	return stringer.Yaml("objectmeta", om.object)
 }
 
 // GoString implements GoStringer interface
@@ -44,48 +44,56 @@ func (om ObjectMeta) GoString() string {
 	return om.String()
 }
 
-// New returns a new instance of Builder
-func New() *Builder {
+// NewBuilder returns a new instance of Builder
+func NewBuilder() *Builder {
 	return &Builder{
-		Object: &ObjectMeta{
-			ObjectMeta: &metav1.ObjectMeta{},
+		meta: &ObjectMeta{
+			object: &metav1.ObjectMeta{},
 		},
 	}
 }
 
+// NewBuilderForAPIObject returns a new instance of Builder
+// for given metav1.ObjectMeta
+func NewBuilderForAPIObject(meta *metav1.ObjectMeta) *Builder {
+	b := &Builder{}
+	if meta == nil {
+		b.errors = append(b.errors,
+			errors.New("failed to init builder: nil ObjectMeta provided"))
+		b.meta = &ObjectMeta{object: &metav1.ObjectMeta{}}
+		return b
+	}
+	b.meta = &ObjectMeta{object: meta}
+	return b
+}
+
 // WithName adds name in ObjectMeta instance
 func (b *Builder) WithName(name string) *Builder {
-	b.Object.ObjectMeta.Name = name
+	b.meta.object.Name = name
 	return b
 }
 
 // WithNamespace adds namespace in ObjectMeta instance
 func (b *Builder) WithNamespace(namespace string) *Builder {
-	b.Object.ObjectMeta.Namespace = namespace
+	b.meta.object.Namespace = namespace
 	return b
 }
 
 // WithLabels adds labels in ObjectMeta instance
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
-	b.Object.ObjectMeta.Labels = labels
+	b.meta.object.Labels = labels
 	return b
 }
 
 // WithAnnotations adds annotations in ObjectMeta instance
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
-	b.Object.ObjectMeta.Annotations = annotations
+	b.meta.object.Annotations = annotations
 	return b
 }
 
 // WithOwnerReferences owner references in ObjectMeta instance
 func (b *Builder) WithOwnerReferences(ownerReferences ...metav1.OwnerReference) *Builder {
-	b.Object.ObjectMeta.OwnerReferences = append(b.Object.ObjectMeta.OwnerReferences, ownerReferences...)
-	return b
-}
-
-// WithAPIObject sets Object property in ObjectMeta instance
-func (b *Builder) WithAPIObject(objectMeta *metav1.ObjectMeta) *Builder {
-	b.Object.ObjectMeta = objectMeta
+	b.meta.object.OwnerReferences = append(b.meta.object.OwnerReferences, ownerReferences...)
 	return b
 }
 
@@ -95,12 +103,12 @@ func (b *Builder) validate() error {
 		return errors.Errorf("failed to validate: build errors were found: %v", b.errors)
 	}
 	validationErrs := []error{}
-	if b.Object.ObjectMeta.Name == "" {
+	if b.meta.object.Name == "" {
 		validationErrs = append(validationErrs, errors.New("missing name"))
 	}
 	if len(validationErrs) != 0 {
 		b.errors = append(b.errors, validationErrs...)
-		return errors.Errorf("failed to validate: %v", validationErrs)
+		return errors.Errorf("validation error(s) found: %v", validationErrs)
 	}
 	return nil
 }
@@ -110,7 +118,7 @@ func (b *Builder) Build() (*metav1.ObjectMeta, error) {
 	err := b.validate()
 	if err != nil {
 		return nil,
-			errors.WithMessagef(err, "failed to build ObjectMeta: %s", b.Object)
+			errors.Wrapf(err, "failed to build ObjectMeta: %s", b.meta.object)
 	}
-	return b.Object.ObjectMeta, nil
+	return b.meta.object, nil
 }

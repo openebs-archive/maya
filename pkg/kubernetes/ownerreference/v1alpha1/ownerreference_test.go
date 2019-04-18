@@ -32,14 +32,14 @@ func TestOwnerReferenceString(t *testing.T) {
 	}{
 		"objectmeta": {
 			OwnerReference{
-				OwnerReference: &metav1.OwnerReference{
+				object: &metav1.OwnerReference{
 					Name:       "fake-name",
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 					UID:        "fake-uid",
 				},
 			},
-			[]string{"OwnerReference:", "name: fake-name", "kind: fake-kind",
+			[]string{"name: fake-name", "kind: fake-kind",
 				"apiVersion: fake-apiversion", "uid: fake-uid"},
 		},
 	}
@@ -64,14 +64,14 @@ func TestOwnerReferenceGoString(t *testing.T) {
 	}{
 		"objectmeta": {
 			OwnerReference{
-				OwnerReference: &metav1.OwnerReference{
+				object: &metav1.OwnerReference{
 					Name:       "fake-name",
 					Kind:       "fake-kind",
 					APIVersion: "fake-apiversion",
 					UID:        "fake-uid",
 				},
 			},
-			[]string{"OwnerReference:", "name: fake-name", "kind: fake-kind",
+			[]string{"name: fake-name", "kind: fake-kind",
 				"apiVersion: fake-apiversion", "uid: fake-uid"},
 		},
 	}
@@ -89,7 +89,7 @@ func TestOwnerReferenceGoString(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewBuilder(t *testing.T) {
 	tests := map[string]struct {
 		expectObject bool
 		expectErrs   bool
@@ -102,10 +102,10 @@ func TestNew(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := New()
-		if (b.Object.OwnerReference != nil) != mock.expectObject {
+		b := NewBuilder()
+		if (b.ownerRef.object != nil) != mock.expectObject {
 			t.Fatalf("test %s failed, expect object %t, but got : %t",
-				name, mock.expectObject, b.Object.OwnerReference != nil)
+				name, mock.expectObject, b.ownerRef.object != nil)
 		}
 		if (len(b.errors) != 0) != mock.expectErrs {
 			t.Fatalf("test %s failed, expect error %t, but got : %t",
@@ -132,14 +132,14 @@ func TestWithName(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithName(mock.name)
-		if b.Object.OwnerReference.Name != mock.expectedName {
+		if b.ownerRef.object.Name != mock.expectedName {
 			t.Fatalf("test %s failed, expected name %s, but got : %s",
-				name, mock.expectedName, b.Object.OwnerReference.Name)
+				name, mock.expectedName, b.ownerRef.object.Name)
 		}
 	}
 }
@@ -162,14 +162,14 @@ func TestWithKind(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithKind(mock.kind)
-		if b.Object.OwnerReference.Kind != mock.expectedKind {
+		if b.ownerRef.object.Kind != mock.expectedKind {
 			t.Fatalf("test %s failed, expected kind %s, but got : %s",
-				name, mock.expectedKind, b.Object.OwnerReference.Kind)
+				name, mock.expectedKind, b.ownerRef.object.Kind)
 		}
 	}
 }
@@ -192,14 +192,14 @@ func TestWithAPIVersion(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithAPIVersion(mock.apiVersion)
-		if b.Object.OwnerReference.APIVersion != mock.expectedAPIVersion {
+		if b.ownerRef.object.APIVersion != mock.expectedAPIVersion {
 			t.Fatalf("test %s failed, expected apiVersion %s, but got : %s",
-				name, mock.expectedAPIVersion, b.Object.OwnerReference.APIVersion)
+				name, mock.expectedAPIVersion, b.ownerRef.object.APIVersion)
 		}
 	}
 }
@@ -222,14 +222,14 @@ func TestWithUID(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithUID(mock.uid)
-		if b.Object.OwnerReference.UID != mock.uid {
+		if b.ownerRef.object.UID != mock.uid {
 			t.Fatalf("test %s failed, expected uid %s, but got : %s",
-				name, mock.expectedUID, b.Object.OwnerReference.UID)
+				name, mock.expectedUID, b.ownerRef.object.UID)
 		}
 	}
 }
@@ -252,14 +252,14 @@ func TestWithControllerOption(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithControllerOption(&mock.controller)
-		if *b.Object.OwnerReference.Controller != mock.expectedController {
+		if *b.ownerRef.object.Controller != mock.expectedController {
 			t.Fatalf("test %s failed, expected controller option %t, but got : %t",
-				name, mock.expectedController, *b.Object.OwnerReference.Controller)
+				name, mock.expectedController, *b.ownerRef.object.Controller)
 		}
 	}
 }
@@ -282,14 +282,14 @@ func TestWithBlockOwnerDeletionOption(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
+			ownerRef: &OwnerReference{
+				object: &metav1.OwnerReference{},
 			},
 		}
 		b.WithBlockOwnerDeletionOption(&mock.blockOwnerDeletion)
-		if *b.Object.OwnerReference.BlockOwnerDeletion != mock.expectedBlockOwnerDeletion {
+		if *b.ownerRef.object.BlockOwnerDeletion != mock.expectedBlockOwnerDeletion {
 			t.Fatalf("test %s failed, expected BlockOwnerDeletion option %t, but got : %t",
-				name, mock.expectedBlockOwnerDeletion, *b.Object.OwnerReference.BlockOwnerDeletion)
+				name, mock.expectedBlockOwnerDeletion, *b.ownerRef.object.BlockOwnerDeletion)
 		}
 	}
 }
@@ -305,21 +305,16 @@ func TestWithAPIObject(t *testing.T) {
 		},
 		"nil ownerReference present": {
 			nil,
-			false,
+			true,
 		},
 	}
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &metav1.OwnerReference{},
-			},
-		}
-		b.WithAPIObject(mock.ownerReference)
-		if (b.Object.OwnerReference != nil) != mock.expectOwnerReference {
+		b := NewBuilderForAPIObject(mock.ownerReference)
+		if (b.ownerRef.object != nil) != mock.expectOwnerReference {
 			t.Fatalf("test %s failed, expect ownerReference %t, but got : %t",
-				name, mock.expectOwnerReference, b.Object.OwnerReference != nil)
+				name, mock.expectOwnerReference, b.ownerRef.object != nil)
 		}
 	}
 }
@@ -375,8 +370,8 @@ func TestValidate(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &mock.ownerReference,
+			ownerRef: &OwnerReference{
+				object: &mock.ownerReference,
 			},
 		}
 		err := b.validate()
@@ -454,8 +449,8 @@ func TestBuild(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &OwnerReference{
-				OwnerReference: &mock.ownerReference,
+			ownerRef: &OwnerReference{
+				object: &mock.ownerReference,
 			},
 			errors: mock.errors,
 		}

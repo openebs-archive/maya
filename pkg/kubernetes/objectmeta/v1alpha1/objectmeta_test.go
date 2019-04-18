@@ -31,12 +31,12 @@ func TestObjectMetaString(t *testing.T) {
 	}{
 		"objectmeta": {
 			ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{
+				object: &metav1.ObjectMeta{
 					Name:      "fake-name",
 					Namespace: "fake-namespace",
 				},
 			},
-			[]string{"ObjectMeta:", "name: fake-name", "namespace: fake-namespace"},
+			[]string{"name: fake-name", "namespace: fake-namespace"},
 		},
 	}
 	for name, mock := range tests {
@@ -60,12 +60,12 @@ func TestObjectMetaGoString(t *testing.T) {
 	}{
 		"objectmeta": {
 			ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{
+				object: &metav1.ObjectMeta{
 					Name:      "fake-name",
 					Namespace: "fake-namespace",
 				},
 			},
-			[]string{"ObjectMeta:", "name: fake-name", "namespace: fake-namespace"},
+			[]string{"name: fake-name", "namespace: fake-namespace"},
 		},
 	}
 	for name, mock := range tests {
@@ -82,7 +82,7 @@ func TestObjectMetaGoString(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewBuilder(t *testing.T) {
 	tests := map[string]struct {
 		expectObject bool
 		expectErrs   bool
@@ -95,10 +95,10 @@ func TestNew(t *testing.T) {
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := New()
-		if (b.Object.ObjectMeta != nil) != mock.expectObject {
+		b := NewBuilder()
+		if (b.meta.object != nil) != mock.expectObject {
 			t.Fatalf("test %s failed, expect object %t, but got : %t",
-				name, mock.expectObject, b.Object.ObjectMeta != nil)
+				name, mock.expectObject, b.meta.object != nil)
 		}
 		if (len(b.errors) != 0) != mock.expectErrs {
 			t.Fatalf("test %s failed, expect error %t, but got : %t",
@@ -125,14 +125,14 @@ func TestWithName(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
 			},
 		}
 		b.WithName(mock.name)
-		if b.Object.ObjectMeta.Name != mock.expectedName {
+		if b.meta.object.Name != mock.expectedName {
 			t.Fatalf("test %s failed, expected name %s, but got : %s",
-				name, mock.expectedName, b.Object.ObjectMeta.Name)
+				name, mock.expectedName, b.meta.object.Name)
 		}
 	}
 }
@@ -155,14 +155,14 @@ func TestWithNamespace(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
 			},
 		}
 		b.WithNamespace(mock.namespace)
-		if b.Object.ObjectMeta.Namespace != mock.expectedNamespace {
+		if b.meta.object.Namespace != mock.expectedNamespace {
 			t.Fatalf("test %s failed, expected namespace %s, but got : %s",
-				name, mock.expectedNamespace, b.Object.ObjectMeta.Namespace)
+				name, mock.expectedNamespace, b.meta.object.Namespace)
 		}
 	}
 }
@@ -187,14 +187,14 @@ func TestWithLabels(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
 			},
 		}
 		b.WithLabels(mock.labels)
-		if (b.Object.ObjectMeta.Labels != nil) != mock.expectlabels {
+		if (b.meta.object.Labels != nil) != mock.expectlabels {
 			t.Fatalf("test %s failed, expect labels %t, but got : %t",
-				name, mock.expectlabels, b.Object.ObjectMeta.Labels != nil)
+				name, mock.expectlabels, b.meta.object.Labels != nil)
 		}
 	}
 }
@@ -219,14 +219,14 @@ func TestWithAnnotations(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
 			},
 		}
 		b.WithAnnotations(mock.annotations)
-		if (b.Object.ObjectMeta.Annotations != nil) != mock.expectannotations {
+		if (b.meta.object.Annotations != nil) != mock.expectannotations {
 			t.Fatalf("test %s failed, expect annotation %t, but got : %t",
-				name, mock.expectannotations, b.Object.ObjectMeta.Annotations != nil)
+				name, mock.expectannotations, b.meta.object.Annotations != nil)
 		}
 	}
 }
@@ -251,19 +251,19 @@ func TestWithOwnerReferences(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
 			},
 		}
 		b.WithOwnerReferences(mock.ownerReferences...)
-		if (len(b.Object.ObjectMeta.OwnerReferences) != 0) != mock.expectOwnerReferences {
+		if (len(b.meta.object.OwnerReferences) != 0) != mock.expectOwnerReferences {
 			t.Fatalf("test %s failed, expect owner references %t, but got : %t",
-				name, mock.expectOwnerReferences, len(b.Object.ObjectMeta.OwnerReferences) != 0)
+				name, mock.expectOwnerReferences, len(b.meta.object.OwnerReferences) != 0)
 		}
 	}
 }
 
-func TestWithAPIObject(t *testing.T) {
+func TestNewBuilderForAPIObject(t *testing.T) {
 	tests := map[string]struct {
 		objectMeta       *metav1.ObjectMeta
 		expectObjectMeta bool
@@ -274,21 +274,16 @@ func TestWithAPIObject(t *testing.T) {
 		},
 		"nil objectmeta present": {
 			nil,
-			false,
+			true,
 		},
 	}
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
-		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &metav1.ObjectMeta{},
-			},
-		}
-		b.WithAPIObject(mock.objectMeta)
-		if (b.Object.ObjectMeta != nil) != mock.expectObjectMeta {
+		b := NewBuilderForAPIObject(mock.objectMeta)
+		if (b.meta.object != nil) != mock.expectObjectMeta {
 			t.Fatalf("test %s failed, expect objectmeta %t, but got : %t",
-				name, mock.expectObjectMeta, b.Object.ObjectMeta != nil)
+				name, mock.expectObjectMeta, b.meta.object != nil)
 		}
 	}
 }
@@ -315,8 +310,8 @@ func TestValidate(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &mock.objectMeta,
+			meta: &ObjectMeta{
+				object: &mock.objectMeta,
 			},
 		}
 		err := b.validate()
@@ -359,8 +354,8 @@ func TestBuild(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			Object: &ObjectMeta{
-				ObjectMeta: &mock.objectMeta,
+			meta: &ObjectMeta{
+				object: &mock.objectMeta,
 			},
 			errors: mock.errors,
 		}
