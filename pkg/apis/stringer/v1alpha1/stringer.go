@@ -38,7 +38,7 @@ func Yaml(ctx string, obj interface{}) string {
 	}
 	b, err := yaml.Marshal(obj)
 	if err != nil {
-		return fmt.Sprintf("\n%s {%+v}", ctx, obj)
+		return fmt.Sprintf("\n%s {--failed to get details--}", ctx)
 	}
 	return fmt.Sprintf("\n%s {%s}", ctx, string(b))
 }
@@ -51,7 +51,7 @@ func JSONIndent(ctx string, obj interface{}) string {
 	}
 	b, err := json.MarshalIndent(obj, "", ".")
 	if err != nil {
-		return fmt.Sprintf("\n%s {%+v}", ctx, obj)
+		return fmt.Sprintf("\n%s {--failed to get details--}", ctx)
 	}
 	return fmt.Sprintf("\n%s %s", ctx, string(b))
 }
