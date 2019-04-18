@@ -19,16 +19,17 @@ package lease
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	"github.com/openebs/maya/pkg/patch/v1alpha1"
-	"k8s.io/api/core/v1"
+	patch "github.com/openebs/maya/pkg/patch/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"strings"
 )
 
 const (
@@ -134,6 +135,9 @@ func (sl *Lease) patchCspLeaseAnnotation() error {
 		return fmt.Errorf("expected csp object for leasing but got %#v", cspObject)
 	}
 	leaseValueObj, err := parseLeaseValue(cspObject.Annotations[CspLeaseKey])
+	if err != nil {
+		return err
+	}
 	leaseValueObj.Holder = ""
 	newLeaseValue, err := json.Marshal(leaseValueObj)
 	if err != nil {
@@ -174,11 +178,11 @@ func (sl *Lease) isLeaderALive(leaseValueObj LeaseContract) bool {
 		return false
 	}
 	podStatus := pod.Status.Phase
-	if string(podStatus) == string(v1.PodUnknown) {
+	if string(podStatus) == string(corev1.PodUnknown) {
 		glog.Warning("Could not get the pod status which have acquired the lease on CSP")
 		return true
 	}
-	if string(podStatus) != string(v1.PodRunning) {
+	if string(podStatus) != string(corev1.PodRunning) {
 		return false
 	}
 	return true
