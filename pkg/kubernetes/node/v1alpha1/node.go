@@ -64,6 +64,7 @@ func (b *ListBuilder) List() *NodeList {
 	}
 	filtered := &NodeList{}
 	for _, node := range b.list.items {
+		node := node // Pin it
 		if b.filters.all(node) {
 			filtered.items = append(filtered.items, node)
 		}
@@ -71,8 +72,8 @@ func (b *ListBuilder) List() *NodeList {
 	return filtered
 }
 
-// ListBuilderFunc returns a instance of ListBuilder
-func ListBuilderFunc() *ListBuilder {
+// NewListBuilder returns a instance of ListBuilder
+func NewListBuilder() *ListBuilder {
 	return &ListBuilder{list: &NodeList{items: []*node{}}}
 }
 

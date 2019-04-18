@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func fakeEmptyNodeList(noOfNodes int) *corev1.NodeList {
+func fakeNodeListEmpty(noOfNodes int) *corev1.NodeList {
 	list := &corev1.NodeList{}
 	for i := 0; i < noOfNodes; i++ {
 		node := corev1.Node{}
@@ -15,7 +15,7 @@ func fakeEmptyNodeList(noOfNodes int) *corev1.NodeList {
 	return list
 }
 
-func fakeAPINodeList(nodeNames []string) *corev1.NodeList {
+func fakeNodeListAPI(nodeNames []string) *corev1.NodeList {
 	if len(nodeNames) == 0 {
 		return nil
 	}
@@ -28,7 +28,7 @@ func fakeAPINodeList(nodeNames []string) *corev1.NodeList {
 	return list
 }
 
-func fakeAPINodeListFromNameStatusMap(nodes map[string]corev1.NodeConditionType) []*node {
+func fakeNodeInstances(nodes map[string]corev1.NodeConditionType) []*node {
 	nlist := []*node{}
 	for k := range nodes {
 		n := &corev1.Node{}
@@ -45,8 +45,8 @@ func fakeAPINodeListFromNameStatusMap(nodes map[string]corev1.NodeConditionType)
 
 func TestListBuilderFuncWithAPIList(t *testing.T) {
 	tests := map[string]struct {
-		availableNodes  []string
-		expectedNodeLen int
+		availableNodes    []string
+		expectedNodeCount int
 	}{
 		"Node set 1":  {[]string{}, 0},
 		"Node set 2":  {[]string{"node1"}, 1},
@@ -63,9 +63,9 @@ func TestListBuilderFuncWithAPIList(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes))
-			if mock.expectedNodeLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
+			b := NewListBuilder().WithAPIList(fakeNodeListAPI(mock.availableNodes))
+			if mock.expectedNodeCount != len(b.list.items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeCount, len(b.list.items))
 			}
 		})
 	}
@@ -73,7 +73,7 @@ func TestListBuilderFuncWithAPIList(t *testing.T) {
 
 func TestListBuilderFuncWithEmptyNodeList(t *testing.T) {
 	tests := map[string]struct {
-		nodeCount, expectedNodeLen int
+		nodeCount, expectedNodeCount int
 	}{
 		"Two nodes": {5, 5},
 	}
@@ -81,9 +81,9 @@ func TestListBuilderFuncWithEmptyNodeList(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilderFunc().WithAPIList(fakeEmptyNodeList(mock.nodeCount))
-			if mock.expectedNodeLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
+			b := NewListBuilder().WithAPIList(fakeNodeListEmpty(mock.nodeCount))
+			if mock.expectedNodeCount != len(b.list.items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeCount, len(b.list.items))
 			}
 		})
 	}
@@ -91,8 +91,8 @@ func TestListBuilderFuncWithEmptyNodeList(t *testing.T) {
 
 func TestListBuilderWithAPIObjects(t *testing.T) {
 	tests := map[string]struct {
-		availableNodes  []string
-		expectedNodeLen int
+		availableNodes    []string
+		expectedNodeCount int
 	}{
 		"Node set 2":  {[]string{"node1"}, 1},
 		"Node set 3":  {[]string{"node1", "node2"}, 2},
@@ -108,9 +108,9 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilderFunc().WithAPIObject(fakeAPINodeList(mock.availableNodes).Items...)
-			if mock.expectedNodeLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.list.items))
+			b := NewListBuilder().WithAPIObject(fakeNodeListAPI(mock.availableNodes).Items...)
+			if mock.expectedNodeCount != len(b.list.items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeCount, len(b.list.items))
 			}
 		})
 	}
@@ -118,8 +118,8 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 
 func TestListBuilderToAPIList(t *testing.T) {
 	tests := map[string]struct {
-		availableNodes  []string
-		expectedNodeLen int
+		availableNodes    []string
+		expectedNodeCount int
 	}{
 		"Node set 1":  {[]string{}, 0},
 		"Node set 2":  {[]string{"node1"}, 1},
@@ -136,9 +136,9 @@ func TestListBuilderToAPIList(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilderFunc().WithAPIList(fakeAPINodeList(mock.availableNodes)).List().ToAPIList()
-			if mock.expectedNodeLen != len(b.Items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeLen, len(b.Items))
+			b := NewListBuilder().WithAPIList(fakeNodeListAPI(mock.availableNodes)).List().ToAPIList()
+			if mock.expectedNodeCount != len(b.Items) {
+				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedNodeCount, len(b.Items))
 			}
 		})
 	}
@@ -170,7 +170,8 @@ func TestFilterList(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			list := ListBuilderFunc().WithObject(fakeAPINodeListFromNameStatusMap(mock.availableNodes)...).WithFilter(mock.filters...).List()
+			nl := &ListBuilder{list: &NodeList{items: fakeNodeInstances(mock.availableNodes)}, filters: mock.filters}
+			list := nl.List()
 			if len(list.items) != len(mock.filteredNodes) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredNodes), len(list.items))
 			}

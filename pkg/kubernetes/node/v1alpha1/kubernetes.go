@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -62,7 +63,7 @@ func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	}
 	c, err := k.getClientset()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -72,7 +73,7 @@ func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list")
 	}
 	return k.list(cli, opts)
 }
