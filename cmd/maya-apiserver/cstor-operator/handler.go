@@ -157,8 +157,7 @@ func (c *Controller) addEventHandler(spc *apis.StoragePoolClaim, resync bool) er
 	if err != nil {
 		return err
 	}
-	err = c.create(pendingPoolCount, spc)
-	return nil
+	return c.create(pendingPoolCount, spc)
 }
 
 // create is a wrapper function that calls the actual function to create pool as many time
@@ -253,6 +252,9 @@ func (c *Controller) getPendingPoolCount(spc *apis.StoragePoolClaim) (int, error
 		// Get used disk for the SPC
 		// usedDiskMap holds the disk which are already used.
 		usedDiskMap, err := newClientSet.getUsedDiskMap()
+		if err != nil {
+			return 0, err
+		}
 		for _, disk := range diskList.Items {
 			if usedDiskMap[disk.Name] == 1 {
 				continue
