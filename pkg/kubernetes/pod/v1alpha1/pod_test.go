@@ -94,10 +94,19 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
 	}
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIObject(fakeAPIPodList(mock.availablePods).Items...)
+			poditems := fakeAPIPodList(mock.availablePods).Items
+			b := ListBuilder().WithAPIObject(poditems...)
 			if mock.expectedPodLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.list.items))
+			}
+
+			for index, ob := range b.list.items {
+				if ob.object.Name != poditems[index].Name {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poditems[index].Name, ob.object.Name)
+				}
 			}
 		})
 	}
