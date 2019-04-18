@@ -19,7 +19,7 @@ const (
 	OpenEBSArtifacts  ArtifactSource = "../artifacts/openebs-ci.yaml"
 	CStorPVCArtifacts ArtifactSource = "../artifacts/cstor-pvc.yaml"
 	JivaPVCArtifacts  ArtifactSource = "../artifacts/jiva-pvc.yaml"
-	SingleReplicaSC   ArtifactSource = "../artifacts/single-replica.yaml"
+	SingleReplicaSC   ArtifactSource = "../artifacts/storageclass-1r.yaml"
 	CVRArtifact       ArtifactSource = "../artifacts/cvr-schema.yaml"
 	CRArtifact        ArtifactSource = "../artifacts/cr-schema.yaml"
 )
