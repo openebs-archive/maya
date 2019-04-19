@@ -1,7 +1,22 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,21 +26,27 @@ import (
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/volume"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
-	// NamespaceKey is used in request headers to get the
-	// namespace
+	// NamespaceKey is used in request headers to
+	// get namespace
 	NamespaceKey string = "namespace"
 )
 
+// isNotFound returns true if the original
+// cause of error was due to castemplate's
+// not found error or kubernetes not found
+// error
 func isNotFound(err error) bool {
-	if _, ok := err.(*template.NotFoundError); ok {
-		return ok
+	switch err := errors.Cause(err).(type) {
+	case *template.NotFoundError:
+		return true
+	default:
+		return k8serrors.IsNotFound(err)
 	}
-
-	return errors.IsNotFound(err)
 }
 
 type volumeAPIOpsV1alpha1 struct {
@@ -49,10 +70,11 @@ func sendEventOrIgnore(cvol *v1alpha1.CASVolume, method string) {
 // volumeV1alpha1SpecificRequest is a http handler to handle HTTP
 // requests to a OpenEBS volume.
 func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("cas template based volume request was received: method '%s'", req.Method)
 	if req == nil {
-		return nil, CodedError(400, "nil http request was received")
+		return nil, CodedError(400, "failed to handle volume request: nil http request received")
 	}
+
+	glog.Infof("received cas volume request: http method '%s'", req.Method)
 
 	volOp := &volumeAPIOpsV1alpha1{
 		req:  req,
@@ -71,7 +93,7 @@ func (s *HTTPServer) volumeV1alpha1SpecificRequest(resp http.ResponseWriter, req
 		sendEventOrIgnore(cvol, usage.VolumeDeprovision)
 		return cvol, err
 	default:
-		return nil, CodedError(405, ErrInvalidMethod)
+		return nil, CodedError(405, http.StatusText(405))
 	}
 }
 
@@ -98,23 +120,23 @@ func (v *volumeAPIOpsV1alpha1) httpDelete() (*v1alpha1.CASVolume, error) {
 
 	// check if req url has volume name
 	if len(volName) == 0 {
-		return nil, CodedError(405, ErrInvalidMethod)
+		return nil, CodedError(405, "failed to delete volume: missing volume name")
 	}
 
 	return v.delete(volName)
 }
 
 func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
-	glog.Infof("cas template based volume create request was received")
+	glog.Infof("received volume create request")
 	vol := &v1alpha1.CASVolume{}
 	err := decodeBody(v.req, vol)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to create volume")
 	}
 
 	// volume name is expected
 	if len(vol.Name) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to create volume: missing volume name '%v'", vol))
+		return nil, CodedErrorf(400, "failed to create volume: missing volume name: %s", vol)
 	}
 
 	// use run namespace from http request header if volume's namespace is still not set
@@ -124,20 +146,20 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to create volume: failed to init volume operation: %s", vol)
 	}
+
 	cvol, err := vOps.Create()
 	if err != nil {
-		glog.Errorf("failed to create cas template based volume: error '%s'", err.Error())
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to create volume: %s", vol)
 	}
-	glog.Infof("cas template based volume created successfully: name '%s'", cvol.Name)
 
+	glog.Infof("volume '%s' created successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, error) {
-	glog.Infof("cas template based volume read request was received")
+	glog.Infof("received volume read request: %s", volumeName)
 
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
@@ -153,7 +175,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	// volume name is expected
 	if len(vol.Name) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to read volume: missing volume name '%v'", vol))
+		return nil, CodedErrorf(400, "failed to read volume: missing volume name: %s", vol)
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -170,24 +192,23 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to read volume: failed to init volume operation: %s", vol)
 	}
 
 	cvol, err := vOps.Read()
 	if err != nil {
-		glog.Errorf("failed to read cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
-			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+			return nil, CodedErrorWrapf(404, err, "failed to read volume: volume '%s' not found: %s", vol.Name, vol)
 		}
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to read volume: %s", vol)
 	}
 
-	glog.Infof("cas template based volume was read successfully: name '%s'", cvol.Name)
+	glog.Infof("volume '%s' read successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, error) {
-	glog.Infof("cas template based volume delete request was received")
+	glog.Infof("received volume delete request")
 
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
@@ -203,7 +224,7 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 
 	// volume name is expected
 	if len(vol.Name) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to delete volume: missing volume name '%v'", vol))
+		return nil, CodedErrorf(400, "failed to delete volume: missing volume name: %s", vol)
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -213,24 +234,23 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to delete volume: failed to init volume operation: %s", vol)
 	}
 
 	cvol, err := vOps.Delete()
 	if err != nil {
-		glog.Errorf("failed to delete cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
-			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+			return nil, CodedErrorWrapf(404, err, "failed to delete volume: volume '%s' not found: %s", vol.Name, vol)
 		}
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to delete volume: %s", vol)
 	}
 
-	glog.Infof("cas template based volume was deleted successfully: name '%s'", cvol.Name)
+	glog.Infof("volume '%s' deleted successfully", cvol.Name)
 	return cvol, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
-	glog.Infof("cas template based volume list request was received")
+	glog.Infof("received volume list request")
 
 	vols := &v1alpha1.CASVolumeList{}
 	// hdrNS will store namespace from http header
@@ -249,21 +269,20 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	vOps, err := volume.NewListOperation(vols)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to list volumes: failed to init volume operation: %s", vols)
 	}
 
 	cvols, err := vOps.List()
 	if err != nil {
-		glog.Errorf("failed to list cas template based volumes at namespaces '%s': error '%s'", vols.Namespace, err.Error())
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to list volumes: %s", vols)
 	}
 
-	glog.Infof("cas template based volumes were listed successfully: namespaces '%s'", vols.Namespace)
+	glog.Infof("volumes listed successfully for namespace(s) {%s}", vols.Namespace)
 	return cvols, nil
 }
 
 func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error) {
-	glog.Infof("CASTemplate based volume stats request received")
+	glog.Infof("received volume stats request")
 	vol := &v1alpha1.CASVolume{}
 	// hdrNS will store namespace from http header
 	hdrNS := ""
@@ -278,7 +297,7 @@ func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error)
 
 	// volume name is expected
 	if len(vol.Name) == 0 {
-		return nil, CodedError(400, fmt.Sprintf("failed to read volume: missing volume name '%v'", vol))
+		return nil, CodedErrorf(400, "failed to read volume stats: missing volume name: %s", vol)
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -295,19 +314,20 @@ func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error)
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrapf(400, err, "failed to read volume stats: failed to init volume operation: %s", vol)
 	}
+
 	stats, err := vOps.ReadStats()
 	if err != nil {
-		glog.Errorf("failed to read cas template based volume: error '%s'", err.Error())
 		if isNotFound(err) {
-			return nil, CodedError(404, fmt.Sprintf("volume '%s' not found at namespace '%s'", vol.Name, vol.Namespace))
+			return nil, CodedErrorWrapf(404, err, "failed to read volume stats: volume not found: %s", vol)
 		}
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to read volume stats: %s", vol)
 	}
 
 	// pipelining the response
 	v.resp.Write(stats)
-	glog.Infof("cas template based volume stats read successful '%s'", volumeName)
-	return nil, err
+
+	glog.Infof("read volume stats was successful for '%s'", volumeName)
+	return nil, nil
 }

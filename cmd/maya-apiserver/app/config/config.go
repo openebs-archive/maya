@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package config
 
 import (
@@ -6,70 +22,69 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-
 	"sort"
 	"strconv"
 	"strings"
+
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 // MayaConfig is the configuration for Maya server.
 type MayaConfig struct {
 	// Region is the region this Maya server is supposed to deal in.
 	// Defaults to global.
-	Region string `mapstructure:"region"`
+	Region string `mapstructure:"region" json:"region"`
 
 	// Datacenter is the datacenter this Maya server is supposed to deal in.
 	// Defaults to dc1
-	Datacenter string `mapstructure:"datacenter"`
+	Datacenter string `mapstructure:"datacenter" json:"datacenter"`
 
 	// NodeName is the name we register as. Defaults to hostname.
-	NodeName string `mapstructure:"name"`
+	NodeName string `mapstructure:"name" json:"name"`
 
 	// DataDir is the directory to store Maya server's state in
-	DataDir string `mapstructure:"data_dir"`
+	DataDir string `mapstructure:"data_dir" json:"data_dir"`
 
 	// LogLevel is the level of the logs to putout
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel string `mapstructure:"log_level" json:"log_level"`
 
 	// BindAddr is the address on which maya's services will
 	// be bound. If not specified, this defaults to 127.0.0.1.
-	BindAddr string `mapstructure:"bind_addr"`
+	BindAddr string `mapstructure:"bind_addr" json:"bind_addr"`
 
 	// EnableDebug is used to enable debugging HTTP endpoints
-	EnableDebug bool `mapstructure:"enable_debug"`
+	EnableDebug bool `mapstructure:"enable_debug" json:"enable_debug"`
 
 	// Mayaserver can make use of various providers e.g. Nomad,
 	// k8s etc
-	ServiceProvider string `mapstructure:"service_provider"`
+	ServiceProvider string `mapstructure:"service_provider" json:"service_provider"`
 
 	// Ports is used to control the network ports we bind to.
-	Ports *Ports `mapstructure:"ports"`
+	Ports *Ports `mapstructure:"ports" json:"ports"`
 
 	// Addresses is used to override the network addresses we bind to.
 	//
 	// Use normalizedAddrs if you need the host+port to bind to.
-	Addresses *Addresses `mapstructure:"addresses"`
+	Addresses *Addresses `mapstructure:"addresses" json:"addresses"`
 
 	// NormalizedAddr is set to the Address+Port by normalizeAddrs()
 	NormalizedAddrs *Addresses
 
 	// AdvertiseAddrs is used to control the addresses we advertise.
-	AdvertiseAddrs *AdvertiseAddrs `mapstructure:"advertise"`
+	AdvertiseAddrs *AdvertiseAddrs `mapstructure:"advertise" json:"advertise"`
 
 	// LeaveOnInt is used to gracefully leave on the interrupt signal
-	LeaveOnInt bool `mapstructure:"leave_on_interrupt"`
+	LeaveOnInt bool `mapstructure:"leave_on_interrupt" json:"leave_on_interrupt"`
 
 	// LeaveOnTerm is used to gracefully leave on the terminate signal
-	LeaveOnTerm bool `mapstructure:"leave_on_terminate"`
+	LeaveOnTerm bool `mapstructure:"leave_on_terminate" json:"leave_on_terminate"`
 
 	// EnableSyslog is used to enable sending logs to syslog
-	EnableSyslog bool `mapstructure:"enable_syslog"`
+	EnableSyslog bool `mapstructure:"enable_syslog" json:"enable_syslog"`
 
 	// SyslogFacility is used to control the syslog facility used.
-	SyslogFacility string `mapstructure:"syslog_facility"`
-
-	// NomadConfig is used to communicate with Nomad agent.
-	//NomadConfig *nomad.Config `mapstructure:"nomad_config"`
+	SyslogFacility string `mapstructure:"syslog_facility" json:"syslog_facility"`
 
 	// Version information is set at compilation time
 	Revision          string
@@ -79,28 +94,38 @@ type MayaConfig struct {
 	// List of config files that have been loaded (in order)
 	Files []string `mapstructure:"-"`
 
-	// HTTPAPIResponseHeaders allows users to configure the Nomad http agent to
+	// HTTPAPIResponseHeaders allows users to configure the http agent to
 	// set arbitrary headers on API responses
-	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
+	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers" json:"http_api_response_headers"`
 }
 
 // Ports encapsulates the various ports we bind to for network services. If any
 // are not specified then the defaults are used instead.
 type Ports struct {
-	HTTP int `mapstructure:"http"`
+	HTTP int `mapstructure:"http" json:"http"`
 }
 
 // Addresses encapsulates all of the addresses we bind to for various
 // network services. Everything is optional and defaults to BindAddr.
 type Addresses struct {
-	HTTP string `mapstructure:"http"`
+	HTTP string `mapstructure:"http" json:"http"`
 }
 
 // AdvertiseAddrs is used to control the addresses we advertise out for
 // different network services. All are optional and default to BindAddr and
 // their default Port.
 type AdvertiseAddrs struct {
-	HTTP string `mapstructure:"http"`
+	HTTP string `mapstructure:"http" json:"http"`
+}
+
+// String implements Stringer interface
+func (c *MayaConfig) String() string {
+	return stringer.Yaml("maya config", c)
+}
+
+// GoString implements GoStringer interface
+func (c *MayaConfig) GoString() string {
+	return c.String()
 }
 
 // DefaultMayaConfig is a the baseline configuration for Maya server
@@ -231,7 +256,7 @@ func (mc *MayaConfig) NormalizeAddrs() error {
 
 	addr, err := normalizeAdvertise(mc.AdvertiseAddrs.HTTP, mc.Addresses.HTTP, mc.Ports.HTTP)
 	if err != nil {
-		return fmt.Errorf("Failed to parse HTTP advertise address: %v", err)
+		return errors.Wrapf(err, "failed to normalize address: %s", mc)
 	}
 	mc.AdvertiseAddrs.HTTP = addr
 
@@ -266,7 +291,7 @@ func normalizeAdvertise(addr string, bind string, defport int) (string, error) {
 		_, _, err := net.SplitHostPort(addr)
 		if err != nil {
 			if !isMissingPort(err) {
-				return "", fmt.Errorf("Error parsing advertise address %q: %v", addr, err)
+				return "", errors.Wrapf(err, "failed to normalize address '%s'", addr)
 			}
 
 			// missing port, append the default
@@ -278,7 +303,7 @@ func normalizeAdvertise(addr string, bind string, defport int) (string, error) {
 	// Fallback to bind address first, and then try resolving the local hostname
 	ips, err := net.LookupIP(bind)
 	if err != nil {
-		return "", fmt.Errorf("Error resolving bind address %q: %v", bind, err)
+		return "", errors.Wrapf(err, "failed to normalize address: failed to lookup '%s'", bind)
 	}
 
 	// Return the first unicast address
@@ -296,12 +321,12 @@ func normalizeAdvertise(addr string, bind string, defport int) (string, error) {
 	// localhost (as localhost is never a sensible default)
 	host, err := os.Hostname()
 	if err != nil {
-		return "", fmt.Errorf("Unable to get hostname to set advertise address: %v", err)
+		return "", errors.Wrap(err, "failed to normalize address: failed to resolve host")
 	}
 
 	ips, err = net.LookupIP(host)
 	if err != nil {
-		return "", fmt.Errorf("Error resolving hostname %q for advertise address: %v", host, err)
+		return "", errors.Wrapf(err, "failed to normalize address: failed to resolve host '%s'", host)
 	}
 
 	// Return the first unicast address
@@ -314,7 +339,7 @@ func normalizeAdvertise(addr string, bind string, defport int) (string, error) {
 			return net.JoinHostPort(ip.String(), strconv.Itoa(defport)), nil
 		}
 	}
-	return "", fmt.Errorf("No valid advertise addresses, please set `advertise` manually")
+	return "", errors.Errorf("failed to normalize address: no valid advertise addresses: set 'advertise' manually")
 }
 
 // isMissingPort returns true if an error is a "missing port" error from
@@ -355,12 +380,12 @@ func (a *AdvertiseAddrs) Merge(b *AdvertiseAddrs) *AdvertiseAddrs {
 	return &result
 }
 
-// LoadMayaConfig loads the configuration at the given path, regardless if
-// its a file or directory.
+// LoadMayaConfig loads the configuration at the given path,
+// regardless if its a file or directory.
 func LoadMayaConfig(path string) (*MayaConfig, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to load maya config from path '%s'", path)
 	}
 
 	if fi.IsDir() {
@@ -370,29 +395,29 @@ func LoadMayaConfig(path string) (*MayaConfig, error) {
 	cleaned := filepath.Clean(path)
 	mconfig, err := ParseMayaConfigFile(cleaned)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading %s: %s", cleaned, err)
+		return nil, errors.Wrapf(err, "failed to load maya config from path '%s': failed to parse", path)
 	}
 
 	mconfig.Files = append(mconfig.Files, cleaned)
 	return mconfig, nil
 }
 
-// LoadMayaConfigDir loads all the configurations in the given directory
-// in alphabetical order.
+// LoadMayaConfigDir loads all the configurations
+// in the given directory in alphabetical order.
 func LoadMayaConfigDir(dir string) (*MayaConfig, error) {
 	f, err := os.Open(dir)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to load maya config from dir '%s'", dir)
 	}
 	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to load maya config from dir '%s'", dir)
 	}
 	if !fi.IsDir() {
-		return nil, fmt.Errorf(
-			"configuration path must be a directory: %s", dir)
+		return nil,
+			errors.Errorf("failed to load maya config from dir '%s': path is not a directory", dir)
 	}
 
 	var files []string
@@ -401,7 +426,7 @@ func LoadMayaConfigDir(dir string) (*MayaConfig, error) {
 		var fis []os.FileInfo
 		fis, err = f.Readdir(128)
 		if err != nil && err != io.EOF {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to load maya config from dir '%s'", dir)
 		}
 
 		for _, fi := range fis {
@@ -438,7 +463,7 @@ func LoadMayaConfigDir(dir string) (*MayaConfig, error) {
 	for _, f := range files {
 		mconfig, err := ParseMayaConfigFile(f)
 		if err != nil {
-			return nil, fmt.Errorf("Error loading %s: %s", f, err)
+			return nil, errors.Wrapf(err, "failed to load maya config from '%s/%s'", dir, f)
 		}
 		mconfig.Files = append(mconfig.Files, f)
 

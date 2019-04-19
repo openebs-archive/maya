@@ -14,8 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 is a utility package that can be used
-// by both:
+// Package v1alpha1 is a utility package that
+// is can be used for error handling and logging:
+//
+// NOTE: This is a common logic that can be used at
+// following packages:
+//
 //  1. pkg/apis/openebs.io/... &
 //  2. pkg/<business logic folder>/...
 package v1alpha1
@@ -23,7 +27,6 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/ghodss/yaml"
 )
 
