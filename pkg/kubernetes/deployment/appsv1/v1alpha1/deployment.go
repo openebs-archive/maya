@@ -134,7 +134,7 @@ func (d *Deploy) FailedRollout(name PredicateName) *RolloutOutput {
 }
 
 // SuccessRollout returns rollout status message for success condition
-func (d *Deploy) SuccessRollout(name PredicateName) *RolloutOutput {
+func (d *Deploy) SuccessRollout() *RolloutOutput {
 	return &RolloutOutput{
 		Message:     "deployment successfully rolled out",
 		IsRolledout: true,
@@ -145,7 +145,7 @@ func (d *Deploy) SuccessRollout(name PredicateName) *RolloutOutput {
 func (d *Deploy) RolloutStatus() (op *RolloutOutput, err error) {
 	pk, ok := d.IsRollout()
 	if ok {
-		return d.SuccessRollout(pk), nil
+		return d.SuccessRollout(), nil
 	}
 	return d.FailedRollout(pk), nil
 }

@@ -188,9 +188,8 @@ func (c *engine) setDefaultsIfEmptyConfig() (err error) {
 
 // setLabels sets cas template's labels as
 // template values
-func (c *engine) setLabels() (err error) {
+func (c *engine) setLabels() {
 	c.values[string(v1alpha1.CASTOptionsTLP)] = c.cast.Labels
-	return
 }
 
 // SetConfig sets cas template config as
