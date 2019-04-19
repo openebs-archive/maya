@@ -307,3 +307,118 @@ func encodeReq(obj interface{}) io.ReadCloser {
 	enc.Encode(obj)
 	return ioutil.NopCloser(buf)
 }
+
+func TestCodedError(t *testing.T) {
+	tests := map[string]struct {
+		code            int
+		message         string
+		expectedCode    int
+		expectedMessage string
+	}{
+		"401 error": {401, "unauthorized", 401, "unauthorized"},
+		"401 none":  {401, "", 401, ""},
+		"500 error": {500, "internal server error", 500, "internal server error"},
+		"500 none":  {500, "", 500, ""},
+	}
+	for name, mock := range tests {
+		mock := mock // pin it
+		name := name // pin it
+		t.Run(name, func(t *testing.T) {
+			httpErr := CodedError(mock.code, mock.message)
+			if httpErr.Error() != mock.expectedMessage {
+				t.Errorf("test '%s' failed: expected '%s' got '%s'", name, mock.expectedMessage, httpErr.Error())
+			}
+			if httpErr.Code() != mock.expectedCode {
+				t.Errorf("test '%s' failed: expected '%d' got '%d'", name, mock.expectedCode, httpErr.Code())
+			}
+		})
+	}
+}
+
+func TestCodedErrorf(t *testing.T) {
+	tests := map[string]struct {
+		code            int
+		message         string
+		args            []interface{}
+		expectedCode    int
+		expectedMessage string
+	}{
+		"401 error": {401, "%s %d", []interface{}{"unauthorized", 401}, 401, "error: {unauthorized 401}"},
+		"500 error": {500, "%s %d", []interface{}{"internal error", 500}, 500, "error: {internal error 500}"},
+	}
+	for name, mock := range tests {
+		mock := mock // pin it
+		name := name // pin it
+		t.Run(name, func(t *testing.T) {
+			httpErr := CodedErrorf(mock.code, mock.message, mock.args...)
+			if httpErr.Error() != mock.expectedMessage {
+				t.Errorf("test '%s' failed: expected '%s' got '%s'", name, mock.expectedMessage, httpErr.Error())
+			}
+			if httpErr.Code() != mock.expectedCode {
+				t.Errorf("test '%s' failed: expected '%d' got '%d'", name, mock.expectedCode, httpErr.Code())
+			}
+		})
+	}
+}
+
+func TestCodedErrorWrap(t *testing.T) {
+	tests := map[string]struct {
+		code            int
+		err             error
+		expectedCode    int
+		expectedMessage string
+	}{
+		"401 error": {
+			401, fmt.Errorf("unauthorized"), 401, "error: {unauthorized}",
+		},
+		"500 error": {
+			500, fmt.Errorf("internal error"), 500, "error: {internal error}",
+		},
+	}
+	for name, mock := range tests {
+		mock := mock // pin it
+		name := name // pin it
+		t.Run(name, func(t *testing.T) {
+			httpErr := CodedErrorWrap(mock.code, mock.err)
+			if httpErr.Error() != mock.expectedMessage {
+				t.Errorf("test '%s' failed: expected '%s' got '%s'", name, mock.expectedMessage, httpErr.Error())
+			}
+			if httpErr.Code() != mock.expectedCode {
+				t.Errorf("test '%s' failed: expected '%d' got '%d'", name, mock.expectedCode, httpErr.Code())
+			}
+		})
+	}
+}
+
+func TestCodedErrorWrapf(t *testing.T) {
+	tests := map[string]struct {
+		code            int
+		err             error
+		message         string
+		args            []interface{}
+		expectedCode    int
+		expectedMessage string
+	}{
+		"401 error": {
+			401, fmt.Errorf("unauthorized"), "%s", []interface{}{"who is this?"},
+			401, "error: {unauthorized}, msg: {who is this?}",
+		},
+		"500 error": {
+			500, fmt.Errorf("internal error"), "%s", []interface{}{"what is this?"},
+			500, "error: {internal error}, msg: {what is this?}",
+		},
+	}
+	for name, mock := range tests {
+		mock := mock // pin it
+		name := name // pin it
+		t.Run(name, func(t *testing.T) {
+			httpErr := CodedErrorWrapf(mock.code, mock.err, mock.message, mock.args...)
+			if httpErr.Error() != mock.expectedMessage {
+				t.Errorf("test '%s' failed: expected '%s' got '%s'", name, mock.expectedMessage, httpErr.Error())
+			}
+			if httpErr.Code() != mock.expectedCode {
+				t.Errorf("test '%s' failed: expected '%d' got '%d'", name, mock.expectedCode, httpErr.Code())
+			}
+		})
+	}
+}

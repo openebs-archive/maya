@@ -100,6 +100,10 @@ test: format
 	@echo "--> Running go test" ;
 	@go test $(PACKAGES)
 
+testv: format
+	@echo "--> Running go test verbose" ;
+	@go test -v $(PACKAGES)
+
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
 
@@ -377,4 +381,4 @@ upgrade-image: upgrade
 	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/${UPGRADE}/${UPGRADE}
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade-image
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade upgrade-image testv

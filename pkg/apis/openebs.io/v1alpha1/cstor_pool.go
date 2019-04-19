@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -105,4 +106,14 @@ type CStorPoolList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []CStorPool `json:"items"`
+}
+
+// String implements Stringer interface
+func (c *CStorPool) String() string {
+	return stringer.Yaml("cstorpool", c)
+}
+
+// GoString implements GoStringer interface
+func (c *CStorPool) GoString() string {
+	return c.String()
 }
