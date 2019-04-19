@@ -367,9 +367,9 @@ spec:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
         controller: true
-        kind: Deployment
-        name: {{ .TaskResult.putcstorpooldeployment.objectName }}
-        uid: {{ .TaskResult.putcstorpooldeployment.objectUID }}
+        kind: CStorPool
+        name: {{ .TaskResult.putcstorpoolcr.objectName }}
+        uid: {{ .TaskResult.putcstorpoolcr.objectUID }}
     spec:
       disks:
         diskList:
