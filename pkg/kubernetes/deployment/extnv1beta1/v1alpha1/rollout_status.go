@@ -23,49 +23,49 @@ import (
 	"github.com/pkg/errors"
 )
 
-// rolloutStatus  is a typed function that
+// RolloutStatus  is a typed function that
 // abstracts status message formation logic
-type rolloutStatus func(*deploy) string
+type RolloutStatus func(*Deploy) string
 
-// rolloutStatuses contains a group of status message for
+// RolloutStatuses contains a group of status message for
 // each predicate checks. It uses predicateName as key.
-var rolloutStatuses = map[predicateName]rolloutStatus{
+var RolloutStatuses = map[PredicateName]RolloutStatus{
 	// PredicateProgressDeadlineExceeded refer to rolloutStatus
 	// for predicate IsProgressDeadlineExceeded.
-	PredicateProgressDeadlineExceeded: func(d *deploy) string {
+	PredicateProgressDeadlineExceeded: func(d *Deploy) string {
 		return "deployment exceeded its progress deadline"
 	},
 	// PredicateOlderReplicaActive refer to rolloutStatus for
 	// predicate IsOlderReplicaActive.
-	PredicateOlderReplicaActive: func(d *deploy) string {
-		if d.object.Spec.Replicas == nil {
+	PredicateOlderReplicaActive: func(d *Deploy) string {
+		if d.Object.Spec.Replicas == nil {
 			return "replica update in-progress: some older replicas were updated"
 		}
 		return fmt.Sprintf(
 			"replica update in-progress: %d of %d new replicas were updated",
-			d.object.Status.UpdatedReplicas, *d.object.Spec.Replicas)
+			d.Object.Status.UpdatedReplicas, *d.Object.Spec.Replicas)
 	},
 	// PredicateTerminationInProgress refer rolloutStatus
 	// for predicate IsTerminationInProgress.
-	PredicateTerminationInProgress: func(d *deploy) string {
+	PredicateTerminationInProgress: func(d *Deploy) string {
 		return fmt.Sprintf(
 			"replica termination in-progress: %d old replicas are pending termination",
-			d.object.Status.Replicas-d.object.Status.UpdatedReplicas)
+			d.Object.Status.Replicas-d.Object.Status.UpdatedReplicas)
 	},
 	// PredicateUpdateInProgress refer to rolloutStatus for predicate IsUpdateInProgress.
-	PredicateUpdateInProgress: func(d *deploy) string {
+	PredicateUpdateInProgress: func(d *Deploy) string {
 		return fmt.Sprintf(
 			"replica update in-progress: %d of %d updated replicas are available",
-			d.object.Status.AvailableReplicas, d.object.Status.UpdatedReplicas)
+			d.Object.Status.AvailableReplicas, d.Object.Status.UpdatedReplicas)
 	},
 	// PredicateNotSpecSynced refer to status rolloutStatus for predicate IsNotSyncSpec.
-	PredicateNotSpecSynced: func(d *deploy) string {
+	PredicateNotSpecSynced: func(d *Deploy) string {
 		return "deployment rollout in-progress: waiting for deployment spec update"
 	},
 }
 
-// rolloutChecks contains a group of predicate it uses predicateName as key.
-var rolloutChecks = map[predicateName]predicate{
+// RolloutChecks contains a group of predicate it uses predicateName as key.
+var RolloutChecks = map[PredicateName]Predicate{
 	// PredicateProgressDeadlineExceeded refer to predicate IsProgressDeadlineExceeded.
 	PredicateProgressDeadlineExceeded: IsProgressDeadlineExceeded(),
 	// PredicateOlderReplicaActive refer to predicate IsOlderReplicaActive.
@@ -78,31 +78,31 @@ var rolloutChecks = map[predicateName]predicate{
 	PredicateNotSpecSynced: IsNotSyncSpec(),
 }
 
-// rolloutOutput struct contains message and boolean value to show rolloutstatus
-type rolloutOutput struct {
+// RolloutOutput struct contains message and boolean value to show rolloutstatus
+type RolloutOutput struct {
 	IsRolledout bool   `json:"isRolledout"`
 	Message     string `json:"message"`
 }
 
 // rawFn is a typed function that abstracts
 // conversion of rolloutOutput struct to raw byte
-type rawFn func(r *rolloutOutput) ([]byte, error)
+type rawFn func(r *RolloutOutput) ([]byte, error)
 
-// rollout enables getting various output format of rolloutOutput
-type rollout struct {
-	output *rolloutOutput
+// Rollout enables getting various output format of rolloutOutput
+type Rollout struct {
+	output *RolloutOutput
 	raw    rawFn
 }
 
 // rolloutBuildOption defines the
 // abstraction to build a rollout instance
-type rolloutBuildOption func(*rollout)
+type rolloutBuildOption func(*Rollout)
 
 // NewRollout returns new instance of rollout
 // meant for rolloutOutput. caller can configure it with different
 // rolloutOutputBuildOption
-func NewRollout(opts ...rolloutBuildOption) *rollout {
-	r := &rollout{}
+func NewRollout(opts ...rolloutBuildOption) *Rollout {
+	r := &Rollout{}
 	for _, o := range opts {
 		o(r)
 	}
@@ -111,23 +111,23 @@ func NewRollout(opts ...rolloutBuildOption) *rollout {
 }
 
 // withOutputObject sets rolloutOutput in rollout instance
-func withOutputObject(o *rolloutOutput) rolloutBuildOption {
-	return func(r *rollout) {
+func withOutputObject(o *RolloutOutput) rolloutBuildOption {
+	return func(r *Rollout) {
 		r.output = o
 	}
 }
 
 // withDefaults sets the default options of rolloutBuilder instance
-func (r *rollout) withDefaults() {
+func (r *Rollout) withDefaults() {
 	if r.raw == nil {
-		r.raw = func(o *rolloutOutput) ([]byte, error) {
+		r.raw = func(o *RolloutOutput) ([]byte, error) {
 			return json.Marshal(o)
 		}
 	}
 }
 
 // Raw returns raw bytes outpot of rollout
-func (r *rollout) Raw() ([]byte, error) {
+func (r *Rollout) Raw() ([]byte, error) {
 	if r.output == nil {
 		return nil, errors.New("unable to get rollout status output")
 	}
