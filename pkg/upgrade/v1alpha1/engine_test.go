@@ -20,9 +20,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/errors"
+
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/pkg/errors"
 )
 
 func TestNewCASTEngineBuilder(t *testing.T) {
@@ -152,8 +153,9 @@ func TestValidateEngineBuilder(t *testing.T) {
 	}{
 		"valid builder": {
 			&CASTEngineBuilder{
-				CASTemplate:   &apis.CASTemplate{},
-				UnitOfUpgrade: &upgrade.ResourceDetails{},
+				CASTemplate:     &apis.CASTemplate{},
+				UnitOfUpgrade:   &upgrade.ResourceDetails{},
+				UpgradeResultCR: "mock-upgrade-cju65",
 			},
 			false,
 		},
@@ -186,7 +188,7 @@ func TestValidateEngineBuilder(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			e := mock.builder.validate()
 			if mock.expectError != (e != nil) {
-				t.Fatalf("test %s failed, expect unitOfUpgrade: %t but got: %t",
+				t.Fatalf("test %s failed, expect error: %t but got: %t",
 					name, mock.expectError, e != nil)
 			}
 		})
