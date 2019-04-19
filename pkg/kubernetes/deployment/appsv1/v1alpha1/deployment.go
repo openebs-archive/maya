@@ -36,13 +36,13 @@ type Predicate func(*Deploy) bool
 // Deploy is the wrapper over k8s deployment object
 type Deploy struct {
 	// kubernetes deployment instance
-	Object *appsv1.Deployment
+	object *appsv1.Deployment
 }
 
 // Builder enables building an instance of
 // deployment
 type Builder struct {
-	Deployment *Deploy     // kubernetes deployment instance
+	deployment *Deploy     // kubernetes deployment instance
 	checks     []Predicate // predicate list for deploy
 	errors     []error
 }
@@ -66,7 +66,7 @@ const (
 
 // String implements the stringer interface
 func (d *Deploy) String() string {
-	return stringer.Yaml("deployment", d.Object)
+	return stringer.Yaml("deployment", d.object)
 }
 
 // GoString implements the goStringer interface
@@ -77,8 +77,8 @@ func (d *Deploy) GoString() string {
 // NewBuilder returns a new instance of builder meant for deployment
 func NewBuilder() *Builder {
 	return &Builder{
-		Deployment: &Deploy{
-			Object: &appsv1.Deployment{},
+		deployment: &Deploy{
+			object: &appsv1.Deployment{},
 		},
 	}
 }
@@ -88,7 +88,10 @@ func NewBuilder() *Builder {
 func NewBuilderForAPIObject(deployment *appsv1.Deployment) *Builder {
 	b := NewBuilder()
 	if deployment != nil {
-		b.Deployment.Object = deployment
+		b.deployment.object = deployment
+	} else {
+		b.errors = append(b.errors,
+			errors.New("nil deployment object given to get builder instance"))
 	}
 	return b
 }
@@ -99,9 +102,9 @@ func (b *Builder) Build() (*Deploy, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to build a deployment instance: %s",
-			b.Deployment.Object)
+			b.deployment.object)
 	}
-	return b.Deployment, nil
+	return b.deployment, nil
 }
 
 func (b *Builder) validate() error {
@@ -188,7 +191,7 @@ func IsProgressDeadlineExceeded() Predicate {
 // If `Progressing` condition's reason is `ProgressDeadlineExceeded` then
 // it is not rolled out.
 func (d *Deploy) IsProgressDeadlineExceeded() bool {
-	for _, cond := range d.Object.Status.Conditions {
+	for _, cond := range d.object.Status.Conditions {
 		if cond.Type == appsv1.DeploymentProgressing &&
 			cond.Reason == "ProgressDeadlineExceeded" {
 			return true
@@ -210,8 +213,8 @@ func IsOlderReplicaActive() Predicate {
 // Status.UpdatedReplicas < *Spec.Replicas then some of the replicas are
 // updated and some of them are not.
 func (d *Deploy) IsOlderReplicaActive() bool {
-	return d.Object.Spec.Replicas != nil &&
-		d.Object.Status.UpdatedReplicas < *d.Object.Spec.Replicas
+	return d.object.Spec.Replicas != nil &&
+		d.object.Status.UpdatedReplicas < *d.object.Spec.Replicas
 }
 
 // IsTerminationInProgress checks for older replicas are waiting to
@@ -231,7 +234,7 @@ func IsTerminationInProgress() Predicate {
 // replicas are not in running state. It waits for newer replica to
 // come into running state then terminate.
 func (d *Deploy) IsTerminationInProgress() bool {
-	return d.Object.Status.Replicas > d.Object.Status.UpdatedReplicas
+	return d.object.Status.Replicas > d.object.Status.UpdatedReplicas
 }
 
 // IsUpdateInProgress Checks if all the replicas are updated or not.
@@ -247,7 +250,7 @@ func IsUpdateInProgress() Predicate {
 // If Status.AvailableReplicas < Status.UpdatedReplicas then all the
 // older replicas are not there but there are less number of availableReplicas
 func (d *Deploy) IsUpdateInProgress() bool {
-	return d.Object.Status.AvailableReplicas < d.Object.Status.UpdatedReplicas
+	return d.object.Status.AvailableReplicas < d.object.Status.UpdatedReplicas
 }
 
 // IsNotSyncSpec compare generation in status and spec and check if
@@ -263,5 +266,5 @@ func IsNotSyncSpec() Predicate {
 // deployment spec is synced or not. If Generation <= Status.ObservedGeneration
 // then deployment spec is not updated yet.
 func (d *Deploy) IsNotSyncSpec() bool {
-	return d.Object.Generation > d.Object.Status.ObservedGeneration
+	return d.object.Generation > d.object.Status.ObservedGeneration
 }
