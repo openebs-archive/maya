@@ -94,11 +94,11 @@ func IsVersionMismatch(err error) (match bool) {
 //
 // NOTE: This is meant to be used as a template function
 type NotFoundError struct {
-	err string
+	ErrMsg string
 }
 
 func (e *NotFoundError) Error() string {
-	return e.err
+	return e.ErrMsg
 }
 
 // VerifyError represents an error due to a failure in verification
@@ -664,7 +664,7 @@ func notFoundErr(errMessage string, given interface{}) (err error) {
 	}
 
 	err = &NotFoundError{
-		err: errMessage,
+		ErrMsg: errMessage,
 	}
 
 	return

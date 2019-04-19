@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -121,4 +122,34 @@ type RunTaskList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []RunTask `json:"items"`
+}
+
+// String implements Stringer interface
+func (c Config) String() string {
+	return stringer.Yaml("cas config", c)
+}
+
+// GoString implements GoStringer interface
+func (c Config) GoString() string {
+	return c.String()
+}
+
+// String implements Stringer interface
+func (r *RunTask) String() string {
+	return stringer.Yaml("runtask", r)
+}
+
+// GoString implements GoStringer interface
+func (r *RunTask) GoString() string {
+	return r.String()
+}
+
+// String implements Stringer interface
+func (c *CASTemplate) String() string {
+	return stringer.Yaml("castemplate", c)
+}
+
+// GoString implements GoStringer interface
+func (c *CASTemplate) GoString() string {
+	return c.String()
 }

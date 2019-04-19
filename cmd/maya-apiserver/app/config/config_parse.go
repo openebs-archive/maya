@@ -1,34 +1,50 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package config
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
 	"github.com/mitchellh/mapstructure"
+	"github.com/pkg/errors"
 )
 
-// ParseMayaConfigFile parses the given path as a config file.
+// ParseMayaConfigFile parses the given path as
+// maya config
 func ParseMayaConfigFile(path string) (*MayaConfig, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to parse maya config at '%s'", path)
 	}
 
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to parse maya config at '%s'", path)
 	}
 	defer f.Close()
 
 	mconfig, err := ParseMayaConfig(f)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to parse maya config at '%s'", path)
 	}
 
 	return mconfig, nil
@@ -36,31 +52,34 @@ func ParseMayaConfigFile(path string) (*MayaConfig, error) {
 
 // ParseMayaConfig parses the config from the given io.Reader.
 //
-// Due to current internal limitations, the entire contents of the
+// Due to current internal limitations, the entire contents of
 // io.Reader will be copied into memory first before parsing.
 func ParseMayaConfig(r io.Reader) (*MayaConfig, error) {
-	// Copy the reader into an in-memory buffer first since HCL requires it.
+	// Copy the reader into an in-memory buffer first
+	// since HCL requires it.
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, r); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse maya config: failed to copy into buffer")
 	}
 
 	// Parse the buffer
-	root, err := hcl.Parse(buf.String())
+	bufs := buf.String()
+	root, err := hcl.Parse(bufs)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing: %s", err)
+		return nil, errors.Wrapf(err, "failed to parse maya config: %s", bufs)
 	}
 	buf.Reset()
 
 	// Top-level item should be a list
 	list, ok := root.Node.(*ast.ObjectList)
 	if !ok {
-		return nil, fmt.Errorf("error parsing: root should be an object")
+		return nil, errors.Errorf("failed to parse maya config: root should be an object")
 	}
 
 	var mconfig MayaConfig
-	if err := parseConfig(&mconfig, list); err != nil {
-		return nil, fmt.Errorf("error parsing 'config': %v", err)
+	err = parseConfig(&mconfig, list)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse maya config: %+v", list)
 	}
 
 	return &mconfig, nil
@@ -86,14 +105,16 @@ func parseConfig(result *MayaConfig, list *ast.ObjectList) error {
 		"syslog_facility",
 		"http_api_response_headers",
 	}
-	if err := checkHCLKeys(list, valid); err != nil {
-		return multierror.Prefix(err, "config:")
+	err := checkHCLKeys(list, valid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse maya config: invalid keys found {%+v} : supported keys {%+v}", list, valid)
 	}
 
 	// Decode the full thing into a map[string]interface for ease
 	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, list); err != nil {
-		return err
+	err = hcl.DecodeObject(&m, list)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse maya config: config keys {%+v}", list)
 	}
 	delete(m, "ports")
 	delete(m, "addresses")
@@ -102,48 +123,47 @@ func parseConfig(result *MayaConfig, list *ast.ObjectList) error {
 	delete(m, "http_api_response_headers")
 
 	// Decode the rest
-	if err := mapstructure.WeakDecode(m, result); err != nil {
-		return err
+	err = mapstructure.WeakDecode(m, result)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse maya config: %+v", m)
 	}
 
 	// Parse ports
 	if o := list.Filter("ports"); len(o.Items) > 0 {
-		if err := parsePorts(&result.Ports, o); err != nil {
-			return multierror.Prefix(err, "ports ->")
+		err := parsePorts(&result.Ports, o)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse maya config: failed to parse ports: %+v", o)
 		}
 	}
 
 	// Parse addresses
 	if o := list.Filter("addresses"); len(o.Items) > 0 {
-		if err := parseAddresses(&result.Addresses, o); err != nil {
-			return multierror.Prefix(err, "addresses ->")
+		err := parseAddresses(&result.Addresses, o)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse maya config: failed to parse addresses: %+v", o)
 		}
 	}
 
 	// Parse advertise
 	if o := list.Filter("advertise"); len(o.Items) > 0 {
-		if err := parseAdvertise(&result.AdvertiseAddrs, o); err != nil {
-			return multierror.Prefix(err, "advertise ->")
+		err := parseAdvertise(&result.AdvertiseAddrs, o)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse maya config: failed to parse advertise addresses: %+v", o)
 		}
 	}
-
-	// Parse the nomad config
-	//if o := list.Filter("nomad"); len(o.Items) > 0 {
-	//	if err := parseNomadConfig(&result.Nomad, o); err != nil {
-	//		return multierror.Prefix(err, "nomad ->")
-	//	}
-	//}
 
 	// Parse out http_api_response_headers fields. These are in HCL as a list so
 	// we need to iterate over them and merge them.
 	if headersO := list.Filter("http_api_response_headers"); len(headersO.Items) > 0 {
 		for _, o := range headersO.Elem().Items {
 			var m map[string]interface{}
-			if err := hcl.DecodeObject(&m, o.Val); err != nil {
-				return err
+			err := hcl.DecodeObject(&m, o.Val)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse maya config: failed to parse http response header: %+v", o)
 			}
-			if err := mapstructure.WeakDecode(m, &result.HTTPAPIResponseHeaders); err != nil {
-				return err
+			err = mapstructure.WeakDecode(m, &result.HTTPAPIResponseHeaders)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse maya config: failed to parse http response header: %+v", m)
 			}
 		}
 	}
@@ -154,7 +174,7 @@ func parseConfig(result *MayaConfig, list *ast.ObjectList) error {
 func parsePorts(result **Ports, list *ast.ObjectList) error {
 	list = list.Elem()
 	if len(list.Items) > 1 {
-		return fmt.Errorf("only one 'ports' block allowed")
+		return errors.Errorf("failed to parse ports: only one 'ports' block allowed")
 	}
 
 	// Get our ports object
@@ -164,18 +184,21 @@ func parsePorts(result **Ports, list *ast.ObjectList) error {
 	valid := []string{
 		"http",
 	}
-	if err := checkHCLKeys(listVal, valid); err != nil {
-		return err
+	err := checkHCLKeys(listVal, valid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse ports: invalid keys found {%+v}: supported keys {%+v}", listVal, valid)
 	}
 
 	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, listVal); err != nil {
-		return err
+	err = hcl.DecodeObject(&m, listVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse ports: %+v", listVal)
 	}
 
 	var ports Ports
-	if err := mapstructure.WeakDecode(m, &ports); err != nil {
-		return err
+	err = mapstructure.WeakDecode(m, &ports)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse ports: %+v", m)
 	}
 	*result = &ports
 	return nil
@@ -184,7 +207,7 @@ func parsePorts(result **Ports, list *ast.ObjectList) error {
 func parseAddresses(result **Addresses, list *ast.ObjectList) error {
 	list = list.Elem()
 	if len(list.Items) > 1 {
-		return fmt.Errorf("only one 'addresses' block allowed")
+		return errors.Errorf("failed to parse addresses: only one 'addresses' block allowed")
 	}
 
 	// Get our addresses object
@@ -194,18 +217,21 @@ func parseAddresses(result **Addresses, list *ast.ObjectList) error {
 	valid := []string{
 		"http",
 	}
-	if err := checkHCLKeys(listVal, valid); err != nil {
-		return err
+	err := checkHCLKeys(listVal, valid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse addresses: invalid keys found {%+v}: supported keys {%+v}", listVal, valid)
 	}
 
 	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, listVal); err != nil {
-		return err
+	err = hcl.DecodeObject(&m, listVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse addresses: %+v", listVal)
 	}
 
 	var addresses Addresses
-	if err := mapstructure.WeakDecode(m, &addresses); err != nil {
-		return err
+	err = mapstructure.WeakDecode(m, &addresses)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse addresses: %+v", m)
 	}
 	*result = &addresses
 	return nil
@@ -214,7 +240,7 @@ func parseAddresses(result **Addresses, list *ast.ObjectList) error {
 func parseAdvertise(result **AdvertiseAddrs, list *ast.ObjectList) error {
 	list = list.Elem()
 	if len(list.Items) > 1 {
-		return fmt.Errorf("only one 'advertise' block allowed")
+		return errors.Errorf("failed to parse advertise: only one 'advertise' block allowed")
 	}
 
 	// Get our advertise object
@@ -224,18 +250,21 @@ func parseAdvertise(result **AdvertiseAddrs, list *ast.ObjectList) error {
 	valid := []string{
 		"http",
 	}
-	if err := checkHCLKeys(listVal, valid); err != nil {
-		return err
+	err := checkHCLKeys(listVal, valid)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse advertise: invalid keys found {%+v}: supported keys {%+v}", listVal, valid)
 	}
 
 	var m map[string]interface{}
-	if err := hcl.DecodeObject(&m, listVal); err != nil {
-		return err
+	err = hcl.DecodeObject(&m, listVal)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse advertise: %+v", listVal)
 	}
 
 	var advertise AdvertiseAddrs
-	if err := mapstructure.WeakDecode(m, &advertise); err != nil {
-		return err
+	err = mapstructure.WeakDecode(m, &advertise)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse advertise: %+v", m)
 	}
 	*result = &advertise
 	return nil
@@ -249,7 +278,7 @@ func checkHCLKeys(node ast.Node, valid []string) error {
 	case *ast.ObjectType:
 		list = n.List
 	default:
-		return fmt.Errorf("cannot check HCL keys of type %T", n)
+		return errors.Errorf("failed to check HCL keys: unsupported type '%T'", n)
 	}
 
 	validMap := make(map[string]struct{}, len(valid))
@@ -257,14 +286,16 @@ func checkHCLKeys(node ast.Node, valid []string) error {
 		validMap[v] = struct{}{}
 	}
 
-	var result error
+	var errs []error
 	for _, item := range list.Items {
 		key := item.Keys[0].Token.Value().(string)
 		if _, ok := validMap[key]; !ok {
-			result = multierror.Append(result, fmt.Errorf(
-				"invalid key: %s", key))
+			errs = append(errs, errors.Errorf("failed to check HCL keys: invalid key '%s'", key))
 		}
 	}
 
-	return result
+	if len(errs) > 0 {
+		return errors.Errorf("%+v", errs)
+	}
+	return nil
 }
