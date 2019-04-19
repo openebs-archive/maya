@@ -90,9 +90,9 @@ func TestGetClientOrCached(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			name := name
-			mock := mock
 			c, err := mock.KubeClient.getClientOrCached()
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
@@ -119,9 +119,9 @@ func TestKubenetesStorageClassList(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			name := name
-			mock := mock
 			k := Kubeclient{getClientset: mock.getClientset, list: mock.list}
 			_, err := k.List(metav1.ListOptions{})
 			if mock.expectErr && err == nil {
@@ -150,9 +150,9 @@ func TestKubenetesStorageClassGet(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
-			name := name
-			mock := mock
 			k := Kubeclient{getClientset: mock.getClientset, get: mock.get}
 			_, err := k.Get(name, metav1.GetOptions{})
 			if mock.expectErr && err == nil {

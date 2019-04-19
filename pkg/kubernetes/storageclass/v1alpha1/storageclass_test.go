@@ -21,6 +21,7 @@ func fakeStorageClassListAPI(scNames []string) *storagev1.StorageClassList {
 	}
 	list := &storagev1.StorageClassList{}
 	for _, name := range scNames {
+		name := name // Pin It
 		sc := storagev1.StorageClass{}
 		sc.SetName(name)
 		list.Items = append(list.Items, sc)
@@ -34,6 +35,7 @@ func fakeStorageClassInstances(scNames []string) []*StorageClass {
 	}
 	list := []*StorageClass{}
 	for _, name := range scNames {
+		name := name // Pin It
 		sc := storagev1.StorageClass{}
 		sc.SetName(name)
 		list = append(list, &StorageClass{&sc})

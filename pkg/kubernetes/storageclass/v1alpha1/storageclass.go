@@ -31,24 +31,24 @@ type ListBuilder struct {
 // WithAPIList builds the list of StorageClass
 // instances based on the provided
 // StorageClass list
-func (b *ListBuilder) WithAPIList(storageclasses *storagev1.StorageClassList) *ListBuilder {
-	if storageclasses == nil {
+func (b *ListBuilder) WithAPIList(scl *storagev1.StorageClassList) *ListBuilder {
+	if scl == nil {
 		return b
 	}
-	b.WithAPIObject(storageclasses.Items...)
+	b.WithAPIObject(scl.Items...)
 	return b
 }
 
 // WithObject builds the list of StorageClass instances based on the provided
 // StorageClass list instance
-func (b *ListBuilder) WithObject(StorageClasses ...*StorageClass) *ListBuilder {
-	b.list.items = append(b.list.items, StorageClasses...)
+func (b *ListBuilder) WithObject(scs ...*StorageClass) *ListBuilder {
+	b.list.items = append(b.list.items, scs...)
 	return b
 }
 
 // WithAPIObject builds the list of node instances based on StorageClass api instances
-func (b *ListBuilder) WithAPIObject(StorageClasses ...storagev1.StorageClass) *ListBuilder {
-	for _, sc := range StorageClasses {
+func (b *ListBuilder) WithAPIObject(scs ...storagev1.StorageClass) *ListBuilder {
+	for _, sc := range scs {
 		sc := sc // Pin it
 		b.list.items = append(b.list.items, &StorageClass{&sc})
 	}
@@ -67,10 +67,10 @@ func (b *ListBuilder) List() *StorageClassList {
 		return b.list
 	}
 	filtered := &StorageClassList{}
-	for _, StorageClass := range b.list.items {
-		if b.filters.all(StorageClass) {
-			StorageClass := StorageClass // Pin it
-			filtered.items = append(filtered.items, StorageClass)
+	for _, sc := range b.list.items {
+		if b.filters.all(sc) {
+			sc := sc // Pin it
+			filtered.items = append(filtered.items, sc)
 		}
 	}
 	return filtered
@@ -84,9 +84,9 @@ func NewListBuilder() *ListBuilder {
 // ToAPIList converts StorageClassList to API StorageClassList
 func (scl *StorageClassList) ToAPIList() *storagev1.StorageClassList {
 	sclist := &storagev1.StorageClassList{}
-	for _, StorageClass := range scl.items {
-		StorageClass := StorageClass // Pin it
-		sclist.Items = append(sclist.Items, *StorageClass.object)
+	for _, sc := range scl.items {
+		sc := sc // Pin it
+		sclist.Items = append(sclist.Items, *sc.object)
 	}
 	return sclist
 }
@@ -94,9 +94,9 @@ func (scl *StorageClassList) ToAPIList() *storagev1.StorageClassList {
 // all returns true if all the predicateList
 // succeed against the provided StorageClass
 // instance
-func (l predicateList) all(n *StorageClass) bool {
+func (l predicateList) all(sc *StorageClass) bool {
 	for _, pred := range l {
-		if !pred(n) {
+		if !pred(sc) {
 			return false
 		}
 	}
