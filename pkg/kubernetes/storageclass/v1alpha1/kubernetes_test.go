@@ -93,7 +93,7 @@ func TestGetClientOrCached(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, err := mock.KubeClient.getClientOrCached()
+			c, err := mock.KubeClient.getClientsetOrCached()
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
 			}

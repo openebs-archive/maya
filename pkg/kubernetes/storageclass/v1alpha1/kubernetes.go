@@ -8,15 +8,16 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// getClientsetFn is a typed function that
-// abstracts fetching of clientset
+// getClientsetFn is a typed function that abstracts
+// fetching an instance of kubernetes clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of storageclasses
 type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*storagev1.StorageClassList, error)
 
-// getFn is a typed function that abstracts to get the storageclass
+// getFn is a typed function that abstracts
+// fetching an instance of storageclass
 type getFn func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*storagev1.StorageClass, error)
 
 // Kubeclient enables kubernetes API operations on storageclass instance
@@ -64,9 +65,10 @@ func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance
-// of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
+// getClientsetOrCached returns either a new
+// instance of kubernetes clientset or its
+// cached copy cached copy
+func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -80,18 +82,18 @@ func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 
 // List returns a list of storageclass instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*storagev1.StorageClassList, error) {
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list")
+		return nil, errors.Wrapf(err, "failed to list storageclasses")
 	}
 	return k.list(cli, opts)
 }
 
 // Get return a storageclass instance present in kubernetes cluster
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.StorageClass, error) {
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get")
+		return nil, errors.Wrapf(err, "failed to get storageclass '%s'", name)
 	}
 	return k.get(cli, name, opts)
 }

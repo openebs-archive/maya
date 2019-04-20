@@ -4,7 +4,8 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 )
 
-// StorageClass holds the api's Storageclass object
+// StorageClass is a wrapper over API based
+// storage class instance
 type StorageClass struct {
 	object *storagev1.StorageClass
 }
