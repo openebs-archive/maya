@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"testing"
+
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"testing"
 )
 
 func fakeGetClientsetOk(c *rest.Config) (*kubernetes.Clientset, error) {
