@@ -3,6 +3,7 @@ package replicadeletion
 import (
 	"flag"
 	"os"
+	"strconv"
 
 	"testing"
 
@@ -17,7 +18,6 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kube "k8s.io/client-go/kubernetes"
 
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -45,9 +45,8 @@ metadata:
 )
 
 var (
-	//Client set
-	cl                         *kube.Clientset
-	defaultComponentsInstaller []*installer.DefaultInstaller
+	// defaultInstallerList holds the list of DefaultInstaller instances
+	defaultInstallerList []*installer.DefaultInstaller
 )
 
 func TestSource(t *testing.T) {
@@ -93,13 +92,14 @@ var _ = BeforeSuite(func() {
 	// Check the running node count
 	nodes, err := node.
 		KubeClient().List(metav1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
 	nodeCnt := node.
 		NewListBuilder().
 		WithAPIList(nodes).
 		WithFilter(node.IsReady()).
 		List().
 		Len()
-	Expect(nodeCnt).Should(Equal(minNodeCount), "Running node count should be "+string(nodeCnt))
+	Expect(nodeCnt).Should(Equal(minNodeCount), "Running node count should be "+strconv.Itoa(int(minNodeCount)))
 
 	// Fetch openebs component artifacts
 	openebsartifacts, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
@@ -112,7 +112,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = defaultInstaller.Install()
 		Expect(err).ShouldNot(HaveOccurred())
-		defaultComponentsInstaller = append(defaultComponentsInstaller, defaultInstaller)
+		defaultInstallerList = append(defaultInstallerList, defaultInstaller)
 	}
 	// Creates jiva-test namespace
 	testNamespaceArtifact, err := artifacts.GetArtifactUnstructured(artifacts.Artifact(nameSpaceYaml))
@@ -121,7 +121,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 	err = namespaceInstaller.Install()
 	Expect(err).ShouldNot(HaveOccurred())
-	defaultComponentsInstaller = append(defaultComponentsInstaller, namespaceInstaller)
+	defaultInstallerList = append(defaultInstallerList, namespaceInstaller)
 
 	By("Started deploying OpenEBS components")
 	// Check for maya-apiserver pod to get created and running
@@ -147,7 +147,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("Uinstalling OpenEBS Components and test namespace")
-	for _, componentInstaller := range defaultComponentsInstaller {
+	for _, componentInstaller := range defaultInstallerList {
 		err := componentInstaller.UnInstall()
 		Expect(err).ShouldNot(HaveOccurred())
 	}

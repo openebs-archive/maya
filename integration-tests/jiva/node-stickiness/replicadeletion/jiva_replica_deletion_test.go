@@ -27,6 +27,8 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 		// defaultCtrlLabel represents the jiva controller
 		defaultCtrlLabel = "openebs.io/controller=jiva-controller"
+		// defaultPVCLabel represents the default OpenEBS PVC label key
+		defaultPVCLabel = "openebs.io/persistent-volume-claim="
 		// replicaLabel consist of defaultReplicaLabel and coressponding
 		// pvcLabel
 		replicaLabel string
@@ -54,7 +56,7 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 			Install()
 
 		// pvcLabel represents the coressponding pvc
-		pvcLabel := "openebs.io/persistent-volume-claim=" + pvcInstaller.ComponentUnstructured.GetName()
+		pvcLabel := defaultPVCLabel + pvcInstaller.ComponentUnstructured.GetName()
 		replicaLabel = defaultReplicaLabel + "," + pvcLabel
 		ctrlLabel = defaultCtrlLabel + "," + pvcLabel
 		jivaTestNamespace = pvcInstaller.ComponentUnstructured.GetNamespace()
