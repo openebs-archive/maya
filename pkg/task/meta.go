@@ -537,7 +537,7 @@ func (m *metaTaskExecutor) isRolloutstatusExtnV1B1Deploy() bool {
 }
 
 func (m *metaTaskExecutor) isRolloutstatusAppsV1Deploy() bool {
-	return m.identifier.isAppsV1B1Deploy() && m.isRolloutstatus()
+	return m.identifier.isAppsV1Deploy() && m.isRolloutstatus()
 }
 
 // getRollbackMetaInstances is a utility function that provides objects
