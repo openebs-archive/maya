@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
+	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
 	"github.com/openebs/maya/integration-tests/kubernetes"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -33,9 +33,10 @@ const (
 	// minNodeCount is the minimum number of nodes
 	// need to run this test
 	minNodeCount int = 3
+	// parentDir is the OpenEBS artifacts source directory
+	parentDir artifacts.ArtifactSource = "../../"
 	// jiva-test namespace to deploy jiva ctrl & replicas
-	parentDir     artifacts.ArtifactSource = "../"
-	nameSpaceYaml artifacts.Artifact       = `
+	nameSpaceYaml artifacts.Artifact = `
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -45,7 +46,8 @@ metadata:
 
 var (
 	//Client set
-	cl *kube.Clientset
+	cl                         *kube.Clientset
+	defaultComponentsInstaller []*installer.DefaultInstaller
 )
 
 func TestSource(t *testing.T) {
@@ -57,7 +59,9 @@ func init() {
 	flag.Parse()
 }
 
-func checkPodUpandRunning(namespace, lselector string, podCount int) (pods *corev1.PodList) {
+// TODO: Refactor below code based on the framework changes
+// getPodList returns the list of running pod object
+func getPodList(namespace, lselector string, podCount int) (pods *corev1.PodList) {
 	// Verify phase of the pod
 	var err error
 	Eventually(func() int {
@@ -90,88 +94,61 @@ var _ = BeforeSuite(func() {
 	nodes, err := node.
 		KubeClient().List(metav1.ListOptions{})
 	nodeCnt := node.
-		ListBuilderFunc().
+		NewListBuilder().
 		WithAPIList(nodes).
 		WithFilter(node.IsReady()).
 		List().
 		Len()
 	Expect(nodeCnt).Should(Equal(minNodeCount), "Running node count should be "+string(nodeCnt))
 
-	// Fetching the openebs component artifacts
-	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
+	// Fetch openebs component artifacts
+	openebsartifacts, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
 	Expect(errs).Should(HaveLen(0))
 
+	By("Installing OpenEBS components")
 	// Installing the artifacts to kubernetes cluster
-	for _, artifact := range artifactsOpenEBS {
-		cu := k8s.CreateOrUpdate(
-			k8s.GroupVersionResourceFromGVK(artifact),
-			artifact.GetNamespace(),
-		)
-		_, err := cu.Apply(artifact)
+	for _, artifact := range openebsartifacts {
+		defaultInstaller, err := installer.BuilderForObject(artifact).Build()
 		Expect(err).ShouldNot(HaveOccurred())
+		err = defaultInstaller.Install()
+		Expect(err).ShouldNot(HaveOccurred())
+		defaultComponentsInstaller = append(defaultComponentsInstaller, defaultInstaller)
 	}
-
 	// Creates jiva-test namespace
-	testNameSpaceUnstructured, err := artifacts.GetArtifactUnstructured(
-		artifacts.Artifact(nameSpaceYaml),
-	)
+	testNamespaceArtifact, err := artifacts.GetArtifactUnstructured(artifacts.Artifact(nameSpaceYaml))
 	Expect(err).ShouldNot(HaveOccurred())
-	cu := k8s.CreateOrUpdate(
-		k8s.GroupVersionResourceFromGVK(testNameSpaceUnstructured),
-		testNameSpaceUnstructured.GetNamespace(),
-	)
-	_, err = cu.Apply(testNameSpaceUnstructured)
+	namespaceInstaller, err := installer.BuilderForObject(testNamespaceArtifact).Build()
 	Expect(err).ShouldNot(HaveOccurred())
+	err = namespaceInstaller.Install()
+	Expect(err).ShouldNot(HaveOccurred())
+	defaultComponentsInstaller = append(defaultComponentsInstaller, namespaceInstaller)
 
 	By("Started deploying OpenEBS components")
 	// Check for maya-apiserver pod to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
 	// Check for provisioner pod to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 
 	// Check for snapshot operator to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
 
 	// Check for admission server to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
 
 	// Check for NDM pods to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
 
 	// Check for cstor storage pool pods to get created and running
-	_ = checkPodUpandRunning(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
 
 	By("OpenEBS components are in running state")
 })
 
 var _ = AfterSuite(func() {
-	// Fetching the openebs component artifacts
-	artifactsOpenEBS, errs := artifacts.GetArtifactsListUnstructuredFromFile(parentDir + artifacts.OpenEBSArtifacts)
-	Expect(errs).Should(HaveLen(0))
-
-	// Deleting the artifacts to kubernetes cluster
-	for _, artifact := range artifactsOpenEBS {
-		cu := k8s.DeleteResource(
-			k8s.GroupVersionResourceFromGVK(artifact),
-			artifact.GetNamespace(),
-		)
-		err := cu.Delete(artifact)
+	By("Uinstalling OpenEBS Components and test namespace")
+	for _, componentInstaller := range defaultComponentsInstaller {
+		err := componentInstaller.UnInstall()
 		Expect(err).ShouldNot(HaveOccurred())
 	}
-
-	// Deletes jiva-test namespace
-	testNameSpaceUnstructured, err := artifacts.GetArtifactUnstructured(
-		artifacts.Artifact(nameSpaceYaml),
-	)
-	Expect(err).ShouldNot(HaveOccurred())
-	cu := k8s.DeleteResource(
-		k8s.GroupVersionResourceFromGVK(testNameSpaceUnstructured),
-		testNameSpaceUnstructured.GetNamespace(),
-	)
-	err = cu.Delete(testNameSpaceUnstructured)
-	Expect(err).ShouldNot(HaveOccurred())
-	// Unsetting the environment variable
-	err = os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
-	Expect(err).ShouldNot(HaveOccurred())
 })
