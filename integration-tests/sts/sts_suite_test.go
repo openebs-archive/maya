@@ -38,7 +38,7 @@ import (
 const (
 	// defaultTimeOut is the default time in seconds
 	// for Eventually block
-	defaultTimeOut int = 5000000
+	defaultTimeOut int = 500
 	// defaultPollingInterval is the default polling
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
