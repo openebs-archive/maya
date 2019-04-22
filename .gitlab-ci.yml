@@ -42,7 +42,7 @@ build-maya:
     - kubectl get deployment -n openebs
     - sleep 20
     - make all
-  #  - ./ci/travis-ci.sh
+  # - ./ci/travis-ci.sh
     - make deploy-images
 
 baseline-image:
@@ -56,7 +56,7 @@ baseline-image:
      - echo $BRANCH
      - export COMMIT=${CI_COMMIT_SHORT_SHA}
      - echo $COMMIT
-     - git clone https://github.com/openebs/e2e-infrastructure.git
+     - git clone https://github.com/$REPO/e2e-infrastructure.git
      - git checkout $BRANCH
      - cd e2e-infrastructure/baseline
      - ansible-playbook commit-writer.yml --extra-vars "branch=$BRANCH repo=$CI_PROJECT_NAME commit=$COMMIT"
@@ -64,10 +64,8 @@ baseline-image:
      - git add baseline
      - git status
      - git commit -m "updated $CI_PROJECT_NAME commit:$COMMIT"
-     - git push  https://$user:$pass@github.com/openebs/e2e-infrastructure.git --all
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-11 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-12 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
-     - curl -X POST -F variable[INFRA_BRANCH]=$BRANCH -F token=$PACKET -F ref=k8s-1-13 https://gitlab.openebs.ci/api/v4/projects/27/trigger/pipeline
+     - git push  https://$user:$pass@github.com/$REPO/e2e-infrastructure.git --all
+     - curl -X POST -F variables[INFRA_BRANCH]=$BRANCH -F token=$OPENSHIFT -F ref=OpenEBS-base https://gitlab.openebs.ci/api/v4/projects/15/trigger/pipeline
 
 clean-maya:
   when: always
@@ -76,7 +74,7 @@ clean-maya:
     refs:
       - /^(v[0-9][.][0-9][.]x|master)?$/
   script:
-    - sudo minikube delete || true
+    - sudo minikube delete
     - sudo rm -r ~/go
     - sudo docker images 
     - sudo docker image prune -a --force
