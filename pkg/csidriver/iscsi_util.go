@@ -134,7 +134,7 @@ func waitForPathToExistInternal(devicePath *string, maxRetries int, deviceTransp
 	return false
 }
 
-// ISCSIUtil is an empy struct type
+// ISCSIUtil is an empty struct type
 type ISCSIUtil struct{}
 
 func (util *ISCSIUtil) persistISCSI(conf iscsiDisk, mnt string) error {

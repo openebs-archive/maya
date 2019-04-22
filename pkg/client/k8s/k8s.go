@@ -514,7 +514,7 @@ func (k *K8sClient) coreV1PVOps() typed_core_v1.PersistentVolumeInterface {
 	return k.cs.CoreV1().PersistentVolumes()
 }
 
-// GetPV fetches the K8s PV with the provided name
+// GetNode fetches the K8s PV with the provided name
 func (k *K8sClient) GetNode(name string, opts mach_apis_meta_v1.GetOptions) (*api_core_v1.Node, error) {
 	if k.Node != nil {
 		return k.Node, nil
