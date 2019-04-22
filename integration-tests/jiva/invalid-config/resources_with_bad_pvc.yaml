@@ -1,0 +1,17 @@
+# Bad PVC
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: validation-pvc
+  namespace: validation-ns
+  annotations:
+   name: label-validation-pvc
+  labels:
+   name: label-validation-pvc
+spec:
+  storageClassName: validation-sc
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5G
