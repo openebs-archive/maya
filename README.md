@@ -6,6 +6,7 @@
 [![codecov](https://codecov.io/gh/openebs/maya/branch/master/graph/badge.svg)](https://codecov.io/gh/openebs/maya)
 [![GoDoc](https://godoc.org/github.com/openebs/maya?status.svg)](https://godoc.org/github.com/openebs/maya)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/openebs/maya/blob/master/LICENSE)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fmaya.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fmaya?ref=badge_shield)
 
 *Visit https://docs.openebs.io to learn about Container Attached Storage(CAS) and full documentation on using OpenEBS Maya*.
 
@@ -75,6 +76,4 @@ See the [OpenEBS Community page](https://github.com/openebs/openebs/tree/master/
 
 \[dep README\]: https://github.com/golang/dep#usage
 
-## License
-
-Maya is licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text. Some of the projects used by the Maya project may be governed by a different license, please refer to its specific license. 
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenebs%2Fmaya.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenebs%2Fmaya?ref=badge_large)
