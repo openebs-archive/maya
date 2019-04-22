@@ -99,6 +99,10 @@ func CreateVolume(vol v1alpha1.CASVolume) error {
 	logrus.Infof("CAS Volume Spec Created:\n%v\n", string(jsonValue))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonValue))
+	if err != nil {
+		logrus.Infof("Error while creating newRequest: %v", err)
+		return err
+	}
 
 	req.Header.Add("Content-Type", "application/json")
 
@@ -172,7 +176,7 @@ func ReadVolume(vname, namespace, storageclass string, obj interface{}) error {
 }
 
 // DeleteVolume to get delete CAS volume through a API call to m-apiserver
-func DeleteVolume(vname string, namespace string) error {
+func DeleteVolume(vname, namespace string) error {
 
 	addr := os.Getenv("MAPI_ADDR")
 	if addr == "" {

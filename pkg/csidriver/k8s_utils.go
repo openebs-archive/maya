@@ -64,7 +64,7 @@ func getVolStatus(volumeID string) (string, error) {
 }
 
 // createCSIVolumeInfoCR creates a new CSIVolumeInfo CR with this nodeID
-func createCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID string, mountPath string) (err error) {
+func createCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID, mountPath string) (err error) {
 
 	csivol.Name = csivol.Spec.Volname + nodeID
 	csivol.Labels = make(map[string]string)
@@ -148,7 +148,8 @@ func fetchAndUpdateVolInfos(nodeID string) (err error) {
 		return
 	}
 	for _, csivol := range csivols.Items {
-		Volumes[csivol.Spec.Volname] = &csivol
+		vol := csivol
+		Volumes[csivol.Spec.Volname] = &vol
 	}
 	return
 }

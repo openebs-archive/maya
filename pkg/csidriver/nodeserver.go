@@ -58,7 +58,7 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			status.Error(codes.Internal, err.Error())
 	}
 
-	if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
+	if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
 		return nil,
 			status.Error(codes.Internal, err.Error())
 	}

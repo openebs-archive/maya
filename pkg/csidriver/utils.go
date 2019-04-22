@@ -47,22 +47,23 @@ func chmodMountPath(mountPath string) error {
 	return os.Chmod(mountPath, 0000)
 }
 
-func WaitForVolumeToBeReachable(targetPortal string) error {
+func waitForVolumeToBeReachable(targetPortal string) error {
 	var (
 		retries int
+		err     error
+		conn    net.Conn
 	)
 
 	for {
-		if conn, err := net.Dial("tcp", targetPortal); err == nil {
+		if conn, err = net.Dial("tcp", targetPortal); err == nil {
 			conn.Close()
 			return nil
-		} else {
-			time.Sleep(2 * time.Second)
-			retries++
-			if retries >= 6 {
-				return fmt.Errorf("iSCSI Target not reachable, TargetPortal %v, err:%v",
-					targetPortal, err)
-			}
+		}
+		time.Sleep(2 * time.Second)
+		retries++
+		if retries >= 6 {
+			return fmt.Errorf("iSCSI Target not reachable, TargetPortal %v, err:%v",
+				targetPortal, err)
 		}
 	}
 
@@ -168,7 +169,8 @@ func AttachAndMountDisk(vol *v1alpha1.CSIVolumeInfo) (string, error) {
 func listContains(mountPath string, list []mount.MountPoint) (*mount.MountPoint, bool) {
 	for _, info := range list {
 		if info.Path == mountPath {
-			return &info, true
+			mntInfo := info
+			return &mntInfo, true
 		}
 	}
 	return nil, false
@@ -200,7 +202,7 @@ func monitor() {
 									logrus.Info(err)
 									break
 								}
-								if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
+								if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
 									logrus.Info(err)
 									break
 								}
@@ -218,7 +220,7 @@ func monitor() {
 							logrus.Info(err)
 							break
 						}
-						if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
+						if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
 							logrus.Info(err)
 							break
 						}
