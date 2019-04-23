@@ -1,7 +1,9 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	"github.com/pkg/errors"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -14,7 +16,7 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of pods
-type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error)
+type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error)
 
 // deleteFn is a typed function that abstracts
 // deleting of pod
@@ -22,7 +24,7 @@ type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav
 
 // getFn is a typed function that abstracts
 // to get pod
-type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error)
+type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
 
 // Kubeclient enables kubernetes API operations
 // on pod instance
@@ -59,7 +61,7 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error) {
+		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 			return cli.CoreV1().Pods(namespace).List(opts)
 		}
 	}
@@ -69,7 +71,7 @@ func (k *Kubeclient) withDefaults() {
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error) {
+		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
 			return cli.CoreV1().Pods(namespace).Get(name, opts)
 		}
 	}
@@ -110,7 +112,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	}
 	c, err := k.getClientset()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -118,28 +120,34 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of pod
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*v1.PodList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.PodList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list pods")
 	}
 	return k.list(cli, k.namespace, opts)
 }
 
 // Delete deletes a pod instance present in kubernetes cluster
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+	if len(name) == 0 {
+		return errors.New("for pod deletetion name shouldn't be empty")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to delete pod '%s'", name)
 	}
 	return k.del(cli, k.namespace, name, opts)
 }
 
 // Get gets a pod object present in kubernetes cluster
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1.Pod, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Pod, error) {
+	if len(name) == 0 {
+		return nil, errors.New("name shouldn't be empty for pod deletion")
+	}
 	cli, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get pod: '%s'", name)
 	}
 	return k.get(cli, k.namespace, name, opts)
 }

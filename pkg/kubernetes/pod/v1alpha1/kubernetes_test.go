@@ -230,6 +230,7 @@ func TestKubenetesDeletePod(t *testing.T) {
 		"Test 1": {fakeGetClientSetErr, fakeDeleteFnOk, "pod-1", true},
 		"Test 2": {fakeGetClientSetOk, fakeDeleteFnOk, "pod-2", false},
 		"Test 3": {fakeGetClientSetOk, fakeDeleteFnErr, "pod-3", true},
+		"Test 4": {fakeGetClientSetOk, fakeDeleteFnOk, "", true},
 	}
 
 	for name, mock := range tests {
@@ -258,6 +259,7 @@ func TestKubenetesGetPod(t *testing.T) {
 		"Test 1": {fakeGetClientSetErr, fakeGetFnOk, "pod-1", true},
 		"Test 2": {fakeGetClientSetOk, fakeGetFnOk, "pod-2", false},
 		"Test 3": {fakeGetClientSetOk, fakeGetErrfn, "pod-3", true},
+		"Test 4": {fakeGetClientSetOk, fakeGetFnOk, "", true},
 	}
 
 	for name, mock := range tests {
