@@ -5,10 +5,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
-	stickiness "github.com/openebs/maya/integration-tests/jiva/node-stickiness"
+	clientpvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	v1 "k8s.io/api/core/v1"
+	clientsc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// auth plugins
@@ -16,62 +17,89 @@ import (
 )
 
 const (
-	testTimes                            = 20
-	pvcArtifact artifacts.ArtifactSource = "../jiva_pvc_resource.yaml"
-	scArtifact  artifacts.ArtifactSource = "../jiva_sc_resource.yaml"
+	testTimes = 20
 )
 
 var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test", func() {
 	var (
-		// defaultReplicaLabel represents the jiva replica
-		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
-		// defaultCtrlLabel represents the jiva controller
-		defaultCtrlLabel = "openebs.io/controller=jiva-controller"
-		// defaultPVCLabel represents the default OpenEBS PVC label key
-		defaultPVCLabel = "openebs.io/persistent-volume-claim="
 		// replicaLabel consist of defaultReplicaLabel and coressponding
 		// pvcLabel
 		replicaLabel string
 		// ctrlLabel consist of defaultReplicaLabel and coressponding
 		// pvcLabel
-		ctrlLabel                 string
-		jivaTestNamespace         string
-		podListObj                *v1.PodList
-		scInstaller, pvcInstaller *stickiness.TestInstaller
+		ctrlLabel string
+		//podListObj holds the PodList instance
+		podListObj    *corev1.PodList
+		scObj         *clientsc.StorageClass
+		pvcObj        *clientpvc.PVC
+		podKubeClient *pod.Kubeclient
+		// defaultReplicaLabel represents the jiva replica
+		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
+		// defaultCtrlLabel represents the jiva controller
+		defaultCtrlLabel = "openebs.io/controller=jiva-controller"
+		// defaultPVCLabel represents the default OpenEBS PVC label key
+		defaultPVCLabel       = "openebs.io/persistent-volume-claim="
+		storageEngine         = "jiva"
+		replicaCount          = "1"
+		openebsCASConfigValue = "- name: ReplicaCount\n  Value: " + replicaCount
+		scName                = "jiva-single-replica"
+		pvcName               = "jiva-vol1-1r-claim"
+		testNamespace         = "jiva-rep-delete-ns"
+		accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+		capacity              = "5G"
+		//TODO: following variables should be moved in framework
+		openebsCASType     = "cas.openebs.io/cas-type"
+		openebsCASConfig   = "cas.openebs.io/config"
+		openebsProvisioner = "openebs.io/provisioner-iscsi"
 	)
 	BeforeEach(func() {
+		var err error
+		By("Build jiva-single-replica storageclass and deploy it")
+		annotations := map[string]string{
+			openebsCASType:   storageEngine,
+			openebsCASConfig: openebsCASConfigValue,
+		}
+		buildSCObj := clientsc.NewStorageClass().
+			WithName(scName).
+			WithAnnotations(annotations).
+			WithProvisioner(openebsProvisioner)
+		Expect(buildSCObj.Err).ShouldNot(HaveOccurred())
 
-		By("Deploying jiva-single-replica storageclass")
-		scInstaller = stickiness.NewTestInstaller().
-			WithArtifact(scArtifact).
-			GetUnstructObj().
-			GetInstallerObj().
-			Install()
+		scObj = &clientsc.StorageClass{}
+		scObj.Object, err = clientsc.KubeClient().Create(buildSCObj.Object)
+		Expect(err).ShouldNot(HaveOccurred())
 
-		By("Deploying PVC using jiva-single-replica storageClass in jiva-test namespace")
-		pvcInstaller = stickiness.NewTestInstaller().
-			WithArtifact(pvcArtifact).
-			GetUnstructObj().
-			GetInstallerObj().
-			Install()
+		By("Build and deploy PVC using jiva-single-replica storageClass in jiva-rep-delete-ns namespace")
+		buildPVCObj := clientpvc.NewPVC().
+			WithName(pvcName).
+			WithNamespace(testNamespace).
+			WithStorageClass(scName).
+			WithAccessModes(accessModes).
+			WithCapacity(capacity)
+		Expect(buildPVCObj.Err).ShouldNot(HaveOccurred())
+
+		pvcObj = &clientpvc.PVC{}
+		pvcObj.Object, err = clientpvc.NewKubeClient(clientpvc.WithNamespace(testNamespace)).Create(buildPVCObj.Object)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		podKubeClient = pod.KubeClient(pod.WithNamespace(string(testNamespace)))
 
 		// pvcLabel represents the coressponding pvc
-		pvcLabel := defaultPVCLabel + pvcInstaller.ComponentUnstructured.GetName()
+		pvcLabel := defaultPVCLabel + pvcName
 		replicaLabel = defaultReplicaLabel + "," + pvcLabel
 		ctrlLabel = defaultCtrlLabel + "," + pvcLabel
-		jivaTestNamespace = pvcInstaller.ComponentUnstructured.GetNamespace()
 		// Verify creation of jiva ctrl pod
-		_ = getPodList(string(jivaTestNamespace), ctrlLabel, 1)
+		_ = getPodList(podKubeClient, string(testNamespace), ctrlLabel, 1)
 
 		// Verify creation of jiva replica pod
-		podListObj = getPodList(string(jivaTestNamespace), replicaLabel, 1)
+		podListObj = getPodList(podKubeClient, string(testNamespace), replicaLabel, 1)
 	})
 
 	AfterEach(func() {
 		By("Uninstall test artifacts")
-		err := scInstaller.ComponentInstaller.UnInstall()
+		err := clientpvc.NewKubeClient(clientpvc.WithNamespace(testNamespace)).Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
-		err = pvcInstaller.ComponentInstaller.UnInstall()
+		err = clientsc.KubeClient().Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -87,23 +115,22 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 				podName = podListObj.Items[0].ObjectMeta.Name
 
 				By(fmt.Sprintf("deleting the running jiva replica pod: '%s'", podName))
-				err := pod.
-					KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
-					Delete(podName, &metav1.DeleteOptions{})
+				err := podKubeClient.Delete(podName, &metav1.DeleteOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Makesure that pod is deleted successfully
-				Eventually(func() error {
-					_, err := pod.
-						KubeClient(pod.WithNamespace(string(jivaTestNamespace))).
-						Get(podName, metav1.GetOptions{})
-					return err
+				Eventually(func() bool {
+					_, err := podKubeClient.Get(podName, metav1.GetOptions{})
+					if k8serror.IsNotFound(err) {
+						return true
+					}
+					return false
 				},
 					defaultTimeOut, defaultPollingInterval).
-					Should(HaveOccurred(), "Pod not found")
+					Should(BeTrue(), "Pod not found")
 
 				By("waiting till jiva replica pod starts running")
-				podListObj = getPodList(string(jivaTestNamespace), replicaLabel, 1)
+				podListObj = getPodList(podKubeClient, string(testNamespace), replicaLabel, 1)
 
 				By("verifying jiva replica pod node matches with its old instance node")
 				Expect(podListObj.Items[0].Spec.NodeName).Should(Equal(nodeName))

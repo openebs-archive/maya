@@ -26,7 +26,7 @@ import (
 const (
 	// defaultTimeOut is the default time in seconds
 	// for Eventually block
-	defaultTimeOut int = 5000
+	defaultTimeOut int = 500
 	// defaultPollingInterval is the default polling
 	// time in seconds for the Eventually block
 	defaultPollingInterval int = 10
@@ -40,7 +40,7 @@ const (
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: jiva-test
+  name: jiva-rep-delete-ns
 `
 )
 
@@ -60,17 +60,19 @@ func init() {
 
 // TODO: Refactor below code based on the framework changes
 // getPodList returns the list of running pod object
-func getPodList(namespace, lselector string, podCount int) (pods *corev1.PodList) {
+func getPodList(podKubeClient *pod.Kubeclient, namespace, lselector string, podCount int) (pods *corev1.PodList) {
 	// Verify phase of the pod
 	var err error
+
+	if podKubeClient == nil {
+		podKubeClient = pod.KubeClient(pod.WithNamespace(namespace))
+	}
+
 	Eventually(func() int {
-		pods, err = pod.
-			KubeClient(pod.WithNamespace(namespace)).
+		pods, err = podKubeClient.
 			List(metav1.ListOptions{LabelSelector: lselector})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.
-			ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -123,24 +125,25 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 	defaultInstallerList = append(defaultInstallerList, namespaceInstaller)
 
+	podKubeClient := pod.KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)))
 	By("Started deploying OpenEBS components")
 	// Check for maya-apiserver pod to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
 	// Check for provisioner pod to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 
 	// Check for snapshot operator to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSSnapshotOperatorLabelSelector), 1)
 
 	// Check for admission server to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSAdmissionServerLabelSelector), 1)
 
 	// Check for NDM pods to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSNDMLabelSelector), minNodeCount)
 
 	// Check for cstor storage pool pods to get created and running
-	_ = getPodList(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
+	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSCStorPoolLabelSelector), minNodeCount)
 
 	By("OpenEBS components are in running state")
 })
