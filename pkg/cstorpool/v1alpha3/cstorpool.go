@@ -1,0 +1,232 @@
+package v1alpha2
+
+import (
+	"text/template"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"k8s.io/apimachinery/pkg/types"
+)
+
+type annotationKey string
+
+const scheduleOnHostAnnotation annotationKey = "volume.kubernetes.io/selected-node"
+
+// CSP encapsulates CStorPool api object.
+type CSP struct {
+	// actual cstor pool object
+	Object *apis.CStorPool
+}
+
+// CSPList holds the list of StoragePoolClaim api.
+type CSPList struct {
+	// list of cstor pools
+	ObjectList *apis.CStorPoolList
+}
+
+// Builder is the builder object for CSP.
+type Builder struct {
+	Csp *CSP
+}
+
+// ListBuilder is the builder object for CSPList.
+type ListBuilder struct {
+	CspList *CSPList
+}
+
+// predicate defines an abstraction
+// to determine conditional checks
+// against the provided csp instance
+type predicate func(*CSP) bool
+
+type predicateList []predicate
+
+// all returns true if all the predicates
+// succeed against the provided csp
+// instance
+func (l predicateList) all(c *CSP) bool {
+	for _, pred := range l {
+		if !pred(c) {
+			return false
+		}
+	}
+	return true
+}
+
+// IsNotUID returns true if provided csp
+// instance's UID does not match with any
+// of the provided UIDs
+func IsNotUID(uids ...string) predicate {
+	return func(c *CSP) bool {
+		for _, uid := range uids {
+			if uid == string(c.Object.GetUID()) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+// HasAnnotation returns true if provided annotation
+// key and value are present in the provided CSP
+// instance
+func HasAnnotation(key, value string) predicate {
+	return func(c *CSP) bool {
+		val, ok := c.Object.GetAnnotations()[key]
+		if ok {
+			return val == value
+		}
+		return false
+	}
+}
+
+// HasLabel returns true if provided label
+// key and value are present in the provided CSP
+// instance
+func HasLabel(key, value string) predicate {
+	return func(c *CSP) bool {
+		val, ok := c.Object.GetLabels()[key]
+		if ok {
+			return val == value
+		}
+		return false
+	}
+}
+
+// HasLabel returns true if provided label
+// key and value are present in the provided CSP
+// instance
+func IsStatus(status string) predicate {
+	return func(c *CSP) bool {
+		val := c.Object.Status.Phase
+		return string(val) == status
+	}
+}
+
+// Filter will filter the csp instances
+// if all the predicates succeed against that
+// csp.
+func (l *CSPList) Filter(p ...predicate) *CSPList {
+	var plist predicateList
+	plist = append(plist, p...)
+	if len(plist) == 0 {
+		return l
+	}
+
+	filtered := NewListBuilder().List()
+	for _, cspAPI := range l.ObjectList.Items {
+		cspAPI := cspAPI // pin it
+		CSP := BuilderForAPIObject(&cspAPI).Csp
+		if plist.all(CSP) {
+			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *CSP.Object)
+		}
+	}
+	return filtered
+}
+
+// ListBuilder returns a new instance of ListBuilder Object.
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{CspList: &CSPList{ObjectList: &apis.CStorPoolList{}}}
+}
+
+// ListBuilderForObject returns a new instance of ListBuilderForApiList object based on csp list.
+func ListBuilderForObject(cspList *CSPList) *ListBuilder {
+	new := NewListBuilder()
+	for _, obj := range cspList.ObjectList.Items {
+		// pin it
+		obj := obj
+		new.CspList.ObjectList.Items = append(new.CspList.ObjectList.Items, obj)
+	}
+	return new
+}
+
+// ListBuilderForApiObject returns a new instance of ListBuilderForApiList object based on csp api list.
+func ListBuilderForApiObject(cspAPIList *apis.CStorPoolList) *ListBuilder {
+	new := NewListBuilder()
+	for _, obj := range cspAPIList.Items {
+		// pin it
+		obj := obj
+		new.CspList.ObjectList.Items = append(new.CspList.ObjectList.Items, obj)
+	}
+	return new
+}
+
+// WithUIDs builds a list of cstor pools
+// based on the provided pool UIDs
+func (b *ListBuilder) WithUIDs(poolUIDs ...string) *ListBuilder {
+	for _, uid := range poolUIDs {
+		obj := &CSP{&apis.CStorPool{}}
+		obj.Object.SetUID(types.UID(uid))
+		b.CspList.ObjectList.Items = append(b.CspList.ObjectList.Items, *obj.Object)
+	}
+	return b
+}
+
+// WithUIDNodeMap builds a cspList based on the provided
+// map of uid and nodename
+func (b *ListBuilder) WithUIDNode(UIDNode map[string]string) *ListBuilder {
+	for k, v := range UIDNode {
+		obj := &CSP{&apis.CStorPool{}}
+		obj.Object.SetUID(types.UID(k))
+		obj.Object.SetAnnotations(map[string]string{string(scheduleOnHostAnnotation): v})
+		b.CspList.ObjectList.Items = append(b.CspList.ObjectList.Items, *obj.Object)
+	}
+	return b
+}
+
+// List returns the list of csp instances that were built by this builder
+func (b *ListBuilder) List() *CSPList {
+	return b.CspList
+}
+
+// Len returns the length of the CSPList object
+func (cspList *CSPList) Len() int {
+	return len(cspList.ObjectList.Items)
+}
+
+// GetPoolUIDs retuns the UIDs of the pools available in the list.
+func (l *CSPList) GetPoolUIDs() []string {
+	uids := []string{}
+	for _, pool := range l.ObjectList.Items {
+		uids = append(uids, string(pool.GetUID()))
+	}
+	return uids
+}
+
+// NewBuilder returns an empty instance of the Builder object.
+func NewBuilder() *Builder {
+	return &Builder{
+		Csp: &CSP{},
+	}
+}
+
+// BuilderForObject returns an instance of the Builder object based on csp object.
+func BuilderForObject(csp *CSP) *Builder {
+	return &Builder{
+		Csp: csp,
+	}
+}
+
+// BuilderForAPIObject returns an instance of the Builder object based on csp api object
+func BuilderForAPIObject(cspAPI *apis.CStorPool) *Builder {
+	return &Builder{
+		Csp: &CSP{cspAPI},
+	}
+}
+
+// newListFromUIDNode exposes WithUIDNodeMap to CAS Templates.
+func newListFromUIDNode(UIDNodeMap map[string]string) *CSPList {
+	return NewListBuilder().WithUIDNode(UIDNodeMap).List()
+}
+
+// newListFromUIDs exposes WithUIDs to CASTemplates.
+func newListFromUIDs(uids []string) *CSPList {
+	return NewListBuilder().WithUIDs(uids...).List()
+}
+
+// TemplateFunctions exposes a few functions as go template functions.
+func TemplateFunctions() template.FuncMap {
+	return template.FuncMap{
+		"createCSPListFromUIDs":       newListFromUIDs,
+		"createCSPListFromUIDNodeMap": newListFromUIDNode,
+	}
+}
