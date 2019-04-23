@@ -17,26 +17,27 @@ package v1alpha1
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func fakeAPIPVCList(pvcNames []string) *v1.PersistentVolumeClaimList {
+func fakeAPIPVCList(pvcNames []string) *corev1.PersistentVolumeClaimList {
 	if len(pvcNames) == 0 {
 		return nil
 	}
-	list := &v1.PersistentVolumeClaimList{}
+	list := &corev1.PersistentVolumeClaimList{}
 	for _, name := range pvcNames {
-		pvc := v1.PersistentVolumeClaim{}
+		pvc := corev1.PersistentVolumeClaim{}
 		pvc.SetName(name)
 		list.Items = append(list.Items, pvc)
 	}
 	return list
 }
 
-func fakeAPIPVCListFromNameStatusMap(pvcs map[string]v1.PersistentVolumeClaimPhase) *v1.PersistentVolumeClaimList {
-	list := &v1.PersistentVolumeClaimList{}
+func fakeAPIPVCListFromNameStatusMap(pvcs map[string]corev1.PersistentVolumeClaimPhase) *corev1.PersistentVolumeClaimList {
+	list := &corev1.PersistentVolumeClaimList{}
 	for k, v := range pvcs {
-		pvc := v1.PersistentVolumeClaim{}
+		pvc := corev1.PersistentVolumeClaim{}
 		pvc.SetName(k)
 		pvc.Status.Phase = v
 		list.Items = append(list.Items, pvc)
@@ -128,24 +129,24 @@ func TestListBuilderToAPIList(t *testing.T) {
 
 func TestFilterList(t *testing.T) {
 	tests := map[string]struct {
-		availablePVCs map[string]v1.PersistentVolumeClaimPhase
+		availablePVCs map[string]corev1.PersistentVolumeClaimPhase
 		filteredPVCs  []string
 		filters       PredicateList
 	}{
 		"PVC Set 1": {
-			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC5": v1.ClaimBound, "PVC6": v1.ClaimPending, "PVC7": v1.ClaimLost},
+			availablePVCs: map[string]corev1.PersistentVolumeClaimPhase{"PVC5": corev1.ClaimBound, "PVC6": corev1.ClaimPending, "PVC7": corev1.ClaimLost},
 			filteredPVCs:  []string{"PVC5"},
 			filters:       PredicateList{IsBound()},
 		},
 
 		"PVC Set 2": {
-			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC3": v1.ClaimBound, "PVC4": v1.ClaimBound},
+			availablePVCs: map[string]corev1.PersistentVolumeClaimPhase{"PVC3": corev1.ClaimBound, "PVC4": corev1.ClaimBound},
 			filteredPVCs:  []string{"PVC2", "PVC4"},
 			filters:       PredicateList{IsBound()},
 		},
 
 		"PVC Set 3": {
-			availablePVCs: map[string]v1.PersistentVolumeClaimPhase{"PVC1": v1.ClaimLost, "PVC2": v1.ClaimPending, "PVC3": v1.ClaimPending},
+			availablePVCs: map[string]corev1.PersistentVolumeClaimPhase{"PVC1": corev1.ClaimLost, "PVC2": corev1.ClaimPending, "PVC3": corev1.ClaimPending},
 			filteredPVCs:  []string{},
 			filters:       PredicateList{IsBound()},
 		},
@@ -156,6 +157,259 @@ func TestFilterList(t *testing.T) {
 			list := ListBuilderForAPIObjects(fakeAPIPVCListFromNameStatusMap(mock.availablePVCs)).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredPVCs) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredPVCs), len(list.items))
+			}
+		})
+	}
+}
+
+func TestPVCWithName(t *testing.T) {
+	tests := map[string]struct {
+		name      string
+		pvc       *PVC
+		expectErr bool
+	}{
+		"Test PVC with name": {
+			name:      "PVC1",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test PVC without name": {
+			name:      "",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: true,
+		},
+		"Test with PVC error": {
+			name:      "PVC2",
+			pvc:       &PVC{Err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithName(mock.name)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithNamespace(t *testing.T) {
+	tests := map[string]struct {
+		namespace string
+		pvc       *PVC
+		expectErr bool
+	}{
+		"Test PVC with namespae": {
+			namespace: "jiva-ns",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test PVC without namespace": {
+			namespace: "",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test with PVC error": {
+			namespace: "cstor-ns",
+			pvc:       &PVC{Err: errors.New("PVC shouldn't be empty")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithNamespace(mock.namespace)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithAnnotations(t *testing.T) {
+	tests := map[string]struct {
+		annotations map[string]string
+		pvc         *PVC
+		expectErr   bool
+	}{
+		"Test PVC with annotations": {
+			annotations: map[string]string{"persistent-volume": "PV", "application": "percona"},
+			pvc:         &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr:   false,
+		},
+		"Test PVC without annotations": {
+			annotations: map[string]string{},
+			pvc:         &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr:   false,
+		},
+		"Test with PVC error": {
+			annotations: map[string]string{"persistent-volume": "PV"},
+			pvc:         &PVC{Err: errors.New("PVC name shouldn't be nil")},
+			expectErr:   true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithAnnotations(mock.annotations)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithLabels(t *testing.T) {
+	tests := map[string]struct {
+		labels    map[string]string
+		pvc       *PVC
+		expectErr bool
+	}{
+		"Test PVC with labels": {
+			labels:    map[string]string{"persistent-volume": "PV", "application": "percona"},
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test PVC without labels": {
+			labels:    map[string]string{},
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test with PVC error": {
+			labels:    map[string]string{"persistent-volume": "PV"},
+			pvc:       &PVC{Err: errors.New("PVC name shouldn't be nil")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithLabels(mock.labels)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithAccessModes(t *testing.T) {
+	tests := map[string]struct {
+		accessModes []corev1.PersistentVolumeAccessMode
+		pvc         *PVC
+		expectErr   bool
+	}{
+		"Test PVC with accessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadOnlyMany},
+			pvc:         &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr:   false,
+		},
+		"Test PVC without accessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{},
+			pvc:         &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr:   true,
+		},
+		"Test with PVC accessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadWriteMany},
+			pvc:         &PVC{Err: errors.New("PVC name shouldn't be nil")},
+			expectErr:   true,
+		},
+	}
+
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithAccessModes(mock.accessModes)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithStorageClass(t *testing.T) {
+	tests := map[string]struct {
+		scName    string
+		pvc       *PVC
+		expectErr bool
+	}{
+		"Test PVC with SC": {
+			scName:    "single-replica",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test PVC without SC": {
+			scName:    "",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: true,
+		},
+		"Test with PVC error": {
+			scName:    "multi-replica",
+			pvc:       &PVC{Err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithStorageClass(mock.scName)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestPVCWithCapacity(t *testing.T) {
+	tests := map[string]struct {
+		capacity  string
+		pvc       *PVC
+		expectErr bool
+	}{
+		"Test PVC with capacity": {
+			capacity:  "5G",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: false,
+		},
+		"Test PVC without capacity": {
+			capacity:  "",
+			pvc:       &PVC{Object: &corev1.PersistentVolumeClaim{}},
+			expectErr: true,
+		},
+		"Test with PVC error": {
+			capacity:  "10Ti",
+			pvc:       &PVC{Err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj := mock.pvc.WithCapacity(mock.capacity)
+			if mock.expectErr && pvcObj.Err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && pvcObj.Err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
 	}
