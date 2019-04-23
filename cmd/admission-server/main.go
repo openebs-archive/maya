@@ -80,7 +80,10 @@ func main() {
 	<-signalChan
 
 	glog.Infof("Got OS shutdown signal, shutting down webhook server gracefully...")
-	wh.Server.Shutdown(context.Background())
+	err = wh.Server.Shutdown(context.Background())
+	if err != nil {
+		glog.Errorf("Failed to shutdown server: %v", err)
+	}
 }
 
 // GetClusterConfig return the config for k8s.
