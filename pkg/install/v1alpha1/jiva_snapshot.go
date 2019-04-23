@@ -31,9 +31,27 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
+    - jiva-snapshot-isvalidversion-default
     - jiva-snapshot-create-listsourcetargetservice-default
     - jiva-snapshot-create-invokehttp-default
   output: jiva-snapshot-create-output-default
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-snapshot-isvalidversion-default
+spec:
+  meta: |
+    id: is090jivavolume
+    runNamespace: {{ .Config.JivaRunNamespace }}
+    apiVersion: v1
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/version=0.9.0
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is090jivavolume.name" .TaskResult | noop -}}
+    {{- .TaskResult.is090jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.9.0 version" | saveIf "is090jivavolume.versionMismatchErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -60,6 +78,7 @@ metadata:
 spec:
   meta: |
     id: createJivaSnap
+    runNamespace: {{ .Config.JivaRunNamespace }}
     kind: Command
   post: |
     {{- $store :=  storeAt .TaskResult -}}

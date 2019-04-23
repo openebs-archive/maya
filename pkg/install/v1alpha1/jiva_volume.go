@@ -236,6 +236,7 @@ spec:
     - jiva-volume-create-listreplicapod-default
     - jiva-volume-create-patchreplicadeployment-default
   output: jiva-volume-create-output-default
+  fallback: jiva-volume-delete-default
 ---
 apiVersion: openebs.io/v1alpha1
 kind: CASTemplate
@@ -289,16 +290,16 @@ metadata:
   name: jiva-volume-isvalidversion-default
 spec:
   meta: |
-    id: is082jivavolume
-    runNamespace: {{ .Volume.runNamespace }}
+    id: is090jivavolume
+    runNamespace: {{ .Config.JivaRunNamespace }}
     apiVersion: v1
     kind: Service
     action: list
     options: |-
-      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/version=0.8.2
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/version=0.9.0
   post: |
-    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is082jivavolume.name" .TaskResult | noop -}}
-    {{- .TaskResult.is082jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.8.2 version" | saveIf "is082jivavolume.versionMismatchErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is090jivavolume.name" .TaskResult | noop -}}
+    {{- .TaskResult.is090jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.9.0 version" | saveIf "is090jivavolume.versionMismatchErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -654,7 +655,7 @@ spec:
     action: list
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
-    retry: "12,10s"
+    retry: "24,5s"
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
