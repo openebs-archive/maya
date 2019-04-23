@@ -14,9 +14,9 @@ type podList struct {
 	items []*pod
 }
 
-// listBuilder enables building an instance of
+// ListBuilder enables building an instance of
 // podlist
-type listBuilder struct {
+type ListBuilder struct {
 	list    *podList
 	filters predicateList
 }
@@ -24,7 +24,7 @@ type listBuilder struct {
 // WithAPIList builds the list of pod
 // instances based on the provided
 // pod list api instance
-func (b *listBuilder) WithAPIList(pods *v1.PodList) *listBuilder {
+func (b *ListBuilder) WithAPIList(pods *v1.PodList) *ListBuilder {
 	if pods == nil {
 		return b
 	}
@@ -35,7 +35,7 @@ func (b *listBuilder) WithAPIList(pods *v1.PodList) *listBuilder {
 // WithObjects builds the list of pod
 // instances based on the provided
 // pod list instance
-func (b *listBuilder) WithObject(pods ...*pod) *listBuilder {
+func (b *ListBuilder) WithObject(pods ...*pod) *ListBuilder {
 	b.list.items = append(b.list.items, pods...)
 	return b
 }
@@ -43,7 +43,7 @@ func (b *listBuilder) WithObject(pods ...*pod) *listBuilder {
 // WithAPIList builds the list of pod
 // instances based on the provided
 // pod api instances
-func (b *listBuilder) WithAPIObject(pods ...v1.Pod) *listBuilder {
+func (b *ListBuilder) WithAPIObject(pods ...v1.Pod) *ListBuilder {
 	for _, p := range pods {
 		p := p //pin it
 		b.list.items = append(b.list.items, &pod{&p})
@@ -54,7 +54,7 @@ func (b *listBuilder) WithAPIObject(pods ...v1.Pod) *listBuilder {
 // List returns the list of pod
 // instances that was built by this
 // builder
-func (b *listBuilder) List() *podList {
+func (b *ListBuilder) List() *podList {
 	if b.filters == nil && len(b.filters) == 0 {
 		return b.list
 	}
@@ -81,9 +81,21 @@ func (p *podList) ToAPIList() *v1.PodList {
 	return plist
 }
 
-// ListBuilder returns a instance of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &podList{items: []*pod{}}}
+// ListBuilder returns a instance of ListBuilder
+func NewListBuilder() *ListBuilder {
+	return &ListBuilder{list: &podList{items: []*pod{}}}
+}
+
+func ListBuilderForAPIList(pods *v1.PodList) *ListBuilder {
+	b := &ListBuilder{list: &podList{}}
+	if pods == nil {
+		return b
+	}
+	for _, p := range pods.Items {
+		p := p
+		b.list.items = append(b.list.items, &pod{object: &p})
+	}
+	return b
 }
 
 // predicate defines an abstraction
@@ -136,7 +148,7 @@ func (l predicateList) all(p *pod) bool {
 
 // WithFilter add filters on which the pod
 // has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
+func (b *ListBuilder) WithFilter(pred ...predicate) *ListBuilder {
 	b.filters = append(b.filters, pred...)
 	return b
 }

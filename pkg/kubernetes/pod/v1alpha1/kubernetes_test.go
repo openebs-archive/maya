@@ -11,23 +11,39 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-func fakeGetClientset() (cli *clientset.Clientset, err error) {
+func fakeGetClientSetOk() (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
-func fakeListfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error) {
+func fakeListFnOk(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error) {
 	return &v1.PodList{}, nil
 }
 
-func fakeListErrfn(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error) {
+func fakeListFnErr(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error) {
 	return &v1.PodList{}, errors.New("some error")
 }
 
-func fakeSetClientset(k *kubeclient) {
+func fakeDeleteFnOk(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+	return nil
+}
+
+func fakeDeleteFnErr(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+	return errors.New("some error while delete")
+}
+
+func fakeGetFnOk(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error) {
+	return &v1.Pod{}, nil
+}
+
+func fakeGetErrfn(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error) {
+	return &v1.Pod{}, errors.New("Not found")
+}
+
+func fakeSetClientset(k *Kubeclient) {
 	k.clientset = &client.Clientset{}
 }
 
-func fakeSetNilClientset(k *kubeclient) {
+func fakeSetNilClientset(k *Kubeclient) {
 	k.clientset = nil
 }
 
@@ -35,38 +51,64 @@ func fakeGetNilErrClientSet() (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
-func fakeClientSet(k *kubeclient) {}
+func fakeClientSet(k *Kubeclient) {}
 
 func TestWithDefaultOptions(t *testing.T) {
 	tests := map[string]struct {
-		expectListFn, expectGetClientset bool
+		kubeClient *Kubeclient
 	}{
-		"When mockclient is empty":                {true, true},
-		"When mockclient contains getClientsetFn": {false, true},
-		"When mockclient contains ListFn":         {true, false},
-		"When mockclient contains both":           {true, true},
+		"When all are nil": {&Kubeclient{}},
+		"When clientset is nil": {&Kubeclient{
+			clientset:    nil,
+			getClientset: fakeGetClientSetOk,
+			list:         fakeListFnOk,
+			get:          fakeGetFnOk,
+			del:          fakeDeleteFnOk,
+		}},
+		"When listFn nil": {&Kubeclient{
+			getClientset: fakeGetClientSetOk,
+			list:         nil,
+			get:          fakeGetFnOk,
+			del:          fakeDeleteFnOk,
+		}},
+		"When getClientsetFn nil": {&Kubeclient{
+			getClientset: nil,
+			list:         fakeListFnOk,
+			get:          fakeGetFnOk,
+			del:          fakeDeleteFnOk,
+		}},
+		"When getFn and CreateFn are nil": {&Kubeclient{
+			getClientset: fakeGetClientSetOk,
+			list:         fakeListFnOk,
+			get:          nil,
+			del:          fakeDeleteFnOk,
+		}},
+		"When all are error": {&Kubeclient{
+			getClientset: fakeGetClientSetErr,
+			list:         fakeListFnErr,
+			get:          nil,
+			del:          fakeDeleteFnErr,
+		}},
 	}
-
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			fc := &kubeclient{}
-			if !mock.expectListFn {
-				fc.list = fakeListfn
+			mock.kubeClient.withDefaults()
+			if mock.kubeClient.get == nil {
+				t.Fatalf("test %q failed: expected get not to be empty", name)
 			}
-			if !mock.expectGetClientset {
-				fc.getClientset = fakeGetClientset
+			if mock.kubeClient.list == nil {
+				t.Fatalf("test %q failed: expected get not to be empty", name)
 			}
-
-			fc.withDefaults()
-			if mock.expectListFn && fc.list == nil {
-				t.Fatalf("test %q failed: expected fc.list not to be empty", name)
+			if mock.kubeClient.del == nil {
+				t.Fatalf("test %q failed: expected get not to be empty", name)
 			}
-			if mock.expectGetClientset && fc.getClientset == nil {
-				t.Fatalf("test %q failed: expected fc.getClientset not to be empty", name)
+			if mock.kubeClient.getClientset == nil {
+				t.Fatalf("test %q failed: expected get not to be empty", name)
 			}
 		})
 	}
@@ -82,9 +124,10 @@ func TestWithClientsetBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			h := WithClientSet(mock.Clientset)
-			fake := &kubeclient{}
+			fake := &Kubeclient{}
 			h(fake)
 			if mock.expectKubeClientEmpty && fake.clientset != nil {
 				t.Fatalf("test %q failed expected fake.clientset to be empty", name)
@@ -111,6 +154,7 @@ func TestKubeClientBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			c := KubeClient(mock.opts...)
 			if !mock.expectClientSet && c.clientset != nil {
@@ -126,17 +170,18 @@ func TestKubeClientBuildOption(t *testing.T) {
 func TestGetClientOrCached(t *testing.T) {
 	tests := map[string]struct {
 		expectErr  bool
-		KubeClient *kubeclient
+		KubeClient *Kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &kubeclient{nil, "", fakeGetNilErrClientSet, fakeListfn}},
-		"Positive 2": {false, &kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeListfn}},
+		"Positive 1": {false, &Kubeclient{nil, "", fakeGetNilErrClientSet, fakeListFnOk, fakeDeleteFnOk, fakeGetFnOk}},
+		"Positive 2": {false, &Kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeListFnOk, fakeDeleteFnOk, fakeGetFnOk}},
 
 		// Negative tests
-		"Negative 1": {true, &kubeclient{nil, "", fakeGetErrClientSet, fakeListfn}},
+		"Negative 1": {true, &Kubeclient{nil, "", fakeGetClientSetErr, fakeListFnOk, fakeDeleteFnOk, fakeGetFnOk}},
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			c, err := mock.KubeClient.getClientOrCached()
 			if mock.expectErr && err == nil {
@@ -155,15 +200,72 @@ func TestKubenetesPodList(t *testing.T) {
 		list         listFn
 		expectErr    bool
 	}{
-		"Test 1": {fakeGetErrClientSet, fakeListfn, true},
-		"Test 2": {fakeGetClientset, fakeListfn, false},
-		"Test 3": {fakeGetClientset, fakeListErrfn, true},
+		"Test 1": {fakeGetClientSetErr, fakeListFnOk, true},
+		"Test 2": {fakeGetClientSetOk, fakeListFnOk, false},
+		"Test 3": {fakeGetClientSetOk, fakeListFnErr, true},
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			k := kubeclient{getClientset: mock.getClientset, namespace: "", list: mock.list}
+			k := Kubeclient{getClientset: mock.getClientset, namespace: "", list: mock.list}
 			_, err := k.List(metav1.ListOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestKubenetesDeletePod(t *testing.T) {
+	tests := map[string]struct {
+		getClientset getClientsetFn
+		delete       deleteFn
+		podName      string
+		expectErr    bool
+	}{
+		"Test 1": {fakeGetClientSetErr, fakeDeleteFnOk, "pod-1", true},
+		"Test 2": {fakeGetClientSetOk, fakeDeleteFnOk, "pod-2", false},
+		"Test 3": {fakeGetClientSetOk, fakeDeleteFnErr, "pod-3", true},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			k := Kubeclient{getClientset: mock.getClientset, namespace: "", del: mock.delete}
+			err := k.Delete(mock.podName, &metav1.DeleteOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestKubenetesGetPod(t *testing.T) {
+	tests := map[string]struct {
+		getClientset getClientsetFn
+		get          getFn
+		podName      string
+		expectErr    bool
+	}{
+		"Test 1": {fakeGetClientSetErr, fakeGetFnOk, "pod-1", true},
+		"Test 2": {fakeGetClientSetOk, fakeGetFnOk, "pod-2", false},
+		"Test 3": {fakeGetClientSetOk, fakeGetErrfn, "pod-3", true},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			k := Kubeclient{getClientset: mock.getClientset, namespace: "", get: mock.get}
+			_, err := k.Get(mock.podName, metav1.GetOptions{})
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -184,6 +286,7 @@ func TestWithNamespaceBuildOption(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			k := KubeClient(WithNamespace(mock.namespace))
 			if k.namespace != mock.namespace {

@@ -16,29 +16,39 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 // listing of pods
 type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*v1.PodList, error)
 
-// kubeclient enables kubernetes API operations
+// deleteFn is a typed function that abstracts
+// deleting of pod
+type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
+
+// getFn is a typed function that abstracts
+// to get pod
+type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error)
+
+// Kubeclient enables kubernetes API operations
 // on pod instance
-type kubeclient struct {
+type Kubeclient struct {
 	// clientset refers to pod clientset
 	// that will be responsible to
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 
 	// namespace holds the namespace on which
-	// kubeclient has to operate
+	// Kubeclient has to operate
 	namespace string
 	// functions useful during mocking
 	getClientset getClientsetFn
 	list         listFn
+	del          deleteFn
+	get          getFn
 }
 
 // kubeclientBuildOption defines the abstraction
-// to build a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+// to build a Kubeclient instance
+type kubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options
-// of kubeclient instance
-func (k *kubeclient) withDefaults() {
+// of Kubeclient instance
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			config, err := kclient.New().Config()
@@ -53,28 +63,38 @@ func (k *kubeclient) withDefaults() {
 			return cli.CoreV1().Pods(namespace).List(opts)
 		}
 	}
+	if k.del == nil {
+		k.del = func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+			return cli.CoreV1().Pods(namespace).Delete(name, opts)
+		}
+	}
+	if k.get == nil {
+		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*v1.Pod, error) {
+			return cli.CoreV1().Pods(namespace).Get(name, opts)
+		}
+	}
 }
 
 // WithNamespace sets the kubernetes client against
 // the provided namespace
 func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
+	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
 }
 
 // WithClientSet sets the kubernetes client against
-// the kubeclient instance
+// the Kubeclient instance
 func WithClientSet(c *clientset.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for
+// KubeClient returns a new instance of Kubeclient meant for
 // cstor volume replica operations
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -84,7 +104,7 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -98,10 +118,28 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of pod
 // instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*v1.PodList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*v1.PodList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 	return k.list(cli, k.namespace, opts)
+}
+
+// Delete deletes a pod instance present in kubernetes cluster
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return err
+	}
+	return k.del(cli, k.namespace, name, opts)
+}
+
+// Get gets a pod object present in kubernetes cluster
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*v1.Pod, error) {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.get(cli, k.namespace, name, opts)
 }

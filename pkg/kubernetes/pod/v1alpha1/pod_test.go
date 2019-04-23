@@ -69,8 +69,9 @@ func TestListBuilderWithAPIList(t *testing.T) {
 		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods))
+			b := NewListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods))
 			if mock.expectedPodLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.list.items))
 			}
@@ -98,7 +99,7 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 		mock := mock
 		t.Run(name, func(t *testing.T) {
 			poditems := fakeAPIPodList(mock.availablePods).Items
-			b := ListBuilder().WithAPIObject(poditems...)
+			b := NewListBuilder().WithAPIObject(poditems...)
 			if mock.expectedPodLen != len(b.list.items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.list.items))
 			}
@@ -129,8 +130,9 @@ func TestListBuilderToAPIList(t *testing.T) {
 		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods)).List().ToAPIList()
+			b := NewListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods)).List().ToAPIList()
 			if mock.expectedPodLen != len(b.Items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.Items))
 			}
@@ -162,8 +164,9 @@ func TestFilterList(t *testing.T) {
 		},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			list := ListBuilder().WithObject(fakeAPIPodListFromNameStatusMap(mock.availablePods)...).WithFilter(mock.filters...).List()
+			list := NewListBuilder().WithObject(fakeAPIPodListFromNameStatusMap(mock.availablePods)...).WithFilter(mock.filters...).List()
 			if len(list.items) != len(mock.filteredPods) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredPods), len(list.items))
 			}
