@@ -9,15 +9,15 @@ type pod struct {
 	object *v1.Pod
 }
 
-// podList holds the list of pod instances
-type podList struct {
+// PodList holds the list of pod instances
+type PodList struct {
 	items []*pod
 }
 
 // ListBuilder enables building an instance of
 // podlist
 type ListBuilder struct {
-	list    *podList
+	list    *PodList
 	filters predicateList
 }
 
@@ -32,7 +32,7 @@ func (b *ListBuilder) WithAPIList(pods *v1.PodList) *ListBuilder {
 	return b
 }
 
-// WithObjects builds the list of pod
+// WithObject builds the list of pod
 // instances based on the provided
 // pod list instance
 func (b *ListBuilder) WithObject(pods ...*pod) *ListBuilder {
@@ -40,7 +40,7 @@ func (b *ListBuilder) WithObject(pods ...*pod) *ListBuilder {
 	return b
 }
 
-// WithAPIList builds the list of pod
+// WithAPIObject builds the list of pod
 // instances based on the provided
 // pod api instances
 func (b *ListBuilder) WithAPIObject(pods ...v1.Pod) *ListBuilder {
@@ -54,11 +54,11 @@ func (b *ListBuilder) WithAPIObject(pods ...v1.Pod) *ListBuilder {
 // List returns the list of pod
 // instances that was built by this
 // builder
-func (b *ListBuilder) List() *podList {
+func (b *ListBuilder) List() *PodList {
 	if b.filters == nil && len(b.filters) == 0 {
 		return b.list
 	}
-	filtered := &podList{}
+	filtered := &PodList{}
 	for _, pod := range b.list.items {
 		if b.filters.all(pod) {
 			filtered.items = append(filtered.items, pod)
@@ -67,13 +67,13 @@ func (b *ListBuilder) List() *podList {
 	return filtered
 }
 
-// Len returns the number of items present in the podList
-func (p *podList) Len() int {
+// Len returns the number of items present in the PodList
+func (p *PodList) Len() int {
 	return len(p.items)
 }
 
-// ToAPIList converts podList to API podList
-func (p *podList) ToAPIList() *v1.PodList {
+// ToAPIList converts PodList to API PodList
+func (p *PodList) ToAPIList() *v1.PodList {
 	plist := &v1.PodList{}
 	for _, pod := range p.items {
 		plist.Items = append(plist.Items, *pod.object)
@@ -81,13 +81,14 @@ func (p *podList) ToAPIList() *v1.PodList {
 	return plist
 }
 
-// ListBuilder returns a instance of ListBuilder
+// NewListBuilder returns a instance of ListBuilder
 func NewListBuilder() *ListBuilder {
-	return &ListBuilder{list: &podList{items: []*pod{}}}
+	return &ListBuilder{list: &PodList{items: []*pod{}}}
 }
 
+// ListBuilderForAPIList returns a instance of ListBuilder from API PodList
 func ListBuilderForAPIList(pods *v1.PodList) *ListBuilder {
-	b := &ListBuilder{list: &podList{}}
+	b := &ListBuilder{list: &PodList{}}
 	if pods == nil {
 		return b
 	}
