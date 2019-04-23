@@ -39,7 +39,7 @@ func TestNewCmdVolumeStats(t *testing.T) {
 				Example: ` mayactl volume stats --volname=vol`,
 				Run: func(cmd *cobra.Command, args []string) {
 					util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
-					util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
+					util.CheckErr(options.runVolumeStats(), util.Fatal)
 				},
 			},
 		},
@@ -64,7 +64,7 @@ func TestRunVolumeStats(t *testing.T) {
 		Example: ` mayactl volume stats --volname=vol`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
-			util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
+			util.CheckErr(options.runVolumeStats(), util.Fatal)
 		},
 	}
 
@@ -113,12 +113,14 @@ func TestRunVolumeStats(t *testing.T) {
 	}
 
 	for name, tt := range tests {
+		name := name //pin it
+		tt := tt     //pin it
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
-			got := tt.cmdVolumeOptions.runVolumeStats(tt.cmd)
+			got := tt.cmdVolumeOptions.runVolumeStats()
 			if !checkErr(got, tt.err) {
 				t.Fatalf("TestName: %v | runVolumeStats() => Got: %v | Want: %v \n", name, got, tt.err)
 			}

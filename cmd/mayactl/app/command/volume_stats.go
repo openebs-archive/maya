@@ -72,7 +72,7 @@ func NewCmdVolumeStats() *cobra.Command {
 		Example: ` mayactl volume stats --volname=vol`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(options.Validate(cmd, false, false, true), util.Fatal)
-			util.CheckErr(options.runVolumeStats(cmd), util.Fatal)
+			util.CheckErr(options.runVolumeStats(), util.Fatal)
 		},
 	}
 
@@ -94,7 +94,7 @@ func convertMappedResponse(rawMetrics v1alpha1.VolumeMetricsList) map[string]v1a
 	return newMetrics
 }
 
-func (c *CmdVolumeOptions) runVolumeStats(cmd *cobra.Command) error {
+func (c *CmdVolumeOptions) runVolumeStats() error {
 	rawStatsInitial, err := mapiserver.VolumeStats(c.volName, c.namespace)
 	if err != nil {
 		return fmt.Errorf("Volume not found")

@@ -34,8 +34,8 @@ func TestNewCmdPoolList(t *testing.T) {
 				Use:   "list",
 				Short: "Lists all the pools",
 				Long:  poolListCommandHelpText,
-				Run: func(cmd *cobra.Command, args []string) {
-					util.CheckErr(options.runPoolList(cmd), util.Fatal)
+				Run: func(_ *cobra.Command, args []string) {
+					util.CheckErr(options.runPoolList(), util.Fatal)
 				},
 			},
 		},
@@ -52,24 +52,14 @@ func TestNewCmdPoolList(t *testing.T) {
 }
 
 func TestRunPoolList(t *testing.T) {
-	options := CmdPoolOptions{}
-	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "Lists all the pools",
-		Long:  poolListCommandHelpText,
-		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.runPoolList(cmd), util.Fatal)
-		},
-	}
+
 	tests := map[string]*struct {
 		cmdPoolOptions *CmdPoolOptions
-		cmd            *cobra.Command
 		fakeHandler    utiltesting.FakeHandler
 		err            error
 		addr           string
 	}{
 		"StatusOK": {
-			cmd:            cmd,
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
@@ -80,7 +70,6 @@ func TestRunPoolList(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"No pools present": {
-			cmd:            cmd,
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
@@ -91,7 +80,6 @@ func TestRunPoolList(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"Invalid Response": {
-			cmd:            cmd,
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
@@ -102,7 +90,6 @@ func TestRunPoolList(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"BadRequest": {
-			cmd:            cmd,
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   404,
@@ -113,7 +100,6 @@ func TestRunPoolList(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"Response code 500": {
-			cmd:            cmd,
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   500,
@@ -126,12 +112,14 @@ func TestRunPoolList(t *testing.T) {
 	}
 
 	for name, tt := range tests {
+		name := name //pin it
+		tt := tt     //pin it
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
-			got := tt.cmdPoolOptions.runPoolList(tt.cmd)
+			got := tt.cmdPoolOptions.runPoolList()
 			if !checkErr(got, tt.err) {
 				t.Fatalf("TestName: %v | runPoolList() => Got: %v | Want: %v \n", name, got, tt.err)
 			}

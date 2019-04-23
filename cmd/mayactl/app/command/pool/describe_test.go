@@ -34,8 +34,8 @@ func TestNewCmdPoolDescribe(t *testing.T) {
 				Use:   "describe",
 				Short: "Describes the pools",
 				Long:  poolDescribeCommandHelpText,
-				Run: func(cmd *cobra.Command, args []string) {
-					util.CheckErr(options.runPoolDescribe(cmd), util.Fatal)
+				Run: func(_ *cobra.Command, args []string) {
+					util.CheckErr(options.runPoolDescribe(), util.Fatal)
 				},
 			},
 		},
@@ -52,24 +52,15 @@ func TestNewCmdPoolDescribe(t *testing.T) {
 }
 
 func TestRunPoolDescribe(t *testing.T) {
-	options := CmdPoolOptions{}
-	cmd := &cobra.Command{
-		Use:   "describe",
-		Short: "Describes the pools",
-		Long:  poolDescribeCommandHelpText,
-		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.runPoolDescribe(cmd), util.Fatal)
-		},
-	}
+
 	tests := map[string]*struct {
 		cmdPoolOptions *CmdPoolOptions
-		cmd            *cobra.Command
 		fakeHandler    utiltesting.FakeHandler
 		err            error
 		addr           string
 	}{
 		"StatusOK": {
-			cmd: cmd,
+
 			cmdPoolOptions: &CmdPoolOptions{
 				poolName: "cstor-sparse-pool-qte1",
 			},
@@ -82,7 +73,7 @@ func TestRunPoolDescribe(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"Invalid Response": {
-			cmd: cmd,
+
 			cmdPoolOptions: &CmdPoolOptions{
 				poolName: "cstor-sparse-pool-qte1",
 			},
@@ -95,7 +86,7 @@ func TestRunPoolDescribe(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"BadRequest": {
-			cmd: cmd,
+
 			cmdPoolOptions: &CmdPoolOptions{
 				poolName: "cstor-sparse-pool-qte1",
 			},
@@ -108,7 +99,7 @@ func TestRunPoolDescribe(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"Response code 500": {
-			cmd: cmd,
+
 			cmdPoolOptions: &CmdPoolOptions{
 				poolName: "cstor-sparse-pool-qte1",
 			},
@@ -121,7 +112,7 @@ func TestRunPoolDescribe(t *testing.T) {
 			addr: "MAPI_ADDR",
 		},
 		"When poolname is not specified": {
-			cmd:            cmd,
+
 			cmdPoolOptions: &CmdPoolOptions{},
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   500,
@@ -134,12 +125,14 @@ func TestRunPoolDescribe(t *testing.T) {
 	}
 
 	for name, tt := range tests {
+		name := name //pin it
+		tt := tt     //pin it
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()
-			got := tt.cmdPoolOptions.runPoolDescribe(tt.cmd)
+			got := tt.cmdPoolOptions.runPoolDescribe()
 			if !checkErr(got, tt.err) {
 				t.Fatalf("TestName: %v | runPoolDescribe() => Got: %v | Want: %v \n", name, got, tt.err)
 			}

@@ -55,8 +55,8 @@ func NewCmdPoolList() *cobra.Command {
 		Use:   "list",
 		Short: "Lists all the pools",
 		Long:  poolListCommandHelpText,
-		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.runPoolList(cmd), util.Fatal)
+		Run: func(_ *cobra.Command, args []string) {
+			util.CheckErr(options.runPoolList(), util.Fatal)
 		},
 	}
 
@@ -64,7 +64,7 @@ func NewCmdPoolList() *cobra.Command {
 }
 
 // RunPoolList makes pool-list API request to maya-apiserver
-func (c *CmdPoolOptions) runPoolList(cmd *cobra.Command) error {
+func (c *CmdPoolOptions) runPoolList() error {
 	resp, err := mapiserver.ListPools()
 	if err != nil {
 		return fmt.Errorf("Error listing pools: %v", err)

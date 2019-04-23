@@ -57,8 +57,8 @@ func NewCmdPoolDescribe() *cobra.Command {
 		Use:   "describe",
 		Short: "Describes the pools",
 		Long:  poolDescribeCommandHelpText,
-		Run: func(cmd *cobra.Command, args []string) {
-			util.CheckErr(options.runPoolDescribe(cmd), util.Fatal)
+		Run: func(_ *cobra.Command, args []string) {
+			util.CheckErr(options.runPoolDescribe(), util.Fatal)
 		},
 	}
 
@@ -68,7 +68,7 @@ func NewCmdPoolDescribe() *cobra.Command {
 }
 
 // runPoolDescrive makes pool-read API request to maya-apiserver
-func (c *CmdPoolOptions) runPoolDescribe(cmd *cobra.Command) error {
+func (c *CmdPoolOptions) runPoolDescribe() error {
 	if len(c.poolName) == 0 {
 		return fmt.Errorf("error: --poolname not specified")
 	}
