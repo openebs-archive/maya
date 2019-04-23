@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
+	framework "github.com/openebs/maya/integration-tests/framework/v1alpha1"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
@@ -90,6 +91,11 @@ spec:
 )
 
 var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
+	options := framework.FrameworkOptions{
+		MinNodeCount: 1,
+		Artifacts:    "../artifacts/openebs-ci.yaml",
+	}
+	_ = framework.NewFrameworkDefault("AdmissionWebhook pvc delete", options)
 
 	var (
 		NSUnst, SCUnst, PVCUnst *unstructured.Unstructured
@@ -145,7 +151,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			return pvc.
 				NewForAPIObject(pvclaim).IsBound()
 		},
-			defaultTimeOut, defaultPollingInterval).
+			framework.DefaultTimeOut, framework.DefaultPollingInterval).
 			Should(BeTrue())
 
 		// Check for cstorvolume to get healthy
@@ -157,7 +163,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			return cv.
 				NewForAPIObject(cstorvolume).IsHealthy()
 		},
-			defaultTimeOut, defaultPollingInterval).
+			framework.DefaultTimeOut, framework.DefaultPollingInterval).
 			Should(BeTrue())
 	})
 
@@ -179,7 +185,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
 		},
-			defaultTimeOut, defaultPollingInterval).
+			framework.DefaultTimeOut, framework.DefaultPollingInterval).
 			Should(Equal(0), "pvc count should be 0")
 
 		CstorVolumeLabel := "openebs.io/persistent-volume=" + pvclaim.Spec.VolumeName
@@ -192,21 +198,21 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(cvs.Items)
 		},
-			defaultTimeOut, defaultPollingInterval).
+			framework.DefaultTimeOut, framework.DefaultPollingInterval).
 			Should(Equal(0), "cStorvolume count should be 0")
 
-		cu = k8s.DeleteResource(
+		sc := k8s.DeleteResource(
 			k8s.GroupVersionResourceFromGVK(SCUnst),
 			SCUnst.GetNamespace(),
 		)
-		err = cu.Delete(SCUnst)
+		err = sc.Delete(SCUnst)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		cu = k8s.DeleteResource(
+		ns := k8s.DeleteResource(
 			k8s.GroupVersionResourceFromGVK(NSUnst),
 			"",
 		)
-		err = cu.Delete(NSUnst)
+		err = ns.Delete(NSUnst)
 		Expect(err).ShouldNot(HaveOccurred())
 
 	})
@@ -246,7 +252,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 				return pvc.
 					NewForAPIObject(pvclone).IsBound()
 			},
-				defaultTimeOut, defaultPollingInterval).
+				framework.DefaultTimeOut, framework.DefaultPollingInterval).
 				Should(BeTrue())
 
 			By(fmt.Sprintf("Deleting source PVC '%s' should fail with error", PVCUnst.GetName()))
@@ -270,7 +276,7 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				return len(pvcs.Items)
 			},
-				defaultTimeOut, defaultPollingInterval).
+				framework.DefaultTimeOut, framework.DefaultPollingInterval).
 				Should(Equal(0), "pvc count should be 0")
 
 			By("Deleting volume snapshot")
