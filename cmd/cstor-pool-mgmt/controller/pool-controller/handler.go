@@ -18,6 +18,7 @@ package poolcontroller
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"time"
@@ -30,7 +31,7 @@ import (
 	"github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
@@ -130,7 +131,11 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
 	// CheckValidPool is to check if pool attributes are correct.
-	err := pool.CheckValidPool(cStorPoolGot)
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+	err = pool.CheckValidPool(cStorPoolGot, devIDList)
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 		return string(apis.CStorPoolStatusOffline), err
@@ -207,8 +212,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
 	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
-		// LabelClear is to clear pool label
-		err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
+		err = pool.LabelClear(devIDList)
 		if err != nil {
 			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 		} else {
@@ -216,7 +220,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		}
 
 		// CreatePool is to create cstor pool.
-		err = pool.CreatePool(cStorPoolGot)
+		err = pool.CreatePool(cStorPoolGot, devIDList)
 		if err != nil {
 			glog.Errorf("Pool creation failure: %v", string(cStorPoolGot.GetUID()))
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureCreate), string(common.MessageResourceFailCreate))
@@ -240,7 +244,11 @@ func (c *CStorPoolController) cStorPoolDestroyEventHandler(cStorPoolGot *apis.CS
 	}
 
 	// LabelClear is to clear pool label
-	err = pool.LabelClear(cStorPoolGot.Spec.Disks.DiskList)
+	devIDList, err := c.getDeviceIDs(cStorPoolGot)
+	if err != nil {
+		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
+	}
+	err = pool.LabelClear(devIDList)
 	if err != nil {
 		glog.Errorf(err.Error(), cStorPoolGot.GetUID())
 	} else {
@@ -280,7 +288,7 @@ func (c *CStorPoolController) getPoolResource(key string) (*apis.CStorPool, erro
 	if err != nil {
 		// The cStorPool resource may no longer exist, in which case we stop
 		// processing.
-		if errors.IsNotFound(err) {
+		if k8serror.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("cStorPoolGot '%s' in work queue no longer exists", key))
 			return nil, nil
 		}
@@ -400,4 +408,9 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	} else {
 		cStorPool.Status.Capacity = *capacity
 	}
+}
+
+func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
+	// TODO: Add error handling
+	return pool.GetDeviceIDs(csp)
 }

@@ -25,24 +25,24 @@ import (
 const poolPath = "/latest/pools/"
 
 // ListPools returns a obj StoragePoolList from api-server
-func ListPools() (*v1alpha1.StoragePoolList, error) {
+func ListPools() (*v1alpha1.CStorPoolList, error) {
 
 	body, err := getRequest(GetURL()+poolPath, "", false)
 	if err != nil {
 		return nil, err
 	}
-	pools := v1alpha1.StoragePoolList{}
+	pools := v1alpha1.CStorPoolList{}
 	err = json.Unmarshal(body, &pools)
 	return &pools, err
 }
 
 // ReadPool returns a obj of StoragePool from api-server
-func ReadPool(poolName string) (*v1alpha1.StoragePool, error) {
+func ReadPool(poolName string) (*v1alpha1.CStorPool, error) {
 	body, err := getRequest(GetURL()+poolPath+poolName, "", false)
 	if err != nil {
 		return nil, err
 	}
-	pool := v1alpha1.StoragePool{}
+	pool := v1alpha1.CStorPool{}
 	err = json.Unmarshal(body, &pool)
 	return &pool, err
 }

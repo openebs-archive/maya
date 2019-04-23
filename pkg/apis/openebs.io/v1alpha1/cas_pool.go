@@ -80,7 +80,7 @@ type CasPool struct {
 	Namespace string
 
 	// DiskList is the list of disks over which a storagepool will be provisioned
-	DiskList []string
+	DiskList []DiskGroup
 
 	// PoolType is the type of pool to be provisioned e.g. striped or mirrored
 	PoolType string

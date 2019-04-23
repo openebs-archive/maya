@@ -440,6 +440,10 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isGetOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isGetOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isGet()
 }

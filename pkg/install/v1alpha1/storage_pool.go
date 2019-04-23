@@ -37,7 +37,7 @@ spec:
   meta: |
     id: liststoragepool
     apiVersion: openebs.io/v1alpha1
-    kind: StoragePool
+    kind: CStorPool
     action: list
     options: |-
       labelSelector: openebs.io/cas-type=cstor
@@ -76,7 +76,7 @@ spec:
   meta: |
     id: readstoragepool
     apiVersion: openebs.io/v1alpha1
-    kind: StoragePool
+    kind: CStorPool
     action: get
     objectName: {{ .Storagepool.owner }}
   post: |

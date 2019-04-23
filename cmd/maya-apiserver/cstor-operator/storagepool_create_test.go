@@ -20,9 +20,11 @@ import (
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
+	"time"
 
 	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
@@ -31,6 +33,7 @@ import (
 )
 
 var diskK8sClient *disk.KubernetesClient
+var fakeDiskCreateFlag bool
 
 func FakeDiskCreator(dc *disk.KubernetesClient) {
 	// Create some fake disk objects over nodes.
@@ -75,7 +78,52 @@ func FakeDiskCreator(dc *disk.KubernetesClient) {
 			glog.Error(err)
 		}
 	}
+}
 
+func (focs *PoolCreateConfig) FakeDiskCreator() {
+	// Create some fake disk objects over nodes.
+	// For example, create 14 disk (out of 14 disks 2 disks are sparse disks)for each of 5 nodes.
+	// That meant 14*5 i.e. 70 disk objects should be created
+
+	// diskObjectList will hold the list of disk objects
+	var diskObjectList [70]*apis.Disk
+
+	sparseDiskCount := 2
+	var diskLabel string
+
+	// nodeIdentifer will help in naming a node and attaching multiple disks to a single node.
+	nodeIdentifer := 0
+	for diskListIndex := 0; diskListIndex < 70; diskListIndex++ {
+		diskIdentifier := strconv.Itoa(diskListIndex)
+		if diskListIndex%14 == 0 {
+			nodeIdentifer++
+			sparseDiskCount = 0
+		}
+		if sparseDiskCount != 2 {
+			diskLabel = "sparse"
+			sparseDiskCount++
+		} else {
+			diskLabel = "disk"
+		}
+		diskObjectList[diskListIndex] = &apis.Disk{
+			TypeMeta: metav1.TypeMeta{},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "disk" + diskIdentifier,
+				Labels: map[string]string{
+					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
+					"ndm.io/disk-type":       diskLabel,
+				},
+			},
+			Status: apis.DiskStatus{
+				State: DiskStateActive,
+			},
+		}
+		_, err := focs.clientset.OpenebsV1alpha1().Disks().Create(diskObjectList[diskListIndex])
+		if err != nil {
+			glog.Error(err)
+		}
+	}
+	fakeDiskCreateFlag = true
 }
 func fakeDiskClient() {
 	diskK8sClient = &disk.KubernetesClient{
@@ -114,10 +162,22 @@ func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *nodeselect.Config {
 	return ac
 }
 func TestNewCasPool(t *testing.T) {
-	focs := &clientSet{
-		oecs: openebsFakeClientset.NewSimpleClientset(),
+	fakeKubeClient := fake.NewSimpleClientset()
+	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+	controller, err := NewControllerBuilder().
+		withKubeClient(fakeKubeClient).
+		withOpenEBSClient(fakeOpenebsClient).
+		withspcSynced(openebsInformerFactory).
+		withSpcLister(openebsInformerFactory).
+		withRecorder(fakeKubeClient).
+		withWorkqueueRateLimiting().
+		withEventHandler(openebsInformerFactory).
+		Build()
+
+	if err != nil {
+		t.Fatalf("failed to build controller instance: %s", err)
 	}
-	focs.FakeDiskCreator()
 	// Make a map of string(key) to struct(value).
 	// Key of map describes test case behaviour.
 	// Value of map is the test object.
@@ -159,7 +219,7 @@ func TestNewCasPool(t *testing.T) {
 					},
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					MaxPools: 6,
+					MaxPools: newInt(6),
 					MinPools: 3,
 					Type:     "disk",
 					PoolSpec: apis.CStorPoolAttr{
@@ -172,13 +232,19 @@ func TestNewCasPool(t *testing.T) {
 
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
+		name := name
+		test := test
 		t.Run(name, func(t *testing.T) {
 			// newCasPool is the function under test.
 			fakeAlgoConf := fakeAlgorithmConfig(test.fakestoragepoolclaim)
-			fakePoolConfig := &poolCreateConfig{
+			fakePoolConfig := &PoolCreateConfig{
 				fakeAlgoConf,
+				controller,
 			}
-			CasPool, err := focs.NewCasPool(test.fakestoragepoolclaim, fakePoolConfig)
+			if !fakeDiskCreateFlag {
+				fakePoolConfig.FakeDiskCreator()
+			}
+			CasPool, err := fakePoolConfig.getCasPool(test.fakestoragepoolclaim)
 			if err != nil || CasPool == nil {
 				t.Errorf("Test case failed as expected nil error but error or CasPool object was nil:%s", name)
 			}
