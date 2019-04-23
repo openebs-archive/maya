@@ -17,11 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"math/rand"
-	"time"
-
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
@@ -33,10 +31,10 @@ import (
 )
 
 const (
-	jobNameLabelKey       = "openebs.io/upgradejob"
-	itemNameLabelKey      = "openebs.io/upgradeitemname"
-	itemNamespaceLabelKey = "openebs.io/upgradeitemnamespace"
-	itemKindLabelKey      = "openebs.io/upgradeitemkind"
+	labelJobName       = "openebs.io/upgradejob"
+	labelItemName      = "openebs.io/upgradeitemname"
+	labelItemNamespace = "openebs.io/upgradeitemnamespace"
+	labelItemKind      = "openebs.io/upgradeitemkind"
 )
 
 // UpgradeResult is a wrapper over upgrade.UpgradeResult struct
@@ -44,95 +42,108 @@ type UpgradeResult struct {
 	object *upgrade.UpgradeResult
 }
 
-// UpgradeResultBuilder helps to build UpgradeResult instance
-type UpgradeResultBuilder struct {
-	InstanceName      string
-	InstanceNamespace string
-	InstanceUID       types.UID
-	UpgradeConfig     *upgrade.UpgradeConfig
-	ResourceDetails   *upgrade.ResourceDetails
-	Tasks             []upgrade.UpgradeResultTask
-	UpgradeResult     *UpgradeResult
-	errors            []error
+// UpgradeResultGetOrCreateBuilder helps to build UpgradeResult instance
+type UpgradeResultGetOrCreateBuilder struct {
+	SelfName        string
+	SelfNamespace   string
+	SelfUID         types.UID
+	UpgradeConfig   *upgrade.UpgradeConfig
+	ResourceDetails *upgrade.ResourceDetails
+	Tasks           []upgrade.UpgradeResultTask
+	UpgradeResult   *UpgradeResult
+	errors          []error
 }
 
 // String implements GoStringer interface
-func (urb *UpgradeResultBuilder) String() string {
+func (urb *UpgradeResultGetOrCreateBuilder) String() string {
 	return stringer.Yaml("upgraderesult builder", urb)
 }
 
 // GoString implements GoStringer interface
-func (urb *UpgradeResultBuilder) GoString() string {
+func (urb *UpgradeResultGetOrCreateBuilder) GoString() string {
 	return urb.String()
 }
 
-// NewUpgradeResultBuilder returns a new UpgradeResult instance
-func NewUpgradeResultBuilder() *UpgradeResultBuilder {
-	return &UpgradeResultBuilder{
+// NewUpgradeResultGetOrCreateBuilder returns a new UpgradeResult instance
+func NewUpgradeResultGetOrCreateBuilder() *UpgradeResultGetOrCreateBuilder {
+	return &UpgradeResultGetOrCreateBuilder{
 		UpgradeResult: &UpgradeResult{},
 		errors:        []error{},
 	}
 }
 
-// WithInstanceName adds Name in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithInstanceName(name string) *UpgradeResultBuilder {
-	urb.InstanceName = name
+// WithSelfName adds Name in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithSelfName(
+	name string) *UpgradeResultGetOrCreateBuilder {
+	urb.SelfName = name
 	return urb
 }
 
-// WithInstanceNamespace adds Namespace in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithInstanceNamespace(namespace string) *UpgradeResultBuilder {
-	urb.InstanceNamespace = namespace
+// WithSelfNamespace adds Namespace in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithSelfNamespace(
+	namespace string) *UpgradeResultGetOrCreateBuilder {
+	urb.SelfNamespace = namespace
 	return urb
 }
 
-// WithInstanceUID adds UID in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithInstanceUID(uid types.UID) *UpgradeResultBuilder {
-	urb.InstanceUID = uid
+// WithSelfUID adds UID in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithSelfUID(
+	uid types.UID) *UpgradeResultGetOrCreateBuilder {
+	urb.SelfUID = uid
 	return urb
 }
 
-// WithUpgradeConfig ...adds UpgradeConfig in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithUpgradeConfig(config *upgrade.UpgradeConfig) *UpgradeResultBuilder {
+// WithUpgradeConfig adds UpgradeConfig in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithUpgradeConfig(
+	config *upgrade.UpgradeConfig) *UpgradeResultGetOrCreateBuilder {
 	urb.UpgradeConfig = config
 	return urb
 }
 
 // WithResourceDetails adds ResourceDetails in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithResourceDetails(resource *upgrade.ResourceDetails) *UpgradeResultBuilder {
+func (urb *UpgradeResultGetOrCreateBuilder) WithResourceDetails(
+	resource *upgrade.ResourceDetails) *UpgradeResultGetOrCreateBuilder {
 	urb.ResourceDetails = resource
 	return urb
 }
 
 // WithTasks adds Tasks in UpgradeResult instance
-func (urb *UpgradeResultBuilder) WithTasks(tasks []upgrade.UpgradeResultTask) *UpgradeResultBuilder {
+func (urb *UpgradeResultGetOrCreateBuilder) WithTasks(
+	tasks []upgrade.UpgradeResultTask) *UpgradeResultGetOrCreateBuilder {
 	urb.Tasks = tasks
 	return urb
 }
 
-// validate validates UpgradeResultBuilder instance
-func (urb *UpgradeResultBuilder) validate() error {
+// validate validates UpgradeResultGetOrCreateBuilder instance
+func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 	if len(urb.errors) != 0 {
-		return errors.Errorf("failed to validate: build errors were found: %v", urb.errors)
+		return errors.Errorf(
+			"failed to validate: build errors were found: %v", urb.errors)
 	}
 	validationErrs := []error{}
-	if urb.InstanceName == "" {
-		validationErrs = append(validationErrs, errors.New("missing instance name"))
+	if urb.SelfName == "" {
+		validationErrs = append(validationErrs,
+			errors.New("missing self name"))
 	}
-	if urb.InstanceNamespace == "" {
-		validationErrs = append(validationErrs, errors.New("missing instance namespace"))
+	if urb.SelfNamespace == "" {
+		validationErrs = append(validationErrs,
+			errors.New("missing self namespace"))
 	}
-	if urb.InstanceUID == "" {
-		validationErrs = append(validationErrs, errors.New("missing instance uid"))
+	if urb.SelfUID == "" {
+		validationErrs = append(validationErrs,
+			errors.New("missing self uid"))
 	}
 	if urb.UpgradeConfig == nil {
-		validationErrs = append(validationErrs, errors.New("missing upgrade config"))
+		validationErrs = append(validationErrs,
+			errors.New("missing upgrade config"))
 	}
 	if urb.ResourceDetails == nil {
-		validationErrs = append(validationErrs, errors.New("missing resource details"))
+		validationErrs = append(validationErrs,
+			errors.New("missing resource details"))
 	}
 	if len(urb.Tasks) == 0 {
-		validationErrs = append(validationErrs, errors.New("missing tasks"))
+		validationErrs = append(validationErrs,
+			errors.New("missing tasks"))
 	}
 	if len(validationErrs) != 0 {
 		urb.errors = append(urb.errors, validationErrs...)
@@ -141,31 +152,31 @@ func (urb *UpgradeResultBuilder) validate() error {
 	return nil
 }
 
-// Build builds a new instance of UpgradeResult with the
-// helps of UpgradeResultBuilder
-func (urb *UpgradeResultBuilder) Build() (res *upgrade.UpgradeResult, err error) {
+// GetOrCreate builds a new instance of UpgradeResult with the
+// helps of UpgradeResultGetOrCreateBuilder. Upgrade result cr
+// is required to maintain resiliency in upgrade.
+func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
+	res *upgrade.UpgradeResult, err error) {
 	err = urb.validate()
 	if err != nil {
 		return nil,
 			errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
 	}
-	l := jobNameLabelKey + "=" + urb.InstanceName +
-		"," + itemNameLabelKey + "=" + urb.ResourceDetails.Name +
-		"," + itemNamespaceLabelKey + "=" + urb.ResourceDetails.Namespace +
-		"," + itemKindLabelKey + "=" + urb.ResourceDetails.Kind
+	l := labelJobName + "=" + urb.SelfName +
+		"," + labelItemName + "=" + urb.ResourceDetails.Name +
+		"," + labelItemNamespace + "=" + urb.ResourceDetails.Namespace +
+		"," + labelItemKind + "=" + urb.ResourceDetails.Kind
 	opts := metav1.ListOptions{
 		LabelSelector: l,
 	}
 	urList, err := upgraderesult.KubeClient(
-		upgraderesult.WithNamespace(urb.InstanceNamespace)).
+		upgraderesult.WithNamespace(urb.SelfNamespace)).
 		List(opts)
 	if err != nil {
 		return nil,
 			errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
 	}
-	if len(urList.Items) == 1 {
-		return &urList.Items[0], nil
-	} else if len(urList.Items) == 0 {
+	if len(urList.Items) == 0 {
 		ur, err := urb.getUpgradeResultObj()
 		if err != nil {
 			return nil,
@@ -173,13 +184,15 @@ func (urb *UpgradeResultBuilder) Build() (res *upgrade.UpgradeResult, err error)
 		}
 
 		urb.UpgradeResult.object, err = upgraderesult.KubeClient(
-			upgraderesult.WithNamespace(urb.InstanceNamespace)).
+			upgraderesult.WithNamespace(urb.SelfNamespace)).
 			Create(ur)
 		if err != nil {
 			return nil,
 				errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
 		}
 		return urb.UpgradeResult.object, nil
+	} else if len(urList.Items) == 1 {
+		return &urList.Items[0], nil
 	}
 	return nil,
 		errors.Errorf(`failed to build UpgradeResultCR:
@@ -188,7 +201,8 @@ func (urb *UpgradeResultBuilder) Build() (res *upgrade.UpgradeResult, err error)
 }
 
 // getUpgradeResultObj returns UpgradeResult Object for given resource
-func (urb *UpgradeResultBuilder) getUpgradeResultObj() (*upgrade.UpgradeResult, error) {
+func (urb *UpgradeResultGetOrCreateBuilder) getUpgradeResultObj() (
+	*upgrade.UpgradeResult, error) {
 	tm, err := urb.getTypeMeta()
 	if err != nil {
 		return nil, err
@@ -208,7 +222,8 @@ func (urb *UpgradeResultBuilder) getUpgradeResultObj() (*upgrade.UpgradeResult, 
 }
 
 // getTypeMeta returns metav1.TypeMeta for upgrade result cr
-func (urb *UpgradeResultBuilder) getTypeMeta() (tm *metav1.TypeMeta, err error) {
+func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
+	tm *metav1.TypeMeta, err error) {
 	return typemeta.NewBuilder().
 		WithKind("UpgradeResult").
 		WithAPIVersion("openebs.io/v1alpha1").
@@ -216,42 +231,40 @@ func (urb *UpgradeResultBuilder) getTypeMeta() (tm *metav1.TypeMeta, err error) 
 }
 
 // getTypeMeta returns metav1.ObjectMeta for upgrade result cr
-func (urb *UpgradeResultBuilder) getObjectMeta() (tm *metav1.ObjectMeta, err error) {
-	rand.Seed(time.Now().UnixNano())
-	letters := "abcdefghijklmnopqrstuvwxyz0123456789"
-	b := make([]byte, 5)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	name := urb.UpgradeConfig.CASTemplate + "-" + string(b)
-
+func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
+	tm *metav1.ObjectMeta, err error) {
+	name := urb.SelfName + rand.String(4)
 	oRef, err := urb.getOwnerReference()
 	if err != nil {
 		return nil, err
 	}
 	labels := map[string]string{
-		jobNameLabelKey:       urb.InstanceName,
-		itemNameLabelKey:      urb.ResourceDetails.Name,
-		itemNamespaceLabelKey: urb.ResourceDetails.Namespace,
-		itemKindLabelKey:      urb.ResourceDetails.Kind,
+		labelJobName:       urb.SelfName,
+		labelItemName:      urb.ResourceDetails.Name,
+		labelItemNamespace: urb.ResourceDetails.Namespace,
+		labelItemKind:      urb.ResourceDetails.Kind,
 	}
 	return objectmeta.NewBuilder().
 		WithName(name).
-		WithNamespace(urb.InstanceNamespace).
+		WithNamespace(urb.SelfNamespace).
 		WithLabels(labels).
 		WithOwnerReferences(*oRef).
 		Build()
 }
 
-// getTypeMeta returns metav1.OwnerReference for upgrade result cr
-func (urb *UpgradeResultBuilder) getOwnerReference() (oRef *metav1.OwnerReference, err error) {
+// getTypeMeta returns metav1.OwnerReference for upgrade result cr.
+// This is required to build ObjectMeta of upgrade result cr.
+// We put upgrade job as ownerReference of upgrade result cr for
+// cleanup activity.
+func (urb *UpgradeResultGetOrCreateBuilder) getOwnerReference() (
+	oRef *metav1.OwnerReference, err error) {
 	ctrlOpt := true
 	blockOwnerDeletionOption := true
 	return ownerreference.NewBuilder().
-		WithName(urb.InstanceName).
+		WithName(urb.SelfName).
 		WithKind("Job").
 		WithAPIVersion("batch/v1").
-		WithUID(urb.InstanceUID).
+		WithUID(urb.SelfUID).
 		WithControllerOption(&ctrlOpt).
 		WithBlockOwnerDeletionOption(&blockOwnerDeletionOption).
 		Build()

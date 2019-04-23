@@ -29,9 +29,9 @@ import (
 )
 
 const (
-	instanceNameENVKey      = "INSTANCE_NAME"
-	instanceNamespaceENVKey = "INSTANCE_NAMESPACE"
-	instanceUIDENVKey       = "INSTANCE_UID"
+	envSelfName      = "OPENEBS_IO_SELF_NAME"
+	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
+	envSelfUID       = "OPENEBS_IO_SELF_UID"
 )
 
 // Executor contains list of castEngine
@@ -50,23 +50,23 @@ type ExecutorBuilder struct {
 func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
 	b = &ExecutorBuilder{}
 
-	instanceName := os.Getenv(instanceNameENVKey)
-	if instanceName == "" {
+	selfName := os.Getenv(envSelfName)
+	if selfName == "" {
 		b.errors = append(b.errors,
-			errors.Errorf("failed to instantiate executor builder: %s ENV not present", instanceNameENVKey))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
 		return
 	}
-	instanceNamespace := os.Getenv(instanceNamespaceENVKey)
-	if instanceNamespace == "" {
+	selfNamespace := os.Getenv(envSelfNamespace)
+	if selfNamespace == "" {
 		b.errors = append(b.errors,
-			errors.Errorf("failed to instantiate executor builder: %s ENV not present", instanceNamespaceENVKey))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
 		return
 
 	}
-	instanceUID := types.UID(os.Getenv(instanceUIDENVKey))
-	if instanceUID == "" {
+	selfUID := types.UID(os.Getenv(envSelfUID))
+	if selfUID == "" {
 		b.errors = append(b.errors,
-			errors.Errorf("failed to instantiate executor builder: %s ENV not present", instanceUIDENVKey))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
 		return
 
 	}
@@ -91,14 +91,14 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
 	engines := []cast.Interface{}
 	for _, resource := range cfg.Resources {
 		resource := resource // pin it
-		upgradeResult, err := NewUpgradeResultBuilder().
-			WithInstanceName(instanceName).
-			WithInstanceNamespace(instanceNamespace).
-			WithInstanceUID(instanceUID).
+		upgradeResult, err := NewUpgradeResultGetOrCreateBuilder().
+			WithSelfName(selfName).
+			WithSelfNamespace(selfNamespace).
+			WithSelfUID(selfUID).
 			WithUpgradeConfig(cfg).
 			WithResourceDetails(&resource).
 			WithTasks(tasks).
-			Build()
+			GetOrCreate()
 		if err != nil {
 			b.errors = append(b.errors,
 				errors.Wrapf(err,
