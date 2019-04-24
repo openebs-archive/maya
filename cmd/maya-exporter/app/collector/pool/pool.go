@@ -156,7 +156,7 @@ func (p *pool) Collect(ch chan<- prometheus.Metric) {
 		return
 	}
 	glog.V(2).Infof("Got zpool stats: %#v", zpoolStats)
-	poolStats.parse(zpoolStats, p, ch)
+	poolStats.parse(zpoolStats, p)
 	p.setZPoolStats(poolStats, zpoolStats.Name)
 	for _, col := range p.collectors() {
 		col.Collect(ch)

@@ -41,7 +41,7 @@ func (s *statsFloat64) List() []float64 {
 	}
 }
 
-func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
+func parseFloat64(e string, m *metrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		m.zpoolListparseErrorCounter.Inc()
@@ -49,12 +49,12 @@ func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
 	return num
 }
 
-func (s *statsFloat64) parse(stats zpool.Stats, p *pool, ch chan<- prometheus.Metric) {
-	s.size = parseFloat64(stats.Size, &p.metrics, ch)
-	s.used = parseFloat64(stats.Used, &p.metrics, ch)
-	s.free = parseFloat64(stats.Free, &p.metrics, ch)
+func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
+	s.size = parseFloat64(stats.Size, &p.metrics)
+	s.used = parseFloat64(stats.Used, &p.metrics)
+	s.free = parseFloat64(stats.Free, &p.metrics)
 	s.status = zpool.Status[stats.Status]
-	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics, ch)
+	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
 }
 
 // newMetrics initializes fields of the metrics and returns its instance
