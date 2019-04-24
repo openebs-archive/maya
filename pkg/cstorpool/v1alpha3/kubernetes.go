@@ -43,7 +43,7 @@ type Kubeclient struct {
 	// functions useful during mocking
 	getClientset getClientsetFn
 	list         listFn
-	delete       deleteFn
+	del          deleteFn
 }
 
 // kubeclientBuildOption defines the abstraction
@@ -67,8 +67,8 @@ func (k *Kubeclient) withDefaults() {
 			return cli.OpenebsV1alpha1().CStorPools().List(opts)
 		}
 	}
-	if k.delete == nil {
-		k.delete = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
+	if k.del == nil {
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error) {
 			return nil, cli.OpenebsV1alpha1().CStorPools().Delete(name, opts)
 		}
 	}
@@ -148,5 +148,5 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.CSto
 	if err != nil {
 		return nil, err
 	}
-	return k.delete(cli, name, opts)
+	return k.del(cli, name, opts)
 }

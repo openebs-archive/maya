@@ -142,7 +142,7 @@ func (sb *Builder) Build() *SPC {
 	return sb.Spc
 }
 
-// ListBuilder returns a new instance of ListBuilder object.
+// NewListBuilder returns a new instance of ListBuilder object.
 func NewListBuilder() *ListBuilder {
 	return &ListBuilder{SpcList: &SPCList{ObjectList: &apis.StoragePoolClaimList{}}}
 }

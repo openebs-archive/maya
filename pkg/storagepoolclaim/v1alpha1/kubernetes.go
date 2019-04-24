@@ -39,7 +39,7 @@ type Kubeclient struct {
 	list         listFn
 	get          getFn
 	create       createFn
-	delete       deleteFn
+	del          deleteFn
 }
 
 // kubeclientBuildOption defines the abstraction
@@ -76,8 +76,8 @@ func (k *Kubeclient) WithDefaults() {
 		}
 	}
 
-	if k.delete == nil {
-		k.delete = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error) {
+	if k.del == nil {
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error) {
 			return nil, cli.OpenebsV1alpha1().StoragePoolClaims().Delete(name, opts)
 		}
 	}
@@ -174,5 +174,5 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apis.Stor
 	if err != nil {
 		return nil, err
 	}
-	return k.delete(cli, name, opts)
+	return k.del(cli, name, opts)
 }

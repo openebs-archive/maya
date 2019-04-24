@@ -92,9 +92,7 @@ func HasLabel(key, value string) predicate {
 	}
 }
 
-// HasLabel returns true if provided label
-// key and value are present in the provided CSP
-// instance
+// IsStatus returns true if the status on csp matches with provided status.
 func IsStatus(status string) predicate {
 	return func(c *CSP) bool {
 		val := c.Object.Status.Phase
@@ -123,31 +121,31 @@ func (l *CSPList) Filter(p ...predicate) *CSPList {
 	return filtered
 }
 
-// ListBuilder returns a new instance of ListBuilder Object.
+// NewListBuilder returns a new instance of ListBuilder Object.
 func NewListBuilder() *ListBuilder {
 	return &ListBuilder{CspList: &CSPList{ObjectList: &apis.CStorPoolList{}}}
 }
 
 // ListBuilderForObject returns a new instance of ListBuilderForApiList object based on csp list.
 func ListBuilderForObject(cspList *CSPList) *ListBuilder {
-	new := NewListBuilder()
+	newLb := NewListBuilder()
 	for _, obj := range cspList.ObjectList.Items {
 		// pin it
 		obj := obj
-		new.CspList.ObjectList.Items = append(new.CspList.ObjectList.Items, obj)
+		newLb.CspList.ObjectList.Items = append(newLb.CspList.ObjectList.Items, obj)
 	}
-	return new
+	return newLb
 }
 
 // ListBuilderForApiObject returns a new instance of ListBuilderForApiList object based on csp api list.
 func ListBuilderForApiObject(cspAPIList *apis.CStorPoolList) *ListBuilder {
-	new := NewListBuilder()
+	newLb := NewListBuilder()
 	for _, obj := range cspAPIList.Items {
 		// pin it
 		obj := obj
-		new.CspList.ObjectList.Items = append(new.CspList.ObjectList.Items, obj)
+		newLb.CspList.ObjectList.Items = append(newLb.CspList.ObjectList.Items, obj)
 	}
-	return new
+	return newLb
 }
 
 // WithUIDs builds a list of cstor pools
@@ -161,7 +159,7 @@ func (b *ListBuilder) WithUIDs(poolUIDs ...string) *ListBuilder {
 	return b
 }
 
-// WithUIDNodeMap builds a cspList based on the provided
+// WithUIDNode builds a cspList based on the provided
 // map of uid and nodename
 func (b *ListBuilder) WithUIDNode(UIDNode map[string]string) *ListBuilder {
 	for k, v := range UIDNode {
