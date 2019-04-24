@@ -23,6 +23,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	wrapErrorMessagePrefix  string = "  --  "
+	listErrorMessagePrefix  string = "  -  "
+	stackTraceMessagePrefix string = "      "
+)
+
 // stack represents a stack of program counters.
 type stack []uintptr
 
@@ -37,7 +43,8 @@ func callers() *stack {
 
 // err implements error interface that has a message and stack
 type err struct {
-	msg string
+	prefix string
+	msg    string
 	*stack
 }
 
@@ -46,27 +53,30 @@ func (e *err) Error() string { return e.msg }
 
 // Format is implementation of Formater interface
 func (e *err) Format(s fmt.State, verb rune) {
+	message := "error(s) were found: " + e.msg
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprint(s, "error(s) were found: "+e.msg)
+			fmt.Fprint(s, message)
 			for i, pc := range *e.stack {
-				if i < 1 {
-					f := errors.Frame(pc)
-					fmt.Fprintf(s, "\n%+v", f)
+				if i > 0 {
+					return
 				}
+				f := errors.Frame(pc)
+				fmt.Fprintf(s, "\n%s%+v", e.prefix, f)
 			}
 			return
 		}
 		fallthrough
 	case 's', 'q':
-		fmt.Fprint(s, "error(s) were found: "+e.msg)
+		fmt.Fprint(s, message)
 	}
 }
 
-// err implements error interface that has a message and error
+// wrapper implements error interface that has a message and error
 type wrapper struct {
-	msg string
+	prefix string
+	msg    string
 	error
 }
 
@@ -79,12 +89,68 @@ func (w *wrapper) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			fmt.Fprintf(s, "%+v\n", w.error)
-			fmt.Fprint(s, w.msg)
+			fmt.Fprint(s, w.prefix+w.msg)
 			return
 		}
 		fallthrough
 	case 's', 'q':
 		fmt.Fprintf(s, "%s\n", w.error)
-		fmt.Fprint(s, w.msg)
+		fmt.Fprint(s, w.prefix+w.msg)
 	}
+}
+
+// withStack implements error interface that has a stack and error
+type withStack struct {
+	prefix string
+	error
+	*stack
+}
+
+// Format is implementation of Formater interface
+func (ws *withStack) Format(s fmt.State, verb rune) {
+	message := "error(s) were found: " + fmt.Sprintf("%s", ws.error)
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			fmt.Fprint(s, message)
+			for i, pc := range *ws.stack {
+				if i > 0 {
+					return
+				}
+				f := errors.Frame(pc)
+				fmt.Fprintf(s, "\n%s%+v", ws.prefix, f)
+			}
+			return
+		}
+		fallthrough
+	case 's', 'q':
+		fmt.Fprint(s, message)
+	}
+}
+
+// ErrorList is a wrapper over list of errors
+// It implements error interface
+type ErrorList struct {
+	Errors []error
+	msg    string
+}
+
+// Error is implementation of error interface
+func (el *ErrorList) Error() string {
+	message := ""
+	for _, err := range el.Errors {
+		message += err.Error() + ":"
+	}
+	el.msg = message
+	return message
+}
+
+// Format is implementation of Formater interface
+func (el *ErrorList) Format(s fmt.State, verb rune) {
+	message := ""
+	for _, err := range el.Errors {
+		message += "\n" + listErrorMessagePrefix + err.Error()
+	}
+	fmt.Fprint(s, message)
+
 }

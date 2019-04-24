@@ -24,8 +24,9 @@ import (
 // New also records the stack trace at the point it was called.
 func New(message string) error {
 	return &err{
-		msg:   message,
-		stack: callers(),
+		prefix: stackTraceMessagePrefix,
+		msg:    message,
+		stack:  callers(),
 	}
 }
 
@@ -34,53 +35,39 @@ func New(message string) error {
 // Errorf also records the stack trace at the point it was called.
 func Errorf(format string, args ...interface{}) error {
 	return &err{
-		msg:   fmt.Sprintf(format, args...),
-		stack: callers(),
+		prefix: stackTraceMessagePrefix,
+		msg:    fmt.Sprintf(format, args...),
+		stack:  callers(),
 	}
-}
-
-// Merge annotates list of errors with a new message.
-// and errors messages. length of errs is 0 Merge returns nil.
-func Merge(errs []error, message string) error {
-	if len(errs) == 0 {
-		return nil
-	}
-	for _, err := range errs {
-		message += "\n  -  " + err.Error()
-	}
-	return &err{
-		msg:   message,
-		stack: callers(),
-	}
-}
-
-// Mergef annotateslist of errors with with given format specifier.
-// and errors messages. length of errs is 0 Mergef returns nil.
-func Mergef(errs []error, format string, args ...interface{}) error {
-	if len(errs) == 0 {
-		return nil
-	}
-	message := fmt.Sprintf(format, args...)
-	for _, e := range errs {
-		message += "\n  -  " + e.Error()
-	}
-	return &err{
-		msg:   message,
-		stack: callers(),
-	}
-
 }
 
 // Wrap annotates err with a new message.
 // If err is nil, Wrap returns nil.
-func Wrap(e error, message string) error {
-	message = "  --  " + message
-	return &wrapper{message, e}
+func Wrap(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return &wrapper{wrapErrorMessagePrefix, message, err}
 }
 
 // Wrapf annotates err with the format specifier.
 // If err is nil, Wrapf returns nil.
 func Wrapf(err error, format string, args ...interface{}) error {
-	message := "  --  " + fmt.Sprintf(format, args...)
-	return &wrapper{message, err}
+	if err == nil {
+		return nil
+	}
+	return &wrapper{wrapErrorMessagePrefix, fmt.Sprintf(format, args...), err}
+}
+
+// WithStack annotates err with a stack trace at the
+// point WithStack was called. If err is nil, WithStack returns nil.
+func WithStack(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &withStack{
+		stackTraceMessagePrefix,
+		err,
+		callers(),
+	}
 }
