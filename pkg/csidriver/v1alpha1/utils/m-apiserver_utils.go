@@ -1,4 +1,4 @@
-package driver
+package utils
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
@@ -17,9 +16,22 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	maxStorageCapacity = tib
+)
+
+const (
+	kib    int64 = 1024
+	mib    int64 = kib * 1024
+	gib    int64 = mib * 1024
+	gib100 int64 = gib * 100
+	tib    int64 = gib * 1024
+	tib100 int64 = tib * 100
+)
+
 // provisionVolume sends a request to m-apiserver to
 // dynamically create a new volume
-func provisionVolume(req *csi.CreateVolumeRequest) (*v1alpha1.CASVolume, error) {
+func ProvisionVolume(req *csi.CreateVolumeRequest) (*v1alpha1.CASVolume, error) {
 	casVolume := v1alpha1.CASVolume{}
 
 	capacity := int64(req.GetCapacityRange().GetRequiredBytes())
@@ -86,12 +98,7 @@ func provisionVolume(req *csi.CreateVolumeRequest) (*v1alpha1.CASVolume, error) 
 // CreateVolume to create the CAS volume through a API call to m-apiserver
 func CreateVolume(vol v1alpha1.CASVolume) error {
 
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		return err
-	}
-	url := addr + "/latest/volumes/"
+	url := MAPIServerEndpoint + "/latest/volumes/"
 
 	//Marshal serializes the value provided into a json document
 	jsonValue, _ := json.Marshal(vol)
@@ -136,12 +143,7 @@ func CreateVolume(vol v1alpha1.CASVolume) error {
 // ReadVolume to get the info of CAS volume through a API call to m-apiserver
 func ReadVolume(vname, namespace, storageclass string, obj interface{}) error {
 
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		return err
-	}
-	url := addr + "/latest/volumes/" + vname
+	url := MAPIServerEndpoint + "/latest/volumes/" + vname
 
 	logrus.Infof("[DEBUG] Get details for Volume :%v", string(vname))
 
@@ -178,12 +180,7 @@ func ReadVolume(vname, namespace, storageclass string, obj interface{}) error {
 // DeleteVolume to get delete CAS volume through a API call to m-apiserver
 func DeleteVolume(vname, namespace string) error {
 
-	addr := os.Getenv("MAPI_ADDR")
-	if addr == "" {
-		err := errors.New("MAPI_ADDR environment variable not set")
-		return err
-	}
-	url := addr + "/latest/volumes/" + vname
+	url := MAPIServerEndpoint + "/latest/volumes/" + vname
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return err

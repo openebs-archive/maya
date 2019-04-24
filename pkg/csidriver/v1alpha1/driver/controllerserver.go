@@ -3,20 +3,15 @@ package driver
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/openebs/maya/pkg/csidriver/v1alpha1/utils"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-)
-
-const (
-	maxStorageCapacity = tib
-	timeout            = 60 * time.Second
 )
 
 // ControllerServer defines the data structure of the controller driver
@@ -94,7 +89,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	// Verify if the volume has already been created
-	if exVol, err := getVolumeByName(volName); err == nil {
+	if exVol, err := utils.GetVolumeByName(volName); err == nil {
 		capacity, _ := strconv.ParseInt(exVol.Spec.Capacity, 10, 64)
 		if capacity >= int64(req.GetCapacityRange().GetRequiredBytes()) {
 			return &csi.CreateVolumeResponse{
@@ -112,13 +107,16 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	// Send volume creation request to m-apiserver
-	vol, _ := provisionVolume(req)
+	vol, err := utils.ProvisionVolume(req)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
 	// Create a csi vol object from info returned by m-apiserver
-	csivol := generateCSIVolInfoFromCASVolume(vol)
+	csivol := utils.GenerateCSIVolInfoFromCASVolume(vol)
 
 	volumeID := volName
 	// Keep a local copy of the volume info to catch duplicate requests
-	Volumes[volumeID] = csivol
+	utils.Volumes[volumeID] = csivol
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:      volumeID,
@@ -153,19 +151,20 @@ func (cs *ControllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 	volumeID := req.VolumeId
 
 	// This call is made just to fetch pvc namespace
-	pv, err := fetchPVDetails(volumeID)
+	pv, err := utils.FetchPVDetails(volumeID)
 	if err != nil {
+		logrus.Infof("fetch Volume Failed, volID:%v %v", volumeID, err)
 		return nil, err
 	}
 	pvcNamespace := pv.Spec.ClaimRef.Namespace
 
 	//Send delete request to m-apiserver
-	if err := DeleteVolume(volumeID, pvcNamespace); err != nil {
+	if err := utils.DeleteVolume(volumeID, pvcNamespace); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	// Remove entry from the volume list maintained
-	delete(Volumes, volumeID)
+	delete(utils.Volumes, volumeID)
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
