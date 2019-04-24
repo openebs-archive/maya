@@ -1,0 +1,343 @@
+package v1alpha1
+
+import (
+	"reflect"
+	"testing"
+
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func TestBuilderWithName(t *testing.T) {
+	tests := map[string]struct {
+		name      string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builder with name": {
+			name: "PVC1",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builder without name": {
+			name: "",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+		"Test with Builder error": {
+			name:      "PVC2",
+			builder:   &Builder{err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithName(mock.name)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithNamespace(t *testing.T) {
+	tests := map[string]struct {
+		namespace string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builderwith namespae": {
+			namespace: "jiva-ns",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout namespace": {
+			namespace: "",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test with Buildererror": {
+			namespace: "cstor-ns",
+			builder:   &Builder{err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithNamespace(mock.namespace)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithAnnotations(t *testing.T) {
+	tests := map[string]struct {
+		annotations map[string]string
+		builder     *Builder
+		expectErr   bool
+	}{
+		"Test Builderwith annotations": {
+			annotations: map[string]string{"persistent-volume": "PV", "application": "percona"},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout annotations": {
+			annotations: map[string]string{},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test with Buildererror": {
+			annotations: map[string]string{"persistent-volume": "PV"},
+			builder:     &Builder{err: errors.New("PVC not built")},
+			expectErr:   true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithAnnotations(mock.annotations)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithLabels(t *testing.T) {
+	tests := map[string]struct {
+		labels    map[string]string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builderwith labels": {
+			labels: map[string]string{"persistent-volume": "PV", "application": "percona"},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout labels": {
+			labels: map[string]string{},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test with Buildererror": {
+			labels:    map[string]string{"persistent-volume": "PV"},
+			builder:   &Builder{err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithLabels(mock.labels)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithAccessModes(t *testing.T) {
+	tests := map[string]struct {
+		accessModes []corev1.PersistentVolumeAccessMode
+		builder     *Builder
+		expectErr   bool
+	}{
+		"Test Builderwith accessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadOnlyMany},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout accessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{},
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+		"Test with BuilderaccessModes": {
+			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadWriteMany},
+			builder:     &Builder{err: errors.New("PVC not built")},
+			expectErr:   true,
+		},
+	}
+
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithAccessModes(mock.accessModes)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithStorageClass(t *testing.T) {
+	tests := map[string]struct {
+		scName    string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builderwith SC": {
+			scName: "single-replica",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout SC": {
+			scName: "",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+		"Test with Buildererror": {
+			scName:    "multi-replica",
+			builder:   &Builder{err: errors.New("PVC not built")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithStorageClass(mock.scName)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuildWithCapacity(t *testing.T) {
+	tests := map[string]struct {
+		capacity  string
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test Builderwith capacity": {
+			capacity: "5G",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: false,
+		},
+		"Test Builderwithout capacity": {
+			capacity: "",
+			builder: &Builder{Pvc: &PVC{
+				object: &corev1.PersistentVolumeClaim{},
+			}},
+			expectErr: true,
+		},
+		"Test with Buildererror": {
+			capacity:  "10Ti",
+			builder:   &Builder{err: errors.New("Unkown error while building pvc")},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithCapacity(mock.capacity)
+			if mock.expectErr && b.err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && b.err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestBuild(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		capacity    string
+		expectedPVC *corev1.PersistentVolumeClaim
+		expectedErr bool
+	}{
+		"PVC with correct details": {
+			name:     "PVC1",
+			capacity: "10Ti",
+			expectedPVC: &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{Name: "PVC1"},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceStorage: fakeCapacity("10Ti"),
+						},
+					},
+				},
+			},
+			expectedErr: false,
+		},
+		"PVC with error": {
+			name:        "",
+			capacity:    "500Gi",
+			expectedPVC: nil,
+			expectedErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			pvcObj, err := NewBuilder().WithName(mock.name).WithCapacity(mock.capacity).Build()
+			if mock.expectedErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if !reflect.DeepEqual(pvcObj, mock.expectedPVC) {
+				t.Fatalf("Test %q failed: pvc mismatch", name)
+			}
+		})
+	}
+}
+
+func fakeCapacity(capacity string) resource.Quantity {
+	q, _ := resource.ParseQuantity(capacity)
+	return q
+}
