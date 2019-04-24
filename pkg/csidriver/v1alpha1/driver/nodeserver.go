@@ -6,7 +6,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/csidriver/v1alpha1/utils"
-	"github.com/openebs/maya/pkg/iscsi"
+	iscsi "github.com/openebs/maya/pkg/iscsi/v1alpha1"
 
 	"golang.org/x/net/context"
 

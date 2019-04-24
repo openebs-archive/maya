@@ -29,7 +29,7 @@ const (
 	tib100 int64 = tib * 100
 )
 
-// provisionVolume sends a request to m-apiserver to
+// ProvisionVolume sends a request to m-apiserver to
 // dynamically create a new volume
 func ProvisionVolume(req *csi.CreateVolumeRequest) (*v1alpha1.CASVolume, error) {
 	casVolume := v1alpha1.CASVolume{}
