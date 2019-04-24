@@ -5,6 +5,8 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/golang/glog"
+	"github.com/openebs/maya/pkg/csidriver/v1alpha1/utils"
+	"github.com/openebs/maya/pkg/iscsi"
 
 	"golang.org/x/net/context"
 
@@ -46,34 +48,34 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	volumeID := req.GetVolumeId()
 	mountOptions := req.GetVolumeCapability().GetMount().GetMountFlags()
 
-	vol, err := getVolumeDetails(volumeID, mountPath, req.Readonly, mountOptions)
+	vol, err := utils.GetVolumeDetails(volumeID, mountPath, req.Readonly, mountOptions)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	//Check if volume is ready to serve IOs,
 	//info is fetched from the cstorvolume CR
-	if err := waitForVolumeToBeReady(volumeID); err != nil {
+	if err := utils.WaitForVolumeToBeReady(volumeID); err != nil {
 		return nil,
 			status.Error(codes.Internal, err.Error())
 	}
 
-	if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
+	if err := utils.WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
 		return nil,
 			status.Error(codes.Internal, err.Error())
 	}
 
 	// Check if the volume has already been published
 verifyPublish:
-	monitorLock.Lock()
-	if _, ok := Volumes[volumeID]; ok {
-		for _, info := range Volumes {
+	utils.MonitorLock.Lock()
+	if _, ok := utils.Volumes[volumeID]; ok {
+		for _, info := range utils.Volumes {
 			if info.Spec.Volname == volumeID {
-				monitorLock.Unlock()
+				utils.MonitorLock.Unlock()
 				return &csi.NodePublishVolumeResponse{}, nil
 			}
 		}
-		monitorLock.Unlock()
+		utils.MonitorLock.Unlock()
 		if !reVerified {
 			time.Sleep(13 * time.Second)
 			reVerified = true
@@ -82,23 +84,23 @@ verifyPublish:
 		return nil, status.Error(codes.Internal, "Mount under progress")
 	}
 
-	if err = deleteOldCSIVolumeInfoCR(vol); err != nil {
-		monitorLock.Unlock()
+	if err = utils.DeleteOldCSIVolumeInfoCR(vol); err != nil {
+		utils.MonitorLock.Unlock()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	err = createCSIVolumeInfoCR(vol, ns.driver.config.NodeID, mountPath)
+	err = utils.CreateCSIVolumeInfoCR(vol, ns.driver.config.NodeID, mountPath)
 	if err != nil {
-		monitorLock.Unlock()
+		utils.MonitorLock.Unlock()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	Volumes[volumeID] = vol
-	monitorLock.Unlock()
+	utils.Volumes[volumeID] = vol
+	utils.MonitorLock.Unlock()
 
-	if err = chmodMountPath(vol.Spec.MountPath); err != nil {
+	if err = utils.ChmodMountPath(vol.Spec.MountPath); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	if _, err = AttachAndMountDisk(vol); err != nil {
+	if _, err = iscsi.AttachAndMountDisk(vol); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -120,22 +122,22 @@ func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	}
 	targetPath := req.GetTargetPath()
 	volumeID := req.GetVolumeId()
-	vol, ok := Volumes[volumeID]
+	vol, ok := utils.Volumes[volumeID]
 	if !ok {
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
-	err := deleteCSIVolumeInfoCR(vol)
+	err := utils.DeleteCSIVolumeInfoCR(vol)
 	if err != nil {
 		return nil, status.Error(codes.Internal,
 			err.Error())
 	}
-	monitorLock.Lock()
-	delete(Volumes, volumeID)
-	if err = UnmountAndDetachDisk(vol, req.GetTargetPath()); err != nil {
+	utils.MonitorLock.Lock()
+	delete(utils.Volumes, volumeID)
+	if err = iscsi.UnmountAndDetachDisk(vol, req.GetTargetPath()); err != nil {
 		return nil, status.Error(codes.Internal,
 			err.Error())
 	}
-	monitorLock.Unlock()
+	utils.MonitorLock.Unlock()
 	glog.V(4).Infof("hostpath: volume %s/%s has been unmounted.",
 		targetPath, volumeID)
 

@@ -1,4 +1,4 @@
-package driver
+package utils
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/net/context"
@@ -14,12 +15,58 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-csi/csi-lib-utils/protosanitizer"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
+	"github.com/openebs/maya/pkg/iscsi"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	api_core_v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/util/mount"
 )
+
+var (
+	MAPIServerEndpoint string
+	OpenEBSNamespace   string
+
+	// Volumes contains the list of volumes created in case of controller plugin
+	// and list of volumes attached to this node in node plugin
+	Volumes map[string]*v1alpha1.CSIVolumeInfo
+
+	// MonitorLock is required to protect the above Volumes list
+	MonitorLock sync.RWMutex
+)
+
+const (
+	timeout = 60 * time.Second
+)
+
+func init() {
+
+	OpenEBSNamespace = os.Getenv("OPENEBS_NAMESPACE")
+	if OpenEBSNamespace == "" {
+		logrus.Fatalf("OPENEBS_NAMESPACE environment variable not set")
+	}
+
+	MAPIServiceName := os.Getenv("OPENEBS_MAPI_SVC")
+	if MAPIServiceName == "" {
+		logrus.Fatalf("OPENEBS_MAPI_SVC environment variable not set")
+	}
+
+	kc, err := m_k8s_client.NewK8sClient(OpenEBSNamespace)
+	if err != nil {
+		logrus.Fatalf(err.Error())
+	}
+	svc, err := kc.GetService(MAPIServiceName, metav1.GetOptions{})
+	if err != nil {
+		logrus.Fatalf(err.Error())
+	}
+
+	svcIP := svc.Spec.ClusterIP
+	svcPort := strconv.FormatInt(int64(svc.Spec.Ports[0].Port), 10)
+	MAPIServerEndpoint = "http://" + svcIP + ":" + svcPort
+
+	Volumes = map[string]*v1alpha1.CSIVolumeInfo{}
+
+}
 
 func parseEndpoint(ep string) (string, string, error) {
 	if strings.HasPrefix(strings.ToLower(ep), "unix://") || strings.HasPrefix(strings.ToLower(ep), "tcp://") {
@@ -43,11 +90,13 @@ func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, h
 	return resp, err
 }
 
-func chmodMountPath(mountPath string) error {
+// ChmodMountPath removes all permission from the folder if volume is not
+// mounted on it
+func ChmodMountPath(mountPath string) error {
 	return os.Chmod(mountPath, 0000)
 }
 
-func waitForVolumeToBeReachable(targetPortal string) error {
+func WaitForVolumeToBeReachable(targetPortal string) error {
 	var (
 		retries int
 		err     error
@@ -69,7 +118,7 @@ func waitForVolumeToBeReachable(targetPortal string) error {
 
 }
 
-func waitForVolumeToBeReady(volumeID string) error {
+func WaitForVolumeToBeReady(volumeID string) error {
 	var retries int
 checkVolumeStatus:
 	volStatus, err := getVolStatus(volumeID)
@@ -87,7 +136,8 @@ checkVolumeStatus:
 	return nil
 }
 
-func getVolumeByName(volName string) (*v1alpha1.CSIVolumeInfo, error) {
+// GetVolumeByName fetches the volume from Volumes list based on th input name
+func GetVolumeByName(volName string) (*v1alpha1.CSIVolumeInfo, error) {
 	for _, Vol := range Volumes {
 		if Vol.Name == volName {
 			return Vol, nil
@@ -97,11 +147,11 @@ func getVolumeByName(volName string) (*v1alpha1.CSIVolumeInfo, error) {
 		fmt.Errorf("volume name %s does not exit in the volumes list", volName)
 }
 
-// getVolumeDetails returns a new instance of csiVolumeInfo filled with the
+// GetVolumeDetails returns a new instance of csiVolumeInfo filled with the
 // VolumeAttributes fetched from the corresponding PV and some additional info
 // required for remounting
-func getVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []string) (*v1alpha1.CSIVolumeInfo, error) {
-	pv, err := fetchPVDetails(volumeID)
+func GetVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []string) (*v1alpha1.CSIVolumeInfo, error) {
+	pv, err := FetchPVDetails(volumeID)
 	if err != nil {
 		return nil, err
 	}
@@ -123,49 +173,6 @@ func getVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []
 	return &vol, nil
 }
 
-// UnmountAndDetachDisk unmounts the disk from the specified path
-// and logs out of the iSCSI Volume
-func UnmountAndDetachDisk(vol *v1alpha1.CSIVolumeInfo, path string) error {
-	iscsiInfo := &iscsiDisk{
-		VolName: vol.Name,
-		Portals: []string{vol.Spec.TargetPortal},
-		Iqn:     vol.Spec.Iqn,
-		lun:     vol.Spec.Lun,
-	}
-
-	diskUnmounter := &iscsiDiskUnmounter{
-		iscsiDisk: iscsiInfo,
-		mounter:   &mount.SafeFormatAndMount{Interface: mount.New(""), Exec: mount.NewOsExec()},
-		exec:      mount.NewOsExec(),
-	}
-	util := &ISCSIUtil{}
-	err := util.DetachDisk(*diskUnmounter, path)
-	if err != nil {
-		return status.Error(codes.Internal, err.Error())
-	}
-	return nil
-}
-
-// AttachAndMountDisk logs in to the iSCSI Volume
-// and mounts the disk to the specified path
-func AttachAndMountDisk(vol *v1alpha1.CSIVolumeInfo) (string, error) {
-	if len(vol.Spec.MountPath) == 0 {
-		return "", status.Error(codes.InvalidArgument, "Target path missing in request")
-	}
-	iscsiInfo, err := getISCSIInfo(vol)
-	if err != nil {
-		return "", status.Error(codes.Internal, err.Error())
-	}
-	diskMounter := getISCSIDiskMounter(iscsiInfo, vol)
-
-	util := &ISCSIUtil{}
-	devicePath, err := util.AttachDisk(*diskMounter)
-	if err != nil {
-		return "", status.Error(codes.Internal, err.Error())
-	}
-	return devicePath, err
-}
-
 func listContains(mountPath string, list []mount.MountPoint) (*mount.MountPoint, bool) {
 	for _, info := range list {
 		if info.Path == mountPath {
@@ -178,62 +185,79 @@ func listContains(mountPath string, list []mount.MountPoint) (*mount.MountPoint,
 
 // monitor func verifies whether all the volumes present in the inmemory list
 // with the driver are mounted with the original mount options
-func monitor() {
+func MonitorMounts() {
 	mounter := mount.New("")
-	options := []string{"rw"}
 	//options = append(options, "remount")
 	ticker := time.NewTicker(5 * time.Second)
+	volMonitorMap := make(map[string]bool)
 	for {
 		select {
 		case <-ticker.C:
-			monitorLock.RLock()
+			MonitorLock.RLock()
 			// Get list of mount paths present with the node
 			list, _ := mounter.List()
 			for _, vol := range Volumes {
+				_, volMonitor := volMonitorMap["vol.Spec.Volname"]
+				if volMonitor == true {
+					continue
+				}
 				path := vol.Spec.MountPath
 				mountPoint, exists := listContains(path, list)
-				if exists {
-					for _, opts := range mountPoint.Opts {
-						if opts == "ro" {
-							logrus.Infof("MountPoint:%v IN RO MODE", mountPoint.Path)
-							mounter.Unmount(path)
-							for {
-								if err := waitForVolumeToBeReady(vol.Spec.Volname); err == nil {
-									logrus.Info(err)
-									break
-								}
-								if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
-									logrus.Info(err)
-									break
-								}
-							}
-							err := mounter.Mount(mountPoint.Device, mountPoint.Path, "", options)
-							logrus.Infof("ERR: %v", err)
-							break
-						} else if opts == "rw" {
-							break
-						}
-					}
-				} else {
-					for {
-						if err := waitForVolumeToBeReady(vol.Spec.Volname); err == nil {
-							logrus.Info(err)
-							break
-						}
-						if err := waitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
-							logrus.Info(err)
-							break
-						}
-					}
-					AttachAndMountDisk(vol)
-				}
+				go func() {
+					MonitorLock.Lock()
+					volMonitorMap[vol.Spec.Volname] = true
+					MonitorLock.Unlock()
+					verifyAndRemount(exists, vol, mountPoint, path)
+					MonitorLock.Lock()
+					delete(volMonitorMap, vol.Spec.Volname)
+					MonitorLock.Unlock()
+
+				}()
 			}
-			monitorLock.RUnlock()
+			MonitorLock.RUnlock()
 		}
 	}
 }
 
-func generateCSIVolInfoFromCASVolume(vol *v1alpha1.CASVolume) *v1alpha1.CSIVolumeInfo {
+// WaitForVolumeReadyAndReachable waits until the volume is ready to accept IOs
+// and is reachable
+func WaitForVolumeReadyAndReachable(vol *v1alpha1.CSIVolumeInfo) {
+	for {
+		if err := WaitForVolumeToBeReady(vol.Spec.Volname); err == nil {
+			logrus.Info(err)
+			break
+		}
+		if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
+			logrus.Info(err)
+			break
+		}
+	}
+}
+
+func verifyAndRemount(exists bool, vol *v1alpha1.CSIVolumeInfo, mountPoint *mount.MountPoint, path string) {
+	mounter := mount.New("")
+	options := []string{"rw"}
+	if exists {
+		for _, opts := range mountPoint.Opts {
+			if opts == "ro" {
+				logrus.Infof("MountPoint:%v IN RO MODE", mountPoint.Path)
+				mounter.Unmount(path)
+				WaitForVolumeReadyAndReachable(vol)
+				err := mounter.Mount(mountPoint.Device, mountPoint.Path, "", options)
+				logrus.Infof("ERR: %v", err)
+				break
+			} else if opts == "rw" {
+				break
+			}
+		}
+	} else {
+		WaitForVolumeReadyAndReachable(vol)
+		iscsi.AttachAndMountDisk(vol)
+	}
+}
+
+// GenerateCSIVolInfoFromCASVolume returns an instance of CSIVolInfo
+func GenerateCSIVolInfoFromCASVolume(vol *v1alpha1.CASVolume) *v1alpha1.CSIVolumeInfo {
 	csivol := &v1alpha1.CSIVolumeInfo{}
 	csivol.Spec.Volname = vol.Name
 	csivol.Spec.Iqn = vol.Spec.Iqn

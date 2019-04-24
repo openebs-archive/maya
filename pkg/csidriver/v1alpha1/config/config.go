@@ -1,4 +1,4 @@
-package driver
+package config
 
 // Config struct fills the parameters of request or user input
 type Config struct {
