@@ -35,8 +35,7 @@ func ListBuilderForAPIObjects(pvcs *corev1.PersistentVolumeClaimList) *ListBuild
 	return b
 }
 
-// ListBuilderForObjects builds the list of pvc
-// instances based on the provided PVC's
+// ListBuilderForObjects builds the ListBuilder object based on PVCList
 func ListBuilderForObjects(pvcs *PVCList) *ListBuilder {
 	b := &ListBuilder{}
 	if pvcs == nil {
@@ -65,8 +64,7 @@ func (b *ListBuilder) List() *PVCList {
 // Len returns the number of items present
 // in the PVCList of a builder
 func (b *ListBuilder) Len() int {
-	p := &PVCList{}
-	return len(p.items)
+	return len(b.list.items)
 }
 
 // APIList builds core API PVC list using listbuilder

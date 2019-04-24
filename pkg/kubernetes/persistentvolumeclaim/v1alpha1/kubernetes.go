@@ -17,6 +17,7 @@ package v1alpha1
 import (
 	"strings"
 
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -162,7 +163,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 	}
 	cli, err := k.getClientSetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get the pvc: '%s'", name)
+		return nil, errors.Wrapf(err, "failed to get pvc {%s}: failed to get clientset", name)
 	}
 	return k.get(cli, name, k.namespace, opts)
 }
@@ -172,7 +173,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
 	cli, err := k.getClientSetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list pvc")
+		return nil, errors.Wrapf(err, "failed to list pvc: failed to get clientset")
 	}
 	return k.list(cli, k.namespace, opts)
 }
@@ -185,7 +186,7 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	}
 	cli, err := k.getClientSetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete pvc: '%s'", name)
+		return errors.Wrapf(err, "failed to delete pvc {%s}: failed to get clientset", name)
 	}
 	return k.del(cli, k.namespace, name, deleteOpts)
 }
@@ -194,7 +195,7 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
 	cli, err := k.getClientSetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create the persistent volume claim: '%v'", pvc)
+		return nil, errors.Wrapf(err, "failed to create pvc: failed to get clientset: %s", stringer.Yaml("persistent volume claim", pvc))
 	}
 	return k.create(cli, k.namespace, pvc)
 }
@@ -203,7 +204,7 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 	cli, err := k.getClientSetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete the collection of pvcs")
+		return errors.Wrapf(err, "failed to delete the collection of pvcs: failed to get clientset")
 	}
 	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
 }
