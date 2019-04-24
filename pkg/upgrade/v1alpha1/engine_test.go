@@ -153,9 +153,9 @@ func TestValidateEngineBuilder(t *testing.T) {
 	}{
 		"valid builder": {
 			&CASTEngineBuilder{
-				CASTemplate:     &apis.CASTemplate{},
-				UnitOfUpgrade:   &upgrade.ResourceDetails{},
-				UpgradeResultCR: "mock-upgrade-cju65",
+				CASTemplate:   &apis.CASTemplate{},
+				UnitOfUpgrade: &upgrade.ResourceDetails{},
+				UpgradeResult: "mock-upgrade-cju65",
 			},
 			false,
 		},

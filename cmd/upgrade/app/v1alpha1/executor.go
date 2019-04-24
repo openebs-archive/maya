@@ -29,9 +29,15 @@ import (
 )
 
 const (
-	envSelfName      = "OPENEBS_IO_SELF_NAME"
+	// envSelfName represent name of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
+	envSelfName = "OPENEBS_IO_SELF_NAME"
+	// envSelfNamespace represent namespace of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
 	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
-	envSelfUID       = "OPENEBS_IO_SELF_UID"
+	// envSelfUID represent UID of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
+	envSelfUID = "OPENEBS_IO_SELF_UID"
 )
 
 // Executor contains list of castEngine
@@ -47,39 +53,41 @@ type ExecutorBuilder struct {
 
 // ExecutorBuilderForConfig returns an instance of ExecutorBuilder
 //It adds object in ExecutorBuilder struct with the help of config
-func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
-	b = &ExecutorBuilder{}
+func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
+	executorBuilder := &ExecutorBuilder{}
 
 	selfName := os.Getenv(envSelfName)
 	if selfName == "" {
-		b.errors = append(b.errors,
+		executorBuilder.errors = append(executorBuilder.errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
-		return
+		return executorBuilder
 	}
 	selfNamespace := os.Getenv(envSelfNamespace)
 	if selfNamespace == "" {
-		b.errors = append(b.errors,
+		executorBuilder.errors = append(executorBuilder.errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
-		return
+		return executorBuilder
 
 	}
 	selfUID := types.UID(os.Getenv(envSelfUID))
 	if selfUID == "" {
-		b.errors = append(b.errors,
+		executorBuilder.errors = append(executorBuilder.errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
-		return
+		return executorBuilder
 
 	}
 
 	castObj, err := cast.KubeClient().
 		Get(cfg.CASTemplate, metav1.GetOptions{})
 	if err != nil {
-		b.errors = append(b.errors,
+		executorBuilder.errors = append(executorBuilder.errors,
 			errors.Wrapf(err,
 				"failed to instantiate executor builder: %s", cfg))
-		return
+		return executorBuilder
 	}
 
+	// tasks represents list of runtask present in castemplate
+	// These entries are present in upgrade result cr.
 	tasks := []apis.UpgradeResultTask{}
 	for _, taskName := range castObj.Spec.RunTasks.Tasks {
 		task := apis.UpgradeResultTask{
@@ -100,10 +108,10 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
 			WithTasks(tasks).
 			GetOrCreate()
 		if err != nil {
-			b.errors = append(b.errors,
+			executorBuilder.errors = append(executorBuilder.errors,
 				errors.Wrapf(err,
 					"failed to instantiate executor builder: %s: %s", resource, cfg))
-			return
+			return executorBuilder
 		}
 		e, err := upgrade.NewCASTEngineBuilder().
 			WithCASTemplate(castObj).
@@ -112,16 +120,16 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
 			WithUpgradeResultCR(upgradeResult.Name).
 			Build()
 		if err != nil {
-			b.errors = append(b.errors,
+			executorBuilder.errors = append(executorBuilder.errors,
 				errors.Wrapf(err,
 					"failed to instantiate executor builder: %s: %s", resource, cfg))
-			return
+			return executorBuilder
 		}
 
 		engines = append(engines, e)
 	}
-	b.object = &Executor{engines: engines}
-	return b
+	executorBuilder.object = &Executor{engines: engines}
+	return executorBuilder
 }
 
 // Build builds a new instance of Executor with the help of

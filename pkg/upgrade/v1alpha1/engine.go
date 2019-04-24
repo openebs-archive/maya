@@ -42,17 +42,17 @@ const (
 	namespaceKey string = "namespace"
 	// kindKey is a property of TaskConfig this is kind of the resource.
 	kindKey string = "kind"
-	// resultCRKey is a property of upgrade result cr for the resource.
-	upgradeResultCRKey string = "upgradeResultCR"
+	// upgradeResultKey is a property of upgrade result cr for the resource.
+	upgradeResultKey string = "upgradeResult"
 )
 
 // CASTEngineBuilder helps to build a new instance of castEngine
 type CASTEngineBuilder struct {
-	RuntimeConfig   []apis.Config
-	CASTemplate     *apis.CASTemplate
-	UnitOfUpgrade   *upgrade.ResourceDetails
-	UpgradeResultCR string
-	errors          []error
+	RuntimeConfig []apis.Config
+	CASTemplate   *apis.CASTemplate
+	UnitOfUpgrade *upgrade.ResourceDetails
+	UpgradeResult string
+	errors        []error
 }
 
 // String implements Stringer interface
@@ -94,8 +94,8 @@ func (ceb *CASTEngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *CA
 }
 
 // WithUpgradeResultCR sets upgradeResultCR name in CASTEngineBuilder.
-func (ceb *CASTEngineBuilder) WithUpgradeResultCR(upgradeResultCR string) *CASTEngineBuilder {
-	ceb.UpgradeResultCR = upgradeResultCR
+func (ceb *CASTEngineBuilder) WithUpgradeResultCR(upgradeResult string) *CASTEngineBuilder {
+	ceb.UpgradeResult = upgradeResult
 	return ceb
 }
 
@@ -107,7 +107,7 @@ func (ceb *CASTEngineBuilder) validate() error {
 	if ceb.UnitOfUpgrade == nil {
 		return errors.New("missing upgrade item")
 	}
-	if ceb.UpgradeResultCR == "" {
+	if ceb.UpgradeResult == "" {
 		return errors.New("missing upgrade result cr")
 	}
 	if len(ceb.errors) > 0 {
@@ -143,10 +143,10 @@ func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 	}
 
 	taskConfig := map[string]interface{}{
-		nameKey:            ceb.UnitOfUpgrade.Name,
-		namespaceKey:       ceb.UnitOfUpgrade.Namespace,
-		kindKey:            ceb.UnitOfUpgrade.Kind,
-		upgradeResultCRKey: ceb.UpgradeResultCR,
+		nameKey:          ceb.UnitOfUpgrade.Name,
+		namespaceKey:     ceb.UnitOfUpgrade.Namespace,
+		kindKey:          ceb.UnitOfUpgrade.Kind,
+		upgradeResultKey: ceb.UpgradeResult,
 	}
 	e.SetValues(upgradeItemProperty, taskConfig)
 	e.SetValues(configProperty, defaultConfig)

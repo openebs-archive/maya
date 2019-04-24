@@ -31,10 +31,15 @@ import (
 )
 
 const (
-	labelJobName       = "openebs.io/upgradejob"
-	labelItemName      = "openebs.io/upgradeitemname"
+	// labelJobName label contains name of job in which upgrade
+	// process is running
+	labelJobName = "openebs.io/upgradejob"
+	// labelItemName label contains name of unit of upgrade
+	labelItemName = "openebs.io/upgradeitemname"
+	// labelItemNamespace label contains namespace of unit of upgrade
 	labelItemNamespace = "openebs.io/upgradeitemnamespace"
-	labelItemKind      = "openebs.io/upgradeitemkind"
+	// labelItemKind label contains kind of unit of upgrade
+	labelItemKind = "openebs.io/upgradeitemkind"
 )
 
 // UpgradeResult is a wrapper over upgrade.UpgradeResult struct
@@ -42,7 +47,7 @@ type UpgradeResult struct {
 	object *upgrade.UpgradeResult
 }
 
-// UpgradeResultGetOrCreateBuilder helps to build UpgradeResult instance
+// UpgradeResultGetOrCreateBuilder helps to get or create UpgradeResult instance
 type UpgradeResultGetOrCreateBuilder struct {
 	SelfName        string
 	SelfNamespace   string
@@ -56,7 +61,7 @@ type UpgradeResultGetOrCreateBuilder struct {
 
 // String implements GoStringer interface
 func (urb *UpgradeResultGetOrCreateBuilder) String() string {
-	return stringer.Yaml("upgraderesult builder", urb)
+	return stringer.Yaml("upgrade result get or create builder", urb)
 }
 
 // GoString implements GoStringer interface
@@ -160,7 +165,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 	err = urb.validate()
 	if err != nil {
 		return nil,
-			errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
+			errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 	}
 	l := labelJobName + "=" + urb.SelfName +
 		"," + labelItemName + "=" + urb.ResourceDetails.Name +
@@ -174,13 +179,14 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 		List(opts)
 	if err != nil {
 		return nil,
-			errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
+			errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 	}
-	if len(urList.Items) == 0 {
-		ur, err := urb.getUpgradeResultObj()
+	switch urCount := len(urList.Items); urCount {
+	case 0:
+		ur, err := urb.buildUpgradeResult()
 		if err != nil {
 			return nil,
-				errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
+				errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 		}
 
 		urb.UpgradeResult.object, err = upgraderesult.KubeClient(
@@ -188,20 +194,21 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 			Create(ur)
 		if err != nil {
 			return nil,
-				errors.Wrapf(err, "failed to build UpgradeResultCR: %s", urb)
+				errors.Wrapf(err, "failed to get or create upgrade result: failed to create: %s", urb)
 		}
 		return urb.UpgradeResult.object, nil
-	} else if len(urList.Items) == 1 {
+	case 1:
 		return &urList.Items[0], nil
+	default:
+		return nil,
+			errors.Errorf(
+				"failed to get or create upgrade result builder: more than one upgrade result instances were found for resource {%v}: upgrade result instances {%v}",
+				urb.ResourceDetails, urList)
 	}
-	return nil,
-		errors.Errorf(`failed to build UpgradeResultCR:
-		multiple upgrade result cr found for resource: %v
-		upgrade result crs: %v`, urb.ResourceDetails, urList)
 }
 
-// getUpgradeResultObj returns UpgradeResult Object for given resource
-func (urb *UpgradeResultGetOrCreateBuilder) getUpgradeResultObj() (
+// buildUpgradeResult returns UpgradeResult Object
+func (urb *UpgradeResultGetOrCreateBuilder) buildUpgradeResult() (
 	*upgrade.UpgradeResult, error) {
 	tm, err := urb.getTypeMeta()
 	if err != nil {
@@ -230,10 +237,10 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 		Build()
 }
 
-// getTypeMeta returns metav1.ObjectMeta for upgrade result cr
+// getObjectMeta returns metav1.ObjectMeta for upgrade result cr.
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
-	name := urb.SelfName + rand.String(4)
+	name := urb.SelfName + "-" + rand.String(4)
 	oRef, err := urb.getOwnerReference()
 	if err != nil {
 		return nil, err
@@ -252,7 +259,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 		Build()
 }
 
-// getTypeMeta returns metav1.OwnerReference for upgrade result cr.
+// getOwnerReference returns metav1.OwnerReference for upgrade result cr.
 // This is required to build ObjectMeta of upgrade result cr.
 // We put upgrade job as ownerReference of upgrade result cr for
 // cleanup activity.
