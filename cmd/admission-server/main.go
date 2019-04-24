@@ -82,7 +82,7 @@ func main() {
 	glog.Infof("Got OS shutdown signal, shutting down webhook server gracefully...")
 	err = wh.Server.Shutdown(context.Background())
 	if err != nil {
-		glog.Errorf("Failed to shutdown server: %v", err)
+		glog.Errorf("failed to shutdown server: error {%v}", err)
 	}
 }
 
