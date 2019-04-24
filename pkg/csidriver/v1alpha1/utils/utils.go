@@ -16,7 +16,7 @@ import (
 	"github.com/kubernetes-csi/csi-lib-utils/protosanitizer"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	"github.com/openebs/maya/pkg/iscsi"
+	iscsi "github.com/openebs/maya/pkg/iscsi/v1alpha1"
 	"google.golang.org/grpc"
 	api_core_v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,8 +24,12 @@ import (
 )
 
 var (
+	// MAPIServerEndpoint is the address to connect to m-apiserver to send
+	// volume related requests
 	MAPIServerEndpoint string
-	OpenEBSNamespace   string
+	// OpenEBSNamespace is where all the OpenEBS related pods are running and
+	// CSIVolInfo as to be placed
+	OpenEBSNamespace string
 
 	// Volumes contains the list of volumes created in case of controller plugin
 	// and list of volumes attached to this node in node plugin
@@ -96,6 +100,8 @@ func ChmodMountPath(mountPath string) error {
 	return os.Chmod(mountPath, 0000)
 }
 
+// WaitForVolumeToBeReachable keeps the mounts on hold until the volume is
+// reachable
 func WaitForVolumeToBeReachable(targetPortal string) error {
 	var (
 		retries int
@@ -106,6 +112,7 @@ func WaitForVolumeToBeReachable(targetPortal string) error {
 	for {
 		if conn, err = net.Dial("tcp", targetPortal); err == nil {
 			conn.Close()
+			logrus.Infof("Volume is reachable to create connections")
 			return nil
 		}
 		time.Sleep(2 * time.Second)
@@ -118,6 +125,8 @@ func WaitForVolumeToBeReachable(targetPortal string) error {
 
 }
 
+// WaitForVolumeToBeReady retrieves the volume info from cstorVolume CR and
+// waits until consistency factor is met for connected replicas
 func WaitForVolumeToBeReady(volumeID string) error {
 	var retries int
 checkVolumeStatus:
@@ -183,7 +192,7 @@ func listContains(mountPath string, list []mount.MountPoint) (*mount.MountPoint,
 	return nil, false
 }
 
-// monitor func verifies whether all the volumes present in the inmemory list
+// MonitorMounts makes sure that all the volumes present in the inmemory list
 // with the driver are mounted with the original mount options
 func MonitorMounts() {
 	mounter := mount.New("")
@@ -243,7 +252,8 @@ func verifyAndRemount(exists bool, vol *v1alpha1.CSIVolumeInfo, mountPoint *moun
 				logrus.Infof("MountPoint:%v IN RO MODE", mountPoint.Path)
 				mounter.Unmount(path)
 				WaitForVolumeReadyAndReachable(vol)
-				err := mounter.Mount(mountPoint.Device, mountPoint.Path, "", options)
+				err := mounter.Mount(mountPoint.Device,
+					mountPoint.Path, "", options)
 				logrus.Infof("ERR: %v", err)
 				break
 			} else if opts == "rw" {
