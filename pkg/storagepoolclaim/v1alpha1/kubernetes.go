@@ -26,7 +26,7 @@ type createFn func(cli *clientset.Clientset, spc *apis.StoragePoolClaim) (*apis.
 
 type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.StoragePoolClaim, error)
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
 type Kubeclient struct {
 	// clientset refers to cstor storage pool's
@@ -46,7 +46,7 @@ type Kubeclient struct {
 // to build a kubeclient instance
 type kubeclientBuildOption func(*Kubeclient)
 
-// withDefaults sets the default options
+// WithDefaults sets the default options
 // of kubeclient instance
 func (k *Kubeclient) WithDefaults() {
 	if k.getClientset == nil {

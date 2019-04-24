@@ -137,8 +137,8 @@ func ListBuilderForObject(cspList *CSPList) *ListBuilder {
 	return newLb
 }
 
-// ListBuilderForApiObject returns a new instance of ListBuilderForApiList object based on csp api list.
-func ListBuilderForApiObject(cspAPIList *apis.CStorPoolList) *ListBuilder {
+// ListBuilderForAPIObject returns a new instance of ListBuilderForApiList object based on csp api list.
+func ListBuilderForAPIObject(cspAPIList *apis.CStorPoolList) *ListBuilder {
 	newLb := NewListBuilder()
 	for _, obj := range cspAPIList.Items {
 		// pin it
@@ -177,8 +177,8 @@ func (b *ListBuilder) List() *CSPList {
 }
 
 // Len returns the length of the CSPList object
-func (cspList *CSPList) Len() int {
-	return len(cspList.ObjectList.Items)
+func (l *CSPList) Len() int {
+	return len(l.ObjectList.Items)
 }
 
 // GetPoolUIDs retuns the UIDs of the pools available in the list.

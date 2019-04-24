@@ -32,7 +32,7 @@ type createFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.CSt
 // deletion of cstor pool
 type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apis.CStorPool, error)
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
 type Kubeclient struct {
 	// clientset refers to cstor storage pool's
