@@ -15,8 +15,10 @@
 package command
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -28,7 +30,85 @@ import (
 )
 
 var (
-	response1 = `{"metadata":{"annotations":{"vsm.openebs.io/targetportals":"<none>","vsm.openebs.io/cluster-ips":"<none>","openebs.io/jiva-iqn":"iqn.2016-09.com.openebs.jiva:vol","deployment.kubernetes.io/revision":"1","openebs.io/storage-pool":"default","vsm.openebs.io/replica-count":"1","openebs.io/jiva-controller-status":"Pending","openebs.io/volume-monitor":"false","openebs.io/replica-container-status":"Pending","openebs.io/jiva-controller-cluster-ip":"<none>","openebs.io/jiva-replica-status":"Pending","vsm.openebs.io/iqn":"iqn.2016-09.com.openebs.jiva:vol","openebs.io/capacity":"2G","openebs.io/jiva-controller-ips":"<none>","openebs.io/jiva-replica-ips":"<none>","vsm.openebs.io/replica-status":"Pending","vsm.openebs.io/controller-status":"Pending","openebs.io/controller-container-status":"Pending","vsm.openebs.io/replica-ips":"nil","openebs.io/jiva-target-portal":"nil","openebs.io/volume-type":"jiva","openebs.io/jiva-replica-count":"1","vsm.openebs.io/volume-size":"2G","vsm.openebs.io/controller-ips":""},"creationTimestamp":null,"labels":{},"name":"vol"},"status":{"Message":"","Phase":"Running","Reason":""}}`
+	cstorResponse = `{
+		"apiVersion":"v1alpha1",
+		"kind":"CASVolume",
+		"metadata":{
+		   "annotations":{
+			  "openebs.io/controller-status":"running,running,running",
+			  "openebs.io/cvr-names":"pvc-8ce7d760-659a-11e9-9fbc-e4115b455108-sparse-claim-auto-tk5v",
+			  "openebs.io/node-names":"minikube",
+			  "openebs.io/pool-names":"sparse-claim-auto-tk5v",
+			  "openebs.io/controller-ips":"172.17.0.9",
+			  "openebs.io/controller-node-name":"minikube"
+		   },
+		   "name":"pvc-8ce7d760-659a-11e9-9fbc-e4115b455108"
+		},
+		"spec":{
+		   "accessMode":"",
+		   "capacity":"4G",
+		   "casType":"cstor",
+		   "fsType":"ext4",
+		   "iqn":"iqn.2016-09.com.openebs.cstor:pvc-8ce7d760-659a-11e9-9fbc-e4115b455108",
+		   "lun":0,
+		   "replicas":"1",
+		   "targetIP":"10.100.190.100",
+		   "targetPort":"3260",
+		   "targetPortal":"10.100.190.100:3260"
+		},
+		"status":{
+		   "Message":"",
+		   "Phase":"",
+		   "Reason":""
+		}
+	 }`
+
+	jivaResponse = `{
+		"apiVersion":"v1alpha1",
+		"kind":"CASVolume",
+		"metadata":{
+		   "annotations":{
+			  "openebs.io/replica-count":"1",
+			  "openebs.io/replica-status":"running",
+			  "vsm.openebs.io/controller-ips":"172.17.0.6",
+			  "vsm.openebs.io/controller-status":"running,running",
+			  "vsm.openebs.io/replica-ips":"172.17.0.7",
+			  "openebs.io/replica-ips":"172.17.0.7",
+			  "openebs.io/volume-size":"4G",
+			  "vsm.openebs.io/iqn":"iqn.2016-09.com.openebs.jiva:pvc-72ab3969-6598-11e9-9fbc-e4115b455108",
+			  "vsm.openebs.io/replica-status":"running",
+			  "vsm.openebs.io/volume-size":"4G",
+			  "openebs.io/cluster-ips":"10.111.146.255",
+			  "openebs.io/controller-node-name":"minikube",
+			  "vsm.openebs.io/cluster-ips":"10.111.146.255",
+			  "vsm.openebs.io/controller-node-name":"minikube",
+			  "vsm.openebs.io/targetportals":"10.111.146.255:3260",
+			  "openebs.io/controller-ips":"172.17.0.6",
+			  "openebs.io/controller-status":"terminated,running",
+			  "openebs.io/iqn":"iqn.2016-09.com.openebs.jiva:pvc-72ab3969-6598-11e9-9fbc-e4115b455108",
+			  "openebs.io/targetportals":"10.111.146.255:3260",
+			  "vsm.openebs.io/replica-count":"1"
+		   },
+		   "name":"pvc-72ab3969-6598-11e9-9fbc-e4115b455108"
+		},
+		"spec":{
+		   "accessMode":"",
+		   "capacity":"4G",
+		   "casType":"jiva",
+		   "fsType":"ext4",
+		   "iqn":"iqn.2016-09.com.openebs.jiva:pvc-72ab3969-6598-11e9-9fbc-e4115b455108",
+		   "lun":0,
+		   "replicas":"1",
+		   "targetIP":"10.111.146.255",
+		   "targetPort":"3260",
+		   "targetPortal":"10.111.146.255:3260"
+		},
+		"status":{
+		   "Message":"",
+		   "Phase":"",
+		   "Reason":""
+		}
+	 }`
 )
 
 func TestRunVolumeInfo(t *testing.T) {
@@ -48,36 +128,23 @@ func TestRunVolumeInfo(t *testing.T) {
 	validCmd := map[string]*struct {
 		cmdOptions  *CmdVolumeOptions
 		cmd         *cobra.Command
-		output      error
+		expectederr error
 		err         error
 		addr        string
 		fakeHandler utiltesting.FakeHandler
 	}{
-		"WhenErrorGettingAnnotation": {
-			cmdOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			cmd: cmd,
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode: 200,
-				//		ResponseBody: "",
-				T: t,
-			},
-			addr:   "MAPI_ADDR",
-			output: nil,
-		},
 		"When response code is 500": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			cmd: cmd,
 			fakeHandler: utiltesting.FakeHandler{
-				StatusCode: 500,
-				//		ResponseBody: "",
-				T: t,
+				StatusCode:   500,
+				ResponseBody: `{}`,
+				T:            t,
 			},
-			addr:   "MAPI_ADDR",
-			output: nil,
+			addr:        "MAPI_ADDR",
+			expectederr: fmt.Errorf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues"),
 		},
 		"When response code is 404": {
 			cmdOptions: &CmdVolumeOptions{
@@ -85,72 +152,49 @@ func TestRunVolumeInfo(t *testing.T) {
 			},
 			cmd: cmd,
 			fakeHandler: utiltesting.FakeHandler{
-				StatusCode: 404,
-				//		ResponseBody: "",
-				T: t,
+				StatusCode:   404,
+				ResponseBody: `{}`,
+				T:            t,
 			},
-			addr:   "MAPI_ADDR",
-			output: nil,
+			addr:        "MAPI_ADDR",
+			expectederr: fmt.Errorf("Volume: vol1 not found at namespace: \"\" error: %s", util.ErrPageNotFound),
 		},
-		"When response code is 503": {
-			cmdOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			cmd: cmd,
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode: 503,
-				//		ResponseBody: "",
-				T: t,
-			},
-			addr:   "MAPI_ADDR",
-			output: nil,
-		},
-		"When response code is 600": {
-			cmdOptions: &CmdVolumeOptions{
-				volName: "vol1",
-			},
-			cmd: cmd,
-			fakeHandler: utiltesting.FakeHandler{
-				StatusCode: 600,
-				//		ResponseBody: "",
-				T: t,
-			},
-			addr:   "MAPI_ADDR",
-			output: nil,
-		},
-		"When status in pending": {
+		"When one controller is not running": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			cmd: cmd,
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: `{"metadata":{"annotations":{"vsm.openebs.io/targetportals":"<none>","vsm.openebs.io/cluster-ips":"<none>","openebs.io/jiva-iqn":"iqn.2016-09.com.openebs.jiva:vol","deployment.kubernetes.io/revision":"1","openebs.io/storage-pool":"default","vsm.openebs.io/replica-count":"1","openebs.io/jiva-controller-status":"Pending","openebs.io/volume-monitor":"false","openebs.io/replica-container-status":"Pending","openebs.io/jiva-controller-cluster-ip":"<none>","openebs.io/jiva-replica-status":"Pending","vsm.openebs.io/iqn":"iqn.2016-09.com.openebs.jiva:vol","openebs.io/capacity":"2G","openebs.io/jiva-controller-ips":"<none>","openebs.io/jiva-replica-ips":"<none>","vsm.openebs.io/replica-status":"Pending","vsm.openebs.io/controller-status":"Pending","openebs.io/controller-container-status":"Pending","vsm.openebs.io/replica-ips":"nil","openebs.io/jiva-target-portal":"nil","openebs.io/volume-type":"jiva","openebs.io/jiva-replica-count":"1","vsm.openebs.io/volume-size":"2G","vsm.openebs.io/controller-ips":""},"creationTimestamp":null,"labels":{},"name":"vol"},"status":{"Message":"","Phase":"pending","Reason":"pending"}}`,
+				ResponseBody: string(jivaResponse),
 				T:            t,
 			},
-			addr:   "MAPI_ADDR",
-			output: nil,
+			addr:        "MAPI_ADDR",
+			expectederr: fmt.Errorf("unable to fetch volume details, Volume controller's status is 'terminated'"),
 		},
-		"WhenControllerIsNotRunning": {
+		"When no error is occurs": {
 			cmdOptions: &CmdVolumeOptions{
 				volName: "vol1",
 			},
 			cmd: cmd,
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: string(response1),
+				ResponseBody: string(cstorResponse),
 				T:            t,
 			},
-			addr:   "MAPI_ADDR",
-			output: nil,
+			addr:        "MAPI_ADDR",
+			expectederr: nil,
 		},
 	}
 	for name, tt := range validCmd {
+		name := name //pint it
+		tt := tt     //pin it
 		t.Run(name, func(t *testing.T) {
 			server := httptest.NewServer(&tt.fakeHandler)
 			os.Setenv(tt.addr, server.URL)
-			if got := tt.cmdOptions.RunVolumeInfo(tt.cmd); got != tt.output {
-				t.Fatalf("RunVolumeInfo(%v) => %v, want %v", tt.cmd, got, tt.output)
+			actualerr := tt.cmdOptions.RunVolumeInfo(tt.cmd)
+			if !reflect.DeepEqual(actualerr, tt.expectederr) {
+				t.Fatalf("%v Failed\n expected error : %v\n actual error : %v ", name, tt.expectederr, actualerr)
 			}
 			defer os.Unsetenv(tt.addr)
 			defer server.Close()

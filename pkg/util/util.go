@@ -36,7 +36,7 @@ var (
 	// ErrServerNotReachable is the new error to raise if the server is not reachable
 	ErrServerNotReachable = errors.New("Server Not Reachable")
 	// ErrPageNotFound is the new error to raise if the page is not found
-	ErrPageNotFound = errors.New("Page Not Found")
+	ErrPageNotFound = errors.New("Resource Not Found")
 )
 
 // truthyValues maps a set of values which are considered as true
