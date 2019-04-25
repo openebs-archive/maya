@@ -17,7 +17,6 @@ limitations under the License.
 package command
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -102,13 +101,16 @@ func (c *CmdVolumeOptions) RunVolumeInfo(cmd *cobra.Command) error {
 	// controller's IP, status, iqn, replica IPs etc.
 	volumeInfo, err := NewVolumeInfo(mapiserver.GetURL()+VolumeAPIPath+c.volName, c.volName, c.namespace)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Initiallize an instance of ReplicaCollection, json response received from the replica controller. Collection contains status and other information of replica.
 	collection := client.ReplicaCollection{}
 	if volumeInfo.GetCASType() == string(JivaStorageEngine) {
 		collection, err = getReplicaInfo(volumeInfo)
+		if err != nil {
+			return err
+		}
 	}
 	c.DisplayVolumeInfo(volumeInfo, collection)
 	return nil
@@ -122,8 +124,7 @@ func getReplicaInfo(volumeInfo *VolumeInfo) (client.ReplicaCollection, error) {
 	// Iterating over controllerStatus
 	for _, controllerStatus := range controllerStatuses {
 		if controllerStatus != controllerStatusOk {
-			fmt.Printf("Unable to fetch volume details, Volume controller's status is '%s'.\n", controllerStatus)
-			return collection, errors.New("Unable to fetch volume details")
+			return collection, fmt.Errorf("unable to fetch volume details, Volume controller's status is '%s'", controllerStatus)
 		}
 	}
 	// controllerIP:9501/v1/replicas is to be parsed into this structure via GetVolumeStats.

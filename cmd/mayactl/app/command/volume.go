@@ -165,19 +165,15 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 	}
 	if resp != nil && resp.StatusCode != 200 {
 		if resp.StatusCode == 500 {
-			fmt.Printf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues")
-			err = util.ErrInternalServerError
+			err = fmt.Errorf("Sorry something went wrong with service. Please raise an issue on: https://github.com/openebs/openebs/issues")
 			return
 		} else if resp.StatusCode == 503 {
-			fmt.Printf("maya apiservice not reachable at %q\n", mapiserver.GetURL())
-			err = util.ErrServerUnavailable
+			err = fmt.Errorf("Maya apiservice not reachable at %q", mapiserver.GetURL())
 			return
 		} else if resp.StatusCode == 404 {
-			fmt.Printf("Volume: %s not found at namespace: %q error: %s\n", volname, namespace, http.StatusText(resp.StatusCode))
-			err = util.ErrPageNotFound
+			err = fmt.Errorf("Volume: %s not found at namespace: %q error: %s", volname, namespace, util.ErrPageNotFound)
 			return
 		}
-		fmt.Printf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
 		err = fmt.Errorf("Received an error from maya apiservice: statuscode: %d", resp.StatusCode)
 		return
 	}
@@ -185,11 +181,10 @@ func NewVolumeInfo(URL string, volname string, namespace string) (volInfo *Volum
 	casVol := v1alpha1.CASVolume{}
 	err = json.NewDecoder(resp.Body).Decode(&casVol)
 	if err != nil {
-		fmt.Printf("Response decode failed: error '%+v'", err)
+		err = fmt.Errorf("Response decode failed: error '%+v'", err)
 		return
 	}
 	if casVol.Status.Reason == "pending" {
-		fmt.Println("VOLUME status Unknown to maya apiservice")
 		err = fmt.Errorf("VOLUME status Unknown to maya apiservice")
 		return
 	}
