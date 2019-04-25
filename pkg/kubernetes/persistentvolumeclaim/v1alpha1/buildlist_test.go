@@ -37,23 +37,24 @@ func TestListBuilderWithAPIObjects(t *testing.T) {
 	tests := map[string]struct {
 		availablePVCs  []string
 		expectedPVCLen int
+		expectedErr    bool
 	}{
-		"PVC set 1":  {[]string{}, 0},
-		"PVC set 2":  {[]string{"pvc1"}, 1},
-		"PVC set 3":  {[]string{"pvc1", "pvc2"}, 2},
-		"PVC set 4":  {[]string{"pvc1", "pvc2", "pvc3"}, 3},
-		"PVC set 5":  {[]string{"pvc1", "pvc2", "pvc3", "pvc4"}, 4},
-		"PVC set 6":  {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5"}, 5},
-		"PVC set 7":  {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6"}, 6},
-		"PVC set 8":  {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7"}, 7},
-		"PVC set 9":  {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7", "pvc8"}, 8},
-		"PVC set 10": {[]string{"pvc1", "pvc2", "pvc3", "pvc4", "pvc5", "pvc6", "pvc7", "pvc8", "pvc9"}, 9},
+		"PVC set 1": {[]string{}, 0, true},
+		"PVC set 2": {[]string{"pvc1"}, 1, false},
+		"PVC set 3": {[]string{"pvc1", "pvc2"}, 2, false},
+		"PVC set 4": {[]string{"pvc1", "pvc2", "pvc3"}, 3, false},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b, _ := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).APIList()
-			if mock.expectedPVCLen != len(b.Items) {
+			b, errs := ListBuilderForAPIObjects(fakeAPIPVCList(mock.availablePVCs)).APIList()
+			if mock.expectedErr && len(errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && len(errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+			if !mock.expectedErr && mock.expectedPVCLen != len(b.Items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.availablePVCs, len(b.Items))
 			}
 		})

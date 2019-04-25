@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -9,6 +10,7 @@ import (
 type ListBuilder struct {
 	list    *PVCList
 	filters PredicateList
+	errs    []error
 }
 
 // NewListBuilder returns an instance of ListBuilder
@@ -17,8 +19,10 @@ func NewListBuilder() *ListBuilder {
 }
 
 // Build returns the final instance of patch
-// TODO add validations and error checks
-func (b *ListBuilder) Build() (*PVCList, error) {
+func (b *ListBuilder) Build() (*PVCList, []error) {
+	if len(b.errs) > 0 {
+		return nil, b.errs
+	}
 	return b.list, nil
 }
 
@@ -26,6 +30,7 @@ func (b *ListBuilder) Build() (*PVCList, error) {
 func ListBuilderForAPIObjects(pvcs *corev1.PersistentVolumeClaimList) *ListBuilder {
 	b := &ListBuilder{list: &PVCList{}}
 	if pvcs == nil {
+		b.errs = append(b.errs, errors.New("failed to build pvc list: missing api list"))
 		return b
 	}
 	for _, pvc := range pvcs.Items {
@@ -39,6 +44,7 @@ func ListBuilderForAPIObjects(pvcs *corev1.PersistentVolumeClaimList) *ListBuild
 func ListBuilderForObjects(pvcs *PVCList) *ListBuilder {
 	b := &ListBuilder{}
 	if pvcs == nil {
+		b.errs = append(b.errs, errors.New("failed to build pvc list: missing object list"))
 		return b
 	}
 	b.list = pvcs
@@ -68,10 +74,14 @@ func (b *ListBuilder) Len() int {
 }
 
 // APIList builds core API PVC list using listbuilder
-func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, error) {
-	l, err := b.Build()
-	if err != nil {
-		return nil, err
+func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, []error) {
+	l, errs := b.Build()
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	if l == nil {
+		errs := append(errs, errors.New("failed to build pvc list: object list nil"))
+		return nil, errs
 	}
 	return l.ToAPIList(), nil
 }

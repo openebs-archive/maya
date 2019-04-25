@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,21 +17,16 @@ func TestBuilderWithName(t *testing.T) {
 	}{
 		"Test Builder with name": {
 			name: "PVC1",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builder without name": {
 			name: "",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
-			expectErr: true,
-		},
-		"Test with Builder error": {
-			name:      "PVC2",
-			builder:   &Builder{err: errors.New("PVC not built")},
 			expectErr: true,
 		},
 	}
@@ -40,10 +34,10 @@ func TestBuilderWithName(t *testing.T) {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithName(mock.name)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -58,32 +52,27 @@ func TestBuildWithNamespace(t *testing.T) {
 	}{
 		"Test Builderwith namespae": {
 			namespace: "jiva-ns",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout namespace": {
 			namespace: "",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
-		},
-		"Test with Buildererror": {
-			namespace: "cstor-ns",
-			builder:   &Builder{err: errors.New("PVC not built")},
-			expectErr: true,
 		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithNamespace(mock.namespace)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -98,32 +87,27 @@ func TestBuildWithAnnotations(t *testing.T) {
 	}{
 		"Test Builderwith annotations": {
 			annotations: map[string]string{"persistent-volume": "PV", "application": "percona"},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout annotations": {
 			annotations: map[string]string{},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
-			expectErr: false,
-		},
-		"Test with Buildererror": {
-			annotations: map[string]string{"persistent-volume": "PV"},
-			builder:     &Builder{err: errors.New("PVC not built")},
-			expectErr:   true,
+			expectErr: true,
 		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithAnnotations(mock.annotations)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -138,21 +122,16 @@ func TestBuildWithLabels(t *testing.T) {
 	}{
 		"Test Builderwith labels": {
 			labels: map[string]string{"persistent-volume": "PV", "application": "percona"},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout labels": {
 			labels: map[string]string{},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
-			expectErr: false,
-		},
-		"Test with Buildererror": {
-			labels:    map[string]string{"persistent-volume": "PV"},
-			builder:   &Builder{err: errors.New("PVC not built")},
 			expectErr: true,
 		},
 	}
@@ -160,10 +139,10 @@ func TestBuildWithLabels(t *testing.T) {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithLabels(mock.labels)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -178,22 +157,17 @@ func TestBuildWithAccessModes(t *testing.T) {
 	}{
 		"Test Builderwith accessModes": {
 			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadOnlyMany},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout accessModes": {
 			accessModes: []corev1.PersistentVolumeAccessMode{},
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: true,
-		},
-		"Test with BuilderaccessModes": {
-			accessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce, corev1.ReadWriteMany},
-			builder:     &Builder{err: errors.New("PVC not built")},
-			expectErr:   true,
 		},
 	}
 
@@ -201,10 +175,10 @@ func TestBuildWithAccessModes(t *testing.T) {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithAccessModes(mock.accessModes)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -219,21 +193,16 @@ func TestBuildWithStorageClass(t *testing.T) {
 	}{
 		"Test Builderwith SC": {
 			scName: "single-replica",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout SC": {
 			scName: "",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
-			expectErr: true,
-		},
-		"Test with Buildererror": {
-			scName:    "multi-replica",
-			builder:   &Builder{err: errors.New("PVC not built")},
 			expectErr: true,
 		},
 	}
@@ -241,10 +210,10 @@ func TestBuildWithStorageClass(t *testing.T) {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithStorageClass(mock.scName)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
@@ -259,21 +228,16 @@ func TestBuildWithCapacity(t *testing.T) {
 	}{
 		"Test Builderwith capacity": {
 			capacity: "5G",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
 			expectErr: false,
 		},
 		"Test Builderwithout capacity": {
 			capacity: "",
-			builder: &Builder{Pvc: &PVC{
+			builder: &Builder{pvc: &PVC{
 				object: &corev1.PersistentVolumeClaim{},
 			}},
-			expectErr: true,
-		},
-		"Test with Buildererror": {
-			capacity:  "10Ti",
-			builder:   &Builder{err: errors.New("Unkown error while building pvc")},
 			expectErr: true,
 		},
 	}
@@ -281,10 +245,10 @@ func TestBuildWithCapacity(t *testing.T) {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
 			b := mock.builder.WithCapacity(mock.capacity)
-			if mock.expectErr && b.err == nil {
+			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
-			if !mock.expectErr && b.err != nil {
+			if !mock.expectErr && len(b.errs) > 0 {
 				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
