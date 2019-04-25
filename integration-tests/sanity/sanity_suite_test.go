@@ -57,8 +57,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
-	Expect(err).ShouldNot(HaveOccurred())
+	artifacts, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
+	Expect(errs).Should(HaveLen(0))
 
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range artifacts {
@@ -101,13 +101,9 @@ var _ = AfterSuite(func() {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	// Unsetting the environment variable
-	err = os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
-	Expect(err).ShouldNot(HaveOccurred())
-
 	// Waiting for openebs namespace to get terminated
-	clientset, err := kubernetes.GetClientSet()
-	Expect(err).NotTo(HaveOccurred())
+	clientset, errs := kubernetes.GetClientSet()
+	Expect(errs).Should(HaveLen(0))
 
 	status := false
 	for i := 0; i < 100; i++ {
