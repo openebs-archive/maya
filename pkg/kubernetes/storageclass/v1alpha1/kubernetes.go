@@ -20,6 +20,14 @@ type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*storagev1
 // fetching an instance of storageclass
 type getFn func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*storagev1.StorageClass, error)
 
+// createFn is a typed function that abstracts
+// to create storage class
+type createFn func(cli *kubernetes.Clientset, sc *storagev1.StorageClass) (*storagev1.StorageClass, error)
+
+// deleteFn is a typed function that abstracts
+// to delete storageclass
+type deleteFn func(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error
+
 // Kubeclient enables kubernetes API operations on storageclass instance
 type Kubeclient struct {
 	// clientset refers to storageclass clientset
@@ -31,11 +39,13 @@ type Kubeclient struct {
 	getClientset getClientsetFn
 	list         listFn
 	get          getFn
+	create       createFn
+	del          deleteFn
 }
 
-// kubeclientBuildOption defines the abstraction
+// KubeClientBuildOption defines the abstraction
 // to build a kubeclient instance
-type kubeclientBuildOption func(*Kubeclient)
+type KubeClientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
@@ -53,10 +63,20 @@ func (k *Kubeclient) withDefaults() {
 			return cli.StorageV1().StorageClasses().Get(name, opts)
 		}
 	}
+	if k.create == nil {
+		k.create = func(cli *kubernetes.Clientset, sc *storagev1.StorageClass) (*storagev1.StorageClass, error) {
+			return cli.StorageV1().StorageClasses().Create(sc)
+		}
+	}
+	if k.del == nil {
+		k.del = func(cli *kubernetes.Clientset, name string, opts *metav1.DeleteOptions) error {
+			return cli.StorageV1().StorageClasses().Delete(name, opts)
+		}
+	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for storageclass
-func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
+// NewKubeClient returns a new instance of kubeclient meant for storageclass
+func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -96,4 +116,22 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.Storag
 		return nil, errors.Wrapf(err, "failed to get storageclass '%s'", name)
 	}
 	return k.get(cli, name, opts)
+}
+
+// Create creates and returns a storageclass instance
+func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass, error) {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create the storageclass '%v'", *sc)
+	}
+	return k.create(cli, sc)
+}
+
+// Delete deletes the storageclass if present in kubernetes cluster
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete the storageclass: '%s'", name)
+	}
+	return k.del(cli, name, opts)
 }
