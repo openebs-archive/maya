@@ -17,12 +17,27 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// envSelfName represent name of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
+	envSelfName = "OPENEBS_IO_SELF_NAME"
+	// envSelfNamespace represent namespace of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
+	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
+	// envSelfUID represent UID of job in which upgrade process is running.
+	// This is required to build owner reference of upgrade result cr.
+	envSelfUID = "OPENEBS_IO_SELF_UID"
 )
 
 // Executor contains list of castEngine
@@ -38,36 +53,83 @@ type ExecutorBuilder struct {
 
 // ExecutorBuilderForConfig returns an instance of ExecutorBuilder
 //It adds object in ExecutorBuilder struct with the help of config
-func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) (b *ExecutorBuilder) {
-	b = &ExecutorBuilder{}
+func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
+	executorBuilder := &ExecutorBuilder{}
+
+	selfName := os.Getenv(envSelfName)
+	if selfName == "" {
+		executorBuilder.errors = append(executorBuilder.errors,
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
+		return executorBuilder
+	}
+	selfNamespace := os.Getenv(envSelfNamespace)
+	if selfNamespace == "" {
+		executorBuilder.errors = append(executorBuilder.errors,
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
+		return executorBuilder
+
+	}
+	selfUID := types.UID(os.Getenv(envSelfUID))
+	if selfUID == "" {
+		executorBuilder.errors = append(executorBuilder.errors,
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
+		return executorBuilder
+
+	}
+
 	castObj, err := cast.KubeClient().
 		Get(cfg.CASTemplate, metav1.GetOptions{})
 	if err != nil {
-		b.errors = append(b.errors,
-			errors.WithMessagef(err,
+		executorBuilder.errors = append(executorBuilder.errors,
+			errors.Wrapf(err,
 				"failed to instantiate executor builder: %s", cfg))
-		return
+		return executorBuilder
+	}
+
+	// tasks represents list of runtask present in castemplate
+	// These entries are present in upgrade result cr.
+	tasks := []apis.UpgradeResultTask{}
+	for _, taskName := range castObj.Spec.RunTasks.Tasks {
+		task := apis.UpgradeResultTask{
+			Name: taskName,
+		}
+		tasks = append(tasks, task)
 	}
 
 	engines := []cast.Interface{}
 	for _, resource := range cfg.Resources {
 		resource := resource // pin it
+		upgradeResult, err := NewUpgradeResultGetOrCreateBuilder().
+			WithSelfName(selfName).
+			WithSelfNamespace(selfNamespace).
+			WithSelfUID(selfUID).
+			WithUpgradeConfig(cfg).
+			WithResourceDetails(&resource).
+			WithTasks(tasks).
+			GetOrCreate()
+		if err != nil {
+			executorBuilder.errors = append(executorBuilder.errors,
+				errors.Wrapf(err,
+					"failed to instantiate executor builder: %s: %s", resource, cfg))
+			return executorBuilder
+		}
 		e, err := upgrade.NewCASTEngineBuilder().
 			WithCASTemplate(castObj).
 			WithUnitOfUpgrade(&resource).
 			WithRuntimeConfig(cfg.Data).
+			WithUpgradeResultCR(upgradeResult.Name).
 			Build()
 		if err != nil {
-			b.errors = append(b.errors,
-				errors.WithMessagef(err,
+			executorBuilder.errors = append(executorBuilder.errors,
+				errors.Wrapf(err,
 					"failed to instantiate executor builder: %s: %s", resource, cfg))
-			return
+			return executorBuilder
 		}
 
 		engines = append(engines, e)
 	}
-	b.object = &Executor{engines: engines}
-	return b
+	executorBuilder.object = &Executor{engines: engines}
+	return executorBuilder
 }
 
 // Build builds a new instance of Executor with the help of
@@ -85,7 +147,7 @@ func (e *Executor) Execute() error {
 	for _, engine := range e.engines {
 		_, err := engine.Run()
 		if err != nil {
-			return errors.WithMessagef(err, "failed to run upgrade engine")
+			return errors.Wrapf(err, "failed to run upgrade engine")
 		}
 	}
 	return nil
