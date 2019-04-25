@@ -15,131 +15,45 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
-// pod holds the api's pod objects
-type pod struct {
-	object *v1.Pod
+// Pod holds the api's pod objects
+type Pod struct {
+	object *corev1.Pod
 }
 
-// podList holds the list of pod instances
-type podList struct {
-	items []*pod
+// PodList holds the list of API pod instances
+type PodList struct {
+	items []*Pod
 }
 
-// listBuilder enables building an instance of
-// podlist
-type listBuilder struct {
-	list    *podList
-	filters predicateList
-}
+// PredicateList holds a list of predicate
+type predicateList []Predicate
 
-// WithAPIList builds the list of pod
-// instances based on the provided
-// pod list api instance
-func (b *listBuilder) WithAPIList(pods *v1.PodList) *listBuilder {
-	if pods == nil {
-		return b
-	}
-	b.WithAPIObject(pods.Items...)
-	return b
-}
+// Predicate defines an abstraction
+// to determine conditional checks
+// against the provided pod instance
+type Predicate func(*Pod) bool
 
-// WithObjects builds the list of pod
-// instances based on the provided
-// pod list instance
-func (b *listBuilder) WithObject(pods ...*pod) *listBuilder {
-	b.list.items = append(b.list.items, pods...)
-	return b
-}
-
-// WithAPIList builds the list of pod
-// instances based on the provided
-// pod api instances
-func (b *listBuilder) WithAPIObject(pods ...v1.Pod) *listBuilder {
-	for _, p := range pods {
-		p := p //pin it
-		b.list.items = append(b.list.items, &pod{&p})
-	}
-	return b
-}
-
-// List returns the list of pod
-// instances that was built by this
-// builder
-func (b *listBuilder) List() *podList {
-	if b.filters == nil && len(b.filters) == 0 {
-		return b.list
-	}
-	filtered := &podList{}
-	for _, pod := range b.list.items {
-		if b.filters.all(pod) {
-			filtered.items = append(filtered.items, pod)
-		}
-	}
-	return filtered
-}
-
-// Len returns the number of items present in the podList
-func (p *podList) Len() int {
-	return len(p.items)
-}
-
-// ToAPIList converts podList to API podList
-func (p *podList) ToAPIList() *v1.PodList {
-	plist := &v1.PodList{}
+// ToAPIList converts PodList to API PodList
+func (p *PodList) ToAPIList() *corev1.PodList {
+	plist := &corev1.PodList{}
 	for _, pod := range p.items {
 		plist.Items = append(plist.Items, *pod.object)
 	}
 	return plist
 }
 
-// ListBuilder returns a instance of listBuilder
-func ListBuilder() *listBuilder {
-	return &listBuilder{list: &podList{items: []*pod{}}}
+// Len returns the number of items present in the PodList
+func (p *PodList) Len() int {
+	return len(p.items)
 }
-
-// predicate defines an abstraction
-// to determine conditional checks
-// against the provided pod instance
-type predicate func(*pod) bool
-
-// IsRunning retuns true if the pod is in running
-// state
-func (p *pod) IsRunning() bool {
-	return p.object.Status.Phase == "Running"
-}
-
-// IsRunning is a predicate to filter out pods
-// which in running state
-func IsRunning() predicate {
-	return func(p *pod) bool {
-		return p.IsRunning()
-	}
-}
-
-// IsNil returns true if the pod instance
-// is nil
-func (p *pod) IsNil() bool {
-	return p.object == nil
-}
-
-// IsNil is predicate to filter out nil pod
-// instances
-func IsNil() predicate {
-	return func(p *pod) bool {
-		return p.IsNil()
-	}
-}
-
-// predicateList holds a list of predicate
-type predicateList []predicate
 
 // all returns true if all the predicates
 // succeed against the provided pod
 // instance
-func (l predicateList) all(p *pod) bool {
+func (l predicateList) all(p *Pod) bool {
 	for _, pred := range l {
 		if !pred(p) {
 			return false
@@ -148,9 +62,35 @@ func (l predicateList) all(p *pod) bool {
 	return true
 }
 
-// WithFilter add filters on which the pod
-// has to be filtered
-func (b *listBuilder) WithFilter(pred ...predicate) *listBuilder {
-	b.filters = append(b.filters, pred...)
-	return b
+// IsRunning retuns true if the pod is in running
+// state
+func (p *Pod) IsRunning() bool {
+	return p.object.Status.Phase == "Running"
+}
+
+// IsRunning is a predicate to filter out pods
+// which in running state
+func IsRunning() Predicate {
+	return func(p *Pod) bool {
+		return p.IsRunning()
+	}
+}
+
+// IsNil returns true if the pod instance
+// is nil
+func (p *Pod) IsNil() bool {
+	return p.object == nil
+}
+
+// IsNil is predicate to filter out nil pod
+// instances
+func IsNil() Predicate {
+	return func(p *Pod) bool {
+		return p.IsNil()
+	}
+}
+
+// GetAPIObject returns a API's Pod
+func (p *Pod) GetAPIObject() *corev1.Pod {
+	return p.object
 }
