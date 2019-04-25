@@ -110,7 +110,7 @@ func CheckValidVolumeReplica(cVR *apis.CStorVolumeReplica) error {
 
 // CreateVolumeReplica creates cStor replica(zfs volumes).
 func CreateVolumeReplica(cStorVolumeReplica *apis.CStorVolumeReplica, fullVolName string, quorum bool) error {
-	cmd := []string{}
+	var cmd []string
 	isClone := cStorVolumeReplica.Labels[string(apis.CloneEnableKEY)] == "true"
 	snapName := ""
 	if isClone {
