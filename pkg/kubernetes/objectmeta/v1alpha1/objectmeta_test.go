@@ -137,6 +137,36 @@ func TestWithName(t *testing.T) {
 	}
 }
 
+func TestWithGenerateName(t *testing.T) {
+	tests := map[string]struct {
+		generateName         string
+		expectedGenerateName string
+	}{
+		"name present": {
+			"fake-name",
+			"fake-name",
+		},
+		"empty name present": {
+			"",
+			"",
+		},
+	}
+	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
+		b := &Builder{
+			meta: &ObjectMeta{
+				object: &metav1.ObjectMeta{},
+			},
+		}
+		b.WithGenerateName(mock.generateName)
+		if b.meta.object.GenerateName != mock.expectedGenerateName {
+			t.Fatalf("test %s failed, expected generate name %s, but got : %s",
+				name, mock.expectedGenerateName, b.meta.object.GenerateName)
+		}
+	}
+}
+
 func TestWithNamespace(t *testing.T) {
 	tests := map[string]struct {
 		namespace         string

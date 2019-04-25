@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
@@ -33,13 +32,13 @@ import (
 const (
 	// labelJobName label contains name of job in which upgrade
 	// process is running
-	labelJobName = "openebs.io/upgradejob"
+	labelJobName = "upgradejob.openebs.io/name"
 	// labelItemName label contains name of unit of upgrade
-	labelItemName = "openebs.io/upgradeitemname"
+	labelItemName = "upgradeitem.openebs.io/name"
 	// labelItemNamespace label contains namespace of unit of upgrade
-	labelItemNamespace = "openebs.io/upgradeitemnamespace"
+	labelItemNamespace = "upgradeitem.openebs.io/namespace"
 	// labelItemKind label contains kind of unit of upgrade
-	labelItemKind = "openebs.io/upgradeitemkind"
+	labelItemKind = "upgradeitem.openebs.io/kind"
 )
 
 // UpgradeResult is a wrapper over upgrade.UpgradeResult struct
@@ -240,7 +239,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 // getObjectMeta returns metav1.ObjectMeta for upgrade result cr.
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
-	name := urb.SelfName + "-" + rand.String(4)
+	//name := urb.SelfName + "-" + rand.String(4)
 	oRef, err := urb.getOwnerReference()
 	if err != nil {
 		return nil, err
@@ -252,7 +251,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 		labelItemKind:      urb.ResourceDetails.Kind,
 	}
 	return objectmeta.NewBuilder().
-		WithName(name).
+		WithGenerateName(urb.SelfName + "-").
 		WithNamespace(urb.SelfNamespace).
 		WithLabels(labels).
 		WithOwnerReferences(*oRef).
