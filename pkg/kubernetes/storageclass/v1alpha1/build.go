@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	storagev1 "k8s.io/api/storage/v1"
 )
 
@@ -62,9 +62,9 @@ func (b *Builder) WithProvisioner(provisioner string) *Builder {
 }
 
 // Build returns the StorageClass API instance
-func (b *Builder) Build() (*storagev1.StorageClass, []error) {
+func (b *Builder) Build() (*storagev1.StorageClass, error) {
 	if len(b.errs) > 0 {
-		return nil, b.errs
+		return nil, errors.Errorf("%+v", b.errs)
 	}
 	return b.sc.object, nil
 }

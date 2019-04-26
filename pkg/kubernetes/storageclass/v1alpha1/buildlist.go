@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	storagev1 "k8s.io/api/storage/v1"
 )
 
@@ -31,14 +31,6 @@ type ListBuilder struct {
 // NewListBuilder returns a instance of ListBuilder
 func NewListBuilder() *ListBuilder {
 	return &ListBuilder{list: &StorageClassList{items: []*StorageClass{}}}
-}
-
-// Build returns the final instance of patch
-func (b *ListBuilder) Build() (*StorageClassList, []error) {
-	if len(b.errs) > 0 {
-		return nil, b.errs
-	}
-	return b.list, nil
 }
 
 // ListBuilderForAPIList builds the ListBuilder object based on SC API list
@@ -56,23 +48,23 @@ func ListBuilderForAPIList(scl *storagev1.StorageClassList) *ListBuilder {
 }
 
 // ListBuilderForObjects returns a instance of ListBuilder from SC instances
-func ListBuilderForObjects(scs ...*StorageClass) *ListBuilder {
+func ListBuilderForObjects(scl *StorageClassList) *ListBuilder {
 	b := &ListBuilder{list: &StorageClassList{}}
-	if scs == nil {
-		b.errs = append(b.errs, errors.New("failed to build pvc list: missing objects"))
+	if scl == nil {
+		b.errs = append(b.errs, errors.New("failed to build pvc list: missing object list"))
 		return b
 	}
-	for _, sc := range scs {
-		sc := sc
-		b.list.items = append(b.list.items, sc)
-	}
+	b.list = scl
 	return b
 }
 
 // List returns the list of StorageClass instances that was built by this builder
-func (b *ListBuilder) List() *StorageClassList {
+func (b *ListBuilder) List() (*StorageClassList, error) {
+	if len(b.errs) > 0 {
+		return nil, errors.Errorf("failed to list sc: %+v", b.errs)
+	}
 	if b.filters == nil && len(b.filters) == 0 {
-		return b.list
+		return b.list, nil
 	}
 	filtered := &StorageClassList{}
 	for _, sc := range b.list.items {
@@ -81,7 +73,7 @@ func (b *ListBuilder) List() *StorageClassList {
 			filtered.items = append(filtered.items, sc)
 		}
 	}
-	return filtered
+	return filtered, nil
 }
 
 // WithFilter add filters on which the StorageClass has to be filtered
@@ -91,14 +83,20 @@ func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 }
 
 // APIList builds core API PVC list using listbuilder
-func (b *ListBuilder) APIList() (*storagev1.StorageClassList, []error) {
-	l, errs := b.Build()
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	if l == nil {
-		errs := append(errs, errors.New("failed to build pvc list: object list nil"))
-		return nil, errs
+func (b *ListBuilder) APIList() (*storagev1.StorageClassList, error) {
+	l, err := b.List()
+	if err != nil {
+		return nil, err
 	}
 	return l.ToAPIList(), nil
+}
+
+// Len returns the number of items present
+// in the PVCList of a builder
+func (b *ListBuilder) Len() (int, error) {
+	l, err := b.List()
+	if err != nil {
+		return 0, err
+	}
+	return l.Len(), nil
 }

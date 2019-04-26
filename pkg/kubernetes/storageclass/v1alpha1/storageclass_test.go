@@ -45,6 +45,20 @@ func fakeStorageClassListAPI(scNames []string) *storagev1.StorageClassList {
 	return list
 }
 
+func fakeStorageClassListInstance(scNames []string) *StorageClassList {
+	if len(scNames) == 0 {
+		return nil
+	}
+	list := &StorageClassList{}
+	for _, name := range scNames {
+		name := name // Pin It
+		sc := storagev1.StorageClass{}
+		sc.SetName(name)
+		list.items = append(list.items, &StorageClass{&sc})
+	}
+	return list
+}
+
 func fakeStorageClassInstances(scNames []string) []*StorageClass {
 	if len(scNames) == 0 {
 		return nil
@@ -63,14 +77,17 @@ func TestFilterList(t *testing.T) {
 	tests := map[string]struct {
 		availableSC []string
 		filteredSCs []string
+		expectedErr bool
 	}{
 		"StorageClass Set 1": {
 			availableSC: []string{"SC1", "SC2"},
 			filteredSCs: []string{"SC1", "SC2"},
+			expectedErr: false,
 		},
 		"StorageClass Set 2": {
 			availableSC: []string{},
 			filteredSCs: []string{},
+			expectedErr: false,
 		},
 	}
 	for name, mock := range tests {
@@ -78,9 +95,15 @@ func TestFilterList(t *testing.T) {
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			sc := &ListBuilder{list: &StorageClassList{items: fakeStorageClassInstances(mock.availableSC)}}
-			list := sc.List()
-			if len(list.items) != len(mock.filteredSCs) {
+			list, err := sc.List()
+			if err == nil && len(list.items) != len(mock.filteredSCs) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredSCs), len(list.items))
+			}
+			if mock.expectedErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
 			}
 		})
 	}

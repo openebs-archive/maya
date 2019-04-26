@@ -17,8 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	"github.com/pkg/errors"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -129,7 +129,7 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*storagev1.StorageClassList,
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.StorageClass, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get storageclass '%s'", name)
+		return nil, errors.Wrapf(err, "failed to get storageclass {%s}", name)
 	}
 	return k.get(cli, name, opts)
 }
@@ -138,7 +138,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.Storag
 func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create the storageclass '%v'", *sc)
+		return nil, errors.Wrapf(err, "failed to create the storageclass {%+v}", *sc)
 	}
 	return k.create(cli, sc)
 }
@@ -147,7 +147,7 @@ func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete the storageclass: '%s'", name)
+		return errors.Wrapf(err, "failed to delete the storageclass: {%s}", name)
 	}
 	return k.del(cli, name, opts)
 }

@@ -65,3 +65,9 @@ func (l predicateList) all(sc *StorageClass) bool {
 func (scl *StorageClassList) Len() int {
 	return len(scl.items)
 }
+
+// NewForAPIObject returns a new instance of StorageClass
+func NewForAPIObject(obj *storagev1.StorageClass) *StorageClass {
+	sc := &StorageClass{object: obj}
+	return sc
+}
