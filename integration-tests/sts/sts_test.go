@@ -1,3 +1,17 @@
+// Copyright © 2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package sts
 
 import (
@@ -69,7 +83,7 @@ metadata:
       - name: ReplicaCount
         value: "1"
       - name: StoragePoolClaim
-        value: "cstor-sparse-pool" 
+        value: "cstor-sparse-pool"
 provisioner: openebs.io/provisioner-iscsi
 `
 )
@@ -114,12 +128,11 @@ var _ = Describe("StatefulSet", func() {
 		// Check for pvc to get created and bound
 		Eventually(func() int {
 			pvcs, err := pvc.
-				KubeClient(pvc.WithNamespace(stsNamespace)).
+				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pvc.
-				ListBuilder().
-				WithAPIList(pvcs).
+				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.IsBound()).
 				List().
 				Len()
@@ -146,12 +159,11 @@ var _ = Describe("StatefulSet", func() {
 		// Check for statefulset pods to get created and running
 		Eventually(func() int {
 			pods, err := pod.
-				KubeClient(pod.WithNamespace(stsNamespace)).
+				NewKubeClient(pod.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pod.
-				ListBuilder().
-				WithAPIList(pods).
+				ListBuilderForAPIList(pods).
 				WithFilter(pod.IsRunning()).
 				List().
 				Len()
@@ -176,12 +188,12 @@ var _ = Describe("StatefulSet", func() {
 		stsApplicationLabel := "app=" + STSUnstructured.GetName()
 
 		// Fetch PVCs to be deleted
-		pvcs, err := pvc.KubeClient(pvc.WithNamespace(stsNamespace)).
+		pvcs, err := pvc.NewKubeClient(pvc.WithNamespace(stsNamespace)).
 			List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 		Expect(err).ShouldNot(HaveOccurred())
 		// Delete PVCs
 		for _, p := range pvcs.Items {
-			err = pvc.KubeClient(pvc.WithNamespace(stsNamespace)).
+			err = pvc.NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				Delete(p.GetName(), &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 		}
@@ -197,7 +209,7 @@ var _ = Describe("StatefulSet", func() {
 		// Verify deletion of sts instances
 		Eventually(func() int {
 			pods, err := pod.
-				KubeClient(pod.WithNamespace(stsNamespace)).
+				NewKubeClient(pod.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pods.Items)
@@ -207,7 +219,7 @@ var _ = Describe("StatefulSet", func() {
 		// Verify deletion of pvc instances
 		Eventually(func() int {
 			pvcs, err := pvc.
-				KubeClient(pvc.WithNamespace(stsNamespace)).
+				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
@@ -239,12 +251,11 @@ var _ = Describe("StatefulSet", func() {
 			replicaAntiAffinityLabel := "openebs.io/replica-anti-affinity=" + STSUnstructured.GetName()
 
 			pvcs, err := pvc.
-				KubeClient(pvc.WithNamespace(stsNamespace)).
+				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			pvcList := pvc.
-				ListBuilder().
-				WithAPIList(pvcs).
+				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.ContainsName(STSUnstructured.GetName())).
 				List()
 			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))

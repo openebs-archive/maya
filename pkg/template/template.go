@@ -384,8 +384,7 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 				continue
 			}
 
-			// reset the path fields first
-			fields = nil
+			// fields is already set to nil
 			fields = append(destFields, primaryKey, key)
 
 			// append to existing value if any

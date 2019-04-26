@@ -73,6 +73,12 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithGenerateName adds GenerateName in ObjectMeta instance
+func (b *Builder) WithGenerateName(generateName string) *Builder {
+	b.meta.object.GenerateName = generateName
+	return b
+}
+
 // WithNamespace adds namespace in ObjectMeta instance
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	b.meta.object.Namespace = namespace
@@ -103,7 +109,7 @@ func (b *Builder) validate() error {
 		return errors.Errorf("failed to validate: build errors were found: %v", b.errors)
 	}
 	validationErrs := []error{}
-	if b.meta.object.Name == "" {
+	if b.meta.object.Name == "" && b.meta.object.GenerateName == "" {
 		validationErrs = append(validationErrs, errors.New("missing name"))
 	}
 	if len(validationErrs) != 0 {

@@ -42,6 +42,8 @@ const (
 	namespaceKey string = "namespace"
 	// kindKey is a property of TaskConfig this is kind of the resource.
 	kindKey string = "kind"
+	// upgradeResultKey is a property of upgrade result cr for the resource.
+	upgradeResultKey string = "upgradeResult"
 )
 
 // CASTEngineBuilder helps to build a new instance of castEngine
@@ -49,6 +51,7 @@ type CASTEngineBuilder struct {
 	RuntimeConfig []apis.Config
 	CASTemplate   *apis.CASTemplate
 	UnitOfUpgrade *upgrade.ResourceDetails
+	UpgradeResult string
 	errors        []error
 }
 
@@ -90,6 +93,12 @@ func (ceb *CASTEngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *CA
 	return ceb
 }
 
+// WithUpgradeResultCR sets upgradeResultCR name in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithUpgradeResultCR(upgradeResult string) *CASTEngineBuilder {
+	ceb.UpgradeResult = upgradeResult
+	return ceb
+}
+
 // validate validates CASTEngineBuilder struct.
 func (ceb *CASTEngineBuilder) validate() error {
 	if ceb.CASTemplate == nil {
@@ -97,6 +106,9 @@ func (ceb *CASTEngineBuilder) validate() error {
 	}
 	if ceb.UnitOfUpgrade == nil {
 		return errors.New("missing upgrade item")
+	}
+	if ceb.UpgradeResult == "" {
+		return errors.New("missing upgrade result cr")
 	}
 	if len(ceb.errors) > 0 {
 		return errors.Errorf("%v", ceb.errors)
@@ -108,32 +120,33 @@ func (ceb *CASTEngineBuilder) validate() error {
 func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 	err = ceb.validate()
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build cast engine: failed to validate: %s", ceb)
+		err = errors.Wrapf(err, "failed to build cast engine: failed to validate: %s", ceb)
 		return
 	}
 
 	// creating a new instance of CASTEngine
 	e, err = cast.Engine(ceb.CASTemplate, "", nil)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
+		err = errors.Wrapf(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 
 	defaultConfig, err := cast.ConfigToMap(ceb.CASTemplate.Spec.Defaults)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
+		err = errors.Wrapf(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 	runtimeConfig, err := cast.ConfigToMap(ceb.RuntimeConfig)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to build cast engine: %s", ceb)
+		err = errors.Wrapf(err, "failed to build cast engine: %s", ceb)
 		return
 	}
 
 	taskConfig := map[string]interface{}{
-		nameKey:      ceb.UnitOfUpgrade.Name,
-		namespaceKey: ceb.UnitOfUpgrade.Namespace,
-		kindKey:      ceb.UnitOfUpgrade.Kind,
+		nameKey:          ceb.UnitOfUpgrade.Name,
+		namespaceKey:     ceb.UnitOfUpgrade.Namespace,
+		kindKey:          ceb.UnitOfUpgrade.Kind,
+		upgradeResultKey: ceb.UpgradeResult,
 	}
 	e.SetValues(upgradeItemProperty, taskConfig)
 	e.SetValues(configProperty, defaultConfig)

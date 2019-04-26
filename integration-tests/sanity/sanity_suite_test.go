@@ -1,3 +1,17 @@
+// Copyright © 2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package sanity
 
 import (
@@ -43,8 +57,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Fetching the openebs component artifacts
-	artifacts, err := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
-	Expect(err).ShouldNot(HaveOccurred())
+	artifacts, errs := artifacts.GetArtifactsListUnstructuredFromFile(artifacts.OpenEBSArtifacts)
+	Expect(errs).Should(HaveLen(0))
 
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range artifacts {
@@ -87,13 +101,9 @@ var _ = AfterSuite(func() {
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	// Unsetting the environment variable
-	err = os.Unsetenv(string(v1alpha1.KubeConfigEnvironmentKey))
-	Expect(err).ShouldNot(HaveOccurred())
-
 	// Waiting for openebs namespace to get terminated
-	clientset, err := kubernetes.GetClientSet()
-	Expect(err).NotTo(HaveOccurred())
+	clientset, errs := kubernetes.GetClientSet()
+	Expect(errs).Should(HaveLen(0))
 
 	status := false
 	for i := 0; i < 100; i++ {

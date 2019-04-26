@@ -1,5 +1,24 @@
+# Copyright © 2017 The OpenEBS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include buildscripts/common.mk
+
 # list only maya source code directories
 PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|integration-tests')
+
+# list maya source code directories along with integration-test code
+PACKAGES_IT = $(shell go list ./... | grep 'integration-test')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -95,6 +114,14 @@ release:
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
+
+# Verifies the compilation issues in integratio test
+# TODO: Currently we are checking only for integration-test package
+precompile:
+	@echo "--> Running go vet on integration-test"
+	@for test in  $(PACKAGES_IT) ; do \
+		go vet $$test; \
+	done
 
 test: format
 	@echo "--> Running go test" ;
