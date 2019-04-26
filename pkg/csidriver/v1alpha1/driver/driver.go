@@ -59,6 +59,8 @@ func New(driverConfig *config.Config) *CSIDriver {
 		go utils.MonitorMounts()
 		drvr.ns = NewNodeServer(drvr)
 	}
+	// Identity server is common to both node and controller, it is required to
+	// register, share capabilities and probe the corresponding driver
 	drvr.ids = NewIdentityServer(drvr)
 	return drvr
 

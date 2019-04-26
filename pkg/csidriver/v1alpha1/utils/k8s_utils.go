@@ -57,19 +57,19 @@ func getVolStatus(volumeID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(volumeList.Items) > 1 {
+	if len(volumeList.Items) != 1 {
 		return "", fmt.Errorf("Expected VolumeList count for volume: %v, Actual: %v", 1, len(volumeList.Items))
 	}
 	return string(volumeList.Items[0].Status.Phase), nil
 }
 
-// CreateCSIVolumeInfoCR creates a new CSIVolumeInfo CR with this nodeID
-func CreateCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID, mountPath string) (err error) {
+// CreateCSIVolumeCR creates a new CSIVolume CR with this nodeID
+func CreateCSIVolumeCR(csivol *v1alpha1.CSIVolume, nodeID, mountPath string) (err error) {
 
-	csivol.Name = csivol.Spec.Volname + nodeID
+	csivol.Name = csivol.Spec.Volume.Volname + nodeID
 	csivol.Labels = make(map[string]string)
-	csivol.Spec.OwnerNodeID = nodeID
-	csivol.Labels["Volname"] = csivol.Spec.Volname
+	csivol.Spec.Volume.OwnerNodeID = nodeID
+	csivol.Labels["Volname"] = csivol.Spec.Volume.Volname
 	csivol.Labels["nodeID"] = nodeID
 	nodeInfo, err := getNodeDetails(nodeID)
 	if err != nil {
@@ -85,21 +85,21 @@ func CreateCSIVolumeInfoCR(csivol *v1alpha1.CSIVolumeInfo, nodeID, mountPath str
 	}
 	csivol.Finalizers = []string{nodeID}
 	openebsClient, _ := loadClientFromServiceAccount()
-	_, err = openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).Create(csivol)
+	_, err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).Create(csivol)
 	return
 }
 
-// DeleteOldCSIVolumeInfoCR deletes all CSIVolumeInfos related to this volume so
+// DeleteOldCSIVolumeCR deletes all CSIVolumes related to this volume so
 // that a new one can be created with node as current nodeID
-func DeleteOldCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
+func DeleteOldCSIVolumeCR(vol *v1alpha1.CSIVolume) (err error) {
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{
 		LabelSelector: "Volname=" + vol.Name,
 	}
 
-	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).List(listOptions)
+	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).List(listOptions)
 	for _, csivol := range csivols.Items {
-		err = openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).Delete(csivol.Name, &v1.DeleteOptions{})
+		err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).Delete(csivol.Name, &v1.DeleteOptions{})
 		if err != nil {
 			return
 		}
@@ -107,21 +107,21 @@ func DeleteOldCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
 	return
 }
 
-// DeleteCSIVolumeInfoCR removes the CSIVolumeInfo with this nodeID as
+// DeleteCSIVolumeCR removes the CSIVolume with this nodeID as
 // labelSelector from the list
-func DeleteCSIVolumeInfoCR(vol *v1alpha1.CSIVolumeInfo) (err error) {
+func DeleteCSIVolumeCR(vol *v1alpha1.CSIVolume) (err error) {
 	openebsClient, _ := loadClientFromServiceAccount()
 	listOptions := v1.ListOptions{
 		LabelSelector: "Volname=" + vol.Name,
 	}
 
-	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).List(listOptions)
+	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).List(listOptions)
 	if err != nil {
 		return
 	}
 	for _, csivol := range csivols.Items {
-		if csivol.Spec.OwnerNodeID == vol.Spec.OwnerNodeID {
-			err = openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).Delete(csivol.Name, &v1.DeleteOptions{})
+		if csivol.Spec.Volume.OwnerNodeID == vol.Spec.Volume.OwnerNodeID {
+			err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).Delete(csivol.Name, &v1.DeleteOptions{})
 			if err != nil {
 				return
 			}
@@ -143,13 +143,13 @@ func FetchAndUpdateVolInfos(nodeID string) (err error) {
 		}
 	}
 
-	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumeInfos(OpenEBSNamespace).List(listOptions)
+	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).List(listOptions)
 	if err != nil {
 		return
 	}
 	for _, csivol := range csivols.Items {
 		vol := csivol
-		Volumes[csivol.Spec.Volname] = &vol
+		Volumes[csivol.Spec.Volume.Volname] = &vol
 	}
 	return
 }

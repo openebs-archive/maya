@@ -9,8 +9,8 @@ import (
 	"k8s.io/kubernetes/pkg/volume/util"
 )
 
-func getISCSIInfo(vol *v1alpha1.CSIVolumeInfo) (*iscsiDisk, error) {
-	portal := portalMounter(vol.Spec.TargetPortal)
+func getISCSIInfo(vol *v1alpha1.CSIVolume) (*iscsiDisk, error) {
+	portal := portalMounter(vol.Spec.ISCSI.TargetPortal)
 	var portals []string
 	portals = append(portals, portal)
 
@@ -19,11 +19,11 @@ func getISCSIInfo(vol *v1alpha1.CSIVolumeInfo) (*iscsiDisk, error) {
 	chapSession := false
 
 	return &iscsiDisk{
-		VolName:       vol.Spec.Volname,
+		VolName:       vol.Spec.Volume.Volname,
 		Portals:       portals,
-		Iqn:           vol.Spec.Iqn,
-		lun:           vol.Spec.Lun,
-		Iface:         vol.Spec.IscsiInterface,
+		Iqn:           vol.Spec.ISCSI.Iqn,
+		lun:           vol.Spec.ISCSI.Lun,
+		Iface:         vol.Spec.ISCSI.IscsiInterface,
 		chapDiscovery: chapDiscovery,
 		chapSession:   chapSession}, nil
 }
@@ -69,16 +69,16 @@ func getISCSIInfoFromPV(req *csi.NodePublishVolumeRequest) (*iscsiDisk, error) {
 		InitiatorName: initiatorName}, nil
 }
 
-func getISCSIDiskMounter(iscsiInfo *iscsiDisk, vol *v1alpha1.CSIVolumeInfo) *iscsiDiskMounter {
+func getISCSIDiskMounter(iscsiInfo *iscsiDisk, vol *v1alpha1.CSIVolume) *iscsiDiskMounter {
 
 	return &iscsiDiskMounter{
 		iscsiDisk:    iscsiInfo,
-		fsType:       vol.Spec.FSType,
-		readOnly:     vol.Spec.ReadOnly,
-		mountOptions: vol.Spec.MountOptions,
+		fsType:       vol.Spec.Volume.FSType,
+		readOnly:     vol.Spec.Volume.ReadOnly,
+		mountOptions: vol.Spec.Volume.MountOptions,
 		mounter:      &mount.SafeFormatAndMount{Interface: mount.New(""), Exec: mount.NewOsExec()},
 		exec:         mount.NewOsExec(),
-		targetPath:   vol.Spec.MountPath,
+		targetPath:   vol.Spec.Volume.MountPath,
 		deviceUtil:   util.NewDeviceHandler(util.NewIOHandler()),
 	}
 }

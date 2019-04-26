@@ -76,7 +76,8 @@ func (s *nonBlockingGRPCServer) ForceStop() {
 }
 
 // serve starts serving requests at the provided endpoint based on the type of
-// plugin
+// plugin. In this function all the csi related interfaces are provided by
+// container-storage-interface
 func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, cs csi.ControllerServer, ns csi.NodeServer) {
 
 	proto, addr, err := parseEndpoint(endpoint)
@@ -84,6 +85,10 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 		glog.Fatal(err.Error())
 	}
 
+	// Clear off the addr if it is already present, this is done to remove stale
+	// entries, as this path is shared with the OS and will be the same
+	// everytime the plugin restarts, its possible that the last instance leaves
+	// a stale entry
 	if proto == "unix" {
 		addr = "/" + addr
 		if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
@@ -99,6 +104,8 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(logGRPC),
 	}
+	// Create a new grpc server, all the request from csi client to
+	// create/delete/... will hit this server
 	server := grpc.NewServer(opts...)
 	s.server = server
 
@@ -114,6 +121,7 @@ func (s *nonBlockingGRPCServer) serve(endpoint string, ids csi.IdentityServer, c
 
 	glog.Infof("Listening for connections on address: %#v", listener.Addr())
 
+	// Start serving requests on the grpc server created
 	server.Serve(listener)
 
 }
