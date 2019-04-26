@@ -32,6 +32,9 @@ func fakeAPIPVCList(pvcNames []string) *corev1.PersistentVolumeClaimList {
 }
 
 func fakeAPIPVCListFromNameStatusMap(pvcs map[string]corev1.PersistentVolumeClaimPhase) *corev1.PersistentVolumeClaimList {
+	if len(pvcs) == 0 {
+		return nil
+	}
 	list := &corev1.PersistentVolumeClaimList{}
 	for k, v := range pvcs {
 		pvc := corev1.PersistentVolumeClaim{}

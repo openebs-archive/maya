@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -32,14 +32,6 @@ type ListBuilder struct {
 // NewListBuilder returns an instance of ListBuilder
 func NewListBuilder() *ListBuilder {
 	return &ListBuilder{list: &PVCList{}}
-}
-
-// Build returns the final instance of patch
-func (b *ListBuilder) Build() (*PVCList, []error) {
-	if len(b.errs) > 0 {
-		return nil, b.errs
-	}
-	return b.list, nil
 }
 
 // ListBuilderForAPIObjects builds the ListBuilder object based on PVC api list
@@ -70,34 +62,37 @@ func ListBuilderForObjects(pvcs *PVCList) *ListBuilder {
 // List returns the list of pvc
 // instances that was built by this
 // builder
-func (b *ListBuilder) List() *PVCList {
-	if b.filters == nil || len(b.filters) == 0 {
-		return b.list
+func (b *ListBuilder) List() (*PVCList, error) {
+	if len(b.errs) > 0 {
+		return nil, errors.Errorf("failed to list pvc: %+v", b.errs)
 	}
-	filtered := &PVCList{}
+	if b.filters == nil || len(b.filters) == 0 {
+		return b.list, nil
+	}
+	filteredList := &PVCList{}
 	for _, pvc := range b.list.items {
 		if b.filters.all(pvc) {
-			filtered.items = append(filtered.items, pvc)
+			filteredList.items = append(filteredList.items, pvc)
 		}
 	}
-	return filtered
+	return filteredList, nil
 }
 
 // Len returns the number of items present
 // in the PVCList of a builder
-func (b *ListBuilder) Len() int {
-	return len(b.list.items)
+func (b *ListBuilder) Len() (int, error) {
+	l, err := b.List()
+	if err != nil {
+		return 0, err
+	}
+	return l.Len(), nil
 }
 
 // APIList builds core API PVC list using listbuilder
-func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, []error) {
-	l, errs := b.Build()
-	if len(errs) > 0 {
-		return nil, errs
-	}
-	if l == nil {
-		errs := append(errs, errors.New("failed to build pvc list: object list nil"))
-		return nil, errs
+func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, error) {
+	l, err := b.List()
+	if err != nil {
+		return nil, err
 	}
 	return l.ToAPIList(), nil
 }

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -96,7 +96,7 @@ func (b *Builder) WithAccessModes(accessMode []corev1.PersistentVolumeAccessMode
 func (b *Builder) WithCapacity(capacity string) *Builder {
 	resCapacity, err := resource.ParseQuantity(capacity)
 	if err != nil {
-		b.errs = append(b.errs, errors.Errorf("failed to build PVC object: failed to parse capacity {%s}", capacity))
+		b.errs = append(b.errs, errors.Wrapf(err, "failed to build PVC object: failed to parse capacity {%s}", capacity))
 		return b
 	}
 	resourceList := corev1.ResourceList{
@@ -107,9 +107,9 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 }
 
 // Build returns the PVC API instance
-func (b *Builder) Build() (*corev1.PersistentVolumeClaim, []error) {
+func (b *Builder) Build() (*corev1.PersistentVolumeClaim, error) {
 	if len(b.errs) > 0 {
-		return nil, b.errs
+		return nil, errors.Errorf("%+v", b.errs)
 	}
 	return b.pvc.object, nil
 }
