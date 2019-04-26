@@ -90,7 +90,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	// Verify if the volume has already been created
 	if exVol, err := utils.GetVolumeByName(volName); err == nil {
-		capacity, _ := strconv.ParseInt(exVol.Spec.Capacity, 10, 64)
+		capacity, _ := strconv.ParseInt(exVol.Spec.Volume.Capacity, 10, 64)
 		if capacity >= int64(req.GetCapacityRange().GetRequiredBytes()) {
 			return &csi.CreateVolumeResponse{
 				Volume: &csi.Volume{
@@ -112,7 +112,7 @@ func (cs *ControllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	// Create a csi vol object from info returned by m-apiserver
-	csivol := utils.GenerateCSIVolInfoFromCASVolume(vol)
+	csivol := utils.GenerateCSIVolFromCASVolume(vol)
 
 	volumeID := volName
 	// Keep a local copy of the volume info to catch duplicate requests

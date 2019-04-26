@@ -25,31 +25,35 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=csivolumeinfo
 
-// CSIVolumeInfo describes a csi volume resource created as custom resource
-type CSIVolumeInfo struct {
+// CSIVolume describes a csi volume resource created as custom resource
+type CSIVolume struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              CSIVolumeInfoSpec `json:"spec"`
+	Spec              CSIVolumeSpec `json:"spec"`
 }
 
-// CSIVolumeInfoSpec is the spec for a CStorVolumeInfo resource
-type CSIVolumeInfoSpec struct {
+// CSIVolumeSpec is the spec for a CStorVolume resource
+type CSIVolumeSpec struct {
+	// Volume part of CSIVolume contains info specific to CSIVolumes in general
+	Volume VolumeInfo
+	// ISCSI part of CSIVolume contains info specific to ISCSI protocol,
+	// this is filled only if the volume type is iSCSI
+	ISCSI ISCSIInfo
+}
+
+// Volume contains the volume related info
+// for all types of volumes in CSIVolumeSpec
+type VolumeInfo struct {
 	// Volname of a volume will hold the name of the CSI Volume
 	Volname string `json:"volname"`
+	// CASType of a volume is the backend type for OpenEBS volumes
+	CASType string `json:"castype"`
 	// OwnerNodeID of a volume will hold the ownerNodeID of the Volume
 	OwnerNodeID string `json:"ownernodeID"`
 	// Capacity of a volume will hold the capacity of the Volume
 	Capacity string `json:"capacity"`
-	// Iqn of a volume will hold the iqn value of the Volume
-	Iqn string `json:"iqn"`
-	// TargetPortal of a volume will hold the target portal of the volume
-	TargetPortal string `json:"targetPortal"`
-	// IscsiInterface
-	IscsiInterface string `json:"iscsiInterface"`
 	// FSType of a volume will specify the format type - ext4(default), xfs of PV
 	FSType string `json:"fsType"`
-	// Lun of volume will specify the lun number 0, 1.. on iSCSI Volume. (default: 0)
-	Lun string `json:"lun"`
 	// AccessMode of a volume will hold the access mode of the volume
 	AccessModes []string `json:"accessMode"`
 	// MountPath of the volume will hold the path on which the volume is mounted
@@ -61,13 +65,24 @@ type CSIVolumeInfoSpec struct {
 	MountOptions []string `json:"mountOptions"`
 }
 
+type ISCSIInfo struct {
+	// Iqn of a volume will hold the iqn value of the Volume
+	Iqn string `json:"iqn"`
+	// TargetPortal of a volume will hold the target portal of the volume
+	TargetPortal string `json:"targetPortal"`
+	// IscsiInterface
+	IscsiInterface string `json:"iscsiInterface"`
+	// Lun of volume will specify the lun number 0, 1.. on iSCSI Volume. (default: 0)
+	Lun string `json:"lun"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=csivolumeinfo
 
-// CSIVolumeInfoList is a list of CSIVolumeInfo resources
-type CSIVolumeInfoList struct {
+// CSIVolumeList is a list of CSIVolume resources
+type CSIVolumeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []CSIVolumeInfo `json:"items"`
+	Items []CSIVolume `json:"items"`
 }

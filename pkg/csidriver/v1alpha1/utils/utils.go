@@ -33,13 +33,22 @@ var (
 
 	// Volumes contains the list of volumes created in case of controller plugin
 	// and list of volumes attached to this node in node plugin
-	Volumes map[string]*v1alpha1.CSIVolumeInfo
+	// This list is protected by VolumesListLock
+	Volumes map[string]*v1alpha1.CSIVolume
 
 	// MonitorLock is required to protect the above Volumes list
-	MonitorLock sync.RWMutex
+	VolumesListLock sync.RWMutex
+
+	// List of volumes which are required to be remounted
+	// This list is secured by ReqMountListLock
+	ReqMountList map[string]bool
+
+	// MonitorLock is required to protect the above ReqMount list
+	ReqMountListLock sync.RWMutex
 )
 
 const (
+	// timmeout indiactes the REST call timeouts
 	timeout = 60 * time.Second
 )
 
@@ -50,6 +59,10 @@ func init() {
 		logrus.Fatalf("OPENEBS_NAMESPACE environment variable not set")
 	}
 
+	// Get MAPI_ServiceName from env OPENEBS_MAPI_SVC
+	// If this env is not set its better to crash the container since its a
+	// configuration problem. Without this service its not possible to create
+	// or delete volumes
 	MAPIServiceName := os.Getenv("OPENEBS_MAPI_SVC")
 	if MAPIServiceName == "" {
 		logrus.Fatalf("OPENEBS_MAPI_SVC environment variable not set")
@@ -61,6 +74,9 @@ func init() {
 	}
 	svc, err := kc.GetService(MAPIServiceName, metav1.GetOptions{})
 	if err != nil {
+		// If error occurs over here then there are 2 possibilities either the
+		// service was not created or KubeAPIServer is not reachable
+		// In both the cases the driver cannot be started
 		logrus.Fatalf(err.Error())
 	}
 
@@ -68,10 +84,12 @@ func init() {
 	svcPort := strconv.FormatInt(int64(svc.Spec.Ports[0].Port), 10)
 	MAPIServerEndpoint = "http://" + svcIP + ":" + svcPort
 
-	Volumes = map[string]*v1alpha1.CSIVolumeInfo{}
+	Volumes = map[string]*v1alpha1.CSIVolume{}
+	ReqMountList = make(map[string]bool)
 
 }
 
+// parseEndpoint should have a valid prefix(unix/tcp) to return a valid endpoint parts
 func parseEndpoint(ep string) (string, string, error) {
 	if strings.HasPrefix(strings.ToLower(ep), "unix://") || strings.HasPrefix(strings.ToLower(ep), "tcp://") {
 		s := strings.SplitN(ep, "://", 2)
@@ -82,6 +100,8 @@ func parseEndpoint(ep string) (string, string, error) {
 	return "", "", fmt.Errorf("Invalid endpoint: %v", ep)
 }
 
+// logGRPC logs all the grpc related errors, i.e the final errors
+// which are returned to the grpc clients
 func logGRPC(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	glog.V(3).Infof("GRPC call: %s", info.FullMethod)
 	glog.V(5).Infof("GRPC request: %s", protosanitizer.StripSecrets(req))
@@ -110,19 +130,26 @@ func WaitForVolumeToBeReachable(targetPortal string) error {
 	)
 
 	for {
+		// Create a connection to test if the iSCSI Portal is reachable,
 		if conn, err = net.Dial("tcp", targetPortal); err == nil {
 			conn.Close()
 			logrus.Infof("Volume is reachable to create connections")
 			return nil
 		}
+		// wait until the iSCSI targetPortal is reachable
+		// There is no pointn of triggering iSCSIadm login commands
+		// until the portal is reachable
 		time.Sleep(2 * time.Second)
 		retries++
 		if retries >= 6 {
+			// Let the caller function decide further if the volume is not reachable
+			// even after 12 seconds ( This number was arrived at
+			// based on the kubelets retrying logic. Kubelet retries to publish
+			// volume after every 14s )
 			return fmt.Errorf("iSCSI Target not reachable, TargetPortal %v, err:%v",
 				targetPortal, err)
 		}
 	}
-
 }
 
 // WaitForVolumeToBeReady retrieves the volume info from cstorVolume CR and
@@ -130,12 +157,18 @@ func WaitForVolumeToBeReachable(targetPortal string) error {
 func WaitForVolumeToBeReady(volumeID string) error {
 	var retries int
 checkVolumeStatus:
+	// Status is fetched from cstorVolume CR
 	volStatus, err := getVolStatus(volumeID)
 	if err != nil {
 		return err
 	} else if volStatus == "Healthy" || volStatus == "Degraded" {
+		// In both healthy and degraded states the volume can serve IOs
 		logrus.Infof("Volume is ready to accept IOs")
 	} else if retries >= 6 {
+		// Let the caller function decide further if the volume is still not
+		// ready to accdept IOs after 12 seconds ( This number was arrived at
+		// based on the kubelets retrying logic. Kubelet retries to publish
+		// volume after every 14s )
 		return fmt.Errorf("Volume is not ready: Replicas yet to connect to controller")
 	} else {
 		time.Sleep(2 * time.Second)
@@ -146,9 +179,9 @@ checkVolumeStatus:
 }
 
 // GetVolumeByName fetches the volume from Volumes list based on th input name
-func GetVolumeByName(volName string) (*v1alpha1.CSIVolumeInfo, error) {
+func GetVolumeByName(volName string) (*v1alpha1.CSIVolume, error) {
 	for _, Vol := range Volumes {
-		if Vol.Name == volName {
+		if Vol.Spec.Volume.Volname == volName {
 			return Vol, nil
 		}
 	}
@@ -159,26 +192,26 @@ func GetVolumeByName(volName string) (*v1alpha1.CSIVolumeInfo, error) {
 // GetVolumeDetails returns a new instance of csiVolumeInfo filled with the
 // VolumeAttributes fetched from the corresponding PV and some additional info
 // required for remounting
-func GetVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []string) (*v1alpha1.CSIVolumeInfo, error) {
+func GetVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []string) (*v1alpha1.CSIVolume, error) {
 	pv, err := FetchPVDetails(volumeID)
 	if err != nil {
 		return nil, err
 	}
-	vol := v1alpha1.CSIVolumeInfo{}
+	vol := v1alpha1.CSIVolume{}
 	cap := pv.Spec.Capacity[api_core_v1.ResourceName(api_core_v1.ResourceStorage)]
 	for _, accessmode := range pv.Spec.AccessModes {
-		vol.Spec.AccessModes = append(vol.Spec.AccessModes, string(accessmode))
+		vol.Spec.Volume.AccessModes = append(vol.Spec.Volume.AccessModes, string(accessmode))
 	}
-	vol.Spec.Volname = volumeID
-	vol.Spec.Iqn = pv.Spec.CSI.VolumeAttributes["iqn"]
-	vol.Spec.Lun = pv.Spec.CSI.VolumeAttributes["lun"]
-	vol.Spec.IscsiInterface = pv.Spec.CSI.VolumeAttributes["iscsiInterface"]
-	vol.Spec.TargetPortal = pv.Spec.CSI.VolumeAttributes["targetPortal"]
-	vol.Spec.FSType = pv.Spec.CSI.FSType
-	vol.Spec.Capacity = cap.String()
-	vol.Spec.MountPath = mountPath
-	vol.Spec.ReadOnly = readOnly
-	vol.Spec.MountOptions = mountOptions
+	vol.Spec.Volume.Volname = volumeID
+	vol.Spec.Volume.FSType = pv.Spec.CSI.FSType
+	vol.Spec.Volume.Capacity = cap.String()
+	vol.Spec.Volume.MountPath = mountPath
+	vol.Spec.Volume.ReadOnly = readOnly
+	vol.Spec.Volume.MountOptions = mountOptions
+	vol.Spec.ISCSI.Iqn = pv.Spec.CSI.VolumeAttributes["iqn"]
+	vol.Spec.ISCSI.Lun = pv.Spec.CSI.VolumeAttributes["lun"]
+	vol.Spec.ISCSI.IscsiInterface = pv.Spec.CSI.VolumeAttributes["iscsiInterface"]
+	vol.Spec.ISCSI.TargetPortal = pv.Spec.CSI.VolumeAttributes["targetPortal"]
 	return &vol, nil
 }
 
@@ -194,86 +227,116 @@ func listContains(mountPath string, list []mount.MountPoint) (*mount.MountPoint,
 
 // MonitorMounts makes sure that all the volumes present in the inmemory list
 // with the driver are mounted with the original mount options
+// This function runs a never ending loop therefore should be run as a goroutine
+// Mounted list is fetched from the OS and the state of all the volumes is
+// reverified after every 5 seconds. If the mountpoint is not present in the
+// list or if it has been remounted with a different mount option by the OS, the
+// volume is added to the ReqMountList which is removed as soon as the remount
+// operation on the volume is complete
+// For each remount operation a new goroutine is created, so that if multiple
+// volumes have lost their original state they can all be remounted in parallel
 func MonitorMounts() {
 	mounter := mount.New("")
-	//options = append(options, "remount")
 	ticker := time.NewTicker(5 * time.Second)
-	volMonitorMap := make(map[string]bool)
 	for {
 		select {
 		case <-ticker.C:
-			MonitorLock.RLock()
-			// Get list of mount paths present with the node
+			// Get list of mounted paths present with the node
 			list, _ := mounter.List()
+			VolumesListLock.RLock()
 			for _, vol := range Volumes {
-				_, volMonitor := volMonitorMap["vol.Spec.Volname"]
-				if volMonitor == true {
+				// Search the volume in the list of mounted volumes at the node
+				// retrieved above
+				mountPoint, exists := listContains(vol.Spec.Volume.MountPath, list)
+				// If the volume is present in the list verify its state
+				if exists && verifyMountOpts(mountPoint.Opts, "rw") {
+					// Continue with remaining volumes since this volume looks
+					// to be in good shape
 					continue
 				}
-				path := vol.Spec.MountPath
-				mountPoint, exists := listContains(path, list)
-				go func() {
-					MonitorLock.Lock()
-					volMonitorMap[vol.Spec.Volname] = true
-					MonitorLock.Unlock()
-					verifyAndRemount(exists, vol, mountPoint, path)
-					MonitorLock.Lock()
-					delete(volMonitorMap, vol.Spec.Volname)
-					MonitorLock.Unlock()
-
-				}()
+				// Skip remount if the volume is already being remounted
+				if _, isRemounting := ReqMountList[vol.Spec.Volume.Volname]; isRemounting {
+					continue
+				}
+				// Add volume to the reqMountList and start a goroutine to
+				// remount it
+				ReqMountListLock.Lock()
+				ReqMountList[vol.Spec.Volume.Volname] = true
+				ReqMountListLock.Unlock()
+				go RemountVolume(exists, vol, mountPoint, vol.Spec.Volume.MountPath)
 			}
-			MonitorLock.RUnlock()
+			VolumesListLock.RUnlock()
 		}
 	}
 }
 
 // WaitForVolumeReadyAndReachable waits until the volume is ready to accept IOs
-// and is reachable
-func WaitForVolumeReadyAndReachable(vol *v1alpha1.CSIVolumeInfo) {
+// and is reachable, this function will not come out until both the conditions
+// are met. This function stops the driver from overloading the OS with iSCSI
+// login commands.
+func WaitForVolumeReadyAndReachable(vol *v1alpha1.CSIVolume) {
 	for {
-		if err := WaitForVolumeToBeReady(vol.Spec.Volname); err == nil {
-			logrus.Info(err)
-			break
+		// This function return after 12s in case the volume is not ready
+		if err := WaitForVolumeToBeReady(vol.Spec.Volume.Volname); err != nil {
+			logrus.Error(err)
+			// Keep retrying until the volume is ready
+			continue
 		}
-		if err := WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err == nil {
-			logrus.Info(err)
-			break
+		// This function return after 12s in case the volume is not reachable
+		if err := WaitForVolumeToBeReachable(vol.Spec.ISCSI.TargetPortal); err == nil {
+			return
+		} else {
+			logrus.Error(err)
 		}
 	}
 }
 
-func verifyAndRemount(exists bool, vol *v1alpha1.CSIVolumeInfo, mountPoint *mount.MountPoint, path string) {
+func verifyMountOpts(opts []string, desiredOpt string) bool {
+	for _, opt := range opts {
+		if opt == desiredOpt {
+			return true
+		}
+	}
+	return false
+}
+
+// RemountVolume unmounts the volume if it is already mounted in an undesired
+// state and then tries to mount again. If it is not mounted the volume, first
+// the disk will be attached via iSCSI login and then it will be mounted
+func RemountVolume(exists bool, vol *v1alpha1.CSIVolume, mountPoint *mount.MountPoint, desiredMountOpt string) (devicePath string, err error) {
 	mounter := mount.New("")
 	options := []string{"rw"}
+	// Wait until it is possible to chhange the state of mountpoint or when
+	// login to volume is possible
+	WaitForVolumeReadyAndReachable(vol)
 	if exists {
-		for _, opts := range mountPoint.Opts {
-			if opts == "ro" {
-				logrus.Infof("MountPoint:%v IN RO MODE", mountPoint.Path)
-				mounter.Unmount(path)
-				WaitForVolumeReadyAndReachable(vol)
-				err := mounter.Mount(mountPoint.Device,
-					mountPoint.Path, "", options)
-				logrus.Infof("ERR: %v", err)
-				break
-			} else if opts == "rw" {
-				break
-			}
-		}
+		logrus.Infof("MountPoint:%v IN RO MODE", mountPoint.Path)
+		// Unmout and mount operation is performed instead of just remount since
+		// the remount option didn't give the desired results
+		mounter.Unmount(mountPoint.Path)
+		err = mounter.Mount(mountPoint.Device,
+			mountPoint.Path, "", options)
 	} else {
-		WaitForVolumeReadyAndReachable(vol)
-		iscsi.AttachAndMountDisk(vol)
+		// A complete attach and mount is performed if for some reason disk is
+		// not present in the mounted list with the OS.
+		devicePath, err = iscsi.AttachAndMountDisk(vol)
 	}
+	ReqMountListLock.Lock()
+	// Remove the volume from ReqMountList once the remount operation is
+	// complete
+	delete(ReqMountList, vol.Spec.Volume.Volname)
+	ReqMountListLock.Unlock()
+	return
 }
 
 // GenerateCSIVolInfoFromCASVolume returns an instance of CSIVolInfo
-func GenerateCSIVolInfoFromCASVolume(vol *v1alpha1.CASVolume) *v1alpha1.CSIVolumeInfo {
-	csivol := &v1alpha1.CSIVolumeInfo{}
-	csivol.Spec.Volname = vol.Name
-	csivol.Spec.Iqn = vol.Spec.Iqn
-	csivol.Spec.Capacity = vol.Spec.Capacity
-	csivol.Spec.TargetPortal = vol.Spec.TargetPortal
-	csivol.Spec.Lun = strconv.FormatInt(int64(vol.Spec.Lun), 10)
+func GenerateCSIVolFromCASVolume(vol *v1alpha1.CASVolume) *v1alpha1.CSIVolume {
+	csivol := &v1alpha1.CSIVolume{}
+	csivol.Spec.Volume.Volname = vol.Name
+	csivol.Spec.Volume.Capacity = vol.Spec.Capacity
+	csivol.Spec.ISCSI.Iqn = vol.Spec.Iqn
+	csivol.Spec.ISCSI.TargetPortal = vol.Spec.TargetPortal
+	csivol.Spec.ISCSI.Lun = strconv.FormatInt(int64(vol.Spec.Lun), 10)
 
 	return csivol
 }

@@ -60,22 +60,22 @@ func (ns *NodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 			status.Error(codes.Internal, err.Error())
 	}
 
-	if err := utils.WaitForVolumeToBeReachable(vol.Spec.TargetPortal); err != nil {
+	if err := utils.WaitForVolumeToBeReachable(vol.Spec.ISCSI.TargetPortal); err != nil {
 		return nil,
 			status.Error(codes.Internal, err.Error())
 	}
 
 	// Check if the volume has already been published
 verifyPublish:
-	utils.MonitorLock.Lock()
+	utils.VolumesListLock.Lock()
 	if _, ok := utils.Volumes[volumeID]; ok {
 		for _, info := range utils.Volumes {
-			if info.Spec.Volname == volumeID {
-				utils.MonitorLock.Unlock()
+			if info.Spec.Volume.Volname == volumeID {
+				utils.VolumesListLock.Unlock()
 				return &csi.NodePublishVolumeResponse{}, nil
 			}
 		}
-		utils.MonitorLock.Unlock()
+		utils.VolumesListLock.Unlock()
 		if !reVerified {
 			time.Sleep(13 * time.Second)
 			reVerified = true
@@ -84,20 +84,20 @@ verifyPublish:
 		return nil, status.Error(codes.Internal, "Mount under progress")
 	}
 
-	if err = utils.DeleteOldCSIVolumeInfoCR(vol); err != nil {
-		utils.MonitorLock.Unlock()
+	if err = utils.DeleteOldCSIVolumeCR(vol); err != nil {
+		utils.VolumesListLock.Unlock()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	err = utils.CreateCSIVolumeInfoCR(vol, ns.driver.config.NodeID, mountPath)
+	err = utils.CreateCSIVolumeCR(vol, ns.driver.config.NodeID, mountPath)
 	if err != nil {
-		utils.MonitorLock.Unlock()
+		utils.VolumesListLock.Unlock()
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	utils.Volumes[volumeID] = vol
-	utils.MonitorLock.Unlock()
+	utils.VolumesListLock.Unlock()
 
-	if err = utils.ChmodMountPath(vol.Spec.MountPath); err != nil {
+	if err = utils.ChmodMountPath(vol.Spec.Volume.MountPath); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if _, err = iscsi.AttachAndMountDisk(vol); err != nil {
@@ -126,18 +126,18 @@ func (ns *NodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if !ok {
 		return &csi.NodeUnpublishVolumeResponse{}, nil
 	}
-	err := utils.DeleteCSIVolumeInfoCR(vol)
+	err := utils.DeleteCSIVolumeCR(vol)
 	if err != nil {
 		return nil, status.Error(codes.Internal,
 			err.Error())
 	}
-	utils.MonitorLock.Lock()
+	utils.VolumesListLock.Lock()
 	delete(utils.Volumes, volumeID)
 	if err = iscsi.UnmountAndDetachDisk(vol, req.GetTargetPath()); err != nil {
 		return nil, status.Error(codes.Internal,
 			err.Error())
 	}
-	utils.MonitorLock.Unlock()
+	utils.VolumesListLock.Unlock()
 	glog.V(4).Infof("hostpath: volume %s/%s has been unmounted.",
 		targetPath, volumeID)
 

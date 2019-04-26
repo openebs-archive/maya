@@ -9,12 +9,12 @@ import (
 
 // UnmountAndDetachDisk unmounts the disk from the specified path
 // and logs out of the iSCSI Volume
-func UnmountAndDetachDisk(vol *v1alpha1.CSIVolumeInfo, path string) error {
+func UnmountAndDetachDisk(vol *v1alpha1.CSIVolume, path string) error {
 	iscsiInfo := &iscsiDisk{
 		VolName: vol.Name,
-		Portals: []string{vol.Spec.TargetPortal},
-		Iqn:     vol.Spec.Iqn,
-		lun:     vol.Spec.Lun,
+		Portals: []string{vol.Spec.ISCSI.TargetPortal},
+		Iqn:     vol.Spec.ISCSI.Iqn,
+		lun:     vol.Spec.ISCSI.Lun,
 	}
 
 	diskUnmounter := &iscsiDiskUnmounter{
@@ -32,8 +32,8 @@ func UnmountAndDetachDisk(vol *v1alpha1.CSIVolumeInfo, path string) error {
 
 // AttachAndMountDisk logs in to the iSCSI Volume
 // and mounts the disk to the specified path
-func AttachAndMountDisk(vol *v1alpha1.CSIVolumeInfo) (string, error) {
-	if len(vol.Spec.MountPath) == 0 {
+func AttachAndMountDisk(vol *v1alpha1.CSIVolume) (string, error) {
+	if len(vol.Spec.Volume.MountPath) == 0 {
 		return "", status.Error(codes.InvalidArgument, "Target path missing in request")
 	}
 	iscsiInfo, err := getISCSIInfo(vol)
