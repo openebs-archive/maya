@@ -27,6 +27,7 @@ var (
 	// MAPIServerEndpoint is the address to connect to m-apiserver to send
 	// volume related requests
 	MAPIServerEndpoint string
+
 	// OpenEBSNamespace is where all the OpenEBS related pods are running and
 	// CSIVolInfo as to be placed
 	OpenEBSNamespace string
@@ -36,14 +37,14 @@ var (
 	// This list is protected by VolumesListLock
 	Volumes map[string]*v1alpha1.CSIVolume
 
-	// MonitorLock is required to protect the above Volumes list
+	// VolumesListLock is required to protect the above Volumes list
 	VolumesListLock sync.RWMutex
 
-	// List of volumes which are required to be remounted
-	// This list is secured by ReqMountListLock
+	// ReqMountList contains the list of volumes which are required
+	// to be remounted. This list is secured by ReqMountListLock
 	ReqMountList map[string]bool
 
-	// MonitorLock is required to protect the above ReqMount list
+	// ReqMountListLock is required to protect the above ReqMount list
 	ReqMountListLock sync.RWMutex
 )
 
@@ -189,7 +190,7 @@ func GetVolumeByName(volName string) (*v1alpha1.CSIVolume, error) {
 		fmt.Errorf("volume name %s does not exit in the volumes list", volName)
 }
 
-// GetVolumeDetails returns a new instance of csiVolumeInfo filled with the
+// GetVolumeDetails returns a new instance of csiVolume filled with the
 // VolumeAttributes fetched from the corresponding PV and some additional info
 // required for remounting
 func GetVolumeDetails(volumeID, mountPath string, readOnly bool, mountOptions []string) (*v1alpha1.CSIVolume, error) {
@@ -329,7 +330,7 @@ func RemountVolume(exists bool, vol *v1alpha1.CSIVolume, mountPoint *mount.Mount
 	return
 }
 
-// GenerateCSIVolInfoFromCASVolume returns an instance of CSIVolInfo
+// GenerateCSIVolFromCASVolume returns an instance of CSIVolInfo
 func GenerateCSIVolFromCASVolume(vol *v1alpha1.CASVolume) *v1alpha1.CSIVolume {
 	csivol := &v1alpha1.CSIVolume{}
 	csivol.Spec.Volume.Volname = vol.Name
