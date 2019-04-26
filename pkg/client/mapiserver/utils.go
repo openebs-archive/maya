@@ -149,7 +149,7 @@ func postRequest(url string, values []byte, namespace string, chkbody bool) ([]b
 		return nil, fmt.Errorf("Server status error: %v", http.StatusText(code))
 	}
 
-	return nil, nil
+	return body, nil
 }
 
 // getRequest GETS a request to a url and returns the response
