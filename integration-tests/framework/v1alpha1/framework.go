@@ -185,12 +185,11 @@ func checkComponentStatus(namespace, lselector string, Count int) (pods *corev1.
 	var err error
 	Eventually(func() int {
 		pods, err = pod.
-			KubeClient(pod.WithNamespace(namespace)).
+			NewKubeClient(pod.WithNamespace(namespace)).
 			List(metav1.ListOptions{LabelSelector: lselector})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.
-			ListBuilder().
-			WithAPIList(pods).
+			ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
