@@ -131,11 +131,11 @@ var _ = Describe("StatefulSet", func() {
 				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
-			return pvc.
+			pvcCount, _ := pvc.
 				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.IsBound()).
-				List().
 				Len()
+			return pvcCount
 		},
 			defaultTimeOut, defaultPollingInterval).
 			Should(Equal(3), "PVC count should be "+string(3))
@@ -254,10 +254,11 @@ var _ = Describe("StatefulSet", func() {
 				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
-			pvcList := pvc.
+			pvcList, err := pvc.
 				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.ContainsName(STSUnstructured.GetName())).
 				List()
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))
 
 			cvrs, err := cvr.
