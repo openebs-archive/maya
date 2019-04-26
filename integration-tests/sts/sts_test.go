@@ -159,12 +159,11 @@ var _ = Describe("StatefulSet", func() {
 		// Check for statefulset pods to get created and running
 		Eventually(func() int {
 			pods, err := pod.
-				KubeClient(pod.WithNamespace(stsNamespace)).
+				NewKubeClient(pod.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pod.
-				ListBuilder().
-				WithAPIList(pods).
+				ListBuilderForAPIList(pods).
 				WithFilter(pod.IsRunning()).
 				List().
 				Len()
@@ -210,7 +209,7 @@ var _ = Describe("StatefulSet", func() {
 		// Verify deletion of sts instances
 		Eventually(func() int {
 			pods, err := pod.
-				KubeClient(pod.WithNamespace(stsNamespace)).
+				NewKubeClient(pod.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pods.Items)
