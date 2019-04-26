@@ -41,7 +41,7 @@ type CSIVolumeSpec struct {
 	ISCSI ISCSIInfo
 }
 
-// Volume contains the volume related info
+// VolumeInfo contains the volume related info
 // for all types of volumes in CSIVolumeSpec
 type VolumeInfo struct {
 	// Volname of a volume will hold the name of the CSI Volume
@@ -65,6 +65,9 @@ type VolumeInfo struct {
 	MountOptions []string `json:"mountOptions"`
 }
 
+// ISCSIInfo contains info specific to ISCSI protocol,
+// this can be used only if only if the volume type exposed
+// by the vendor is iSCSI
 type ISCSIInfo struct {
 	// Iqn of a volume will hold the iqn value of the Volume
 	Iqn string `json:"iqn"`
