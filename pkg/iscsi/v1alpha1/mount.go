@@ -11,7 +11,7 @@ import (
 // and logs out of the iSCSI Volume
 func UnmountAndDetachDisk(vol *v1alpha1.CSIVolume, path string) error {
 	iscsiInfo := &iscsiDisk{
-		VolName: vol.Name,
+		VolName: vol.Spec.Volume.Volname,
 		Portals: []string{vol.Spec.ISCSI.TargetPortal},
 		Iqn:     vol.Spec.ISCSI.Iqn,
 		lun:     vol.Spec.ISCSI.Lun,

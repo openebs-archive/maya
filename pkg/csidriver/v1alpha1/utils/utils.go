@@ -246,6 +246,11 @@ func MonitorMounts() {
 			list, _ := mounter.List()
 			VolumesListLock.RLock()
 			for _, vol := range Volumes {
+				if vol.Spec.Volume.DevicePath == "" {
+					// If device path is not set implies the node publish
+					// operation is not completed yet
+					continue
+				}
 				// Search the volume in the list of mounted volumes at the node
 				// retrieved above
 				mountPoint, exists := listContains(vol.Spec.Volume.MountPath, list)

@@ -66,7 +66,7 @@ func getVolStatus(volumeID string) (string, error) {
 // CreateCSIVolumeCR creates a new CSIVolume CR with this nodeID
 func CreateCSIVolumeCR(csivol *v1alpha1.CSIVolume, nodeID, mountPath string) (err error) {
 
-	csivol.Name = csivol.Spec.Volume.Volname + nodeID
+	csivol.Name = csivol.Spec.Volume.Volname + "-" + nodeID
 	csivol.Labels = make(map[string]string)
 	csivol.Spec.Volume.OwnerNodeID = nodeID
 	csivol.Labels["Volname"] = csivol.Spec.Volume.Volname
@@ -111,11 +111,12 @@ func DeleteOldCSIVolumeCR(vol *v1alpha1.CSIVolume) (err error) {
 // labelSelector from the list
 func DeleteCSIVolumeCR(vol *v1alpha1.CSIVolume) (err error) {
 	openebsClient, _ := loadClientFromServiceAccount()
+	var csivols *v1alpha1.CSIVolumeList
 	listOptions := v1.ListOptions{
-		LabelSelector: "Volname=" + vol.Name,
+		LabelSelector: "Volname=" + vol.Spec.Volume.Volname,
 	}
 
-	csivols, err := openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).List(listOptions)
+	csivols, err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).List(listOptions)
 	if err != nil {
 		return
 	}
