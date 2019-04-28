@@ -63,6 +63,9 @@ type VolumeInfo struct {
 	ReadOnly bool `json:"readOnly"`
 	// MountOptions specifies the options with which mount needs to be attempted
 	MountOptions []string `json:"mountOptions"`
+	// Device Path specifies the device path which is returned when the iSCSI
+	// login is successful
+	DevicePath string `json:"devicePath"`
 }
 
 // ISCSIInfo contains info specific to ISCSI protocol,
