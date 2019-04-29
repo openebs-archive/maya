@@ -131,10 +131,11 @@ var _ = Describe("StatefulSet", func() {
 				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
-			pvcCount, _ := pvc.
+			pvcCount, err := pvc.
 				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.IsBound()).
 				Len()
+			Expect(err).ShouldNot(HaveOccurred())
 			return pvcCount
 		},
 			defaultTimeOut, defaultPollingInterval).
