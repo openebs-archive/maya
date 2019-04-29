@@ -35,10 +35,8 @@ import (
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 )
 

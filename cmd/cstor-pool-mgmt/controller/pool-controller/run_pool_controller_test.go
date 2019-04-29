@@ -21,11 +21,8 @@ import (
 
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 
 	"github.com/openebs/maya/pkg/signals"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

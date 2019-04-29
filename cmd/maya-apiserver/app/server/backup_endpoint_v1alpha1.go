@@ -29,7 +29,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -162,7 +162,7 @@ func createSnapshotForBackup(bkp *v1alpha1.BackupCStor) error {
 
 // loadClientFromServiceAccount loads a k8s and openebs client from a ServiceAccount
 // specified in the pod running
-func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.Clientset, error) {
+func loadClientFromServiceAccount() (*versioned.Clientset, *kubernetes.Clientset, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		glog.Errorf("Failed to fetch k8s cluster config. %+v", err)
@@ -175,7 +175,7 @@ func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.C
 		return nil, nil, err
 	}
 
-	openebsClient, err := internalclientset.NewForConfig(cfg)
+	openebsClient, err := versioned.NewForConfig(cfg)
 	if err != nil {
 		glog.Errorf("Failed to create openeEBS client. %+v", err)
 		return nil, nil, err
@@ -185,7 +185,7 @@ func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.C
 }
 
 // findHealthyCVR will find a healthy CVR for a given volume
-func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (v1alpha1.CStorVolumeReplica, error) {
+func findHealthyCVR(openebsClient *versioned.Clientset, volume string) (v1alpha1.CStorVolumeReplica, error) {
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + volume,
 	}
@@ -206,7 +206,7 @@ func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (
 }
 
 // getLastBackupSnap will fetch the last successful backup's snapshot name
-func getLastBackupSnap(openebsClient *internalclientset.Clientset, bkp *v1alpha1.BackupCStor) (string, error) {
+func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.BackupCStor) (string, error) {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	b, err := openebsClient.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
@@ -377,7 +377,7 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 }
 
 // findLastBackupStat will find the status of given backup from last-backup
-func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor) v1alpha1.BackupCStorStatus {
+func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.BackupCStor) v1alpha1.BackupCStorStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	lastbkp, err := clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
@@ -396,7 +396,7 @@ func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.Bac
 }
 
 // updateBackupStatus will update the backup status to given status
-func updateBackupStatus(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor, status v1alpha1.BackupCStorStatus) {
+func updateBackupStatus(clientset versioned.Interface, bkp *v1alpha1.BackupCStor, status v1alpha1.BackupCStorStatus) {
 	bkp.Status = status
 
 	_, err := clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Update(bkp)

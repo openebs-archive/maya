@@ -982,7 +982,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:aa0d5fbf4eb99ae4cfaf645d4ffdef921777a5b761a28ee0a2cd5e9754ba130e"
+  digest = "1:956680ced4f44452e3865c5ce920e5b6292056d0977d024a1d72aad59ce36d36"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/client-gen",
@@ -995,6 +995,8 @@
     "cmd/client-gen/types",
     "cmd/deepcopy-gen",
     "cmd/deepcopy-gen/args",
+    "cmd/defaulter-gen",
+    "cmd/defaulter-gen/args",
     "cmd/informer-gen",
     "cmd/informer-gen/args",
     "cmd/informer-gen/generators",
@@ -1009,11 +1011,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:63d18b00923c8c3b9b230b752bf0ab6da6bfdd02ca029c49455bfda97f3e0c26"
+  digest = "1:5249c83f0fb9e277b2d28c19eca814feac7ef05dc762e4deaf0a2e4b1a7c5df3"
   name = "k8s.io/gengo"
   packages = [
     "args",
     "examples/deepcopy-gen/generators",
+    "examples/defaulter-gen/generators",
     "examples/set-gen/sets",
     "generator",
     "namer",
@@ -1144,6 +1147,7 @@
     "k8s.io/client-go/util/workqueue",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
     "sigs.k8s.io/controller-runtime/pkg/client",
