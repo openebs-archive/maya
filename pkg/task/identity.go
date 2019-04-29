@@ -202,6 +202,10 @@ func (i taskIdentifier) isAppsV1B1Deploy() bool {
 	return i.isAppsV1B1() && i.isDeployment()
 }
 
+func (i taskIdentifier) isAppsV1Deploy() bool {
+	return i.isAppsV1() && i.isDeployment()
+}
+
 func (i taskIdentifier) isCoreV1Pod() bool {
 	return i.isCoreV1() && i.isPod()
 }

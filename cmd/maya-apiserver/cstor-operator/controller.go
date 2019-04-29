@@ -17,8 +17,11 @@ limitations under the License.
 package spc
 
 import (
+	"fmt"
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/runtime"
+
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 
@@ -28,8 +31,9 @@ import (
 	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
 	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
 
+	listers "github.com/openebs/maya/pkg/client/generated/lister/openebs.io/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
-	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -39,13 +43,6 @@ import (
 )
 
 const controllerAgentName = "spc-controller"
-const (
-	addEvent    = "add"
-	updateEvent = "update"
-	deleteEvent = "delete"
-	ignoreEvent = "ignore"
-	syncEvent   = "sync"
-)
 
 // Controller is the controller implementation for SPC resources
 type Controller struct {
@@ -55,11 +52,10 @@ type Controller struct {
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
+	spcLister listers.StoragePoolClaimLister
+
 	// spcSynced is used for caches sync to get populated
 	spcSynced cache.InformerSynced
-
-	// deletedIndexer holds deleted resource to be retrieved after workqueue
-	deletedIndexer cache.Indexer
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -71,112 +67,124 @@ type Controller struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
-
-	// queueLoad is the object or load that will be pushed into the
-	// workqueue for later retrieval and processing.
-	queueLoad QueueLoad
 }
 
-// NewController returns a new controller
-func NewController(
-	kubeclientset kubernetes.Interface,
-	clientset clientset.Interface,
-	kubeInformerFactory kubeinformers.SharedInformerFactory,
-	spcInformerFactory informers.SharedInformerFactory) *Controller {
-	// obtain references to shared index informers for the SPC resources
-	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
-	// Create event broadcaster
-	// Add new-controller types to the default Kubernetes Scheme so Events can be
-	// logged for new-controller types.
-	openebsScheme.AddToScheme(scheme.Scheme)
+// ControllerBuilder is the builder object for controller.
+type ControllerBuilder struct {
+	Controller *Controller
+}
+
+// NewControllerBuilder returns an empty instance of controller builder.
+func NewControllerBuilder() *ControllerBuilder {
+	return &ControllerBuilder{
+		Controller: &Controller{},
+	}
+}
+
+// withKubeClient fills kube client to controller object.
+func (cb *ControllerBuilder) withKubeClient(ks kubernetes.Interface) *ControllerBuilder {
+	cb.Controller.kubeclientset = ks
+	return cb
+}
+
+// withOpenEBSClient fills openebs client to controller object.
+func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *ControllerBuilder {
+	cb.Controller.clientset = cs
+	return cb
+}
+
+// withSpcLister fills spc lister to controller object.
+func (cb *ControllerBuilder) withSpcLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+	spcInformer := sl.Openebs().V1alpha1().StoragePoolClaims()
+	cb.Controller.spcLister = spcInformer.Lister()
+	return cb
+}
+
+// withspcSynced adds object sync information in cache to controller object.
+func (cb *ControllerBuilder) withspcSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
+	spcInformer := sl.Openebs().V1alpha1().StoragePoolClaims()
+	cb.Controller.spcSynced = spcInformer.Informer().HasSynced
+	return cb
+}
+
+// withWorkqueue adds workqueue to controller object.
+func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
+	cb.Controller.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "SPC")
+	return cb
+}
+
+// withRecorder adds recorder to controller object.
+func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBuilder {
 	glog.V(4).Info("Creating event broadcaster")
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: ks.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
-	queueLoad := QueueLoad{}
-	controller := &Controller{
-		kubeclientset: kubeclientset,
-		clientset:     clientset,
-		deletedIndexer: cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc,
-			cache.Indexers{}),
-		spcSynced: spcInformer.Informer().HasSynced,
-		workqueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "SPC"),
-		recorder:  recorder,
-		queueLoad: queueLoad,
-	}
+	cb.Controller.recorder = recorder
+	return cb
+}
 
-	glog.Info("Setting up event handlers")
-
+// withEventHandler adds event handlers controller object.
+func (cb *ControllerBuilder) withEventHandler(spcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
+	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
 	// Set up an event handler for when SPC resources change
 	spcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.addSpc,
-
-		// Informer will send update event along with object in following cases:
-		// 1. In case the object is updated ( Change of Resource Version)
-
-		// 2. In case the object is deleted by using a finalizer.
-		//    Some of the kubectl version e.g. v1.11.0 will make use of a finalizer beforehand deletion.
-		//    Hence in this case the delete of an object will cause a invoke of UpdateFunc
-		//    as the finalizer addition will cause Resource Version to change.
-		//
-		//    But some of the kubectl version will not make use of finalizer for
-		//    object deletion.
-		//    Whatever be the case, delete of the resource will always invoke DeleteFunc
-		//    and hence the delete event will be captured by it and the delete event
-		//    that will be delivered in UpdateFunc due to specific kubectl versions will
-		//    be suppressed.(see in updateSpc function, where delete event is marked as ignoreEvent)
-
-		// 3. After every fixed amount of time which is know as reSync Period.
-		//    ReSync period can be set to values we want. It can help in reconiciliation.
-		UpdateFunc: controller.updateSpc,
+		AddFunc:    cb.Controller.addSpc,
+		UpdateFunc: cb.Controller.updateSpc,
+		// This will enter the sync loop and no-op, because the spc has been deleted from the store.
+		DeleteFunc: cb.Controller.deleteSpc,
 	})
-
-	return controller
+	return cb
 }
 
+// Build returns a controller instance.
+func (cb *ControllerBuilder) Build() (*Controller, error) {
+	err := openebsScheme.AddToScheme(scheme.Scheme)
+	if err != nil {
+		return nil, err
+	}
+	return cb.Controller, nil
+}
+
+// addSpc is the add event handler for spc.
 func (c *Controller) addSpc(obj interface{}) {
-	spcObject := obj.(*apis.StoragePoolClaim)
-	c.queueLoad.Operation = addEvent
-	c.queueLoad.Object = spcObject
-	glog.V(4).Infof("Queuing SPC %s for add event", spcObject.Name)
-	c.enqueueSpc(&c.queueLoad)
+	spc, ok := obj.(*apis.StoragePoolClaim)
+	if !ok {
+		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
+		return
+	}
+	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
+	c.enqueueSpc(spc)
 }
 
+// updateSpc is the update event handler for spc.
 func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
-	spcObjectNew := newSpc.(*apis.StoragePoolClaim)
-	spcObjectOld := oldSpc.(*apis.StoragePoolClaim)
-
-	if spcObjectNew.ObjectMeta.ResourceVersion == spcObjectOld.ObjectMeta.ResourceVersion {
-		// If Resource Version is same it means the object has not got updated.
-		// Enqueue the object as part of sync event to achieve the reconciliation loop for storagepool
-		// Reconciliation will try to converge the pool to its desired state
-		// If the storagepool is already in the desired state, it will do nothing.
-		c.queueLoad.Operation = syncEvent
-		c.queueLoad.Object = spcObjectNew
-		c.enqueueSpc(&c.queueLoad)
-	} else {
-		if IsDeleteEvent(spcObjectNew) {
-			// Ignore the delete event
-			// We can enqueue object in future if we need to do some other task in case of delete event.
-			c.queueLoad.Operation = ignoreEvent
-		} else {
-			// To-DO
-			// Implement Logic for Update of SPC object
-			c.queueLoad.Operation = updateEvent
-			c.queueLoad.Object = spcObjectNew
-			glog.V(4).Infof("Queuing SPC %s for update event", spcObjectNew.Name)
-			c.enqueueSpc(&c.queueLoad)
-		}
-
+	spc, ok := newSpc.(*apis.StoragePoolClaim)
+	if !ok {
+		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
+		return
 	}
-
+	// Enqueue spc only when there is a pending pool to be created.
+	if c.isPoolPending(spc) {
+		c.enqueueSpc(newSpc)
+	}
 }
 
-// IsDeleteEvent is to check if the call is for SPC delete.
-func IsDeleteEvent(spc *apis.StoragePoolClaim) bool {
-	if spc.ObjectMeta.DeletionTimestamp != nil {
-		return true
+// deleteSpc is the delete event handler for spc.
+func (c *Controller) deleteSpc(obj interface{}) {
+	spc, ok := obj.(*apis.StoragePoolClaim)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			runtime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+			return
+		}
+		spc, ok = tombstone.Obj.(*apis.StoragePoolClaim)
+		if !ok {
+			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a storagepoolclaim %#v", obj))
+			return
+		}
 	}
-	return false
+	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
+	c.enqueueSpc(spc)
 }

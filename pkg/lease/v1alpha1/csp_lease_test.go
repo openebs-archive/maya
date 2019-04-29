@@ -18,16 +18,17 @@ package lease
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
-	"github.com/golang/glog"
-	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/golang/glog"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 type fakeClientset struct {
@@ -63,12 +64,12 @@ func (focs *fakeClientset) CspCreator(poolName string, CspLeaseKeyPresent bool, 
 // Create 5 fake pods that will compete to acquire lease on csp
 func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 	for i := 1; i <= 5; i++ {
-		podObjet := &v1.Pod{
+		podObjet := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: podName + strconv.Itoa(i),
 			},
-			Status: v1.PodStatus{
-				Phase: v1.PodRunning,
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
 			},
 		}
 		_, err := fakeKubeClient.CoreV1().Pods("openebs").Create(podObjet)
@@ -137,6 +138,7 @@ func TestHold(t *testing.T) {
 
 	// Iterate over whole map to run the test cases.
 	for name, test := range tests {
+		test := test //pin it
 		t.Run(name, func(t *testing.T) {
 			var newCspLease Lease
 			var gotError bool
@@ -155,7 +157,7 @@ func TestHold(t *testing.T) {
 				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
 			}
 			// Check for lease value
-			cspGot, err := focs.oecs.OpenebsV1alpha1().CStorPools().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			cspGot, _ := focs.oecs.OpenebsV1alpha1().CStorPools().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
 			if cspGot.Annotations[CspLeaseKey] != test.expectedResult {
 				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspGot.Annotations[CspLeaseKey])
 

@@ -24,6 +24,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// HostNameKey is the key for kubernetes node.
+	HostNameKey = "kubernetes.io/hostname"
+)
+
 type pool struct {
 	Name, Node, PoolType string
 }
@@ -72,7 +77,7 @@ func (c *CmdPoolOptions) runPoolList(cmd *cobra.Command) error {
 	for _, p := range resp.Items {
 		pools = append(pools, pool{
 			Name:     p.GetName(),
-			Node:     p.GetLabels()["kubernetes.io/hostname"],
+			Node:     p.GetLabels()[HostNameKey],
 			PoolType: p.Spec.PoolSpec.PoolType,
 		})
 	}
