@@ -17,24 +17,27 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/task"
 	"github.com/openebs/maya/pkg/util"
+	"github.com/pkg/errors"
 )
 
-// UnMarshallToConfig un-marshalls the given cas template config in a yaml
-// string format to a typed list of cas template config
+// UnMarshallToConfig un-marshals the provided
+// cas template config in a yaml string format
+// to a typed list of cas template config
 func UnMarshallToConfig(config string) (configs []v1alpha1.Config, err error) {
 	err = yaml.Unmarshal([]byte(config), &configs)
 	return
 }
 
-// MergeConfig will merge the unique configuration elements of lowPriority
-// into highPriority and return the result
+// MergeConfig will merge configuration fields
+// from lowPriority that are not present in
+// highPriority configuration and return the
+// resulting config
 func MergeConfig(highPriority, lowPriority []v1alpha1.Config) (final []v1alpha1.Config) {
 	var book []string
 	for _, h := range highPriority {
@@ -42,8 +45,8 @@ func MergeConfig(highPriority, lowPriority []v1alpha1.Config) (final []v1alpha1.
 		book = append(book, strings.TrimSpace(h.Name))
 	}
 	for _, l := range lowPriority {
-		// include only if the config was not present earlier in high priority
-		// configuration
+		// include only if the config was not present
+		// earlier in high priority configuration
 		if !util.ContainsString(book, strings.TrimSpace(l.Name)) {
 			final = append(final, l)
 		}
@@ -51,14 +54,15 @@ func MergeConfig(highPriority, lowPriority []v1alpha1.Config) (final []v1alpha1.
 	return
 }
 
-// ConfigToMap transforms CAS template's config type to a nested map
+// ConfigToMap transforms CAS template config type
+// to a nested map
 func ConfigToMap(all []v1alpha1.Config) (m map[string]interface{}, err error) {
 	var configName string
 	m = map[string]interface{}{}
 	for _, config := range all {
 		configName = strings.TrimSpace(config.Name)
 		if len(configName) == 0 {
-			err = fmt.Errorf("failed to map config: missing config name: config '%+v'", config)
+			err = errors.Errorf("failed to transform cas config to map: missing config name: %s", config)
 			return nil, err
 		}
 		confHierarchy := map[string]interface{}{
@@ -69,37 +73,35 @@ func ConfigToMap(all []v1alpha1.Config) (m map[string]interface{}, err error) {
 		}
 		isMerged := util.MergeMapOfObjects(m, confHierarchy)
 		if !isMerged {
-			err = fmt.Errorf("failed to map config: unable to merge config '%s' to config hierarchy", configName)
+			err = errors.Errorf("failed to transform cas config to map: failed to merge: %s", config)
 			return nil, err
 		}
 	}
 	return
 }
 
-// Interface abstracts various CRUD operations exposed by engine
+// Interface abstracts various operations
+// exposed by cas template engine
 type Interface interface {
 	Configurer
 	Runner
 }
 
-// TODO
-// Check if pkg should be engine/cast vs. executor/cast vs. operator/cast
-// vs. controller/cast
-
-// Configurer abstracts configuring cast template engine
+// Configurer abstracts configuring
+// a cas template object
 type Configurer interface {
 	SetConfig(values map[string]interface{})
 	SetValues(key string, values map[string]interface{})
 }
 
-// Runner abstracts execution of engine
+// Runner abstracts execution of
+// cas template engine
 type Runner interface {
 	Run() (output []byte, err error)
 }
 
-// engine supports various operations w.r.t a CAS entity. This is a generic
-// engine that supports operations related to one or more CAS entities via
-// CASTemplate
+// engine implements various cas template
+// related operations
 type engine struct {
 	cast            *v1alpha1.CASTemplate  // refers to a CASTemplate
 	values          map[string]interface{} // values used during go templating
@@ -108,15 +110,20 @@ type engine struct {
 	taskGroupRunner *task.TaskGroupRunner  // runs the tasks in the sequence specified in cas template
 }
 
-// initValues provides engine specific initialization values to be used during
+// initValues provides engine specific
+// initialization values to be used during
 // template execution
 func initValues() (v map[string]interface{}) {
 	return map[string]interface{}{
-		// configTLP is set to nil, this would be reset to cas template defaults
-		// if the action methods i.e. create/read/list/delete do not set it
+		// configTLP is set to nil, this would
+		// be reset to cas template defaults
+		// if the action methods i.e. create/read/list/delete
+		// do not set this
 		string(v1alpha1.ConfigTLP): nil,
+
 		// list items is set as a top level property
 		string(v1alpha1.ListItemsTLP): map[string]interface{}{},
+
 		// task result is set as a top level property
 		string(v1alpha1.TaskResultTLP): map[string]interface{}{},
 	}
@@ -125,16 +132,18 @@ func initValues() (v map[string]interface{}) {
 // Engine returns a new instance of engine
 func Engine(cast *v1alpha1.CASTemplate, key string, values map[string]interface{}) (e *engine, err error) {
 	if cast == nil {
-		err = fmt.Errorf("failed to create cas template engine: nil cas template")
+		err = errors.Errorf("failed to instantiate cas template engine: nil cas template provided")
 		return
 	}
+
 	f, err := task.NewK8sTaskSpecFetcher(cast.Spec.TaskNamespace)
 	if err != nil {
 		return
 	}
+
 	r := task.NewTaskGroupRunner()
 	if r == nil {
-		err = fmt.Errorf("failed to create cas template engine: nil task group runner")
+		err = errors.Errorf("failed to instantiate cas template engine: nil task group runner: %s", cast)
 		return
 	}
 
@@ -156,18 +165,20 @@ func Engine(cast *v1alpha1.CASTemplate, key string, values map[string]interface{
 	return
 }
 
-// setDefaults sets cas template default config values
+// setDefaults sets cas template default
+// config values
 func (c *engine) setDefaults() (err error) {
 	m, err := ConfigToMap(c.cast.Spec.Defaults)
 	if err != nil {
-		return
+		return errors.Wrapf(err, "failed to set default config: %s", c.cast)
 	}
 	c.values[string(v1alpha1.ConfigTLP)] = m
 	return
 }
 
-// setDefaultsIfEmptyConfig sets cas template default config values if config
-// property is not set
+// setDefaultsIfEmptyConfig sets cas template
+// default config values if config property
+// is not set
 func (c *engine) setDefaultsIfEmptyConfig() (err error) {
 	if c.values[string(v1alpha1.ConfigTLP)] != nil {
 		return
@@ -175,18 +186,26 @@ func (c *engine) setDefaultsIfEmptyConfig() (err error) {
 	return c.setDefaults()
 }
 
-// setLabels sets cas template labels as template values
-func (c *engine) setLabels() (err error) {
+// setLabels sets cas template's labels as
+// template values
+func (c *engine) setLabels() {
 	c.values[string(v1alpha1.CASTOptionsTLP)] = c.cast.Labels
-	return
 }
 
-// SetConfig sets cas template config as template values
+// SetConfig sets cas template config as
+// template values
 func (c *engine) SetConfig(v map[string]interface{}) {
 	c.values[string(v1alpha1.ConfigTLP)] = v
 }
 
-// SetValues sets template values to be used during cas template execution
+// SetValues sets template values to be used
+// during cas template execution
+//
+// NOTE:
+//  This is not the same thing as cas config.
+// One way to understand this is to enable
+// engine to accept run time values, etc that
+// may be required to execute cas template.
 func (c *engine) SetValues(k string, v map[string]interface{}) {
 	if len(k) == 0 {
 		return
@@ -195,20 +214,21 @@ func (c *engine) SetValues(k string, v map[string]interface{}) {
 	util.SetNestedField(c.values, v, c.key)
 }
 
-// prepareTasksForExec prepares the taskGroupRunner instance with the
-// info needed to run the tasks
+// prepareTasksForExec prepares the taskGroupRunner
+// instance with the info needed to run the tasks
 func (c *engine) prepareTasksForExec() error {
 	// prepare the tasks mentioned in cas template
 	for _, taskName := range c.cast.Spec.RunTasks.Tasks {
 		// fetch runtask from task name
 		runtask, err := c.taskSpecFetcher.Fetch(taskName)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to prepare task '%s': %s", taskName, c.cast)
 		}
+
 		// prepare the task group runner by adding the runtask
 		err = c.taskGroupRunner.AddRunTask(runtask)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to prepare task: %s", runtask)
 		}
 	}
 	return nil
@@ -220,11 +240,13 @@ func (c *engine) prepareTasksForExec() error {
 func (c *engine) prepareOutputTask() (err error) {
 	opTaskName := c.cast.Spec.OutputTask
 	if len(opTaskName) == 0 {
-		// no output task was specified; nothing to do
+		// no output task was specified;
+		// nothing to do
 		return
 	}
 	runtask, err := c.taskSpecFetcher.Fetch(opTaskName)
 	if err != nil {
+		err = errors.Wrapf(err, "failed to prepare output task '%s': %s", opTaskName, c.cast)
 		return
 	}
 	return c.taskGroupRunner.SetOutputTask(runtask)
@@ -238,21 +260,29 @@ func (c *engine) prepareFallback() {
 	c.taskGroupRunner.SetFallback(f)
 }
 
-// Run executes the cas engine based on the tasks set in the cas template
+// Run executes the cas engine based on the tasks
+// specified in the cas template
 func (c *engine) Run() (output []byte, err error) {
 	c.setLabels()
+
 	err = c.setDefaultsIfEmptyConfig()
 	if err != nil {
+		err = errors.Wrap(err, "failed to run cas template engine")
 		return
 	}
+
 	err = c.prepareTasksForExec()
 	if err != nil {
+		err = errors.Wrap(err, "failed to run cas template engine")
 		return
 	}
+
 	err = c.prepareOutputTask()
 	if err != nil {
+		err = errors.Wrap(err, "failed to run cas template engine")
 		return
 	}
+
 	c.prepareFallback()
 	return c.taskGroupRunner.Run(c.values)
 }

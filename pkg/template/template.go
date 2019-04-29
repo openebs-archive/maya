@@ -94,11 +94,11 @@ func IsVersionMismatch(err error) (match bool) {
 //
 // NOTE: This is meant to be used as a template function
 type NotFoundError struct {
-	err string
+	ErrMsg string
 }
 
 func (e *NotFoundError) Error() string {
-	return e.err
+	return e.ErrMsg
 }
 
 // VerifyError represents an error due to a failure in verification
@@ -384,8 +384,7 @@ func splitKeyMap(splitters string, destinationFields string, destination map[str
 				continue
 			}
 
-			// reset the path fields first
-			fields = nil
+			// fields is already set to nil
 			fields = append(destFields, primaryKey, key)
 
 			// append to existing value if any
@@ -664,7 +663,7 @@ func notFoundErr(errMessage string, given interface{}) (err error) {
 	}
 
 	err = &NotFoundError{
-		err: errMessage,
+		ErrMsg: errMessage,
 	}
 
 	return

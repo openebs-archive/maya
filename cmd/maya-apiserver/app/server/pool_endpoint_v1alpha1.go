@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -31,14 +30,14 @@ type poolAPIOpsV1alpha1 struct {
 	resp http.ResponseWriter
 }
 
-// poolV1alpha1SpecificRequest is a http handler to handle HTTP
-// requests to a OpenEBS pool.
+// poolV1alpha1SpecificRequest is a http handler
+// to handle HTTP requests to a OpenEBS pool.
 func (s *HTTPServer) poolV1alpha1SpecificRequest(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	glog.Infof("Cas template based pool request was received: method '%s'", req.Method)
-
 	if req == nil {
-		return nil, CodedError(400, "nil http request was received")
+		return nil, CodedError(400, "failed to handle storage pool request: nil http request received")
 	}
+
+	glog.Infof(" received storage pool request: method '%s'", req.Method)
 
 	poolOp := &poolAPIOpsV1alpha1{
 		req:  req,
@@ -63,41 +62,39 @@ func (p *poolAPIOpsV1alpha1) httpGet() (interface{}, error) {
 	return p.read(poolName)
 }
 
-func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.StoragePoolList, error) {
-	glog.Infof("CAS template based storage pool list request was received")
-
+func (p *poolAPIOpsV1alpha1) list() (*v1alpha1.CStorPoolList, error) {
+	glog.Infof("received storage pool list request")
 	sOps, err := pool.NewStoragePoolOperation("")
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrap(400, err)
 	}
 
 	pools, err := sOps.List()
 	if err != nil {
-		glog.Errorf("failed to list cas template based pools : error '%s'", err.Error())
-		return nil, CodedError(500, err.Error())
+		glog.Errorf("failed to list storage pool: '%+v'", err)
+		return nil, CodedErrorWrap(500, err)
 	}
 
-	glog.Infof("Cas template based pools were listed successfully")
+	glog.Infof("storage pools listed successfully")
 	return pools, nil
 }
 
-func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.StoragePool, error) {
-	glog.Infof("CAS template based storage pool read request was received")
-
+func (p *poolAPIOpsV1alpha1) read(poolName string) (*v1alpha1.CStorPool, error) {
+	glog.Infof("received storage pool read request: %s", poolName)
 	sOps, err := pool.NewStoragePoolOperation(poolName)
 	if err != nil {
-		return nil, CodedError(400, err.Error())
+		return nil, CodedErrorWrap(400, err)
 	}
 
 	pools, err := sOps.Read()
 	if err != nil {
-		glog.Errorf("failed to read cas template based pools: error '%s'", err.Error())
+		glog.Errorf("failed to read storage pool '%s': %+v", poolName, err)
 		if isNotFound(err) {
-			return nil, CodedError(404, fmt.Sprintf("Pool '%s' not found", poolName))
+			return nil, CodedErrorWrapf(404, err, "pool '%s' not found", poolName)
 		}
-		return nil, CodedError(500, err.Error())
+		return nil, CodedErrorWrapf(500, err, "failed to read storage pool '%s'", poolName)
 	}
 
-	glog.Infof("Cas template based pools were readed successfully")
+	glog.Infof("storage pool '%s' read successfully", poolName)
 	return pools, nil
 }

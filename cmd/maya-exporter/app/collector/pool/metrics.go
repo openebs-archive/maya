@@ -1,3 +1,17 @@
+// Copyright © 2017-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package pool
 
 import (
@@ -41,7 +55,7 @@ func (s *statsFloat64) List() []float64 {
 	}
 }
 
-func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
+func parseFloat64(e string, m *metrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
 		m.zpoolListparseErrorCounter.Inc()
@@ -49,12 +63,12 @@ func parseFloat64(e string, m *metrics, ch chan<- prometheus.Metric) float64 {
 	return num
 }
 
-func (s *statsFloat64) parse(stats zpool.Stats, p *pool, ch chan<- prometheus.Metric) {
-	s.size = parseFloat64(stats.Size, &p.metrics, ch)
-	s.used = parseFloat64(stats.Used, &p.metrics, ch)
-	s.free = parseFloat64(stats.Free, &p.metrics, ch)
+func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
+	s.size = parseFloat64(stats.Size, &p.metrics)
+	s.used = parseFloat64(stats.Used, &p.metrics)
+	s.free = parseFloat64(stats.Free, &p.metrics)
 	s.status = zpool.Status[stats.Status]
-	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics, ch)
+	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
 }
 
 // newMetrics initializes fields of the metrics and returns its instance

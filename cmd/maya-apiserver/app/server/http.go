@@ -1,6 +1,21 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
-// This is an adaptation of Hashicorp's Nomad library.
 import (
 	"bytes"
 	"encoding/json"
@@ -16,16 +31,22 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
 )
 
 const (
+	// ErrInvalidPath is used if the HTTP path is not supported
+	ErrInvalidPath = "Invalid path"
+
 	// ErrInvalidMethod is used if the HTTP method is not supported
-	ErrInvalidMethod = "Invalid method"
+	ErrInvalidMethod = "Invalid http method"
+
 	// ErrGetMethodRequired is used if the HTTP GET method is required"
 	ErrGetMethodRequired = "GET method required"
+
 	// ErrPutMethodRequired is used if the HTTP PUT/POST method is required"
 	ErrPutMethodRequired = "PUT/POST method required"
 )
@@ -191,11 +212,11 @@ func NewHTTPServer(maya *MayaApiServer, config *config.MayaConfig, logOutput io.
 	// Start the listener
 	lnAddr, err := net.ResolveTCPAddr("tcp", config.NormalizedAddrs.HTTP)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to instantiate http server: %s", config)
 	}
 	ln, err := config.Listener("tcp", lnAddr.IP.String(), lnAddr.Port)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start HTTP listener: %v", err)
+		return nil, errors.Wrapf(err, "failed to instantiate http server: %s", config)
 	}
 
 	// If TLS is enabled, wrap the listener with a TLS listener
@@ -302,11 +323,6 @@ type HTTPCodedError interface {
 	Code() int
 }
 
-// CodedError is used to provide the HTTP Code error
-func CodedError(c int, s string) HTTPCodedError {
-	return &codedError{s, c}
-}
-
 type codedError struct {
 	s    string
 	code int
@@ -318,6 +334,37 @@ func (e *codedError) Error() string {
 
 func (e *codedError) Code() int {
 	return e.code
+}
+
+// CodedErrorWrapf is used to provide HTTP error
+// Code and corresponding error as well additional
+// details in a format decided by the caller
+func CodedErrorWrapf(code int, err error, msg string, args ...interface{}) HTTPCodedError {
+	errMsg := fmt.Sprintf("error: {%s}, msg: {%s}", err, msg)
+	finalMsg := fmt.Sprintf(errMsg, args...)
+	return CodedError(code, finalMsg)
+}
+
+// CodedErrorWrap is used to provide HTTP error
+// Code and corresponding error
+func CodedErrorWrap(code int, err error) HTTPCodedError {
+	errMsg := fmt.Sprintf("error: {%s}", err)
+	return CodedError(code, errMsg)
+}
+
+// CodedErrorf is used to provide HTTP error
+// Code and corresponding error details in
+// a format decided by the caller
+func CodedErrorf(code int, msg string, args ...interface{}) HTTPCodedError {
+	errMsg := fmt.Sprintf("error: {%s}", msg)
+	finalMsg := fmt.Sprintf(errMsg, args...)
+	return CodedError(code, finalMsg)
+}
+
+// CodedError is used to provide HTTP error
+// Code and corresponding error msg
+func CodedError(c int, msg string) HTTPCodedError {
+	return &codedError{msg, c}
 }
 
 // wrap is a convenient method used to wrap the handler function &

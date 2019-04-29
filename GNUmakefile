@@ -1,5 +1,24 @@
+# Copyright © 2017 The OpenEBS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include buildscripts/common.mk
+
 # list only maya source code directories
 PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|integration-tests')
+
+# list maya source code directories along with integration-test code
+PACKAGES_IT = $(shell go list ./... | grep 'integration-test')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -59,11 +78,12 @@ POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 OPENEBS_CLUSTER=openebs-cluster
+UPGRADE=upgrade
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image
 
 mayactl:
 	@echo "----------------------------"
@@ -84,6 +104,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
 	rm -rf ${GOPATH}/bin/${OPENEBS_CLUSTER}
+	rm -rf ${GOPATH}/bin/${UPGRADE}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -94,9 +115,21 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
+# Verifies the compilation issues in integratio test
+# TODO: Currently we are checking only for integration-test package
+precompile:
+	@echo "--> Running go vet on integration-test"
+	@for test in  $(PACKAGES_IT) ; do \
+		go vet $$test; \
+	done
+
 test: format
 	@echo "--> Running go test" ;
 	@go test $(PACKAGES)
+
+testv: format
+	@echo "--> Running go test verbose" ;
+	@go test -v $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
@@ -357,5 +390,22 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
+	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image
+# build upgrade binary
+upgrade:
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE}      "
+	@echo "----------------------------"
+	@PNAME=${UPGRADE} CTLNAME=${UPGRADE} CGO_ENABLED=0 sh -c "'$(PWD)/buildscripts/build.sh'"
+
+# build upgrade image
+upgrade-image: upgrade
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE} image"
+	@echo "----------------------------"
+	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
+	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${UPGRADE}/${UPGRADE}
+
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade upgrade-image testv
