@@ -33,6 +33,7 @@ type runner struct {
 	isError bool
 }
 
+// Builder ...
 type Builder struct {
 	runner *runner
 }
