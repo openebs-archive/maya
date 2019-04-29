@@ -269,7 +269,7 @@ func TestZfsStatsCollector(t *testing.T) {
 	}
 
 	for name, tt := range cases {
-		tt = tt
+		tt := tt
 		t.Run(name, func(t *testing.T) {
 			if tt.isError {
 				runner = mock.StdoutBuilder().Error().Build()

@@ -71,6 +71,7 @@ func (r runner) RunCommandWithTimeoutContext() ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 
+	// #nosec
 	out, err := exec.CommandContext(ctx, r.command, r.args...).CombinedOutput()
 	if err != nil {
 		select {

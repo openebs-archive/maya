@@ -61,7 +61,10 @@ func PrometheusService(col prometheus.Collector, stop chan struct{}) []byte {
 		s := fmt.Sprintf("unexpected failed response from prometheus: %s", err)
 		panic(s)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
