@@ -37,7 +37,7 @@ func NewListBuilder() *ListBuilder {
 func ListBuilderForAPIList(scl *storagev1.StorageClassList) *ListBuilder {
 	b := &ListBuilder{list: &StorageClassList{}}
 	if scl == nil {
-		b.errs = append(b.errs, errors.New("failed to build pvc list: missing api list"))
+		b.errs = append(b.errs, errors.New("failed to build storageclass list: missing api list"))
 		return b
 	}
 	for _, sc := range scl.Items {
@@ -51,7 +51,7 @@ func ListBuilderForAPIList(scl *storagev1.StorageClassList) *ListBuilder {
 func ListBuilderForObjects(scl *StorageClassList) *ListBuilder {
 	b := &ListBuilder{list: &StorageClassList{}}
 	if scl == nil {
-		b.errs = append(b.errs, errors.New("failed to build pvc list: missing object list"))
+		b.errs = append(b.errs, errors.New("failed to build storageclass list: missing object list"))
 		return b
 	}
 	b.list = scl
@@ -61,7 +61,7 @@ func ListBuilderForObjects(scl *StorageClassList) *ListBuilder {
 // List returns the list of StorageClass instances that was built by this builder
 func (b *ListBuilder) List() (*StorageClassList, error) {
 	if len(b.errs) > 0 {
-		return nil, errors.Errorf("failed to list sc: %+v", b.errs)
+		return nil, errors.Errorf("failed to list storageclass: %+v", b.errs)
 	}
 	if b.filters == nil && len(b.filters) == 0 {
 		return b.list, nil

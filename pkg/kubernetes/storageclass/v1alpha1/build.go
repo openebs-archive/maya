@@ -32,26 +32,26 @@ func NewBuilder() *Builder {
 	return &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}}
 }
 
-// WithName sets the Name field of SC with provided argument.
+// WithName sets the Name field of storageclass with provided argument.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build SC object: missing storageclass name"))
+		b.errs = append(b.errs, errors.New("failed to build storageclass: missing storageclass name"))
 		return b
 	}
 	b.sc.object.Name = name
 	return b
 }
 
-// WithAnnotations sets the Annotations field of SC with provided value.
+// WithAnnotations sets the Annotations field of storageclass with provided value.
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build SC object: missing annotations"))
+		b.errs = append(b.errs, errors.New("failed to build storageclass: missing annotations"))
 	}
 	b.sc.object.Annotations = annotations
 	return b
 }
 
-// WithProvisioner sets the Provisioner field of SC with provided argument.
+// WithProvisioner sets the Provisioner field of storageclass with provided argument.
 func (b *Builder) WithProvisioner(provisioner string) *Builder {
 	if len(provisioner) == 0 {
 		b.errs = append(b.errs, errors.New("failed to build storageclass: missing provisioner name"))
