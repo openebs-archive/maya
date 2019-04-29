@@ -26,7 +26,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
-	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
+	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"

@@ -17,13 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"errors"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -82,7 +82,7 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
-			config, err := client.GetConfig(client.New())
+			config, err := client.New().Config()
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +163,8 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	}
 	c, err := k.getClientset()
 	if err != nil {
-		return nil, err
+		return nil,
+			errors.WithStack(errors.Wrapf(err, "failed to get clientset:"))
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -174,7 +175,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.StoragePoolList, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to list StoragePool:")
 	}
 	return k.list(cs, opts)
 }
@@ -186,7 +187,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.StoragePool
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get StoragePool: {%s}", name)
 	}
 	return k.get(cs, name, opts)
 }
@@ -195,7 +196,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.StoragePool
 func (k *Kubeclient) Create(obj *apis.StoragePool) (*apis.StoragePool, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to create StoragePool: {%+v}", obj)
 	}
 	return k.create(cs, obj)
 }
@@ -208,7 +209,7 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType,
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to patch StoragePool: {%s}", name)
 	}
 	return k.patch(cs, name, pt, patchObj)
 }
@@ -216,11 +217,11 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType,
 // Delete deletes StoragePool instance
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
-		return errors.New("failed to patch StoragePool: missing name")
+		return errors.New("failed to delete StoragePool: missing name")
 	}
 	cs, err := k.getClientOrCached()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to delete StoragePool: {%s}", name)
 	}
 	return k.del(cs, name, opts)
 }
