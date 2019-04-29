@@ -122,6 +122,12 @@ func DeleteCSIVolumeCR(vol *v1alpha1.CSIVolume) (err error) {
 	}
 	for _, csivol := range csivols.Items {
 		if csivol.Spec.Volume.OwnerNodeID == vol.Spec.Volume.OwnerNodeID {
+			csivol.Finalizers = nil
+			_, err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).Update(&csivol)
+			if err != nil {
+				return
+			}
+
 			err = openebsClient.OpenebsV1alpha1().CSIVolumes(OpenEBSNamespace).Delete(csivol.Name, &v1.DeleteOptions{})
 			if err != nil {
 				return
