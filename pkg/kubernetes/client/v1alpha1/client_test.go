@@ -93,6 +93,7 @@ func TestConfig(t *testing.T) {
 		"t9": {false, "fakeKubeConfigpath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
 				IsInCluster:          mock.isInCluster,
@@ -126,6 +127,7 @@ func TestGetConfigFromENV(t *testing.T) {
 		"t7": {fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsErr, true},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
 				getKubeMasterIP:      mock.getKubeMasterIP,
@@ -171,6 +173,7 @@ func TestClientset(t *testing.T) {
 		"t33": {false, "fakePath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock // pin It
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
 				IsInCluster:            mock.isInCluster,
