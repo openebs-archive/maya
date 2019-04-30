@@ -20,8 +20,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

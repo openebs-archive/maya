@@ -20,20 +20,12 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"k8s.io/apimachinery/pkg/util/runtime"
-
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-
-	//openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
-	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/scheme"
-
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
-
-	listers "github.com/openebs/maya/pkg/client/generated/lister/openebs.io/v1alpha1"
-
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"

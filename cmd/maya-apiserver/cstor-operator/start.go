@@ -20,12 +20,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
-
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"

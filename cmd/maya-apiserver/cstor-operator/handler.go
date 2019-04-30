@@ -23,7 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

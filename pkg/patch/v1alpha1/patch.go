@@ -18,7 +18,7 @@ package patch
 
 import (
 	"encoding/json"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )

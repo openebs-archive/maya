@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
