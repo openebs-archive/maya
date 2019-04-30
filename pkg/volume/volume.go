@@ -24,8 +24,9 @@ import (
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/pkg/errors"
 	v1_storage "k8s.io/api/storage/v1"
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -86,7 +87,7 @@ func (v *Operation) getCloneLabels() (map[string]interface{}, error) {
 		// fetch source PV using client go
 		pv, err := v.k8sClient.GetPV(v.volume.CloneSpec.SourceVolume, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to retrieve source volume for clone: %s", v.volume)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to retrieve source volume for clone: %s", v.volume)
 		}
 		// Set isCloneEnable to true
 		cloneLabels[string(v1alpha1.IsCloneEnableVTP)] = "true"
@@ -114,13 +115,13 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 
 	pvcName := v.volume.Labels[string(v1alpha1.PersistentVolumeClaimKey)]
 	if len(pvcName) == 0 {
-		return nil, errors.Errorf("failed to create volume: missing claim label '%s': %s", string(v1alpha1.PersistentVolumeClaimKey), v.volume)
+		return nil, errors.Errorf("failed to create volume: missing claim label {%s}: %s", string(v1alpha1.PersistentVolumeClaimKey), v.volume)
 	}
 
 	// fetch the pvc specifications
 	pvc, err := v.k8sClient.GetPVC(pvcName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
 	// extract the cas volume config from pvc
@@ -133,7 +134,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	scName := v.volume.Labels[string(v1alpha1.StorageClassKey)]
 
 	if len(scName) == 0 {
-		return nil, errors.Errorf("failed to create volume: missing storage class label '%s': %s", string(v1alpha1.StorageClassKey), v.volume)
+		return nil, errors.Errorf("failed to create volume: missing storage class label {%s}: %s", string(v1alpha1.StorageClassKey), v.volume)
 	}
 
 	// scName might not be initialized in getCloneLabels
@@ -143,7 +144,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	// fetch the storage class specifications
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
 	// extract the cas volume config from storage class
@@ -158,7 +159,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	// fetch CASTemplate specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
 	var isRestoreVol string
@@ -200,7 +201,7 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to create volume: %s", v.volume)
 	}
 
 	return vol, nil
@@ -215,7 +216,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	// pv details
 	pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to delete volume: %s", v.volume)
 	}
 
 	// sc details
@@ -225,12 +226,12 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	}
 
 	if len(scName) == 0 {
-		return nil, errors.Errorf("failed to delete volume: missing storage class label '%s': %s", string(v1alpha1.StorageClassKey), v.volume)
+		return nil, errors.Errorf("failed to delete volume: missing storage class label {%s}: %s", string(v1alpha1.StorageClassKey), v.volume)
 	}
 
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to delete volume: %s", v.volume)
 	}
 
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
@@ -239,12 +240,12 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	casType := pv.Labels[string(v1alpha1.CASTypeKey)]
 	castName := getDeleteCASTemplate(casType, sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("failed to delete volume: missing cas template: %s", v.volume)
+		return nil, errors.Errorf("failed to delete volume: %s missing cas template", v.volume)
 	}
 
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to delete volume: %s", v.volume)
 	}
 
 	// delete cas volume via cas template engine
@@ -272,7 +273,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to delete volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to delete volume: %s", v.volume)
 	}
 
 	return vol, nil
@@ -293,7 +294,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		// fetch the pv specification
 		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to get PV for volume: %s", v.volume)
 		}
 
 		// extract the sc name
@@ -310,19 +311,19 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	// fetch the sc specification
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
 	}
 
 	// extract read cas template name from sc annotation
 	castName := getReadCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("failed to read volume: missing cas template '%s'", v.volume)
+		return nil, errors.Errorf("failed to read volume: missing cas template: %s", v.volume)
 	}
 
 	// fetch read cas template specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
 	}
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 	// read cas volume via cas template engine
@@ -350,7 +351,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
 	}
 
 	return vol, nil
@@ -374,7 +375,7 @@ func NewListOperation(volumes *v1alpha1.CASVolumeList) (*ListOperation, error) {
 
 	kc, err := m_k8s_client.NewK8sClient("")
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to instantiate volume list operation")
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to instantiate volume list operation")
 	}
 
 	return &ListOperation{
@@ -400,7 +401,7 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 		// fetch read cas template specifications
 		castObj, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list volumes: cas template '%s'", castName)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to list volumes: cas template '%s'", castName)
 		}
 
 		// read cas volume via cas template engine
@@ -412,20 +413,20 @@ func (v *ListOperation) List() (*v1alpha1.CASVolumeList, error) {
 			},
 		)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list volumes: cas template '%s'", castName)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to list volumes: cas template '%s'", castName)
 		}
 
 		// list volume details by executing engine
 		data, err := engine.Run()
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list volumes: cas template '%s'", castName)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to list volumes: cas template '%s'", castName)
 		}
 
 		// unmarshall into openebs volume
 		tvols := &v1alpha1.CASVolumeList{}
 		err = yaml.Unmarshal(data, tvols)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list volumes: cas template '%s'", castName)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to list volumes: cas template '%s'", castName)
 		}
 
 		vols.Items = append(vols.Items, tvols.Items...)
@@ -493,6 +494,7 @@ func getDeleteCASTemplate(defaultCasType string, sc *v1_storage.StorageClass) st
 	return castName
 }
 
+// ReadStats ...
 func (v *Operation) ReadStats() ([]byte, error) {
 	if len(v.volume.Name) == 0 {
 		return nil, errors.Errorf("failed to read volume stats: missing volume name: %s", v.volume)
@@ -503,7 +505,7 @@ func (v *Operation) ReadStats() ([]byte, error) {
 	// fetch read cas template specifications
 	castObj, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Errorf("failed to read volume stats: cas template '%s': %s", castName, v.volume)
+		return nil, errors.Errorf("failed to read volume stats: cas template {%s}: %s", castName, v.volume)
 	}
 
 	engine, err := cast.Engine(
@@ -515,12 +517,12 @@ func (v *Operation) ReadStats() ([]byte, error) {
 		},
 	)
 	if err != nil {
-		return nil, errors.Errorf("failed to read volume stats: cas template '%s': %s", castName, v.volume)
+		return nil, errors.Errorf("failed to read volume stats: cas template {%s}: %s", castName, v.volume)
 	}
 
 	data, err := engine.Run()
 	if err != nil {
-		return nil, errors.Errorf("failed to read volume stats: cas template '%s': %s", castName, v.volume)
+		return nil, errors.Errorf("failed to read volume stats: cas template {%s}: %s", castName, v.volume)
 	}
 
 	return data, nil
