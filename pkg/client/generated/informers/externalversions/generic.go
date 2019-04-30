@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	v1beta1 "github.com/openebs/maya/pkg/apis/openebs.io/v1beta1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -75,6 +76,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().StoragePools().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("storagepoolclaims"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1alpha1().StoragePoolClaims().Informer()}, nil
+
+		// Group=openebs.io, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("storagepoolclaims"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Openebs().V1beta1().StoragePoolClaims().Informer()}, nil
 
 	}
 

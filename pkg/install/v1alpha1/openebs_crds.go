@@ -75,7 +75,15 @@ spec:
   # group name to use for REST API: /apis/<group>/<version>
   group: openebs.io
   # version name to use for REST API: /apis/<group>/<version>
-  version: v1alpha1
+  versions: 
+  - name: v1beta1
+    # Each version can be enabled/disabled by Served flag.
+    served: true
+    # One and only one version must be marked as the storage version.
+    storage: false
+  - name: v1alpha1
+    served: true
+    storage: true
   # either Namespaced or Cluster
   scope: Cluster
   names:
