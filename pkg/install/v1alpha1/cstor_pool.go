@@ -340,6 +340,8 @@ spec:
             ports:
             - containerPort: 9500
               protocol: TCP
+            securityContext:
+              privileged: true
             volumeMounts:
             - mountPath: /dev
               name: device
