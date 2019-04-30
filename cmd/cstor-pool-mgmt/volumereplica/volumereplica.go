@@ -19,6 +19,7 @@ package volumereplica
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"encoding/json"
 
@@ -36,6 +37,8 @@ const (
 	CreateCmd = "create"
 	// CloneCmd is the zfs volume clone command.
 	CloneCmd = "clone"
+	// BackupCmd is the zfs send command
+	BackupCmd = "send"
 	// StatsCmd is the zfs volume stats command.
 	StatsCmd = "stats"
 	// ZfsStatusDegraded is the degraded state of zfs volume.
@@ -46,6 +49,10 @@ const (
 	ZfsStatusHealthy = "Healthy"
 	// ZfsStatusRebuilding is the rebuilding state of zfs volume.
 	ZfsStatusRebuilding = "Rebuilding"
+	// MaxBackupRetryCount is a max number of retry should be performed during backup transfer
+	MaxBackupRetryCount = 10
+	// BackupRetryDelay is time(in seconds) to wait before the next attempt for backup transfer
+	BackupRetryDelay = 5
 )
 
 const (
@@ -187,6 +194,44 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 			"-o", openebsVolname, snapName, fullVolName)
 	}
 	return cloneVolCmd
+}
+
+// CreateVolumeBackup sends cStor snapshots to remote location specified by backupcstor.
+func CreateVolumeBackup(bkp *apis.BackupCStor) error {
+	var cmd []string
+	var retryCount int
+	var err error
+
+	// Parse capacity unit on CVR to support backward compatibility
+	cmd = builldVolumeBackupCommand(bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"], bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
+
+	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
+
+	for retryCount < MaxBackupRetryCount {
+		stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		if err != nil {
+			glog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
+			retryCount++
+			time.Sleep(BackupRetryDelay * time.Second)
+			continue
+		}
+		break
+	}
+	return err
+}
+
+// builldVolumeBackupCommand returns volume create command along with attributes as a string array
+func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
+	var startBackupCmd []string
+
+	bkpAddr := strings.Split(backupDest, ":")
+	if oldSnapName == "" {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+	} else {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
+			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+	}
+	return startBackupCmd
 }
 
 // GetVolumes returns the slice of volumes.
