@@ -228,6 +228,8 @@ spec:
     - jiva-volume-create-getstoragepoolcr-default
     - jiva-volume-create-putreplicadeployment-default
     - jiva-volume-create-puttargetdeployment-default
+    - jiva-volume-create-listreplicapod-default
+    - jiva-volume-create-patchreplicadeployment-default
   output: jiva-volume-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -657,13 +659,19 @@ spec:
     action: list
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
-    retry: "12,10s"
+    retry: "24,5s"
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "createlistrep.nodeNames" .TaskResult | noop -}}
-    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
-    {{- .TaskResult.createlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr "number of replica pods does not match expected count" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
+    {{- $expectedRepCount := div .Config.ReplicaCount.value 2 | add1 | int -}}
+    {{- .TaskResult.createlistrep.nodeNames | default "" | splitListLen " " | saveAs "createlistrep.noOfReplicas" .TaskResult | noop -}}
+    {{- if ge .TaskResult.createlistrep.noOfReplicas $expectedRepCount }}
+    -
+    {{- else }}
+        {{- $msg := printf "expected minimum %v no of replica, found only %v replicas" $expectedRepCount .TaskResult.createlistrep.noOfReplicas -}}
+        {{- verifyErr $msg true | saveAs "createlistrep.verifyErr" .TaskResult | noop -}}
+    {{- end -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
