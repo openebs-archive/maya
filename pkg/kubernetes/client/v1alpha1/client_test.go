@@ -75,24 +75,28 @@ func TestNewInCluster(t *testing.T) {
 func TestConfig(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster        bool
+		kubeConfigPath     string
 		getInClusterConfig getInClusterConfigFunc
 		getKubeMasterIP    getKubeMasterIPFunc
 		getKubeConfigPath  getKubeConfigPathFunc
 		getConfigFromENV   buildConfigFromFlagsFunc
 		isErr              bool
 	}{
-		"t1": {true, fakeInClusterConfigOk, nil, nil, nil, false},
-		"t2": {true, fakeInClusterConfigErr, nil, nil, nil, true},
-		"t3": {false, fakeInClusterConfigErr, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, true},
-		"t4": {false, fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, false},
-		"t5": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathNil, fakeBuildConfigFromFlagsOk, false},
-		"t6": {false, nil, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
-		"t7": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
+		"t1": {true, "", fakeInClusterConfigOk, nil, nil, nil, false},
+		"t2": {true, "", fakeInClusterConfigErr, nil, nil, nil, true},
+		"t3": {false, "", fakeInClusterConfigErr, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, true},
+		"t4": {false, "", fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, false},
+		"t5": {false, "fakeKubeConfigPath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathNil, fakeBuildConfigFromFlagsOk, false},
+		"t6": {false, "", nil, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
+		"t7": {false, "", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
+		"t8": {false, "fakeKubeConfigPath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsErr, true},
+		"t9": {false, "fakeKubeConfigpath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, false},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
 				IsInCluster:          mock.isInCluster,
+				KubeConfigPath:       mock.kubeConfigPath,
 				getInClusterConfig:   mock.getInClusterConfig,
 				getKubeMasterIP:      mock.getKubeMasterIP,
 				getKubeConfigPath:    mock.getKubeConfigPath,
@@ -142,6 +146,7 @@ func TestGetConfigFromENV(t *testing.T) {
 func TestClientset(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster            bool
+		kubeConfigPath         string
 		getInClusterConfig     getInClusterConfigFunc
 		getKubeMasterIP        getKubeMasterIPFunc
 		getKubeConfigPath      getKubeConfigPathFunc
@@ -149,24 +154,27 @@ func TestClientset(t *testing.T) {
 		getKubernetesClientset getKubernetesClientsetFunc
 		isErr                  bool
 	}{
-		"t10": {true, fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetOk, false},
-		"t11": {true, fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetErr, true},
-		"t12": {true, fakeInClusterConfigErr, nil, nil, nil, fakeGetClientsetOk, true},
+		"t10": {true, "fakePath", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetOk, false},
+		"t11": {true, "", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetErr, true},
+		"t12": {true, "fakePath", fakeInClusterConfigErr, nil, nil, nil, fakeGetClientsetOk, true},
 
-		"t21": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathNil, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
-		"t22": {false, nil, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
-		"t23": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
-		"t24": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsErr, fakeGetClientsetOk, true},
-		"t25": {false, nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetErr, true},
+		"t21": {false, "", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathNil, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
+		"t22": {false, "", nil, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
+		"t23": {false, "", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
+		"t24": {false, "fake-path", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsErr, fakeGetClientsetOk, true},
+		"t25": {false, "", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetErr, true},
+		"t26": {false, "fakePath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsErr, fakeGetClientsetOk, true},
 
-		"t30": {false, fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, fakeGetClientsetOk, false},
-		"t31": {false, fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, fakeGetClientsetErr, true},
-		"t32": {false, fakeInClusterConfigErr, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, nil, true},
+		"t30": {false, "", fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, fakeGetClientsetOk, false},
+		"t31": {false, "", fakeInClusterConfigOk, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, fakeGetClientsetErr, true},
+		"t32": {false, "", fakeInClusterConfigErr, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathNil, nil, nil, true},
+		"t33": {false, "fakePath", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
 	}
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			c := &Client{
 				IsInCluster:            mock.isInCluster,
+				KubeConfigPath:         mock.kubeConfigPath,
 				getInClusterConfig:     mock.getInClusterConfig,
 				getKubeMasterIP:        mock.getKubeMasterIP,
 				getKubeConfigPath:      mock.getKubeConfigPath,
