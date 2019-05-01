@@ -21,6 +21,7 @@ import (
 
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -82,6 +83,13 @@ type getKubeMasterIPFunc func(env.ENVKey) string
 //  typed function makes it simple to mock
 type getKubeConfigPathFunc func(env.ENVKey) string
 
+// getKubernetesDynamicClientsetFunc provides the abstraction to get
+// dynamic kubernetes clientset
+//
+// NOTE:
+//  typed function makes it simple to mock
+type getKubernetesDynamicClientFunc func(*rest.Config) (dynamic.Interface, error)
+
 // getKubernetesClientsetFunc provides the abstraction to get
 // kubernetes clientset
 //
@@ -104,6 +112,9 @@ type Client struct {
 
 	// handle to get kubernetes clienset
 	getKubernetesClientset getKubernetesClientsetFunc
+
+	// handle to get dynamic kubernetes clientset
+	getKubernetesDynamicClientSet getKubernetesDynamicClientFunc
 
 	// handle to get kubernetes master IP
 	getKubeMasterIP getKubeMasterIPFunc
@@ -138,6 +149,9 @@ func withDefaults(c *Client) {
 	}
 	if c.getKubernetesClientset == nil {
 		c.getKubernetesClientset = kubernetes.NewForConfig
+	}
+	if c.getKubernetesDynamicClientSet == nil {
+		c.getKubernetesDynamicClientSet = dynamic.NewForConfig
 	}
 	if c.getKubeMasterIP == nil {
 		c.getKubeMasterIP = env.Get
@@ -209,4 +223,14 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 		)
 	}
 	return c.buildConfigFromFlags(k8sMaster, kubeConfig)
+}
+
+// Dynamic returns a kubernetes dynamic client capable of invoking operations
+// against kubernetes resources
+func (c *Client) Dynamic() (dynamic.Interface, error) {
+	config, err := c.Config()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to provide dynamic client")
+	}
+	return c.getKubernetesDynamicClientSet(config)
 }

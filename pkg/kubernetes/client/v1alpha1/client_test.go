@@ -21,6 +21,7 @@ import (
 
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -63,6 +64,18 @@ func fakeGetKubeMasterIPOk(e env.ENVKey) string {
 
 func fakeGetKubeMasterIPNil(e env.ENVKey) string {
 	return ""
+}
+
+func fakeGetDynamicClientSetOk(c *rest.Config) (dynamic.Interface, error) {
+	return dynamic.NewForConfig(c)
+}
+
+func fakeGetDynamicClientSetNil(c *rest.Config) (dynamic.Interface, error) {
+	return nil, nil
+}
+
+func fakeGetDynamicClientSetErr(c *rest.Config) (dynamic.Interface, error) {
+	return nil, errors.New("fake error")
 }
 
 func TestNewInCluster(t *testing.T) {
@@ -185,6 +198,47 @@ func TestClientset(t *testing.T) {
 				getKubernetesClientset: mock.getKubernetesClientset,
 			}
 			_, err := c.Clientset()
+			if mock.isErr && err == nil {
+				t.Fatalf("test '%s' failed: expected error actual no error", name)
+			}
+			if !mock.isErr && err != nil {
+				t.Fatalf("test '%s' failed: expected no error actual '%s'", name, err)
+			}
+		})
+	}
+}
+
+func TestDynamic(t *testing.T) {
+	tests := map[string]struct {
+		getKubeMasterIP               getKubeMasterIPFunc
+		getInClusterConfig            getInClusterConfigFunc
+		getKubernetesDynamicClientSet getKubernetesDynamicClientFunc
+		kubeConfigPath                string
+		getConfigFromENV              buildConfigFromFlagsFunc
+		getKubeConfigPath             getKubeConfigPathFunc
+		isErr                         bool
+	}{
+		"t1": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetOk, "fake-path", fakeBuildConfigFromFlagsOk, fakeGetKubeConfigPathNil, false},
+		"t2": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetErr, "fake-path", fakeBuildConfigFromFlagsOk, fakeGetKubeConfigPathOk, true},
+		"t3": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetOk, "fake-path", fakeBuildConfigFromFlagsErr, fakeGetKubeConfigPathOk, true},
+		"t4": {fakeGetKubeMasterIPOk, fakeInClusterConfigOk, fakeGetDynamicClientSetNil, "", fakeBuildConfigFromFlagsErr, fakeGetKubeConfigPathOk, true},
+		"t5": {fakeGetKubeMasterIPOk, fakeInClusterConfigErr, fakeGetDynamicClientSetErr, "", fakeBuildConfigFromFlagsOk, fakeGetKubeConfigPathOk, true},
+		"t6": {fakeGetKubeMasterIPNil, fakeInClusterConfigOk, fakeGetDynamicClientSetNil, "", fakeBuildConfigFromFlagsErr, fakeGetKubeConfigPathNil, false},
+		"t7": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetOk, "", fakeBuildConfigFromFlagsErr, fakeGetKubeConfigPathNil, true},
+		"t8": {fakeGetKubeMasterIPNil, fakeInClusterConfigErr, fakeGetDynamicClientSetErr, "", fakeBuildConfigFromFlagsErr, fakeGetKubeConfigPathNil, true},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock // pin It
+		t.Run(name, func(t *testing.T) {
+			c := &Client{
+				getKubeMasterIP:               mock.getKubeMasterIP,
+				KubeConfigPath:                mock.kubeConfigPath,
+				getInClusterConfig:            mock.getInClusterConfig,
+				buildConfigFromFlags:          mock.getConfigFromENV,
+				getKubeConfigPath:             mock.getKubeConfigPath,
+				getKubernetesDynamicClientSet: mock.getKubernetesDynamicClientSet,
+			}
+			_, err := c.Dynamic()
 			if mock.isErr && err == nil {
 				t.Fatalf("test '%s' failed: expected error actual no error", name)
 			}
