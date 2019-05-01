@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The OpenEBS Authors.
+Copyright 2019 The OpenEBS Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,9 +34,9 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/scheme"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 )
 
 const restoreControllerName = "CStorRestore"

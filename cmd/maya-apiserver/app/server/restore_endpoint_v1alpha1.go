@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -8,7 +24,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -38,7 +53,7 @@ func (s *HTTPServer) restoreV1alpha1SpecificRequest(resp http.ResponseWriter, re
 // Create is http handler which handles restore-create request
 func (rOps *restoreAPIOps) create() (interface{}, error) {
 	var err error
-	var openebsclient *versioned.Clientset
+	var openebsClient *versioned.Clientset
 	restore := &v1alpha1.CStorRestore{}
 	err = decodeBody(rOps.req, restore)
 	if err != nil {
@@ -74,7 +89,7 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 }
 
 // createRestoreResource create restore CR for volume's CVR
-func createRestoreResource(openebsClient *internalclientset.Clientset, rst *v1alpha1.CStorRestore) (interface{}, error) {
+func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CStorRestore) (interface{}, error) {
 	//Get List of cvr's related to this pvc
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + rst.Spec.VolumeName,
@@ -227,7 +242,7 @@ func getCVRRestoreStatus(k8sClient *kubernetes.Clientset, rst v1alpha1.CStorRest
 }
 
 // updateRestoreStatus will update the restore status to given status
-func updateRestoreStatus(clientset internalclientset.Interface, rst v1alpha1.CStorRestore, status v1alpha1.CStorRestoreStatus) {
+func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestore, status v1alpha1.CStorRestoreStatus) {
 	rst.Status = status
 
 	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)
