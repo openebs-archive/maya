@@ -245,7 +245,7 @@ func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, 
 
 // CreateVolumeRestore receive cStor snapshots from remote location(zfs volumes).
 func CreateVolumeRestore(rst *apis.CStorRestore) error {
-	cmd := []string{}
+	var cmd []string
 	var retryCount int
 	var err error
 

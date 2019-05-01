@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -36,8 +37,10 @@ func (s *HTTPServer) restoreV1alpha1SpecificRequest(resp http.ResponseWriter, re
 
 // Create is http handler which handles restore-create request
 func (rOps *restoreAPIOps) create() (interface{}, error) {
+	var err error
+	var openebsclient *versioned.Clientset
 	restore := &v1alpha1.CStorRestore{}
-	err := decodeBody(rOps.req, restore)
+	err = decodeBody(rOps.req, restore)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +65,10 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("failed to create restore '%v': missing restoreSrc", restore.Name))
 	}
 
-	openebsClient, _, err := loadClientFromServiceAccount()
+	openebsClient, _, err = loadClientFromServiceAccount()
+	if err != nil {
+		return nil, CodedError(400, fmt.Sprintf("Failed to load openebs client:{%v}", err))
+	}
 
 	return createRestoreResource(openebsClient, restore)
 }
@@ -120,9 +126,13 @@ func createRestoreResource(openebsClient *internalclientset.Clientset, rst *v1al
 
 // get is http handler which handles backup get request
 func (rOps *restoreAPIOps) get() (interface{}, error) {
+	var err error
+	var rstatus v1alpha1.CStorRestoreStatus
+	var resp []byte
+
 	rst := &v1alpha1.CStorRestore{}
 
-	err := decodeBody(rOps.req, rst)
+	err = decodeBody(rOps.req, rst)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +152,11 @@ func (rOps *restoreAPIOps) get() (interface{}, error) {
 		return nil, CodedError(400, fmt.Sprintf("Failed to get restore '%v': missing volume name", rst.Spec.RestoreName))
 	}
 
-	rstatus, err := getRestoreStatus(rst)
+	rstatus, err = getRestoreStatus(rst)
 
-	out, err := json.Marshal(rstatus)
+	resp, err = json.Marshal(rstatus)
 	if err == nil {
-		_, err = rOps.resp.Write(out)
+		_, err = rOps.resp.Write(resp)
 		if err != nil {
 			return nil, CodedError(400, fmt.Sprintf("Failed to send response data"))
 		}

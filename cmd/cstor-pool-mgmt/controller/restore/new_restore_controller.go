@@ -73,7 +73,11 @@ func NewCStorRestoreController(
 	// obtain references to shared index informers for the CStorRestore resources.
 	CStorRestoreInformer := cStorInformerFactory.Openebs().V1alpha1().CStorRestores()
 
-	openebsScheme.AddToScheme(scheme.Scheme)
+	err := openebsScheme.AddToScheme(scheme.Scheme)
+	if err != nil {
+		glog.Errorf("Failed to add scheme :%v", err.Error())
+		return nil
+	}
 
 	// Create event broadcaster
 	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be

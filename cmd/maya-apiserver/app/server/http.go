@@ -334,7 +334,7 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 
 	// Request w.r.t to restore is handled here
 	s.mux.HandleFunc("/latest/restore/", s.wrap(latestOpenEBSRestoreRequestCounter,
-		latestOpenEBSBackupRequestDuration, s.restoreV1alpha1SpecificRequest))
+		latestOpenEBRestoreRequestDuration, s.restoreV1alpha1SpecificRequest))
 
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and other custom metrics
