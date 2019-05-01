@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 
-	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -38,7 +38,7 @@ import (
 	mach_apis_meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/typed/openebs.io/v1alpha1"
+	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
 
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -661,6 +661,16 @@ func (k *K8sClient) GetOEV1alpha1SPAsRaw(name string) (result []byte, err error)
 	//	DoRaw()
 
 	//return
+}
+
+// GetOEV1alpha1CSPAsRaw fetches the OpenEBS CSP with the provided name
+func (k *K8sClient) GetOEV1alpha1CSPAsRaw(name string) (result []byte, err error) {
+	csp, err := k.GetOEV1alpha1CSP(name)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(csp)
 }
 
 // podOps is a utility function that provides a instance capable of

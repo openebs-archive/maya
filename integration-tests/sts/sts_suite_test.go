@@ -1,3 +1,17 @@
+// Copyright © 2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package sts
 
 import (
@@ -75,11 +89,10 @@ var _ = BeforeSuite(func() {
 	// Check for maya-apiserver pod to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.MayaAPIServerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -90,11 +103,10 @@ var _ = BeforeSuite(func() {
 	// Check for provisioner pod to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSProvisionerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -105,11 +117,10 @@ var _ = BeforeSuite(func() {
 	// Check for snapshot operator to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSSnapshotOperatorLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -120,11 +131,10 @@ var _ = BeforeSuite(func() {
 	// Check for admission server to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSAdmissionServerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -135,11 +145,10 @@ var _ = BeforeSuite(func() {
 	// Check for NDM pods to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSNDMLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()
@@ -150,11 +159,10 @@ var _ = BeforeSuite(func() {
 	// Check for cstor storage pool pods to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSCStorPoolLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
-		return pod.ListBuilder().
-			WithAPIList(pods).
+		return pod.ListBuilderForAPIList(pods).
 			WithFilter(pod.IsRunning()).
 			List().
 			Len()

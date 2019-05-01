@@ -1,5 +1,0 @@
-component_depth: 8
-languages:
-- go
-exclude:
-- /pkg/client/generated/.*

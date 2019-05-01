@@ -440,6 +440,10 @@ func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
+func (m *metaTaskExecutor) isGetOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isGetOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isGet()
 }
@@ -537,7 +541,7 @@ func (m *metaTaskExecutor) isRolloutstatusExtnV1B1Deploy() bool {
 }
 
 func (m *metaTaskExecutor) isRolloutstatusAppsV1Deploy() bool {
-	return m.identifier.isAppsV1B1Deploy() && m.isRolloutstatus()
+	return m.identifier.isAppsV1Deploy() && m.isRolloutstatus()
 }
 
 // getRollbackMetaInstances is a utility function that provides objects

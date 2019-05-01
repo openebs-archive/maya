@@ -17,14 +17,11 @@ limitations under the License.
 package spc
 
 import (
-	"fmt"
 	"github.com/golang/glog"
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/pkg/errors"
 
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
-
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	"github.com/openebs/maya/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -38,12 +35,7 @@ var (
 	kubeconfig string
 )
 
-type QueueLoad struct {
-	Key       string
-	Operation string
-	Object    interface{}
-}
-
+// Start starts the cstor-operator.
 func Start() error {
 	// set up signals so we handle the first shutdown signal gracefully
 	stopCh := signals.SetupSignalHandler()
@@ -51,25 +43,34 @@ func Start() error {
 	// Get in cluster config
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
-		return fmt.Errorf("Error building kubeconfig: %s", err.Error())
+		return errors.Wrap(err, "error building kubeconfig")
 	}
 
 	// Building Kubernetes Clientset
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("Error building kubernetes clientset: %s", err.Error())
+		return errors.Wrap(err, "error building kubernetes clientset")
 	}
 
 	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
-		return fmt.Errorf("Error building openebs clientset: %s", err.Error())
+		return errors.Wrap(err, "error building openebs clientset")
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
-
-	controller := NewController(kubeClient, openebsClient, kubeInformerFactory, spcInformerFactory)
+	controller, err := NewControllerBuilder().
+		withKubeClient(kubeClient).
+		withOpenEBSClient(openebsClient).
+		withspcSynced(spcInformerFactory).
+		withSpcLister(spcInformerFactory).
+		withRecorder(kubeClient).
+		withEventHandler(spcInformerFactory).
+		withWorkqueueRateLimiting().Build()
+	if err != nil {
+		return errors.Wrapf(err, "error building controller instance")
+	}
 
 	go kubeInformerFactory.Start(stopCh)
 	go spcInformerFactory.Start(stopCh)
@@ -86,11 +87,11 @@ func getClusterConfig(kubeconfig string) (*rest.Config, error) {
 	if err != nil {
 		glog.Errorf("Failed to get k8s Incluster config. %+v", err)
 		if kubeconfig == "" {
-			return nil, fmt.Errorf("Kubeconfig is empty: %v", err.Error())
+			return nil, errors.Wrap(err, "kubeconfig is empty")
 		}
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {
-			return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+			return nil, errors.Wrap(err, "error building kubeconfig")
 		}
 	}
 	return cfg, err

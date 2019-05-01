@@ -1,3 +1,19 @@
+/*
+Copyright 2019 The OpenEBS Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
@@ -13,7 +29,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	snapshot "github.com/openebs/maya/pkg/snapshot/v1alpha1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -144,8 +160,9 @@ func createSnapshotForBackup(bkp *v1alpha1.BackupCStor) error {
 	return nil
 }
 
-// loadClientFromServiceAccount loads a k8s and openebs client from a ServiceAccount specified in the pod running
-func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.Clientset, error) {
+// loadClientFromServiceAccount loads a k8s and openebs client from a ServiceAccount
+// specified in the pod running
+func loadClientFromServiceAccount() (*versioned.Clientset, *kubernetes.Clientset, error) {
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		glog.Errorf("Failed to fetch k8s cluster config. %+v", err)
@@ -158,7 +175,7 @@ func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.C
 		return nil, nil, err
 	}
 
-	openebsClient, err := internalclientset.NewForConfig(cfg)
+	openebsClient, err := versioned.NewForConfig(cfg)
 	if err != nil {
 		glog.Errorf("Failed to create openeEBS client. %+v", err)
 		return nil, nil, err
@@ -168,7 +185,7 @@ func loadClientFromServiceAccount() (*internalclientset.Clientset, *kubernetes.C
 }
 
 // findHealthyCVR will find a healthy CVR for a given volume
-func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (v1alpha1.CStorVolumeReplica, error) {
+func findHealthyCVR(openebsClient *versioned.Clientset, volume string) (v1alpha1.CStorVolumeReplica, error) {
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + volume,
 	}
@@ -189,7 +206,7 @@ func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (
 }
 
 // getLastBackupSnap will fetch the last successful backup's snapshot name
-func getLastBackupSnap(openebsClient *internalclientset.Clientset, bkp *v1alpha1.BackupCStor) (string, error) {
+func getLastBackupSnap(openebsClient *versioned.Clientset, bkp *v1alpha1.BackupCStor) (string, error) {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	b, err := openebsClient.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
@@ -254,9 +271,9 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 
 	if b.Status != v1alpha1.BKPCStorStatusDone && b.Status != v1alpha1.BKPCStorStatusFailed {
 		// check if node is running or not
-		bkpNodeDown := checkIfCSPPoolNodeDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
+		bkpNodeDown := checkIfBKPPoolNodeDown(k8sClient, b)
 		// check if cstor-pool-mgmt container is running or not
-		bkpPodDown := checkIfCSPPoolPodDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
+		bkpPodDown := checkIfBKPPoolPodDown(k8sClient, b)
 
 		if bkpNodeDown || bkpPodDown {
 			// Backup is stalled, let's find last-backup status
@@ -284,13 +301,13 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 	return nil, CodedError(400, fmt.Sprintf("Failed to encode response data"))
 }
 
-// checkIfCSPPoolNodeDown will check if pool node is running or not
-func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) bool {
+// checkIfBKPPoolNodeDown will check if pool node is running or not
+func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
 	var nodeDown = true
 
-	pod, err := findPodFromCStorID(k8sclient, cstorID)
+	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
 	if err != nil {
-		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
+		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
 		return nodeDown
 	}
 
@@ -300,7 +317,7 @@ func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) boo
 
 	node, err := k8sclient.CoreV1().Nodes().Get(pod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
-		glog.Infof("Failed to fetch node info for cstorID:%v: %v", cstorID, err)
+		glog.Infof("Failed to fetch node info for backup:%v: %v", bkp.Name, err)
 		return nodeDown
 	}
 	for _, nodestat := range node.Status.Conditions {
@@ -312,13 +329,13 @@ func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) boo
 	return !nodeDown
 }
 
-// checkIfCSPPoolPodDown will check if pool pod is running or not
-func checkIfCSPPoolPodDown(k8sclient *kubernetes.Clientset, cstorID string) bool {
+// checkIfBKPPoolPodDown will check if pool pod is running or not
+func checkIfBKPPoolPodDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
 	var podDown = true
 
-	pod, err := findPodFromCStorID(k8sclient, cstorID)
+	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
 	if err != nil {
-		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
+		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
 		return podDown
 	}
 
@@ -360,7 +377,7 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 }
 
 // findLastBackupStat will find the status of given backup from last-backup
-func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor) v1alpha1.BackupCStorStatus {
+func findLastBackupStat(clientset versioned.Interface, bkp *v1alpha1.BackupCStor) v1alpha1.BackupCStorStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
 	lastbkp, err := clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
@@ -379,7 +396,7 @@ func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.Bac
 }
 
 // updateBackupStatus will update the backup status to given status
-func updateBackupStatus(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor, status v1alpha1.BackupCStorStatus) {
+func updateBackupStatus(clientset versioned.Interface, bkp *v1alpha1.BackupCStor, status v1alpha1.BackupCStorStatus) {
 	bkp.Status = status
 
 	_, err := clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Update(bkp)
