@@ -271,9 +271,9 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 
 	if b.Status != v1alpha1.BKPCStorStatusDone && b.Status != v1alpha1.BKPCStorStatusFailed {
 		// check if node is running or not
-		bkpNodeDown := checkIfBKPPoolNodeDown(k8sClient, b)
+		bkpNodeDown := checkIfCSPPoolNodeDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
 		// check if cstor-pool-mgmt container is running or not
-		bkpPodDown := checkIfBKPPoolPodDown(k8sClient, b)
+		bkpPodDown := checkIfCSPPoolPodDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
 
 		if bkpNodeDown || bkpPodDown {
 			// Backup is stalled, let's find last-backup status
@@ -301,13 +301,13 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 	return nil, CodedError(400, fmt.Sprintf("Failed to encode response data"))
 }
 
-// checkIfBKPPoolNodeDown will check if pool node is running or not
-func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
+// checkIfCSPPoolNodeDown will check if CSP pool node is running or not
+func checkIfCSPPoolNodeDown(k8sclient *kubernetes.Clientset, cstorID string) bool {
 	var nodeDown = true
 
-	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
+	pod, err := findPodFromCStorID(k8sclient, cstorID)
 	if err != nil {
-		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
+		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
 		return nodeDown
 	}
 
@@ -317,7 +317,7 @@ func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.Backu
 
 	node, err := k8sclient.CoreV1().Nodes().Get(pod.Spec.NodeName, v1.GetOptions{})
 	if err != nil {
-		glog.Infof("Failed to fetch node info for backup:%v: %v", bkp.Name, err)
+		glog.Infof("Failed to fetch node info for cstorID:%v: %v", cstorID, err)
 		return nodeDown
 	}
 	for _, nodestat := range node.Status.Conditions {
@@ -329,13 +329,13 @@ func checkIfBKPPoolNodeDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.Backu
 	return !nodeDown
 }
 
-// checkIfBKPPoolPodDown will check if pool pod is running or not
-func checkIfBKPPoolPodDown(k8sclient *kubernetes.Clientset, bkp *v1alpha1.BackupCStor) bool {
+// checkIfCSPPoolPodDown will check if pool pod is running or not
+func checkIfCSPPoolPodDown(k8sclient *kubernetes.Clientset, cstorID string) bool {
 	var podDown = true
 
-	pod, err := findPodFromCStorID(k8sclient, bkp.Labels["cstorpool.openebs.io/uid"])
+	pod, err := findPodFromCStorID(k8sclient, cstorID)
 	if err != nil {
-		glog.Errorf("Failed to find pod for backup:%v err:%s", bkp.Name, err.Error())
+		glog.Errorf("Failed to find pod for cstorID:%v err:%s", cstorID, err.Error())
 		return podDown
 	}
 

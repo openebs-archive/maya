@@ -42,6 +42,14 @@ type CASTemplateListerExpansion interface{}
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
 
+// CStorRestoreListerExpansion allows custom methods to be added to
+// CStorRestoreLister.
+type CStorRestoreListerExpansion interface{}
+
+// CStorRestoreNamespaceListerExpansion allows custom methods to be added to
+// CStorRestoreNamespaceLister.
+type CStorRestoreNamespaceListerExpansion interface{}
+
 // CStorVolumeListerExpansion allows custom methods to be added to
 // CStorVolumeLister.
 type CStorVolumeListerExpansion interface{}
