@@ -1,4 +1,4 @@
-# This file contains all available 
+# This file contains all available
 # configuration options
 
 # options for analysis running
@@ -25,23 +25,23 @@ run:
     - maya-lint
 
   # which dirs to skip i.e. they won't be analyzed;
-  # can use regexp here 
+  # can use regexp here
   # e.g. generated.*, regexp is applied on full path;
-  # default value is empty list, 
+  # default value is empty list,
   #
   # but next dirs are always skipped independently
   # from this option's value
   # examples
   #   	vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   skip-dirs:
-    - pkg/client/generated/
+    - pkg/client/generated$, vendor$
 
   # which files to skip yet be analyzed, but issues
   # from them won't be reported
   #
   # Default value is empty list
   skip-files:
-    - 
+    -
 
   # by default isn't set
   # If set we pass it to "go list -mod={option}"
@@ -49,12 +49,12 @@ run:
   #
   # If invoked with -mod=readonly, the go command is disallowed
   # from the implicit automatic updating of go.mod described above.
-  # Instead, it fails when any changes to go.mod are needed. 
-  # This setting is most useful to check that go.mod does not need 
+  # Instead, it fails when any changes to go.mod are needed.
+  # This setting is most useful to check that go.mod does not need
   # updates, such as in a continuous integration and testing system.
   #
   # If invoked with -mod=vendor, the go command assumes that the
-  # vendor directory holds the correct copies of dependencies and 
+  # vendor directory holds the correct copies of dependencies and
   # ignores the dependency descriptions in go.mod
   #
   # modules-download-mode: readonly|release|vendor
@@ -62,15 +62,15 @@ run:
 
 # output configuration options
 output:
-  # colored-line-number|line-number|json|tab|checkstyle|code-climate, 
+  # colored-line-number|line-number|json|tab|checkstyle|code-climate,
   # default is "colored-line-number"
   format: colored-line-number
 
-  # print lines of code with issue, 
+  # print lines of code with issue,
   # default is true
   print-issued-lines: true
 
-  # print linter name in the end of issue text, 
+  # print linter name in the end of issue text,
   # default is true
   print-linter-name: true
 
@@ -154,7 +154,7 @@ linters-settings:
   misspell:
     # Correct spellings using locale preferences for US or UK.
     # Default is to use a neutral variety of English.
-    # Setting locale to US will correct the British spelling of 
+    # Setting locale to US will correct the British spelling of
     # 'colour' to 'color'.
     locale: US
     ignore-words:
@@ -164,7 +164,7 @@ linters-settings:
     # max line length, lines longer will be reported.
     # Default is 120.
     #
-    # '\t' is counted as 1 character by default, and can be 
+    # '\t' is counted as 1 character by default, and can be
     # changed with the tab-width option
     line-length: 80
     # tab width in spaces. Default to 1.
@@ -173,30 +173,30 @@ linters-settings:
   unused:
     # treat code as a program (not a library) and report
     # unused exported identifiers; default is false.
-    # 
-    # XXX: if you enable this setting, unused will report a lot 
+    #
+    # XXX: if you enable this setting, unused will report a lot
     # of false-positives in text editors
     #
     # if it's called for subdir of a project it can't find funcs
-    # usages. All text editor integrations with golangci-lint 
+    # usages. All text editor integrations with golangci-lint
     # call it on a directory with the changed file.
     check-exported: false
 
   unparam:
-    # Inspect exported functions, default is false. Set to true 
+    # Inspect exported functions, default is false. Set to true
     # if no external program/library imports your code.
     #
-    # XXX: if you enable this setting, unparam will report a 
+    # XXX: if you enable this setting, unparam will report a
     # lot of false-positives in text editors
     #
-    # if it's called for subdir of a project it can't find 
+    # if it's called for subdir of a project it can't find
     # external interfaces. All text editor integrations
     # with golangci-lint call it on a directory with the changed file.
     check-exported: false
 
   nakedret:
     # make an issue if func has more lines of code than this
-    # setting and it has naked returns; 
+    # setting and it has naked returns;
     #
     # default is 30
     max-func-lines: 30
@@ -205,10 +205,10 @@ linters-settings:
     # XXX: we don't recommend using this linter before doing
     # performance profiling.
     #
-    # For most programs usage of prealloc will be a premature 
+    # For most programs usage of prealloc will be a premature
     # optimization.
     #
-    # Report preallocation suggestions only on simple loops 
+    # Report preallocation suggestions only on simple loops
     # that have no returns/breaks/continues/gotos in them.
     #
     # True by default.
@@ -217,16 +217,16 @@ linters-settings:
     for-loops: false # Report preallocation suggestions on for loops, false by default
 
   gocritic:
-    # Which checks should be enabled; can't be combined 
+    # Which checks should be enabled; can't be combined
     # with 'disabled-checks';
     #
     # See https://go-critic.github.io/overview#checks-overview
-    # To check which checks are enabled 
+    # To check which checks are enabled
     # run `GL_DEBUG=gocritic golangci-lint run`
     #
     # By default list of stable checks is used.
     # enabled-checks:
-    #  - 
+    #  -
 
     # Which checks should be disabled; can't be combined with
     # 'enabled-checks'
@@ -238,7 +238,7 @@ linters-settings:
     # Enable multiple checks by tags,
     # run `GL_DEBUG=gocritic golangci-lint` to see all tags and checks.
     #
-    # Empty list by default. 
+    # Empty list by default.
     # See https://github.com/go-critic/go-critic#usage -> section "Tags".
     enabled-tags:
       - performance
@@ -265,12 +265,12 @@ linters:
 
 
 issues:
-  # List of regexps of issue texts to exclude, 
-  # 
+  # List of regexps of issue texts to exclude,
+  #
   # empty list by default.
   #
   # But independently from this option we use default
-  # exclude patterns, it can be disabled by 
+  # exclude patterns, it can be disabled by
   # `exclude-use-default: false`. To list all excluded by
   # default patterns execute `golangci-lint run --help`
   exclude:
@@ -321,13 +321,13 @@ issues:
   # Default is 3
   max-same-issues: 0
 
-  # Show only new issues 
+  # Show only new issues
   # if there are unstaged changes or untracked files,
-  # only those changes are analyzed, else only changes in HEAD~ 
+  # only those changes are analyzed, else only changes in HEAD~
   # are analyzed.
   #
-  # It's a super-useful option for integration of golangci-lint 
-  # into existing large codebase. It's not practical to fix all 
+  # It's a super-useful option for integration of golangci-lint
+  # into existing large codebase. It's not practical to fix all
   # existing issues at the moment of integration
   # much better don't allow issues in new code.
   #
