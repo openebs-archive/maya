@@ -103,7 +103,18 @@ var (
 	latestOpenEBSBackupRequestDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "latest_openebs_backup_request_duration_seconds",
-			Help:    "Request response time of the /latest/meta-data.",
+			Help:    "Request response time of the /latest/backups.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
+		},
+		// code is http code and method is http method returned by
+		// endpoint "/latest/meta-data"
+		[]string{"code", "method"},
+	)
+
+	latestOpenEBRestoreRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "latest_openebs_restore_request_duration_seconds",
+			Help:    "Request response time of the /latest/restore.",
 			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
 		},
 		// code is http code and method is http method returned by
@@ -144,10 +155,19 @@ var (
 	latestOpenEBSBackupRequestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "latest_openebs_backup_requests_total",
-			Help: "Total number of /latest/backup requests.",
+			Help: "Total number of /latest/backups requests.",
 		},
 		[]string{"code", "method"},
 	)
+
+	latestOpenEBSRestoreRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "latest_openebs_restore_requests_total",
+			Help: "Total number of /latest/restore requests.",
+		},
+		[]string{"code", "method"},
+	)
+
 	// Count the no of request Since a request has been made on /latest/pools/
 	latestOpenEBSPoolRequestCounter = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -287,9 +307,13 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSSnapshotRequestCounter,
 		latestOpenEBSSnapshotRequestDuration, s.snapshotV1alpha1SpecificRequest))
 
-	// Request w.r.t cas snapshot is handled here
+	// Request w.r.t to backup is handled here
 	s.mux.HandleFunc("/latest/backups/", s.wrap(latestOpenEBSBackupRequestCounter,
 		latestOpenEBSBackupRequestDuration, s.backupV1alpha1SpecificRequest))
+
+	// Request w.r.t to restore is handled here
+	s.mux.HandleFunc("/latest/restore/", s.wrap(latestOpenEBSRestoreRequestCounter,
+		latestOpenEBRestoreRequestDuration, s.restoreV1alpha1SpecificRequest))
 
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and other custom metrics

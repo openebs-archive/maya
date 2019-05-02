@@ -44,6 +44,10 @@ func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {
 	return &FakeCStorPools{c}
 }
 
+func (c *FakeOpenebsV1alpha1) CStorRestores(namespace string) v1alpha1.CStorRestoreInterface {
+	return &FakeCStorRestores{c, namespace}
+}
+
 func (c *FakeOpenebsV1alpha1) CStorVolumes(namespace string) v1alpha1.CStorVolumeInterface {
 	return &FakeCStorVolumes{c, namespace}
 }
