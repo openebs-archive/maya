@@ -24,9 +24,13 @@ import (
   // Bad
   // alias `algorithm` conveys about what it contains i.e. some algorithm
   algorithm "github.com/openebs/maya/pkg/algorithm/nodeSelect/v1alpha1"
+)
+```
 
-  // vs.
+vs
 
+```go
+import (
   // Good
   // `nodeselect` tries to convey what the logic provides
   // this seems more natural way to express
@@ -40,33 +44,42 @@ import(
 // upgrade looks more generic i.e upgrade package can have
 // different other sub-packages like result which can be imported
 upgrade "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+)
+```
 
-// vs
+vs
 
+```go
+import(
 // Good
 // upgraderesult looks more specific and to the point i.e. the alias
 // is for 'result' which is inside upgrade
 upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+)
 ```
 
 ```go
 // Bad
 // taskPatch represents details for runtask patch operation
 type taskPatch struct {}
+```
 
-// vs
+vs
 
+```go
 // Good
-// runTaskPatch represents details for runtask patch operation
-type runTaskPatch struct {}
+// patch represents details for runtask patch operation
+type patch struct {}
 ```
 
 ```go
 // redundant (patch) -- not ok
 patch.IsValidPatchType()
+```
 
-// vs.
+vs
 
+```go
 // Good
 patch.IsValidType()
 ```
@@ -78,9 +91,11 @@ We try to keep a line of code limited to not more than 80 characters so that the
 ```go
 // Bad
 p, err := patch.BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).AddCheck(patch.IsValidType()).Build()
+```
 
-// vs
+vs
 
+```go
 // Good (looks more readable if aligned this way)
 p, err := patch.
   BuilderForRuntask("UpgradeResult", m.runtask.Spec.Task, m.templateValues).
@@ -91,9 +106,11 @@ p, err := patch.
 ```go
 // Bad
 p, err := upgraderesult.KubeClient(upgraderesult.WithNamespace(m.getRunTaskNamespace())).Patch(m.getTaskObjectName(), patch.Type, raw)
+```
 
-// vs
+vs
 
+```go
 // Good (looks more readable)
 p, err := upgraderesult.
   KubeClient(upgraderesult.WithNamespace(m.getRunTaskNamespace())).
@@ -113,11 +130,13 @@ p, err := upgraderesult.
 
 // Not Ok
 pkg/upgrade/nodeSelect/v1alpha1
+```
 
-// vs.
+vs
 
+```go
 // Good (no camelcase)
-pkg/nodeselect/v1alpha1
+pkg/upgrade/nodeselect/v1alpha1
 ```
 
 ## Do the names reflect their purpose ?
@@ -148,12 +167,14 @@ func (k *kubeclient) GetUpgradeResult(name string, opts metav1.GetOptions) (*api
 upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 
 // And then the above method will be called as
-upgraderesult.GetUpgradeResult(name,opts)
+upgraderesult.KubeClient().GetUpgradeResult(name,opts)
 // The call above looks redundant since the word upgraderesult is being
 // repeated.
+```
 
-// vs.
+vs
 
+```go
 // Good
 // Get returns an upgrade result instance from kubernetes cluster
 func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
@@ -170,7 +191,7 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 
 // And then the above method will be called as
-upgraderesult.Get(name,opts)
+upgraderesult.KubeClient().Get(name,opts)
 // The call above looks more precise and clear since
 // calling Get will return for package upgradeResult
 // should return an upgrade result instance.
@@ -180,37 +201,49 @@ upgraderesult.Get(name,opts)
 ### Good names are great but avoid repeating them
 
 ```go
+// Bad
 type poolCreateConfig struct {
   // the word algorithm is repeated
   *algorithm.AlgorithmConfig
 }
+```
 
-// vs.
+vs
 
+```go
+// Good
 type poolCreateConfig struct {
   *algorithm.Config
 }
 ```
 
 ```go
+// Bad
 poolconfig = &poolCreateConfig{
   // here the word algorithm gets repeated
   algorithm.NewAlgorithmConfig(spcGot),
 }
+```
 
-// vs.
+vs
 
+```go
+// Good
 poolconfig = &poolCreateConfig{
   algorithm.NewConfig(spcGot),
 }
 ```
 
 ```go
+// Bad
 // the word new gets repeated; this is bad
 pool, err := newClientSet.NewCasPool(spcGot, poolconfig)
+```
 
-// vs.
+vs
 
+```go
+// Good
 p, err := cs.NewCasPool(spcGot, poolconfig)
 ```
 
@@ -243,9 +276,11 @@ func (m *taskExecutor) patchUpgradeResult() (err error) {
     util.SetNestedField(m.templateValues, upgradeResult, string(v1alpha1.CurrentJSONResultTLP))
     return
 }
+```
 
-// vs
+vs
 
+```go
 // With Builder Pattern (recommended)
 // patchUpgradeResult will patch an UpgradeResult as defined in the task
 func (m *taskExecutor) patchUpgradeResult() (err error) {
@@ -273,8 +308,11 @@ func (m *taskExecutor) patchUpgradeResult() (err error) {
 // below does not express the builder pattern in its natural way
 // Note: We can have difference of opinions, however glaring differences result into confusions
 casPool, err := newClientSet.casPoolBuilder(casPool, spc, algorithmConfig)
+```
 
-// vs.
+vs
+
+```go
 b := caspool.Builder()
 p, err := b.WithPool(casPool).
             WithClaim(spc).
