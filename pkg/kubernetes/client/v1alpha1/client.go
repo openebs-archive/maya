@@ -196,12 +196,7 @@ func (c *Client) Config() (config *rest.Config, err error) {
 		return c.getInClusterConfig()
 	}
 
-	// KubeConfigPath holds second priority
-	if c.KubeConfigPath != "" {
-		return c.buildConfigFromFlags("", c.KubeConfigPath)
-	}
-
-	// ENV holds third priority
+	// ENV holds second priority
 	if strings.TrimSpace(c.getKubeMasterIP(K8sMasterIPEnvironmentKey)) != "" ||
 		strings.TrimSpace(c.getKubeConfigPath(KubeConfigEnvironmentKey)) != "" {
 		return c.getConfigFromENV()
@@ -209,6 +204,11 @@ func (c *Client) Config() (config *rest.Config, err error) {
 
 	// Defaults to InClusterConfig
 	return c.getInClusterConfig()
+}
+
+// ConfigForPath returns the kuberentes config instance based on KubeConfig path
+func (c *Client) ConfigForPath() (config *rest.Config, err error) {
+	return c.buildConfigFromFlags("", c.KubeConfigPath)
 }
 
 func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
@@ -228,7 +228,13 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 // Dynamic returns a kubernetes dynamic client capable of invoking operations
 // against kubernetes resources
 func (c *Client) Dynamic() (dynamic.Interface, error) {
-	config, err := c.Config()
+	var config *rest.Config
+	var err error
+	if c.KubeConfigPath != "" {
+		config, err = c.ConfigForPath()
+	} else {
+		config, err = c.Config()
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get dynamic client")
 	}

@@ -24,7 +24,11 @@ import (
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
+type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of nodes
@@ -41,8 +45,9 @@ type Kubeclient struct {
 	kubeConfigPath string
 
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -51,10 +56,13 @@ type KubeClientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
-			// TODO: Update after dependent PR checked in
-			//return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
+		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
 			return client.New().Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.list == nil {
@@ -85,12 +93,24 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
+	var c *kubernetes.Clientset
+	var err error
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset(k.kubeConfigPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get clientset")
+	// KubeConfigPath holds the first priority to get clientset
+	if k.kubeConfigPath != "" {
+		c, err = k.getClientsetForPath(k.kubeConfigPath)
+		if err != nil {
+			return nil, errors.Wrapf(err,
+				"failed to get clientset kubeconfigpath: %s",
+				k.kubeConfigPath)
+		}
+	} else {
+		c, err = k.getClientset()
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get clientset")
+		}
 	}
 	k.clientset = c
 	return k.clientset, nil

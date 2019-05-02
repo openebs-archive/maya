@@ -248,3 +248,30 @@ func TestDynamic(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigForPath(t *testing.T) {
+	tests := map[string]struct {
+		kubeConfigPath    string
+		getConfigFromPath buildConfigFromFlagsFunc
+		isErr             bool
+	}{
+		"T1": {"", fakeBuildConfigFromFlagsErr, true},
+		"T2": {"fake-path", fakeBuildConfigFromFlagsOk, false},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock // pin It
+		t.Run(name, func(t *testing.T) {
+			c := &Client{
+				KubeConfigPath:       mock.kubeConfigPath,
+				buildConfigFromFlags: mock.getConfigFromPath,
+			}
+			_, err := c.ConfigForPath()
+			if mock.isErr && err == nil {
+				t.Fatalf("test '%s' failed: expected error actual no error", name)
+			}
+			if !mock.isErr && err != nil {
+				t.Fatalf("test '%s' failed: expected no error but got '%v'", name, err)
+			}
+		})
+	}
+}
