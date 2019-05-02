@@ -68,3 +68,21 @@ func (b *Builder) Build() (*storagev1.StorageClass, error) {
 	}
 	return b.sc.object, nil
 }
+
+// WithVolumeBindingMode sets the volume binding mode of storageclass with
+// provided argument.
+// VolumeBindingMode indicates how PersistentVolumeClaims should be bound.
+// VolumeBindingImmediate indicates that PersistentVolumeClaims should be
+// immediately provisioned and bound. This is the default mode.
+// VolumeBindingWaitForFirstConsumer indicates that PersistentVolumeClaims
+// should not be provisioned and bound until the first Pod is created that
+// references the PeristentVolumeClaim.  The volume provisioning and
+// binding will occur during Pod scheduing.
+func (b *Builder) WithVolumeBindingMode(bindingMode storagev1.VolumeBindingMode) *Builder {
+	if bindingMode == "" {
+		b.errs = append(b.errs, errors.New("failed to build storageclass: missing volume binding mode"))
+		return b
+	}
+	b.sc.object.VolumeBindingMode = &bindingMode
+	return b
+}
