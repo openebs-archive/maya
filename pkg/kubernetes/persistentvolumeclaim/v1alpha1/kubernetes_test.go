@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func fakeGetClientsetOk() (cli *kubernetes.Clientset, err error) {
+func fakeGetClientsetOk(kubeConfigPath string) (cli *kubernetes.Clientset, err error) {
 	return &kubernetes.Clientset{}, nil
 }
 
@@ -61,11 +61,11 @@ func fakeSetNilClientset(k *Kubeclient) {
 	k.clientset = nil
 }
 
-func fakeGetNilErrClientSet() (clientset *kubernetes.Clientset, err error) {
+func fakeGetNilErrClientSet(kubeConfigPath string) (clientset *kubernetes.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetClientSetErr() (clientset *kubernetes.Clientset, err error) {
+func fakeGetClientSetErr(kubeConfigPath string) (clientset *kubernetes.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
@@ -204,11 +204,11 @@ func TestGetClientOrCached(t *testing.T) {
 		KubeClient *Kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &Kubeclient{nil, "", fakeGetNilErrClientSet, fakeListOk, nil, nil, nil, nil}},
-		"Positive 2": {false, &Kubeclient{&kubernetes.Clientset{}, "", fakeGetNilErrClientSet, fakeListOk, nil, nil, nil, nil}},
+		"Positive 1": {false, &Kubeclient{nil, "", "fake-path", fakeGetNilErrClientSet, fakeListOk, nil, nil, nil, nil}},
+		"Positive 2": {false, &Kubeclient{&kubernetes.Clientset{}, "", "", fakeGetNilErrClientSet, fakeListOk, nil, nil, nil, nil}},
 
 		// Negative tests
-		"Negative 1": {true, &Kubeclient{nil, "", fakeGetClientSetErr, fakeListOk, nil, nil, nil, nil}},
+		"Negative 1": {true, &Kubeclient{nil, "", "fake-path", fakeGetClientSetErr, fakeListOk, nil, nil, nil, nil}},
 	}
 
 	for name, mock := range tests {

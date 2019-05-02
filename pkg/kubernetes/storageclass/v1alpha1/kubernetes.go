@@ -26,7 +26,7 @@ import (
 
 // getClientsetFn is a typed function that abstracts
 // fetching an instance of kubernetes clientset
-type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
+type getClientsetFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of storageclasses
@@ -51,6 +51,9 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *kubernetes.Clientset
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
 	getClientset getClientsetFn
 	list         listFn
@@ -65,7 +68,9 @@ type KubeClientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
+		k.getClientset = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+			// TODO: Update after dependent PR checked in
+			//return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 			return client.New().Clientset()
 		}
 	}
@@ -101,6 +106,22 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	return k
 }
 
+// WithClientSet sets the kubernetes client against
+// the kubeclient instance
+func WithClientSet(c *kubernetes.Clientset) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.clientset = c
+	}
+}
+
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
 // getClientsetOrCached returns either a new
 // instance of kubernetes clientset or its
 // cached copy cached copy
@@ -108,7 +129,7 @@ func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientset(k.kubeConfigPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}

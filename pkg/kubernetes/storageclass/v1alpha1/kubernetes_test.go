@@ -26,7 +26,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-func fakeGetClientSetOk() (cli *clientset.Clientset, err error) {
+func fakeGetClientSetOk(kubeConfigPath string) (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
@@ -38,11 +38,11 @@ func fakeListFnErr(cli *clientset.Clientset, opts metav1.ListOptions) (*storagev
 	return nil, errors.New("some error occured to get storageclass list")
 }
 
-func fakeGetClientSetNil() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetNil(kubeConfigPath string) (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetClientSetErr() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetErr(kubeConfigPath string) (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
@@ -81,15 +81,15 @@ func TestWithDefaultOptions(t *testing.T) {
 	tests := map[string]struct {
 		KubeClient *Kubeclient
 	}{
-		"When all getClientsetFn, listFn and getFn are error": {&Kubeclient{nil, fakeGetClientSetErr, fakeListFnErr, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr}},
+		"When all getClientsetFn, listFn and getFn are error": {&Kubeclient{nil, "", fakeGetClientSetErr, fakeListFnErr, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr}},
 		"When all are nil":                         {&Kubeclient{}},
-		"When getClientSet is error":               {&Kubeclient{nil, fakeGetClientSetErr, nil, nil, nil, nil}},
-		"When ListFn is error":                     {&Kubeclient{nil, nil, fakeListFnErr, nil, nil, nil}},
-		"When GetFn is error":                      {&Kubeclient{nil, nil, nil, fakeGetFnErr, nil, nil}},
-		"When listFn and getFn are error":          {&Kubeclient{nil, fakeGetClientSetOk, fakeListFnErr, fakeGetFnErr, fakeCreateFnOk, fakeDeleteFnOk}},
-		"When getClientsetFn and listFn are error": {&Kubeclient{nil, fakeGetClientSetErr, fakeListFnErr, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk}},
-		"When getClientsetFn and getFn are error":  {&Kubeclient{nil, fakeGetClientSetErr, fakeListFnOk, fakeGetFnErr, fakeCreateFnOk, fakeDeleteFnOk}},
-		"When CreateFn and DeleteFn are error":     {&Kubeclient{nil, fakeGetClientSetErr, fakeListFnOk, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr}},
+		"When getClientSet is error":               {&Kubeclient{nil, "", fakeGetClientSetErr, nil, nil, nil, nil}},
+		"When ListFn is error":                     {&Kubeclient{nil, "", nil, fakeListFnErr, nil, nil, nil}},
+		"When GetFn is error":                      {&Kubeclient{nil, "", nil, nil, fakeGetFnErr, nil, nil}},
+		"When listFn and getFn are error":          {&Kubeclient{nil, "", fakeGetClientSetOk, fakeListFnErr, fakeGetFnErr, fakeCreateFnOk, fakeDeleteFnOk}},
+		"When getClientsetFn and listFn are error": {&Kubeclient{nil, "", fakeGetClientSetErr, fakeListFnErr, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk}},
+		"When getClientsetFn and getFn are error":  {&Kubeclient{nil, "", fakeGetClientSetErr, fakeListFnOk, fakeGetFnErr, fakeCreateFnOk, fakeDeleteFnOk}},
+		"When CreateFn and DeleteFn are error":     {&Kubeclient{nil, "", fakeGetClientSetErr, fakeListFnOk, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr}},
 	}
 	for name, mock := range tests {
 		name := name
@@ -122,17 +122,17 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"Positive 1": {
-			KubeClient: &Kubeclient{nil, fakeGetClientSetNil, fakeListFnOk, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr},
+			KubeClient: &Kubeclient{nil, "fake-path", fakeGetClientSetNil, fakeListFnOk, fakeGetFnErr, fakeCreateFnErr, fakeDeleteFnErr},
 			expectErr:  false,
 		},
 		"Positive 2": {
-			KubeClient: &Kubeclient{&clientset.Clientset{}, fakeGetClientSetOk, fakeListFnOk, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk},
+			KubeClient: &Kubeclient{&clientset.Clientset{}, "fake-path", fakeGetClientSetOk, fakeListFnOk, fakeGetFnOk, fakeCreateFnOk, fakeDeleteFnOk},
 			expectErr:  false,
 		},
 
 		// Negative tests
 		"Negative 1": {
-			KubeClient: &Kubeclient{nil, fakeGetClientSetErr, fakeListFnOk, fakeGetFnOk, nil, nil},
+			KubeClient: &Kubeclient{nil, "fake-path", fakeGetClientSetErr, fakeListFnOk, fakeGetFnOk, nil, nil},
 			expectErr:  true,
 		},
 	}

@@ -18,13 +18,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
-func fakeGetClientsetOk() (cli *clientset.Clientset, err error) {
+func fakeGetClientsetOk(fakeConfigPath string) (cli *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
@@ -36,11 +36,11 @@ func fakeListErr(cli *clientset.Clientset, opts metav1.ListOptions) (*corev1.Nod
 	return nil, errors.New("some error")
 }
 
-func fakeGetClientSetNil() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetNil(fakeConfigPath string) (clientset *clientset.Clientset, err error) {
 	return nil, nil
 }
 
-func fakeGetClientSetErr() (clientset *clientset.Clientset, err error) {
+func fakeGetClientSetErr(fakeConfigPath string) (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
 
@@ -48,11 +48,11 @@ func TestWithDefaultOptions(t *testing.T) {
 	tests := map[string]struct {
 		KubeClient *Kubeclient
 	}{
-		"When both listFn and getClientsetFn are error": {&Kubeclient{nil, fakeGetClientSetErr, fakeListErr}},
+		"When both listFn and getClientsetFn are error": {&Kubeclient{nil, "fake-path", fakeGetClientSetErr, fakeListErr}},
 		"When both listFn and getClientsetFn are nil":   {&Kubeclient{}},
-		"When listFn nil":                       {&Kubeclient{nil, fakeGetClientsetOk, nil}},
-		"When getClientsetFn nil":               {&Kubeclient{nil, nil, fakeListfnOk}},
-		"When getClientsetFn and listFn are ok": {&Kubeclient{nil, fakeGetClientsetOk, fakeListfnOk}},
+		"When listFn nil":                       {&Kubeclient{nil, "fake-Path", fakeGetClientsetOk, nil}},
+		"When getClientsetFn nil":               {&Kubeclient{nil, "fake-path", nil, fakeListfnOk}},
+		"When getClientsetFn and listFn are ok": {&Kubeclient{nil, "fake-path", fakeGetClientsetOk, fakeListfnOk}},
 	}
 	for name, mock := range tests {
 		name := name // pin it
@@ -75,11 +75,11 @@ func TestGetClientOrCached(t *testing.T) {
 		KubeClient *Kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &Kubeclient{nil, fakeGetClientSetNil, fakeListfnOk}},
-		"Positive 2": {false, &Kubeclient{&clientset.Clientset{}, fakeGetClientSetNil, fakeListfnOk}},
+		"Positive 1": {false, &Kubeclient{nil, "fake-path", fakeGetClientSetNil, fakeListfnOk}},
+		"Positive 2": {false, &Kubeclient{&clientset.Clientset{}, "fake-path", fakeGetClientSetNil, fakeListfnOk}},
 
 		// Negative tests
-		"Negative 1": {true, &Kubeclient{nil, fakeGetClientSetErr, fakeListfnOk}},
+		"Negative 1": {true, &Kubeclient{nil, "fake-path", fakeGetClientSetErr, fakeListfnOk}},
 	}
 
 	for name, mock := range tests {
