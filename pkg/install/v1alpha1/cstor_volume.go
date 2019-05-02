@@ -495,6 +495,8 @@ spec:
                     operator: In
                     values:
                     - {{ .TaskResult.sts.applicationName }}
+                namespaces:
+                - {{ .Volume.runNamespace }}
                 topologyKey: kubernetes.io/hostname
           {{- else if ne $targetAffinityVal "none" }}
           affinity:
@@ -726,6 +728,7 @@ spec:
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
+        isRestoreVol: {{ .Volume.isRestoreVol }}
         openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}
