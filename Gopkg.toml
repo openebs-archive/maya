@@ -54,7 +54,7 @@ required = [
   name = "github.com/prometheus/client_golang"
   version = "v0.9.0"
 
-[[constraint]]
+[[override]]
   name = "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner"
   version = "v1.0.0"
 
