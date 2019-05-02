@@ -39,7 +39,7 @@ func (c *Controller) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, c.spcSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.cspcSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 	glog.Info("Starting SPC workers")

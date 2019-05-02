@@ -16,7 +16,7 @@ limitations under the License.
 package spc
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
 	"github.com/golang/glog"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
@@ -30,11 +30,11 @@ import (
 	"testing"
 )
 
-// SpcCreator will create fake spc objects
-func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcLeaseKeyValue string) *apis.StoragePoolClaim {
-	var spcObject *apis.StoragePoolClaim
+// SpcCreator will create fake cspc objects
+func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcLeaseKeyValue string) *apisv1alpha1.CStorPoolCluster {
+	var cspcObject *apisv1alpha1.CStorPoolCluster
 	if SpcLeaseKeyPresent {
-		spcObject = &apis.StoragePoolClaim{
+		cspcObject = &apisv1alpha1.CStorPoolCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 				Annotations: map[string]string{
@@ -43,20 +43,20 @@ func (focs *clientSet) SpcCreator(poolName string, SpcLeaseKeyPresent bool, SpcL
 			},
 		}
 	} else {
-		spcObject = &apis.StoragePoolClaim{
+		cspcObject = &apisv1alpha1.CStorPoolCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: poolName,
 			},
 		}
 	}
-	spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().Create(spcObject)
+	cspcGot, err := focs.oecs.OpenebsV1alpha1().CStorPoolClusters().Create(cspcObject)
 	if err != nil {
 		glog.Error(err)
 	}
-	return spcGot
+	return cspcGot
 }
 
-// Create 5 fake pods that will compete to acquire lease on spc
+// Create 5 fake pods that will compete to acquire lease on cspc
 func PodCreator(fakeKubeClient kubernetes.Interface, podName string) {
 	for i := 1; i <= 5; i++ {
 		podObjet := &v1.Pod{
@@ -87,7 +87,7 @@ func TestHold(t *testing.T) {
 	PodCreator(fakeKubeClient, "maya-apiserver")
 	tests := map[string]struct {
 		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.StoragePoolClaim
+		fakestoragepoolclaim *apisv1alpha1.CStorPoolCluster
 		storagePoolClaimName string
 		podName              string
 		podNamespace         string
@@ -97,7 +97,7 @@ func TestHold(t *testing.T) {
 		expectedResult string
 	}{
 		// TestCase#1
-		"SPC#1 Lease Not acquired": {
+		"CSPC#1 Lease Not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool1", false, ""),
 			podName:              "maya-apiserver1",
 			podNamespace:         "openebs",
@@ -106,7 +106,7 @@ func TestHold(t *testing.T) {
 		},
 
 		// TestCase#2
-		"SPC#2 Lease already acquired": {
+		"CSPC#2 Lease already acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool2", true, "openebs/maya-apiserver1"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
@@ -114,7 +114,7 @@ func TestHold(t *testing.T) {
 			expectedResult:       "{\"holder\":\"openebs/maya-apiserver1\",\"leaderTransition\":1}",
 		},
 		// TestCase#3
-		"SPC#3 Lease already acquired": {
+		"CSPC#3 Lease already acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool3", true, "openebs/maya-apiserver6"),
 			podName:              "maya-apiserver2",
 			podNamespace:         "openebs",
@@ -122,7 +122,7 @@ func TestHold(t *testing.T) {
 			expectedResult:       "{\"holder\":\"openebs/maya-apiserver2\",\"leaderTransition\":2}",
 		},
 		// TestCase#4
-		"SPC#4 Lease Not acquired": {
+		"CSPC#4 Lease Not acquired": {
 			fakestoragepoolclaim: focs.SpcCreator("pool4", true, ""),
 			podName:              "maya-apiserver3",
 			podNamespace:         "openebs",
@@ -151,9 +151,9 @@ func TestHold(t *testing.T) {
 				t.Errorf("Test case failed:expected nil error but got error:'%v'", err)
 			}
 			// Check for lease value
-			spcGot, err := focs.oecs.OpenebsV1alpha1().StoragePoolClaims().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
-			if spcGot.Annotations[SpcLeaseKey] != test.expectedResult {
-				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, spcGot.Annotations[SpcLeaseKey])
+			cspcGot, err := focs.oecs.OpenebsV1alpha1().CStorPoolClusters().Get(test.fakestoragepoolclaim.Name, metav1.GetOptions{})
+			if cspcGot.Annotations[SpcLeaseKey] != test.expectedResult {
+				t.Errorf("Test case failed: expected lease value '%v' but got '%v' ", test.expectedResult, cspcGot.Annotations[SpcLeaseKey])
 
 			}
 			os.Unsetenv(string(env.OpenEBSMayaPodName))

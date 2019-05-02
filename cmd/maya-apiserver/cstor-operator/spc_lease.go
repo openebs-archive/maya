@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +68,7 @@ type Patch struct {
 // It will try to hold a lease on spc object.
 func (sl *Lease) Hold() error {
 	// Get the lease value.
-	spcObject, ok := sl.Object.(*apis.StoragePoolClaim)
+	spcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
 		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
 	}
@@ -102,7 +102,7 @@ func (sl *Lease) Hold() error {
 // 3.putUpdatedValue
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) error {
-	newSpcObject := sl.Object.(*apis.StoragePoolClaim)
+	newSpcObject := sl.Object.(*apisv1alpha1.CStorPoolCluster)
 	if newSpcObject.Annotations == nil {
 		sl.putKeyValue(podName, newSpcObject)
 	} else if newSpcObject.Annotations[sl.leaseKey] == "" {
@@ -110,7 +110,7 @@ func (sl *Lease) Update(podName string) error {
 	} else {
 		sl.putUpdatedValue(podName, newSpcObject)
 	}
-	_, err := sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Update(newSpcObject)
+	_, err := sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Update(newSpcObject)
 	return err
 }
 
@@ -132,7 +132,7 @@ func (sl *Lease) getPodName() string {
 
 // patchSpcLeaseAnnotation will patch the lease key annotation on spc object to release the lease
 func (sl *Lease) patchSpcLeaseAnnotation() error {
-	spcObject, ok := sl.Object.(*apis.StoragePoolClaim)
+	spcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
 		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
 	}
@@ -155,7 +155,7 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	if err != nil {
 		return fmt.Errorf("error marshalling spcPatch object: %s", err)
 	}
-	_, err = sl.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
+	_, err = sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
 	return err
 }
 
@@ -201,7 +201,7 @@ func parseLeaseValue(leaseValue string) (LeaseContract, error) {
 }
 
 // putKeyValue function will update lease on such SPC which was not acquired by any pod ever in its lifetime.
-func (sl *Lease) putKeyValue(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+func (sl *Lease) putKeyValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	// make a map that should contain the lease key in spc
 	mapLease := make(map[string]string)
 	leaseValueObj := &LeaseContract{
@@ -219,7 +219,7 @@ func (sl *Lease) putKeyValue(podName string, newSpcObject *apis.StoragePoolClaim
 }
 
 // putValue function will update lease on SPC if the holder of lease has released the lease successfully.
-func (sl *Lease) putValue(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+func (sl *Lease) putValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	leaseValueObj := &LeaseContract{
 		podName,
 		1,
@@ -233,7 +233,7 @@ func (sl *Lease) putValue(podName string, newSpcObject *apis.StoragePoolClaim) (
 }
 
 // putUpdatedValue function will update lease on SPC if the holder of lease has died before releasing the lease.
-func (sl *Lease) putUpdatedValue(podName string, newSpcObject *apis.StoragePoolClaim) (*apis.StoragePoolClaim, error) {
+func (sl *Lease) putUpdatedValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	leaseValueObj, err := parseLeaseValue(newSpcObject.Annotations[sl.leaseKey])
 	if err != nil {
 		return nil, err

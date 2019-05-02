@@ -46,6 +46,7 @@ type CStorPoolSpec struct {
 type DiskGroup struct {
 	// Item contains a list of CspDisks.
 	Item []CspDisk `json:"disk"`
+	Name string    `json:"name"`
 }
 
 // CspDisk contains the details of disk present on CSP.

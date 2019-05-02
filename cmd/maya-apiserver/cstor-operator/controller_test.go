@@ -30,7 +30,7 @@ func TestNewControllerBuilder(t *testing.T) {
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
-		withspcSynced(openebsInformerFactory).
+		withcspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
 		withWorkqueueRateLimiting().
@@ -42,7 +42,7 @@ func TestNewControllerBuilder(t *testing.T) {
 	}
 	// TestCase#1
 	// Check for cache sync in controller instance.
-	if controller.spcSynced == nil {
+	if controller.cspcSynced == nil {
 		t.Errorf("No spc cache sync in controller object")
 	}
 
@@ -61,12 +61,12 @@ func TestNewControllerBuilder(t *testing.T) {
 	// TestCase#4
 	// Check for kubeclientset in controller instance.
 	if controller.kubeclientset != fakeKubeClient {
-		t.Errorf("SPC controller object's kubeclientset mismatch")
+		t.Errorf("CSPC controller object's kubeclientset mismatch")
 	}
 
 	// TestCase#5
 	// Check for obenebsclientset in controller instance.
 	if controller.clientset != fakeOpenebsClient {
-		t.Errorf("SPC controller object's openebsclientset mismatch")
+		t.Errorf("CSPC controller object's openebsclientset mismatch")
 	}
 }

@@ -119,10 +119,10 @@ const (
 	OwnerCTP StoragePoolTLPProperty = "owner"
 
 	// DiskListCTP indicates the list of disks
-	DiskListCTP StoragePoolTLPProperty = "diskList"
+	DiskDeviceIDMapCTP StoragePoolTLPProperty = "diskDeviceIDMap"
 	// DiskDeviceListCTP indicates the list of device id of disks
 	// If device is is not present for a disk, it contians the device path.
-	DiskDeviceListCTP StoragePoolTLPProperty = "diskDeviceIdList"
+	DiskGroupCTP StoragePoolTLPProperty = "group"
 	// NOodeNameCTP is the name of node where cstorpool will be ceated
 	NodeNameCTP StoragePoolTLPProperty = "nodeName"
 	// PoolTypeCTP is the type of cstorpool that will be ceated

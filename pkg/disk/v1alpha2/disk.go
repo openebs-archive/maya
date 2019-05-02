@@ -94,8 +94,13 @@ func IsSparse() Predicate {
 // IsActive returns true if the disk is active.
 func IsActive() Predicate {
 	return func(d *Disk) bool {
-		return d.Object.Status.State == string(DiskStateActive)
+		return d.IsActive()
 	}
+}
+
+// IsActive returns true if the disk is active.
+func (d *Disk) IsActive() bool {
+	return d.Object.Status.State == string(DiskStateActive)
 }
 
 // IsUsable returns true if this disk can be used for pool provisioning.
@@ -250,4 +255,12 @@ func NewListBuilderForAPIList(diskAPIList *apisv1alpha1.DiskList) *ListBuilder {
 // Len returns the length og DiskList.
 func (l *DiskList) Len() int {
 	return len(l.ObjectList.Items)
+}
+
+// GetGroupCountForPoolType returns the possible number if disk groups that can be formed.
+func (l *DiskList) GetGroupCountForPoolType(poolType string) int {
+	if poolType == string(apisv1alpha1.PoolTypeStripedCPV) {
+		return 1
+	}
+	return l.Len() / DefaultDiskCount[poolType]
 }

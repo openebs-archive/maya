@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha1
 
 import (
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -85,21 +85,59 @@ func IsProvisioningManual() Predicate {
 // IsSparse returns true if the cspc is of sparse type.
 func IsSparse() Predicate {
 	return func(c *CSPC) bool {
-		return c.Object.Spec.Type == "sparse"
+		return c.IsSparse()
 	}
+}
+
+// IsSparse returns true if type is sparse
+func (c *CSPC) IsSparse() bool {
+	return c.Object.Spec.Type == string(apisv1alpha1.TypeSparseCPV)
 }
 
 // IsDisk returns true if the cspc is of disk type.
 func IsDisk() Predicate {
 	return func(c *CSPC) bool {
-		return c.Object.Spec.Type == "disk"
+		return c.IsDisk()
 	}
 }
 
+// IsDisk returns true if type is disk
+func (c *CSPC) IsDisk() bool {
+	return c.Object.Spec.Type == string(apisv1alpha1.TypeDiskCPV)
+}
+
+// IsDiskRepeated returns predicate for validation of duplicate disk entry.
+func IsDiskRepeated() Predicate {
+	return func(c *CSPC) bool {
+		return c.IsDiskRepeated()
+	}
+}
+
+// IsDiskRepeated returns true if the cspc contains duplicate disk entries.
+func (c *CSPC) IsDiskRepeated() bool {
+	diskCount := make(map[string]int)
+	for _, node := range c.Object.Spec.Nodes {
+		for _, diskGroup := range node.DiskGroups {
+			for _, disk := range diskGroup.Disks {
+				diskCount[disk.Name]++
+				if diskCount[disk.Name] > 1 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// IsPoolTypeStriped returns true if pool type is striped.
+func (c *CSPC) IsPoolTypeStriped() bool {
+	return c.Object.Spec.PoolSpec.PoolType == string(apisv1alpha1.PoolTypeStripedCPV)
+}
+
 // GetNodeNames returns a list of node names present in cspc
-func (s *CSPC) GetNodeNames() []string {
+func (c *CSPC) GetNodeNames() []string {
 	var nodenames []string
-	nodes := s.Object.Spec.Nodes
+	nodes := c.Object.Spec.Nodes
 	for _, val := range nodes {
 		nodenames = append(nodenames, val.Name)
 	}
@@ -107,8 +145,8 @@ func (s *CSPC) GetNodeNames() []string {
 }
 
 // GetDiskGroupListForNode returns a list of disk present in cspc for the specified  node
-func (s *CSPC) GetDiskGroupListForNode(nodeName string) []apisv1alpha1.CStorPoolClusterDiskGroups {
-	nodes := s.Object.Spec.Nodes
+func (c *CSPC) GetDiskGroupListForNode(nodeName string) []apisv1alpha1.CStorPoolClusterDiskGroups {
+	nodes := c.Object.Spec.Nodes
 	for _, val := range nodes {
 		if val.Name == nodeName {
 			return val.DiskGroups
@@ -118,8 +156,8 @@ func (s *CSPC) GetDiskGroupListForNode(nodeName string) []apisv1alpha1.CStorPool
 }
 
 // GetPoolTypeForNode returns poolType for the node in cspc.
-func (s *CSPC) GetPoolTypeForNode(nodeName string) string {
-	nodes := s.Object.Spec.Nodes
+func (c *CSPC) GetPoolTypeForNode(nodeName string) string {
+	nodes := c.Object.Spec.Nodes
 	for _, val := range nodes {
 		if val.Name == nodeName {
 			return string(val.PoolSpec.PoolType)
@@ -128,14 +166,20 @@ func (s *CSPC) GetPoolTypeForNode(nodeName string) string {
 	return ""
 }
 
+// GetPoolType returns poolType for the cspc.
+// NOTE: This poolType ( spec.poolSpec.poolType ) is used in auto provisioning.
+func (c *CSPC) GetPoolType() string {
+	return c.Object.Spec.PoolSpec.PoolType
+}
+
 // GetAnnotations returns annotations present in cspc.
-func (s *CSPC) GetAnnotations() map[string]string {
-	return s.Object.GetAnnotations()
+func (c *CSPC) GetAnnotations() map[string]string {
+	return c.Object.GetAnnotations()
 }
 
 // GetCASTName returns a name of cas template from the cspc.
-func (s *CSPC) GetCASTName() string {
-	return s.Object.GetAnnotations()[string(apisv1alpha1.CreatePoolCASTemplateKey)]
+func (c *CSPC) GetCASTName() string {
+	return c.Object.GetAnnotations()[string(apisv1alpha1.CreatePoolCASTemplateKey)]
 }
 
 // Filter will filter the csp instances if all the predicates succeed against that cspc.

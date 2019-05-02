@@ -63,7 +63,7 @@ func Start() error {
 	controller, err := NewControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
-		withspcSynced(spcInformerFactory).
+		withcspcSynced(spcInformerFactory).
 		withSpcLister(spcInformerFactory).
 		withRecorder(kubeClient).
 		withEventHandler(spcInformerFactory).

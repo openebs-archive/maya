@@ -93,11 +93,11 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 		openebsConfig,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP):          v.pool.StoragePoolClaim,
-			string(v1alpha1.DiskListCTP):       v.pool.DiskList,
-			string(v1alpha1.NodeNameCTP):       v.pool.NodeName,
-			string(v1alpha1.PoolTypeCTP):       v.pool.PoolType,
-			string(v1alpha1.DiskDeviceListCTP): v.pool.DeviceID,
+			string(v1alpha1.OwnerCTP):           v.pool.CStorPoolCluster,
+			string(v1alpha1.NodeNameCTP):        v.pool.NodeName,
+			string(v1alpha1.PoolTypeCTP):        v.pool.PoolType,
+			string(v1alpha1.DiskGroupCTP):       v.pool.DiskGroups,
+			string(v1alpha1.DiskDeviceIDMapCTP): v.pool.DiskDeviceIDMap,
 		},
 	)
 	if err != nil {
@@ -120,7 +120,7 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 }
 
 func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
-	if len(v.pool.StoragePoolClaim) == 0 {
+	if len(v.pool.CStorPoolCluster) == 0 {
 		return nil, fmt.Errorf("Unable to delete storagepool: storagepoolclaim name not provided")
 	}
 
@@ -145,7 +145,7 @@ func (v *casPoolOperation) Delete() (*v1alpha1.CasPool, error) {
 		castObj,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP): v.pool.StoragePoolClaim,
+			string(v1alpha1.OwnerCTP): v.pool.CStorPoolCluster,
 		},
 	)
 	if err != nil {

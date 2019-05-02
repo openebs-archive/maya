@@ -89,25 +89,25 @@ spec:
     tasks:
     # Following are the list of run tasks executed in this order to
     # create a cstor storage pool
-    - cstor-pool-create-getspc-default
+    - cstor-pool-create-getcspc-default
     - cstor-pool-create-putcstorpoolcr-default
     - cstor-pool-create-putcstorpooldeployment-default
-    - cstor-pool-create-patchstoragepoolclaim-default
+    - cstor-pool-create-patchcstorpoolcluster-default
 ---
-# This run task get StoragePoolClaim
+# This run task get CStorPoolCluster
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-getspc-default
+  name: cstor-pool-create-getcspc-default
 spec:
   meta: |
-    id: getspc
+    id: getcspc
     apiVersion: openebs.io/v1alpha1
-    kind: StoragePoolClaim
+    kind: CStorPoolCluster
     action: get
     objectName: {{.Storagepool.owner}}
   post: |
-    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "getspc.objectUID" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "getcspc.objectUID" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -130,7 +130,7 @@ spec:
     metadata:
       name: {{$diskDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storage-pool-claim: {{$diskDeviceIdList.owner}}
+        openebs.io/cstorpool-cluster: {{$diskDeviceIdList.owner}}
         kubernetes.io/hostname: {{$diskDeviceIdList.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
@@ -139,17 +139,18 @@ spec:
       - apiVersion: openebs.io/v1alpha1
         blockOwnerDeletion: true
         controller: true
-        kind: StoragePoolClaim
+        kind: CStorPoolCluster
         name: {{$diskDeviceIdList.owner}}
-        uid: {{ .TaskResult.getspc.objectUID }} 
+        uid: {{ .TaskResult.getcspc.objectUID }} 
     spec:
       group:
-        {{- range $k, $v := $diskDeviceIdList.diskList }}
-        - disk:
-          {{- range $ki, $disk := $v.disk }}
+        {{- range $k, $v := $diskDeviceIdList.group }}
+        - name: {{$v.name}} 
+          disk:
+          {{- range $ki, $disk := $v.disks }}
           - name: {{$disk.name}} 
             inUseByPool: true
-            deviceID: {{$disk.deviceID}}
+            deviceID: {{ pluck $disk.name $diskDeviceIdList.diskDeviceIDMap | first }} 
           {{- end }}
         {{- end }}
       poolSpec:
@@ -188,7 +189,7 @@ spec:
     metadata:
       name: {{.TaskResult.putcstorpoolcr.objectName}}
       labels:
-        openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+        openebs.io/cstorpool-cluster: {{.Storagepool.owner}}
         openebs.io/cstor-pool: {{.TaskResult.putcstorpoolcr.objectName}}
         app: cstor-pool
         openebs.io/version: {{ .CAST.version }}
@@ -213,7 +214,7 @@ spec:
         metadata:
           labels:
             app: cstor-pool
-            openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+            openebs.io/cstorpool-cluster: {{.Storagepool.owner}}
             openebs.io/cstor-pool: {{.TaskResult.putcstorpoolcr.objectName}}
             openebs.io/version: {{ .CAST.version }}
           annotations:
@@ -386,12 +387,12 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
-  name: cstor-pool-create-patchstoragepoolclaim-default
+  name: cstor-pool-create-patchcstorpoolcluster-default
 spec:
   meta: |
-    id: patchstoragepoolclaim
+    id: patchcstorpoolcluster
     apiVersion: openebs.io/v1alpha1
-    kind: StoragePoolClaim
+    kind: CStorPoolCluster
     objectName: {{.Storagepool.owner}}
     action: patch
   task: |-

@@ -36,7 +36,7 @@ func TestRun(t *testing.T) {
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
-		withspcSynced(openebsInformerFactory).
+		withcspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
 		withWorkqueueRateLimiting().

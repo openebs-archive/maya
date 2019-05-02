@@ -19,7 +19,7 @@ package spc
 import (
 	"fmt"
 	"github.com/golang/glog"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
@@ -34,9 +34,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-const controllerAgentName = "spc-controller"
+const controllerAgentName = "cspc-controller"
 
-// Controller is the controller implementation for SPC resources
+// Controller is the controller implementation for CSPC resources
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
@@ -44,10 +44,10 @@ type Controller struct {
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
 
-	spcLister listers.StoragePoolClaimLister
+	cspcLister listers.CStorPoolClusterLister
 
-	// spcSynced is used for caches sync to get populated
-	spcSynced cache.InformerSynced
+	// cspcSynced is used for caches sync to get populated
+	cspcSynced cache.InformerSynced
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -85,23 +85,23 @@ func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *Controll
 	return cb
 }
 
-// withSpcLister fills spc lister to controller object.
+// withSpcLister fills cspc lister to controller object.
 func (cb *ControllerBuilder) withSpcLister(sl informers.SharedInformerFactory) *ControllerBuilder {
-	spcInformer := sl.Openebs().V1alpha1().StoragePoolClaims()
-	cb.Controller.spcLister = spcInformer.Lister()
+	cspcInformer := sl.Openebs().V1alpha1().CStorPoolClusters()
+	cb.Controller.cspcLister = cspcInformer.Lister()
 	return cb
 }
 
-// withspcSynced adds object sync information in cache to controller object.
-func (cb *ControllerBuilder) withspcSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
-	spcInformer := sl.Openebs().V1alpha1().StoragePoolClaims()
-	cb.Controller.spcSynced = spcInformer.Informer().HasSynced
+// withcspcSynced adds object sync information in cache to controller object.
+func (cb *ControllerBuilder) withcspcSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
+	cspcInformer := sl.Openebs().V1alpha1().CStorPoolClusters()
+	cb.Controller.cspcSynced = cspcInformer.Informer().HasSynced
 	return cb
 }
 
 // withWorkqueue adds workqueue to controller object.
 func (cb *ControllerBuilder) withWorkqueueRateLimiting() *ControllerBuilder {
-	cb.Controller.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "SPC")
+	cb.Controller.workqueue = workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CSPC")
 	return cb
 }
 
@@ -117,13 +117,13 @@ func (cb *ControllerBuilder) withRecorder(ks kubernetes.Interface) *ControllerBu
 }
 
 // withEventHandler adds event handlers controller object.
-func (cb *ControllerBuilder) withEventHandler(spcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
-	spcInformer := spcInformerFactory.Openebs().V1alpha1().StoragePoolClaims()
-	// Set up an event handler for when SPC resources change
-	spcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+func (cb *ControllerBuilder) withEventHandler(cspcInformerFactory informers.SharedInformerFactory) *ControllerBuilder {
+	cspcInformer := cspcInformerFactory.Openebs().V1alpha1().CStorPoolClusters()
+	// Set up an event handler for when CSPC resources change
+	cspcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    cb.Controller.addSpc,
 		UpdateFunc: cb.Controller.updateSpc,
-		// This will enter the sync loop and no-op, because the spc has been deleted from the store.
+		// This will enter the sync loop and no-op, because the cspc has been deleted from the store.
 		DeleteFunc: cb.Controller.deleteSpc,
 	})
 	return cb
@@ -138,45 +138,46 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 	return cb.Controller, nil
 }
 
-// addSpc is the add event handler for spc.
+// addSpc is the add event handler for cspc.
 func (c *Controller) addSpc(obj interface{}) {
-	spc, ok := obj.(*apis.StoragePoolClaim)
+	cspc, ok := obj.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
+		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", obj))
 		return
 	}
-	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
-	c.enqueueSpc(spc)
+	glog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
+	c.enqueueSpc(cspc)
 }
 
-// updateSpc is the update event handler for spc.
+// updateSpc is the update event handler for cspc.
 func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
-	spc, ok := newSpc.(*apis.StoragePoolClaim)
+	cspc, ok := newSpc.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
+		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newSpc))
 		return
 	}
-	// Enqueue spc only when there is a pending pool to be created.
-	if c.isPoolPending(spc) {
+	// Enqueue cspc only when there is a pending pool to be created.
+	po := c.NewPoolOperation(cspc)
+	if po.IsPoolCreationPending() {
 		c.enqueueSpc(newSpc)
 	}
 }
 
-// deleteSpc is the delete event handler for spc.
+// deleteSpc is the delete event handler for cspc.
 func (c *Controller) deleteSpc(obj interface{}) {
-	spc, ok := obj.(*apis.StoragePoolClaim)
+	cspc, ok := obj.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
 			return
 		}
-		spc, ok = tombstone.Obj.(*apis.StoragePoolClaim)
+		cspc, ok = tombstone.Obj.(*apisv1alpha1.CStorPoolCluster)
 		if !ok {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a storagepoolclaim %#v", obj))
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
-	c.enqueueSpc(spc)
+	glog.V(4).Infof("Deleting storagepoolclaim %s", cspc.Name)
+	c.enqueueSpc(cspc)
 }

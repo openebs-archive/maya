@@ -34,6 +34,8 @@ const (
 	HostNameCPK CasPoolKey = "kubernetes.io/hostname"
 	// StoragePoolClaimCPK is the storage pool claim label
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
+	// CStorPoolClusterCPK is the cstorpool-cluster label
+	CStorPoolClusterCPK CasPoolKey = "openebs.io/cstorpool-cluster"
 	// NdmDiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
 	// PoolTypeMirroredCPV is a key for mirrored for pool
@@ -58,14 +60,22 @@ const (
 	Raidz2DiskCountCPV CasPoolValInt = 6
 )
 
+// SupportedPoolTypes is a map containing supported raid types.
+var SupportedPoolTypes = map[string]bool{
+	string(PoolTypeMirroredCPV): true,
+	string(PoolTypeStripedCPV):  true,
+	string(PoolTypeRaidzCPV):    true,
+	string(PoolTypeRaidz2CPV):   true,
+}
+
 // CasPool is a type which will be utilised by CAS engine to perform
 // storagepool related operation.
 // TODO: Restrucutre CasPool struct.
 type CasPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	// StoragePoolClaim is the name of the storagepoolclaim object
-	StoragePoolClaim string
+	// CStorPoolCluster is the name of the CStorPoolCluster object
+	CStorPoolCluster string
 
 	// CasCreateTemplate is the cas template that will be used for storagepool create
 	// operation
@@ -78,9 +88,6 @@ type CasPool struct {
 	// Namespace can be passed via storagepoolclaim as labels to decide on the
 	// execution of namespaced resources with respect to storagepool
 	Namespace string
-
-	// DiskList is the list of disks over which a storagepool will be provisioned
-	DiskList []DiskGroup
 
 	// PoolType is the type of pool to be provisioned e.g. striped or mirrored
 	PoolType string
@@ -103,6 +110,7 @@ type CasPool struct {
 	// PendingPoolCount is the number of pools that will be tried for creation as a part of reconciliation.
 	PendingPoolCount int
 
-	DeviceID []string
-	Disks    DiskList
+	DiskGroups []CStorPoolClusterDiskGroups
+
+	DiskDeviceIDMap map[string]string
 }
