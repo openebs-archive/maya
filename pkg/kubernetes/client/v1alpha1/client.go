@@ -83,7 +83,7 @@ type getKubeMasterIPFunc func(env.ENVKey) string
 //  typed function makes it simple to mock
 type getKubeConfigPathFunc func(env.ENVKey) string
 
-// getKubernetesDynamicClientsetFunc provides the abstraction to get
+// getKubernetesDynamicClientFunc provides the abstraction to get
 // dynamic kubernetes clientset
 //
 // NOTE:
@@ -114,7 +114,7 @@ type Client struct {
 	getKubernetesClientset getKubernetesClientsetFunc
 
 	// handle to get dynamic kubernetes clientset
-	getKubernetesDynamicClientSet getKubernetesDynamicClientFunc
+	getKubernetesDynamicClient getKubernetesDynamicClientFunc
 
 	// handle to get kubernetes master IP
 	getKubeMasterIP getKubeMasterIPFunc
@@ -150,8 +150,8 @@ func withDefaults(c *Client) {
 	if c.getKubernetesClientset == nil {
 		c.getKubernetesClientset = kubernetes.NewForConfig
 	}
-	if c.getKubernetesDynamicClientSet == nil {
-		c.getKubernetesDynamicClientSet = dynamic.NewForConfig
+	if c.getKubernetesDynamicClient == nil {
+		c.getKubernetesDynamicClient = dynamic.NewForConfig
 	}
 	if c.getKubeMasterIP == nil {
 		c.getKubeMasterIP = env.Get
@@ -181,7 +181,7 @@ func (c *Client) Clientset() (*kubernetes.Clientset, error) {
 	config, err := c.Config()
 	if err != nil {
 		return nil, errors.Wrapf(err,
-			"failed to get kubernetes clientset: failed to get kubernetes config: IsInCluster {%t}: kubeConfigPath {%s}",
+			"failed to get kubernetes clientset: failed to get kubernetes config: IsInCluster {%t}: KubeConfigPath {%s}",
 			c.IsInCluster,
 			c.KubeConfigPath,
 		)
@@ -230,7 +230,7 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 func (c *Client) Dynamic() (dynamic.Interface, error) {
 	config, err := c.Config()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to provide dynamic client")
+		return nil, errors.Wrap(err, "failed to get dynamic client")
 	}
-	return c.getKubernetesDynamicClientSet(config)
+	return c.getKubernetesDynamicClient(config)
 }
