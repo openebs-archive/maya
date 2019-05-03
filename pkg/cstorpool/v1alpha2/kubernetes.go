@@ -78,7 +78,7 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
-			config, err := client.GetConfig(client.New())
+			config, err := client.New().Config()
 			if err != nil {
 				return nil, err
 			}
@@ -151,16 +151,16 @@ func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
 	c, err := k.getClientset()
 	if err != nil {
 		return nil,
-			errors.WithStack(errors.Wrapf(err, "failed to get clientset:"))
+			errors.WithStack(errors.Wrap(err, "failed to get clientset"))
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -169,9 +169,9 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 // List returns a list of CStorPool
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) {
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list CStorPool:")
+		return nil, errors.Wrap(err, "failed to list cstor pool")
 	}
 	return k.list(cs, opts)
 }
@@ -179,20 +179,20 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.CStorPoolList, error) 
 // Get returns an CStorPool instance from kubernetes cluster
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorPool, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("failed to get CStorPool: missing name")
+		return nil, errors.New("failed to get cstor pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get CStorPool: {%s}", name)
+		return nil, errors.Wrapf(err, "failed to get cstor pool: {%s}", name)
 	}
 	return k.get(cs, name, opts)
 }
 
 // Create creates an CStorPool instance in kubernetes cluster
 func (k *Kubeclient) Create(obj *apis.CStorPool) (*apis.CStorPool, error) {
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create CStorPool:")
+		return nil, errors.Wrapf(err, "failed to create cstor pool %s", obj)
 	}
 	return k.create(cs, obj)
 }
@@ -201,11 +201,11 @@ func (k *Kubeclient) Create(obj *apis.CStorPool) (*apis.CStorPool, error) {
 func (k *Kubeclient) Patch(name string, pt types.PatchType,
 	patchObj []byte) (*apis.CStorPool, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("failed to patch CStorPool: missing name")
+		return nil, errors.New("failed to patch cstor pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to patch CStorPool:")
+		return nil, errors.Wrap(err, "failed to patch cstor pool")
 	}
 	return k.patch(cs, name, pt, patchObj)
 }
@@ -213,11 +213,11 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType,
 // Delete deletes CStorPool instance
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
-		return errors.New("failed to delete CStorPool: missing name")
+		return errors.New("failed to delete cstor pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return errors.Wrap(err, "failed to delete CStorPool:")
+		return errors.Wrap(err, "failed to delete cstor pool")
 	}
 	return k.del(cs, name, opts)
 }

@@ -155,16 +155,16 @@ func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
 	c, err := k.getClientset()
 	if err != nil {
 		return nil,
-			errors.WithStack(errors.Wrapf(err, "failed to get clientset:"))
+			errors.WithStack(errors.Wrap(err, "failed to get clientset"))
 	}
 	k.clientset = c
 	return k.clientset, nil
@@ -173,9 +173,9 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 // List returns a list of StoragePool
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.StoragePoolList, error) {
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list StoragePool:")
+		return nil, errors.Wrap(err, "failed to list storage pool")
 	}
 	return k.list(cs, opts)
 }
@@ -183,20 +183,20 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.StoragePoolList, error
 // Get returns an StoragePool instance from kubernetes cluster
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.StoragePool, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("failed to get StoragePool: missing name")
+		return nil, errors.New("failed to get storage pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get StoragePool: {%s}", name)
+		return nil, errors.Wrapf(err, "failed to get storage pool: {%s}", name)
 	}
 	return k.get(cs, name, opts)
 }
 
 // Create creates an StoragePool instance in kubernetes cluster
 func (k *Kubeclient) Create(obj *apis.StoragePool) (*apis.StoragePool, error) {
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create StoragePool: {%+v}", obj)
+		return nil, errors.Wrapf(err, "failed to create storage pool: {%v}", obj)
 	}
 	return k.create(cs, obj)
 }
@@ -205,11 +205,11 @@ func (k *Kubeclient) Create(obj *apis.StoragePool) (*apis.StoragePool, error) {
 func (k *Kubeclient) Patch(name string, pt types.PatchType,
 	patchObj []byte) (*apis.StoragePool, error) {
 	if strings.TrimSpace(name) == "" {
-		return nil, errors.New("failed to patch StoragePool: missing name")
+		return nil, errors.New("failed to patch storage pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to patch StoragePool: {%s}", name)
+		return nil, errors.Wrapf(err, "failed to patch storage pool: {%s}", name)
 	}
 	return k.patch(cs, name, pt, patchObj)
 }
@@ -217,11 +217,11 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType,
 // Delete deletes StoragePool instance
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	if strings.TrimSpace(name) == "" {
-		return errors.New("failed to delete StoragePool: missing name")
+		return errors.New("failed to delete storage pool: missing name")
 	}
-	cs, err := k.getClientOrCached()
+	cs, err := k.getClientsetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete StoragePool: {%s}", name)
+		return errors.Wrapf(err, "failed to delete storage pool: {%s}", name)
 	}
 	return k.del(cs, name, opts)
 }

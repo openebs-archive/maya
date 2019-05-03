@@ -15,7 +15,6 @@
 package v1alpha1
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
@@ -23,6 +22,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -193,7 +193,7 @@ func TestGetClientOrCached(t *testing.T) {
 		name := name //pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, err := mock.kubeClient.getClientOrCached()
+			c, err := mock.kubeClient.getClientsetOrCached()
 
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %s failed : expected error but got %v", name, err)
