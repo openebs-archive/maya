@@ -46,6 +46,8 @@ import (
 )
 
 const (
+	//KeyNode represents the key values used for specifiying the Node Affinity
+	// based on the hostname
 	KeyNode = "kubernetes.io/hostname"
 )
 

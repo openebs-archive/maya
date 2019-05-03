@@ -17,8 +17,9 @@ limitations under the License.
 
 /*
 
-This package contains OpenEBS Dynamic Local PV provisioner
-implemented using external storage provisioner library:
+Package app contains OpenEBS Dynamic Local PV provisioner
+
+Provisioner is created using the external storage provisioner library:
 https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner
 
 Local PVs are an extension to hostpath volumes, but are more secure.

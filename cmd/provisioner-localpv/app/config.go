@@ -30,15 +30,26 @@ import (
 )
 
 const (
-	KeyPVBasePath     = "BasePath"
+	//KeyPVBasePath defines base directory for hostpath volumes
+	// can be configured via the StorageClass annotations.
+	KeyPVBasePath = "BasePath"
+	//KeyPVBasePath defines the alternate folder name under the BasePath
+	// By default, the pv name will be used as the folder name.
+	// KeyPVBasePath can be useful for providing the same underlying folder
+	// name for all replicas in a Statefulset.
+	// Will be a property of the PVC annotations.
 	KeyPVRelativePath = "RelativePath"
+	//KeyPVAbsolutePath specifies a complete hostpath instead of
+	// auto-generating using BasePath and RelativePath. This option
+	// is specified with PVC and is useful for granting shared access
+	// to underlying hostpaths across multiple pods.
 	KeyPVAbsolutePath = "AbsolutePath"
 )
 
 const (
-	// BetaStorageClassAnnotation represents the beta/previous StorageClass annotation.
-	// It's currently still used and will be held for backwards compatibility
-	BetaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
+	// Some of the PVCs launched with older helm charts, still
+	// refer to the StorageClass via beta annotations.
+	betaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
 )
 
 //CASConfigParser creates a new CASConfigPVC struct by
@@ -157,7 +168,7 @@ func (c *CASConfigPVC) extractSubPath(path string) (string, string) {
 // GetStorageClassName extracts the StorageClass name from PVC
 func GetStorageClassName(pvc *v1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
-	if class, found := pvc.Annotations[BetaStorageClassAnnotation]; found {
+	if class, found := pvc.Annotations[betaStorageClassAnnotation]; found {
 		return &class
 	}
 	return pvc.Spec.StorageClassName

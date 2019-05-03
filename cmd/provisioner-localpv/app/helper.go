@@ -33,6 +33,7 @@ import (
 )
 
 var (
+	//CmdTimeoutCounts specifies the duration to wait for cleanup pod to be launched.
 	CmdTimeoutCounts = 120
 )
 

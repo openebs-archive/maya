@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 )
 
+//RegisterShutdownChannel closes the channel when signaled for termination
 func RegisterShutdownChannel(done chan struct{}) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
