@@ -1,3 +1,17 @@
+// Copyright © 2018-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package replicadeletion
 
 import (
@@ -111,23 +125,29 @@ var _ = BeforeSuite(func() {
 	By("Installing OpenEBS components")
 	// Installing the artifacts to kubernetes cluster
 	for _, artifact := range openebsartifacts {
-		defaultInstaller, err := installer.BuilderForObject(artifact).Build()
+		defaultInstaller, err := installer.
+			BuilderForObject(artifact).
+			WithKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath)).
+			Build()
 		Expect(err).ShouldNot(HaveOccurred())
-		installerClient := defaultInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
+		//		installerClient := defaultInstaller.NewKubeClient()
 		//Expect(err).ShouldNot(HaveOccurred())
-		err = installerClient.Install()
+		err = defaultInstaller.Install()
 		Expect(err).ShouldNot(HaveOccurred())
 		defaultInstallerList = append(defaultInstallerList, installerClient)
 	}
 	// Creates jiva-test namespace
 	testNamespaceArtifact, err := artifacts.GetArtifactUnstructured(artifacts.Artifact(nameSpaceYaml))
 	Expect(err).ShouldNot(HaveOccurred())
-	namespaceInstaller, err := installer.BuilderForObject(testNamespaceArtifact).Build()
+	namespaceInstaller, err := installer.
+		BuilderForObject(testNamespaceArtifact).
+		WithKubeClient().
+		Build()
 	Expect(err).ShouldNot(HaveOccurred())
-	installerClient := namespaceInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
-	err = installerClient.Install()
+	//	installerClient := namespaceInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
+	//	err = installerClient.Install()
 	Expect(err).ShouldNot(HaveOccurred())
-	defaultInstallerList = append(defaultInstallerList, installerClient)
+	defaultInstallerList = append(defaultInstallerList, namesapceInstaller)
 
 	podKubeClient := pod.NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)), pod.WithKubeConfigPath(kubeConfigPath))
 	// Check for maya-apiserver pod to get created and running
