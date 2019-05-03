@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -53,7 +53,7 @@ func (s *HTTPServer) restoreV1alpha1SpecificRequest(resp http.ResponseWriter, re
 // Create is http handler which handles restore-create request
 func (rOps *restoreAPIOps) create() (interface{}, error) {
 	var err error
-	var openebsClient *versioned.Clientset
+	var openebsClient *internalclientset.Clientset
 	restore := &v1alpha1.CStorRestore{}
 	err = decodeBody(rOps.req, restore)
 	if err != nil {
@@ -89,7 +89,7 @@ func (rOps *restoreAPIOps) create() (interface{}, error) {
 }
 
 // createRestoreResource create restore CR for volume's CVR
-func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CStorRestore) (interface{}, error) {
+func createRestoreResource(openebsClient *internalclientset.Clientset, rst *v1alpha1.CStorRestore) (interface{}, error) {
 	//Get List of cvr's related to this pvc
 	listOptions := v1.ListOptions{
 		LabelSelector: "openebs.io/persistent-volume=" + rst.Spec.VolumeName,
@@ -242,7 +242,7 @@ func getCVRRestoreStatus(k8sClient *kubernetes.Clientset, rst v1alpha1.CStorRest
 }
 
 // updateRestoreStatus will update the restore status to given status
-func updateRestoreStatus(clientset versioned.Interface, rst v1alpha1.CStorRestore, status v1alpha1.CStorRestoreStatus) {
+func updateRestoreStatus(clientset internalclientset.Interface, rst v1alpha1.CStorRestore, status v1alpha1.CStorRestoreStatus) {
 	rst.Status = status
 
 	_, err := clientset.OpenebsV1alpha1().CStorRestores(rst.Namespace).Update(&rst)

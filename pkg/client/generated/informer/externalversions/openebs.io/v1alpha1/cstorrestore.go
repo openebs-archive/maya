@@ -22,9 +22,9 @@ import (
 	time "time"
 
 	openebsiov1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	versioned "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	internalinterfaces "github.com/openebs/maya/pkg/client/generated/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
+	internalclientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	internalinterfaces "github.com/openebs/maya/pkg/client/generated/informer/externalversions/internalinterfaces"
+	v1alpha1 "github.com/openebs/maya/pkg/client/generated/lister/openebs.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -47,14 +47,14 @@ type cStorRestoreInformer struct {
 // NewCStorRestoreInformer constructs a new informer for CStorRestore type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewCStorRestoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+func NewCStorRestoreInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
 	return NewFilteredCStorRestoreInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredCStorRestoreInformer constructs a new informer for CStorRestore type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredCStorRestoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredCStorRestoreInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
@@ -76,7 +76,7 @@ func NewFilteredCStorRestoreInformer(client versioned.Interface, namespace strin
 	)
 }
 
-func (f *cStorRestoreInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func (f *cStorRestoreInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	return NewFilteredCStorRestoreInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
