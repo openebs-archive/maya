@@ -22,11 +22,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/glog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//storagev1 "k8s.io/api/storage/v1"
 )
 
 const (
@@ -60,17 +63,33 @@ func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeCla
 
 	pvConfig := p.defaultConfig
 
-	//TODO Fetch the SC and its configuration
+	//Fetch the SC
 	scName := GetStorageClassName(pvc)
+	sc, err := p.kubeClient.StorageV1().StorageClasses().Get(*scName, metav1.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get storageclass for pvc %v", pvc.ObjectMeta.Name)
+	}
 
-	// extract the cas volume config from pvc
-	pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
-	if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
-		pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
+	// extract and merge the cas config from storageclass
+	scCASConfigStr := sc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	glog.Infof("SC %v has config:%v", *scName, scCASConfigStr)
+	if len(strings.TrimSpace(scCASConfigStr)) != 0 {
+		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err == nil {
-			pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
+			pvConfig = cast.MergeConfig(scCASConfig, pvConfig)
 		}
 	}
+
+	//TODO : extract and merge the cas volume config from pvc
+	//This block can be added once validation checks are added
+	// as to the type of config that can be passed via PVC
+	//pvcCASConfigStr := pvc.ObjectMeta.Annotations[string(mconfig.CASConfigKey)]
+	//if len(strings.TrimSpace(pvcCASConfigStr)) != 0 {
+	//	pvcCASConfig, err := cast.UnMarshallToConfig(pvcCASConfigStr)
+	//	if err == nil {
+	//		pvConfig = cast.MergeConfig(pvcCASConfig, pvConfig)
+	//	}
+	//}
 
 	pvConfigMap, err := cast.ConfigToMap(pvConfig)
 	if err != nil {
