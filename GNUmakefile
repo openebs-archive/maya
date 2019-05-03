@@ -190,7 +190,14 @@ kubegen1:
 	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH} 
 
 # code generation for custom resources
-kubegen: kubegen1 kubegen2
+kubegen: kubegendelete kubegen1 kubegen2
+
+# deletes generated code by codegen
+kubegendelete:
+	@rm -rf pkg/client/generated/clientset
+	@rm -rf pkg/client/generated/listers
+	@rm -rf pkg/client/generated/informers
+	@rm -rf pkg/client/generated/openebs.io
 
 # code generation for custom resources and protobuf
 generated_files: kubegen protobuf
