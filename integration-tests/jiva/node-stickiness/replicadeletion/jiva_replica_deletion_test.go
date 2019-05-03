@@ -30,9 +30,7 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		ctrlLabel string
 		//podListObj holds the PodList instance
 		podListObj    *corev1.PodList
-		scObj         *clientsc.StorageClass
-		pvcObj        *clientpvc.PVC
-		podKubeClient *pod.Kubeclient
+		podKubeClient *pod.KubeClient
 		// defaultReplicaLabel represents the jiva replica
 		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 		// defaultCtrlLabel represents the jiva controller
@@ -47,7 +45,7 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		testNamespace         = "jiva-rep-delete-ns"
 		accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 		capacity              = "5G"
-		//TODO: following variables should be moved in framework
+		//TODO: following variables should be moved in framework or openebs-artifacts
 		openebsCASType     = "cas.openebs.io/cas-type"
 		openebsCASConfig   = "cas.openebs.io/config"
 		openebsProvisioner = "openebs.io/provisioner-iscsi"
@@ -59,30 +57,35 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 			openebsCASType:   storageEngine,
 			openebsCASConfig: openebsCASConfigValue,
 		}
-		buildSCObj := clientsc.NewStorageClass().
+		buildSCObj, err := clientsc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
-			WithProvisioner(openebsProvisioner)
-		Expect(buildSCObj.Err).ShouldNot(HaveOccurred())
+			WithProvisioner(openebsProvisioner).Build()
+		Expect(err).ShouldNot(HaveOccurred())
 
-		scObj = &clientsc.StorageClass{}
-		scObj.Object, err = clientsc.KubeClient().Create(buildSCObj.Object)
+		_, err = clientsc.NewKubeClient(clientsc.WithKubeConfigPath(kubeConfigPath)).Create(buildSCObj)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Build and deploy PVC using jiva-single-replica storageClass in jiva-rep-delete-ns namespace")
-		buildPVCObj := clientpvc.NewPVC().
+		buildPVCObj, err := clientpvc.NewBuilder().
 			WithName(pvcName).
 			WithNamespace(testNamespace).
 			WithStorageClass(scName).
 			WithAccessModes(accessModes).
-			WithCapacity(capacity)
-		Expect(buildPVCObj.Err).ShouldNot(HaveOccurred())
-
-		pvcObj = &clientpvc.PVC{}
-		pvcObj.Object, err = clientpvc.NewKubeClient(clientpvc.WithNamespace(testNamespace)).Create(buildPVCObj.Object)
+			WithCapacity(capacity).Build()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		podKubeClient = pod.KubeClient(pod.WithNamespace(string(testNamespace)))
+		_, err = clientpvc.
+			NewKubeClient(
+				clientpvc.WithNamespace(testNamespace),
+				clientpvc.WithKubeConfigPath(kubeConfigPath)).
+			Create(buildPVCObj)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		podKubeClient = pod.
+			NewKubeClient(
+				pod.WithNamespace(string(testNamespace)),
+				pod.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
 
 		// pvcLabel represents the coressponding pvc
 		pvcLabel := defaultPVCLabel + pvcName
@@ -97,14 +100,21 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 
 	AfterEach(func() {
 		By("Uninstall test artifacts")
-		err := clientpvc.NewKubeClient(clientpvc.WithNamespace(testNamespace)).Delete(pvcName, &metav1.DeleteOptions{})
+		err := clientpvc.
+			NewKubeClient(
+				clientpvc.WithNamespace(testNamespace),
+				clientpvc.WithKubeConfigPath(kubeConfigPath)).
+			Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
-		err = clientsc.KubeClient().Delete(scName, &metav1.DeleteOptions{})
+		err = clientsc.
+			NewKubeClient(
+				clientsc.WithKubeConfigPath(kubeconfigPath)).
+			Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	Context("node stickiness with jiva replica pod deletion", func() {
-		var nodeName, podName string
+		//	var nodeName, podName string
 
 		It("should verify jiva replica pod sticks to one node", func() {
 

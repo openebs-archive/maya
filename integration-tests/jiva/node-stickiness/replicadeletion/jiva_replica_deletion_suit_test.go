@@ -2,18 +2,16 @@ package replicadeletion
 
 import (
 	"flag"
-	"os"
 	"strconv"
 
 	"testing"
 
-	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
+
+	"github.com/openebs/maya/integration-tests/artifacts"
 	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
-	"github.com/openebs/maya/integration-tests/kubernetes"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,21 +49,23 @@ var (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Pod")
+	RunSpecs(t, "Node-Stickiness via pod deleteion")
 }
 
+var kubeConfigPath string
+
 func init() {
-	flag.Parse()
+	flag.StringVar(&kubeConfigPath, "kubeConfigPath", "", "Based on arguments test will be triggered on corresponding cluster")
 }
 
 // TODO: Refactor below code based on the framework changes
 // getPodList returns the list of running pod object
-func getPodList(podKubeClient *pod.Kubeclient, namespace, lselector string, podCount int) (pods *corev1.PodList) {
+func getPodList(podKubeClient *pod.KubeClient, namespace, lselector string, podCount int) (pods *corev1.PodList) {
 	// Verify phase of the pod
 	var err error
 
 	if podKubeClient == nil {
-		podKubeClient = pod.KubeClient(pod.WithNamespace(namespace))
+		podKubeClient = pod.NewKubeClient(pod.WithNamespace(namespace), pod.WithKubeConfigPath(kubeConfigPath))
 	}
 
 	Eventually(func() int {
@@ -84,16 +84,17 @@ func getPodList(podKubeClient *pod.Kubeclient, namespace, lselector string, podC
 
 var _ = BeforeSuite(func() {
 	// Fetching the kube config path
-	configPath, err := kubernetes.GetConfigPath()
-	Expect(err).ShouldNot(HaveOccurred())
+	//configPath, err := kubernetes.GetConfigPath()
+	//Expect(err).ShouldNot(HaveOccurred())
 
-	// Setting the path in environemnt variable
-	err = os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), configPath)
-	Expect(err).ShouldNot(HaveOccurred())
+	//// Setting the path in environemnt variable
+	//err = os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), configPath)
+	//Expect(err).ShouldNot(HaveOccurred())
 
 	// Check the running node count
-	nodes, err := node.
-		KubeClient().List(metav1.ListOptions{})
+	nodesClient := node.
+		NewKubeClient(node.WithKubeConfigPath(kubeConfigPath))
+	nodes, err := nodesClient.List(metav1.ListOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	nodeCnt := node.
 		NewListBuilder().
@@ -112,21 +113,23 @@ var _ = BeforeSuite(func() {
 	for _, artifact := range openebsartifacts {
 		defaultInstaller, err := installer.BuilderForObject(artifact).Build()
 		Expect(err).ShouldNot(HaveOccurred())
-		err = defaultInstaller.Install()
+		installerClient := defaultInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
+		//Expect(err).ShouldNot(HaveOccurred())
+		err = installerClient.Install()
 		Expect(err).ShouldNot(HaveOccurred())
-		defaultInstallerList = append(defaultInstallerList, defaultInstaller)
+		defaultInstallerList = append(defaultInstallerList, installerClient)
 	}
 	// Creates jiva-test namespace
 	testNamespaceArtifact, err := artifacts.GetArtifactUnstructured(artifacts.Artifact(nameSpaceYaml))
 	Expect(err).ShouldNot(HaveOccurred())
 	namespaceInstaller, err := installer.BuilderForObject(testNamespaceArtifact).Build()
 	Expect(err).ShouldNot(HaveOccurred())
-	err = namespaceInstaller.Install()
+	installerClient := namespaceInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
+	err = installerClient.Install()
 	Expect(err).ShouldNot(HaveOccurred())
-	defaultInstallerList = append(defaultInstallerList, namespaceInstaller)
+	defaultInstallerList = append(defaultInstallerList, installerClient)
 
-	podKubeClient := pod.KubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)))
-	By("Started deploying OpenEBS components")
+	podKubeClient := pod.NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)), pod.WithKubeConfigPath(kubeConfigPath))
 	// Check for maya-apiserver pod to get created and running
 	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
