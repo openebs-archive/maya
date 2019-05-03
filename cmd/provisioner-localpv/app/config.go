@@ -69,7 +69,7 @@ func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeCla
 	c := &CASConfigPVC{
 		pvName:  pvName,
 		pvcName: pvc.ObjectMeta.Name,
-		scName:  scName,
+		scName:  *scName,
 		config:  pvConfigMap,
 	}
 	return c, nil
