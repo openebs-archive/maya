@@ -39,7 +39,7 @@ APIS_PKG=github.com/openebs/maya/pkg/apis
 # Possible values: all, deepcopy, client, informers, listers.
 GENS=all
 # GROUPS_WITH_VERSIONS is the group containing different versions of the resources.
-GROUPS_WITH_VERSIONS=openebs.io:v1alpha1
+GROUPS_WITH_VERSIONS=openebs.io:v1alpha1,v1beta1
 
 # BOILERPLATE_TEXT_PATH is the boilerplate text(go comment) that is put at the top of every generated file.
 # This boilerplate text is nothing but the license information.
