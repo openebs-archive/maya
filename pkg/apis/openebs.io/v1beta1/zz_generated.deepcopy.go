@@ -177,6 +177,7 @@ func (in *StoragePoolClaimSpec) DeepCopyInto(out *StoragePoolClaimSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	out.PoolSpec = in.PoolSpec
 	return
 }
 
