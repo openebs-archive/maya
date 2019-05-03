@@ -168,6 +168,9 @@ func (rOps *restoreAPIOps) get() (interface{}, error) {
 	}
 
 	rstatus, err = getRestoreStatus(rst)
+	if err != nil {
+		return nil, CodedError(400, fmt.Sprintf("Failed to fetch status '%v'", err))
+	}
 
 	resp, err = json.Marshal(rstatus)
 	if err == nil {
