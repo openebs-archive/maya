@@ -53,22 +53,20 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *clientset.Clientset
 
 func TestWithDefaultOptions(t *testing.T) {
 	tests := map[string]struct {
-		getClientSet        getClientsetFn
-		getClientSetForPath getClientsetForPathFn
-		list                listFn
+		getClientSet getClientsetFn
+		list         listFn
 	}{
-		"T1": {fakeGetClientSetErr, fakeGetClientSetForPathErr, fakeListErr},
-		"T2": {nil, nil, nil},
-		"T3": {fakeGetClientSetOk, fakeGetClientSetForPathOk, nil},
+		"T1": {fakeGetClientSetErr, fakeListErr},
+		"T2": {nil, nil},
+		"T3": {fakeGetClientSetOk, nil},
 	}
 	for name, mock := range tests {
 		name := name // pin it
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			fc := Kubeclient{
-				getClientset:        mock.getClientSet,
-				getClientsetForPath: mock.getClientSetForPath,
-				list:                mock.list,
+				getClientset: mock.getClientSet,
+				list:         mock.list,
 			}
 			fc.withDefaults()
 			if fc.getClientset == nil {
@@ -79,6 +77,66 @@ func TestWithDefaultOptions(t *testing.T) {
 			}
 			if fc.list == nil {
 				t.Fatalf("test %q failed: expected list not to be empty", name)
+			}
+		})
+	}
+}
+
+func TestWithDefaultsForClientSetPath(t *testing.T) {
+	tests := map[string]struct {
+		getClientSetForPath getClientsetForPathFn
+	}{
+		"T1": {nil},
+		"T2": {fakeGetClientSetForPathOk},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			fc := &Kubeclient{
+				getClientsetForPath: mock.getClientSetForPath,
+			}
+			fc.withDefaults()
+			if fc.getClientsetForPath == nil {
+				t.Fatalf("test %q failed: expected getClientsetForPath not to be nil", name)
+			}
+		})
+	}
+}
+
+func TestGetClientSetPathOrDirect(t *testing.T) {
+	tests := map[string]struct {
+		getClientSet        getClientsetFn
+		getClientSetForPath getClientsetForPathFn
+		kubeConfigPath      string
+		isErr               bool
+	}{
+		// Positive tests
+		"Positive 1": {fakeGetClientSetNil, fakeGetClientSetForPathOk, "fake-path", false},
+		"Positive 2": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "", false},
+		"Positive 3": {fakeGetClientSetErr, fakeGetClientSetForPathOk, "fake-path", false},
+		"Positive 4": {fakeGetClientSetOk, fakeGetClientSetForPathErr, "", false},
+
+		// Negative tests
+		"Negative 1": {fakeGetClientSetErr, fakeGetClientSetForPathOk, "", true},
+		"Negative 2": {fakeGetClientSetOk, fakeGetClientSetForPathErr, "fake-path", true},
+		"Negative 3": {fakeGetClientSetErr, fakeGetClientSetForPathErr, "fake-path", true},
+		"Negative 4": {fakeGetClientSetErr, fakeGetClientSetForPathErr, "", true},
+	}
+
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			fc := &Kubeclient{
+				getClientset:        mock.getClientSet,
+				getClientsetForPath: mock.getClientSetForPath,
+				kubeConfigPath:      mock.kubeConfigPath,
+			}
+			_, err := fc.getClientsetOrCached()
+			if mock.isErr && err == nil {
+				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
+			}
+			if !mock.isErr && err != nil {
+				t.Fatalf("test %q failed : expected error be nil but got %v", name, err)
 			}
 		})
 	}
@@ -113,7 +171,7 @@ func TestGetClientOrCached(t *testing.T) {
 				getClientsetForPath: mock.getClientSetForPath,
 				kubeConfigPath:      mock.kubeConfigPath,
 			}
-			_, err := fc.getClientOrCached()
+			_, err := fc.getClientsetOrCached()
 			if mock.expectErr && err == nil {
 				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
 			}

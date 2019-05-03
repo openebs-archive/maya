@@ -158,6 +158,40 @@ func TestGetConfigFromENV(t *testing.T) {
 	}
 }
 
+func TestGetConfigFromPathOrDirect(t *testing.T) {
+	tests := map[string]struct {
+		kubeConfigPath     string
+		getConfigFromFlags buildConfigFromFlagsFunc
+		getInClusterConfig getInClusterConfigFunc
+		isErr              bool
+	}{
+		"T1": {"", fakeBuildConfigFromFlagsErr, fakeInClusterConfigOk, false},
+		"T2": {"fake-path", fakeBuildConfigFromFlagsOk, fakeInClusterConfigErr, false},
+		"T3": {"fake-path", fakeBuildConfigFromFlagsErr, fakeInClusterConfigOk, true},
+		"T4": {"", fakeBuildConfigFromFlagsOk, fakeInClusterConfigErr, true},
+		"T5": {"fake-path", fakeBuildConfigFromFlagsErr, fakeInClusterConfigErr, true},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock // pin It
+		t.Run(name, func(t *testing.T) {
+			c := &Client{
+				KubeConfigPath:       mock.kubeConfigPath,
+				buildConfigFromFlags: mock.getConfigFromFlags,
+				getInClusterConfig:   mock.getInClusterConfig,
+				getKubeMasterIP:      fakeGetKubeMasterIPNil,
+				getKubeConfigPath:    fakeGetKubeConfigPathNil,
+			}
+			_, err := c.getConfigPathOrDirect()
+			if mock.isErr && err == nil {
+				t.Fatalf("test '%s' failed: expected error actual no error", name)
+			}
+			if !mock.isErr && err != nil {
+				t.Fatalf("test '%s' failed: expected no error actual '%s'", name, err)
+			}
+		})
+	}
+}
+
 func TestClientset(t *testing.T) {
 	tests := map[string]struct {
 		isInCluster            bool
@@ -169,9 +203,9 @@ func TestClientset(t *testing.T) {
 		getKubernetesClientset getKubernetesClientsetFunc
 		isErr                  bool
 	}{
-		"t10": {true, "fakePath", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetOk, false},
+		"t10": {true, "", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetOk, false},
 		"t11": {true, "", fakeInClusterConfigOk, nil, nil, nil, fakeGetClientsetErr, true},
-		"t12": {true, "fakePath", fakeInClusterConfigErr, nil, nil, nil, fakeGetClientsetOk, true},
+		"t12": {true, "", fakeInClusterConfigErr, nil, nil, nil, fakeGetClientsetOk, true},
 
 		"t21": {false, "", nil, fakeGetKubeMasterIPOk, fakeGetKubeConfigPathNil, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
 		"t22": {false, "", nil, fakeGetKubeMasterIPNil, fakeGetKubeConfigPathOk, fakeBuildConfigFromFlagsOk, fakeGetClientsetOk, false},
@@ -265,7 +299,7 @@ func TestConfigForPath(t *testing.T) {
 				KubeConfigPath:       mock.kubeConfigPath,
 				buildConfigFromFlags: mock.getConfigFromPath,
 			}
-			_, err := c.ConfigForPath()
+			_, err := c.ConfigForPath(mock.kubeConfigPath)
 			if mock.isErr && err == nil {
 				t.Fatalf("test '%s' failed: expected error actual no error", name)
 			}

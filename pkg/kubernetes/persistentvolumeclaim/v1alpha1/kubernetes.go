@@ -28,7 +28,11 @@ import (
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
-type getClientsetFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
+type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
 
 // getpvcFn is a typed function that
 // abstracts fetching of pvc
@@ -66,12 +70,13 @@ type Kubeclient struct {
 	kubeConfigPath string
 
 	// functions useful during mocking
-	getClientset  getClientsetFn
-	list          listFn
-	get           getFn
-	create        createFn
-	del           deleteFn
-	delCollection deleteCollectionFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	get                 getFn
+	create              createFn
+	del                 deleteFn
+	delCollection       deleteCollectionFn
 }
 
 // KubeclientBuildOption abstracts creating an
@@ -82,10 +87,13 @@ type KubeclientBuildOption func(*Kubeclient)
 // of kubeclient instance
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
-		k.getClientset = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
-			// TODO: Update after dependent PR checked in
-			//return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
+		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
 			return client.New().Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.get == nil {
@@ -139,7 +147,7 @@ func WithKubeConfigPath(path string) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for
+// NewKubeClient returns a new instance of kubeclient meant for
 // cstor volume replica operations
 func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
@@ -150,17 +158,25 @@ func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientSetOrCached returns either a new instance
+func (k *Kubeclient) getClientsetPathOrDirect() (*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientSetOrCached() (*kubernetes.Clientset, error) {
+func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset(k.kubeConfigPath)
+
+	cs, err := k.getClientsetPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
@@ -170,7 +186,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get pvc: missing pvc name")
 	}
-	cli, err := k.getClientSetOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get pvc {%s}", name)
 	}
@@ -180,7 +196,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*corev1.Persisten
 // List returns a list of pvc
 // instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.PersistentVolumeClaimList, error) {
-	cli, err := k.getClientSetOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list pvc listoptions: '%v'", opts)
 	}
@@ -193,7 +209,7 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 	if strings.TrimSpace(name) == "" {
 		return errors.New("failed to delete pvc: missing pvc name")
 	}
-	cli, err := k.getClientSetOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete pvc {%s}", name)
 	}
@@ -202,7 +218,7 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 
 // Create creates a pvc in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
-	cli, err := k.getClientSetOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create pvc: %s", stringer.Yaml("persistent volume claim", pvc))
 	}
@@ -211,7 +227,7 @@ func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.Persiste
 
 // DeleteCollection deletes a collection of pvc objects.
 func (k *Kubeclient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
-	cli, err := k.getClientSetOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return errors.Wrapf(err, "failed to delete the collection of pvcs")
 	}

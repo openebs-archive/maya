@@ -136,32 +136,25 @@ func NewKubeClient(opts ...KubeClientBuildOption) *KubeClient {
 	return k
 }
 
+func (k *KubeClient) getClientsetPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *KubeClient) getClientsetOrCached() (*clientset.Clientset, error) {
-	var c *clientset.Clientset
-	var err error
-
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
 
-	// KubeConfigPath holds the first priority to get clientset
-	if k.kubeConfigPath != "" {
-		c, err = k.getClientsetForPath(k.kubeConfigPath)
-		if err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to get clientset kubeconfigpath: %s",
-				k.kubeConfigPath)
-		}
-	} else {
-		c, err = k.getClientset()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get clientset")
-		}
+	cs, err := k.getClientsetPathOrDirect()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 

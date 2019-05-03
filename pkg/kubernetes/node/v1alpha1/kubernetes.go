@@ -90,35 +90,31 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance
+func (k *Kubeclient) getClientsetPathOrDirect() (*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
-	var c *kubernetes.Clientset
-	var err error
+func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	// KubeConfigPath holds the first priority to get clientset
-	if k.kubeConfigPath != "" {
-		c, err = k.getClientsetForPath(k.kubeConfigPath)
-		if err != nil {
-			return nil, errors.Wrapf(err,
-				"failed to get clientset kubeconfigpath: %s",
-				k.kubeConfigPath)
-		}
-	} else {
-		c, err = k.getClientset()
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get clientset")
-		}
+
+	cs, err := k.getClientsetPathOrDirect()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
 // List returns a list of nodes instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list")
 	}
