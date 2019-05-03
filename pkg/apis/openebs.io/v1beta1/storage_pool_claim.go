@@ -41,6 +41,7 @@ type StoragePoolClaimSpec struct {
 	MaxPools *int                       `json:"maxPools"`
 	MinPools int                        `json:"minPools"`
 	Nodes    []StoragePoolClaimNodeSpec `json:"nodes"`
+	PoolSpec CStorPoolAttr              `json:"poolSpec"`
 }
 
 // StoragePoolClaimNodeSpec is the spec for node where pool should be created.
