@@ -33,6 +33,9 @@ import (
 )
 
 const (
+	//KeyPVStorageType defines if the PV should be backed
+	// a hostpath ( sub directory or a storage device)
+	KeyPVStorageType = "StorageType"
 	//KeyPVBasePath defines base directory for hostpath volumes
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
@@ -103,6 +106,16 @@ func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeCla
 		config:  pvConfigMap,
 	}
 	return c, nil
+}
+
+//GetStorageType returns the StorageType value configured
+// in StorageClass. Default is hostpath
+func (c *CASConfigPVC) GetStorageType() string {
+	stgType := c.getConfigValue(KeyPVStorageType)
+	if len(strings.TrimSpace(stgType)) == 0 {
+		return "hostpath"
+	}
+	return stgType
 }
 
 //GetPath returns a valid PV path based on the configuration

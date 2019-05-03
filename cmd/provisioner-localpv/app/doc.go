@@ -75,9 +75,9 @@ metadata:
       #- name: StorageType
       #  value: "storage-device"
       # (Default)
-      - name: storage-type
+      - name: StorageType
         value: "hostpath"
-      # If the storage-type is hostpath, then BasePath
+      # If the StorageType is hostpath, then BasePath
       # specifies the location where the volume subdirectory
       # should be created.
       # (Default)

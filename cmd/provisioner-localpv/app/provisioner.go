@@ -103,15 +103,21 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 
 	name := opts.PVName
 
-	// Create a new Config instance for the PVC that will help with
-	// generating a valid host path to be used by the PV.
-	pvcConfig, err := p.configParser(name, pvc)
+	// Create a new Config instance for the PV by merging the
+	// default configuration with configuration provided
+	// via PVC and the associated StorageClass
+	pvCASConfig, err := p.configParser(name, pvc)
 	if err != nil {
 		return nil, err
 	}
 
 	//TODO: Determine if hostpath or device based Local PV should be created
-	path, err := pvcConfig.GetPath()
+	stgType := pvCASConfig.GetStorageType()
+	if stgType != "hostpath" {
+		return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
+	}
+
+	path, err := pvCASConfig.GetPath()
 	if err != nil {
 		return nil, err
 	}
