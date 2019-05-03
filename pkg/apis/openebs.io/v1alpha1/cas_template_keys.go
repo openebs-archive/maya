@@ -163,6 +163,13 @@ const (
 	// {{ .Volume.pvc }}
 	PersistentVolumeClaimVTP VolumeTLPProperty = "pvc"
 
+	// IsRestoreVolumePropertyVTP indicates if the volume is being
+	// created using a backedup volume
+	//NOTE:
+	// The Corresponding value will be accessed as
+	// {{ .Volume.isRestoreVol }}
+	IsRestoreVolumePropertyVTP VolumeTLPProperty = "isRestoreVol"
+
 	// StorageClassVTP is the StorageClass of the volume
 	//
 	// NOTE:

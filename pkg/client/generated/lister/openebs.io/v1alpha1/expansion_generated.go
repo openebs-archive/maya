@@ -18,6 +18,22 @@ limitations under the License.
 
 package v1alpha1
 
+// BackupCStorListerExpansion allows custom methods to be added to
+// BackupCStorLister.
+type BackupCStorListerExpansion interface{}
+
+// BackupCStorNamespaceListerExpansion allows custom methods to be added to
+// BackupCStorNamespaceLister.
+type BackupCStorNamespaceListerExpansion interface{}
+
+// BackupCStorLastListerExpansion allows custom methods to be added to
+// BackupCStorLastLister.
+type BackupCStorLastListerExpansion interface{}
+
+// BackupCStorLastNamespaceListerExpansion allows custom methods to be added to
+// BackupCStorLastNamespaceLister.
+type BackupCStorLastNamespaceListerExpansion interface{}
+
 // CASTemplateListerExpansion allows custom methods to be added to
 // CASTemplateLister.
 type CASTemplateListerExpansion interface{}
@@ -25,6 +41,14 @@ type CASTemplateListerExpansion interface{}
 // CStorPoolListerExpansion allows custom methods to be added to
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}
+
+// CStorRestoreListerExpansion allows custom methods to be added to
+// CStorRestoreLister.
+type CStorRestoreListerExpansion interface{}
+
+// CStorRestoreNamespaceListerExpansion allows custom methods to be added to
+// CStorRestoreNamespaceLister.
+type CStorRestoreNamespaceListerExpansion interface{}
 
 // CStorVolumeListerExpansion allows custom methods to be added to
 // CStorVolumeLister.

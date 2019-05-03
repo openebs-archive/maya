@@ -160,11 +160,20 @@ func (v *Operation) Create() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var isRestoreVol string
+	if pvc.Annotations["openebs.io/created-through"] == "restore" {
+		isRestoreVol = "true"
+	} else {
+		isRestoreVol = "false"
+	}
+
 	volumeLabels := map[string]interface{}{
-		string(v1alpha1.OwnerVTP):                 v.volume.Name,
-		string(v1alpha1.CapacityVTP):              capacity,
-		string(v1alpha1.RunNamespaceVTP):          v.volume.Namespace,
-		string(v1alpha1.PersistentVolumeClaimVTP): pvcName,
+		string(v1alpha1.OwnerVTP):                   v.volume.Name,
+		string(v1alpha1.CapacityVTP):                capacity,
+		string(v1alpha1.RunNamespaceVTP):            v.volume.Namespace,
+		string(v1alpha1.PersistentVolumeClaimVTP):   pvcName,
+		string(v1alpha1.IsRestoreVolumePropertyVTP): isRestoreVol,
 	}
 
 	runtimeVolumeValues := util.MergeMaps(volumeLabels, cloneLabels)

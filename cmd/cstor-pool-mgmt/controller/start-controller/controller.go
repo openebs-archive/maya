@@ -29,9 +29,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	backupcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/backup-controller"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	poolcontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/pool-controller"
 	replicacontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/replica-controller"
+	restorecontroller "github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/restore"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
@@ -102,6 +104,14 @@ func StartControllers(kubeconfig string) {
 	volumeReplicaController := replicacontroller.NewCStorVolumeReplicaController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
+	// Instantiate the cStor backup controller
+	backupController := backupcontroller.NewBackupCStorController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
+
+	// Instantiate the cStor restore controller
+	restoreController := restorecontroller.NewCStorRestoreController(kubeClient, openebsClient, kubeInformerFactory,
+		openebsInformerFactory)
+
 	go kubeInformerFactory.Start(stopCh)
 	go openebsInformerFactory.Start(stopCh)
 
@@ -129,6 +139,25 @@ func StartControllers(kubeconfig string) {
 		}
 		wg.Done()
 	}()
+
+	wg.Add(NumRoutinesThatFollow)
+	// Run controller for BackupCStor.
+	go func() {
+		if err = backupController.Run(NumThreads, stopCh); err != nil {
+			glog.Fatalf("Error running BackupCStor controller: %s", err.Error())
+		}
+		wg.Done()
+	}()
+
+	wg.Add(NumRoutinesThatFollow)
+	// Run controller for CStorRestore.
+	go func() {
+		if err = restoreController.Run(NumThreads, stopCh); err != nil {
+			glog.Fatalf("Error running BackupCStor controller: %s", err.Error())
+		}
+		wg.Done()
+	}()
+
 	wg.Wait()
 }
 

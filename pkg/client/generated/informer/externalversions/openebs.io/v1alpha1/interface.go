@@ -24,10 +24,16 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// BackupCStors returns a BackupCStorInformer.
+	BackupCStors() BackupCStorInformer
+	// BackupCStorLasts returns a BackupCStorLastInformer.
+	BackupCStorLasts() BackupCStorLastInformer
 	// CASTemplates returns a CASTemplateInformer.
 	CASTemplates() CASTemplateInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
+	// CStorRestores returns a CStorRestoreInformer.
+	CStorRestores() CStorRestoreInformer
 	// CStorVolumes returns a CStorVolumeInformer.
 	CStorVolumes() CStorVolumeInformer
 	// CStorVolumeReplicas returns a CStorVolumeReplicaInformer.
@@ -53,6 +59,16 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// BackupCStors returns a BackupCStorInformer.
+func (v *version) BackupCStors() BackupCStorInformer {
+	return &backupCStorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// BackupCStorLasts returns a BackupCStorLastInformer.
+func (v *version) BackupCStorLasts() BackupCStorLastInformer {
+	return &backupCStorLastInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // CASTemplates returns a CASTemplateInformer.
 func (v *version) CASTemplates() CASTemplateInformer {
 	return &cASTemplateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
@@ -61,6 +77,11 @@ func (v *version) CASTemplates() CASTemplateInformer {
 // CStorPools returns a CStorPoolInformer.
 func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorRestores returns a CStorRestoreInformer.
+func (v *version) CStorRestores() CStorRestoreInformer {
+	return &cStorRestoreInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorVolumes returns a CStorVolumeInformer.

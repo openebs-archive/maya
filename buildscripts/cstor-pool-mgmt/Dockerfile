@@ -12,6 +12,10 @@ FROM $BASE_IMAGE
 COPY cstor-pool-mgmt /usr/local/bin/
 COPY entrypoint.sh /usr/local/bin/
 
+RUN echo '#!/bin/bash\nif [ $# -lt 1 ]; then\n\techo "argument missing"\n\texit 1\nfi\neval "$*"\n' >> /usr/local/bin/execute.sh
+
+RUN chmod +x /usr/local/bin/execute.sh
+RUN apt install netcat -y
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ARG BUILD_DATE
