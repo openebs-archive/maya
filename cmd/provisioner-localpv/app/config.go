@@ -33,7 +33,7 @@ const (
 	//KeyPVBasePath defines base directory for hostpath volumes
 	// can be configured via the StorageClass annotations.
 	KeyPVBasePath = "BasePath"
-	//KeyPVBasePath defines the alternate folder name under the BasePath
+	//KeyPVRelativePath defines the alternate folder name under the BasePath
 	// By default, the pv name will be used as the folder name.
 	// KeyPVBasePath can be useful for providing the same underlying folder
 	// name for all replicas in a Statefulset.
