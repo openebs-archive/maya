@@ -65,6 +65,11 @@ func (i *DefaultInstaller) getKubeClientOrCached() *unstruct.Kubeclient {
 	return i.Kubeclient
 }
 
+// GetUnstructuredObject returns Unstructured objecct
+func (i *DefaultInstaller) GetUnstructuredObject() *unstructured.Unstructured {
+	return i.object
+}
+
 // Install triggers the installation of resource
 // in the kubernetes cluster
 func (i *DefaultInstaller) Install() error {

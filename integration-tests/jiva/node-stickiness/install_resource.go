@@ -18,16 +18,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
 	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
-	clientsc "github.com/openebs/maya/pkg/kubernetes/storageclasses/v1alpha1"
+	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// NodeSticky holds the required objects for installation of test related resource
-type NodeSticky struct {
-	Artifact              artifacts.ArtifactSource
-	ComponentInstaller    *installer.DefaultInstaller
-	ComponentUnstructured *unstructured.Unstructured
+// NodeStickyInstaller holds the required objects for installation of test related resource
+type NodeStickyInstaller struct {
+	*installer.DefaultInstaller
 }
 
 const (
@@ -39,55 +37,36 @@ const (
 	defaultPollingInterval int = 10
 )
 
-// NewNodeSticky defines new instance of NodeSticky
-func NewNodeSticky() *NodeSticky {
-	return &NodeSticky{}
-}
-
-// WithArtifact builds the NodeSticky instance with artifact
-func (n *NodeSticky) WithArtifact(artifact artifacts.ArtifactSource) *NodeSticky {
-	n.Artifact = artifact
-	return n
-}
-
-// GetUnstructObj builds the NodeSticky instance with unstructured object
-func (n *NodeSticky) GetUnstructObj() *NodeSticky {
+// NewNodeStickyInstallerForArtifacts defines new instance of NodeStickyInstaller
+func NewNodeStickyInstallerForArtifacts(artifact artifacts.Artifact, opts ...unstruct.KubeclientBuildOption) *NodeStickyInstaller {
+	n := NodeStickyInstaller{}
 	// Extracting artifact unstructured
-	artifactUnstruct, err := artifacts.GetArtifactUnstructuredFromFile(n.Artifact)
+	artifactUnstruct, err := artifacts.GetArtifactUnstructured(artifact)
 	Expect(err).ShouldNot(HaveOccurred())
-	n.ComponentUnstructured = artifactUnstruct
-	return n
+	n.DefaultInstaller, err = installer.
+		BuilderForObject(artifactUnstruct).
+		WithKubeClient(opts...).
+		Build()
+	Expect(err).ShouldNot(HaveOccurred())
+	return &n
 }
 
-// GetInstallerObj builds the NodeSticky instance with installer object
-func (n *NodeSticky) GetInstallerObj() *NodeSticky {
-	i, err := installer.BuilderForObject(n.ComponentUnstructured).Build()
-	Expect(err).ShouldNot(HaveOccurred())
-	n.ComponentInstaller = i
-	return n
-}
-
-// Install installs the resource based on the installer
-func (n *NodeSticky) Install() *NodeSticky {
-	err := n.ComponentInstaller.Install()
-	Expect(err).ShouldNot(HaveOccurred())
-	return n
+// GetInstallerInstance builds the NodeStickyInstaller instance with installer object
+func (n *NodeStickyInstaller) GetInstallerInstance() *installer.DefaultInstaller {
+	return n.DefaultInstaller
 }
 
 // IsSCDeployed checks whether sc is present in the cluster or not
-func (n *NodeSticky) IsSCDeployed() bool {
-	//	scClient := sc.StorageV1Client{restClient: client}
-	name := n.ComponentUnstructured.GetName()
-	Eventually(func() int {
-		storageclass, err := clientsc.KubeClient().Get(name, metav1.GetOptions{})
+func IsSCDeployed(name string) bool {
+	Eventually(func() bool {
+		storageClass, err := sc.NewKubeClient().Get(name, metav1.GetOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
-		return clientsc.
-			NewListBuilder().
-			WithAPIObject(*storageclass).
-			List().
-			Len()
+		if storageClass != nil {
+			return true
+		}
+		return false
 	},
 		defaultTimeOut, defaultPollingInterval).
-		Should(Equal(1), "StorageClass count should be 1")
+		Should(BeTrue(), "StorageClass should present")
 	return true
 }

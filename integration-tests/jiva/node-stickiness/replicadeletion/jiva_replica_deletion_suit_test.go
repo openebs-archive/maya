@@ -23,11 +23,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
-
-	"github.com/openebs/maya/integration-tests/artifacts"
 	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -47,13 +46,6 @@ const (
 	minNodeCount int = 3
 	// parentDir is the OpenEBS artifacts source directory
 	parentDir artifacts.ArtifactSource = "../../"
-	// jiva-test namespace to deploy jiva ctrl & replicas
-	nameSpaceYaml artifacts.Artifact = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: jiva-rep-delete-ns
-`
 )
 
 var (
@@ -134,20 +126,8 @@ var _ = BeforeSuite(func() {
 		//Expect(err).ShouldNot(HaveOccurred())
 		err = defaultInstaller.Install()
 		Expect(err).ShouldNot(HaveOccurred())
-		defaultInstallerList = append(defaultInstallerList, installerClient)
+		defaultInstallerList = append(defaultInstallerList, defaultInstaller)
 	}
-	// Creates jiva-test namespace
-	testNamespaceArtifact, err := artifacts.GetArtifactUnstructured(artifacts.Artifact(nameSpaceYaml))
-	Expect(err).ShouldNot(HaveOccurred())
-	namespaceInstaller, err := installer.
-		BuilderForObject(testNamespaceArtifact).
-		WithKubeClient().
-		Build()
-	Expect(err).ShouldNot(HaveOccurred())
-	//	installerClient := namespaceInstaller.NewKubeClient(unstruct.WithKubeConfigPath(kubeConfigPath))
-	//	err = installerClient.Install()
-	Expect(err).ShouldNot(HaveOccurred())
-	defaultInstallerList = append(defaultInstallerList, namesapceInstaller)
 
 	podKubeClient := pod.NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)), pod.WithKubeConfigPath(kubeConfigPath))
 	// Check for maya-apiserver pod to get created and running

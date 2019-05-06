@@ -19,9 +19,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clientpvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	"github.com/openebs/maya/integration-tests/artifacts"
+	nodestickiness "github.com/openebs/maya/integration-tests/jiva/node-stickiness"
+	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
-	clientsc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +35,13 @@ import (
 
 const (
 	testTimes = 20
+	// jiva-rep-delete-ns namespace to deploy jiva ctrl & replicas
+	nameSpaceYaml artifacts.Artifact = `
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jiva-rep-delete-ns
+`
 )
 
 var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test", func() {
@@ -43,8 +53,9 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		// pvcLabel
 		ctrlLabel string
 		//podListObj holds the PodList instance
-		podListObj    *corev1.PodList
-		podKubeClient *pod.KubeClient
+		podListObj            *corev1.PodList
+		podKubeClient         *pod.KubeClient
+		namespaceInstallerObj *nodestickiness.NodeStickyInstaller
 		// defaultReplicaLabel represents the jiva replica
 		defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 		// defaultCtrlLabel represents the jiva controller
@@ -66,22 +77,33 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 	)
 	BeforeEach(func() {
 		var err error
-		By("Build jiva-single-replica storageclass and deploy it")
+		// Creates test namespace
+		By("Deploying the test namespace")
+		namespaceInstallerObj = nodestickiness.
+			NewNodeStickyInstallerForArtifacts(
+				artifacts.Artifact(nameSpaceYaml),
+				unstruct.WithKubeConfigPath(kubeConfigPath))
+		err = namespaceInstallerObj.GetInstallerInstance().Install()
+		Expect(err).ShouldNot(HaveOccurred())
+		namespaceUnstruct := namespaceInstallerObj.GetUnstructuredObject()
+
+		By(fmt.Sprintf("creating a storage class named %s", scName))
 		annotations := map[string]string{
 			openebsCASType:   storageEngine,
 			openebsCASConfig: openebsCASConfigValue,
 		}
-		buildSCObj, err := clientsc.NewBuilder().
+		scObj, err := sc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
 			WithProvisioner(openebsProvisioner).Build()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		_, err = clientsc.NewKubeClient(clientsc.WithKubeConfigPath(kubeConfigPath)).Create(buildSCObj)
+		By(fmt.Sprintf("deploying the storage class %s", scName))
+		_, err = sc.NewKubeClient(sc.WithKubeConfigPath(kubeConfigPath)).Create(scObj)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		By("Build and deploy PVC using jiva-single-replica storageClass in jiva-rep-delete-ns namespace")
-		buildPVCObj, err := clientpvc.NewBuilder().
+		By(fmt.Sprintf("creating a PVC named %s", pvcName))
+		pvcObj, err := pvc.NewBuilder().
 			WithName(pvcName).
 			WithNamespace(testNamespace).
 			WithStorageClass(scName).
@@ -89,17 +111,18 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 			WithCapacity(capacity).Build()
 		Expect(err).ShouldNot(HaveOccurred())
 
-		_, err = clientpvc.
+		By(fmt.Sprintf("deploying the PVC named: %s in namespace: %s", pvcName, namespaceUnstruct.GetName()))
+		_, err = pvc.
 			NewKubeClient(
-				clientpvc.WithNamespace(testNamespace),
-				clientpvc.WithKubeConfigPath(kubeConfigPath)).
-			Create(buildPVCObj)
+				pvc.WithNamespace(testNamespace),
+				pvc.WithKubeConfigPath(kubeConfigPath)).
+			Create(pvcObj)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		podKubeClient = pod.
 			NewKubeClient(
 				pod.WithNamespace(string(testNamespace)),
-				pod.WithKubeConfigPath("/var/run/kubernetes/admin.kubeconfig"))
+				pod.WithKubeConfigPath(kubeConfigPath))
 
 		// pvcLabel represents the coressponding pvc
 		pvcLabel := defaultPVCLabel + pvcName
@@ -114,16 +137,18 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 
 	AfterEach(func() {
 		By("Uninstall test artifacts")
-		err := clientpvc.
+		err := pvc.
 			NewKubeClient(
-				clientpvc.WithNamespace(testNamespace),
-				clientpvc.WithKubeConfigPath(kubeConfigPath)).
+				pvc.WithNamespace(testNamespace),
+				pvc.WithKubeConfigPath(kubeConfigPath)).
 			Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
-		err = clientsc.
+		err = sc.
 			NewKubeClient(
-				clientsc.WithKubeConfigPath(kubeconfigPath)).
+				sc.WithKubeConfigPath(kubeConfigPath)).
 			Delete(scName, &metav1.DeleteOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		err = namespaceInstallerObj.GetInstallerInstance().UnInstall()
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -135,8 +160,8 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 			for i := 0; i < testTimes; i++ {
 				By("fetching node name and podName of jiva replica pod")
 				//nodeName holds name of the node where the replica pod deployed
-				nodeName = podListObj.Items[0].Spec.NodeName
-				podName = podListObj.Items[0].ObjectMeta.Name
+				nodeName := podListObj.Items[0].Spec.NodeName
+				podName := podListObj.Items[0].ObjectMeta.Name
 
 				By(fmt.Sprintf("deleting the running jiva replica pod: '%s'", podName))
 				err := podKubeClient.Delete(podName, &metav1.DeleteOptions{})
