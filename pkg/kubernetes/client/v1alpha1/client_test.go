@@ -181,7 +181,7 @@ func TestGetConfigFromPathOrDirect(t *testing.T) {
 				getKubeMasterIP:      fakeGetKubeMasterIPNil,
 				getKubeConfigPath:    fakeGetKubeConfigPathNil,
 			}
-			_, err := c.getConfigPathOrDirect()
+			_, err := c.getConfigForPathOrDirect()
 			if mock.isErr && err == nil {
 				t.Fatalf("test '%s' failed: expected error actual no error", name)
 			}

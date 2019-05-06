@@ -103,7 +103,7 @@ func TestWithDefaultsForClientSetPath(t *testing.T) {
 	}
 }
 
-func TestGetClientSetPathOrDirect(t *testing.T) {
+func TestGetClientSetForPathOrDirect(t *testing.T) {
 	tests := map[string]struct {
 		getClientSet        getClientsetFn
 		getClientSetForPath getClientsetForPathFn
@@ -131,7 +131,7 @@ func TestGetClientSetPathOrDirect(t *testing.T) {
 				getClientsetForPath: mock.getClientSetForPath,
 				kubeConfigPath:      mock.kubeConfigPath,
 			}
-			_, err := fc.getClientsetOrCached()
+			_, err := fc.getClientsetForPathOrDirect()
 			if mock.isErr && err == nil {
 				t.Fatalf("test %q failed : expected error not to be nil but got %v", name, err)
 			}

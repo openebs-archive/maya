@@ -136,7 +136,7 @@ func NewKubeClient(opts ...KubeClientBuildOption) *KubeClient {
 	return k
 }
 
-func (k *KubeClient) getClientsetPathOrDirect() (*clientset.Clientset, error) {
+func (k *KubeClient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -150,7 +150,7 @@ func (k *KubeClient) getClientsetOrCached() (*clientset.Clientset, error) {
 		return k.clientset, nil
 	}
 
-	cs, err := k.getClientsetPathOrDirect()
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
