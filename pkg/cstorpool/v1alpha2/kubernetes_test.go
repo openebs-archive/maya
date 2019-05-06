@@ -33,7 +33,7 @@ func fakeListOk(cs *clientset.Clientset,
 
 func fakeListErr(cs *clientset.Clientset,
 	opts metav1.ListOptions) (*apis.CStorPoolList, error) {
-	return &apis.CStorPoolList{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeGetOk(cs *clientset.Clientset, name string,
@@ -43,7 +43,7 @@ func fakeGetOk(cs *clientset.Clientset, name string,
 
 func fakeGetErr(cs *clientset.Clientset, name string,
 	opts metav1.GetOptions) (*apis.CStorPool, error) {
-	return &apis.CStorPool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeCreateOk(cs *clientset.Clientset,
@@ -53,7 +53,7 @@ func fakeCreateOk(cs *clientset.Clientset,
 
 func fakeCreateErr(cs *clientset.Clientset,
 	obj *apis.CStorPool) (*apis.CStorPool, error) {
-	return &apis.CStorPool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakePatchOk(cs *clientset.Clientset, name string,
@@ -63,7 +63,7 @@ func fakePatchOk(cs *clientset.Clientset, name string,
 
 func fakePatchErr(cs *clientset.Clientset, name string, pt types.PatchType,
 	patchObj []byte) (*apis.CStorPool, error) {
-	return &apis.CStorPool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeDeleteOk(cs *clientset.Clientset, name string,
@@ -292,7 +292,7 @@ func TestKubernetesCreate(t *testing.T) {
 			nil,
 			fakeGetClientsetOk,
 			fakeCreateOk,
-			false},
+			true},
 		"When an empty CStorPool struct is given": {
 			&apis.CStorPool{},
 			fakeGetClientsetOk,

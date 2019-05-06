@@ -190,6 +190,9 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorPool, 
 
 // Create creates an CStorPool instance in kubernetes cluster
 func (k *Kubeclient) Create(obj *apis.CStorPool) (*apis.CStorPool, error) {
+	if obj == nil {
+		return nil, errors.New("failed to create cstor pool: missing object")
+	}
 	cs, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create cstor pool %s", obj)

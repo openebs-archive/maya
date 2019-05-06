@@ -33,7 +33,7 @@ func fakeListOk(cs *clientset.Clientset,
 
 func fakeListErr(cs *clientset.Clientset,
 	opts metav1.ListOptions) (*apis.StoragePoolList, error) {
-	return &apis.StoragePoolList{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeGetOk(cs *clientset.Clientset, name string,
@@ -43,7 +43,7 @@ func fakeGetOk(cs *clientset.Clientset, name string,
 
 func fakeGetErr(cs *clientset.Clientset, name string,
 	opts metav1.GetOptions) (*apis.StoragePool, error) {
-	return &apis.StoragePool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeCreateOk(cs *clientset.Clientset, obj *apis.StoragePool) (*apis.StoragePool, error) {
@@ -51,7 +51,7 @@ func fakeCreateOk(cs *clientset.Clientset, obj *apis.StoragePool) (*apis.Storage
 }
 
 func fakeCreateErr(cs *clientset.Clientset, obj *apis.StoragePool) (*apis.StoragePool, error) {
-	return &apis.StoragePool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakePatchOk(cs *clientset.Clientset, name string, pt types.PatchType,
@@ -61,7 +61,7 @@ func fakePatchOk(cs *clientset.Clientset, name string, pt types.PatchType,
 
 func fakePatchErr(cs *clientset.Clientset, name string, pt types.PatchType,
 	patchObj []byte) (*apis.StoragePool, error) {
-	return &apis.StoragePool{}, errors.New("some error")
+	return nil, errors.New("some error")
 }
 
 func fakeDeleteOk(cs *clientset.Clientset, name string,
@@ -290,7 +290,7 @@ func TestKubernetesCreate(t *testing.T) {
 			nil,
 			fakeGetClientsetOk,
 			fakeCreateOk,
-			false},
+			true},
 		"When an empty StoragePool struct is given": {
 			&apis.StoragePool{},
 			fakeGetClientsetOk,

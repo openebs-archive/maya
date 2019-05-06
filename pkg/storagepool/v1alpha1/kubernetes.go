@@ -194,6 +194,9 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.StoragePool
 
 // Create creates an StoragePool instance in kubernetes cluster
 func (k *Kubeclient) Create(obj *apis.StoragePool) (*apis.StoragePool, error) {
+	if obj == nil {
+		return nil, errors.New("failed to create storage pool: missing object")
+	}
 	cs, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create storage pool: {%v}", obj)
