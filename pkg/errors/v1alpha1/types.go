@@ -83,6 +83,9 @@ type wrapper struct {
 // Error is implementation of error interface
 func (w *wrapper) Error() string { return w.msg }
 
+// Cause is implementation of causer interface
+func (w *wrapper) Cause() error { return w.error }
+
 // Format is implementation of Formater interface
 func (w *wrapper) Format(s fmt.State, verb rune) {
 	switch verb {
@@ -127,6 +130,9 @@ func (ws *withStack) Format(s fmt.State, verb rune) {
 		fmt.Fprint(s, message)
 	}
 }
+
+// Cause is implementation of causer interface
+func (ws *withStack) Cause() error { return ws.error }
 
 // ErrorList is a wrapper over list of errors
 // It implements error interface
