@@ -20,6 +20,7 @@ package fake
 
 import (
 	openebsv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	openebsv1beta1 "github.com/openebs/maya/pkg/apis/openebs.io/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +33,7 @@ var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
 	openebsv1alpha1.AddToScheme,
+	openebsv1beta1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

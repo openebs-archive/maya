@@ -28,6 +28,10 @@ import (
 // fetching an instance of kubernetes clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
+
 // listFn is a typed function that abstracts
 // listing of storageclasses
 type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*storagev1.StorageClassList, error)
@@ -51,12 +55,16 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *kubernetes.Clientset
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	get          getFn
-	create       createFn
-	del          deleteFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	get                 getFn
+	create              createFn
+	del                 deleteFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -67,6 +75,11 @@ func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
 			return client.New().Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.list == nil {
@@ -101,6 +114,29 @@ func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	return k
 }
 
+// WithClientSet sets the kubernetes client against
+// the kubeclient instance
+func WithClientSet(c *kubernetes.Clientset) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.clientset = c
+	}
+}
+
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
+func (k *Kubeclient) getClientsetForPathOrDirect() (*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientsetOrCached returns either a new
 // instance of kubernetes clientset or its
 // cached copy cached copy
@@ -108,11 +144,12 @@ func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
@@ -136,6 +173,9 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.Storag
 
 // Create creates and returns a storageclass instance
 func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass, error) {
+	if sc == nil {
+		return nil, errors.New("failed to create the storageclass: missing storage class object")
+	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create the storageclass {%+v}", *sc)

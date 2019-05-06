@@ -114,3 +114,40 @@ func TestBuilderWithProvisioner(t *testing.T) {
 		})
 	}
 }
+
+func TestBuilderWithVolumeBind(t *testing.T) {
+	tests := map[string]struct {
+		bindmode  storagev1.VolumeBindingMode
+		builder   *Builder
+		expectErr bool
+	}{
+		"Test SC with immediate binding mode": {
+			bindmode:  storagev1.VolumeBindingImmediate,
+			builder:   &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}},
+			expectErr: false,
+		},
+		"Test SC with waitforconsumer binding mode": {
+			bindmode:  storagev1.VolumeBindingWaitForFirstConsumer,
+			builder:   &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}},
+			expectErr: false,
+		},
+
+		"Test SC with nil binding mode": {
+			bindmode:  "",
+			builder:   &Builder{sc: &StorageClass{object: &storagev1.StorageClass{}}},
+			expectErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			b := mock.builder.WithVolumeBindingMode(mock.bindmode)
+			if mock.expectErr && len(b.errs) == 0 {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && len(b.errs) > 0 {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}

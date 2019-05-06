@@ -39,7 +39,7 @@ APIS_PKG=github.com/openebs/maya/pkg/apis
 # Possible values: all, deepcopy, client, informers, listers.
 GENS=all
 # GROUPS_WITH_VERSIONS is the group containing different versions of the resources.
-GROUPS_WITH_VERSIONS=openebs.io:v1alpha1
+GROUPS_WITH_VERSIONS=openebs.io:v1alpha1,v1beta1
 
 # BOILERPLATE_TEXT_PATH is the boilerplate text(go comment) that is put at the top of every generated file.
 # This boilerplate text is nothing but the license information.
@@ -192,7 +192,14 @@ kubegen1:
 	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH} 
 
 # code generation for custom resources
-kubegen: kubegen1 kubegen2
+kubegen: kubegendelete kubegen1 kubegen2
+
+# deletes generated code by codegen
+kubegendelete:
+	@rm -rf pkg/client/generated/clientset
+	@rm -rf pkg/client/generated/listers
+	@rm -rf pkg/client/generated/informers
+	@rm -rf pkg/client/generated/openebs.io
 
 # code generation for custom resources and protobuf
 generated_files: kubegen protobuf
