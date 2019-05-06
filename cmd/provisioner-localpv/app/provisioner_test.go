@@ -28,12 +28,12 @@ import (
 	"testing"
 )
 
-func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*CASConfigPVC, error) {
-	c := &CASConfigPVC{
+func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
+	c := &VolumeConfig{
 		pvName:  "pvName",
 		pvcName: "pvcName",
 		scName:  "scName",
-		config: map[string]interface{}{
+		options: map[string]interface{}{
 			KeyPVBasePath: map[string]string{
 				"enabled": "true",
 				"value":   "/var/openebs",
@@ -43,12 +43,12 @@ func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*CASCo
 	return c, nil
 }
 
-func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*CASConfigPVC, error) {
-	c := &CASConfigPVC{
+func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
+	c := &VolumeConfig{
 		pvName:  "pvName",
 		pvcName: "pvcName",
 		scName:  "scName",
-		config: map[string]interface{}{
+		options: map[string]interface{}{
 			KeyPVBasePath: map[string]string{
 				"enabled": "true",
 				"value":   "/custom",
@@ -58,17 +58,17 @@ func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*CASConf
 	return c, nil
 }
 
-func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*CASConfigPVC, error) {
+func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
 }
 
 //func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
 func TestProvision(t *testing.T) {
 	testCases := map[string]struct {
-		pvOpts      pvController.VolumeOptions
-		cnfParser   CASConfigParserFn
-		expectValue string
-		expectError bool
+		pvOpts          pvController.VolumeOptions
+		getVolumeConfig GetVolumeConfigFn
+		expectValue     string
+		expectError     bool
 	}{
 		"Default Base Path": {
 			pvOpts: pvController.VolumeOptions{
@@ -90,9 +90,9 @@ func TestProvision(t *testing.T) {
 					},
 				},
 			},
-			cnfParser:   fakeDefaultConfigParser,
-			expectValue: "/var/openebs/pvName",
-			expectError: false,
+			getVolumeConfig: fakeDefaultConfigParser,
+			expectValue:     "/var/openebs/pvName",
+			expectError:     false,
 		},
 		"Custom Base Path": {
 			pvOpts: pvController.VolumeOptions{
@@ -114,9 +114,9 @@ func TestProvision(t *testing.T) {
 					},
 				},
 			},
-			cnfParser:   fakeValidConfigParser,
-			expectValue: "/custom/pvName",
-			expectError: false,
+			getVolumeConfig: fakeValidConfigParser,
+			expectValue:     "/custom/pvName",
+			expectError:     false,
 		},
 		"Selected Node is missing": {
 			pvOpts: pvController.VolumeOptions{
@@ -138,16 +138,16 @@ func TestProvision(t *testing.T) {
 				//	},
 				//},
 			},
-			cnfParser:   fakeValidConfigParser,
-			expectValue: "/test/pvName",
-			expectError: true,
+			getVolumeConfig: fakeValidConfigParser,
+			expectValue:     "/test/pvName",
+			expectError:     true,
 		},
 	}
 
 	for k, v := range testCases {
 		t.Run(k, func(t *testing.T) {
 			p := &Provisioner{}
-			p.configParser = v.cnfParser
+			p.getVolumeConfig = v.getVolumeConfig
 			//p, _ := NewProvisioner(nil, nil)
 			pv, err := p.Provision(v.pvOpts)
 

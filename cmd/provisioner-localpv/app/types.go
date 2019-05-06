@@ -33,11 +33,11 @@ type Provisioner struct {
 	// defaultConfig is the default configurations
 	// provided from ENV or Code
 	defaultConfig []mconfig.Config
-	// configParser is a reference to a function
-	configParser CASConfigParserFn
+	// getVolumeConfig is a reference to a function
+	getVolumeConfig GetVolumeConfigFn
 }
 
-//CASConfigPVC struct contains the merged configuration of the PVC
+//VolumeConfig struct contains the merged configuration of the PVC
 // and the associated SC. The configuration is derived from the
 // annotation `cas.openebs.io/config`. The configuration will be
 // in the following json format:
@@ -51,13 +51,13 @@ type Provisioner struct {
 //	value: "string value"
 //   },
 // }
-type CASConfigPVC struct {
+type VolumeConfig struct {
 	pvName  string
 	pvcName string
 	scName  string
-	config  map[string]interface{}
+	options map[string]interface{}
 }
 
-// CASConfigParserFn allows to provide pluggable parser function
+// GetVolumeConfigFn allows to plugin a custom function
 //  and makes it easy to unit test provisioner
-type CASConfigParserFn func(pvName string, pvc *v1.PersistentVolumeClaim) (*CASConfigPVC, error)
+type GetVolumeConfigFn func(pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error)

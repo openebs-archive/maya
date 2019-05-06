@@ -155,7 +155,7 @@ Implementation Details:
 (a) The configuration of whether to select a complete storage device
     of a hostpath is determined by the StorageClass annotations, inline
     with other configuration options provided by OpenEBS.
-(b) When using storage-type as device, the Local Provisioner will
+(b) When using StorageType as device, the Local Provisioner will
     interact with the OpenEBS Node Storage Device Manager (NDM) to
     identify the device to be used.
 (c) The StorageClass can work either with `waitForConsumer`, in which

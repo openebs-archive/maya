@@ -73,7 +73,7 @@ func NewProvisioner(stopCh chan struct{}, kubeClient *clientset.Clientset) (*Pro
 			},
 		},
 	}
-	p.configParser = p.CASConfigParser
+	p.getVolumeConfig = p.GetVolumeConfig
 
 	return p, nil
 }
@@ -106,7 +106,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	// Create a new Config instance for the PV by merging the
 	// default configuration with configuration provided
 	// via PVC and the associated StorageClass
-	pvCASConfig, err := p.configParser(name, pvc)
+	pvCASConfig, err := p.getVolumeConfig(name, pvc)
 	if err != nil {
 		return nil, err
 	}

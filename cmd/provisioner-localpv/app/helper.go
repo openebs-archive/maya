@@ -95,7 +95,7 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 
 	//Validate that non-root directories are not passed for delete
 	// and also perform white/black list validations.
-	config := &CASConfigPVC{}
+	config := &VolumeConfig{}
 	path, err = config.validatePath(path)
 	if err != nil {
 		return err

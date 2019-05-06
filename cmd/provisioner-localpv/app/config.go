@@ -18,7 +18,7 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
+	//"fmt"
 	"path/filepath"
 	"strings"
 
@@ -26,7 +26,8 @@ import (
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"github.com/pkg/errors"
+	//"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//storagev1 "k8s.io/api/storage/v1"
@@ -58,11 +59,11 @@ const (
 	betaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
 )
 
-//CASConfigParser creates a new CASConfigPVC struct by
+//getVolumeConfig creates a new VolumeConfig struct by
 // parsing and merging the configuration provided in the PVC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.
-func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeClaim) (*CASConfigPVC, error) {
+func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
 
 	pvConfig := p.defaultConfig
 
@@ -70,7 +71,7 @@ func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeCla
 	scName := GetStorageClassName(pvc)
 	sc, err := p.kubeClient.StorageV1().StorageClasses().Get(*scName, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get storageclass for pvc %v", pvc.ObjectMeta.Name)
+		return nil, errors.Wrapf(err, "failed to get storageclass: missing sc name {%v}", scName)
 	}
 
 	// extract and merge the cas config from storageclass
@@ -96,22 +97,22 @@ func (p *Provisioner) CASConfigParser(pvName string, pvc *v1.PersistentVolumeCla
 
 	pvConfigMap, err := cast.ConfigToMap(pvConfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read configuration for pvc %v", pvc.ObjectMeta.Name)
+		return nil, errors.Wrapf(err, "unable to read volume config: pvc {%v}", pvc.ObjectMeta.Name)
 	}
 
-	c := &CASConfigPVC{
+	c := &VolumeConfig{
 		pvName:  pvName,
 		pvcName: pvc.ObjectMeta.Name,
 		scName:  *scName,
-		config:  pvConfigMap,
+		options: pvConfigMap,
 	}
 	return c, nil
 }
 
 //GetStorageType returns the StorageType value configured
 // in StorageClass. Default is hostpath
-func (c *CASConfigPVC) GetStorageType() string {
-	stgType := c.getConfigValue(KeyPVStorageType)
+func (c *VolumeConfig) GetStorageType() string {
+	stgType := c.getValue(KeyPVStorageType)
 	if len(strings.TrimSpace(stgType)) == 0 {
 		return "hostpath"
 	}
@@ -126,23 +127,23 @@ func (c *CASConfigPVC) GetStorageType() string {
 //  and return it
 // Also before returning the path, validate that path is safe
 //  and matches the filters specified in StorageClass.
-func (c *CASConfigPVC) GetPath() (string, error) {
+func (c *VolumeConfig) GetPath() (string, error) {
 	//This feature need to be supported with some more
 	// security checks are in place, so that rouge pods
 	// don't get access to node directories.
-	//absolutePath := c.getConfigValue(KeyPVAbsolutePath)
+	//absolutePath := c.getValue(KeyPVAbsolutePath)
 	//if len(strings.TrimSpace(absolutePath)) != 0 {
 	//	return c.validatePath(absolutePath)
 	//}
 
-	basePath := c.getConfigValue(KeyPVBasePath)
-	if len(strings.TrimSpace(basePath)) == 0 {
-		return "", fmt.Errorf("configuration error, no base path was specified")
+	basePath := c.getValue(KeyPVBasePath)
+	if strings.TrimSpace(basePath) == "" {
+		return "", errors.Errorf("failed to get path: base path is empty")
 	}
 
 	//This feature need to be supported after the
 	// security checks are in place.
-	//pvRelPath := c.getConfigValue(KeyPVRelativePath)
+	//pvRelPath := c.getValue(KeyPVRelativePath)
 	//if len(strings.TrimSpace(pvRelPath)) == 0 {
 	//	pvRelPath = c.pvName
 	//}
@@ -153,11 +154,20 @@ func (c *CASConfigPVC) GetPath() (string, error) {
 	return c.validatePath(path)
 }
 
-//getConfigValue is a utility function to extract the value
+//getValue is a utility function to extract the value
 // of the `key` from the ConfigMap object - which is
 // map[string]interface{map[string][string]}
-func (c *CASConfigPVC) getConfigValue(key string) string {
-	if configObj, ok := util.GetNestedField(c.config, key).(map[string]string); ok {
+// Example:
+// {
+//     key1: {
+//             value: value1
+//             enabled: true
+//           }
+// }
+// In the above example, if `key1` is passed as input,
+//   `value1` will be returned.
+func (c *VolumeConfig) getValue(key string) string {
+	if configObj, ok := util.GetNestedField(c.options, key).(map[string]string); ok {
 		if val, p := configObj[string(mconfig.ValuePTP)]; p {
 			return val
 		}
@@ -166,7 +176,7 @@ func (c *CASConfigPVC) getConfigValue(key string) string {
 }
 
 //validatePath checks for the sanity of the PV path
-func (c *CASConfigPVC) validatePath(path string) (string, error) {
+func (c *VolumeConfig) validatePath(path string) (string, error) {
 	//Validate that path is well formed.
 	path, err := filepath.Abs(path)
 	if err != nil {
@@ -182,7 +192,7 @@ func (c *CASConfigPVC) validatePath(path string) (string, error) {
 	//volumeDir = strings.TrimSuffix(volumeDir, "/")
 	if parentDir == "" || volumeDir == "" {
 		// it covers the `/` case
-		return "", fmt.Errorf("invalid path %v for cleanup: cannot find parent dir or volume dir", path)
+		return "", errors.Errorf("validate the volume path: {%v} is invalid: cannot find parent dir or volume dir", path)
 	}
 
 	//TODO: Validate against blacklist or whitelist of paths
@@ -190,7 +200,7 @@ func (c *CASConfigPVC) validatePath(path string) (string, error) {
 }
 
 //extractSubPath is utility function to split directory from path
-func (c *CASConfigPVC) extractSubPath(path string) (string, string) {
+func (c *VolumeConfig) extractSubPath(path string) (string, string) {
 	parentDir, volumeDir := filepath.Split(path)
 	parentDir = strings.TrimSuffix(parentDir, "/")
 	volumeDir = strings.TrimSuffix(volumeDir, "/")
