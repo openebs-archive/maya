@@ -96,3 +96,9 @@ func (b *ListBuilder) APIList() (*corev1.PersistentVolumeClaimList, error) {
 	}
 	return l.ToAPIList(), nil
 }
+
+// WithFilter adds filters on which the pvc's has to be filtered
+func (b *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
+	b.filters = append(b.filters, pred...)
+	return b
+}
