@@ -156,8 +156,8 @@ func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientsetPathOrDirect returns new instance of kubernetes client
-func (k *Kubeclient) getClientsetPathOrDirect() (dynamic.Interface, error) {
+// getClientsetForPathOrDirect returns new instance of kubernetes client
+func (k *Kubeclient) getClientsetForPathOrDirect() (dynamic.Interface, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -170,7 +170,7 @@ func (k *Kubeclient) getClientsetOrCached() (dynamic.Interface, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	cs, err := k.getClientsetPathOrDirect()
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}

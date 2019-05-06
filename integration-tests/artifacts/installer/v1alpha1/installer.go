@@ -80,7 +80,7 @@ func (i *DefaultInstaller) UnInstall() error {
 // Verify returns the installation of resource.
 // It returns true if all the predicates passes
 func (i *DefaultInstaller) Verify() (bool, error) {
-	k := unstruct.NewKubeClient()
+	k := i.getKubeClientOrCached()
 	obj, err := k.Get(
 		i.object.GetName(),
 		unstruct.WithGetNamespace(i.object.GetNamespace()),
