@@ -508,6 +508,14 @@ func (m *metaTaskExecutor) isPatchOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isPatch()
 }
 
+func (m *metaTaskExecutor) isPatchOEV1alpha1SP() bool {
+	return m.identifier.isOEV1alpha1SP() && m.isPatch()
+}
+
+func (m *metaTaskExecutor) isPatchOEV1alpha1CSP() bool {
+	return m.identifier.isOEV1alpha1CSP() && m.isPatch()
+}
+
 func (m *metaTaskExecutor) isListOEV1alpha1Disk() bool {
 	return m.identifier.isOEV1alpha1Disk() && m.isList()
 }
