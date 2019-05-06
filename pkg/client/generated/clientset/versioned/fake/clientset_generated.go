@@ -22,8 +22,6 @@ import (
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsv1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
 	fakeopenebsv1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1/fake"
-	openebsv1beta1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1beta1"
-	fakeopenebsv1beta1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -78,12 +76,7 @@ func (c *Clientset) OpenebsV1alpha1() openebsv1alpha1.OpenebsV1alpha1Interface {
 	return &fakeopenebsv1alpha1.FakeOpenebsV1alpha1{Fake: &c.Fake}
 }
 
-// OpenebsV1beta1 retrieves the OpenebsV1beta1Client
-func (c *Clientset) OpenebsV1beta1() openebsv1beta1.OpenebsV1beta1Interface {
-	return &fakeopenebsv1beta1.FakeOpenebsV1beta1{Fake: &c.Fake}
-}
-
-// Openebs retrieves the OpenebsV1beta1Client
-func (c *Clientset) Openebs() openebsv1beta1.OpenebsV1beta1Interface {
-	return &fakeopenebsv1beta1.FakeOpenebsV1beta1{Fake: &c.Fake}
+// Openebs retrieves the OpenebsV1alpha1Client
+func (c *Clientset) Openebs() openebsv1alpha1.OpenebsV1alpha1Interface {
+	return &fakeopenebsv1alpha1.FakeOpenebsV1alpha1{Fake: &c.Fake}
 }
