@@ -30,6 +30,8 @@ type Interface interface {
 	BackupCStorLasts() BackupCStorLastInformer
 	// CASTemplates returns a CASTemplateInformer.
 	CASTemplates() CASTemplateInformer
+	// CSIVolumes returns a CSIVolumeInformer.
+	CSIVolumes() CSIVolumeInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
 	// CStorRestores returns a CStorRestoreInformer.
@@ -72,6 +74,11 @@ func (v *version) BackupCStorLasts() BackupCStorLastInformer {
 // CASTemplates returns a CASTemplateInformer.
 func (v *version) CASTemplates() CASTemplateInformer {
 	return &cASTemplateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CSIVolumes returns a CSIVolumeInformer.
+func (v *version) CSIVolumes() CSIVolumeInformer {
+	return &cSIVolumeInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorPools returns a CStorPoolInformer.

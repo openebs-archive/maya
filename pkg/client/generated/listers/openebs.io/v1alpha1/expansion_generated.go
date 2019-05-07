@@ -38,6 +38,14 @@ type BackupCStorLastNamespaceListerExpansion interface{}
 // CASTemplateLister.
 type CASTemplateListerExpansion interface{}
 
+// CSIVolumeListerExpansion allows custom methods to be added to
+// CSIVolumeLister.
+type CSIVolumeListerExpansion interface{}
+
+// CSIVolumeNamespaceListerExpansion allows custom methods to be added to
+// CSIVolumeNamespaceLister.
+type CSIVolumeNamespaceListerExpansion interface{}
+
 // CStorPoolListerExpansion allows custom methods to be added to
 // CStorPoolLister.
 type CStorPoolListerExpansion interface{}

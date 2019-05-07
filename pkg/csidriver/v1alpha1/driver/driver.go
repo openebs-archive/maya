@@ -1,3 +1,17 @@
+// Copyright © 2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package driver
 
 import (
@@ -52,11 +66,11 @@ func New(driverConfig *config.Config) *CSIDriver {
 	case "controller":
 		drvr.cs = NewControllerServer(drvr)
 	case "node":
-		utils.FetchAndUpdateVolInfos(driverConfig.NodeID)
+		//		utils.FetchAndUpdateVolInfos(driverConfig.NodeID)
 		// Start monitor goroutine to monitor the mounted paths,
 		// If a path goes down/ becomes read only (in case of RW mount points), this
 		// thread will fetch the path and relogin or remount
-		go utils.MonitorMounts()
+		//		go utils.MonitorMounts()
 		drvr.ns = NewNodeServer(drvr)
 	}
 	// Identity server is common to both node and controller, it is required to

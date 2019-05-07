@@ -28,7 +28,6 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/util/mount"
-	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
 var (
@@ -325,19 +324,19 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 }
 
 // DetachDisk logs out of the iSCSI volume and the corresponding path is removed
-func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, targetPath string) error {
+func (util1 *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, targetPath string) error {
 	_, cnt, err := mount.GetDeviceNameFromMount(c.mounter, targetPath)
 	if err != nil {
 		glog.Errorf("iscsi detach disk: failed to get device from mnt: %s\nError: %v", targetPath, err)
 		return err
 	}
 
-	if pathExists, pathErr := volumeutil.PathExists(targetPath); pathErr != nil {
-		return fmt.Errorf("Error checking if path exists: %v", pathErr)
-	} else if !pathExists {
-		glog.Warningf("Warning: Unmount skipped because path does not exist: %v", targetPath)
-		return nil
-	}
+	//	if pathExists, pathErr := volumeutil.PathExists(targetPath); pathErr != nil {
+	//		return fmt.Errorf("Error checking if path exists: %v", pathErr)
+	//	} else if !pathExists {
+	//		glog.Warningf("Warning: Unmount skipped because path does not exist: %v", targetPath)
+	//		return nil
+	//	}
 	if err = c.mounter.Unmount(targetPath); err != nil {
 		glog.Errorf("iscsi detach disk: failed to unmount: %s\nError: %v", targetPath, err)
 		return err
@@ -352,7 +351,7 @@ func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, targetPath string) error
 	found := true
 
 	// load iscsi disk config from json file
-	if err := util.loadISCSI(c.iscsiDisk, targetPath); err == nil {
+	if err := util1.loadISCSI(c.iscsiDisk, targetPath); err == nil {
 		bkpPortal, iqn, iface, volName = c.iscsiDisk.Portals, c.iscsiDisk.Iqn, c.iscsiDisk.Iface, c.iscsiDisk.VolName
 		initiatorName = c.iscsiDisk.InitiatorName
 	} else {

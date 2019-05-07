@@ -119,7 +119,7 @@ func (c *FakeCSIVolumes) DeleteCollection(options *v1.DeleteOptions, listOptions
 // Patch applies the patch and returns the patched cSIVolume.
 func (c *FakeCSIVolumes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CSIVolume, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(csivolumesResource, c.ns, name, pt, data, subresources...), &v1alpha1.CSIVolume{})
+		Invokes(testing.NewPatchSubresourceAction(csivolumesResource, c.ns, name, data, subresources...), &v1alpha1.CSIVolume{})
 
 	if obj == nil {
 		return nil, err

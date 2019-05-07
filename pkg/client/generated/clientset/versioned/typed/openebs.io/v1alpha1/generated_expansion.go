@@ -24,6 +24,8 @@ type BackupCStorLastExpansion interface{}
 
 type CASTemplateExpansion interface{}
 
+type CSIVolumeExpansion interface{}
+
 type CStorPoolExpansion interface{}
 
 type CStorRestoreExpansion interface{}

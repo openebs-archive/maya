@@ -1,10 +1,23 @@
+// Copyright © 2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package utils
 
 import (
 	"fmt"
 
-	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
+	internalclientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	api_core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +76,7 @@ func getVolStatus(volumeID string) (string, error) {
 	return string(volumeList.Items[0].Status.Phase), nil
 }
 
+/*
 // CreateCSIVolumeCR creates a new CSIVolume CR with this nodeID
 func CreateCSIVolumeCR(csivol *v1alpha1.CSIVolume, nodeID, mountPath string) (err error) {
 
@@ -160,3 +174,4 @@ func FetchAndUpdateVolInfos(nodeID string) (err error) {
 	}
 	return
 }
+*/
