@@ -21,17 +21,15 @@ package util
 import (
 	"errors"
 	"fmt"
-	"os"
+	"github.com/golang/glog"
 	"path"
 	"strconv"
 	"strings"
-
-	"k8s.io/klog"
 )
 
 // FindMultipathDeviceForDevice given a device name like /dev/sdx, find the devicemapper parent
 func (handler *deviceHandler) FindMultipathDeviceForDevice(device string) string {
-	io := handler.getIo
+	io := handler.get_io
 	disk, err := findDeviceForPath(device, io)
 	if err != nil {
 		return ""
@@ -70,7 +68,7 @@ func findDeviceForPath(path string, io IoUtil) (string, error) {
 // which are managed by the devicemapper dm-1.
 func (handler *deviceHandler) FindSlaveDevicesOnMultipath(dm string) []string {
 	var devices []string
-	io := handler.getIo
+	io := handler.get_io
 	// Split path /dev/dm-1 into "", "dev", "dm-1"
 	parts := strings.Split(dm, "/")
 	if len(parts) != 3 || !strings.HasPrefix(parts[1], "dev") {
@@ -94,15 +92,12 @@ func (handler *deviceHandler) FindSlaveDevicesOnMultipath(dm string) []string {
 // }
 func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (map[string]int, error) {
 	portalHostMap := make(map[string]int)
-	io := handler.getIo
+	io := handler.get_io
 
 	// Iterate over all the iSCSI hosts in sysfs
 	sysPath := "/sys/class/iscsi_host"
 	hostDirs, err := io.ReadDir(sysPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return portalHostMap, nil
-		}
 		return nil, err
 	}
 	for _, hostDir := range hostDirs {
@@ -114,7 +109,7 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 		}
 		hostNumber, err := strconv.Atoi(strings.TrimPrefix(hostName, "host"))
 		if err != nil {
-			klog.Errorf("Could not get number from iSCSI host: %s", hostName)
+			glog.Errorf("Could not get number from iSCSI host: %s", hostName)
 			continue
 		}
 
@@ -140,8 +135,7 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 			targetNamePath := sessionPath + "/iscsi_session/" + sessionName + "/targetname"
 			targetName, err := io.ReadFile(targetNamePath)
 			if err != nil {
-				klog.Infof("Failed to process session %s, assuming this session is unavailable: %s", sessionName, err)
-				continue
+				return nil, err
 			}
 
 			// Ignore hosts that don't matchthe target we were looking for.
@@ -153,8 +147,7 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 			// for the iSCSI connection.
 			dirs2, err := io.ReadDir(sessionPath)
 			if err != nil {
-				klog.Infof("Failed to process session %s, assuming this session is unavailable: %s", sessionName, err)
-				continue
+				return nil, err
 			}
 			for _, dir2 := range dirs2 {
 				// Skip over files that aren't the connection
@@ -171,29 +164,25 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 				addrPath := connectionPath + "/address"
 				addr, err := io.ReadFile(addrPath)
 				if err != nil {
-					klog.Infof("Failed to process connection %s, assuming this connection is unavailable: %s", dirName, err)
-					continue
+					return nil, err
 				}
 
 				portPath := connectionPath + "/port"
 				port, err := io.ReadFile(portPath)
 				if err != nil {
-					klog.Infof("Failed to process connection %s, assuming this connection is unavailable: %s", dirName, err)
-					continue
+					return nil, err
 				}
 
 				persistentAddrPath := connectionPath + "/persistent_address"
 				persistentAddr, err := io.ReadFile(persistentAddrPath)
 				if err != nil {
-					klog.Infof("Failed to process connection %s, assuming this connection is unavailable: %s", dirName, err)
-					continue
+					return nil, err
 				}
 
 				persistentPortPath := connectionPath + "/persistent_port"
 				persistentPort, err := io.ReadFile(persistentPortPath)
 				if err != nil {
-					klog.Infof("Failed to process connection %s, assuming this connection is unavailable: %s", dirName, err)
-					continue
+					return nil, err
 				}
 
 				// Add entries to the map for both the current and persistent portals
@@ -216,7 +205,7 @@ func (handler *deviceHandler) GetISCSIPortalHostMapForTarget(targetIqn string) (
 // corresponding to that LUN.
 func (handler *deviceHandler) FindDevicesForISCSILun(targetIqn string, lun int) ([]string, error) {
 	devices := make([]string, 0)
-	io := handler.getIo
+	io := handler.get_io
 
 	// Iterate over all the iSCSI hosts in sysfs
 	sysPath := "/sys/class/iscsi_host"
@@ -233,7 +222,7 @@ func (handler *deviceHandler) FindDevicesForISCSILun(targetIqn string, lun int) 
 		}
 		hostNumber, err := strconv.Atoi(strings.TrimPrefix(hostName, "host"))
 		if err != nil {
-			klog.Errorf("Could not get number from iSCSI host: %s", hostName)
+			glog.Errorf("Could not get number from iSCSI host: %s", hostName)
 			continue
 		}
 

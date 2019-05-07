@@ -25,10 +25,10 @@ type DeviceUtil interface {
 }
 
 type deviceHandler struct {
-	getIo IoUtil
+	get_io IoUtil
 }
 
 //NewDeviceHandler Create a new IoHandler implementation
 func NewDeviceHandler(io IoUtil) DeviceUtil {
-	return &deviceHandler{getIo: io}
+	return &deviceHandler{get_io: io}
 }

@@ -31,6 +31,10 @@ required = [
   ]
 
 [[constraint]]
+  name = "k8s.io/kubernetes"
+  version = "=v1.12.3"
+
+[[constraint]]
   name = "k8s.io/api"
   version = "kubernetes-1.12.3"
 

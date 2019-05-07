@@ -1,13 +1,11 @@
-# See the OWNERS docs at https://go.k8s.io/owners
-
 approvers:
 - saad-ali
 - thockin
 - jsafrane
+- matchstick
 - rootfs
 - gnufied
 - childsb
-- msau42
 reviewers:
 - saad-ali
 - jsafrane
@@ -17,6 +15,5 @@ reviewers:
 - gnufied
 - verult
 - davidz627
-- humblec
 labels:
 - sig/storage
