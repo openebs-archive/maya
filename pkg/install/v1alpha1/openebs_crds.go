@@ -70,20 +70,13 @@ apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   # name must match the spec fields below, and be in the form: <plural>.<group>
+  # storagepoolclaim will be deprecated 
   name: storagepoolclaims.openebs.io
 spec:
   # group name to use for REST API: /apis/<group>/<version>
   group: openebs.io
   # version name to use for REST API: /apis/<group>/<version>
-  versions: 
-  - name: v1beta1
-    # Each version can be enabled/disabled by Served flag.
-    served: true
-    # One and only one version must be marked as the storage version.
-    storage: false
-  - name: v1alpha1
-    served: true
-    storage: true
+  version: v1alpha1
   # either Namespaced or Cluster
   scope: Cluster
   names:
@@ -96,6 +89,29 @@ spec:
     # shortNames allow shorter string to match your resource on the CLI
     shortNames:
     - spc
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: cstorpoolclusters.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Cluster
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: cstorpoolclusters
+    # singular name to be used as an alias on the CLI and for display
+    singular: cstorpoolcluster
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: CStorPoolCluster
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - cspc
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
