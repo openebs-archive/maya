@@ -335,6 +335,13 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):        v.volume.Name,
 			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
+			string(v1alpha1.IsPatchVolumePropertyVTP): func() string {
+				val, ok := v.volume.Annotations[string(v1alpha1.IsPatchKey)]
+				if !ok {
+					return ""
+				}
+				return val
+			}(),
 		},
 	)
 	if err != nil {

@@ -791,6 +791,7 @@ func runtaskFuncs() (f template.FuncMap) {
 		"keyMap":             keyMap,
 		"splitKeyMap":        splitKeyMap,
 		"splitListTrim":      splitListTrim,
+		"splitListLen":       splitListLen,
 		"randomize":          randomize,
 		"IfNotNil":           ifNotNil,
 		"getMapofString":     util.GetNestedMap,
@@ -837,6 +838,20 @@ func AllCustomFuncs() template.FuncMap {
 func splitListTrim(sep, orig string) []string {
 	processedStr := strings.TrimRight(strings.TrimLeft(orig, sep), sep)
 	return strings.Split(processedStr, sep)
+}
+
+// splitListLen split the list according to separator, then
+// returns length of the new array of strings
+//
+// NOTE:
+//  This is intended to be used as a template function
+//
+// Example:
+//  {{- $nodes =: "node1,node2" | splitListLen "," | -}}
+//
+// Above operation would assign the length of the list to nodes.
+func splitListLen(sep, orig string) int {
+	return len(splitListTrim(sep, orig))
 }
 
 // For given []string as input, randomize API returns its randomized list

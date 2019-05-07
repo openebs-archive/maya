@@ -54,6 +54,12 @@ const (
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
 	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
 
+	// IsPatchHeaderKey is the key to fetch value of IsPatchKey
+	IsPatchHeaderKey CASKey = "ispatch"
+
+	// IsPatchKey is the key to fetch value of IsPatchKey
+	IsPatchKey CASKey = "replica.jiva.openebs.io/is-patch"
+
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 

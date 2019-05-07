@@ -170,6 +170,13 @@ const (
 	// {{ .Volume.isRestoreVol }}
 	IsRestoreVolumePropertyVTP VolumeTLPProperty = "isRestoreVol"
 
+	// IsPatchVolumePropertyVTP indicates if the volume is being
+	// created with patch enabled.
+	//NOTE:
+	// The Corresponding value will be accessed as
+	// {{ .Volume.isPatch }}
+	IsPatchVolumePropertyVTP VolumeTLPProperty = "isPatch"
+
 	// StorageClassVTP is the StorageClass of the volume
 	//
 	// NOTE:

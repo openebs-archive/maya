@@ -185,9 +185,14 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	// use StorageClass name from header if present
 	scName := strings.TrimSpace(v.req.Header.Get(string(v1alpha1.StorageClassHeaderKey)))
+	patchVal := v.req.Header.Get(string(v1alpha1.IsPatchHeaderKey))
 	// add the StorageClass name to volume's labels
 	vol.Labels = map[string]string{
 		string(v1alpha1.StorageClassKey): scName,
+	}
+
+	vol.Annotations = map[string]string{
+		string(v1alpha1.IsPatchKey): patchVal,
 	}
 
 	vOps, err := volume.NewOperation(vol)

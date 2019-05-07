@@ -25,6 +25,23 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default
 spec:
+  defaultConfig:
+  - name: NodeAffinityRequiredSchedIgnoredExec
+    value: |-
+      t1:
+        key: beta.kubernetes.io/os
+        operator: In
+        values:
+        - linux
+  - name: NodeAffinityPreferredSchedIgnoredExec
+    value: |-
+      t1:
+        key: some-node-label-key
+        operator: In
+        values:
+        - some-node-label-value
+  - name: ReplicaCount
+    value: {{env "OPENEBS_IO_JIVA_REPLICA_COUNT" | default "3" | quote }}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -32,6 +49,8 @@ spec:
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
+    - jiva-volume-read-verifyreplicationfactor-default
+    - jiva-volume-read-patchreplicadeployment-default
   output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
@@ -228,8 +247,6 @@ spec:
     - jiva-volume-create-getstoragepoolcr-default
     - jiva-volume-create-putreplicadeployment-default
     - jiva-volume-create-puttargetdeployment-default
-    - jiva-volume-create-listreplicapod-default
-    - jiva-volume-create-patchreplicadeployment-default
   output: jiva-volume-create-output-default
 ---
 apiVersion: openebs.io/v1alpha1
@@ -491,6 +508,85 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistrep.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistrep.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistrep.nodeNames" .TaskResult | noop -}}
+    {{- .TaskResult.readlistrep.nodeNames | default "" | splitListLen " " | saveAs "readlistrep.noOfReplicas" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-read-verifyreplicationfactor-default
+spec:
+  meta: |
+    id: verifyreplicationfactor
+    runNamespace: {{ .Volume.runNamespace }}
+    apiVersion: v1
+    kind: Pod
+    action: list
+    disable: {{- if and (ne .Volume.isPatch "") (eq .Volume.isPatch "Enabled") -}}false{{- else -}}true{{- end -}}
+    options: |-
+      labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
+    {{- $msg := printf "expected %v no of replica pod(s), found only %v replica pod(s)" $expectedRepCount .TaskResult.readlistrep.noOfReplicas -}}
+    {{- .TaskResult.readlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr $msg | saveIf "verifyreplicationfactor.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-read-patchreplicadeployment-default
+spec:
+  meta: |
+    id: readpatchrep
+    runNamespace: {{ .Volume.runNamespace }}
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    objectName: {{ .Volume.owner }}-rep
+    disable: {{ and (ne .Volume.isPatch "") (eq .Volume.isPatch "Enabled") }}
+    action: patch
+  task: |
+      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "none" -}}
+      {{- $nodeAffinityRSIEVal := fromYaml .Config.NodeAffinityRequiredSchedIgnoredExec.value -}}
+      {{- $nodeNames := .TaskResult.readlistrep.nodeNames -}}
+      type: strategic
+      pspec: |-
+        spec:
+          template:
+            spec:
+              affinity:
+                nodeAffinity:
+                  {{- if ne $isNodeAffinityRSIE "none" }}
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      {{- range $k, $v := $nodeAffinityRSIEVal }}
+                      -
+                      {{- range $kk, $vv := $v }}
+                        {{ $kk }}: {{ $vv }}
+                      {{- end }}
+                      {{- end }}
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                        {{- if ne $nodeNames "" }}
+                        {{- $nodeNamesMap := $nodeNames | split " " }}
+                        {{- range $k, $v := $nodeNamesMap }}
+                        - {{ $v }}
+                        {{- end }}
+                        {{- end }}
+                  {{- else }}
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                        {{- if ne $nodeNames "" }}
+                        {{- $nodeNamesMap := $nodeNames | split " " }}
+                        {{- range $k, $v := $nodeNamesMap }}
+                        - {{ $v }}
+                        {{- end }}
+                        {{- end }}
+                  {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -664,14 +760,8 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "createlistrep.nodeNames" .TaskResult | noop -}}
-    {{- $expectedRepCount := div .Config.ReplicaCount.value 2 | add1 | int -}}
-    {{- .TaskResult.createlistrep.nodeNames | default "" | splitListLen " " | saveAs "createlistrep.noOfReplicas" .TaskResult | noop -}}
-    {{- if ge .TaskResult.createlistrep.noOfReplicas $expectedRepCount }}
-    -
-    {{- else }}
-        {{- $msg := printf "expected minimum %v no of replica, found only %v replicas" $expectedRepCount .TaskResult.createlistrep.noOfReplicas -}}
-        {{- verifyErr $msg true | saveAs "createlistrep.verifyErr" .TaskResult | noop -}}
-    {{- end -}}
+    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
+    {{- .TaskResult.createlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr "number of replica pods does not match expected count" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
