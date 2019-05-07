@@ -35,46 +35,46 @@ var (
 	}
 )
 
-// ValidateFunc is typed function for spc validation functions.
-type ValidateFunc func(*SPC) error
+// ValidateFunc is typed function for cspc validation functions.
+type ValidateFunc func(*CSPC) error
 
-// ValidateFuncList holds a list of validate functions for spc
+// ValidateFuncList holds a list of validate functions for cspc
 var ValidateFuncList = []ValidateFunc{
 	IsValidPoolType,
 	IsValidDiskType,
 	IsValidMaxPool,
 }
 
-// Validate validates a spc on the available predicates
-func Validate(spc *SPC) error {
+// Validate validates a cspc on the available predicates
+func Validate(cspc *CSPC) error {
 	for _, v := range ValidateFuncList {
-		err := v(spc)
+		err := v(cspc)
 		if err != nil {
-			return errors.Wrapf(err, "validation failed for spc object %s", spc.Object.Name)
+			return errors.Wrapf(err, "validation failed for cspc object %s", cspc.Object.Name)
 		}
 	}
 	return nil
 }
 
-// IsValidDiskType validates the disk types in spc.
-func IsValidDiskType(spc *SPC) error {
-	diskType := spc.Object.Spec.Type
+// IsValidDiskType validates the disk types in cspc.
+func IsValidDiskType(cspc *CSPC) error {
+	diskType := cspc.Object.Spec.Type
 	if !(diskType == "sparse" || diskType == "disk") {
-		return errors.Errorf("specified type on spc %s is %s which is invalid", spc.Object.Name, diskType)
+		return errors.Errorf("specified type on cspc %s is %s which is invalid", cspc.Object.Name, diskType)
 	}
 	return nil
 }
 
-// IsValidMaxPool validates the max pool count in auto spc
-func IsValidMaxPool(spc *SPC) error {
-	spcName := spc.Object.Name
-	if IsProvisioningAuto()(spc) {
-		maxPools := spc.Object.Spec.MaxPools
+// IsValidMaxPool validates the max pool count in auto cspc
+func IsValidMaxPool(cspc *CSPC) error {
+	cspcName := cspc.Object.Name
+	if IsProvisioningAuto()(cspc) {
+		maxPools := cspc.Object.Spec.MaxPools
 		if IsMaxPoolNil(maxPools) {
-			return errors.Errorf("maxpool value is nil for spc %s which is invalid", spcName)
+			return errors.Errorf("maxpool value is nil for cspc %s which is invalid", cspcName)
 		}
 		if IsMaxPoolNonNegative(*maxPools) {
-			return errors.Errorf("maxpool value is %v for spc %s which is invalid", maxPools, spcName)
+			return errors.Errorf("maxpool value is %v for cspc %s which is invalid", maxPools, cspcName)
 		}
 	}
 	return nil
@@ -90,11 +90,11 @@ func IsMaxPoolNonNegative(maxPool int) bool {
 	return maxPool < 0
 }
 
-// IsValidPoolType validates pooltype in spc.
-func IsValidPoolType(spc *SPC) error {
-	for _, node := range spc.Object.Spec.Nodes {
-		if !supportedPool[node.PoolSpec.PoolType] {
-			return errors.Errorf("pool type is %s for node %s in spc %s", node.PoolSpec.PoolType, node.Name, spc.Object.Name)
+// IsValidPoolType validates pooltype in cspc.
+func IsValidPoolType(cspc *CSPC) error {
+	for _, node := range cspc.Object.Spec.Nodes {
+		if !supportedPool[string(node.PoolSpec.PoolType)] {
+			return errors.Errorf("pool type is %s for node %s in cspc %s", node.PoolSpec.PoolType, node.Name, cspc.Object.Name)
 		}
 	}
 	return nil
