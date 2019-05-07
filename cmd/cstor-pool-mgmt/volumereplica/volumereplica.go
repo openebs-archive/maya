@@ -19,6 +19,7 @@ package volumereplica
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"encoding/json"
 
@@ -36,6 +37,10 @@ const (
 	CreateCmd = "create"
 	// CloneCmd is the zfs volume clone command.
 	CloneCmd = "clone"
+	// BackupCmd is the zfs send command
+	BackupCmd = "send"
+	// RestoreCmd is the zfs volume send command.
+	RestoreCmd = "recv"
 	// StatsCmd is the zfs volume stats command.
 	StatsCmd = "stats"
 	// ZfsStatusDegraded is the degraded state of zfs volume.
@@ -46,6 +51,14 @@ const (
 	ZfsStatusHealthy = "Healthy"
 	// ZfsStatusRebuilding is the rebuilding state of zfs volume.
 	ZfsStatusRebuilding = "Rebuilding"
+	// MaxBackupRetryCount is a max number of retry should be performed during backup transfer
+	MaxBackupRetryCount = 10
+	// BackupRetryDelay is time(in seconds) to wait before the next attempt for backup transfer
+	BackupRetryDelay = 5
+	// MaxRestoreRetryCount is a max number of retry should be performed during restore transfer
+	MaxRestoreRetryCount = 10
+	// RestoreRetryDelay is time(in seconds) to wait before the next attempt for restore transfer
+	RestoreRetryDelay = 5
 )
 
 const (
@@ -154,18 +167,21 @@ func builldVolumeCreateCommand(cStorVolumeReplica *apis.CStorVolumeReplica, full
 	if !quorum {
 		quorumValue = "quorum=off"
 	}
+
+	// set volume property
+	createVolCmd = append(createVolCmd, CreateCmd,
+		"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue, "-o", openebsVolname)
+
 	if len(cStorVolumeReplica.Spec.ZvolWorkers) != 0 {
-		createVolCmd = append(createVolCmd, CreateCmd,
-			"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
-			"-o", openebsTargetIP, "-o", openebsVolname, "-o", openebsZvolWorkers,
-			"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
-	} else {
-		createVolCmd = append(createVolCmd, CreateCmd,
-			"-b", "4K", "-s", "-o", "compression=on", "-o", quorumValue,
-			"-o", openebsTargetIP, "-o", openebsVolname,
-			"-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
+		createVolCmd = append(createVolCmd, "-o", openebsZvolWorkers)
 	}
-	return createVolCmd
+
+	if cStorVolumeReplica.Annotations["isRestoreVol"] != "true" {
+		createVolCmd = append(createVolCmd, "-o", openebsTargetIP)
+	}
+
+	// append volume size and volume name
+	return append(createVolCmd, "-V", cStorVolumeReplica.Spec.Capacity, fullVolName)
 }
 
 // builldVolumeCloneCommand returns volume clone command along with attributes as a string array
@@ -187,6 +203,78 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 			"-o", openebsVolname, snapName, fullVolName)
 	}
 	return cloneVolCmd
+}
+
+// CreateVolumeBackup sends cStor snapshots to remote location specified by backupcstor.
+func CreateVolumeBackup(bkp *apis.BackupCStor) error {
+	var cmd []string
+	var retryCount int
+	var err error
+
+	// Parse capacity unit on CVR to support backward compatibility
+	cmd = builldVolumeBackupCommand(bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"], bkp.Spec.VolumeName, bkp.Spec.PrevSnapName, bkp.Spec.SnapName, bkp.Spec.BackupDest)
+
+	glog.Infof("Backup Command for volume: %v created, Cmd: %v\n", bkp.Spec.VolumeName, cmd)
+
+	for retryCount < MaxBackupRetryCount {
+		stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		if err != nil {
+			glog.Errorf("Unable to start backup %s. error : %v retry:%v :%s", bkp.Spec.VolumeName, string(stdoutStderr), retryCount, err.Error())
+			retryCount++
+			time.Sleep(BackupRetryDelay * time.Second)
+			continue
+		}
+		break
+	}
+	return err
+}
+
+// builldVolumeBackupCommand returns volume create command along with attributes as a string array
+func builldVolumeBackupCommand(poolName, fullVolName, oldSnapName, newSnapName, backupDest string) []string {
+	var startBackupCmd []string
+
+	bkpAddr := strings.Split(backupDest, ":")
+	if oldSnapName == "" {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+	} else {
+		startBackupCmd = append(startBackupCmd, VolumeReplicaOperator, BackupCmd,
+			"-i", "cstor-"+poolName+"/"+fullVolName+"@"+oldSnapName, "cstor-"+poolName+"/"+fullVolName+"@"+newSnapName, "| nc -w 3 "+bkpAddr[0]+" "+bkpAddr[1])
+	}
+	return startBackupCmd
+}
+
+// CreateVolumeRestore receive cStor snapshots from remote location(zfs volumes).
+func CreateVolumeRestore(rst *apis.CStorRestore) error {
+	var cmd []string
+	var retryCount int
+	var err error
+
+	cmd = builldVolumeRestoreCommand(rst.ObjectMeta.Labels["cstorpool.openebs.io/uid"], rst.Spec.VolumeName, rst.Spec.RestoreSrc)
+
+	glog.Infof("Restore Command for volume: %v created, Cmd: %v\n", rst.Spec.VolumeName, cmd)
+
+	for retryCount < MaxRestoreRetryCount {
+		stdoutStderr, err := RunnerVar.RunCombinedOutput("/usr/local/bin/execute.sh", cmd...)
+		if err != nil {
+			glog.Errorf("Unable to start restore %s. error : %v.. trying again", rst.Spec.VolumeName, string(stdoutStderr))
+			time.Sleep(RestoreRetryDelay * time.Second)
+			retryCount++
+			continue
+		}
+		break
+	}
+	return err
+}
+
+// builldVolumeRestoreCommand returns restore command along with attributes as a string array
+func builldVolumeRestoreCommand(poolName, fullVolName, restoreSrc string) []string {
+	var restorecmd []string
+
+	restorAddr := strings.Split(restoreSrc, ":")
+	restorecmd = append(restorecmd, "nc -w 3 "+restorAddr[0]+" "+restorAddr[1]+" | ", VolumeReplicaOperator, RestoreCmd,
+		" -F cstor-"+poolName+"/"+fullVolName)
+
+	return restorecmd
 }
 
 // GetVolumes returns the slice of volumes.

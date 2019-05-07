@@ -131,11 +131,12 @@ var _ = Describe("StatefulSet", func() {
 				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
-			return pvc.
+			pvcCount, err := pvc.
 				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.IsBound()).
-				List().
 				Len()
+			Expect(err).ShouldNot(HaveOccurred())
+			return pvcCount
 		},
 			defaultTimeOut, defaultPollingInterval).
 			Should(Equal(3), "PVC count should be "+string(3))
@@ -254,10 +255,11 @@ var _ = Describe("StatefulSet", func() {
 				NewKubeClient(pvc.WithNamespace(stsNamespace)).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
-			pvcList := pvc.
+			pvcList, err := pvc.
 				ListBuilderForAPIObjects(pvcs).
 				WithFilter(pvc.ContainsName(STSUnstructured.GetName())).
 				List()
+			Expect(err).ShouldNot(HaveOccurred())
 			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))
 
 			cvrs, err := cvr.
@@ -272,7 +274,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(poolNames.GetUniquePoolNames()).
 				Should(HaveLen(3), "pool names count should be "+string(3))
 
-			pools, err := csp.KubeClient().List(metav1.ListOptions{})
+			pools, err := csp.NewKubeClient().List(metav1.ListOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			nodeNames := csp.ListBuilder().WithAPIList(pools).List()
 			Expect(nodeNames.GetPoolUIDs()).

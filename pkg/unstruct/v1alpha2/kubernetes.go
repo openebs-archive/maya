@@ -20,7 +20,8 @@ import (
 	"strings"
 
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -30,6 +31,10 @@ import (
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
 type getClientsetFn func() (clientset dynamic.Interface, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset dynamic.Interface, err error)
 
 // CreateFn is a typed function that abstracts
 // creating of unstructured object
@@ -63,11 +68,15 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset dynamic.Interface
 
+	// Kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	create       CreateFn
-	get          GetFn
-	delete       DeleteFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	create              CreateFn
+	get                 GetFn
+	delete              DeleteFn
 }
 
 // KubeclientBuildOption defines the abstraction to build
@@ -75,27 +84,26 @@ type Kubeclient struct {
 type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets default options for Kubeclient
-func withDefaults(k *Kubeclient) error {
+func withDefaults(k *Kubeclient) {
 	if k.clientset == nil {
-		cli, err := k8s.Dynamic().Provide()
-		if err != nil {
-			return err
+		k.getClientset = func() (dynamic.Interface, error) {
+			return client.New().Dynamic()
 		}
-		k.clientset = cli
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (dynamic.Interface, error) {
+			return client.New(client.WithKubeConfigPath(k.kubeConfigPath)).Dynamic()
+		}
 	}
 	if k.get == nil {
 		k.get = func(
 			cli dynamic.Interface,
 			name string,
 			namespace string, opt *GetOption) (*unstructured.Unstructured, error) {
-			u, err := cli.
+			return cli.
 				Resource(opt.gvr).
 				Namespace(namespace).
 				Get(name, *opt.GetOptions, opt.subresources...)
-			if err != nil {
-				return nil, err
-			}
-			return u, nil
 		}
 	}
 	if k.create == nil {
@@ -119,7 +127,6 @@ func withDefaults(k *Kubeclient) error {
 				Delete(obj.GetName(), opt.DeleteOptions, opt.subresources...)
 		}
 	}
-	return nil
 }
 
 // WithClient sets the kubernetes client against
@@ -130,31 +137,45 @@ func WithClient(c dynamic.Interface) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of Kubeclient meant for
+// WithKubeConfigPath sets kubeconfig path
+// against this client instance
+func WithKubeConfigPath(kubeConfigPath string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = kubeConfigPath
+	}
+}
+
+// NewKubeClient returns a new instance of Kubeclient meant for
 // catalog operations
-func KubeClient(opts ...KubeclientBuildOption) (*Kubeclient, error) {
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
-	err := withDefaults(k)
-	if err != nil {
-		return nil, err
-	}
-	return k, nil
+	withDefaults(k)
+	return k
 }
 
-// getClientOrCached returns either a new instance
+// getClientsetForPathOrDirect returns new instance of kubernetes client
+func (k *Kubeclient) getClientsetForPathOrDirect() (dynamic.Interface, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (dynamic.Interface, error) {
+func (k *Kubeclient) getClientsetOrCached() (dynamic.Interface, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	cli, err := k.getClientset()
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = cli
+
+	k.clientset = cs
 	return k.clientset, nil
 }
 
@@ -164,7 +185,7 @@ func (k *Kubeclient) Get(name string, opts ...GetOptionFn) (*unstructured.Unstru
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get unstructured instance: missing name")
 	}
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +239,7 @@ func (k *Kubeclient) Create(u *unstructured.Unstructured, opts ...CreateOptionFn
 	if u == nil {
 		return errors.Errorf("create failed: nil unstruct instance was provided")
 	}
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return err
 	}
@@ -230,7 +251,7 @@ func (k *Kubeclient) Create(u *unstructured.Unstructured, opts ...CreateOptionFn
 // Delete deletes the unstructured instance from
 // kubernetes cluster
 func (k *Kubeclient) Delete(u *unstructured.Unstructured, opts ...DeleteOptionFn) error {
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return err
 	}

@@ -32,12 +32,9 @@ import (
 	"github.com/openebs/maya/cmd/cstor-volume-mgmt/controller/common"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	//openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
-	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/scheme"
-	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
-	informers "github.com/openebs/maya/pkg/client/generated/informer/externalversions"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
+	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 )
 
 const volumeControllerName = "CStorVolume"

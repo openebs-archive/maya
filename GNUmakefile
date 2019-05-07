@@ -27,6 +27,25 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 # API_PKG sets namespace where the API resources are defined
 API_PKG := github.com/openebs/maya/pkg
 
+# Default arguments for code gen script
+
+# OUTPUT_PKG is the path of directory where you want to keep the generated code
+OUTPUT_PKG=github.com/openebs/maya/pkg/client/generated
+
+# APIS_PKG is the path where apis group and schema exists.
+APIS_PKG=github.com/openebs/maya/pkg/apis
+
+# GENS is an argument which generates different type of code.
+# Possible values: all, deepcopy, client, informers, listers.
+GENS=all
+# GROUPS_WITH_VERSIONS is the group containing different versions of the resources.
+GROUPS_WITH_VERSIONS=openebs.io:v1alpha1,v1beta1
+
+# BOILERPLATE_TEXT_PATH is the boilerplate text(go comment) that is put at the top of every generated file.
+# This boilerplate text is nothing but the license information.
+BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
+
+
 # ALL_API_GROUPS has the list of all API resources from various groups
 ALL_API_GROUPS=\
 	openebs.io/runtask/v1beta1 \
@@ -35,12 +54,6 @@ ALL_API_GROUPS=\
 	openebs.io/kubeassert/v1alpha1 \
 	openebs.io/upgrade/v1alpha1 \
 	openebs.io/snapshot/v1alpha1
-
-# API_GROUPS sets api version of the resources exposed by maya
-ifeq (${API_GROUPS}, )
-  API_GROUPS = openebs.io/v1alpha1
-  export API_GROUPS
-endif
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
@@ -173,20 +186,21 @@ bootstrap:
 kubegen2: deepcopy2 clientset2 lister2 informer2
 
 # code generation for custom resources
-kubegen: deepcopy clientset lister informer kubegen2
+kubegen1: 
+	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH} 
+
+# code generation for custom resources
+kubegen: kubegendelete kubegen1 kubegen2
+
+# deletes generated code by codegen
+kubegendelete:
+	@rm -rf pkg/client/generated/clientset
+	@rm -rf pkg/client/generated/listers
+	@rm -rf pkg/client/generated/informers
+	@rm -rf pkg/client/generated/openebs.io
 
 # code generation for custom resources and protobuf
 generated_files: kubegen protobuf
-
-# builds vendored version of deepcopy-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-deepcopy:
-	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	@echo "+ Generating deepcopy funcs for $(API_GROUPS)"
-	@deepcopy-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-file-base zz_generated.deepcopy \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 # builds vendored version of deepcopy-gen tool
 deepcopy2:
@@ -198,18 +212,6 @@ deepcopy2:
 			--output-file-base zz_generated.deepcopy \
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
-
-# builds vendored version of client-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-clientset:
-	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
-	@echo "+ Generating clientsets for $(API_GROUPS)"
-	@client-gen \
-		--fake-clientset=true \
-		--input $(API_GROUPS) \
-		--input-base $(API_PKG)/apis \
-		--clientset-path $(API_PKG)/client/generated/clientset \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 # builds vendored version of client-gen tool
 clientset2:
@@ -225,16 +227,6 @@ clientset2:
 	done
 
 # builds vendored version of lister-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-lister:
-	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
-	@echo "+ Generating lister for $(API_GROUPS)"
-	@lister-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-package $(API_PKG)/client/generated/lister \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
-
-# builds vendored version of lister-gen tool
 lister2:
 	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -244,18 +236,6 @@ lister2:
 			--output-package $(API_PKG)/client/generated/$$apigrp/lister \
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
-
-# builds vendored version of informer-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-informer:
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
-	@echo "+ Generating informer for $(API_GROUPS)"
-	@informer-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-package $(API_PKG)/client/generated/informer \
-		--versioned-clientset-package $(API_PKG)/client/generated/clientset/internalclientset \
-		--listers-package $(API_PKG)/client/generated/lister \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 # builds vendored version of informer-gen tool
 informer2:

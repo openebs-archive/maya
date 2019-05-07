@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
-	openebs "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

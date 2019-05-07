@@ -26,6 +26,10 @@ import (
 // abstracts fetching of clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
+
 // listFn is a typed function that abstracts
 // listing of nodes
 type listFn func(cli *kubernetes.Clientset, opts metav1.ListOptions) (*corev1.NodeList, error)
@@ -37,19 +41,28 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *kubernetes.Clientset
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
 }
 
-// kubeclientBuildOption defines the abstraction
+// KubeClientBuildOption defines the abstraction
 // to build a kubeclient instance
-type kubeclientBuildOption func(*Kubeclient)
+type KubeClientBuildOption func(*Kubeclient)
 
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *kubernetes.Clientset, err error) {
 			return client.New().Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *kubernetes.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.list == nil {
@@ -59,8 +72,16 @@ func (k *Kubeclient) withDefaults() {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for node
-func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeClientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
+// NewKubeClient returns a new instance of kubeclient meant for node
+func NewKubeClient(opts ...KubeClientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -69,23 +90,31 @@ func KubeClient(opts ...kubeclientBuildOption) *Kubeclient {
 	return k
 }
 
-// getClientOrCached returns either a new instance
+func (k *Kubeclient) getClientsetForPathOrDirect() (*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
+func (k *Kubeclient) getClientsetOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
 // List returns a list of nodes instances present in kubernetes cluster
 func (k *Kubeclient) List(opts metav1.ListOptions) (*corev1.NodeList, error) {
-	cli, err := k.getClientOrCached()
+	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to list")
 	}

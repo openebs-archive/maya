@@ -19,7 +19,7 @@ import (
 	"time"
 
 	//openebsFakeClientset "github.com/openebs/maya/pkg/client/clientset/versioned/fake"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 )
 
 // TestCheckForCStorVolumeCRD validates if CStorVolume CRD operations
