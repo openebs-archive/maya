@@ -17,11 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	objectmeta "github.com/openebs/maya/pkg/kubernetes/objectmeta/v1alpha1"
 	ownerreference "github.com/openebs/maya/pkg/kubernetes/ownerreference/v1alpha1"
 	typemeta "github.com/openebs/maya/pkg/kubernetes/typemeta/v1alpha1"
@@ -55,7 +55,7 @@ type UpgradeResultGetOrCreateBuilder struct {
 	ResourceDetails *upgrade.ResourceDetails
 	Tasks           []upgrade.UpgradeResultTask
 	UpgradeResult   *UpgradeResult
-	errors          []error
+	errs            *errors.ErrorList
 }
 
 // String implements GoStringer interface
@@ -72,7 +72,9 @@ func (urb *UpgradeResultGetOrCreateBuilder) GoString() string {
 func NewUpgradeResultGetOrCreateBuilder() *UpgradeResultGetOrCreateBuilder {
 	return &UpgradeResultGetOrCreateBuilder{
 		UpgradeResult: &UpgradeResult{},
-		errors:        []error{},
+		errs: &errors.ErrorList{
+			Errors: []error{},
+		},
 	}
 }
 
@@ -120,9 +122,9 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithTasks(
 
 // validate validates UpgradeResultGetOrCreateBuilder instance
 func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
-	if len(urb.errors) != 0 {
-		return errors.Errorf(
-			"failed to validate: build errors were found: %v", urb.errors)
+	if len(urb.errs.Errors) != 0 {
+		return errors.WithStack(
+			errors.Wrap(urb.errs, "failed to validate: build error(s) were found"))
 	}
 	validationErrs := []error{}
 	if urb.SelfName == "" {
@@ -150,8 +152,9 @@ func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 			errors.New("missing tasks"))
 	}
 	if len(validationErrs) != 0 {
-		urb.errors = append(urb.errors, validationErrs...)
-		return errors.Errorf("validation error(s) found: %v", validationErrs)
+		urb.errs.Errors = append(urb.errs.Errors, validationErrs...)
+		return errors.WithStack(
+			errors.Wrap(&errors.ErrorList{Errors: validationErrs}, "validation error(s) found"))
 	}
 	return nil
 }
@@ -239,7 +242,6 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 // getObjectMeta returns metav1.ObjectMeta for upgrade result cr.
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
-	//name := urb.SelfName + "-" + rand.String(4)
 	oRef, err := urb.getOwnerReference()
 	if err != nil {
 		return nil, err
