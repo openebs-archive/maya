@@ -614,6 +614,17 @@ func (k *K8sClient) GetAppsV1B1DeploymentAsRaw(name string) (result []byte, err 
 	return
 }
 
+// GetCoreV1ServiceAsRaw fetches the k8s Service with the provided name
+func (k *K8sClient) GetCoreV1ServiceAsRaw(name string) (result []byte, err error) {
+	return k.cs.CoreV1().RESTClient().
+		Get().
+		Namespace(k.ns).
+		Resource("services").
+		Name(name).
+		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
+		DoRaw()
+}
+
 // GetOEV1alpha1DiskAsRaw fetches the OpenEBS Disk with the provided name
 func (k *K8sClient) GetOEV1alpha1DiskAsRaw(name string) (result []byte, err error) {
 	disk, err := k.GetOEV1alpha1Disk(name)
