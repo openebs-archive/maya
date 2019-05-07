@@ -378,7 +378,7 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 	} else if m.metaTaskExec.isGetExtnV1B1ReplicaSet() {
 		err = m.getExtnV1B1ReplicaSet()
 	} else if m.metaTaskExec.isGetCoreV1Pod() {
-		err = m.getV1Pod()
+		err = m.getCoreV1Pod()
 	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteCoreV1Service() {
@@ -1074,7 +1074,7 @@ func (m *taskExecutor) getCoreV1PV() (err error) {
 
 // getBatchV1Job will get the Job as specified in the RunTask
 func (m *taskExecutor) getBatchV1Job() (err error) {
-	job, err := m.getK8sClient().GetBatchV1JobAsRaw(m.getTaskObjectName(), m.getTaskRunNamespace())
+	job, err := m.getK8sClient().GetBatchV1JobAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return
 	}
@@ -1082,8 +1082,8 @@ func (m *taskExecutor) getBatchV1Job() (err error) {
 	return
 }
 
-// getV1Pod will get the Pod as specified in the RunTask
-func (m *taskExecutor) getV1Pod() (err error) {
+// getCoreV1Pod will get the Pod as specified in the RunTask
+func (m *taskExecutor) getCoreV1Pod() (err error) {
 	podClient := pod.NewKubeClient(pod.WithNamespace(m.getTaskRunNamespace()))
 
 	pod, err := podClient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})

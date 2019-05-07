@@ -285,11 +285,11 @@ func (k *K8sClient) GetStorageV1SCAsRaw(name string) (result []byte, err error) 
 }
 
 // GetBatchV1JobAsRaw returns a Job instance
-func (k *K8sClient) GetBatchV1JobAsRaw(name, namespace string) (result []byte, err error) {
+func (k *K8sClient) GetBatchV1JobAsRaw(name string) (result []byte, err error) {
 	return k.cs.BatchV1().RESTClient().
 		Get().
 		Resource("jobs").
-		Namespace(namespace).
+		Namespace(k.ns).
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
 		DoRaw()
