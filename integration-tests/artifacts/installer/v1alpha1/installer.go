@@ -30,6 +30,7 @@ import (
 type DefaultInstaller struct {
 	object     *unstructured.Unstructured
 	predicates []Predicate
+	*unstruct.Kubeclient
 }
 
 // Predicate abstracts the verification of
@@ -56,33 +57,35 @@ func (i *DefaultInstaller) GoString() string {
 	return i.String()
 }
 
+func (i *DefaultInstaller) getKubeClientOrCached() *unstruct.Kubeclient {
+	if i.Kubeclient != nil {
+		return i.Kubeclient
+	}
+	i.Kubeclient = unstruct.NewKubeClient()
+	return i.Kubeclient
+}
+
+// GetUnstructuredObject returns Unstructured objecct
+func (i *DefaultInstaller) GetUnstructuredObject() *unstructured.Unstructured {
+	return i.object
+}
+
 // Install triggers the installation of resource
 // in the kubernetes cluster
 func (i *DefaultInstaller) Install() error {
-	k, err := unstruct.KubeClient()
-	if err != nil {
-		return err
-	}
-	return k.Create(i.object)
+	return i.getKubeClientOrCached().Create(i.object)
 }
 
 // UnInstall triggers deletion of resource from
 // kubernetes cluster
 func (i *DefaultInstaller) UnInstall() error {
-	k, err := unstruct.KubeClient()
-	if err != nil {
-		return err
-	}
-	return k.Delete(i.object)
+	return i.getKubeClientOrCached().Delete(i.object)
 }
 
 // Verify returns the installation of resource.
 // It returns true if all the predicates passes
 func (i *DefaultInstaller) Verify() (bool, error) {
-	k, err := unstruct.KubeClient()
-	if err != nil {
-		return false, err
-	}
+	k := i.getKubeClientOrCached()
 	obj, err := k.Get(
 		i.object.GetName(),
 		unstruct.WithGetNamespace(i.object.GetNamespace()),
@@ -114,7 +117,7 @@ func BuilderForObject(obj *unstructured.Unstructured) *Builder {
 		b.errs = append(b.errs, errors.Errorf("failed to build for object: nil unstruct instance provided"))
 		return b
 	}
-	b.installer = &DefaultInstaller{object: obj}
+	b.installer = &DefaultInstaller{object: obj, Kubeclient: nil}
 	return b
 }
 
@@ -127,7 +130,13 @@ func BuilderForYaml(yaml string) *Builder {
 		b.errs = append(b.errs, err)
 		return b
 	}
-	b.installer = &DefaultInstaller{object: obj.GetUnstructured()}
+	b.installer = &DefaultInstaller{object: obj.GetUnstructured(), Kubeclient: nil}
+	return b
+}
+
+// WithKubeClient returns a new instance of unstructured kubeclient
+func (b *Builder) WithKubeClient(opts ...unstruct.KubeclientBuildOption) *Builder {
+	b.installer.Kubeclient = unstruct.NewKubeClient(opts...)
 	return b
 }
 

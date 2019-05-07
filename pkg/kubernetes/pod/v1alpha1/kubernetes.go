@@ -15,18 +15,22 @@
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
 // getClientsetFn is a typed function that
 // abstracts fetching of clientset
 type getClientsetFn func() (clientset *clientset.Clientset, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of pods
@@ -51,11 +55,16 @@ type KubeClient struct {
 	// namespace holds the namespace on which
 	// KubeClient has to operate
 	namespace string
+
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	del          deleteFn
-	get          getFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	del                 deleteFn
+	get                 getFn
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -67,11 +76,12 @@ type KubeClientBuildOption func(*KubeClient)
 func (k *KubeClient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.New().Config()
-			if err != nil {
-				return nil, err
-			}
-			return clientset.NewForConfig(config)
+			return client.New().Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.list == nil {
@@ -107,6 +117,14 @@ func WithClientSet(c *clientset.Clientset) KubeClientBuildOption {
 	}
 }
 
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeClientBuildOption {
+	return func(k *KubeClient) {
+		k.kubeConfigPath = path
+	}
+}
+
 // NewKubeClient returns a new instance of KubeClient meant for
 // cstor volume replica operations
 func NewKubeClient(opts ...KubeClientBuildOption) *KubeClient {
@@ -118,17 +136,25 @@ func NewKubeClient(opts ...KubeClientBuildOption) *KubeClient {
 	return k
 }
 
+func (k *KubeClient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientsetOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *KubeClient) getClientsetOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get clientset")
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
