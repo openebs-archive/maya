@@ -63,7 +63,7 @@ func (b *ListBuilder) List() (*StorageClassList, error) {
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("failed to list storageclass: %+v", b.errs)
 	}
-	if b.filters == nil && len(b.filters) == 0 {
+	if b.filters == nil || len(b.filters) == 0 {
 		return b.list, nil
 	}
 	filtered := &StorageClassList{}
