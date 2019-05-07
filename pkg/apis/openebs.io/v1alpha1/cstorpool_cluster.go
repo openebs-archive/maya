@@ -20,6 +20,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// PoolType is a label for the pool type of a cStor pool.
+type PoolType string
+
+// These are the valid pool types of cStor Pool.
+const (
+	// PoolStriped is the striped raid group.
+	PoolStriped PoolType = "striped"
+	// PoolMirrored is the striped raid group.
+	PoolMirrored PoolType = "Mirrored"
+	// PoolRaidz is the striped raid group.
+	PoolRaidz PoolType = "raidz"
+	// PoolRaidz2 is the striped raid group.
+	PoolRaidz2 PoolType = "raidz2"
+)
+
 // +genclient
 // +genclient:noStatus
 // +genclient:nonNamespaced
@@ -49,7 +64,7 @@ type CStorPoolClusterNodeSpec struct {
 	// Name is the name of the node.
 	Name string `json:"name"`
 	// PoolSpec is the pool related specification that is used to provision cstor pool on the node.
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
+	PoolSpec CStorPoolClusterSpecAttr `json:"poolSpec"`
 	// DiskGroups contains the list of disk groups that should be used for pool provisioning on that node.
 	DiskGroups []CStorPoolClusterDiskGroups `json:"groups"`
 }
@@ -78,9 +93,9 @@ type CStorPoolClusterStatus struct {
 
 // CStorPoolClusterSpecAttr is to describe zpool related attributes.
 type CStorPoolClusterSpecAttr struct {
-	CacheFile        string `json:"cacheFile"`        //optional, faster if specified
-	PoolType         string `json:"poolType"`         //mirrored, striped
-	OverProvisioning bool   `json:"overProvisioning"` //true or false
+	CacheFile        string   `json:"cacheFile"`        //optional, faster if specified
+	PoolType         PoolType `json:"poolType"`         //mirrored, striped
+	OverProvisioning bool     `json:"overProvisioning"` //true or false
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

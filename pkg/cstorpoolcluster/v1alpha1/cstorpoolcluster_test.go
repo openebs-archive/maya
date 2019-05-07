@@ -23,8 +23,8 @@ import (
 	"testing"
 )
 
-func mockAlwaysTrue(*SPC) bool  { return true }
-func mockAlwaysFalse(*SPC) bool { return false }
+func mockAlwaysTrue(*CSPC) bool  { return true }
+func mockAlwaysFalse(*CSPC) bool { return false }
 
 func TestAll(t *testing.T) {
 	tests := map[string]struct {
@@ -51,7 +51,7 @@ func TestAll(t *testing.T) {
 		name := name
 		mock := mock
 		t.Run(name, func(t *testing.T) {
-			if output := mock.Predicates.all(&SPC{}); output != mock.expectedOutput {
+			if output := mock.Predicates.all(&CSPC{}); output != mock.expectedOutput {
 				t.Fatalf("test %q failed: expected %v \n got : %v \n", name, mock.expectedOutput, output)
 			}
 		})
@@ -76,10 +76,10 @@ func TestHasAnnotation(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
-			ok := HasAnnotation(test.checkForKey, test.checkForValue)(fakespc)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
+			ok := HasAnnotation(test.checkForKey, test.checkForValue)(fakecspc)
 			if ok != test.hasAnnotation {
-				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableAnnotations, fakespc.Object.GetAnnotations())
+				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableAnnotations, fakecspc.Object.GetAnnotations())
 			}
 		})
 	}
@@ -102,8 +102,8 @@ func TestIsProvisioningAuto(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.nodeSpec}}}
-			ok := IsProvisioningAuto()(fakespc)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.nodeSpec}}}
+			ok := IsProvisioningAuto()(fakecspc)
 			if ok != test.isAutoProvisioning {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.isAutoProvisioning, ok)
 			}
@@ -128,8 +128,8 @@ func TestIsProvisioningManual(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.nodeSpec}}}
-			ok := IsProvisioningManual()(fakespc)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.nodeSpec}}}
+			ok := IsProvisioningManual()(fakecspc)
 			if ok != test.isAutoProvisioning {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.isAutoProvisioning, ok)
 			}
@@ -154,8 +154,8 @@ func TestIsSparse(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Type: test.diskType}}}
-			ok := IsSparse()(fakespc)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Type: test.diskType}}}
+			ok := IsSparse()(fakecspc)
 			if ok != test.isSparseType {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.isSparseType, ok)
 			}
@@ -180,8 +180,8 @@ func TestIsDisk(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Type: test.diskType}}}
-			ok := IsDisk()(fakespc)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Type: test.diskType}}}
+			ok := IsDisk()(fakecspc)
 			if ok != test.isDiskType {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.isDiskType, ok)
 			}
@@ -189,7 +189,7 @@ func TestIsDisk(t *testing.T) {
 	}
 }
 
-func TestSPC_GetAnnotations(t *testing.T) {
+func TestCSPC_GetAnnotations(t *testing.T) {
 	tests := map[string]struct {
 		availableAnnotations map[string]string
 		expectedAnnotations  map[string]string
@@ -204,8 +204,8 @@ func TestSPC_GetAnnotations(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
-			gotAnnotations := fakespc.GetAnnotations()
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.availableAnnotations}}}
+			gotAnnotations := fakecspc.GetAnnotations()
 			if !reflect.DeepEqual(gotAnnotations, test.expectedAnnotations) {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.expectedAnnotations, gotAnnotations)
 			}
@@ -213,9 +213,9 @@ func TestSPC_GetAnnotations(t *testing.T) {
 	}
 }
 
-func TestSPC_GetNodeDisk(t *testing.T) {
+func TestCSPC_GetNodeDisk(t *testing.T) {
 	tests := map[string]struct {
-		spcNodeSpec       []apisv1alpha1.CStorPoolClusterNodeSpec
+		cspcNodeSpec      []apisv1alpha1.CStorPoolClusterNodeSpec
 		expectedNodeNames []string
 	}{
 		"Test 1": {[]apisv1alpha1.CStorPoolClusterNodeSpec{{Name: "worker-node-1"}, {Name: "worker-node-2"}}, []string{"worker-node-1", "worker-node-2"}},
@@ -229,8 +229,8 @@ func TestSPC_GetNodeDisk(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.spcNodeSpec}}}
-			gotNodeNames := fakespc.GetNodeNames()
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.cspcNodeSpec}}}
+			gotNodeNames := fakecspc.GetNodeNames()
 			if !reflect.DeepEqual(gotNodeNames, test.expectedNodeNames) {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.expectedNodeNames, gotNodeNames)
 			}
@@ -238,7 +238,7 @@ func TestSPC_GetNodeDisk(t *testing.T) {
 	}
 }
 
-func TestSPC_GetCASTName(t *testing.T) {
+func TestCSPC_GetCASTName(t *testing.T) {
 	tests := map[string]struct {
 		castAnnotation   map[string]string
 		expectedcastName string
@@ -255,8 +255,8 @@ func TestSPC_GetCASTName(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.castAnnotation}}}
-			gotCastname := fakespc.GetCASTName()
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{ObjectMeta: metav1.ObjectMeta{Annotations: test.castAnnotation}}}
+			gotCastname := fakecspc.GetCASTName()
 			if gotCastname != test.expectedcastName {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.expectedcastName, gotCastname)
 			}
@@ -264,23 +264,23 @@ func TestSPC_GetCASTName(t *testing.T) {
 	}
 }
 
-func TestSPC_GetPoolType(t *testing.T) {
+func TestCSPC_GetPoolType(t *testing.T) {
 	tests := map[string]struct {
-		spcNodeSpec []apisv1alpha1.CStorPoolClusterNodeSpec
+		cspcNodeSpec []apisv1alpha1.CStorPoolClusterNodeSpec
 
 		expectedPoolType string
 		nodeName         string
 	}{
 		"Test 1": {[]apisv1alpha1.CStorPoolClusterNodeSpec{
-			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolAttr{PoolType: "striped"}}},
+			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolClusterSpecAttr{PoolType: "striped"}}},
 			"striped", "worker-node-1"},
 		"Test 2": {[]apisv1alpha1.CStorPoolClusterNodeSpec{
-			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolAttr{PoolType: "mirrored"}},
-			{Name: "worker-node-2", PoolSpec: apisv1alpha1.CStorPoolAttr{PoolType: "striped"}}},
+			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolClusterSpecAttr{PoolType: "mirrored"}},
+			{Name: "worker-node-2", PoolSpec: apisv1alpha1.CStorPoolClusterSpecAttr{PoolType: "striped"}}},
 			"mirrored", "worker-node-1"},
 		"Test 3": {[]apisv1alpha1.CStorPoolClusterNodeSpec{
-			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolAttr{PoolType: "mirrored"}},
-			{Name: "worker-node-2", PoolSpec: apisv1alpha1.CStorPoolAttr{PoolType: "striped"}}},
+			{Name: "worker-node-1", PoolSpec: apisv1alpha1.CStorPoolClusterSpecAttr{PoolType: "mirrored"}},
+			{Name: "worker-node-2", PoolSpec: apisv1alpha1.CStorPoolClusterSpecAttr{PoolType: "striped"}}},
 			"", "worker-node-4"},
 		"Test 4": {[]apisv1alpha1.CStorPoolClusterNodeSpec{},
 			"", "worker-node-4"},
@@ -291,8 +291,8 @@ func TestSPC_GetPoolType(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			fakespc := &SPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.spcNodeSpec}}}
-			gotPoolType := fakespc.GetPoolTypeForNode(test.nodeName)
+			fakecspc := &CSPC{&apisv1alpha1.CStorPoolCluster{Spec: apisv1alpha1.CStorPoolClusterSpec{Nodes: test.cspcNodeSpec}}}
+			gotPoolType := fakecspc.GetPoolTypeForNode(test.nodeName)
 			if gotPoolType != test.expectedPoolType {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.expectedPoolType, gotPoolType)
 			}
@@ -300,13 +300,13 @@ func TestSPC_GetPoolType(t *testing.T) {
 	}
 }
 
-func TestSPCList_Len(t *testing.T) {
+func TestCSPCList_Len(t *testing.T) {
 	tests := map[string]struct {
-		fakeSPCList *SPCList
+		fakeCSPCList *CSPCList
 
 		expectedLen int
 	}{
-		"Test 1": {NewListBuilder().SPCList, 0},
+		"Test 1": {NewListBuilder().CSPCList, 0},
 		// TODO: Add more test cases
 	}
 
@@ -315,7 +315,7 @@ func TestSPCList_Len(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			gotLen := test.fakeSPCList.Len()
+			gotLen := test.fakeCSPCList.Len()
 			if gotLen != test.expectedLen {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.expectedLen, gotLen)
 			}
@@ -323,13 +323,13 @@ func TestSPCList_Len(t *testing.T) {
 	}
 }
 
-func TestSPCList_IsEmpty(t *testing.T) {
+func TestCSPCList_IsEmpty(t *testing.T) {
 	tests := map[string]struct {
-		fakeSPCList *SPCList
+		fakeCSPCList *CSPCList
 
 		isEmpty bool
 	}{
-		"Test 1": {NewListBuilder().SPCList, true},
+		"Test 1": {NewListBuilder().CSPCList, true},
 		// TODO: Add more test cases
 	}
 
@@ -338,7 +338,7 @@ func TestSPCList_IsEmpty(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			ok := test.fakeSPCList.IsEmpty()
+			ok := test.fakeCSPCList.IsEmpty()
 			if ok != test.isEmpty {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.isEmpty, ok)
 			}
@@ -358,8 +358,8 @@ func TestBuilder_WithDiskType(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			spc := NewBuilder().WithDiskType(test.diskType)
-			gotDiskType := spc.SPC.Object.Spec.Type
+			cspc := NewBuilder().WithDiskType(test.diskType)
+			gotDiskType := cspc.CSPC.Object.Spec.Type
 			if gotDiskType != test.diskType {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.diskType, gotDiskType)
 			}
@@ -379,8 +379,8 @@ func TestBuilder_WithMaxPool(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			spc := NewBuilder().WithMaxPool(test.maxPool)
-			gotMaxPool := spc.SPC.Object.Spec.MaxPools
+			cspc := NewBuilder().WithMaxPool(test.maxPool)
+			gotMaxPool := cspc.CSPC.Object.Spec.MaxPools
 			if *gotMaxPool != test.maxPool {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.maxPool, *gotMaxPool)
 			}
@@ -390,7 +390,7 @@ func TestBuilder_WithMaxPool(t *testing.T) {
 
 func TestBuilder_WithName(t *testing.T) {
 	tests := map[string]struct {
-		spcName string
+		cspcName string
 	}{
 		"Test 1": {"sparse-claim"},
 		"Test 2": {"disk-claim"},
@@ -400,10 +400,10 @@ func TestBuilder_WithName(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			spc := NewBuilder().WithName(test.spcName)
-			gotSPCName := spc.SPC.Object.Spec.Name
-			if gotSPCName != test.spcName {
-				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.spcName, gotSPCName)
+			cspc := NewBuilder().WithName(test.cspcName)
+			gotCSPCName := cspc.CSPC.Object.Spec.Name
+			if gotCSPCName != test.cspcName {
+				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.cspcName, gotCSPCName)
 			}
 		})
 	}
@@ -423,8 +423,8 @@ func TestBuilder_WithPoolType(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			spc := NewBuilder().WithPoolType(test.poolType)
-			gotPoolType := spc.SPC.Object.Spec.PoolSpec.PoolType
+			cspc := NewBuilder().WithPoolType(test.poolType)
+			gotPoolType := cspc.CSPC.Object.Spec.PoolSpec.PoolType
 			if gotPoolType != test.poolType {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.poolType, gotPoolType)
 			}
@@ -444,8 +444,8 @@ func TestBuilder_WithOverProvisioning(t *testing.T) {
 		name := name
 		test := test
 		t.Run(name, func(t *testing.T) {
-			spc := NewBuilder().WithOverProvisioning(test.overProvisioning)
-			gotOverProvisioning := spc.SPC.Object.Spec.PoolSpec.OverProvisioning
+			cspc := NewBuilder().WithOverProvisioning(test.overProvisioning)
+			gotOverProvisioning := cspc.CSPC.Object.Spec.PoolSpec.OverProvisioning
 			if gotOverProvisioning != test.overProvisioning {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.overProvisioning, gotOverProvisioning)
 			}
@@ -469,7 +469,7 @@ func TestWithAPIList(t *testing.T) {
 			}
 
 			b := NewListBuilderForAPIList(poolItems)
-			for index, ob := range b.SPCList.ObjectList.Items {
+			for index, ob := range b.CSPCList.ObjectList.Items {
 				if !reflect.DeepEqual(ob, poolItems.Items[index]) {
 					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poolItems.Items[index], ob)
 				}
