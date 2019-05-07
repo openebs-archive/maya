@@ -149,6 +149,16 @@ func TestFilterList(t *testing.T) {
 			filteredPods:  []string{},
 			filters:       predicateList{IsNil()},
 		},
+		"Pod Set 5": {
+			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
+			filteredPods:  []string{"Pod 1", "Pod 2"},
+			filters:       predicateList{},
+		},
+		"Pod Set 6": {
+			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
+			filteredPods:  []string{"Pod 1", "Pod 2"},
+			filters:       nil,
+		},
 	}
 	for name, mock := range tests {
 		name, mock := name, mock
