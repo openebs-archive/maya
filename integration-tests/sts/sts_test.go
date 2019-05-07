@@ -274,7 +274,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(poolNames.GetUniquePoolNames()).
 				Should(HaveLen(3), "pool names count should be "+string(3))
 
-			pools, err := csp.KubeClient().List(metav1.ListOptions{})
+			pools, err := csp.NewKubeClient().List(metav1.ListOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			nodeNames := csp.ListBuilder().WithAPIList(pools).List()
 			Expect(nodeNames.GetPoolUIDs()).

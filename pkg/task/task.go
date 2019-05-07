@@ -26,12 +26,14 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
+	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
 	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
+	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -414,6 +416,10 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchOEV1alpha1CVR()
 	} else if m.metaTaskExec.isPatchOEV1alpha1UR() {
 		err = m.patchUpgradeResult()
+	} else if m.metaTaskExec.isPatchOEV1alpha1SP() {
+		err = m.patchStoragePool()
+	} else if m.metaTaskExec.isPatchOEV1alpha1CSP() {
+		err = m.patchCstorPool()
 	} else if m.metaTaskExec.isList() {
 		err = m.listK8sResources()
 	} else if m.metaTaskExec.isGetStorageV1SC() {
@@ -710,6 +716,47 @@ func (m *taskExecutor) patchUpgradeResult() (err error) {
 	// patch Upgrade Result
 	p, err := upgraderesult.
 		KubeClient(upgraderesult.WithNamespace(m.getTaskRunNamespace())).
+		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, p, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchStoragePool will patch an StoragePool as defined in the task
+func (m *taskExecutor) patchStoragePool() (err error) {
+	// build a runtask patch instance
+	patch, err := patch.
+		BuilderForRuntask("StoragePool", m.runtask.Spec.Task, m.templateValues).
+		AddCheckf(patch.IsValidType(), "patch type is not valid").
+		Build()
+	if err != nil {
+		return
+	}
+
+	p, err := storagepool.
+		NewKubeClient().
+		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
+	if err != nil {
+		return
+	}
+	util.SetNestedField(m.templateValues, p, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchCstorPool will patch an CstorPool as defined in the task
+func (m *taskExecutor) patchCstorPool() (err error) {
+	patch, err := patch.
+		BuilderForRuntask("CstorPool", m.runtask.Spec.Task, m.templateValues).
+		AddCheckf(patch.IsValidType(), "patch type is not valid").
+		Build()
+	if err != nil {
+		return
+	}
+
+	p, err := cstorpool.
+		NewKubeClient().
 		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
 	if err != nil {
 		return

@@ -16,7 +16,9 @@ limitations under the License.
 
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+)
 
 // ListBuilder enables building an instance of
 // Podlist
@@ -60,7 +62,7 @@ func ListBuilderForObjectList(pods ...*Pod) *ListBuilder {
 // instances that was built by this
 // builder
 func (b *ListBuilder) List() *PodList {
-	if b.filters == nil && len(b.filters) == 0 {
+	if b.filters == nil || len(b.filters) == 0 {
 		return b.list
 	}
 	filtered := &PodList{}
