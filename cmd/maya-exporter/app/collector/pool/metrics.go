@@ -30,10 +30,10 @@ type metrics struct {
 
 	zpoolCommandErrorCounter            prometheus.Gauge
 	zpoolRejectRequestCounter           prometheus.Gauge
-	zpoolListparseErrorCounter          prometheus.Gauge
+	zpoolListParseErrorCounter          prometheus.Gauge
 	noPoolAvailableErrorCounter         prometheus.Gauge
-	incompleteOutputErrorCounter        prometheus.Gauge
-	initializeLibuzfsClientErrorCounter prometheus.Gauge
+	inCompleteOutputErrorCounter        prometheus.Gauge
+	initializeLibUZFSClientErrorCounter prometheus.Gauge
 }
 
 type statsFloat64 struct {
@@ -59,7 +59,7 @@ func (s *statsFloat64) List() []float64 {
 func parseFloat64(e string, m *metrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
-		m.zpoolListparseErrorCounter.Inc()
+		m.zpoolListParseErrorCounter.Inc()
 	}
 	return num
 }
@@ -128,7 +128,7 @@ func (m *metrics) withUsedCapacityPercent() *metrics {
 }
 
 func (m *metrics) withParseErrorCounter() *metrics {
-	m.zpoolListparseErrorCounter = prometheus.NewGauge(
+	m.zpoolListParseErrorCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "zpool_list_parse_error_count",
@@ -142,7 +142,7 @@ func (m *metrics) withRejectRequestCounter() *metrics {
 	m.zpoolRejectRequestCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
-			Name:      "zpool_reject_request_count",
+			Name:      "zpool_list_reject_request_count",
 			Help:      "Total no of rejected requests of zpool command",
 		},
 	)
@@ -153,7 +153,7 @@ func (m *metrics) withCommandErrorCounter() *metrics {
 	m.zpoolCommandErrorCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
-			Name:      "zpool_command_error",
+			Name:      "zpool_list_command_error",
 			Help:      "Total no of zpool command errors",
 		},
 	)
@@ -164,7 +164,7 @@ func (m *metrics) withNoPoolAvailableErrorCounter() *metrics {
 	m.noPoolAvailableErrorCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
-			Name:      "no_pool_available_error",
+			Name:      "zpool_list_no_pool_available_error",
 			Help:      "Total no of no pool available errors",
 		},
 	)
@@ -172,22 +172,22 @@ func (m *metrics) withNoPoolAvailableErrorCounter() *metrics {
 }
 
 func (m *metrics) withIncompleteOutputErrorCounter() *metrics {
-	m.incompleteOutputErrorCounter = prometheus.NewGauge(
+	m.inCompleteOutputErrorCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "zpool_list_incomplete_stdout_error",
-			Help:      "Total no of incomplete stdout of zpool list command errors",
+			Help:      "Total no of incomplete stdout errors",
 		},
 	)
 	return m
 }
 
 func (m *metrics) withInitializeLibuzfsClientErrorCounter() *metrics {
-	m.initializeLibuzfsClientErrorCounter = prometheus.NewGauge(
+	m.initializeLibUZFSClientErrorCounter = prometheus.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "zpool_list_failed_to_initialize_libuzfs_client_error_counter",
-			Help:      "Total no of failed to initialize libuzfs client error in zpool list command",
+			Help:      "Total no of initialize libuzfs client error",
 		},
 	)
 	return m

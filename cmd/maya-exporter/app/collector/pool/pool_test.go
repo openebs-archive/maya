@@ -90,7 +90,7 @@ func TestPoolCollector(t *testing.T) {
 		"Test5": {
 			zpoolOutput: zpool.NoPoolAvailable.String(),
 			expectedOutput: []string{
-				`openebs_no_pool_available_error 1`,
+				`openebs_zpool_list_no_pool_available_error 1`,
 			},
 		},
 		// incomplete stdout of zpool list command
@@ -104,7 +104,7 @@ func TestPoolCollector(t *testing.T) {
 		"Test7": {
 			isError: true,
 			expectedOutput: []string{
-				`openebs_zpool_command_error 1`,
+				`openebs_zpool_list_command_error 1`,
 			},
 		},
 		// if there is unexpected response

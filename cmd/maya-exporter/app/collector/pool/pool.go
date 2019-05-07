@@ -72,10 +72,10 @@ func (p *pool) collectors() []prometheus.Collector {
 		p.usedCapacityPercent,
 		p.zpoolCommandErrorCounter,
 		p.zpoolRejectRequestCounter,
-		p.zpoolListparseErrorCounter,
+		p.zpoolListParseErrorCounter,
 		p.noPoolAvailableErrorCounter,
-		p.incompleteOutputErrorCounter,
-		p.initializeLibuzfsClientErrorCounter,
+		p.inCompleteOutputErrorCounter,
+		p.initializeLibUZFSClientErrorCounter,
 	}
 }
 
@@ -102,8 +102,8 @@ func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 
 func (p *pool) checkError(stdout []byte, ch chan<- prometheus.Metric) error {
 	if zpool.IsNotInitialized(string(stdout)) {
-		p.initializeLibuzfsClientErrorCounter.Inc()
-		p.initializeLibuzfsClientErrorCounter.Collect(ch)
+		p.initializeLibUZFSClientErrorCounter.Inc()
+		p.initializeLibUZFSClientErrorCounter.Collect(ch)
 		return errors.New(zpool.InitializeLibuzfsClientErr.String())
 	}
 
@@ -137,8 +137,8 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		p.incompleteOutputErrorCounter.Inc()
-		p.incompleteOutputErrorCounter.Collect(ch)
+		p.inCompleteOutputErrorCounter.Inc()
+		p.inCompleteOutputErrorCounter.Collect(ch)
 		return zpoolStats, err
 	}
 
