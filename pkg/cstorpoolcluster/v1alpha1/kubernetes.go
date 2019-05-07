@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	apisv1beta1 "github.com/openebs/maya/pkg/apis/openebs.io/v1beta1"
+	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,15 +33,15 @@ type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Cli
 
 // listFn is a typed function that abstracts
 // listing of cstor pool
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error)
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error)
 
-type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error)
+type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error)
 
-type createFn func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error)
+type createFn func(cli *clientset.Clientset, spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error)
 
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error)
+type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1alpha1.CStorPoolCluster, error)
 
-type updateFn func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error)
+type updateFn func(cli *clientset.Clientset, spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error)
 
 // Kubeclient enables kubernetes API operations
 // on cstor storage pool instance
@@ -90,32 +90,32 @@ func (k *Kubeclient) WithDefaults() {
 	}
 
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().List(opts)
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error) {
+			return cli.OpenebsV1alpha1().CStorPoolClusters().List(opts)
 		}
 	}
 
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Get(name, opts)
+		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error) {
+			return cli.OpenebsV1alpha1().CStorPoolClusters().Get(name, opts)
 		}
 	}
 
 	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Create(spc)
+		k.create = func(cli *clientset.Clientset, spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+			return cli.OpenebsV1alpha1().CStorPoolClusters().Create(spc)
 		}
 	}
 
 	if k.update == nil {
-		k.update = func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Update(spc)
+		k.update = func(cli *clientset.Clientset, spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+			return cli.OpenebsV1alpha1().CStorPoolClusters().Update(spc)
 		}
 	}
 
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error) {
-			return nil, cli.OpenebsV1beta1().StoragePoolClaims().Delete(name, opts)
+		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1alpha1.CStorPoolCluster, error) {
+			return nil, cli.OpenebsV1alpha1().CStorPoolClusters().Delete(name, opts)
 		}
 	}
 }
@@ -170,7 +170,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of cstor pool
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1alpha1.CStorPoolClusterList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1beta1.StoragePoolClai
 }
 
 // Get returns a spc object
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1alpha1.CStorPoolCluster, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1beta1.Stor
 }
 
 // Create creates a spc object
-func (k *Kubeclient) Create(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
+func (k *Kubeclient) Create(spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -197,7 +197,7 @@ func (k *Kubeclient) Create(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.Sto
 }
 
 // Update updates a spc object
-func (k *Kubeclient) Update(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
+func (k *Kubeclient) Update(spc *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ func (k *Kubeclient) Update(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.Sto
 }
 
 // Delete deletes a spc object
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error) {
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apisv1alpha1.CStorPoolCluster, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
