@@ -34,6 +34,8 @@ type Interface interface {
 	CSIVolumes() CSIVolumeInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
+	// CStorPoolClusters returns a CStorPoolClusterInformer.
+	CStorPoolClusters() CStorPoolClusterInformer
 	// CStorRestores returns a CStorRestoreInformer.
 	CStorRestores() CStorRestoreInformer
 	// CStorVolumes returns a CStorVolumeInformer.
@@ -84,6 +86,11 @@ func (v *version) CSIVolumes() CSIVolumeInformer {
 // CStorPools returns a CStorPoolInformer.
 func (v *version) CStorPools() CStorPoolInformer {
 	return &cStorPoolInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorPoolClusters returns a CStorPoolClusterInformer.
+func (v *version) CStorPoolClusters() CStorPoolClusterInformer {
+	return &cStorPoolClusterInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorRestores returns a CStorRestoreInformer.
