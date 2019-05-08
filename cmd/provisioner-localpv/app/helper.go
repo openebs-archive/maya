@@ -28,6 +28,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	mContainer "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	mPod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	mVolume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -108,41 +111,42 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 	//parentDir = strings.TrimSuffix(parentDir, "/")
 	//volumeDir = strings.TrimSuffix(volumeDir, "/")
 
-	//hostPathType := v1.HostPathDirectoryOrCreate
-	//TODO Convert the following into an builder pattern
-	helperPod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "cleanup-" + name,
-		},
-		Spec: v1.PodSpec{
-			RestartPolicy: v1.RestartPolicyNever,
-			NodeName:      node,
-			Containers: []v1.Container{
-				{
-					Name:    "local-path-cleanup",
-					Image:   p.helperImage,
-					Command: append(cmdsForPath, filepath.Join("/data/", volumeDir)),
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      "data",
-							ReadOnly:  false,
-							MountPath: "/data/",
-						},
-					},
-				},
+	conObj, err := mContainer.Builder().
+		WithName("local-path-cleanup").
+		WithImage(p.helperImage).
+		WithCommand(append(cmdsForPath, filepath.Join("/data/", volumeDir))).
+		WithVolumeMounts([]v1.VolumeMount{
+			{
+				Name:      "data",
+				ReadOnly:  false,
+				MountPath: "/data/",
 			},
-			Volumes: []v1.Volume{
-				{
-					Name: "data",
-					VolumeSource: v1.VolumeSource{
-						HostPath: &v1.HostPathVolumeSource{
-							Path: parentDir,
-							//Type: &hostPathType,
-						},
-					},
-				},
-			},
-		},
+		}).
+		Build()
+	if err != nil {
+		return err
+	}
+	containers := []v1.Container{conObj}
+
+	volObj, err := mVolume.NewBuilder().
+		WithName("data").
+		WithHostDirectory(parentDir).
+		Build()
+	if err != nil {
+		return err
+	}
+
+	volumes := []v1.Volume{*volObj}
+
+	helperPod, err := mPod.NewBuilder().
+		WithName("cleanup-" + name).
+		WithRestartPolicy(v1.RestartPolicyNever).
+		WithNodeName(node).
+		WithContainers(containers).
+		WithVolumes(volumes).
+		Build()
+	if err != nil {
+		return err
 	}
 
 	//Launch the cleanup pod.

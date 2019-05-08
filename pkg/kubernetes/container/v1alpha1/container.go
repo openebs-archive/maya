@@ -192,3 +192,16 @@ func WithArguments(args []string) OptionFunc {
 		c.Args = args
 	}
 }
+
+// WithArguments sets the command arguments of the container
+func (b *builder) WithVolumeMounts(args []corev1.VolumeMount) *builder {
+	WithVolumeMounts(args)(b.con)
+	return b
+}
+
+// WithVolumeMounts sets the volume mounts of the container
+func WithVolumeMounts(volumeMounts []corev1.VolumeMount) OptionFunc {
+	return func(c *container) {
+		c.VolumeMounts = volumeMounts
+	}
+}
