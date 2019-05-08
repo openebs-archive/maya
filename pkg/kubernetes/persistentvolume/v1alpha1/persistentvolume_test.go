@@ -30,17 +30,3 @@ func fakeAPIPVList(pvNames []string) *corev1.PersistentVolumeList {
 	}
 	return list
 }
-
-func fakeAPIPVListFromNameStatusMap(pvs map[string]corev1.PersistentVolumePhase) *corev1.PersistentVolumeList {
-	if len(pvs) == 0 {
-		return nil
-	}
-	list := &corev1.PersistentVolumeList{}
-	for k, v := range pvs {
-		pv := corev1.PersistentVolume{}
-		pv.SetName(k)
-		pv.Status.Phase = v
-		list.Items = append(list.Items, pv)
-	}
-	return list
-}

@@ -50,7 +50,7 @@ func StartProvisioner() (*cobra.Command, error) {
 	}
 
 	// Hack: Without the following line, the logs will be prefixed with Error
-	flag.CommandLine.Parse([]string{})
+	_ = flag.CommandLine.Parse([]string{})
 
 	return cmd, nil
 }

@@ -63,7 +63,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	return b
 }
 
-// WithAccessModes sets the AccessMode field in PV with provided arguments
+// WithReclaimPolicy sets the PV ReclaimPolicy field with provided argument
 func (b *Builder) WithReclaimPolicy(reclaimPolicy corev1.PersistentVolumeReclaimPolicy) *Builder {
 	b.pv.object.Spec.PersistentVolumeReclaimPolicy = reclaimPolicy
 	return b
