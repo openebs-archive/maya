@@ -39,6 +39,7 @@ import (
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
 	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	api_apps_v1 "k8s.io/api/apps/v1"
@@ -350,7 +351,7 @@ func (m *executor) retryOnVerificationError() (err error) {
 		}
 
 		// current verify error
-		err, _ = verifyErr.(*template.VerifyError)
+		err, _ = verifyErr.(*templatefuncs.VerifyError)
 
 		if i != retryAttempts {
 			glog.Warningf(
@@ -419,7 +420,7 @@ func (m *executor) postExecuteIt() (err error) {
 			m.getTaskIdentity(),
 			verMismatchErr,
 		)
-		err, _ = verMismatchErr.(*template.VersionMismatchError)
+		err, _ = verMismatchErr.(*templatefuncs.VersionMismatchError)
 		return
 	}
 
@@ -433,7 +434,7 @@ func (m *executor) postExecuteIt() (err error) {
 			m.getTaskIdentity(),
 			notFoundErr,
 		)
-		err, _ = notFoundErr.(*template.NotFoundError)
+		err, _ = notFoundErr.(*templatefuncs.NotFoundError)
 		return
 	}
 

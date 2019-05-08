@@ -24,7 +24,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"github.com/openebs/maya/pkg/template"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -270,7 +270,7 @@ func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err
 	glog.Warningf("%+v: failed to execute runtasks", err)
 	m.rollback()
 
-	if template.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
+	if templatefuncs.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
 		newvalues := values
 		return m.fallback(newvalues)
 	}
