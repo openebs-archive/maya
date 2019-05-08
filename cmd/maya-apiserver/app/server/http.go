@@ -30,8 +30,9 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
@@ -372,7 +373,7 @@ func CodedErrorWrapf(code int, err error, msg string, args ...interface{}) HTTPC
 // CodedErrorWrap is used to provide HTTP error
 // Code and corresponding error
 func CodedErrorWrap(code int, err error) HTTPCodedError {
-	errMsg := fmt.Sprintf("error: {%s}", err)
+	errMsg := fmt.Sprintf("{%+v}", err)
 	return CodedError(code, errMsg)
 }
 
@@ -380,7 +381,7 @@ func CodedErrorWrap(code int, err error) HTTPCodedError {
 // Code and corresponding error details in
 // a format decided by the caller
 func CodedErrorf(code int, msg string, args ...interface{}) HTTPCodedError {
-	errMsg := fmt.Sprintf("error: {%s}", msg)
+	errMsg := fmt.Sprintf("{%s}", msg)
 	finalMsg := fmt.Sprintf(errMsg, args...)
 	return CodedError(code, finalMsg)
 }
@@ -402,7 +403,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		reqURL := req.URL.String()
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
+			glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
 		}()
 
 		// It captures the no of requests and duration of request coming on "/latest/volumes" endpoint.
@@ -420,7 +421,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 			RequestCounter.WithLabelValues(strconv.Itoa(code), req.Method).Inc()
 		}()
 
-		s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
+		glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
 		// Original handler is invoked
 		obj, err := handler(resp, req)
 
@@ -428,7 +429,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		// Below err block for re-usability
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v %v, error: %v", req.Method, reqURL, err)
+			s.logger.Printf("[ERR] http: Request %v %v\n%v", req.Method, reqURL, err)
 			code = 500
 			if http, ok := err.(HTTPCodedError); ok {
 				code = http.Code()

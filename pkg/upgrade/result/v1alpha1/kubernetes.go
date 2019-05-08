@@ -83,16 +83,19 @@ func (k *kubeclient) withDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
+
 	if k.list == nil {
 		k.list = func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
 			return cs.OpenebsV1alpha1().UpgradeResults(namespace).List(opts)
 		}
 	}
+
 	if k.get == nil {
-		k.get = func(cs *clientset.Clientset, name string, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+		k.get = func(cs *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
 			return cs.OpenebsV1alpha1().UpgradeResults(namespace).Get(name, opts)
 		}
 	}
+
 	if k.create == nil {
 		k.create = func(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResult,
 			namespace string) (*apis.UpgradeResult, error) {
@@ -101,6 +104,7 @@ func (k *kubeclient) withDefaults() {
 				Create(upgradeResultObj)
 		}
 	}
+
 	if k.patch == nil {
 		k.patch = func(cs *clientset.Clientset, name string,
 			pt types.PatchType, patchObj []byte,

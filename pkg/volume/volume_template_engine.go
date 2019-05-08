@@ -22,7 +22,7 @@ import (
 
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
 // volumeEngine is capable of executing CAS volume
@@ -72,21 +72,21 @@ func NewVolumeEngine(
 	// fetch CAS config from  PersistentVolumeClaim
 	casConfPVC, err := cast.UnMarshallToConfig(casConfigPVC)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to instantiate volume engine: invalid pvc cas config: %s", casConfigPVC)
+		err = errors.Wrapf(errors.WithStack(err), "failed to instantiate volume engine: invalid pvc cas config: %s", casConfigPVC)
 		return
 	}
 
 	// CAS config from StorageClass
 	casConfSC, err := cast.UnMarshallToConfig(casConfigSC)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to instantiate volume engine: invalid sc cas config: %s", casConfigSC)
+		err = errors.Wrapf(errors.WithStack(err), "failed to instantiate volume engine: invalid sc cas config: %s", casConfigSC)
 		return
 	}
 
 	// make use of the generic CAS template engine
 	cEngine, err := cast.Engine(castObj, key, volumeValues)
 	if err != nil {
-		err = errors.Wrapf(err, "failed to instantiate volume engine")
+		err = errors.Wrapf(errors.WithStack(err), "failed to instantiate volume engine")
 		return
 	}
 
