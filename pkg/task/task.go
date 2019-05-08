@@ -31,6 +31,7 @@ import (
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	deploy_extnv1beta1 "github.com/openebs/maya/pkg/kubernetes/deployment/extnv1beta1/v1alpha1"
 	patch "github.com/openebs/maya/pkg/kubernetes/patch/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
 	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
@@ -378,6 +379,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getExtnV1B1Deployment()
 	} else if m.metaTaskExec.isGetExtnV1B1ReplicaSet() {
 		err = m.getExtnV1B1ReplicaSet()
+	} else if m.metaTaskExec.isGetCoreV1Pod() {
+		err = m.getCoreV1Pod()
 	} else if m.metaTaskExec.isDeleteAppsV1B1Deploy() {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.metaTaskExec.isDeleteCoreV1Service() {
@@ -1119,6 +1122,19 @@ func (m *taskExecutor) getBatchV1Job() (err error) {
 		return
 	}
 	util.SetNestedField(m.templateValues, job, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getCoreV1Pod will get the Pod as specified in the RunTask
+func (m *taskExecutor) getCoreV1Pod() (err error) {
+	podClient := pod.NewKubeClient(pod.WithNamespace(m.getTaskRunNamespace()))
+
+	pod, err := podClient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, pod, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
