@@ -98,7 +98,7 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
 include ./buildscripts/provisioner-localpv/Makefile.mk
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-local-pv-image
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
