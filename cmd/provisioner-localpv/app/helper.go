@@ -81,9 +81,9 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node s
 }
 
 // createCleanupPod launches a helper(busybox) pod, to delete the host path.
-//  This porivsioner expects that the host paths are created using
+//  This provisioner expects that the host paths are created using
 //  an unique PV path - under a given BasePath. From the absolute path,
-//  it extracs the base path and the PV path. The helper pod is then launched
+//  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node string) (err error) {
 	defer func() {

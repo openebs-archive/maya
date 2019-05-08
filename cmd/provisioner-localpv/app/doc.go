@@ -38,7 +38,7 @@ While the Kubernetes Local PVs are mainly recommended for cases where a complete
 storage device should be assigned to a Pod. OpenEBS Dynamic Local PV provisioner
 will help provisioning the Local PVs dynamically by integrating into the features
 offered by OpenEBS Node Storage Device Manager, and also offers the
-flexibilty to either select a complete storage device or
+flexibility to either select a complete storage device or
 a hostpath (or subpath) directory.
 
 Infact in some cases, the Kubernetes nodes may have limited number of storage
@@ -82,7 +82,7 @@ metadata:
       # should be created.
       # (Default)
       - name: BasePath
-        value: "/var/openebs"
+        value: "/var/openebs/local"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
@@ -131,7 +131,7 @@ spec:
     resourceVersion: "2060"
     uid: 2fe08284-6cf1-11e9-be8b-42010a800155
   hostPath:
-    path: /var/openebs/pvc-2fe08284-6cf1-11e9-be8b-42010a800155
+    path: /var/openebs/local/pvc-2fe08284-6cf1-11e9-be8b-42010a800155
     type: DirectoryOrCreate
   nodeAffinity:
     required:
@@ -163,7 +163,7 @@ Implementation Details:
     vice versa. (Note: In the initial version, only `waitForConsumer` is
     supported.)
 (d) When using the hostpath, the administrator can select the location using:
-    - BasePath: By default, the hostpath volumes will be created under `/var/openebs`.
+    - BasePath: By default, the hostpath volumes will be created under `/var/openebs/local`.
       This default path can be changed by passing the "OPENEBS_IO_BASE_PATH" ENV
       variable to the Hostpath Provisioner Pod. It is also possible to specify
       a different location using the CAS Policy `BasePath` in the StorageClass.

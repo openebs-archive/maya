@@ -43,6 +43,7 @@ func TestGetOpenEBSNamespace(t *testing.T) {
 	}
 
 	for k, v := range testCases {
+		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
 				os.Setenv(string(menv.OpenEBSNamespace), v.value)
@@ -76,6 +77,7 @@ func TestGetDefaultHelperImage(t *testing.T) {
 	}
 
 	for k, v := range testCases {
+		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
 				os.Setenv(string(ProvisionerHelperImage), v.value)
@@ -109,6 +111,7 @@ func TestGetDefaultBasePath(t *testing.T) {
 	}
 
 	for k, v := range testCases {
+		v := v
 		t.Run(k, func(t *testing.T) {
 			if len(v.value) != 0 {
 				os.Setenv(string(ProvisionerBasePath), v.value)

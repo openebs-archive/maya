@@ -59,7 +59,7 @@ const (
 	betaStorageClassAnnotation = "volume.beta.kubernetes.io/storage-class"
 )
 
-//getVolumeConfig creates a new VolumeConfig struct by
+//GetVolumeConfig creates a new VolumeConfig struct by
 // parsing and merging the configuration provided in the PVC
 // annotation - cas.openebs.io/config with the
 // default configuration of the provisioner.

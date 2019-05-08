@@ -36,7 +36,7 @@ func fakeDefaultConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*Volum
 		options: map[string]interface{}{
 			KeyPVBasePath: map[string]string{
 				"enabled": "true",
-				"value":   "/var/openebs",
+				"value":   "/var/openebs/local",
 			},
 		},
 	}
@@ -58,9 +58,9 @@ func fakeValidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeC
 	return c, nil
 }
 
-func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
-	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
-}
+//func fakeInvalidConfigParser(path string, pvc *v1.PersistentVolumeClaim) (*VolumeConfig, error) {
+//	return nil, fmt.Errorf("failed to read configuration for pvc %v", path)
+//}
 
 //func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.PersistentVolume, error) {
 func TestProvision(t *testing.T) {
@@ -91,7 +91,7 @@ func TestProvision(t *testing.T) {
 				},
 			},
 			getVolumeConfig: fakeDefaultConfigParser,
-			expectValue:     "/var/openebs/pvName",
+			expectValue:     "/var/openebs/local/pvName",
 			expectError:     false,
 		},
 		"Custom Base Path": {
@@ -145,6 +145,7 @@ func TestProvision(t *testing.T) {
 	}
 
 	for k, v := range testCases {
+		v := v
 		t.Run(k, func(t *testing.T) {
 			p := &Provisioner{}
 			p.getVolumeConfig = v.getVolumeConfig

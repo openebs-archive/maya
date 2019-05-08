@@ -41,7 +41,7 @@ const (
 
 var (
 	defaultHelperImage = "quay.io/openebs/openebs-tools:3.8"
-	defaultBasePath    = "/var/openebs"
+	defaultBasePath    = "/var/openebs/local"
 )
 
 func getOpenEBSNamespace() string {
