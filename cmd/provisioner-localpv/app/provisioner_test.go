@@ -17,7 +17,7 @@ limitations under the License.
 package app
 
 import (
-	"fmt"
+	//"fmt"
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	//mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	//"github.com/pkg/errors"
@@ -165,6 +165,15 @@ func TestProvision(t *testing.T) {
 				t.Errorf("expected not to get pv, but got %v", err)
 				return
 			}
+			if err == nil && pv == nil {
+				t.Errorf("expected pv, but got nil")
+				return
+			}
+			if err == nil && pv.Spec.HostPath == nil {
+				t.Errorf("expected pv.Spec.HostPath, but got nil %v", pv)
+				return
+			}
+
 			actualValue := pv.Spec.PersistentVolumeSource.HostPath.Path
 			if !v.expectError && !reflect.DeepEqual(actualValue, v.expectValue) {
 				t.Errorf("expected %s got %s", v.expectValue, actualValue)

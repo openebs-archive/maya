@@ -13,10 +13,10 @@ metadata:
     cas.openebs.io/config: |
       #- name: StorageType
       #  value: "storage-device"
-      - name: storage-type
+      - name: StorageType
         value: "hostpath"
       - name: BasePath
-        value: "/var/openebs"
+        value: "/var/openebs-hp"
 provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete

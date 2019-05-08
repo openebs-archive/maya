@@ -40,8 +40,9 @@ import (
 
 	pvController "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	mPV "github.com/openebs/maya/pkg/kubernetes/persistentvolume/v1alpha1"
 	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 )
 
@@ -130,7 +131,7 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 
 	// It is possible that the HostPath doesn't already exist on the node.
 	// Set the Local PV to create it.
-	hostPathType := v1.HostPathDirectoryOrCreate
+	//hostPathType := v1.HostPathDirectoryOrCreate
 
 	// TODO initialize the Labels and annotations
 	// Use annotations to specify the context using which the PV was created.
@@ -143,44 +144,22 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	//labels[string(v1alpha1.StorageClassKey)] = *className
 
 	//TODO Change the following to a builder pattern
-	return &v1.PersistentVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-			//Annotations: volAnnotations,
-			//Labels:      labels,
-		},
-		Spec: v1.PersistentVolumeSpec{
-			PersistentVolumeReclaimPolicy: opts.PersistentVolumeReclaimPolicy,
-			AccessModes:                   pvc.Spec.AccessModes,
-			VolumeMode:                    &fs,
-			Capacity: v1.ResourceList{
-				v1.ResourceName(v1.ResourceStorage): pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)],
-			},
-			PersistentVolumeSource: v1.PersistentVolumeSource{
-				HostPath: &v1.HostPathVolumeSource{
-					Path: path,
-					Type: &hostPathType,
-				},
-			},
-			NodeAffinity: &v1.VolumeNodeAffinity{
-				Required: &v1.NodeSelector{
-					NodeSelectorTerms: []v1.NodeSelectorTerm{
-						{
-							MatchExpressions: []v1.NodeSelectorRequirement{
-								{
-									Key:      KeyNode,
-									Operator: v1.NodeSelectorOpIn,
-									Values: []string{
-										node.Name,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}, nil
+	pvObj, err := mPV.NewBuilder().
+		WithName(name).
+		WithReclaimPolicy(opts.PersistentVolumeReclaimPolicy).
+		WithAccessModes(pvc.Spec.AccessModes).
+		WithVolumeMode(fs).
+		WithCapacityQty(pvc.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]).
+		WithHostDirectory(path).
+		WithNodeAffinity(node.Name).
+		Build()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pvObj, nil
+
 }
 
 // Delete is invoked by the PVC controller to perform clean-up
