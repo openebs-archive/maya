@@ -137,9 +137,7 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 // ExecutorBuilder instance
 func (eb *ExecutorBuilder) Build() (*Executor, error) {
 	if len(eb.Errors) != 0 {
-		return nil, errors.Wrap(
-			errors.WithStack(eb.ErrorList),
-			"builder error(s) found")
+		return nil, eb.ErrorList.WithStack("failed to build executor")
 	}
 	return eb.object, nil
 }

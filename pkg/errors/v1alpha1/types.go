@@ -160,3 +160,29 @@ func (el *ErrorList) Format(s fmt.State, verb rune) {
 	fmt.Fprint(s, message)
 
 }
+
+// WithStack annotates ErrorList with a new message and
+// stack trace of caller.
+func (el *ErrorList) WithStack(message string) error {
+	if el == nil {
+		return nil
+	}
+	return &withStack{
+		stackTraceMessagePrefix,
+		Wrap(el, message),
+		callers(),
+	}
+}
+
+// WithStackf annotates ErrorList with the format specifier
+// and stack trace of caller.
+func (el *ErrorList) WithStackf(format string, args ...interface{}) error {
+	if el == nil {
+		return nil
+	}
+	return &withStack{
+		stackTraceMessagePrefix,
+		Wrapf(el, format, args...),
+		callers(),
+	}
+}

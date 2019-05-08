@@ -85,25 +85,21 @@ func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
 // validate will run checks against UpgradeConfig instance
 func (cb *ConfigBuilder) validate() error {
 	if len(cb.Errors) != 0 {
-		return errors.Wrap(
-			errors.WithStack(cb.ErrorList),
-			"build error(s) were found")
+		return cb.ErrorList.WithStack("failed to build upgrade config")
 	}
-	validationErrs := []error{}
+	validationErrs := &errors.ErrorList{}
 	for cond := range cb.checks {
 		pass := (*cond)(cb.Config)
 		if !pass {
-			validationErrs = append(validationErrs,
+			validationErrs.Errors = append(validationErrs.Errors,
 				errors.Errorf("validation failed: %s", cb.checks[cond]))
 		}
 	}
-	if len(validationErrs) == 0 {
+	if len(validationErrs.Errors) == 0 {
 		return nil
 	}
-	cb.Errors = append(cb.Errors, validationErrs...)
-	return errors.Wrap(
-		errors.WithStack(&errors.ErrorList{Errors: validationErrs}),
-		"validation errors were found")
+	cb.Errors = append(cb.Errors, validationErrs.Errors...)
+	return validationErrs.WithStack("failed to validate upgrade config")
 }
 
 // NewConfigBuilder returns a new instance of ConfigBuilder

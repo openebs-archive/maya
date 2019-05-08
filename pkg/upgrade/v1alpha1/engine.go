@@ -112,9 +112,7 @@ func (ceb *CASTEngineBuilder) validate() error {
 		return errors.New("missing upgrade result")
 	}
 	if len(ceb.Errors) > 0 {
-		return errors.Wrap(
-			errors.WithStack(ceb.ErrorList),
-			"build errors were found")
+		return ceb.ErrorList.WithStack("failed to build cast engine")
 	}
 	return nil
 }

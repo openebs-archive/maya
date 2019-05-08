@@ -121,40 +121,36 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithTasks(
 // validate validates UpgradeResultGetOrCreateBuilder instance
 func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 	if len(urb.ErrorList.Errors) != 0 {
-		return errors.Wrap(
-			errors.WithStack(urb.ErrorList),
-			"failed to validate: build error(s) were found")
+		return urb.ErrorList.WithStack("failed to validate upgrade result get or create")
 	}
-	validationErrs := []error{}
+	validationErrs := &errors.ErrorList{}
 	if urb.SelfName == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self name"))
 	}
 	if urb.SelfNamespace == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self namespace"))
 	}
 	if urb.SelfUID == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self uid"))
 	}
 	if urb.UpgradeConfig == nil {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing upgrade config"))
 	}
 	if urb.ResourceDetails == nil {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing resource details"))
 	}
 	if len(urb.Tasks) == 0 {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing tasks"))
 	}
-	if len(validationErrs) != 0 {
-		urb.Errors = append(urb.Errors, validationErrs...)
-		return errors.Wrap(
-			errors.WithStack(&errors.ErrorList{Errors: validationErrs}),
-			"validation error(s) found")
+	if len(validationErrs.Errors) != 0 {
+		urb.Errors = append(urb.Errors, validationErrs.Errors...)
+		return validationErrs.WithStack("failed to validate get or create upgrade result")
 	}
 	return nil
 }
