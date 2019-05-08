@@ -23,10 +23,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/volume"
-	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -131,7 +131,7 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 	vol := &v1alpha1.CASVolume{}
 	err := decodeBody(v.req, vol)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to create volume")
+		return nil, CodedErrorWrap(400, errors.Wrap(err, "failed to create volume"))
 	}
 
 	// volume name is expected
@@ -146,12 +146,12 @@ func (v *volumeAPIOpsV1alpha1) create() (*v1alpha1.CASVolume, error) {
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to create volume: failed to init volume operation: %s", vol)
+		return nil, CodedErrorWrap(400, errors.Wrapf(err, "failed to create volume: failed to init volume operation: %s", vol))
 	}
 
 	cvol, err := vOps.Create()
 	if err != nil {
-		return nil, CodedErrorWrapf(500, err, "failed to create volume: %s", vol)
+		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to create volume: %s", vol))
 	}
 
 	glog.Infof("volume '%s' created successfully", cvol.Name)
@@ -192,15 +192,15 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to read volume: failed to init volume operation: %s", vol)
+		return nil, CodedErrorWrap(400, errors.Wrapf(err, "failed to read volume: failed to init volume operation: %s", vol))
 	}
 
 	cvol, err := vOps.Read()
 	if err != nil {
 		if isNotFound(err) {
-			return nil, CodedErrorWrapf(404, err, "failed to read volume: volume '%s' not found: %s", vol.Name, vol)
+			return nil, CodedErrorWrap(404, errors.Wrapf(err, "failed to read volume: volume {%s} not found in namspace: {%s}", vol.Name, vol.Namespace))
 		}
-		return nil, CodedErrorWrapf(500, err, "failed to read volume: %s", vol)
+		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to read volume: %s", vol))
 	}
 
 	glog.Infof("volume '%s' read successfully", cvol.Name)
@@ -234,15 +234,15 @@ func (v *volumeAPIOpsV1alpha1) delete(volumeName string) (*v1alpha1.CASVolume, e
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to delete volume: failed to init volume operation: %s", vol)
+		return nil, CodedErrorWrap(400, errors.Wrapf(err, "failed to delete volume: failed to init volume operation: %s", vol))
 	}
 
 	cvol, err := vOps.Delete()
 	if err != nil {
 		if isNotFound(err) {
-			return nil, CodedErrorWrapf(404, err, "failed to delete volume: volume '%s' not found: %s", vol.Name, vol)
+			return nil, CodedErrorWrap(404, errors.Wrapf(err, "failed to delete volume: volume {%s} not found in namespace: {%s}", vol.Name, vol.Namespace))
 		}
-		return nil, CodedErrorWrapf(500, err, "failed to delete volume: %s", vol)
+		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to delete volume: %s", vol))
 	}
 
 	glog.Infof("volume '%s' deleted successfully", cvol.Name)
@@ -269,12 +269,12 @@ func (v *volumeAPIOpsV1alpha1) list() (*v1alpha1.CASVolumeList, error) {
 
 	vOps, err := volume.NewListOperation(vols)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to list volumes: failed to init volume operation: %s", vols)
+		return nil, CodedErrorWrap(400, errors.Wrapf(err, "failed to list volumes: failed to init volume operation: %s", vols))
 	}
 
 	cvols, err := vOps.List()
 	if err != nil {
-		return nil, CodedErrorWrapf(500, err, "failed to list volumes: %s", vols)
+		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to list volumes: %s", vols))
 	}
 
 	glog.Infof("volumes listed successfully for namespace(s) {%s}", vols.Namespace)
@@ -314,15 +314,15 @@ func (v *volumeAPIOpsV1alpha1) readStats(volumeName string) (interface{}, error)
 
 	vOps, err := volume.NewOperation(vol)
 	if err != nil {
-		return nil, CodedErrorWrapf(400, err, "failed to read volume stats: failed to init volume operation: %s", vol)
+		return nil, CodedErrorWrap(400, errors.Wrapf(err, "failed to read volume stats: failed to init volume operation: %s", vol))
 	}
 
 	stats, err := vOps.ReadStats()
 	if err != nil {
 		if isNotFound(err) {
-			return nil, CodedErrorWrapf(404, err, "failed to read volume stats: volume not found: %s", vol)
+			return nil, CodedErrorWrap(404, errors.Wrapf(err, "failed to read volume stats: volume {%s} not found in namespace {%s}", vol.Name, vol.Namespace))
 		}
-		return nil, CodedErrorWrapf(500, err, "failed to read volume stats: %s", vol)
+		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to read volume stats: %s", vol))
 	}
 
 	// pipelining the response

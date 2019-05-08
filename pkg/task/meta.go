@@ -169,7 +169,8 @@ type MetaTaskSpec struct {
 	RepeatWith RepeatWithResource `json:"repeatWith"`
 }
 
-type metaTaskExecutor struct {
+// MetaExecutor ...
+type MetaExecutor struct {
 	// metaTask holds the task's meta information
 	metaTask MetaTaskSpec
 	// identifier exposes a task's identity related operations
@@ -210,8 +211,8 @@ func getMetaInstances(metaTaskYml string, values map[string]interface{}) (m Meta
 	return
 }
 
-// newMetaTaskExecutor provides a new instance of metaTaskExecutor
-func newMetaTaskExecutor(metaTaskYml string, values map[string]interface{}) (*metaTaskExecutor, error) {
+// NewMetaExecutor provides a new instance of MetaExecutor
+func NewMetaExecutor(metaTaskYml string, values map[string]interface{}) (*MetaExecutor, error) {
 
 	m, i, r, err := getMetaInstances(metaTaskYml, values)
 	if err != nil {
@@ -223,7 +224,7 @@ func newMetaTaskExecutor(metaTaskYml string, values map[string]interface{}) (*me
 		return nil, err
 	}
 
-	return &metaTaskExecutor{
+	return &MetaExecutor{
 		metaTask:   m,
 		identifier: i,
 		repeater:   r,
@@ -231,39 +232,39 @@ func newMetaTaskExecutor(metaTaskYml string, values map[string]interface{}) (*me
 	}, nil
 }
 
-func (m *metaTaskExecutor) getMetaInfo() MetaTaskSpec {
+func (m *MetaExecutor) getMetaInfo() MetaTaskSpec {
 	return m.metaTask
 }
 
-func (m *metaTaskExecutor) getRepeatExecutor() repeatExecutor {
+func (m *MetaExecutor) getRepeatExecutor() repeatExecutor {
 	return m.repeater
 }
 
-func (m *metaTaskExecutor) isDisabled() bool {
+func (m *MetaExecutor) isDisabled() bool {
 	return m.metaTask.Disable
 }
 
-func (m *metaTaskExecutor) getIdentity() string {
+func (m *MetaExecutor) getIdentity() string {
 	return m.metaTask.Identity
 }
 
-func (m *metaTaskExecutor) getTaskIdentity() MetaTaskIdentity {
+func (m *MetaExecutor) getTaskIdentity() MetaTaskIdentity {
 	return m.metaTask.MetaTaskIdentity
 }
 
-func (m *metaTaskExecutor) getObjectName() string {
+func (m *MetaExecutor) getObjectName() string {
 	return m.metaTask.ObjectName
 }
 
-func (m *metaTaskExecutor) getRunNamespace() string {
+func (m *MetaExecutor) getRunNamespace() string {
 	return m.metaTask.RunNamespace
 }
 
-func (m *metaTaskExecutor) getK8sClient() *m_k8s_client.K8sClient {
+func (m *MetaExecutor) getK8sClient() *m_k8s_client.K8sClient {
 	return m.k8sClient
 }
 
-func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
+func (m *MetaExecutor) getRetry() (attempts int, interval time.Duration) {
 	retry := m.metaTask.Retry
 	// "attempts,interval" format
 	defRetry := "0,0s"
@@ -288,278 +289,278 @@ func (m *metaTaskExecutor) getRetry() (attempts int, interval time.Duration) {
 }
 
 // getListOptions unmarshall the options in yaml doc format into meta.ListOptions
-func (m *metaTaskExecutor) getListOptions() (opts mach_apis_meta_v1.ListOptions, err error) {
+func (m *MetaExecutor) getListOptions() (opts mach_apis_meta_v1.ListOptions, err error) {
 	err = yaml.Unmarshal([]byte(m.metaTask.Options), &opts)
 	return
 }
 
-func (m *metaTaskExecutor) isCommand() bool {
+func (m *MetaExecutor) isCommand() bool {
 	return m.identifier.isCommand()
 }
 
-func (m *metaTaskExecutor) isList() bool {
+func (m *MetaExecutor) isList() bool {
 	return m.metaTask.Action == ListTA
 }
 
-func (m *metaTaskExecutor) isGet() bool {
+func (m *MetaExecutor) isGet() bool {
 	return m.metaTask.Action == GetTA
 }
 
-func (m *metaTaskExecutor) isPut() bool {
+func (m *MetaExecutor) isPut() bool {
 	return m.metaTask.Action == PutTA
 }
 
-func (m *metaTaskExecutor) isDelete() bool {
+func (m *MetaExecutor) isDelete() bool {
 	return m.metaTask.Action == DeleteTA
 }
 
-func (m *metaTaskExecutor) isPatch() bool {
+func (m *MetaExecutor) isPatch() bool {
 	return m.metaTask.Action == PatchTA
 }
 
-func (m *metaTaskExecutor) isExec() bool {
+func (m *MetaExecutor) isExec() bool {
 	return m.metaTask.Action == ExecTA
 }
 
-func (m *metaTaskExecutor) isRolloutstatus() bool {
+func (m *MetaExecutor) isRolloutstatus() bool {
 	return m.metaTask.Action == RolloutstatusTA
 }
 
-func (m *metaTaskExecutor) isPutExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isPutExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutBatchV1Job() bool {
+func (m *MetaExecutor) isPutBatchV1Job() bool {
 	return m.identifier.isBatchV1Job() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutAppsV1STS() bool {
+func (m *MetaExecutor) isPutAppsV1STS() bool {
 	return m.identifier.isAppsV1STS() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPatchExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isPatchExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPutAppsV1B1Deploy() bool {
+func (m *MetaExecutor) isPutAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1SPC() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1SPC() bool {
 	return m.identifier.isStoragePoolClaim() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1CSPC() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1CSPC() bool {
 	return m.identifier.isCStorPoolCluster() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPatchAppsV1B1Deploy() bool {
+func (m *MetaExecutor) isPatchAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPutCoreV1Service() bool {
+func (m *MetaExecutor) isPutCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPatchCoreV1Service() bool {
+func (m *MetaExecutor) isPatchCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isDeleteExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isDeleteExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteExtnV1B1ReplicaSet() bool {
+func (m *MetaExecutor) isDeleteExtnV1B1ReplicaSet() bool {
 	return m.identifier.isExtnV1B1ReplicaSet() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteAppsV1B1Deploy() bool {
+func (m *MetaExecutor) isDeleteAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteCoreV1Service() bool {
+func (m *MetaExecutor) isDeleteCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isListCoreV1PVC() bool {
+func (m *MetaExecutor) isListCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListCoreV1PV() bool {
+func (m *MetaExecutor) isListCoreV1PV() bool {
 	return m.identifier.isCoreV1PV() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListCoreV1Pod() bool {
+func (m *MetaExecutor) isListCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListCoreV1Service() bool {
+func (m *MetaExecutor) isListCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isListExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListExtnV1B1ReplicaSet() bool {
+func (m *MetaExecutor) isListExtnV1B1ReplicaSet() bool {
 	return m.identifier.isExtnV1B1ReplicaSet() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListAppsV1B1Deploy() bool {
+func (m *MetaExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
 
-func (m *metaTaskExecutor) isGetStorageV1SC() bool {
+func (m *MetaExecutor) isGetStorageV1SC() bool {
 	return m.identifier.isStorageV1SC() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetBatchV1Job() bool {
+func (m *MetaExecutor) isGetBatchV1Job() bool {
 	return m.identifier.isBatchV1Job() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isGetExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetExtnV1B1ReplicaSet() bool {
+func (m *MetaExecutor) isGetExtnV1B1ReplicaSet() bool {
 	return m.identifier.isExtnV1B1ReplicaSet() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isDeleteBatchV1Job() bool {
+func (m *MetaExecutor) isDeleteBatchV1Job() bool {
 	return m.identifier.isBatchV1Job() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteAppsV1STS() bool {
+func (m *MetaExecutor) isDeleteAppsV1STS() bool {
 	return m.identifier.isAppsV1STS() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isGetOEV1alpha1Disk() bool {
+func (m *MetaExecutor) isGetOEV1alpha1Disk() bool {
 	return m.identifier.isOEV1alpha1Disk() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetOEV1alpha1SPC() bool {
+func (m *MetaExecutor) isGetOEV1alpha1SPC() bool {
 	return m.identifier.isOEV1alpha1SPC() && m.isGet()
 }
-func (m *metaTaskExecutor) isGetOEV1alpha1CSPC() bool {
+func (m *MetaExecutor) isGetOEV1alpha1CSPC() bool {
 	return m.identifier.isOEV1alpha1CSPC() && m.isGet()
 }
-func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
+func (m *MetaExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetOEV1alpha1CSP() bool {
+func (m *MetaExecutor) isGetOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetOEV1alpha1UR() bool {
+func (m *MetaExecutor) isGetOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetCoreV1PVC() bool {
+func (m *MetaExecutor) isGetCoreV1PVC() bool {
 	return m.identifier.isCoreV1PVC() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isGetCoreV1PV() bool {
+func (m *MetaExecutor) isGetCoreV1PV() bool {
 	return m.identifier.isCoreV1PV() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1SP() bool {
+func (m *MetaExecutor) isPutOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1CSP() bool {
+func (m *MetaExecutor) isPutOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1CSV() bool {
+func (m *MetaExecutor) isPutOEV1alpha1CSV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isPutOEV1alpha1CVR() bool {
+func (m *MetaExecutor) isPutOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPut()
 }
 
 // isPutOEV1alpha1UR returns true if RunTask.Spec.meta
 // is set with action=put and kind=UpgradeResult
-func (m *metaTaskExecutor) isPutOEV1alpha1UR() bool {
+func (m *MetaExecutor) isPutOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isPut()
 }
 
-func (m *metaTaskExecutor) isDeleteOEV1alpha1SP() bool {
+func (m *MetaExecutor) isDeleteOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteOEV1alpha1CSP() bool {
+func (m *MetaExecutor) isDeleteOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteOEV1alpha1CSV() bool {
+func (m *MetaExecutor) isDeleteOEV1alpha1CSV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isDeleteOEV1alpha1CVR() bool {
+func (m *MetaExecutor) isDeleteOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isDelete()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1CSV() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1CSV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1CVR() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isPatch()
 }
 
 // isPatchOEV1alpha1UR returns true if RunTask.Spec.meta
 // is set with action=patch and kind=UpgradeResult
-func (m *metaTaskExecutor) isPatchOEV1alpha1UR() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1SP() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isPatchOEV1alpha1CSP() bool {
+func (m *MetaExecutor) isPatchOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isPatch()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1Disk() bool {
+func (m *MetaExecutor) isListOEV1alpha1Disk() bool {
 	return m.identifier.isOEV1alpha1Disk() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1SP() bool {
+func (m *MetaExecutor) isListOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1CSP() bool {
+func (m *MetaExecutor) isListOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1CVR() bool {
+func (m *MetaExecutor) isListOEV1alpha1CVR() bool {
 	return m.identifier.isOEV1alpha1CVR() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1UR() bool {
+func (m *MetaExecutor) isListOEV1alpha1UR() bool {
 	return m.identifier.isOEV1alpha1UR() && m.isList()
 }
 
-func (m *metaTaskExecutor) isListOEV1alpha1CV() bool {
+func (m *MetaExecutor) isListOEV1alpha1CV() bool {
 	return m.identifier.isOEV1alpha1CV() && m.isList()
 }
 
-func (m *metaTaskExecutor) isExecCoreV1Pod() bool {
+func (m *MetaExecutor) isExecCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isExec()
 }
 
-func (m *metaTaskExecutor) isGetCoreV1Pod() bool {
+func (m *MetaExecutor) isGetCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isGet()
 }
 
-func (m *metaTaskExecutor) isRolloutstatusExtnV1B1Deploy() bool {
+func (m *MetaExecutor) isRolloutstatusExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isRolloutstatus()
 }
 
-func (m *metaTaskExecutor) isRolloutstatusAppsV1Deploy() bool {
+func (m *MetaExecutor) isRolloutstatusAppsV1Deploy() bool {
 	return m.identifier.isAppsV1Deploy() && m.isRolloutstatus()
 }
 
@@ -582,7 +583,7 @@ func getRollbackMetaInstances(given MetaTaskSpec, objectName string) (m MetaTask
 	return
 }
 
-// asRollbackInstance defines a metaTaskExecutor suitable for
+// asRollbackInstance defines a MetaExecutor suitable for
 // rollback operation.
 //
 // It translates a `put` action into a `delete` action
@@ -592,7 +593,7 @@ func getRollbackMetaInstances(given MetaTaskSpec, objectName string) (m MetaTask
 // NOTE:
 //  The bool return with value as `false` implies there is no
 // need for a rollback
-func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecutor, bool, error) {
+func (m *MetaExecutor) asRollbackInstance(objectName string) (*MetaExecutor, bool, error) {
 	// there is no rollback when task is disabled
 	// there is no rollback when original action is not put
 	if m.isDisabled() || !m.isPut() {
@@ -615,7 +616,7 @@ func (m *metaTaskExecutor) asRollbackInstance(objectName string) (*metaTaskExecu
 		return nil, true, err
 	}
 
-	return &metaTaskExecutor{
+	return &MetaExecutor{
 		metaTask:   rbSpec,
 		identifier: i,
 		k8sClient:  k,
@@ -655,9 +656,9 @@ func getRepeatMetaInstances(given MetaTaskSpec, repeatIndex int) (m MetaTaskSpec
 	return
 }
 
-// asRepeatInstance returns a new instance of metaTaskExecutor
+// asRepeatInstance returns a new instance of MetaExecutor
 // based on the provided meta task properties
-func (m *metaTaskExecutor) asRepeatInstance(repeatIndex int) (*metaTaskExecutor, error) {
+func (m *MetaExecutor) asRepeatInstance(repeatIndex int) (*MetaExecutor, error) {
 	if !m.repeater.isMetaRepeat() {
 		// old executor will suffice if repeater is not based on meta task
 		return m, nil
@@ -673,7 +674,7 @@ func (m *metaTaskExecutor) asRepeatInstance(repeatIndex int) (*metaTaskExecutor,
 		return nil, err
 	}
 
-	return &metaTaskExecutor{
+	return &MetaExecutor{
 		metaTask:   rSpec,
 		identifier: i,
 		repeater:   r,
