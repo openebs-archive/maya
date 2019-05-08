@@ -17,32 +17,53 @@ limitations under the License.
 package tests
 
 import (
+	"bytes"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
 	maxRetry = 30
 )
 
+// Options holds the args used for exec'ing into the pod
+type Options struct {
+	podName   string
+	container string
+	namespace string
+	cmd       []string
+}
+
 // Operations provides clients amd methods to perform operations
 type Operations struct {
+	KubeClient     *kubeclient.Client
 	PodClient      *pod.KubeClient
 	SCClient       *sc.Kubeclient
 	PVCClient      *pvc.Kubeclient
 	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
+	CSPClient      *csp.Kubeclient
+	SPCClient      *spc.Kubeclient
+	SVCClient      *svc.Kubeclient
 	kubeConfigPath string
 }
 
@@ -69,9 +90,42 @@ func NewOperations(opts ...OperationsOptions) *Operations {
 	return ops
 }
 
+// NewOptions returns the new instance of Options
+func NewOptions() *Options {
+	return new(Options)
+}
+
+// WithPodName fills the podName field in Options struct
+func (o *Options) WithPodName(name string) *Options {
+	o.podName = name
+	return o
+}
+
+// WithNamespace fills the namespace field in Options struct
+func (o *Options) WithNamespace(ns string) *Options {
+	o.namespace = ns
+	return o
+}
+
+// WithContainer fills the container field in Options struct
+func (o *Options) WithContainer(container string) *Options {
+	o.container = container
+	return o
+}
+
+// WithCommand fills the cmd field in Options struct
+func (o *Options) WithCommand(cmd ...string) *Options {
+	o.cmd = cmd
+	return o
+}
+
 // withDefaults sets the default options
 // of operations instance
 func (ops *Operations) withDefaults() {
+	var err error
+	if ops.KubeClient == nil {
+		ops.KubeClient = kubeclient.New(kubeclient.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 	if ops.NSClient == nil {
 		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.kubeConfigPath))
 	}
@@ -86,6 +140,13 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.SnapClient == nil {
 		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.SPCClient == nil {
+		ops.SPCClient = spc.NewKubeClient(spc.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.CSPClient == nil {
+		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.kubeConfigPath)
+		Expect(err).To(BeNil(), "while initilizing csp client")
 	}
 }
 
@@ -183,4 +244,68 @@ func isNotFound(err error) bool {
 	default:
 		return k8serrors.IsNotFound(err)
 	}
+}
+
+// DeleteCSP ...
+func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
+	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+	Expect(err).To(BeNil())
+	cspList := csp.
+		ListBuilderForAPIObject(cspAPIList).
+		List().
+		Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy"))
+	cspCount := cspList.Len()
+	Expect(deleteCount).Should(BeNumerically("<=", cspCount))
+
+	for i := 0; i < deleteCount; i++ {
+		_, err := ops.CSPClient.Delete(cspList.ObjectList.Items[i].Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil())
+
+	}
+}
+
+// ExecPod executes arbitrary command inside the pod
+func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
+	var (
+		execOut bytes.Buffer
+		execErr bytes.Buffer
+		err     error
+	)
+	By("getting rest config")
+	config, err := ops.KubeClient.GetConfigForPathOrDirect()
+	Expect(err).To(BeNil(), "while getting config for exec'ing into pod")
+	By("getting clientset")
+	cset, err := ops.KubeClient.Clientset()
+	Expect(err).To(BeNil(), "while getting clientset for exec'ing into pod")
+	req := cset.
+		CoreV1().
+		RESTClient().
+		Post().
+		Resource("pods").
+		Name(opts.podName).
+		Namespace(opts.namespace).
+		SubResource("exec").
+		Param("container", opts.container).
+		VersionedParams(&corev1.PodExecOptions{
+			Container: opts.container,
+			Command:   opts.cmd,
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       false,
+		}, scheme.ParameterCodec)
+
+	By("creating a POST request for executing command")
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	Expect(err).To(BeNil(), "while exec'ing command in pod ", opts.podName)
+
+	By("processing request")
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: &execOut,
+		Stderr: &execErr,
+		Tty:    false,
+	})
+	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
+	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
+	return execOut.Bytes(), nil
 }
