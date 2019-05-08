@@ -18,11 +18,11 @@ import (
 	"strings"
 
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubernetes "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getClientsetFn is a typed function that
@@ -34,7 +34,7 @@ type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
 
 // getFn is a typed function that abstracts
-// to get pod
+// to get namespace
 type getFn func(cli *kubernetes.Clientset, name string, opts metav1.GetOptions) (*corev1.Namespace, error)
 
 // createFn is a typed function that abstracts
@@ -175,6 +175,9 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 
 // Create creates a namespace in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(namespace *corev1.Namespace) (*corev1.Namespace, error) {
+	if namespace == nil {
+		return nil, errors.New("failed to create namespace: namespace obj is nil")
+	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create namespace: %s", stringer.Yaml("namespace yaml", namespace))

@@ -392,7 +392,7 @@ func TestKubernetesNamespaceCreate(t *testing.T) {
 			kubeConfigPath:      "fake-path",
 			create:              fakeCreateFnOk,
 			namespace:           nil,
-			expectedErr:         false,
+			expectedErr:         true,
 		},
 		"Test 5": {
 			getClientSet:        fakeGetClientSetOk,
