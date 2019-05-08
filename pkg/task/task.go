@@ -364,6 +364,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.patchAppsV1B1Deploy()
 	} else if m.metaTaskExec.isPatchOEV1alpha1SPC() {
 		err = m.patchOEV1alpha1SPC()
+	} else if m.metaTaskExec.isPatchOEV1alpha1CSPC() {
+		err = m.patchOEV1alpha1CSPC()
 	} else if m.metaTaskExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
 	} else if m.metaTaskExec.isPatchCoreV1Service() {
@@ -384,6 +386,8 @@ func (m *taskExecutor) ExecuteIt() (err error) {
 		err = m.getOEV1alpha1Disk()
 	} else if m.metaTaskExec.isGetOEV1alpha1SPC() {
 		err = m.getOEV1alpha1SPC()
+	} else if m.metaTaskExec.isGetOEV1alpha1CSPC() {
+		err = m.getOEV1alpha1CSPC()
 	} else if m.metaTaskExec.isGetOEV1alpha1SP() {
 		err = m.getOEV1alpha1SP()
 	} else if m.metaTaskExec.isGetOEV1alpha1CSP() {
@@ -654,6 +658,34 @@ func (m *taskExecutor) patchOEV1alpha1SPC() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// patchOEV1alpha1CSPC will patch a CSPC object in a kubernetes cluster.
+// The patch specifications as configured in the RunTask
+func (m *taskExecutor) patchOEV1alpha1CSPC() (err error) {
+	patch, err := asTaskPatch("patchSPC", m.runtask.Spec.Task, m.templateValues)
+	if err != nil {
+		return
+	}
+
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return
+	}
+
+	raw, err := pe.toJson()
+	if err != nil {
+		return
+	}
+
+	// patch the CSPC
+	cspc, err := m.getK8sClient().PatchOEV1alpha1CSPCAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cspc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
@@ -954,6 +986,17 @@ func (m *taskExecutor) getOEV1alpha1SPC() (err error) {
 	}
 
 	util.SetNestedField(m.templateValues, spc, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getOEV1alpha1CSPC() will get the CStorPoolCluster as specified in the RunTask
+func (m *taskExecutor) getOEV1alpha1CSPC() (err error) {
+	cspc, err := m.getK8sClient().GetOEV1alpha1CSPCAsRaw(m.getTaskObjectName())
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.templateValues, cspc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 

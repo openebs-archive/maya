@@ -102,6 +102,10 @@ func (i taskIdentifier) isStoragePoolClaim() bool {
 	return i.identity.Kind == string(m_k8s_client.StroagePoolClaimCRKK)
 }
 
+func (i taskIdentifier) isCStorPoolCluster() bool {
+	return i.identity.Kind == string(m_k8s_client.CStorPoolClusterCRKK)
+}
+
 func (i taskIdentifier) isStoragePool() bool {
 	return i.identity.Kind == string(m_k8s_client.StroagePoolCRKK)
 }
@@ -224,6 +228,10 @@ func (i taskIdentifier) isCoreV1PV() bool {
 
 func (i taskIdentifier) isOEV1alpha1SPC() bool {
 	return i.isOEV1alpha1() && i.isStoragePoolClaim()
+}
+
+func (i taskIdentifier) isOEV1alpha1CSPC() bool {
+	return i.isOEV1alpha1() && i.isCStorPoolCluster()
 }
 
 func (i taskIdentifier) isOEV1alpha1SP() bool {
