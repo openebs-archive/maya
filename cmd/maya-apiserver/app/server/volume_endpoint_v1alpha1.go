@@ -24,7 +24,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	menv "github.com/openebs/maya/pkg/env/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
-	"github.com/openebs/maya/pkg/template"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/volume"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +42,7 @@ const (
 // error
 func isNotFound(err error) bool {
 	switch err := errors.Cause(err).(type) {
-	case *template.NotFoundError:
+	case *templatefuncs.NotFoundError:
 		return true
 	default:
 		return k8serrors.IsNotFound(err)
