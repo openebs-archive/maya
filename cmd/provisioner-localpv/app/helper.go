@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/pkg/errors"
+	//"github.com/pkg/errors"
 
 	mContainer "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	mPod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -43,10 +43,6 @@ var (
 // getPathAndNodeForPV inspects the PV spec to determine the host path used
 //  and the node (via the NodeAffinity) on which host path exists.
 func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node string, err error) {
-	defer func() {
-		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
-	}()
-
 	hostPath := pv.Spec.PersistentVolumeSource.HostPath
 	if hostPath == nil {
 		return "", "", fmt.Errorf("no HostPath set")
@@ -89,9 +85,6 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node s
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node string) (err error) {
-	defer func() {
-		err = errors.Wrapf(err, "failed to cleanup volume %v", name)
-	}()
 	if name == "" || path == "" || node == "" {
 		return fmt.Errorf("invalid empty name or path or node")
 	}
@@ -111,7 +104,7 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 	//parentDir = strings.TrimSuffix(parentDir, "/")
 	//volumeDir = strings.TrimSuffix(volumeDir, "/")
 
-	conObj, err := mContainer.Builder().
+	conObj, _ := mContainer.Builder().
 		WithName("local-path-cleanup").
 		WithImage(p.helperImage).
 		WithCommand(append(cmdsForPath, filepath.Join("/data/", volumeDir))).
@@ -123,31 +116,21 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 			},
 		}).
 		Build()
-	if err != nil {
-		return err
-	}
 	containers := []v1.Container{conObj}
 
-	volObj, err := mVolume.NewBuilder().
+	volObj, _ := mVolume.NewBuilder().
 		WithName("data").
 		WithHostDirectory(parentDir).
 		Build()
-	if err != nil {
-		return err
-	}
-
 	volumes := []v1.Volume{*volObj}
 
-	helperPod, err := mPod.NewBuilder().
+	helperPod, _ := mPod.NewBuilder().
 		WithName("cleanup-" + name).
 		WithRestartPolicy(v1.RestartPolicyNever).
 		WithNodeName(node).
 		WithContainers(containers).
 		WithVolumes(volumes).
 		Build()
-	if err != nil {
-		return err
-	}
 
 	//Launch the cleanup pod.
 	pod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)

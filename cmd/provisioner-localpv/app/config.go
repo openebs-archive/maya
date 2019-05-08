@@ -81,6 +81,8 @@ func (p *Provisioner) GetVolumeConfig(pvName string, pvc *v1.PersistentVolumeCla
 		scCASConfig, err := cast.UnMarshallToConfig(scCASConfigStr)
 		if err == nil {
 			pvConfig = cast.MergeConfig(scCASConfig, pvConfig)
+		} else {
+			return nil, errors.Wrapf(err, "failed to get config: invalid sc config {%v}", scCASConfigStr)
 		}
 	}
 
@@ -210,7 +212,8 @@ func (c *VolumeConfig) extractSubPath(path string) (string, string) {
 // GetStorageClassName extracts the StorageClass name from PVC
 func GetStorageClassName(pvc *v1.PersistentVolumeClaim) *string {
 	// Use beta annotation first
-	if class, found := pvc.Annotations[betaStorageClassAnnotation]; found {
+	class, found := pvc.Annotations[betaStorageClassAnnotation]
+	if found {
 		return &class
 	}
 	return pvc.Spec.StorageClassName
