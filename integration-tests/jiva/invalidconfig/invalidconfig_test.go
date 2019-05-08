@@ -61,7 +61,7 @@ var _ = Describe("TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 
 		nsObj, err = ns.NewBuilder().
 			WithName(namespaceName).
-			Build()
+			APIObject()
 		Expect(err).ShouldNot(HaveOccurred())
 
 		scObj, err = sc.NewBuilder().
@@ -79,11 +79,11 @@ var _ = Describe("TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By(fmt.Sprintf("Creating test specific namespace {%s}", namespaceName))
-		_, err := cOps.nsClient.Create(nsObj)
+		_, err = ops.nsClient.Create(nsObj)
 		Expect(err).To(BeNil())
 
 		By(fmt.Sprintf("Creating PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
-		_, err = cOps.pvcClient.WithNamespace(namespaceName).Create(pvcObj)
+		_, err = ops.pvcClient.WithNamespace(namespaceName).Create(pvcObj)
 		Expect(err).To(BeNil())
 
 		pvcLabel = string(apis.PersistentVolumeClaimKey) + "=" + pvcName
@@ -95,30 +95,30 @@ var _ = Describe("TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		It("Jiva controller and replica pods should not create", func() {
 
 			By(fmt.Sprintf("Creating storageclass named {%s}", scName))
-			_, err = cOps.scClient.Create(scObj)
+			_, err := ops.scClient.Create(scObj)
 			Expect(err).To(BeNil())
 
 			By("jiva-ctrl pod should not come to running state")
-			podCount := cOps.getPodCountRunningEventually(namespaceName, ctrlLabel, 1)
+			podCount := ops.getPodCountRunningEventually(namespaceName, ctrlLabel, 1)
 			Expect(podCount).To(Equal(0))
 
 			By("jiva-replica pod should not come to running state")
-			podCount = cOps.getPodCountRunningEventually(namespaceName, replicaLabel, 3)
+			podCount = ops.getPodCountRunningEventually(namespaceName, replicaLabel, 3)
 			Expect(podCount).To(Equal(0))
 		})
 	})
 
 	AfterEach(func() {
 		By(fmt.Sprintf("Delete PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
-		err := cOps.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
+		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil())
 
 		By(fmt.Sprintf("Delete storageclass named {%s}", scName))
-		err = cOps.scClient.Delete(scName, &metav1.DeleteOptions{})
+		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil())
 
 		By(fmt.Sprintf("Delete {%s} namespace", namespaceName))
-		err = cOps.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
+		err = ops.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil())
 	})
 
@@ -128,9 +128,9 @@ var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
 	var (
 		namespaceName         = "validation-ns2"
 		scName                = "jiva-valid-config-sc"
-		pvcName               = "jiva-ivalid-config-volume-claim"
+		pvcName               = "jiva-invalid-config-volume-claim"
 		openebsCASConfigValue = "- name: ReplicaCount\n  Value: 3"
-		invalidPVCLabel       = map[string]string{"name": "jiva-ivalid-config-volume-claim:"}
+		invalidPVCLabel       = map[string]string{"name": "jiva-invalid-config-volume-claim:"}
 	)
 	BeforeEach(func() {
 		annotations := map[string]string{
@@ -138,14 +138,10 @@ var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
 			string(apis.CASConfigKey): openebsCASConfigValue,
 		}
 		var err error
-		cOps = cOps.newPodClient(namespaceName).
-			newSCClient().
-			newPVCClient(namespaceName).
-			newNsClient()
 
 		nsObj, err = ns.NewBuilder().
 			WithName(namespaceName).
-			Build()
+			APIObject()
 		Expect(err).ShouldNot(HaveOccurred())
 
 		scObj, err = sc.NewBuilder().
@@ -164,11 +160,11 @@ var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By(fmt.Sprintf("Create test specific namespace {%s}", namespaceName))
-		_, err := cOps.nsClient.Create(nsObj)
+		_, err = ops.nsClient.Create(nsObj)
 		Expect(err).To(BeNil())
 
 		By(fmt.Sprintf("Create storageclass named {%s}", scName))
-		_, err = cOps.scClient.Create(scObj)
+		_, err = ops.scClient.Create(scObj)
 		Expect(err).To(BeNil())
 
 	})
@@ -176,22 +172,22 @@ var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
 	When("We apply invalid pvc yaml in k8s cluster", func() {
 		It("PVC creation should give error because of invalid pvc yaml", func() {
 			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
-			_, err = cOps.pvcClient.Create(pvcObj)
+			_, err := ops.pvcClient.Create(pvcObj)
 			Expect(err).NotTo(BeNil())
 		})
 	})
 
 	AfterEach(func() {
 		By(fmt.Sprintf("Delete PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
-		err := cOps.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
+		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).NotTo(BeNil())
 
 		By(fmt.Sprintf("Delete storageclass named {%s}", scName))
-		err = cOps.scClient.Delete(scName, &metav1.DeleteOptions{})
+		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil())
 
 		By(fmt.Sprintf("Delete {%s} namespace", namespaceName))
-		err = cOps.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
+		err = ops.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil())
 	})
 

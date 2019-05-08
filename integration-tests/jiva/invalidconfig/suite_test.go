@@ -61,19 +61,17 @@ func init() {
 }
 
 var _ = BeforeSuite(func() {
-	var err error
-
 	// set pod client set
 	for _, f := range clientBuilderFuncList {
 		f()
 	}
 
 	By("Waiting for maya-apiserver pod to come into running state")
-	podCount := ops.isRunningPodCount(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
+	podCount := ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 	Expect(podCount).To(Equal(1))
 
 	By("Waiting for openebs-provisioner pod to come into running state")
-	podCount = ops.isRunningPodCount(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
+	podCount = ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 	Expect(podCount).To(Equal(1))
 })
 
@@ -85,10 +83,10 @@ var ops = &operations{}
 type clientBuilderFunc func() *operations
 
 var clientBuilderFuncList = []clientBuilderFunc{
-	ops.newPodClient(),
-	ops.newSCClient(),
-	ops.newNsClient(),
-	ops.newPVCClient(),
+	ops.newPodClient,
+	ops.newSCClient,
+	ops.newNsClient,
+	ops.newPVCClient,
 }
 
 func (ops *operations) newPodClient() *operations {
