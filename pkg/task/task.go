@@ -29,7 +29,7 @@ import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
-	cstorvolume_v1alpha1 "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
+	cstorvolume "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -38,6 +38,7 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
+	service "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
@@ -1123,17 +1124,6 @@ func (m *executor) deleteCoreV1Service() error {
 	return nil
 }
 
-// getCoreV1Service will get the Service as specified in the RunTask
-func (m *executor) getCoreV1Service() (err error) {
-	svc, err := m.getK8sClient().GetCoreV1ServiceAsRaw(m.getTaskObjectName())
-	if err != nil {
-		return
-	}
-
-	util.SetNestedField(m.Values, svc, string(v1alpha1.CurrentJSONResultTLP))
-	return
-}
-
 // getOEV1alpha1Disk() will get the Disk as specified in the RunTask
 func (m *executor) getOEV1alpha1Disk() (err error) {
 	disk, err := m.getK8sClient().GetOEV1alpha1DiskAsRaw(m.getTaskObjectName())
@@ -1209,8 +1199,8 @@ func (m *executor) getOEV1alpha1UR() error {
 
 // getOEV1alpha1CSV will get the CstorVolume as specified in the RunTask
 func (m *executor) getOEV1alpha1CSV() (err error) {
-	csvclient := cstorvolume_v1alpha1.NewKubeclient(
-		cstorvolume_v1alpha1.WithNamespace(m.getTaskRunNamespace()),
+	csvclient := cstorvolume.NewKubeclient(
+		cstorvolume.WithNamespace(m.getTaskRunNamespace()),
 	)
 	csv, err := csvclient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
@@ -1218,6 +1208,20 @@ func (m *executor) getOEV1alpha1CSV() (err error) {
 	}
 
 	util.SetNestedField(m.Values, csv, string(v1alpha1.CurrentJSONResultTLP))
+	return
+}
+
+// getCoreV1Service will get the Service as specified in the RunTask
+func (m *executor) getCoreV1Service() (err error) {
+	svcclient := service.KubeClient(
+		service.WithNamespace(m.getTaskRunNamespace()),
+	)
+	svc, err := svcclient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+	if err != nil {
+		return
+	}
+
+	util.SetNestedField(m.Values, svc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
