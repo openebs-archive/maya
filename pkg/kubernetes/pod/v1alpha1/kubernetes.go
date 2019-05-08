@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -190,4 +192,14 @@ func (k *KubeClient) Get(name string, opts metav1.GetOptions) (*corev1.Pod, erro
 		return nil, errors.Wrapf(err, "failed to get pod {%s}: failed to get clientset", name)
 	}
 	return k.get(cli, k.namespace, name, opts)
+}
+
+// GetRaw gets pod object for a given name and namespace present
+// in kubernetes cluster and returns result in raw byte.
+func (k *KubeClient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error) {
+	p, err := k.Get(name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(p)
 }

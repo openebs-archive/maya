@@ -22,7 +22,9 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/template"
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 )
 
@@ -55,7 +57,7 @@ type TaskGroupRunner struct {
 	fallbackTemplate string
 	// rollbacks is an array of task executor that need to be run in
 	// sequence in the event of any error
-	rollbacks []*taskExecutor
+	rollbacks []*executor
 }
 
 // NewTaskGroupRunner returns a new task group.
@@ -132,7 +134,7 @@ func (m *TaskGroupRunner) isTaskIDUnique(identity string) (unique bool) {
 // NOTE:
 //  This is just the planning for rollback & not actual rollback.
 // In the events of issues this planning will be useful.
-func (m *TaskGroupRunner) planForRollback(te *taskExecutor, objectName string) error {
+func (m *TaskGroupRunner) planForRollback(te *executor, objectName string) error {
 	// There are cases where multiple objects may be created due to a single
 	// RunTask. In such cases, object name will have comma separated list of
 	// object names.
@@ -190,11 +192,10 @@ func (m *TaskGroupRunner) fallback(values map[string]interface{}) (output []byte
 
 // runATask will run a task based on the task specs & template values
 func (m *TaskGroupRunner) runATask(runtask *v1alpha1.RunTask, values map[string]interface{}) (err error) {
-	te, err := newTaskExecutor(runtask, values)
+	te, err := newExecutor(runtask, values)
 	if err != nil {
 		// log with verbose details
-		glog.Errorf("failed to initialize runtask executor: name '%s': meta yaml '%s': template values in yaml '%s': template values '%+v'", runtask.Name, runtask.Spec.Meta, template.ToYaml(values), values)
-		return
+		return errors.Wrap(err, "failed to execute runtask: failed to init executor")
 	}
 
 	// check if the task ID is unique in this group
@@ -210,23 +211,15 @@ func (m *TaskGroupRunner) runATask(runtask *v1alpha1.RunTask, values map[string]
 	redactJsonResult(values)
 
 	if errExecute != nil {
-		glog.Errorf("failed to execute runtask: name '%s': meta yaml '%s': task yaml '%s': template values in yaml '%s': template values '%+v'", runtask.Name, runtask.Spec.Meta, runtask.Spec.Task, template.ToYaml(values), values)
+		return errors.Wrapf(errExecute, "failed to execute runtask: %s %s", runtask, stringer.Yaml("template values", values))
 	}
 
 	// this is planning & not the actual rollback
 	errRollback := m.planForRollback(te, util.GetNestedString(values, string(v1alpha1.TaskResultTLP), te.getTaskIdentity(), string(v1alpha1.ObjectNameTRTP)))
 	if errRollback != nil {
-		glog.Errorf("failed to plan for rollback: '%+v'", errRollback)
+		return errors.Wrapf(errRollback, "failed to plan for rollback: '%+v'", errRollback)
 	}
 
-	// err will always contain the higher priority error
-	// here errExecute > errRollback.
-	if errRollback != nil {
-		err = errRollback
-	}
-	if errExecute != nil {
-		err = errExecute
-	}
 	return
 }
 
@@ -251,15 +244,14 @@ func (m *TaskGroupRunner) runOutput(values map[string]interface{}) (output []byt
 		return
 	}
 
-	te, err := newTaskExecutor(m.outputTask, values)
+	te, err := newExecutor(m.outputTask, values)
 	if err != nil {
 		return
 	}
 
 	output, err = te.Output()
 	if err != nil {
-		// log with verbose details
-		glog.Errorf("failed to execute output task: runtask '%+v': template values in yaml '%s': template values '%+v'", m.outputTask, template.ToYaml(values), values)
+		err = errors.Wrap(err, "failed to execute output task:")
 	}
 	return
 }
@@ -278,7 +270,7 @@ func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err
 	glog.Warningf("%+v: failed to execute runtasks", err)
 	m.rollback()
 
-	if template.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
+	if templatefuncs.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
 		newvalues := values
 		return m.fallback(newvalues)
 	}

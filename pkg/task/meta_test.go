@@ -146,8 +146,10 @@ func TestNewMetaTaskExecutor(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name //pin it
+		mock := mock //pin it
 		t.Run(name, func(t *testing.T) {
-			mte, err := newMetaTaskExecutor(mock.yaml, mock.values)
+			mte, err := NewMetaExecutor(mock.yaml, mock.values)
 
 			if err != nil && !mock.isErr {
 				t.Fatalf("failed to test new meta executor: expected 'no error': actual '%s'", err.Error())
@@ -209,7 +211,7 @@ action: put
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -260,7 +262,7 @@ retry: "5,2z"
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -307,6 +309,8 @@ objectName: {{ .objectName }}
 	}
 
 	for name, mock := range tests {
+		name := name //pin it
+		mock := mock //pin it
 		t.Run(name, func(t *testing.T) {
 			// transform the yaml with provided values
 			b, _ := template.AsTemplatedBytes("MetaTaskSpec", mock.yaml, mock.values)
@@ -315,7 +319,7 @@ objectName: {{ .objectName }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -363,7 +367,7 @@ options: |-
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -426,7 +430,7 @@ action: {{ .action }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -484,7 +488,7 @@ action: {{ .action }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -542,7 +546,7 @@ action: {{ .action }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -600,7 +604,7 @@ action: {{ .action }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -658,7 +662,7 @@ action: {{ .action }}
 			var m MetaTaskSpec
 			yaml.Unmarshal(b, &m)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask: m,
 			}
 
@@ -752,7 +756,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -847,7 +851,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -942,7 +946,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1039,7 +1043,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1136,7 +1140,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1233,7 +1237,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1330,7 +1334,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1427,7 +1431,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}
@@ -1524,7 +1528,7 @@ action: {{ .action }}
 
 			i, _ := newTaskIdentifier(m.MetaTaskIdentity)
 
-			mte := &metaTaskExecutor{
+			mte := &MetaExecutor{
 				metaTask:   m,
 				identifier: i,
 			}

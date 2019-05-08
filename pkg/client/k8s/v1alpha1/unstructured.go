@@ -37,16 +37,17 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	"github.com/ghodss/yaml"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/openebs/maya/pkg/version"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"strings"
 )
 
 // kind represents the name of the kubernetes kind
@@ -131,7 +132,7 @@ func CreateUnstructuredFromYamlBytes(raw []byte) (*unstructured.Unstructured, er
 	m := map[string]interface{}{}
 	err := yaml.Unmarshal(raw, &m)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create unstructured instance from yaml bytes")
+		return nil, errors.Wrapf(err, "failed to create unstructured instance from yaml: %s", raw)
 	}
 
 	return &unstructured.Unstructured{
@@ -217,7 +218,7 @@ func IsCASTemplate(given *unstructured.Unstructured) bool {
 	return strings.ToLower(given.GetKind()) == "castemplate"
 }
 
-// IsNameVersioned flags if the given unstructured instance name has
+// IsNameUnVersioned flags if the given unstructured instance name has
 // version as its suffix
 //
 // NOTE:
