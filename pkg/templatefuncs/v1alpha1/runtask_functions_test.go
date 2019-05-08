@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package template
+package templatefuncs
 
 import (
 	"bytes"
@@ -127,7 +127,7 @@ func TestRunCommandTemplatingCombinations(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := allCustomFuncs()
+			allfuncs := AllCustomFuncs()
 			tpl := template.New(fmt.Sprintf("%s", mock.templatefunc)).Funcs(allfuncs)
 			tpl, err := tpl.Parse(fmt.Sprintf("{{- %s -}}", mock.templatefunc))
 			if err != nil {
@@ -169,7 +169,7 @@ func TestNotSupportedActionCommand(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := allCustomFuncs()
+			allfuncs := AllCustomFuncs()
 			tpl := template.New(mock.template).Funcs(allfuncs)
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
@@ -217,7 +217,7 @@ func TestNotSupportedCategoryCommand(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := allCustomFuncs()
+			allfuncs := AllCustomFuncs()
 			tpl := template.New(mock.template).Funcs(allfuncs)
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
@@ -261,7 +261,7 @@ func TestDeleteJivaVolumeCommand(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := allCustomFuncs()
+			allfuncs := AllCustomFuncs()
 			tpl := template.New(mock.template).Funcs(allfuncs)
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
@@ -313,7 +313,7 @@ func TestCreateCstorSnapshotCommand(t *testing.T) {
 
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
-			allfuncs := allCustomFuncs()
+			allfuncs := AllCustomFuncs()
 			tpl := template.New(mock.template).Funcs(allfuncs)
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
@@ -356,9 +356,11 @@ func TestDeleteJivaVolumeSaveAs(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -422,9 +424,11 @@ func TestDeleteJivaVolumeSaveAsVerifyError(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -507,9 +511,11 @@ func TestSkipOnError(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -610,9 +616,11 @@ func TestGetHttp(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -713,9 +721,11 @@ func TestPostHttp(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -816,9 +826,11 @@ func TestPutHttp(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)
@@ -898,9 +910,11 @@ func TestCreateCstorSnapshotSaveAsVerifyError(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name
+		mock := mock
 		t.Run(name, func(t *testing.T) {
 			mockval := map[string]interface{}{"Values": map[string]interface{}{}}
-			tpl := template.New(mock.template).Funcs(allCustomFuncs())
+			tpl := template.New(mock.template).Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.template)
 			if err != nil {
 				t.Fatalf("Test '%s' failed: failed to parse: err '%+v'", name, err)

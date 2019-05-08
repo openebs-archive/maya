@@ -17,11 +17,12 @@ limitations under the License.
 package server
 
 import (
-	"github.com/openebs/maya/pkg/template"
+	"testing"
+
+	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	"github.com/pkg/errors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestIsNotFound(t *testing.T) {
@@ -50,14 +51,14 @@ func TestIsNotFound(t *testing.T) {
 			false,
 		},
 		"template isnotfound error": {
-			&template.NotFoundError{
+			&templatefuncs.NotFoundError{
 				ErrMsg: "catch me",
 			},
 			true,
 		},
 		"template isnotfound error when wrapped": {
 			errors.Wrap(
-				&template.NotFoundError{
+				&templatefuncs.NotFoundError{
 					ErrMsg: "catch me",
 				},
 				"wrapper thing",
@@ -66,7 +67,7 @@ func TestIsNotFound(t *testing.T) {
 		},
 		"template isnotfound error when wrapped twice": {
 			errors.Wrap(errors.Wrap(
-				&template.NotFoundError{
+				&templatefuncs.NotFoundError{
 					ErrMsg: "catch me",
 				},
 				"wrapper thing",
