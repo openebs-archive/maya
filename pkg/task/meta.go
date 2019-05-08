@@ -349,6 +349,10 @@ func (m *metaTaskExecutor) isPatchOEV1alpha1SPC() bool {
 	return m.identifier.isStoragePoolClaim() && m.isPatch()
 }
 
+func (m *metaTaskExecutor) isPatchOEV1alpha1CSPC() bool {
+	return m.identifier.isCStorPoolCluster() && m.isPatch()
+}
+
 func (m *metaTaskExecutor) isPatchAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isPatch()
 }
@@ -435,6 +439,9 @@ func (m *metaTaskExecutor) isGetOEV1alpha1Disk() bool {
 
 func (m *metaTaskExecutor) isGetOEV1alpha1SPC() bool {
 	return m.identifier.isOEV1alpha1SPC() && m.isGet()
+}
+func (m *metaTaskExecutor) isGetOEV1alpha1CSPC() bool {
+	return m.identifier.isOEV1alpha1CSPC() && m.isGet()
 }
 func (m *metaTaskExecutor) isGetOEV1alpha1SP() bool {
 	return m.identifier.isOEV1alpha1SP() && m.isGet()

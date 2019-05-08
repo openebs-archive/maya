@@ -87,6 +87,9 @@ const (
 	// StroagePoolClaimCRKK is a K8s CR of kind StoragePool
 	StroagePoolClaimCRKK K8sKind = "StoragePoolClaim"
 
+	// CStorPoolClusterCRKK is a K8s CR of kind CStorPoolCluster
+	CStorPoolClusterCRKK K8sKind = "CStorPoolCluster"
+
 	// PersistentVolumeKK is K8s PersistentVolume Kind
 	PersistentVolumeKK K8sKind = "PersistentVolume"
 
@@ -188,6 +191,11 @@ type K8sClient struct {
 	// NOTE: This property is useful to mock
 	// during unit testing
 	StoragePoolClaim *api_oe_v1alpha1.StoragePoolClaim
+
+	// CStorPoolCluster refers to a K8s CStorPoolCluster CRD object
+	// NOTE: This property is useful to mock
+	// during unit testing
+	CStorPoolCluster *api_oe_v1alpha1.CStorPoolCluster
 
 	// StoragePool refers to a K8s StoragePool CRD object
 	// NOTE: This property is useful to mock
@@ -301,6 +309,12 @@ func (k *K8sClient) oeV1alpha1SPCOps() typed_oe_v1alpha1.StoragePoolClaimInterfa
 	return k.oecs.OpenebsV1alpha1().StoragePoolClaims()
 }
 
+// oeV1alpha1CSPCOps is a utility function that provides a instance capable of
+// executing various OpenEBS CStorPoolCluster related operations
+func (k *K8sClient) oeV1alpha1CSPCOps() typed_oe_v1alpha1.CStorPoolClusterInterface {
+	return k.oecs.OpenebsV1alpha1().CStorPoolClusters()
+}
+
 // oeV1alpha1SPOps is a utility function that provides a instance capable of
 // executing various OpenEBS StoragePool related operations
 func (k *K8sClient) oeV1alpha1SPOps() typed_oe_v1alpha1.StoragePoolInterface {
@@ -350,6 +364,17 @@ func (k *K8sClient) GetOEV1alpha1SPC(name string) (*api_oe_v1alpha1.StoragePoolC
 
 	spcOps := k.oeV1alpha1SPCOps()
 	return spcOps.Get(name, mach_apis_meta_v1.GetOptions{})
+}
+
+// GetOEV1alpha1CSPC fetches the OpenEBS CStorPoolCluster specs based on
+// the provided name
+func (k *K8sClient) GetOEV1alpha1CSPC(name string) (*api_oe_v1alpha1.CStorPoolCluster, error) {
+	if k.CStorPoolCluster != nil {
+		return k.CStorPoolCluster, nil
+	}
+
+	cspcOps := k.oeV1alpha1CSPCOps()
+	return cspcOps.Get(name, mach_apis_meta_v1.GetOptions{})
 }
 
 // GetOEV1alpha1SP fetches the OpenEBS StoragePool specs based on
@@ -637,6 +662,16 @@ func (k *K8sClient) GetOEV1alpha1SPCAsRaw(name string) (result []byte, err error
 	//	DoRaw()
 
 	//return
+}
+
+// GetOEV1alpha1CSPCAsRaw fetches the OpenEBS CSPC with the provided name
+func (k *K8sClient) GetOEV1alpha1CSPCAsRaw(name string) (result []byte, err error) {
+	cspc, err := k.GetOEV1alpha1CSPC(name)
+	if err != nil {
+		return
+	}
+
+	return json.Marshal(cspc)
 }
 
 // GetOEV1alpha1SPAsRaw fetches the OpenEBS SP with the provided name
@@ -999,6 +1034,12 @@ func (k *K8sClient) PatchExtnV1B1Deployment(name string, patchType types.PatchTy
 // PatchOEV1alpha1SPCAsRaw patches the SPC object with the provided patches
 func (k *K8sClient) PatchOEV1alpha1SPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.StoragePoolClaim, err error) {
 	result, err = k.oecs.OpenebsV1alpha1().StoragePoolClaims().Patch(name, patchType, patches)
+	return
+}
+
+// PatchOEV1alpha1CSPCAsRaw patches the CSPC object with the provided patches
+func (k *K8sClient) PatchOEV1alpha1CSPCAsRaw(name string, patchType types.PatchType, patches []byte) (result *api_oe_v1alpha1.CStorPoolCluster, err error) {
+	result, err = k.oecs.OpenebsV1alpha1().CStorPoolClusters().Patch(name, patchType, patches)
 	return
 }
 
