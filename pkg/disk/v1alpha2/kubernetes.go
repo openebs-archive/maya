@@ -14,13 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha2
 
 import (
-	apisv1beta1 "github.com/openebs/maya/pkg/apis/openebs.io/v1beta1"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
-	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+
+	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 )
 
 // getClientsetFn is a typed function that
@@ -32,21 +37,15 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
-// listing of cstor pool
-type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error)
+// listing of disk
+type listFn func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.DiskList, error)
 
-type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error)
-
-type createFn func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error)
-
-type deleteFn func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error)
-
-type updateFn func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error)
+type getFn func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.Disk, error)
 
 // Kubeclient enables kubernetes API operations
-// on cstor storage pool instance
+// on disk instance
 type Kubeclient struct {
-	// clientset refers to cstor storage pool's
+	// clientset refers to disk's
 	// clientset that will be responsible to
 	// make kubernetes API calls
 	clientset *clientset.Clientset
@@ -57,9 +56,6 @@ type Kubeclient struct {
 	getClientsetForPath getClientsetForPathFn
 	list                listFn
 	get                 getFn
-	create              createFn
-	del                 deleteFn
-	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -78,7 +74,6 @@ func (k *Kubeclient) WithDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
-
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
 			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).Config()
@@ -88,34 +83,15 @@ func (k *Kubeclient) WithDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
-
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().List(opts)
+		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.DiskList, error) {
+			return cli.OpenebsV1alpha1().Disks().List(opts)
 		}
 	}
 
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Get(name, opts)
-		}
-	}
-
-	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Create(spc)
-		}
-	}
-
-	if k.update == nil {
-		k.update = func(cli *clientset.Clientset, spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-			return cli.OpenebsV1beta1().StoragePoolClaims().Update(spc)
-		}
-	}
-
-	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error) {
-			return nil, cli.OpenebsV1beta1().StoragePoolClaims().Delete(name, opts)
+		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.Disk, error) {
+			return cli.OpenebsV1alpha1().Disks().Get(name, opts)
 		}
 	}
 }
@@ -136,8 +112,32 @@ func WithKubeConfigPath(path string) KubeclientBuildOption {
 	}
 }
 
+// WithFlag sets the client using the kubeconfig path
+func (k *Kubeclient) WithFlag(kubeconfig string) (*Kubeclient, error) {
+	cfg, err := getClusterConfig(kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+	}
+
+	// Building OpenEBS Clientset
+	openebsClient, err := clientset.NewForConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("Error building openebs clientset: %s", err.Error())
+	}
+	k.clientset = openebsClient
+	return k, nil
+}
+
+func getClusterConfig(kubeconfig string) (*rest.Config, error) {
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+	}
+	return cfg, err
+}
+
 // NewKubeClient returns a new instance of kubeclient meant for
-// cstor volume replica operations
+// disk operations
 func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
@@ -168,9 +168,9 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	return k.clientset, nil
 }
 
-// List returns a list of cstor pool
+// List returns a list of disk
 // instances present in kubernetes cluster
-func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1beta1.StoragePoolClaimList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.DiskList, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -178,38 +178,11 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apisv1beta1.StoragePoolClai
 	return k.list(cli, opts)
 }
 
-// Get returns a spc object
-func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apisv1beta1.StoragePoolClaim, error) {
+// Get returns a disk object
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.Disk, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
 	}
 	return k.get(cli, name, opts)
-}
-
-// Create creates a spc object
-func (k *Kubeclient) Create(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-	cli, err := k.getClientOrCached()
-	if err != nil {
-		return nil, err
-	}
-	return k.create(cli, spc)
-}
-
-// Update updates a spc object
-func (k *Kubeclient) Update(spc *apisv1beta1.StoragePoolClaim) (*apisv1beta1.StoragePoolClaim, error) {
-	cli, err := k.getClientOrCached()
-	if err != nil {
-		return nil, err
-	}
-	return k.update(cli, spc)
-}
-
-// Delete deletes a spc object
-func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) (*apisv1beta1.StoragePoolClaim, error) {
-	cli, err := k.getClientOrCached()
-	if err != nil {
-		return nil, err
-	}
-	return k.del(cli, name, opts)
 }

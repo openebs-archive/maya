@@ -289,6 +289,7 @@ func (k *K8sClient) GetBatchV1JobAsRaw(name string) (result []byte, err error) {
 	return k.cs.BatchV1().RESTClient().
 		Get().
 		Resource("jobs").
+		Namespace(k.ns).
 		Name(name).
 		VersionedParams(&mach_apis_meta_v1.GetOptions{}, scheme.ParameterCodec).
 		DoRaw()
