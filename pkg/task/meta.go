@@ -544,6 +544,10 @@ func (m *metaTaskExecutor) isExecCoreV1Pod() bool {
 	return m.identifier.isCoreV1Pod() && m.isExec()
 }
 
+func (m *metaTaskExecutor) isGetCoreV1Pod() bool {
+	return m.identifier.isCoreV1Pod() && m.isGet()
+}
+
 func (m *metaTaskExecutor) isRolloutstatusExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isRolloutstatus()
 }
