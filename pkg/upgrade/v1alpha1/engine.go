@@ -49,12 +49,11 @@ const (
 
 // CASTEngineBuilder helps to build a new instance of castEngine
 type CASTEngineBuilder struct {
-	RuntimeConfig          []apis.Config
-	CASTemplate            *apis.CASTemplate
-	UnitOfUpgrade          *upgrade.ResourceDetails
-	UpgradeResultName      string
-	UpgradeResultNamespace string
-	errs                   *errors.ErrorList
+	*errors.ErrorList
+	RuntimeConfig []apis.Config
+	CASTemplate   *apis.CASTemplate
+	UnitOfUpgrade *upgrade.ResourceDetails
+	UpgradeResult *upgrade.UpgradeResult
 }
 
 // String implements Stringer interface
@@ -95,10 +94,9 @@ func (ceb *CASTEngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *CA
 	return ceb
 }
 
-// WithUpgradeResultCR sets upgradeResultCR name in CASTEngineBuilder.
-func (ceb *CASTEngineBuilder) WithUpgradeResultCR(name, namespace string) *CASTEngineBuilder {
-	ceb.UpgradeResultName = name
-	ceb.UpgradeResultNamespace = namespace
+// WithUpgradeResult sets upgradeResult in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithUpgradeResult(obj *upgrade.UpgradeResult) *CASTEngineBuilder {
+	ceb.UpgradeResult = obj
 	return ceb
 }
 
@@ -110,14 +108,13 @@ func (ceb *CASTEngineBuilder) validate() error {
 	if ceb.UnitOfUpgrade == nil {
 		return errors.New("missing upgrade item")
 	}
-	if ceb.UpgradeResultName == "" {
-		return errors.New("missing upgrade result cr name")
+	if ceb.UpgradeResult == nil {
+		return errors.New("missing upgrade result")
 	}
-	if ceb.UpgradeResultNamespace == "" {
-		return errors.New("missing upgrade result cr namespace")
-	}
-	if len(ceb.errs.Errors) > 0 {
-		return errors.WithStack(errors.Wrap(ceb.errs, "build errors were found"))
+	if len(ceb.Errors) > 0 {
+		return errors.Wrap(
+			errors.WithStack(ceb.ErrorList),
+			"build errors were found")
 	}
 	return nil
 }
@@ -152,8 +149,8 @@ func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 		nameKey:                   ceb.UnitOfUpgrade.Name,
 		namespaceKey:              ceb.UnitOfUpgrade.Namespace,
 		kindKey:                   ceb.UnitOfUpgrade.Kind,
-		upgradeResultNameKey:      ceb.UpgradeResultName,
-		upgradeResultNamespaceKey: ceb.UpgradeResultNamespace,
+		upgradeResultNameKey:      ceb.UpgradeResult.Name,
+		upgradeResultNamespaceKey: ceb.UpgradeResult.Namespace,
 	}
 	e.SetValues(upgradeItemProperty, taskConfig)
 	e.SetValues(configProperty, defaultConfig)
@@ -164,6 +161,6 @@ func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 // NewCASTEngineBuilder returns an empty instance of CASTEngineBuilder
 func NewCASTEngineBuilder() *CASTEngineBuilder {
 	return &CASTEngineBuilder{
-		errs: &errors.ErrorList{Errors: []error{}},
+		ErrorList: &errors.ErrorList{},
 	}
 }

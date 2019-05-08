@@ -47,35 +47,33 @@ type Executor struct {
 
 // ExecutorBuilder helps to build Executor instance
 type ExecutorBuilder struct {
+	*errors.ErrorList
 	object *Executor
-	errs   *errors.ErrorList
 }
 
 // ExecutorBuilderForConfig returns an instance of ExecutorBuilder
 //It adds object in ExecutorBuilder struct with the help of config
 func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	executorBuilder := &ExecutorBuilder{
-		errs: &errors.ErrorList{
-			Errors: []error{},
-		},
+		ErrorList: &errors.ErrorList{},
 	}
 
 	selfName := os.Getenv(envSelfName)
 	if selfName == "" {
-		executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
+		executorBuilder.Errors = append(executorBuilder.Errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
 		return executorBuilder
 	}
 	selfNamespace := os.Getenv(envSelfNamespace)
 	if selfNamespace == "" {
-		executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
+		executorBuilder.Errors = append(executorBuilder.Errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
 		return executorBuilder
 
 	}
 	selfUID := types.UID(os.Getenv(envSelfUID))
 	if selfUID == "" {
-		executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
+		executorBuilder.Errors = append(executorBuilder.Errors,
 			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
 		return executorBuilder
 
@@ -84,9 +82,8 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	castObj, err := cast.KubeClient().
 		Get(cfg.CASTemplate, metav1.GetOptions{})
 	if err != nil {
-		executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
-			errors.Wrapf(err,
-				"failed to instantiate executor builder: %s", cfg))
+		executorBuilder.Errors = append(executorBuilder.Errors,
+			errors.Wrapf(err, "failed to instantiate executor builder: %s", cfg))
 		return executorBuilder
 	}
 
@@ -112,7 +109,7 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 			WithTasks(tasks).
 			GetOrCreate()
 		if err != nil {
-			executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
+			executorBuilder.Errors = append(executorBuilder.Errors,
 				errors.Wrapf(err,
 					"failed to instantiate executor builder: %s: %s", resource, cfg))
 			return executorBuilder
@@ -121,10 +118,10 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 			WithCASTemplate(castObj).
 			WithUnitOfUpgrade(&resource).
 			WithRuntimeConfig(cfg.Data).
-			WithUpgradeResultCR(upgradeResult.Name, upgradeResult.Namespace).
+			WithUpgradeResult(upgradeResult).
 			Build()
 		if err != nil {
-			executorBuilder.errs.Errors = append(executorBuilder.errs.Errors,
+			executorBuilder.Errors = append(executorBuilder.Errors,
 				errors.Wrapf(err,
 					"failed to instantiate executor builder: %s: %s", resource, cfg))
 			return executorBuilder
@@ -139,8 +136,10 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 // Build builds a new instance of Executor with the help of
 // ExecutorBuilder instance
 func (eb *ExecutorBuilder) Build() (*Executor, error) {
-	if len(eb.errs.Errors) != 0 {
-		return nil, errors.WithStack(errors.Wrap(eb.errs, "builder error"))
+	if len(eb.Errors) != 0 {
+		return nil, errors.Wrap(
+			errors.WithStack(eb.ErrorList),
+			"builder error(s) found")
 	}
 	return eb.object, nil
 }

@@ -33,9 +33,9 @@ type Config struct {
 
 // ConfigBuilder helps to build UpgradeConfig instance
 type ConfigBuilder struct {
+	*errors.ErrorList
 	Config *Config
 	checks map[*Predicate]string
-	errs   *errors.ErrorList
 }
 
 // Predicate abstracts conditional logic w.r.t the upgradeConfig instance
@@ -84,8 +84,10 @@ func (cb *ConfigBuilder) Build() (*apis.UpgradeConfig, error) {
 
 // validate will run checks against UpgradeConfig instance
 func (cb *ConfigBuilder) validate() error {
-	if len(cb.errs.Errors) != 0 {
-		return errors.WithStack(errors.Wrap(cb.errs, "build errors were found"))
+	if len(cb.Errors) != 0 {
+		return errors.Wrap(
+			errors.WithStack(cb.ErrorList),
+			"build error(s) were found")
 	}
 	validationErrs := []error{}
 	for cond := range cb.checks {
@@ -98,10 +100,10 @@ func (cb *ConfigBuilder) validate() error {
 	if len(validationErrs) == 0 {
 		return nil
 	}
-	cb.errs.Errors = append(cb.errs.Errors, validationErrs...)
-	return errors.WithStack(
-		errors.Wrap(&errors.ErrorList{Errors: validationErrs},
-			"validation errors were found"))
+	cb.Errors = append(cb.Errors, validationErrs...)
+	return errors.Wrap(
+		errors.WithStack(&errors.ErrorList{Errors: validationErrs}),
+		"validation errors were found")
 }
 
 // NewConfigBuilder returns a new instance of ConfigBuilder
@@ -110,10 +112,8 @@ func NewConfigBuilder() *ConfigBuilder {
 		Config: &Config{
 			Object: &apis.UpgradeConfig{},
 		},
-		checks: make(map[*Predicate]string),
-		errs: &errors.ErrorList{
-			Errors: []error{},
-		},
+		checks:    make(map[*Predicate]string),
+		ErrorList: &errors.ErrorList{},
 	}
 }
 
@@ -122,12 +122,12 @@ func NewConfigBuilder() *ConfigBuilder {
 func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 	cb := NewConfigBuilder()
 	if yamlString == "" {
-		cb.errs.Errors = append(cb.errs.Errors,
+		cb.Errors = append(cb.Errors,
 			errors.New("failed to instantiate config builder: empty config yaml provided"))
 	}
 	err := yaml.Unmarshal([]byte(yamlString), cb.Config.Object)
 	if err != nil {
-		cb.errs.Errors = append(cb.errs.Errors,
+		cb.Errors = append(cb.Errors,
 			errors.Wrapf(err, "failed to instantiate config builder: %s", yamlString))
 	}
 	return cb
@@ -138,12 +138,12 @@ func ConfigBuilderForYaml(yamlString string) *ConfigBuilder {
 func ConfigBuilderForRaw(raw []byte) *ConfigBuilder {
 	cb := NewConfigBuilder()
 	if len(raw) == 0 {
-		cb.errs.Errors = append(cb.errs.Errors,
+		cb.Errors = append(cb.Errors,
 			errors.New("failed to instantiate config builder: empty config byte provided"))
 	}
 	err := yaml.Unmarshal(raw, cb.Config.Object)
 	if err != nil {
-		cb.errs.Errors = append(cb.errs.Errors,
+		cb.Errors = append(cb.Errors,
 			errors.Wrapf(err, "failed to instantiate config builder: %s", string(raw)))
 	}
 	return cb

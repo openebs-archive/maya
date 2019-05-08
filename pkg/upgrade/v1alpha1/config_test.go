@@ -88,9 +88,9 @@ func TestNewBuilder(t *testing.T) {
 				t.Fatalf("test %s failed, expect checks: %t but got: %t",
 					name, mock.expectChecks, b.checks != nil)
 			}
-			if (len(b.errs.Errors) == 0) != mock.expectChecks {
+			if (len(b.Errors) == 0) != mock.expectChecks {
 				t.Fatalf("test %s failed, expect errors: %t but got: %t",
-					name, mock.expectChecks, b.checks != nil)
+					name, mock.expectError, b.checks != nil)
 			}
 		})
 	}
@@ -129,9 +129,9 @@ resources:
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForYaml(mock.yaml)
-			if (len(b.errs.Errors) != 0) != mock.expectError {
+			if (len(b.Errors) != 0) != mock.expectError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectError, len(b.errs.Errors) != 0)
+					name, mock.expectError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -170,9 +170,9 @@ resources:
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := ConfigBuilderForRaw(mock.raw)
-			if (len(b.errs.Errors) != 0) != mock.expectError {
+			if (len(b.Errors) != 0) != mock.expectError {
 				t.Fatalf("test %s failed, expect error: %v but got: %v",
-					name, mock.expectError, len(b.errs.Errors) != 0)
+					name, mock.expectError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -469,9 +469,9 @@ func TestBuild(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &ConfigBuilder{
-			Config: mock.config,
-			checks: make(map[*Predicate]string),
-			errs:   &errors.ErrorList{Errors: []error{}},
+			ErrorList: &errors.ErrorList{},
+			Config:    mock.config,
+			checks:    make(map[*Predicate]string),
 		}
 		b.AddChecks(mock.checks...)
 		_, err := b.Build()

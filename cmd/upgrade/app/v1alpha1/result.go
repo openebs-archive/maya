@@ -48,6 +48,7 @@ type UpgradeResult struct {
 
 // UpgradeResultGetOrCreateBuilder helps to get or create UpgradeResult instance
 type UpgradeResultGetOrCreateBuilder struct {
+	*errors.ErrorList
 	SelfName        string
 	SelfNamespace   string
 	SelfUID         types.UID
@@ -55,7 +56,6 @@ type UpgradeResultGetOrCreateBuilder struct {
 	ResourceDetails *upgrade.ResourceDetails
 	Tasks           []upgrade.UpgradeResultTask
 	UpgradeResult   *UpgradeResult
-	errs            *errors.ErrorList
 }
 
 // String implements GoStringer interface
@@ -72,9 +72,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GoString() string {
 func NewUpgradeResultGetOrCreateBuilder() *UpgradeResultGetOrCreateBuilder {
 	return &UpgradeResultGetOrCreateBuilder{
 		UpgradeResult: &UpgradeResult{},
-		errs: &errors.ErrorList{
-			Errors: []error{},
-		},
+		ErrorList:     &errors.ErrorList{},
 	}
 }
 
@@ -122,9 +120,10 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithTasks(
 
 // validate validates UpgradeResultGetOrCreateBuilder instance
 func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
-	if len(urb.errs.Errors) != 0 {
-		return errors.WithStack(
-			errors.Wrap(urb.errs, "failed to validate: build error(s) were found"))
+	if len(urb.ErrorList.Errors) != 0 {
+		return errors.Wrap(
+			errors.WithStack(urb.ErrorList),
+			"failed to validate: build error(s) were found")
 	}
 	validationErrs := []error{}
 	if urb.SelfName == "" {
@@ -152,9 +151,10 @@ func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 			errors.New("missing tasks"))
 	}
 	if len(validationErrs) != 0 {
-		urb.errs.Errors = append(urb.errs.Errors, validationErrs...)
-		return errors.WithStack(
-			errors.Wrap(&errors.ErrorList{Errors: validationErrs}, "validation error(s) found"))
+		urb.Errors = append(urb.Errors, validationErrs...)
+		return errors.Wrap(
+			errors.WithStack(&errors.ErrorList{Errors: validationErrs}),
+			"validation error(s) found")
 	}
 	return nil
 }

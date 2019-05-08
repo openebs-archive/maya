@@ -53,9 +53,9 @@ func TestNewCASTEngineBuilder(t *testing.T) {
 				t.Fatalf("test %s failed, expect RuntimeConfig: %t but got: %t",
 					name, mock.expectUnitOfUpgrade, len(b.RuntimeConfig) != 0)
 			}
-			if (len(b.errs.Errors) != 0) != mock.expectError {
+			if (len(b.Errors) != 0) != mock.expectError {
 				t.Fatalf("test %s failed, expect Error: %t but got: %t",
-					name, mock.expectError, len(b.errs.Errors) != 0)
+					name, mock.expectError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -157,13 +157,10 @@ func TestValidateEngineBuilder(t *testing.T) {
 	}{
 		"valid builder": {
 			&CASTEngineBuilder{
-				CASTemplate:            &apis.CASTemplate{},
-				UnitOfUpgrade:          &upgrade.ResourceDetails{},
-				UpgradeResultName:      "mock-upgrade-cju65",
-				UpgradeResultNamespace: "openebs",
-				errs: &errors.ErrorList{
-					Errors: []error{},
-				},
+				CASTemplate:   &apis.CASTemplate{},
+				UnitOfUpgrade: &upgrade.ResourceDetails{},
+				UpgradeResult: &upgrade.UpgradeResult{},
+				ErrorList:     &errors.ErrorList{},
 			},
 			false,
 		},
@@ -171,27 +168,21 @@ func TestValidateEngineBuilder(t *testing.T) {
 			&CASTEngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
-				errs: &errors.ErrorList{
-					Errors: []error{errors.New("new error")},
-				},
+				ErrorList:     &errors.ErrorList{},
 			},
 			true,
 		},
 		"castemplate not present in builder": {
 			&CASTEngineBuilder{
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
-				errs: &errors.ErrorList{
-					Errors: []error{},
-				},
+				ErrorList:     &errors.ErrorList{},
 			},
 			true,
 		},
 		"unit of upgrade not present in builder": {
 			&CASTEngineBuilder{
 				CASTemplate: &apis.CASTemplate{},
-				errs: &errors.ErrorList{
-					Errors: []error{},
-				},
+				ErrorList:   &errors.ErrorList{},
 			},
 			true,
 		},
