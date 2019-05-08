@@ -17,7 +17,6 @@ package v1alpha1
 import (
 	"strings"
 
-	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -176,11 +175,11 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 // Create creates a namespace in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(namespace *corev1.Namespace) (*corev1.Namespace, error) {
 	if namespace == nil {
-		return nil, errors.New("failed to create namespace: namespace obj is nil")
+		return nil, errors.New("failed to create namespace: nil namespace object")
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create namespace: %s", stringer.Yaml("namespace yaml", namespace))
+		return nil, errors.Wrapf(err, "failed to create namespace {%s}", namespace.Name)
 	}
 	return k.create(cli, namespace)
 }

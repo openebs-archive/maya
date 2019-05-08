@@ -42,7 +42,7 @@ func TestListBuilderToAPIList(t *testing.T) {
 	}
 }
 
-func TestHasLabel(t *testing.T) {
+func TestHasLabelPredicate(t *testing.T) {
 	tests := map[string]struct {
 		availableLabels          map[string]string
 		checkForKey, checkForVal string
@@ -57,7 +57,7 @@ func TestHasLabel(t *testing.T) {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			fakePod := &Pod{&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: test.availableLabels}}}
-			ok := fakePod.HasLabel(test.checkForKey, test.checkForVal)
+			ok := HasLabel(test.checkForKey, test.checkForVal)(fakePod)
 			if ok != test.hasLabels {
 				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableLabels, fakePod.object.GetLabels())
 			}

@@ -17,7 +17,6 @@ package v1alpha1
 import (
 	"strings"
 
-	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -218,9 +217,12 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 
 // Create creates a pvc in specified namespace in kubernetes cluster
 func (k *Kubeclient) Create(pvc *corev1.PersistentVolumeClaim) (*corev1.PersistentVolumeClaim, error) {
+	if pvc == nil {
+		return nil, errors.New("failed to create pvc: nil pvc object")
+	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create pvc: %s", stringer.Yaml("persistent volume claim", pvc))
+		return nil, errors.Wrapf(err, "failed to create pvc {%s} in namespace {%s}", pvc.Name, pvc.Namespace)
 	}
 	return k.create(cli, k.namespace, pvc)
 }

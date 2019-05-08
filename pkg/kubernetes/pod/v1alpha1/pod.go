@@ -102,6 +102,14 @@ func (p *Pod) HasLabel(key, value string) bool {
 	return false
 }
 
+// HasLabel is predicate to filter out labeled
+// pod instances
+func HasLabel(key, value string) Predicate {
+	return func(p *Pod) bool {
+		return p.HasLabel(key, value)
+	}
+}
+
 // IsNil returns true if the pod instance
 // is nil
 func (p *Pod) IsNil() bool {

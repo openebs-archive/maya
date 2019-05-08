@@ -56,3 +56,59 @@ func TestBuilderWithName(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildWithBuilderFn(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		expectedErr bool
+	}{
+		"Namespace with correct details": {
+			name:        "NS1",
+			expectedErr: false,
+		},
+		"PVC with error": {
+			name:        "",
+			expectedErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			_, err := NewBuilder().WithName(mock.name).Build()
+			if mock.expectedErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestAPIObjectWithBuilderFn(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		expectedErr bool
+	}{
+		"Namespace with correct details": {
+			name:        "NS1",
+			expectedErr: false,
+		},
+		"PVC with error": {
+			name:        "",
+			expectedErr: true,
+		},
+	}
+	for name, mock := range tests {
+		name, mock := name, mock
+		t.Run(name, func(t *testing.T) {
+			_, err := NewBuilder().WithName(mock.name).APIObject()
+			if mock.expectedErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectedErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}

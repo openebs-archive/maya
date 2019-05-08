@@ -480,7 +480,7 @@ func TestKubernetesPVCCreate(t *testing.T) {
 			kubeConfigPath:      "fake-path",
 			create:              fakeCreateFnOk,
 			pvc:                 nil,
-			expectErr:           false,
+			expectErr:           true,
 		},
 		"Test 5": {
 			getClientSet:        fakeGetClientSetOk,

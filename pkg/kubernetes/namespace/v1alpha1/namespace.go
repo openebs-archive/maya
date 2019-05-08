@@ -42,17 +42,26 @@ func NewBuilder() *Builder {
 // WithName sets the Name field of namespace with provided argument.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build storageclass: missing storageclass name"))
+		b.errs = append(b.errs, errors.New("failed to build namespace: missing namespace name"))
 		return b
 	}
 	b.ns.object.Name = name
 	return b
 }
 
-// Build returns the namespace API instance
-func (b *Builder) Build() (*corev1.Namespace, error) {
+// Build returns the Namespace instance
+func (b *Builder) Build() (*Namespace, error) {
 	if len(b.errs) > 0 {
 		return nil, errors.Errorf("%+v", b.errs)
 	}
-	return b.ns.object, nil
+	return b.ns, nil
+}
+
+// APIObject returns the API Namespace instance
+func (b *Builder) APIObject() (*corev1.Namespace, error) {
+	ns, err := b.Build()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to build APIObject")
+	}
+	return ns.object, nil
 }
