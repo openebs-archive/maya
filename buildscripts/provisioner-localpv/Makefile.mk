@@ -14,5 +14,5 @@ provisioner-localpv-image: provisioner-localpv
 	@echo "--> provisioner-localpv image "
 	@echo "-------------------------------"
 	@cp bin/provisioner-localpv/${PROVISIONER_LOCALPV} buildscripts/provisioner-localpv/
-	@cd buildscripts/provisioner-localpv && sudo docker build -t openebs/provisioner-localpv-ci:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
+	@cd buildscripts/provisioner-localpv && sudo docker build -t openebs/provisioner-localpv:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} . --no-cache
 	@rm buildscripts/provisioner-localpv/${PROVISIONER_LOCALPV}
