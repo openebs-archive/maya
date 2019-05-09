@@ -20,10 +20,9 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/pkg/errors"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 )
 
@@ -53,7 +52,7 @@ func (u Upgrade) GoString() string {
 func NewUpgradeForConfigPath(filePath string) (*Upgrade, error) {
 	data, err := ioutil.ReadFile(path.Clean(filePath))
 	if err != nil {
-		return nil, errors.WithMessagef(err,
+		return nil, errors.Wrapf(err,
 			"failed to initialize upgrade instance: failed to read config: %s", filePath)
 	}
 
@@ -66,7 +65,7 @@ func NewUpgradeForConfigPath(filePath string) (*Upgrade, error) {
 			"invalid resources: all resources should belong to same kind").
 		Build()
 	if err != nil {
-		return nil, errors.WithMessagef(err,
+		return nil, errors.Wrapf(err,
 			"failed to instantiate upgrade instance: config path {%s}", filePath)
 	}
 	return &Upgrade{
@@ -81,13 +80,13 @@ func (u *Upgrade) Run() error {
 	e, err := ExecutorBuilderForConfig(u.Config).
 		Build()
 	if err != nil {
-		return errors.WithMessagef(err,
+		return errors.Wrapf(err,
 			"failed to run upgrade: %s", u)
 	}
 
 	err = e.Execute()
 	if err != nil {
-		return errors.WithMessagef(err,
+		return errors.Wrapf(err,
 			"failed to run upgrade: %s", u)
 	}
 	return nil
