@@ -15,6 +15,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
@@ -149,6 +151,15 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.CStorVolume
 		return nil, err
 	}
 	return k.get(cli, name, k.namespace, opts)
+}
+
+// GetRaw returns a raw CStor volume instance
+func (k *Kubeclient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error) {
+	csv, err := k.Get(name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(csv)
 }
 
 // List returns a list of cstor volume replica

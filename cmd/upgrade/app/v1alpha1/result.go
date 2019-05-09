@@ -17,11 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	objectmeta "github.com/openebs/maya/pkg/kubernetes/objectmeta/v1alpha1"
 	ownerreference "github.com/openebs/maya/pkg/kubernetes/ownerreference/v1alpha1"
 	typemeta "github.com/openebs/maya/pkg/kubernetes/typemeta/v1alpha1"
@@ -48,6 +48,7 @@ type UpgradeResult struct {
 
 // UpgradeResultGetOrCreateBuilder helps to get or create UpgradeResult instance
 type UpgradeResultGetOrCreateBuilder struct {
+	*errors.ErrorList
 	SelfName        string
 	SelfNamespace   string
 	SelfUID         types.UID
@@ -55,7 +56,6 @@ type UpgradeResultGetOrCreateBuilder struct {
 	ResourceDetails *upgrade.ResourceDetails
 	Tasks           []upgrade.UpgradeResultTask
 	UpgradeResult   *UpgradeResult
-	errors          []error
 }
 
 // String implements GoStringer interface
@@ -72,7 +72,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GoString() string {
 func NewUpgradeResultGetOrCreateBuilder() *UpgradeResultGetOrCreateBuilder {
 	return &UpgradeResultGetOrCreateBuilder{
 		UpgradeResult: &UpgradeResult{},
-		errors:        []error{},
+		ErrorList:     &errors.ErrorList{},
 	}
 }
 
@@ -120,38 +120,37 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithTasks(
 
 // validate validates UpgradeResultGetOrCreateBuilder instance
 func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
-	if len(urb.errors) != 0 {
-		return errors.Errorf(
-			"failed to validate: build errors were found: %v", urb.errors)
+	if len(urb.ErrorList.Errors) != 0 {
+		return urb.ErrorList.WithStack("failed to validate upgrade result get or create")
 	}
-	validationErrs := []error{}
+	validationErrs := &errors.ErrorList{}
 	if urb.SelfName == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self name"))
 	}
 	if urb.SelfNamespace == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self namespace"))
 	}
 	if urb.SelfUID == "" {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self uid"))
 	}
 	if urb.UpgradeConfig == nil {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing upgrade config"))
 	}
 	if urb.ResourceDetails == nil {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing resource details"))
 	}
 	if len(urb.Tasks) == 0 {
-		validationErrs = append(validationErrs,
+		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing tasks"))
 	}
-	if len(validationErrs) != 0 {
-		urb.errors = append(urb.errors, validationErrs...)
-		return errors.Errorf("validation error(s) found: %v", validationErrs)
+	if len(validationErrs.Errors) != 0 {
+		urb.Errors = append(urb.Errors, validationErrs.Errors...)
+		return validationErrs.WithStack("failed to validate get or create upgrade result")
 	}
 	return nil
 }
@@ -239,7 +238,6 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 // getObjectMeta returns metav1.ObjectMeta for upgrade result cr.
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
-	//name := urb.SelfName + "-" + rand.String(4)
 	oRef, err := urb.getOwnerReference()
 	if err != nil {
 		return nil, err
