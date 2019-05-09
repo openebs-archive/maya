@@ -189,6 +189,19 @@ func (c *Client) Clientset() (*kubernetes.Clientset, error) {
 	return c.getKubernetesClientset(config)
 }
 
+// GetConfig returns a new instance of rest client config
+func (c *Client) GetConfig() (*rest.Config, error) {
+	config, err := c.getConfigForPathOrDirect()
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to get kubernetes clientset: failed to get kubernetes config: IsInCluster {%t}: KubeConfigPath {%s}",
+			c.IsInCluster,
+			c.KubeConfigPath,
+		)
+	}
+	return config, nil
+}
+
 // Config returns the kubernetes config instance based on available criteria
 func (c *Client) Config() (config *rest.Config, err error) {
 	// IsInCluster flag holds the top most priority

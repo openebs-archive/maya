@@ -81,7 +81,7 @@ func (k *Kubeclient) WithDefaults() {
 
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
-			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).Config()
+			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).GetConfig()
 			if err != nil {
 				return nil, err
 			}
