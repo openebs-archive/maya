@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -742,7 +743,7 @@ func (k *K8sClient) ListCoreV1PVCAsRaw(opts mach_apis_meta_v1.ListOptions) (resu
 		Resource("persistentvolumeclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -753,7 +754,7 @@ func (k *K8sClient) ListCoreV1PVAsRaw(opts mach_apis_meta_v1.ListOptions) (resul
 		Resource("persistentvolumes").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -764,7 +765,7 @@ func (k *K8sClient) ListCoreV1PodAsRaw(opts mach_apis_meta_v1.ListOptions) (resu
 		Resource("pods").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -775,7 +776,7 @@ func (k *K8sClient) ListCoreV1ServiceAsRaw(opts mach_apis_meta_v1.ListOptions) (
 		Resource("services").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -787,7 +788,7 @@ func (k *K8sClient) ListExtnV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -799,7 +800,7 @@ func (k *K8sClient) ListAppsV1B1DeploymentAsRaw(opts mach_apis_meta_v1.ListOptio
 		Resource("deployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		DoRaw()
-
+	err = errors.WithStack(err)
 	return
 }
 
@@ -809,9 +810,11 @@ func (k *K8sClient) ListOEV1alpha1DiskRaw(opts mach_apis_meta_v1.ListOptions) (r
 	diskOps := k.oeV1alpha1DiskOps()
 	diskList, err := diskOps.List(opts)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	result, err = json.Marshal(diskList)
+	err = errors.WithStack(err)
 	return
 }
 
@@ -821,9 +824,11 @@ func (k *K8sClient) ListOEV1alpha1SPRaw(opts mach_apis_meta_v1.ListOptions) (res
 	spOps := k.oeV1alpha1SPOps()
 	spList, err := spOps.List(opts)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	result, err = json.Marshal(spList)
+	err = errors.WithStack(err)
 	return
 }
 
@@ -833,9 +838,11 @@ func (k *K8sClient) ListOEV1alpha1CSPRaw(opts mach_apis_meta_v1.ListOptions) (re
 	cspOps := k.oeV1alpha1CSPOps()
 	cspList, err := cspOps.List(opts)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	result, err = json.Marshal(cspList)
+	err = errors.WithStack(err)
 	return
 }
 
@@ -845,9 +852,11 @@ func (k *K8sClient) ListOEV1alpha1CVRRaw(opts mach_apis_meta_v1.ListOptions) (re
 	cvrOps := k.oeV1alpha1CVROps()
 	cvrList, err := cvrOps.List(opts)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	result, err = json.Marshal(cvrList)
+	err = errors.WithStack(err)
 	return
 }
 
@@ -857,9 +866,11 @@ func (k *K8sClient) ListOEV1alpha1CVRaw(opts mach_apis_meta_v1.ListOptions) (res
 	cvOps := k.oeV1alpha1CVOps()
 	cvrList, err := cvOps.List(opts)
 	if err != nil {
+		err = errors.WithStack(err)
 		return
 	}
 	result, err = json.Marshal(cvrList)
+	err = errors.WithStack(err)
 	return
 }
 
