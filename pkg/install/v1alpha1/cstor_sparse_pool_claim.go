@@ -33,7 +33,7 @@ metadata:
   annotations:
     openebs.io/cas-type: cstor
     cas.openebs.io/config: |
-      - name: StoragePoolClaim
+      - name: CStorPoolCluster
         value: "cstor-sparse-pool"
       - name: ReplicaCount
         value: "3"
@@ -48,7 +48,7 @@ metadata:
 provisioner: openebs.io/provisioner-iscsi
 ---
 apiVersion: openebs.io/v1alpha1
-kind: StoragePoolClaim
+kind: CStorPoolCluster
 metadata:
   name: cstor-sparse-pool
   annotations:

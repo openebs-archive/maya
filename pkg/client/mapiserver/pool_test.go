@@ -40,7 +40,7 @@ func TestListPool(t *testing.T) {
 		"StatusOK": {
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: `{"items":[{"apiVersion":"openebs.io/v1alpha1","kind":"StoragePool","metadata":{"creationTimestamp":"2018-11-15T07:53:56Z","generation":1,"labels":{"openebs.io/cas-type":"cstor","openebs.io/cstor-pool":"cstor-sparse-pool-g5pi","openebs.io/storage-pool-claim":"cstor-sparse-pool","openebs.io/version":"0.7.0","kubernetes.io/hostname":"127.0.0.1","openebs.io/cas-template-name":"cstor-pool-create-default-0.7.0"},"name":"cstor-sparse-pool-g5pi","resourceVersion":"580","selfLink":"/apis/openebs.io/v1alpha1/storagepools/cstor-sparse-pool-g5pi","uid":"9a6a4b68-e8ab-11e8-b96a-b4b686bd0cff"},"spec":{"disks":{"diskList":["sparse-5a92ced3e2ee21eac7b930f670b5eab5"]},"format":"","message":"","mountpoint":"","name":"","nodename":"","path":"","poolSpec":{"cacheFile":"/tmp/cstor-sparse-pool.cache","overProvisioning":false,"poolType":"striped"}}}],"metadata":{"resourceVersion":"658","selfLink":"/apis/openebs.io/v1alpha1/storagepools"}}`,
+				ResponseBody: `{"items":[{"apiVersion":"openebs.io/v1alpha1","kind":"StoragePool","metadata":{"creationTimestamp":"2018-11-15T07:53:56Z","generation":1,"labels":{"openebs.io/cas-type":"cstor","openebs.io/cstor-pool":"cstor-sparse-pool-g5pi","openebs.io/cstorpool-cluster":"cstor-sparse-pool","openebs.io/version":"0.7.0","kubernetes.io/hostname":"127.0.0.1","openebs.io/cas-template-name":"cstor-pool-create-default-0.7.0"},"name":"cstor-sparse-pool-g5pi","resourceVersion":"580","selfLink":"/apis/openebs.io/v1alpha1/storagepools/cstor-sparse-pool-g5pi","uid":"9a6a4b68-e8ab-11e8-b96a-b4b686bd0cff"},"spec":{"disks":{"diskList":["sparse-5a92ced3e2ee21eac7b930f670b5eab5"]},"format":"","message":"","mountpoint":"","name":"","nodename":"","path":"","poolSpec":{"cacheFile":"/tmp/cstor-sparse-pool.cache","overProvisioning":false,"poolType":"striped"}}}],"metadata":{"resourceVersion":"658","selfLink":"/apis/openebs.io/v1alpha1/storagepools"}}`,
 				T:            t,
 			},
 			err:  nil,
@@ -90,7 +90,7 @@ func TestReadPool(t *testing.T) {
 		"StatusOK": {
 			fakeHandler: utiltesting.FakeHandler{
 				StatusCode:   200,
-				ResponseBody: `{"apiVersion":"openebs.io/v1alpha1","kind":"StoragePool","metadata":{"labels":{"openebs.io/cstor-pool":"cstor-sparse-pool-qte1","openebs.io/storage-pool-claim":"cstor-sparse-pool","kubernetes.io/hostname":"127.0.0.1","openebs.io/cas-template-name":"cstor-pool-create-default-0.8.0","openebs.io/cas-type":"cstor"},"name":"cstor-sparse-pool-qte1","uid":"b5a62c11-e8eb-11e8-9ec2-b4b686bd0cff"},"spec":{"disks":{"diskList":["sparse-5a92ced3e2ee21eac7b930f670b5eab5"]},"format":"","message":"","mountpoint":"","name":"cstor-sparse-pool-qte1","nodename":"127.0.0.1","path":"","poolSpec":{"cacheFile":"","overProvisioning":false,"poolType":"striped"}}}`,
+				ResponseBody: `{"apiVersion":"openebs.io/v1alpha1","kind":"StoragePool","metadata":{"labels":{"openebs.io/cstor-pool":"cstor-sparse-pool-qte1","openebs.io/cstorpool-cluster":"cstor-sparse-pool","kubernetes.io/hostname":"127.0.0.1","openebs.io/cas-template-name":"cstor-pool-create-default-0.8.0","openebs.io/cas-type":"cstor"},"name":"cstor-sparse-pool-qte1","uid":"b5a62c11-e8eb-11e8-9ec2-b4b686bd0cff"},"spec":{"disks":{"diskList":["sparse-5a92ced3e2ee21eac7b930f670b5eab5"]},"format":"","message":"","mountpoint":"","name":"cstor-sparse-pool-qte1","nodename":"127.0.0.1","path":"","poolSpec":{"cacheFile":"","overProvisioning":false,"poolType":"striped"}}}`,
 				T:            t,
 			},
 			err:      nil,

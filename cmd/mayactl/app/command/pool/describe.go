@@ -41,7 +41,7 @@ Storage Pool Name  : {{ .ObjectMeta.Name }}
 Node Name          : {{ index .ObjectMeta.Labels "kubernetes.io/hostname" }}
 CAS Template Used  : {{ index .ObjectMeta.Labels "openebs.io/cas-template-name" }}
 CAS Type           : {{ index .ObjectMeta.Labels "openebs.io/cas-type" }}
-StoragePoolClaim   : {{ index .ObjectMeta.Labels "openebs.io/storage-pool-claim" }}
+CStorPoolCluster   : {{ index .ObjectMeta.Labels "openebs.io/cstorpool-cluster" }}
 UID                : {{ .ObjectMeta.UID }}
 Pool Type          : {{ .Spec.PoolSpec.PoolType }}
 Over Provisioning  : {{ .Spec.PoolSpec.OverProvisioning }}

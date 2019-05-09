@@ -245,7 +245,7 @@ spec:
     kind: CStorPool
     action: list
     options: |-
-      labelSelector: openebs.io/storage-pool-claim={{ .Config.StoragePoolClaim.value }}
+      labelSelector: openebs.io/cstorpool-cluster={{ .Config.CStorPoolCluster.value }}
   post: |
     {{- $isClone := .Volume.isCloneEnable | default "false" -}}
     {{/*
@@ -438,7 +438,7 @@ spec:
         openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
-        openebs.io/storage-pool-claim: {{ .Config.StoragePoolClaim.value }}
+        openebs.io/cstorpool-cluster: {{ .Config.CStorPoolCluster.value }}
       annotations:
         {{- if eq $isMonitor "true" }}
         openebs.io/volume-monitor: "true"
