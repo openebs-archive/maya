@@ -1124,8 +1124,9 @@ func (m *executor) deleteCoreV1Service() error {
 	return nil
 }
 
-// getOEV1alpha1Disk() will get the Disk as specified in the RunTask
-func (m *executor) getOEV1alpha1Disk() (err error) {
+// getOEV1alpha1Disk() will get the Disk
+// as specified in the RunTask
+func (m *executor) getOEV1alpha1Disk() error {
 	disk, err := m.getK8sClient().GetOEV1alpha1DiskAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return errors.Wrapf(err, "failed to get disk")
@@ -1198,31 +1199,29 @@ func (m *executor) getOEV1alpha1UR() error {
 }
 
 // getOEV1alpha1CSV will get the CstorVolume as specified in the RunTask
-func (m *executor) getOEV1alpha1CSV() (err error) {
-	csvclient := cstorvolume.NewKubeclient(
-		cstorvolume.WithNamespace(m.getTaskRunNamespace()),
-	)
-	csv, err := csvclient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+func (m *executor) getOEV1alpha1CSV() error {
+	csv, err := cstorvolume.NewKubeclient(
+		cstorvolume.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
-		return
+		return err
 	}
 
 	util.SetNestedField(m.Values, csv, string(v1alpha1.CurrentJSONResultTLP))
-	return
+	return nil
 }
 
 // getCoreV1Service will get the Service as specified in the RunTask
-func (m *executor) getCoreV1Service() (err error) {
-	svcclient := service.KubeClient(
-		service.WithNamespace(m.getTaskRunNamespace()),
-	)
-	svc, err := svcclient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+func (m *executor) getCoreV1Service() error {
+	svc, err := service.KubeClient(
+		service.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
-		return
+		return err
 	}
 
 	util.SetNestedField(m.Values, svc, string(v1alpha1.CurrentJSONResultTLP))
-	return
+	return nil
 }
 
 // getExtnV1B1Deployment will get the Deployment as specified in the RunTask
