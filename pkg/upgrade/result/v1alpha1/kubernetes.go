@@ -20,9 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/third_party/forked/golang/template"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
@@ -51,6 +53,11 @@ type createFunc func(cs *clientset.Clientset, upgradeResultObj *apis.UpgradeResu
 type patchFunc func(cs *clientset.Clientset, name string, pt types.PatchType, patchObj []byte,
 	namespace string) (*apis.UpgradeResult, error)
 
+// updateFunc is a typed function that abstracts
+// updating upgrade result instances
+type updateFunc func(cs *clientset.Clientset, updateObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error)
+
 // kubeclient enables kubernetes API operations
 // on upgrade result instance
 type kubeclient struct {
@@ -65,6 +72,7 @@ type kubeclient struct {
 	get          getFunc
 	create       createFunc
 	patch        patchFunc
+	update       updateFunc
 }
 
 // kubeclientBuildOption defines the abstraction
@@ -114,6 +122,17 @@ func (k *kubeclient) withDefaults() {
 				Patch(name, pt, patchObj)
 		}
 	}
+
+	if k.update == nil {
+		k.update = func(cs *clientset.Clientset,
+			upgradeResultObj *apis.UpgradeResult,
+			namespace string) (*apis.UpgradeResult, error) {
+			return cs.OpenebsV1alpha1().
+				UpgradeResults(namespace).
+				Update(upgradeResultObj)
+		}
+	}
+
 }
 
 // WithClientset sets the kubernetes clientset against
@@ -209,4 +228,154 @@ func (k *kubeclient) Patch(name string, pt types.PatchType,
 		return nil, err
 	}
 	return k.patch(cs, name, pt, patchObj, k.namespace)
+}
+
+// Update returns the updated upgrade result instance
+func (k *kubeclient) Update(updateObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
+	cs, err := k.getClientOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.update(cs, updateObj, k.namespace)
+}
+
+// UpdateUpgradeResult enables update
+// operation on upgrade result instance
+type UpdateUpgradeResult struct {
+	name      string
+	namespace string
+	task      *apis.UpgradeResultTask
+}
+
+// UpgradeResultUpdateOption defines the abstraction
+// to build an update instance for upgrade result
+type UpgradeResultUpdateOption func(*UpdateUpgradeResult)
+
+// WithURName sets the name of the upgrade
+// result
+func WithURName(name string) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.name = name
+	}
+}
+
+// WithURNamespace sets namespace where upgrade
+// result is present
+func WithURNamespace(namespace string) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.namespace = namespace
+	}
+}
+
+// WithTaskName sets the name of the
+// task to be updated
+func WithTaskName(name string) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.Name = name
+	}
+}
+
+// WithTaskStatus sets the current status
+// of the task i.e. whether it has successfully
+// completed or not
+func WithTaskStatus(status string) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.Status = status
+	}
+}
+
+// WithTaskMessage sets the message for a
+// particular task i.e. the message about its
+// successful completion or failure
+func WithTaskMessage(message string) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.Message = message
+	}
+}
+
+// WithTaskStartTime sets the time when the
+// task started to execute
+func WithTaskStartTime(startTime time.Time) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.StartTime = &metav1.Time{startTime}
+	}
+}
+
+// WithTaskEndTime sets the time when the
+// task finished execution
+func WithTaskEndTime(endTime time.Time) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.EndTime = &metav1.Time{endTime}
+	}
+}
+
+// WithTaskRetries sets the no of times that
+// a runtask has retried executing a particular task
+func WithTaskRetries(retries int) UpgradeResultUpdateOption {
+	return func(u *UpdateUpgradeResult) {
+		u.task.Retries = retries
+	}
+}
+
+// NewUpdateUpgradeResult returns a new instance of updateUpgradeResult
+// meant for updating an upgrade result instance
+func NewUpdateUpgradeResult(opts ...UpgradeResultUpdateOption) *UpdateUpgradeResult {
+	u := &UpdateUpgradeResult{
+		task: &apis.UpgradeResultTask{},
+	}
+	for _, o := range opts {
+		o := o
+		o(u)
+	}
+	return u
+}
+
+// Update is a template function exposed for
+// updating an upgrade result instance
+func Update(opts ...UpgradeResultUpdateOption) error {
+	u := NewUpdateUpgradeResult(opts...)
+	if u.name == "" {
+		return errors.New("missing upgrade result name")
+	}
+	// First get the desired upgrade result instance
+	k := KubeClient()
+	k.namespace = u.namespace
+	ur, err := k.Get(u.name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	// Iterate over the upgrade result tasks to check if the
+	// desired task to be updated exists or not,
+	// if exists then update the task instance with the given values.
+	for i, task := range ur.Tasks {
+		i := i
+		task := task
+		if task.Name == u.task.Name {
+			task = *u.task
+		}
+		ur.Tasks[i] = task
+	}
+	// Update the upgrade result instance with
+	// the provided values
+	_, err = k.Update(ur)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// TemplateFunctions exposes a few functions as
+// go template functions to be used for upgrade result
+func TemplateFunctions() template.FuncMap {
+	return template.FuncMap{
+		"updateUpgradeResult": Update,
+		"withURName":          WithURName,
+		"withURNamespace":     WithURNamespace,
+		"withTaskName":        WithTaskName,
+		"withTaskStatus":      WithTaskStatus,
+		"withTaskMessage":     WithTaskMessage,
+		"withTaskStartTime":   WithTaskStartTime,
+		"withTaskEndTime":     WithTaskEndTime,
+		"withTaskRetries":     WithTaskRetries,
+	}
 }

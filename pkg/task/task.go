@@ -1423,8 +1423,12 @@ func (m *executor) putCStorVolumeReplica() (err error) {
 
 // putUpgradeResult will put an upgrade result as defined in the task
 func (m *executor) putUpgradeResult() (err error) {
+	raw, err := template.AsTemplatedBytes("UpgradeResult", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return
+	}
 	uresult, err := upgraderesult.
-		BuilderForRuntask("UpgradeResult", m.Runtask.Spec.Task, m.Values).
+		BuilderForTemplateObject(raw).
 		Build()
 	if err != nil {
 		return

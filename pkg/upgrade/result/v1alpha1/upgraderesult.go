@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	"github.com/openebs/maya/pkg/template"
 	"github.com/pkg/errors"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
@@ -95,21 +94,16 @@ func (b *Builder) WithResultConfig(resource apis.ResourceDetails,
 	return b
 }
 
-// BuilderForRuntask returns a new instance
-// of Builder for runtasks
-func BuilderForRuntask(context, templateYaml string, templateValues map[string]interface{}) *Builder {
+// BuilderForTemplateObject returns a new instance
+// of Builder for a given template object
+func BuilderForTemplateObject(object []byte) *Builder {
 	b := &Builder{
 		upgradeResult: &upgradeResult{
 			object: &apis.UpgradeResult{},
 		},
 		checks: make(map[*Predicate]string),
 	}
-	raw, err := template.AsTemplatedBytes(context, templateYaml, templateValues)
-	if err != nil {
-		b.errors = append(b.errors, err)
-		return b
-	}
-	err = yaml.Unmarshal(raw, b.object)
+	err := yaml.Unmarshal(object, b.object)
 	if err != nil {
 		b.errors = append(b.errors, err)
 		return b
