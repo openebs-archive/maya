@@ -174,11 +174,11 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*storagev1.Storag
 // Create creates and returns a storageclass instance
 func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass, error) {
 	if sc == nil {
-		return nil, errors.New("failed to create the storageclass: missing storage class object")
+		return nil, errors.New("failed to create storageclass: nil storageclass object")
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create the storageclass {%+v}", *sc)
+		return nil, errors.Wrapf(err, "failed to create storageclass")
 	}
 	return k.create(cli, sc)
 }
@@ -187,7 +187,7 @@ func (k *Kubeclient) Create(sc *storagev1.StorageClass) (*storagev1.StorageClass
 func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete the storageclass: {%s}", name)
+		return errors.Wrapf(err, "failed to delete storageclass: {%s}", name)
 	}
 	return k.del(cli, name, opts)
 }
