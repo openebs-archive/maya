@@ -103,7 +103,7 @@ func (ob *OperationsBuilder) Validate() error {
 		}
 	}
 	if len(ob.validationErrs) > 0 {
-		return errors.Errorf("validation failed for validation preedicates:{%v}", ob.validationErrs)
+		return errors.Errorf("validation failed for validation predicates:{%v}", ob.validationErrs)
 	}
 	return nil
 }
@@ -254,7 +254,11 @@ func (ob *OperationsBuilder) IsDiskCountValid() bool {
 	for _, node := range CSPCObject.Object.Spec.Nodes {
 		poolType := node.PoolSpec.PoolType
 		for _, diskGroup := range node.DiskGroups {
-			if !(len(diskGroup.Disks) == disk.DefaultDiskCount[string(poolType)]) {
+			if poolType == apisv1alpha1.PoolStriped {
+				if len(diskGroup.Disks) < 1 {
+					return false
+				}
+			} else if !(len(diskGroup.Disks) == disk.DefaultDiskCount[string(poolType)]) {
 				return false
 			}
 		}
