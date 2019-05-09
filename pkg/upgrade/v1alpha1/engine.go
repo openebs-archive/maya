@@ -17,12 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
-
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
 const (
@@ -42,17 +41,19 @@ const (
 	namespaceKey string = "namespace"
 	// kindKey is a property of TaskConfig this is kind of the resource.
 	kindKey string = "kind"
-	// upgradeResultKey is a property of upgrade result cr for the resource.
-	upgradeResultKey string = "upgradeResult"
+	// upgradeResultNameKey is a property of upgrade result cr's name for the resource.
+	upgradeResultNameKey string = "upgradeResultName"
+	// upgradeResultNamespaceKey is a property of upgrade result cr's namespace for the resource.
+	upgradeResultNamespaceKey string = "upgradeResultNamespace"
 )
 
 // CASTEngineBuilder helps to build a new instance of castEngine
 type CASTEngineBuilder struct {
+	*errors.ErrorList
 	RuntimeConfig []apis.Config
 	CASTemplate   *apis.CASTemplate
 	UnitOfUpgrade *upgrade.ResourceDetails
-	UpgradeResult string
-	errors        []error
+	UpgradeResult *upgrade.UpgradeResult
 }
 
 // String implements Stringer interface
@@ -93,9 +94,9 @@ func (ceb *CASTEngineBuilder) WithCASTemplate(casTemplate *apis.CASTemplate) *CA
 	return ceb
 }
 
-// WithUpgradeResultCR sets upgradeResultCR name in CASTEngineBuilder.
-func (ceb *CASTEngineBuilder) WithUpgradeResultCR(upgradeResult string) *CASTEngineBuilder {
-	ceb.UpgradeResult = upgradeResult
+// WithUpgradeResult sets upgradeResult in CASTEngineBuilder.
+func (ceb *CASTEngineBuilder) WithUpgradeResult(obj *upgrade.UpgradeResult) *CASTEngineBuilder {
+	ceb.UpgradeResult = obj
 	return ceb
 }
 
@@ -107,11 +108,11 @@ func (ceb *CASTEngineBuilder) validate() error {
 	if ceb.UnitOfUpgrade == nil {
 		return errors.New("missing upgrade item")
 	}
-	if ceb.UpgradeResult == "" {
-		return errors.New("missing upgrade result cr")
+	if ceb.UpgradeResult == nil {
+		return errors.New("missing upgrade result")
 	}
-	if len(ceb.errors) > 0 {
-		return errors.Errorf("%v", ceb.errors)
+	if len(ceb.Errors) > 0 {
+		return ceb.ErrorList.WithStack("failed to build cast engine")
 	}
 	return nil
 }
@@ -143,10 +144,11 @@ func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 	}
 
 	taskConfig := map[string]interface{}{
-		nameKey:          ceb.UnitOfUpgrade.Name,
-		namespaceKey:     ceb.UnitOfUpgrade.Namespace,
-		kindKey:          ceb.UnitOfUpgrade.Kind,
-		upgradeResultKey: ceb.UpgradeResult,
+		nameKey:                   ceb.UnitOfUpgrade.Name,
+		namespaceKey:              ceb.UnitOfUpgrade.Namespace,
+		kindKey:                   ceb.UnitOfUpgrade.Kind,
+		upgradeResultNameKey:      ceb.UpgradeResult.Name,
+		upgradeResultNamespaceKey: ceb.UpgradeResult.Namespace,
 	}
 	e.SetValues(upgradeItemProperty, taskConfig)
 	e.SetValues(configProperty, defaultConfig)
@@ -156,5 +158,7 @@ func (ceb *CASTEngineBuilder) Build() (e cast.Interface, err error) {
 
 // NewCASTEngineBuilder returns an empty instance of CASTEngineBuilder
 func NewCASTEngineBuilder() *CASTEngineBuilder {
-	return &CASTEngineBuilder{}
+	return &CASTEngineBuilder{
+		ErrorList: &errors.ErrorList{},
+	}
 }
