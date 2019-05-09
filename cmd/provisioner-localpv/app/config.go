@@ -19,12 +19,13 @@ package app
 
 import (
 	//"fmt"
-	"path/filepath"
+	//"path/filepath"
 	"strings"
 
 	"github.com/golang/glog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
+	mHostPath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	//"github.com/pkg/errors"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -151,9 +152,12 @@ func (c *VolumeConfig) GetPath() (string, error) {
 	//}
 
 	pvRelPath := c.pvName
-	path := filepath.Join(basePath, pvRelPath)
+	//path := filepath.Join(basePath, pvRelPath)
 
-	return c.validatePath(path)
+	return mHostPath.NewBuilder().
+		WithPathJoin(basePath, pvRelPath).
+		WithCheckf(mHostPath.IsNonRoot(), "failed to get path: root directory is not allowed").
+		ValidateAndBuild()
 }
 
 //getValue is a utility function to extract the value
@@ -175,38 +179,6 @@ func (c *VolumeConfig) getValue(key string) string {
 		}
 	}
 	return ""
-}
-
-//validatePath checks for the sanity of the PV path
-func (c *VolumeConfig) validatePath(path string) (string, error) {
-	//Validate that path is well formed.
-	path, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-
-	//Validate that root directories are not used as PV paths
-	//Valid path should have a basepath (which is not /) and
-	// a subpath for the PV.
-	path = strings.TrimSuffix(path, "/")
-	parentDir, volumeDir := c.extractSubPath(path)
-	//parentDir = strings.TrimSuffix(parentDir, "/")
-	//volumeDir = strings.TrimSuffix(volumeDir, "/")
-	if parentDir == "" || volumeDir == "" {
-		// it covers the `/` case
-		return "", errors.Errorf("validate the volume path: {%v} is invalid: cannot find parent dir or volume dir", path)
-	}
-
-	//TODO: Validate against blacklist or whitelist of paths
-	return path, nil
-}
-
-//extractSubPath is utility function to split directory from path
-func (c *VolumeConfig) extractSubPath(path string) (string, string) {
-	parentDir, volumeDir := filepath.Split(path)
-	parentDir = strings.TrimSuffix(parentDir, "/")
-	volumeDir = strings.TrimSuffix(volumeDir, "/")
-	return parentDir, volumeDir
 }
 
 // GetStorageClassName extracts the StorageClass name from PVC

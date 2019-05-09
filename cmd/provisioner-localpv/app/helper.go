@@ -22,11 +22,13 @@ package app
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
+	//"strings"
 	"time"
 
 	"github.com/golang/glog"
 	//"github.com/pkg/errors"
+
+	mHostPath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
 	mContainer "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	mPod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -89,20 +91,18 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 		return fmt.Errorf("invalid empty name or path or node")
 	}
 
-	//Validate that non-root directories are not passed for delete
-	// and also perform white/black list validations.
-	config := &VolumeConfig{}
-	path, err = config.validatePath(path)
+	// Initialize HostPath builder and validate that
+	// non-root directories are not passed for delete
+	hostPathBuilder := mHostPath.NewBuilder().WithPath(path).
+		WithCheckf(mHostPath.IsNonRoot(), "root directories are not allowed")
+
+	err = hostPathBuilder.Validate()
 	if err != nil {
 		return err
 	}
 
 	// Extract the base path and the volume unique path.
-	path = strings.TrimSuffix(path, "/")
-	parentDir, volumeDir := config.extractSubPath(path)
-	//parentDir, volumeDir := filepath.Split(path)
-	//parentDir = strings.TrimSuffix(parentDir, "/")
-	//volumeDir = strings.TrimSuffix(volumeDir, "/")
+	parentDir, volumeDir := hostPathBuilder.ExtractSubPath()
 
 	conObj, _ := mContainer.Builder().
 		WithName("local-path-cleanup").
