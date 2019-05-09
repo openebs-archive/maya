@@ -29,6 +29,7 @@ import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	m_k8s_client "github.com/openebs/maya/pkg/client/k8s"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
+	cstorvolume "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	m_k8s "github.com/openebs/maya/pkg/k8s"
 	deploy_appsv1 "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
@@ -37,6 +38,7 @@ import (
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
+	service "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
@@ -499,6 +501,10 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.getOEV1alpha1UR()
 	} else if m.MetaExec.isGetCoreV1PVC() {
 		err = m.getCoreV1PVC()
+	} else if m.MetaExec.isGetCoreV1Service() {
+		err = m.getCoreV1Service()
+	} else if m.MetaExec.isGetOEV1alpha1CSV() {
+		err = m.getOEV1alpha1CSV()
 	} else if m.MetaExec.isPutOEV1alpha1CSP() {
 		err = m.putCStorPool()
 	} else if m.MetaExec.isPutOEV1alpha1SP() {
@@ -1189,6 +1195,32 @@ func (m *executor) getOEV1alpha1UR() error {
 	}
 
 	util.SetNestedField(m.Values, ur, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
+// getOEV1alpha1CSV will get the CstorVolume as specified in the RunTask
+func (m *executor) getOEV1alpha1CSV() error {
+	csv, err := cstorvolume.NewKubeclient(
+		cstorvolume.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	util.SetNestedField(m.Values, csv, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
+// getCoreV1Service will get the Service as specified in the RunTask
+func (m *executor) getCoreV1Service() error {
+	svc, err := service.KubeClient(
+		service.WithNamespace(m.getTaskRunNamespace())).
+		GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	util.SetNestedField(m.Values, svc, string(v1alpha1.CurrentJSONResultTLP))
 	return nil
 }
 

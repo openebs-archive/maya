@@ -422,6 +422,10 @@ func (m *MetaExecutor) isGetExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isGet()
 }
 
+func (m *MetaExecutor) isGetCoreV1Service() bool {
+	return m.identifier.isCoreV1Service() && m.isGet()
+}
+
 func (m *MetaExecutor) isGetExtnV1B1ReplicaSet() bool {
 	return m.identifier.isExtnV1B1ReplicaSet() && m.isGet()
 }
@@ -450,6 +454,10 @@ func (m *MetaExecutor) isGetOEV1alpha1SP() bool {
 
 func (m *MetaExecutor) isGetOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isGet()
+}
+
+func (m *MetaExecutor) isGetOEV1alpha1CSV() bool {
+	return m.identifier.isOEV1alpha1CV() && m.isGet()
 }
 
 func (m *MetaExecutor) isGetOEV1alpha1UR() bool {
