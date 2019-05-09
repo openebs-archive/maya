@@ -214,6 +214,7 @@ spec:
           labels:
             app: cstor-pool
             openebs.io/storage-pool-claim: {{.Storagepool.owner}}
+            openebs.io/cstor-pool: {{.TaskResult.putcstorpoolcr.objectName}}
             openebs.io/version: {{ .CAST.version }}
           annotations:
             openebs.io/monitoring: pool_exporter_prometheus
