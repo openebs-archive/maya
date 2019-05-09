@@ -17,7 +17,7 @@ limitations under the License.
 
 package app
 
-// HelperPodOptions contains the options that 
+// HelperPodOptions contains the options that
 // will be extracted from the persistent volume
 type HelperPodOptions struct {
 	cmdsForPath []string
