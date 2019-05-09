@@ -96,7 +96,9 @@ UPGRADE=upgrade
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image
+include ./buildscripts/provisioner-localpv/Makefile.mk
+
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
@@ -371,6 +373,7 @@ deploy-images:
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
 	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
+	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
 # build upgrade binary
 upgrade:
