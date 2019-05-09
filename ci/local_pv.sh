@@ -5,7 +5,7 @@ kubectl apply -f ${ARTIFACTS_DIR}/openebs-local-provisioner.yaml
 kubectl apply -f ${ARTIFACTS_DIR}/sc-hostpath.yaml
 sleep 30
 LOCALPV="INIT"
-for i in $(seq 1 5) ; do
+for _ in $(seq 1 5) ; do
     phaseLocalPV=$(kubectl get pods busybox-hp --output="jsonpath={.status.phase}")
     if [ "$phaseLocalPV" == "Running" ]; then
         LOCALPV="RUNNING"
