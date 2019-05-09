@@ -181,7 +181,15 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 	if pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimRetain {
 		glog.Infof("Deleting volume %v at %v:%v", pv.Name, node, path)
 		cleanupCmdsForPath := []string{"rm", "-rf"}
-		if err := p.createCleanupPod(cleanupCmdsForPath, pv.Name, path, node); err != nil {
+		podOpts := &HelperPodOptions{
+			cmdsForPath: cleanupCmdsForPath,
+			name:        pv.Name,
+			path:        path,
+			nodeName:    node,
+		}
+
+		//if err := p.createCleanupPod(cleanupCmdsForPath, pv.Name, path, node); err != nil {
+		if err := p.createCleanupPod(podOpts); err != nil {
 			glog.Infof("clean up volume %v failed: %v", pv.Name, err)
 			return err
 		}

@@ -25,7 +25,7 @@ import (
 	"github.com/golang/glog"
 	mconfig "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
-	mHostPath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
+	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	//"github.com/pkg/errors"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -154,9 +154,9 @@ func (c *VolumeConfig) GetPath() (string, error) {
 	pvRelPath := c.pvName
 	//path := filepath.Join(basePath, pvRelPath)
 
-	return mHostPath.NewBuilder().
+	return hostpath.NewBuilder().
 		WithPathJoin(basePath, pvRelPath).
-		WithCheckf(mHostPath.IsNonRoot(), "failed to get path: root directory is not allowed").
+		WithCheckf(hostpath.IsNonRoot(), "path should not be a root directory: %s/%s", basePath, pvRelPath).
 		ValidateAndBuild()
 }
 

@@ -33,9 +33,9 @@ type HostPath string
 // against the provided HostPath instance
 type Predicate func(HostPath) bool
 
-// IsValidPath is a predicate that determines
+// isValidPath is a predicate that determines
 // the hostpath is a well formed path
-func IsValidPath() Predicate {
+func isValidPath() Predicate {
 	return func(hp HostPath) bool {
 		//Validate that path is well formed.
 		//_, err := filepath.Abs(string(hp))
@@ -123,7 +123,7 @@ func (b *Builder) Validate() error {
 		return errors.New("failed to validate: missing host path")
 	}
 
-	b = b.WithCheckf(IsValidPath(), "invalid path %v", b.path)
+	b = b.WithCheckf(isValidPath(), "invalid path %v", b.path)
 
 	failedValidations := []string{}
 	for check, msg := range b.checks {
@@ -149,9 +149,13 @@ func (b *Builder) ValidateAndBuild() (string, error) {
 }
 
 // ExtractSubPath is utility function to split directory from path
-func (b *Builder) ExtractSubPath() (string, string) {
+func (b *Builder) ExtractSubPath() (string, string, error) {
+	err := b.Validate()
+	if err != nil {
+		return "", "", err
+	}
 	parentDir, volumeDir := filepath.Split(string(b.path))
 	parentDir = strings.TrimSuffix(parentDir, "/")
 	volumeDir = strings.TrimSuffix(volumeDir, "/")
-	return parentDir, volumeDir
+	return parentDir, volumeDir, nil
 }

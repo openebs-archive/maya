@@ -28,7 +28,7 @@ import (
 	"github.com/golang/glog"
 	//"github.com/pkg/errors"
 
-	mHostPath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
+	hostpath "github.com/openebs/maya/pkg/hostpath/v1alpha1"
 
 	mContainer "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	mPod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -86,28 +86,26 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node s
 //  an unique PV path - under a given BasePath. From the absolute path,
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
-func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node string) (err error) {
-	if name == "" || path == "" || node == "" {
+func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) (err error) {
+	//func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node string) (err error) {
+	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
 		return fmt.Errorf("invalid empty name or path or node")
 	}
 
 	// Initialize HostPath builder and validate that
 	// non-root directories are not passed for delete
-	hostPathBuilder := mHostPath.NewBuilder().WithPath(path).
-		WithCheckf(mHostPath.IsNonRoot(), "root directories are not allowed")
-
-	err = hostPathBuilder.Validate()
-	if err != nil {
-		return err
-	}
-
 	// Extract the base path and the volume unique path.
-	parentDir, volumeDir := hostPathBuilder.ExtractSubPath()
+	parentDir, volumeDir, vErr := hostpath.NewBuilder().WithPath(pOpts.path).
+		WithCheckf(hostpath.IsNonRoot(), "path should not be a root directory: path %v", pOpts.path).
+		ExtractSubPath()
+	if vErr != nil {
+		return vErr
+	}
 
 	conObj, _ := mContainer.Builder().
 		WithName("local-path-cleanup").
 		WithImage(p.helperImage).
-		WithCommand(append(cmdsForPath, filepath.Join("/data/", volumeDir))).
+		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
 		WithVolumeMounts([]v1.VolumeMount{
 			{
 				Name:      "data",
@@ -125,9 +123,9 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 	volumes := []v1.Volume{*volObj}
 
 	helperPod, _ := mPod.NewBuilder().
-		WithName("cleanup-" + name).
+		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(v1.RestartPolicyNever).
-		WithNodeName(node).
+		WithNodeName(pOpts.nodeName).
 		WithContainers(containers).
 		WithVolumes(volumes).
 		Build()
@@ -160,6 +158,6 @@ func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node st
 		return fmt.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
 
-	glog.Infof("Volume %v has been cleaned on %v:%v", name, node, path)
+	glog.Infof("Volume %v has been cleaned on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
 	return nil
 }
