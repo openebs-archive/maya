@@ -87,6 +87,16 @@ func fakePatchErr(cs *clientset.Clientset, name string, pt types.PatchType, patc
 	return &apis.UpgradeResult{}, errors.New("some error")
 }
 
+func fakeUpdateOk(cs *clientset.Clientset, updateObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, nil
+}
+
+func fakeUpdateErr(cs *clientset.Clientset, updateObj *apis.UpgradeResult,
+	namespace string) (*apis.UpgradeResult, error) {
+	return &apis.UpgradeResult{}, errors.New("some error")
+}
+
 func TestWithDefaults(t *testing.T) {
 	tests := map[string]struct {
 		listFn             listFunc
@@ -94,17 +104,19 @@ func TestWithDefaults(t *testing.T) {
 		getClientsetFn     getClientsetFunc
 		createFn           createFunc
 		patchFn            patchFunc
+		updateFn           updateFunc
 		expectList         bool
 		expectGet          bool
 		expectGetClientset bool
 		expectCreate       bool
 		expectPatch        bool
+		expectUpdate       bool
 	}{
 		// The current implementation of WithDefaults method can be
 		// tested using these two combinations only.
-		"When mockclient is empty": {nil, nil, nil, nil, nil, false, false, false, false, false},
+		"When mockclient is empty": {nil, nil, nil, nil, nil, nil, false, false, false, false, false, false},
 		"When mockclient contains all of them": {fakeListfn, fakeGetfn,
-			fakeGetClientset, fakeCreateOk, fakePatchOk, false, false, false, false, false},
+			fakeGetClientset, fakeCreateOk, fakePatchOk, fakeUpdateOk, false, false, false, false, false, false},
 	}
 
 	for name, mock := range tests {
@@ -232,12 +244,12 @@ func TestGetClientOrCached(t *testing.T) {
 	}{
 		// Positive tests
 		"When clientset is nil": {&kubeclient{nil, "default",
-			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, false},
+			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, false},
 		"When clientset is not nil": {&kubeclient{&clientset.Clientset{},
-			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, false},
+			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, false},
 		// Negative tests
 		"When getting clientset throws error": {&kubeclient{nil, "",
-			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk}, true},
+			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, true},
 	}
 
 	for name, mock := range tests {
