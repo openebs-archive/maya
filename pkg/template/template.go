@@ -29,11 +29,14 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
+	"github.com/pkg/errors"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -110,6 +113,25 @@ type VerifyError struct {
 
 func (e *VerifyError) Error() string {
 	return e.err
+}
+
+// debugf prints the values filled into the task results.
+// This is intented to be used for debugging purpose.
+//
+// NOTE:
+//  This is intended to be used as a go template function
+//  DONOT USE IN PRODUCTION
+
+// Example:
+// {{- debugf .TaskResult -}}
+//
+// Assumption here is .Values is of type 'map[string]interface{}'
+func debugf(msg string, args interface{}) (err error) {
+	if args == nil {
+		return errors.Errorf("[Debug (Not for production)]Failed to get debug info, got empty args, msg: %s", msg)
+	}
+	glog.Infof("[Debug (Not for production)] %s", stringer.Yaml(msg, args))
+	return nil
 }
 
 // isLen returns true if the expected value matches the given object's
@@ -793,7 +815,9 @@ func runtaskFuncs() (f template.FuncMap) {
 		"keyMap":             keyMap,
 		"splitKeyMap":        splitKeyMap,
 		"splitListTrim":      splitListTrim,
+		"splitListLen":       splitListLen,
 		"randomize":          randomize,
+		"debugf":             debugf,
 		"IfNotNil":           ifNotNil,
 		"getMapofString":     util.GetNestedMap,
 	}
@@ -902,6 +926,20 @@ func AsMapOfStrings(context string, yml string, values map[string]interface{}) (
 func splitListTrim(sep, orig string) []string {
 	processedStr := strings.TrimRight(strings.TrimLeft(orig, sep), sep)
 	return strings.Split(processedStr, sep)
+}
+
+// splitListLen split the list according to separator, then
+// returns length of the new array of strings
+//
+// NOTE:
+//  This is intended to be used as a template function
+//
+// Example:
+//  {{- $nodes =: "node1,node2" | splitListLen "," | -}}
+//
+// Above operation would assign the length of the list to nodes.
+func splitListLen(sep, orig string) int {
+	return len(splitListTrim(sep, orig))
 }
 
 // For given []string as input, randomize API returns its randomized list
