@@ -46,11 +46,14 @@ var (
 	pvcLabel, replicaLabel, ctrlLabel string
 )
 
-var _ = Describe("TEST INVALID CAS CONFIGURATIONS IN SC", func() {
+var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 	var (
-		namespaceName = "validation-ns1"
-		scName        = "jiva-invalid-config-sc"
-		pvcName       = "jiva-volume-claim"
+		nsName       = "validation-ns1"
+		scName       = "jiva-invalid-config-sc"
+		pvcName      = "jiva-volume-claim"
+		pvcLabel     = string(apis.PersistentVolumeClaimKey) + "=" + pvcName
+		replicaLabel = defaultReplicaLabel + "," + pvcLabel
+		ctrlLabel    = defaultCtrlLabel + "," + pvcLabel
 	)
 	BeforeEach(func() {
 		annotations := map[string]string{
@@ -59,74 +62,72 @@ var _ = Describe("TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		}
 		var err error
 
+		By("Building a namespace")
 		nsObj, err = ns.NewBuilder().
-			WithName(namespaceName).
+			WithName(nsName).
 			APIObject()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
+		By("Building a storageclass")
 		scObj, err = sc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
 			WithProvisioner(openebsProvisioner).Build()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
+		By("Building a persistentvolumeclaim")
 		pvcObj, err = pvc.NewBuilder().
 			WithName(pvcName).
-			WithNamespace(namespaceName).
+			WithNamespace(nsName).
 			WithStorageClass(scName).
 			WithAccessModes(accessModes).
 			WithCapacity(capacity).Build()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-		By(fmt.Sprintf("Creating test specific namespace {%s}", namespaceName))
+		By("Creating a namespace")
 		_, err = ops.nsClient.Create(nsObj)
-		Expect(err).To(BeNil())
+		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
-		By(fmt.Sprintf("Creating PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
-		_, err = ops.pvcClient.WithNamespace(namespaceName).Create(pvcObj)
-		Expect(err).To(BeNil())
+		By("Creating a storageclass")
+		_, err = ops.scClient.Create(scObj)
+		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 
-		pvcLabel = string(apis.PersistentVolumeClaimKey) + "=" + pvcName
-		replicaLabel = defaultReplicaLabel + "," + pvcLabel
-		ctrlLabel = defaultCtrlLabel + "," + pvcLabel
 	})
 
-	When("We apply sc with invalid CASconfig yaml in k8s cluster", func() {
-		It("Jiva controller and replica pods should not create", func() {
+	When("jiva pvc referring to invalid sc is applied", func() {
+		It("should not create Jiva controller and replica pods", func() {
 
-			By(fmt.Sprintf("Creating storageclass named {%s}", scName))
-			_, err := ops.scClient.Create(scObj)
-			Expect(err).To(BeNil())
+			By("Creating a persistentvolumeclaim")
+			_, err := ops.pvcClient.WithNamespace(nsName).Create(pvcObj)
+			Expect(err).To(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
-			By("jiva-ctrl pod should not come to running state")
-			podCount := ops.getPodCountRunningEventually(namespaceName, ctrlLabel, 1)
-			Expect(podCount).To(Equal(0))
+			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 1)
+			Expect(controllerPodCount).To(Equal(0), "while checking jiva controller pod count")
 
-			By("jiva-replica pod should not come to running state")
-			podCount = ops.getPodCountRunningEventually(namespaceName, replicaLabel, 3)
-			Expect(podCount).To(Equal(0))
+			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, 3)
+			Expect(replicaPodCount).To(Equal(0), "while checking jiva replica pod count")
 		})
 	})
 
 	AfterEach(func() {
-		By(fmt.Sprintf("Delete PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
+		By("deleting persistentvolumeclaim")
 		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).To(BeNil(), "while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
-		By(fmt.Sprintf("Delete storageclass named {%s}", scName))
+		By("deleting storageclass")
 		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).To(BeNil(), "while deleting storrageclass {%s}", scObj.Name)
 
-		By(fmt.Sprintf("Delete {%s} namespace", namespaceName))
-		err = ops.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil())
+		By("deleting namespace")
+		err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsName)
 	})
 
 })
 
-var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
+var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN PVC", func() {
 	var (
-		namespaceName         = "validation-ns2"
+		nsName                = "validation-ns2"
 		scName                = "jiva-valid-config-sc"
 		pvcName               = "jiva-invalid-config-volume-claim"
 		openebsCASConfigValue = "- name: ReplicaCount\n  Value: 3"
@@ -139,56 +140,58 @@ var _ = Describe("TEST INVALID CONFIGURATIONS IN PVC", func() {
 		}
 		var err error
 
+		By("Building a namespace")
 		nsObj, err = ns.NewBuilder().
-			WithName(namespaceName).
+			WithName(nsName).
 			APIObject()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
+		By("Building a storageclass")
 		scObj, err = sc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
 			WithProvisioner(openebsProvisioner).Build()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
+		By("Building a persistentvolumeclaim")
 		pvcObj, err = pvc.NewBuilder().
 			WithName(pvcName).
-			WithNamespace(namespaceName).
+			WithNamespace(nsName).
 			WithLabels(invalidPVCLabel).
 			WithStorageClass(scName).
 			WithAccessModes(accessModes).
 			WithCapacity(capacity).Build()
-		Expect(err).ShouldNot(HaveOccurred())
+		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-		By(fmt.Sprintf("Create test specific namespace {%s}", namespaceName))
+		By("Creating a namespace")
 		_, err = ops.nsClient.Create(nsObj)
-		Expect(err).To(BeNil())
+		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
-		By(fmt.Sprintf("Create storageclass named {%s}", scName))
+		By("Createing a storageclass")
 		_, err = ops.scClient.Create(scObj)
-		Expect(err).To(BeNil())
-
+		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 	})
 
 	When("We apply invalid pvc yaml in k8s cluster", func() {
 		It("PVC creation should give error because of invalid pvc yaml", func() {
-			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
+			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, nsName))
 			_, err := ops.pvcClient.Create(pvcObj)
-			Expect(err).NotTo(BeNil())
+			Expect(err).NotTo(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 		})
 	})
 
 	AfterEach(func() {
-		By(fmt.Sprintf("Delete PVC named {%s} in Namespace: {%s}", pvcName, namespaceName))
+		By("deleting persistentvolumeclaim")
 		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
-		Expect(err).NotTo(BeNil())
+		Expect(err).NotTo(BeNil(), "while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-		By(fmt.Sprintf("Delete storageclass named {%s}", scName))
+		By("deleting storageclass")
 		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil())
+		Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
 
-		By(fmt.Sprintf("Delete {%s} namespace", namespaceName))
-		err = ops.nsClient.Delete(namespaceName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil())
+		By("deleting namespace")
+		err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsName)
 	})
 
 })
