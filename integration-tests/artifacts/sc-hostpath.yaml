@@ -2,7 +2,7 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: hostpath
+  name: openebs-hostpath
   annotations:
     #Define a new CAS Type called `local`
     #which indicates that Data is stored 
