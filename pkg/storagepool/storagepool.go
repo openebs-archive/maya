@@ -187,7 +187,7 @@ func NewStoragePoolOperation(poolName string) (*StoragePoolOperation, error) {
 }
 
 // List returns the list of storagepools
-func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
+func (s *StoragePoolOperation) List() (*v1alpha1.CStorPoolList, error) {
 	if s.k8sClient == nil {
 		return nil, fmt.Errorf("unable to fetch K8s client")
 	}
@@ -218,7 +218,7 @@ func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
 	}
 
 	// unmarshall into StoragePoolList
-	sPool := &v1alpha1.StoragePoolList{}
+	sPool := &v1alpha1.CStorPoolList{}
 	err = json.Unmarshal(data, sPool)
 	if err != nil {
 		return nil, err
@@ -227,7 +227,7 @@ func (s *StoragePoolOperation) List() (*v1alpha1.StoragePoolList, error) {
 }
 
 // Read returns the list of storagepools
-func (s *StoragePoolOperation) Read() (*v1alpha1.StoragePool, error) {
+func (s *StoragePoolOperation) Read() (*v1alpha1.CStorPool, error) {
 	if s.k8sClient == nil {
 		return nil, fmt.Errorf("unable to fetch K8s client")
 	}
@@ -260,7 +260,7 @@ func (s *StoragePoolOperation) Read() (*v1alpha1.StoragePool, error) {
 	}
 
 	// unmarshall into StoragePool
-	sPool := &v1alpha1.StoragePool{}
+	sPool := &v1alpha1.CStorPool{}
 	err = json.Unmarshal(data, sPool)
 	if err != nil {
 		return nil, err

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/openebs/maya/pkg/apis/openebs.io"
+	openebsio "github.com/openebs/maya/pkg/apis/openebs.io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,6 +50,8 @@ func init() {
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&CStorPoolCluster{},
+		&CStorPoolClusterList{},
 		&StoragePoolClaim{},
 		&StoragePoolClaimList{},
 		&StoragePool{},
@@ -62,6 +64,11 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CASTemplateList{},
 		&CStorVolume{},
 		&CStorVolumeList{},
+		&BackupCStor{},
+		&BackupCStorLast{},
+		&BackupCStorList{},
+		&CStorRestore{},
+		&CStorRestoreList{},
 		&Disk{},
 		&DiskList{},
 	)

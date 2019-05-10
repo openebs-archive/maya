@@ -1,18 +1,16 @@
-/*
-Copyright 2017 The OpenEBS Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright © 2018-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package mapiserver
 
@@ -25,24 +23,24 @@ import (
 const poolPath = "/latest/pools/"
 
 // ListPools returns a obj StoragePoolList from api-server
-func ListPools() (*v1alpha1.StoragePoolList, error) {
+func ListPools() (*v1alpha1.CStorPoolList, error) {
 
 	body, err := getRequest(GetURL()+poolPath, "", false)
 	if err != nil {
 		return nil, err
 	}
-	pools := v1alpha1.StoragePoolList{}
+	pools := v1alpha1.CStorPoolList{}
 	err = json.Unmarshal(body, &pools)
 	return &pools, err
 }
 
 // ReadPool returns a obj of StoragePool from api-server
-func ReadPool(poolName string) (*v1alpha1.StoragePool, error) {
+func ReadPool(poolName string) (*v1alpha1.CStorPool, error) {
 	body, err := getRequest(GetURL()+poolPath+poolName, "", false)
 	if err != nil {
 		return nil, err
 	}
-	pool := v1alpha1.StoragePool{}
+	pool := v1alpha1.CStorPool{}
 	err = json.Unmarshal(body, &pool)
 	return &pool, err
 }

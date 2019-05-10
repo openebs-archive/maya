@@ -467,6 +467,7 @@ spec:
             openebs.io/persistent-volume: {{ .Volume.owner }}
             openebs.io/storage-class: {{ .Volume.storageclass }}
             openebs.io/persistent-volume-claim: {{ .Volume.pvc }}
+            openebs.io/version: {{ .CAST.version }}
           annotations:
             openebs.io/storage-class-ref: |
               name: {{ .Volume.storageclass }}
@@ -494,6 +495,8 @@ spec:
                     operator: In
                     values:
                     - {{ .TaskResult.sts.applicationName }}
+                namespaces:
+                - {{ .Volume.runNamespace }}
                 topologyKey: kubernetes.io/hostname
           {{- else if ne $targetAffinityVal "none" }}
           affinity:
@@ -725,6 +728,7 @@ spec:
         openebs.io/source-volume: {{ .Volume.sourceVolume }}
         {{- end }}
         cstorpool.openebs.io/hostname: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolNodeList.pools | first }}
+        isRestoreVol: {{ .Volume.isRestoreVol }}
         openebs.io/storage-class-ref: |
           name: {{ .Volume.storageclass }}
           resourceVersion: {{ .TaskResult.creategetsc.storageClassVersion }}

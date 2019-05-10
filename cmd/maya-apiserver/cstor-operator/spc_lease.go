@@ -19,14 +19,15 @@ package spc
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"strings"
 )
 
 const (
@@ -141,6 +142,9 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	// object to be removed is finalizers
 	spcPatch[0].Path = PatchPath
 	leaseValueObj, err := parseLeaseValue(spcObject.Annotations[SpcLeaseKey])
+	if err != nil {
+		return err
+	}
 	leaseValueObj.Holder = ""
 	newLeaseValue, err := json.Marshal(leaseValueObj)
 	if err != nil {
@@ -169,7 +173,7 @@ func (sl *Lease) isLeaderLive(leaseValueObj LeaseContract) bool {
 		return false
 	}
 	podStatus := pod.Status.Phase
-	if string(podStatus) != string(v1.PodRunning) {
+	if string(podStatus) != string(corev1.PodRunning) {
 		return false
 	}
 

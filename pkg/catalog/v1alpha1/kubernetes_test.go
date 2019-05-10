@@ -74,7 +74,7 @@ func TestGet(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := &kubeclient{
-				Handle: kclient.Handle{
+				Handle: &kclient.Handle{
 					GetClientFn: mock.getClient,
 					GetFn:       mock.get,
 				},
@@ -97,7 +97,7 @@ func TestCreateAllResourcesOrNone(t *testing.T) {
 		create    kclient.CreateFunc
 		isErr     bool
 	}{
-		"t10": {[]apis.CatalogResource{apis.CatalogResource{}}, fakeGetClientOk, fakeCreateOk, true},
+		"t10": {[]apis.CatalogResource{apis.CatalogResource{}}, fakeGetClientOk, fakeCreateOk, false},
 		"t11": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Ping"}}, fakeGetClientErr, nil, true},
 		"t12": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Hi"}}, fakeGetClientOk, fakeCreateErr, true},
 		"t13": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Namaste"}}, fakeGetClientOk, fakeCreateOk, false},
@@ -105,7 +105,7 @@ func TestCreateAllResourcesOrNone(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := &kubeclient{
-				Handle: kclient.Handle{
+				Handle: &kclient.Handle{
 					GetClientFn: mock.getClient,
 					CreateFn:    mock.create,
 				},
@@ -128,7 +128,7 @@ func TestCreateResource(t *testing.T) {
 		create    kclient.CreateFunc
 		isErr     bool
 	}{
-		"t10": {apis.CatalogResource{}, fakeGetClientOk, fakeCreateOk, true},
+		"t10": {apis.CatalogResource{}, fakeGetClientOk, fakeCreateOk, false},
 		"t11": {apis.CatalogResource{Template: "kind: Ping"}, fakeGetClientErr, nil, true},
 		"t12": {apis.CatalogResource{Template: "kind: Hi"}, fakeGetClientOk, fakeCreateErr, true},
 		"t13": {apis.CatalogResource{Template: "kind: Namaste"}, fakeGetClientOk, fakeCreateOk, false},
@@ -136,7 +136,7 @@ func TestCreateResource(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := &kubeclient{
-				Handle: kclient.Handle{
+				Handle: &kclient.Handle{
 					GetClientFn: mock.getClient,
 					CreateFn:    mock.create,
 				},
@@ -159,7 +159,7 @@ func TestDeleteAllResources(t *testing.T) {
 		delete    kclient.DeleteFunc
 		isErr     bool
 	}{
-		"t10": {[]apis.CatalogResource{apis.CatalogResource{}}, fakeGetClientOk, fakeDeleteOk, true},
+		"t10": {[]apis.CatalogResource{apis.CatalogResource{}}, fakeGetClientOk, fakeDeleteOk, false},
 		"t11": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Pong"}}, fakeGetClientErr, nil, true},
 		"t12": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Bye"}}, fakeGetClientOk, fakeDeleteErr, true},
 		"t13": {[]apis.CatalogResource{apis.CatalogResource{Template: "kind: Namaste"}}, fakeGetClientOk, fakeDeleteOk, false},
@@ -167,7 +167,7 @@ func TestDeleteAllResources(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := &kubeclient{
-				Handle: kclient.Handle{
+				Handle: &kclient.Handle{
 					GetClientFn: mock.getClient,
 					DeleteFn:    mock.delete,
 				},
@@ -190,7 +190,7 @@ func TestDeleteResource(t *testing.T) {
 		delete    kclient.DeleteFunc
 		isErr     bool
 	}{
-		"t10": {apis.CatalogResource{}, fakeGetClientOk, fakeDeleteOk, true},
+		"t10": {apis.CatalogResource{}, fakeGetClientOk, fakeDeleteOk, false},
 		"t11": {apis.CatalogResource{Template: "kind: Pong"}, fakeGetClientErr, nil, true},
 		"t12": {apis.CatalogResource{Template: "kind: Bye"}, fakeGetClientOk, fakeDeleteErr, true},
 		"t13": {apis.CatalogResource{Template: "kind: Namaste"}, fakeGetClientOk, fakeDeleteOk, false},
@@ -198,7 +198,7 @@ func TestDeleteResource(t *testing.T) {
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			k := &kubeclient{
-				Handle: kclient.Handle{
+				Handle: &kclient.Handle{
 					GetClientFn: mock.getClient,
 					DeleteFn:    mock.delete,
 				},

@@ -137,3 +137,4 @@ if [ -f /var/openebs/$JIVAVOL/volume.meta ]; then
 else
    echo "Jiva replica data is cleared successfully"
 fi
+

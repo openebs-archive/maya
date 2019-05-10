@@ -30,8 +30,8 @@ import (
 // kubeclient enables kubernetes API operations on
 // kubeassert instance
 type kubeclient struct {
-	client.Client  // kubernetes client
-	kclient.Handle // manage kubernetes client & enable mocking
+	client.Client   // kubernetes client
+	*kclient.Handle // manage kubernetes client & enable mocking
 }
 
 // kubeclientBuildOption defines the abstraction to build
@@ -39,8 +39,15 @@ type kubeclient struct {
 type kubeclientBuildOption func(*kubeclient)
 
 func withDefaults(k *kubeclient) error {
-	if k.Client == nil {
-		cli, err := kclient.New()
+	if k.Handle == nil {
+		handle, err := kclient.New()
+		if err != nil {
+			return err
+		}
+		k.Handle = handle
+	}
+	if k.Client == nil && k.Handle != nil {
+		cli, err := k.Handle.GetClientFn()
 		if err != nil {
 			return err
 		}

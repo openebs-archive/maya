@@ -1,5 +1,24 @@
+# Copyright © 2017 The OpenEBS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include buildscripts/common.mk
+
 # list only maya source code directories
 PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|integration-tests')
+
+# list maya source code directories along with integration-test code
+PACKAGES_IT = $(shell go list ./... | grep 'integration-test')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -7,6 +26,25 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
 
 # API_PKG sets namespace where the API resources are defined
 API_PKG := github.com/openebs/maya/pkg
+
+# Default arguments for code gen script
+
+# OUTPUT_PKG is the path of directory where you want to keep the generated code
+OUTPUT_PKG=github.com/openebs/maya/pkg/client/generated
+
+# APIS_PKG is the path where apis group and schema exists.
+APIS_PKG=github.com/openebs/maya/pkg/apis
+
+# GENS is an argument which generates different type of code.
+# Possible values: all, deepcopy, client, informers, listers.
+GENS=all
+# GROUPS_WITH_VERSIONS is the group containing different versions of the resources.
+GROUPS_WITH_VERSIONS=openebs.io:v1alpha1
+
+# BOILERPLATE_TEXT_PATH is the boilerplate text(go comment) that is put at the top of every generated file.
+# This boilerplate text is nothing but the license information.
+BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
+
 
 # ALL_API_GROUPS has the list of all API resources from various groups
 ALL_API_GROUPS=\
@@ -16,12 +54,6 @@ ALL_API_GROUPS=\
 	openebs.io/kubeassert/v1alpha1 \
 	openebs.io/upgrade/v1alpha1 \
 	openebs.io/snapshot/v1alpha1
-
-# API_GROUPS sets api version of the resources exposed by maya
-ifeq (${API_GROUPS}, )
-  API_GROUPS = openebs.io/v1alpha1
-  export API_GROUPS
-endif
 
 # Tools required for different make targets or for development purposes
 EXTERNAL_TOOLS=\
@@ -59,14 +91,14 @@ POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
 OPENEBS_CLUSTER=openebs-cluster
+UPGRADE=upgrade
 
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
+include ./buildscripts/provisioner-localpv/Makefile.mk
 
-dev: format
-	@PNAME="maya" MAYACTL=${MAYACTL} DEV=1 sh -c "'$(PWD)/buildscripts/build.sh'"
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
@@ -87,6 +119,7 @@ clean:
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
 	rm -rf ${GOPATH}/bin/${OPENEBS_CLUSTER}
+	rm -rf ${GOPATH}/bin/${UPGRADE}
 	rm -rf ${GOPATH}/pkg/*
 
 release:
@@ -97,9 +130,21 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
+# Verifies the compilation issues in integratio test
+# TODO: Currently we are checking only for integration-test package
+precompile:
+	@echo "--> Running go vet on integration-test"
+	@for test in  $(PACKAGES_IT) ; do \
+		go vet $$test; \
+	done
+
 test: format
 	@echo "--> Running go test" ;
 	@go test $(PACKAGES)
+
+testv: format
+	@echo "--> Running go test verbose" ;
+	@go test -v $(PACKAGES)
 
 cover:
 	go list ./... | grep -v vendor | xargs -n1 go test --cover
@@ -117,7 +162,6 @@ golint-travis:
 golint:
 	@gometalinter.v1 --install
 	@gometalinter.v1 --vendor --deadline=600s ./...
-
 vet:
 	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
 		go get golang.org/x/tools/cmd/vet; \
@@ -144,20 +188,21 @@ bootstrap:
 kubegen2: deepcopy2 clientset2 lister2 informer2
 
 # code generation for custom resources
-kubegen: deepcopy clientset lister informer kubegen2
+kubegen1: 
+	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH} 
+
+# code generation for custom resources
+kubegen: kubegendelete kubegen1 kubegen2
+
+# deletes generated code by codegen
+kubegendelete:
+	@rm -rf pkg/client/generated/clientset
+	@rm -rf pkg/client/generated/listers
+	@rm -rf pkg/client/generated/informers
+	@rm -rf pkg/client/generated/openebs.io
 
 # code generation for custom resources and protobuf
 generated_files: kubegen protobuf
-
-# builds vendored version of deepcopy-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-deepcopy:
-	@go install ./vendor/k8s.io/code-generator/cmd/deepcopy-gen
-	@echo "+ Generating deepcopy funcs for $(API_GROUPS)"
-	@deepcopy-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-file-base zz_generated.deepcopy \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 # builds vendored version of deepcopy-gen tool
 deepcopy2:
@@ -169,18 +214,6 @@ deepcopy2:
 			--output-file-base zz_generated.deepcopy \
 			--go-header-file ./buildscripts/custom-boilerplate.go.txt; \
 	done
-
-# builds vendored version of client-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-clientset:
-	@go install ./vendor/k8s.io/code-generator/cmd/client-gen
-	@echo "+ Generating clientsets for $(API_GROUPS)"
-	@client-gen \
-		--fake-clientset=true \
-		--input $(API_GROUPS) \
-		--input-base $(API_PKG)/apis \
-		--clientset-path $(API_PKG)/client/generated/clientset \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
 
 # builds vendored version of client-gen tool
 clientset2:
@@ -196,16 +229,6 @@ clientset2:
 	done
 
 # builds vendored version of lister-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-lister:
-	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
-	@echo "+ Generating lister for $(API_GROUPS)"
-	@lister-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-package $(API_PKG)/client/generated/lister \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
-
-# builds vendored version of lister-gen tool
 lister2:
 	@go install ./vendor/k8s.io/code-generator/cmd/lister-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
@@ -217,24 +240,12 @@ lister2:
 	done
 
 # builds vendored version of informer-gen tool
-# deprecate once the old pkg/apis/ folder structure is removed
-informer:
-	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
-	@echo "+ Generating informer for $(API_GROUPS)"
-	@informer-gen \
-		--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
-		--output-package $(API_PKG)/client/generated/informer \
-		--versioned-clientset-package $(API_PKG)/client/generated/clientset/internalclientset \
-		--listers-package $(API_PKG)/client/generated/lister \
-		--go-header-file ./buildscripts/custom-boilerplate.go.txt
-
-# builds vendored version of informer-gen tool
 informer2:
 	@go install ./vendor/k8s.io/code-generator/cmd/informer-gen
 	@for apigrp in  $(ALL_API_GROUPS) ; do \
 		echo "+ Generating informer for $$apigrp" ; \
 		informer-gen \
-			--input-dirs $(API_PKG)/apis/$(API_GROUPS) \
+			--input-dirs $(API_PKG)/apis/$$apigrp \
 			--output-package $(API_PKG)/client/generated/$$apigrp/informer \
 			--versioned-clientset-package $(API_PKG)/client/generated/$$apigrp/clientset/internalclientset \
 			--listers-package $(API_PKG)/client/generated/$$apigrp/lister \
@@ -361,5 +372,23 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
+	@DIMAGE="openebs/m-upgrade" ./buildscripts/push
+	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
-.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image
+# build upgrade binary
+upgrade:
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE}      "
+	@echo "----------------------------"
+	@PNAME=${UPGRADE} CTLNAME=${UPGRADE} CGO_ENABLED=0 sh -c "'$(PWD)/buildscripts/build.sh'"
+
+# build upgrade image
+upgrade-image: upgrade
+	@echo "----------------------------"
+	@echo "--> ${UPGRADE} image"
+	@echo "----------------------------"
+	@cp bin/${UPGRADE}/${UPGRADE} buildscripts/${UPGRADE}/
+	@cd buildscripts/${UPGRADE} && sudo docker build -t openebs/m-upgrade:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
+	@rm buildscripts/${UPGRADE}/${UPGRADE}
+
+.PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image upgrade upgrade-image testv

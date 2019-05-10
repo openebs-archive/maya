@@ -37,6 +37,10 @@ fi
 #make golint-travis
 #rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
 
+#Run common checks
+make check-license
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
 echo "Running : make format"
 make format
 rc=$?; if [[ $rc != 0 ]]; then echo "make format failed"; exit $rc; fi

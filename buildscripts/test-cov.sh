@@ -11,3 +11,9 @@ for d in $(go list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|inte
         rm profile.out
     fi
 done
+
+echo "Running go vet on integration-test"
+for d in $(go list ./... | grep 'integration-tests'); do
+    #TODO - Currently we are checking only on integration-test.
+    go vet $d
+done

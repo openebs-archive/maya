@@ -1,6 +1,21 @@
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
-// This is an adaptation of Hashicorp's Nomad library.
 import (
 	"bytes"
 	"encoding/json"
@@ -15,17 +30,24 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/ugorji/go/codec"
 )
 
 const (
+	// ErrInvalidPath is used if the HTTP path is not supported
+	ErrInvalidPath = "Invalid path"
+
 	// ErrInvalidMethod is used if the HTTP method is not supported
-	ErrInvalidMethod = "Invalid method"
+	ErrInvalidMethod = "Invalid http method"
+
 	// ErrGetMethodRequired is used if the HTTP GET method is required"
 	ErrGetMethodRequired = "GET method required"
+
 	// ErrPutMethodRequired is used if the HTTP PUT/POST method is required"
 	ErrPutMethodRequired = "PUT/POST method required"
 )
@@ -100,6 +122,28 @@ var (
 		[]string{"code", "method"},
 	)
 
+	latestOpenEBSBackupRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "latest_openebs_backup_request_duration_seconds",
+			Help:    "Request response time of the /latest/backups.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
+		},
+		// code is http code and method is http method returned by
+		// endpoint "/latest/meta-data"
+		[]string{"code", "method"},
+	)
+
+	latestOpenEBRestoreRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "latest_openebs_restore_request_duration_seconds",
+			Help:    "Request response time of the /latest/restore.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.5, 1, 2.5, 5, 10},
+		},
+		// code is http code and method is http method returned by
+		// endpoint "/latest/meta-data"
+		[]string{"code", "method"},
+	)
+
 	// latestOpenEBSPoolRequestDuration Collects the response time since
 	// a request has been made on /latest/pool/
 	latestOpenEBSPoolRequestDuration = prometheus.NewHistogramVec(
@@ -126,6 +170,22 @@ var (
 		prometheus.CounterOpts{
 			Name: "latest_openebs_snapshots_requests_total",
 			Help: "Total number of /latest/snapshots requests.",
+		},
+		[]string{"code", "method"},
+	)
+
+	latestOpenEBSBackupRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "latest_openebs_backup_requests_total",
+			Help: "Total number of /latest/backups requests.",
+		},
+		[]string{"code", "method"},
+	)
+
+	latestOpenEBSRestoreRequestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "latest_openebs_restore_requests_total",
+			Help: "Total number of /latest/restore requests.",
 		},
 		[]string{"code", "method"},
 	)
@@ -173,11 +233,11 @@ func NewHTTPServer(maya *MayaApiServer, config *config.MayaConfig, logOutput io.
 	// Start the listener
 	lnAddr, err := net.ResolveTCPAddr("tcp", config.NormalizedAddrs.HTTP)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to instantiate http server: %s", config)
 	}
 	ln, err := config.Listener("tcp", lnAddr.IP.String(), lnAddr.Port)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start HTTP listener: %v", err)
+		return nil, errors.Wrapf(err, "failed to instantiate http server: %s", config)
 	}
 
 	// If TLS is enabled, wrap the listener with a TLS listener
@@ -269,6 +329,14 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 	s.mux.HandleFunc("/latest/snapshots/", s.wrap(latestOpenEBSSnapshotRequestCounter,
 		latestOpenEBSSnapshotRequestDuration, s.snapshotV1alpha1SpecificRequest))
 
+	// Request w.r.t to backup is handled here
+	s.mux.HandleFunc("/latest/backups/", s.wrap(latestOpenEBSBackupRequestCounter,
+		latestOpenEBSBackupRequestDuration, s.backupV1alpha1SpecificRequest))
+
+	// Request w.r.t to restore is handled here
+	s.mux.HandleFunc("/latest/restore/", s.wrap(latestOpenEBSRestoreRequestCounter,
+		latestOpenEBRestoreRequestDuration, s.restoreV1alpha1SpecificRequest))
+
 	// request for metrics is handled here. It displays metrics related to
 	// garbage collection, process, cpu...etc, and other custom metrics
 	s.mux.Handle("/metrics", promhttp.Handler())
@@ -278,11 +346,6 @@ func (s *HTTPServer) registerHandlers(serviceProvider string, enableDebug bool) 
 type HTTPCodedError interface {
 	error
 	Code() int
-}
-
-// CodedError is used to provide the HTTP Code error
-func CodedError(c int, s string) HTTPCodedError {
-	return &codedError{s, c}
 }
 
 type codedError struct {
@@ -298,6 +361,37 @@ func (e *codedError) Code() int {
 	return e.code
 }
 
+// CodedErrorWrapf is used to provide HTTP error
+// Code and corresponding error as well additional
+// details in a format decided by the caller
+func CodedErrorWrapf(code int, err error, msg string, args ...interface{}) HTTPCodedError {
+	errMsg := fmt.Sprintf("error: {%s}, msg: {%s}", err, msg)
+	finalMsg := fmt.Sprintf(errMsg, args...)
+	return CodedError(code, finalMsg)
+}
+
+// CodedErrorWrap is used to provide HTTP error
+// Code and corresponding error
+func CodedErrorWrap(code int, err error) HTTPCodedError {
+	errMsg := fmt.Sprintf("%+v", err)
+	return CodedError(code, errMsg)
+}
+
+// CodedErrorf is used to provide HTTP error
+// Code and corresponding error details in
+// a format decided by the caller
+func CodedErrorf(code int, msg string, args ...interface{}) HTTPCodedError {
+	errMsg := fmt.Sprintf("%s", msg)
+	finalMsg := fmt.Sprintf(errMsg, args...)
+	return CodedError(code, finalMsg)
+}
+
+// CodedError is used to provide HTTP error
+// Code and corresponding error msg
+func CodedError(c int, msg string) HTTPCodedError {
+	return &codedError{msg, c}
+}
+
 // wrap is a convenient method used to wrap the handler function &
 // return this handler curried with common logic.
 func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration *prometheus.HistogramVec, handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
@@ -309,7 +403,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		reqURL := req.URL.String()
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
+			glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, time.Since(start))
 		}()
 
 		// It captures the no of requests and duration of request coming on "/latest/volumes" endpoint.
@@ -327,7 +421,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 			RequestCounter.WithLabelValues(strconv.Itoa(code), req.Method).Inc()
 		}()
 
-		s.logger.Printf("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
+		glog.V(5).Infof("[DEBUG] http: Request %v (%v)", reqURL, req.Method)
 		// Original handler is invoked
 		obj, err := handler(resp, req)
 
@@ -335,7 +429,7 @@ func (s *HTTPServer) wrap(RequestCounter *prometheus.CounterVec, RequestDuration
 		// Below err block for re-usability
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v %v, error: %v", req.Method, reqURL, err)
+			s.logger.Printf("[ERR] http: Request %v %v\n%v", req.Method, reqURL, err)
 			code = 500
 			if http, ok := err.(HTTPCodedError); ok {
 				code = http.Code()

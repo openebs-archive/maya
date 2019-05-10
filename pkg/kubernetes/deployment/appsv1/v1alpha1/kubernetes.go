@@ -34,14 +34,14 @@ type getFn func(cli *kubernetes.Clientset, name, namespace string,
 
 // rolloutStatusFn is a typed function that abstracts
 // rollout status of deployment instances
-type rolloutStatusFn func(d *appsv1.Deployment) (*rolloutOutput, error)
+type rolloutStatusFn func(d *appsv1.Deployment) (*RolloutOutput, error)
 
 // rolloutStatusfFn is a typed function that abstracts
 // rollout status of deployment instances
 type rolloutStatusfFn func(d *appsv1.Deployment) ([]byte, error)
 
-// kubeclient enables kubernetes API operations on deployment instance
-type kubeclient struct {
+// Kubeclient enables kubernetes API operations on deployment instance
+type Kubeclient struct {
 	// clientset refers to kubernetes clientset. It is responsible to
 	// make kubernetes API calls for crud op
 	clientset *kubernetes.Clientset
@@ -54,11 +54,11 @@ type kubeclient struct {
 	rolloutStatusf rolloutStatusfFn
 }
 
-// kubeclientBuildOption defines the abstraction to build a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+// KubeclientBuildOption defines the abstraction to build a kubeclient instance
+type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options of kubeclient instance
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (
 			clients *kubernetes.Clientset, err error) {
@@ -83,42 +83,48 @@ func (k *kubeclient) withDefaults() {
 
 	if k.rolloutStatus == nil {
 		k.rolloutStatus = func(d *appsv1.Deployment) (
-			*rolloutOutput, error) {
-			return New(
-				WithAPIObject(d)).
-				RolloutStatus()
+			*RolloutOutput, error) {
+			b, err := NewBuilderForAPIObject(d).
+				Build()
+			if err != nil {
+				return nil, err
+			}
+			return b.RolloutStatus()
 		}
 	}
 
 	if k.rolloutStatusf == nil {
 		k.rolloutStatusf = func(d *appsv1.Deployment) (
 			[]byte, error) {
-			return New(
-				WithAPIObject(d)).
-				RolloutStatusRaw()
+			b, err := NewBuilderForAPIObject(d).
+				Build()
+			if err != nil {
+				return nil, err
+			}
+			return b.RolloutStatusRaw()
 		}
 	}
 
 }
 
 // WithClientset sets the kubernetes client against the kubeclient instance
-func WithClientset(c *kubernetes.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithClientset(c *kubernetes.Clientset) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
 // WithNamespace set namespace in kubeclient object
-func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithNamespace(namespace string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.namespace = namespace
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for deployment.
 // caller can configure it with different kubeclientBuildOption
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -128,7 +134,7 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -141,7 +147,7 @@ func (k *kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 }
 
 // Get returns deployment object for given name
-func (k *kubeclient) Get(name string) (*appsv1.Deployment, error) {
+func (k *Kubeclient) Get(name string) (*appsv1.Deployment, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -150,7 +156,7 @@ func (k *kubeclient) Get(name string) (*appsv1.Deployment, error) {
 }
 
 // GetRaw returns deployment object for given name
-func (k *kubeclient) GetRaw(name string) ([]byte, error) {
+func (k *Kubeclient) GetRaw(name string) ([]byte, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -164,7 +170,7 @@ func (k *kubeclient) GetRaw(name string) ([]byte, error) {
 
 // RolloutStatusf returns deployment's rollout status for given name
 // in raw bytes
-func (k *kubeclient) RolloutStatusf(name string) (op []byte, err error) {
+func (k *Kubeclient) RolloutStatusf(name string) (op []byte, err error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -177,7 +183,7 @@ func (k *kubeclient) RolloutStatusf(name string) (op []byte, err error) {
 }
 
 // RolloutStatus returns deployment's rollout status for given name
-func (k *kubeclient) RolloutStatus(name string) (*rolloutOutput, error) {
+func (k *Kubeclient) RolloutStatus(name string) (*RolloutOutput, error) {
 	cli, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err

@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/internalclientset/fake"
+	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
 	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"

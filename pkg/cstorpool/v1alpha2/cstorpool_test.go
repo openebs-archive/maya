@@ -1,6 +1,21 @@
+// Copyright © 2018-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package v1alpha2
 
 import (
+	"reflect"
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -275,4 +290,34 @@ func TestHasAnnotation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWithAPIList(t *testing.T) {
+	tests := map[string]struct {
+		expectedPoolIDs []string
+	}{
+		"Test 1": {[]string{"Pool 1"}},
+		"Test 2": {[]string{"Pool 1", "Pool 2"}},
+		"Test 3": {[]string{"Pool 1", "Pool 2", "Pool 3"}},
+		"Test 4": {[]string{"Pool 1", "Pool 2", "Pool 3", "Pool 4"}},
+		"Test 5": {[]string{"Pool 1", "Pool 2", "Pool 3", "Pool 4", "Pool 5"}},
+	}
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			poolItems := []apis.CStorPool{}
+			for _, p := range mock.expectedPoolIDs {
+				poolItems = append(poolItems, apis.CStorPool{ObjectMeta: metav1.ObjectMeta{Name: p}})
+			}
+
+			b := ListBuilder().WithAPIList(&apis.CStorPoolList{Items: poolItems})
+			for index, ob := range b.list.items {
+				if !reflect.DeepEqual(*ob.object, poolItems[index]) {
+					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poolItems[index], ob.object)
+				}
+			}
+		})
+	}
+
 }
