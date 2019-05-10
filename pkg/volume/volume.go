@@ -325,6 +325,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	if err != nil {
 		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
 	}
+
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
 	// read cas volume via cas template engine
 	engine, err := NewVolumeEngine(
@@ -335,8 +336,16 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		map[string]interface{}{
 			string(v1alpha1.OwnerVTP):        v.volume.Name,
 			string(v1alpha1.RunNamespaceVTP): v.volume.Namespace,
+			string(v1alpha1.CASKeyIsPatchJivaReplicaNodeAffinity): func() string {
+				val, ok := v.volume.Annotations[string(v1alpha1.NodeAffinityReplicaJivaIsPatchKey)]
+				if !ok {
+					return ""
+				}
+				return val
+			}(),
 		},
 	)
+
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
 	}
