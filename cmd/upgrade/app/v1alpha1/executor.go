@@ -28,10 +28,10 @@ import (
 )
 
 const (
-	// envSelfName represent name of pod in which upgrade process is running.
+	// envPodName represent name of pod in which upgrade process is running.
 	// This is required to get owner reference for upgrade result cr.
 	envPodName = "OPENEBS_IO_POD_NAME"
-	// envSelfNamespace represent namespace of pod in which upgrade process is running.
+	// envPodNamespace represent namespace of pod in which upgrade process is running.
 	// This is required to get owner reference for upgrade result cr.
 	envPodNamespace = "OPENEBS_IO_POD_NAMESPACE"
 )
