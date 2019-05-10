@@ -241,6 +241,30 @@ func (ob *OperationsBuilder) IsDiskBelongToNode(nodeName, diskName string) bool 
 	return false
 }
 
+// IsGroupCountValid returns predicate to validate if the group is valid for specified pool type.
+func IsGroupCountValid() OperationPredicate {
+	return func(ob *OperationsBuilder) bool {
+		return ob.IsDiskCountValid()
+	}
+}
+
+// IsGroupCountValid returns true if the group count is valid for specified pool type.
+func (ob *OperationsBuilder) IsGroupCountValid() bool {
+	CSPCObject := ob.Operations.CspcObject
+	for _, node := range CSPCObject.Object.Spec.Nodes {
+		poolType := node.PoolSpec.PoolType
+		if poolType == apisv1alpha1.PoolStriped {
+			if len(node.DiskGroups) > 1 {
+				return false
+			}
+		}
+		if len(node.DiskGroups) == 0 {
+			return false
+		}
+	}
+	return true
+}
+
 // IsDiskCountValid returns predicate to validate if the disk count is valid for specified pool type.
 func IsDiskCountValid() OperationPredicate {
 	return func(ob *OperationsBuilder) bool {
