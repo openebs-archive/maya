@@ -25,23 +25,6 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default
 spec:
-  defaultConfig:
-  - name: NodeAffinityRequiredSchedIgnoredExec
-    value: |-
-      t1:
-        key: beta.kubernetes.io/os
-        operator: In
-        values:
-        - linux
-  - name: NodeAffinityPreferredSchedIgnoredExec
-    value: |-
-      t1:
-        key: some-node-label-key
-        operator: In
-        values:
-        - some-node-label-value
-  - name: ReplicaCount
-    value: {{env "OPENEBS_IO_JIVA_REPLICA_COUNT" | default "3" | quote }}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
@@ -517,16 +500,23 @@ metadata:
   name: jiva-volume-read-verifyreplicationfactor-default
 spec:
   meta: |
+    {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
+    {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
+    {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
     id: verifyreplicationfactor
     runNamespace: {{ .Volume.runNamespace }}
-    apiVersion: v1
-    kind: Pod
+    apiVersion: extensions/v1beta1
+    kind: Deployment
     action: list
-    disable: {{- if and (ne .Volume.isPatch "") (eq .Volume.isPatch "Enabled") -}}false{{- else -}}true{{- end -}}
+    disable: {{ ne $shouldPatch "true" }}
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
   post: |
-    {{- $expectedRepCount := .Config.ReplicaCount.value | int -}}
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "verifyreplicationfactor.items" .TaskResult | noop -}}
+    {{- $errMsg := printf "replica deployment not found" -}}
+    {{- .TaskResult.verifyreplicationfactor.items | notFoundErr $errMsg | saveIf "verifyreplicationfactor.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].status.replicas}" | trim | saveAs "verifyreplicationfactor.noOfReplicas" .TaskResult | noop -}}
+    {{- $expectedRepCount := .TaskResult.verifyreplicationfactor.noOfReplicas | int -}}
     {{- $msg := printf "expected %v no of replica pod(s), found only %v replica pod(s)" $expectedRepCount .TaskResult.readlistrep.noOfReplicas -}}
     {{- .TaskResult.readlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr $msg | saveIf "verifyreplicationfactor.verifyErr" .TaskResult | noop -}}
 ---
@@ -536,16 +526,17 @@ metadata:
   name: jiva-volume-read-patchreplicadeployment-default
 spec:
   meta: |
+    {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
+    {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
+    {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
     id: readpatchrep
     runNamespace: {{ .Volume.runNamespace }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     objectName: {{ .Volume.owner }}-rep
-    disable: {{ and (ne .Volume.isPatch "") (eq .Volume.isPatch "Enabled") }}
+    disable: {{ ne $shouldPatch "true" }}
     action: patch
   task: |
-      {{- $isNodeAffinityRSIE := .Config.NodeAffinityRequiredSchedIgnoredExec.value | default "none" -}}
-      {{- $nodeAffinityRSIEVal := fromYaml .Config.NodeAffinityRequiredSchedIgnoredExec.value -}}
       {{- $nodeNames := .TaskResult.readlistrep.nodeNames -}}
       type: strategic
       pspec: |-
@@ -554,26 +545,6 @@ spec:
             spec:
               affinity:
                 nodeAffinity:
-                  {{- if ne $isNodeAffinityRSIE "none" }}
-                  requiredDuringSchedulingIgnoredDuringExecution:
-                    nodeSelectorTerms:
-                    - matchExpressions:
-                      {{- range $k, $v := $nodeAffinityRSIEVal }}
-                      -
-                      {{- range $kk, $vv := $v }}
-                        {{ $kk }}: {{ $vv }}
-                      {{- end }}
-                      {{- end }}
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                        {{- if ne $nodeNames "" }}
-                        {{- $nodeNamesMap := $nodeNames | split " " }}
-                        {{- range $k, $v := $nodeNamesMap }}
-                        - {{ $v }}
-                        {{- end }}
-                        {{- end }}
-                  {{- else }}
                   requiredDuringSchedulingIgnoredDuringExecution:
                     nodeSelectorTerms:
                     - matchExpressions:
@@ -586,7 +557,6 @@ spec:
                         - {{ $v }}
                         {{- end }}
                         {{- end }}
-                  {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask

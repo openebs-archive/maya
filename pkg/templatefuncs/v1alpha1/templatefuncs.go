@@ -28,11 +28,14 @@ import (
 
 	"github.com/Masterminds/sprig"
 	"github.com/ghodss/yaml"
+	"github.com/golang/glog"
 	poolselection "github.com/openebs/maya/pkg/algorithm/cstorpoolselect/v1alpha1"
+	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	v1alpha1 "github.com/openebs/maya/pkg/task/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	kubever "github.com/openebs/maya/pkg/version/kubernetes"
+	"github.com/pkg/errors"
 )
 
 // empty returns true if the given value has the zero value for its type.
@@ -701,6 +704,25 @@ func verifyErr(errMessage string, hasVerificationFailed bool) (err error) {
 	return
 }
 
+// debugf prints the values filled into the task results.
+// This is intented to be used for debugging purpose.
+//
+// NOTE:
+//  This is intended to be used as a go template function
+//  DONOT USE IN PRODUCTION
+
+// Example:
+// {{- debugf .TaskResult -}}
+//
+// Assumption here is .Values is of type 'map[string]interface{}'
+func debugf(msg string, args interface{}) (err error) {
+	if args == nil {
+		return errors.Errorf("[Debug (Not for production)]Failed to get debug info, got empty args, msg: %s", msg)
+	}
+	glog.Infof("[Debug (Not for production)] %s", stringer.Yaml(msg, args))
+	return nil
+}
+
 // versionMismatchErr returns VersionMismatchError if given verification flag
 // failed i.e. is true
 //
@@ -794,6 +816,7 @@ func runtaskFuncs() (f template.FuncMap) {
 		"splitListLen":       splitListLen,
 		"randomize":          randomize,
 		"IfNotNil":           ifNotNil,
+		"debugf":             debugf,
 		"getMapofString":     util.GetNestedMap,
 	}
 }
