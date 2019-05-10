@@ -494,6 +494,8 @@ spec:
                     operator: In
                     values:
                     - {{ .TaskResult.sts.applicationName }}
+                namespaces:
+                - {{ .Volume.runNamespace }}
                 topologyKey: kubernetes.io/hostname
           {{- else if ne $targetAffinityVal "none" }}
           affinity:
