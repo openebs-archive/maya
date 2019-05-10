@@ -316,9 +316,9 @@ func WithTaskRetries(retries int) UpgradeResultForTaskOption {
 	}
 }
 
-// NewUpdateUpgradeResult returns a new instance of updateUpgradeResult
+// NewUpgradeResultForTask returns a new instance of updateUpgradeResult
 // meant for updating an upgrade result instance
-func NewUpdateUpgradeResult(opts ...UpgradeResultForTaskOption) *UpgradeResultForTask {
+func NewUpgradeResultForTask(opts ...UpgradeResultForTaskOption) *UpgradeResultForTask {
 	u := &UpgradeResultForTask{
 		task: &apis.UpgradeResultTask{},
 	}
@@ -332,7 +332,7 @@ func NewUpdateUpgradeResult(opts ...UpgradeResultForTaskOption) *UpgradeResultFo
 // UpdateTasks is a template function exposed for
 // updating an upgrade result instance
 func UpdateTasks(opts ...UpgradeResultForTaskOption) error {
-	new := NewUpdateUpgradeResult(opts...)
+	new := NewUpgradeResultForTask(opts...)
 	if new.name == "" {
 		return errors.New("failed to update upgrade result tasks: missing upgrade result name")
 	}
