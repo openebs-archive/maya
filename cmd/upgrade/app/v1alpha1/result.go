@@ -17,13 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/types"
-
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	objectmeta "github.com/openebs/maya/pkg/kubernetes/objectmeta/v1alpha1"
-	ownerreference "github.com/openebs/maya/pkg/kubernetes/ownerreference/v1alpha1"
 	typemeta "github.com/openebs/maya/pkg/kubernetes/typemeta/v1alpha1"
 	upgraderesult "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,9 +46,8 @@ type UpgradeResult struct {
 // UpgradeResultGetOrCreateBuilder helps to get or create UpgradeResult instance
 type UpgradeResultGetOrCreateBuilder struct {
 	*errors.ErrorList
-	SelfName        string
 	SelfNamespace   string
-	SelfUID         types.UID
+	SelfOwner       *metav1.OwnerReference
 	UpgradeConfig   *upgrade.UpgradeConfig
 	ResourceDetails *upgrade.ResourceDetails
 	Tasks           []upgrade.UpgradeResultTask
@@ -76,13 +72,6 @@ func NewUpgradeResultGetOrCreateBuilder() *UpgradeResultGetOrCreateBuilder {
 	}
 }
 
-// WithSelfName adds Name in UpgradeResult instance
-func (urb *UpgradeResultGetOrCreateBuilder) WithSelfName(
-	name string) *UpgradeResultGetOrCreateBuilder {
-	urb.SelfName = name
-	return urb
-}
-
 // WithSelfNamespace adds Namespace in UpgradeResult instance
 func (urb *UpgradeResultGetOrCreateBuilder) WithSelfNamespace(
 	namespace string) *UpgradeResultGetOrCreateBuilder {
@@ -90,10 +79,10 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithSelfNamespace(
 	return urb
 }
 
-// WithSelfUID adds UID in UpgradeResult instance
-func (urb *UpgradeResultGetOrCreateBuilder) WithSelfUID(
-	uid types.UID) *UpgradeResultGetOrCreateBuilder {
-	urb.SelfUID = uid
+// WithSelfOwner adds OwnerReference in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithSelfOwner(
+	owner *metav1.OwnerReference) *UpgradeResultGetOrCreateBuilder {
+	urb.SelfOwner = owner
 	return urb
 }
 
@@ -124,17 +113,14 @@ func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 		return urb.ErrorList.WithStack("failed to validate upgrade result get or create")
 	}
 	validationErrs := &errors.ErrorList{}
-	if urb.SelfName == "" {
-		validationErrs.Errors = append(validationErrs.Errors,
-			errors.New("missing self name"))
-	}
+
 	if urb.SelfNamespace == "" {
 		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self namespace"))
 	}
-	if urb.SelfUID == "" {
+	if urb.SelfOwner == nil {
 		validationErrs.Errors = append(validationErrs.Errors,
-			errors.New("missing self uid"))
+			errors.New("missing self owner"))
 	}
 	if urb.UpgradeConfig == nil {
 		validationErrs.Errors = append(validationErrs.Errors,
@@ -165,7 +151,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 		return nil,
 			errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 	}
-	l := labelJobName + "=" + urb.SelfName +
+	l := labelJobName + "=" + urb.SelfOwner.Name +
 		"," + labelItemName + "=" + urb.ResourceDetails.Name +
 		"," + labelItemNamespace + "=" + urb.ResourceDetails.Namespace +
 		"," + labelItemKind + "=" + urb.ResourceDetails.Kind
@@ -238,38 +224,16 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 // getObjectMeta returns metav1.ObjectMeta for upgrade result cr.
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
-	oRef, err := urb.getOwnerReference()
-	if err != nil {
-		return nil, err
-	}
 	labels := map[string]string{
-		labelJobName:       urb.SelfName,
+		labelJobName:       urb.SelfOwner.Name,
 		labelItemName:      urb.ResourceDetails.Name,
 		labelItemNamespace: urb.ResourceDetails.Namespace,
 		labelItemKind:      urb.ResourceDetails.Kind,
 	}
 	return objectmeta.NewBuilder().
-		WithGenerateName(urb.SelfName + "-").
+		WithGenerateName(urb.SelfOwner.Name + "-").
 		WithNamespace(urb.SelfNamespace).
 		WithLabels(labels).
-		WithOwnerReferences(*oRef).
-		Build()
-}
-
-// getOwnerReference returns metav1.OwnerReference for upgrade result cr.
-// This is required to build ObjectMeta of upgrade result cr.
-// We put upgrade job as ownerReference of upgrade result cr for
-// cleanup activity.
-func (urb *UpgradeResultGetOrCreateBuilder) getOwnerReference() (
-	oRef *metav1.OwnerReference, err error) {
-	ctrlOpt := true
-	blockOwnerDeletionOption := true
-	return ownerreference.NewBuilder().
-		WithName(urb.SelfName).
-		WithKind("Job").
-		WithAPIVersion("batch/v1").
-		WithUID(urb.SelfUID).
-		WithControllerOption(&ctrlOpt).
-		WithBlockOwnerDeletionOption(&blockOwnerDeletionOption).
+		WithOwnerReferences(*urb.SelfOwner).
 		Build()
 }

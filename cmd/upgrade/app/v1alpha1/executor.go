@@ -19,11 +19,10 @@ package v1alpha1
 import (
 	"os"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -35,9 +34,6 @@ const (
 	// envSelfNamespace represent namespace of job in which upgrade process is running.
 	// This is required to build owner reference of upgrade result cr.
 	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
-	// envSelfUID represent UID of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfUID = "OPENEBS_IO_SELF_UID"
 )
 
 // Executor contains list of castEngine
@@ -71,12 +67,20 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 		return executorBuilder
 
 	}
-	selfUID := types.UID(os.Getenv(envSelfUID))
-	if selfUID == "" {
-		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
-		return executorBuilder
 
+	p, err := pod.NewKubeClient(pod.WithNamespace(selfNamespace)).
+		Get(selfName, metav1.GetOptions{})
+	if err != nil {
+		executorBuilder.Errors = append(executorBuilder.Errors,
+			errors.Wrap(err, "failed to instantiate executor builder"))
+		return executorBuilder
+	}
+
+	owners := p.ObjectMeta.OwnerReferences
+	if len(owners) == 0 {
+		executorBuilder.Errors = append(executorBuilder.Errors,
+			errors.New("failed to instantiate executor builder:unable to find owner"))
+		return executorBuilder
 	}
 
 	castObj, err := cast.KubeClient().
@@ -101,9 +105,8 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	for _, resource := range cfg.Resources {
 		resource := resource // pin it
 		upgradeResult, err := NewUpgradeResultGetOrCreateBuilder().
-			WithSelfName(selfName).
 			WithSelfNamespace(selfNamespace).
-			WithSelfUID(selfUID).
+			WithSelfOwner(&owners[0]).
 			WithUpgradeConfig(cfg).
 			WithResourceDetails(&resource).
 			WithTasks(tasks).
