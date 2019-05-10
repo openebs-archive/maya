@@ -47,10 +47,10 @@ type UpgradeResult struct {
 type UpgradeResultGetOrCreateBuilder struct {
 	*errors.ErrorList
 	SelfNamespace   string
-	SelfOwner       *metav1.OwnerReference
-	UpgradeConfig   *upgrade.UpgradeConfig
-	ResourceDetails *upgrade.ResourceDetails
-	Tasks           []upgrade.UpgradeResultTask
+	Owner           *metav1.OwnerReference      // owner reference for upgrade result cr
+	UpgradeConfig   *upgrade.UpgradeConfig      // runtime config for upgrade
+	ResourceDetails *upgrade.ResourceDetails    // unit of upgrade details
+	Tasks           []upgrade.UpgradeResultTask // list of runtasks used to upgrade a resource
 	UpgradeResult   *UpgradeResult
 }
 
@@ -79,10 +79,10 @@ func (urb *UpgradeResultGetOrCreateBuilder) WithSelfNamespace(
 	return urb
 }
 
-// WithSelfOwner adds OwnerReference in UpgradeResult instance
-func (urb *UpgradeResultGetOrCreateBuilder) WithSelfOwner(
+// WithOwner adds OwnerReference in UpgradeResult instance
+func (urb *UpgradeResultGetOrCreateBuilder) WithOwner(
 	owner *metav1.OwnerReference) *UpgradeResultGetOrCreateBuilder {
-	urb.SelfOwner = owner
+	urb.Owner = owner
 	return urb
 }
 
@@ -118,7 +118,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) validate() error {
 		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self namespace"))
 	}
-	if urb.SelfOwner == nil {
+	if urb.Owner == nil {
 		validationErrs.Errors = append(validationErrs.Errors,
 			errors.New("missing self owner"))
 	}
@@ -151,7 +151,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 		return nil,
 			errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 	}
-	l := labelJobName + "=" + urb.SelfOwner.Name +
+	l := labelJobName + "=" + urb.Owner.Name +
 		"," + labelItemName + "=" + urb.ResourceDetails.Name +
 		"," + labelItemNamespace + "=" + urb.ResourceDetails.Namespace +
 		"," + labelItemKind + "=" + urb.ResourceDetails.Kind
@@ -225,15 +225,15 @@ func (urb *UpgradeResultGetOrCreateBuilder) getTypeMeta() (
 func (urb *UpgradeResultGetOrCreateBuilder) getObjectMeta() (
 	tm *metav1.ObjectMeta, err error) {
 	labels := map[string]string{
-		labelJobName:       urb.SelfOwner.Name,
+		labelJobName:       urb.Owner.Name,
 		labelItemName:      urb.ResourceDetails.Name,
 		labelItemNamespace: urb.ResourceDetails.Namespace,
 		labelItemKind:      urb.ResourceDetails.Kind,
 	}
 	return objectmeta.NewBuilder().
-		WithGenerateName(urb.SelfOwner.Name + "-").
+		WithGenerateName(urb.Owner.Name + "-").
 		WithNamespace(urb.SelfNamespace).
 		WithLabels(labels).
-		WithOwnerReferences(*urb.SelfOwner).
+		WithOwnerReferences(*urb.Owner).
 		Build()
 }

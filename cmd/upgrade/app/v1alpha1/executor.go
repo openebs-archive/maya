@@ -28,12 +28,12 @@ import (
 )
 
 const (
-	// envSelfName represent name of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfName = "OPENEBS_IO_SELF_NAME"
-	// envSelfNamespace represent namespace of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
+	// envSelfName represent name of pod in which upgrade process is running.
+	// This is required to get owner reference for upgrade result cr.
+	envPodName = "OPENEBS_IO_POD_NAME"
+	// envSelfNamespace represent namespace of pod in which upgrade process is running.
+	// This is required to get owner reference for upgrade result cr.
+	envPodNamespace = "OPENEBS_IO_POD_NAMESPACE"
 )
 
 // Executor contains list of castEngine
@@ -54,22 +54,22 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 		ErrorList: &errors.ErrorList{},
 	}
 
-	selfName := os.Getenv(envSelfName)
-	if selfName == "" {
+	podName := os.Getenv(envPodName)
+	if podName == "" {
 		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envPodName))
 		return executorBuilder
 	}
-	selfNamespace := os.Getenv(envSelfNamespace)
-	if selfNamespace == "" {
+	podNamespace := os.Getenv(envPodNamespace)
+	if podNamespace == "" {
 		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envPodNamespace))
 		return executorBuilder
 
 	}
 
-	p, err := pod.NewKubeClient(pod.WithNamespace(selfNamespace)).
-		Get(selfName, metav1.GetOptions{})
+	p, err := pod.NewKubeClient(pod.WithNamespace(podNamespace)).
+		Get(podName, metav1.GetOptions{})
 	if err != nil {
 		executorBuilder.Errors = append(executorBuilder.Errors,
 			errors.Wrap(err, "failed to instantiate executor builder"))
@@ -79,7 +79,7 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	owners := p.ObjectMeta.OwnerReferences
 	if len(owners) == 0 {
 		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.New("failed to instantiate executor builder:unable to find owner"))
+			errors.New("failed to instantiate executor builder: pod does not have a owner"))
 		return executorBuilder
 	}
 
@@ -105,8 +105,8 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	for _, resource := range cfg.Resources {
 		resource := resource // pin it
 		upgradeResult, err := NewUpgradeResultGetOrCreateBuilder().
-			WithSelfNamespace(selfNamespace).
-			WithSelfOwner(&owners[0]).
+			WithSelfNamespace(podNamespace).
+			WithOwner(&owners[0]).
 			WithUpgradeConfig(cfg).
 			WithResourceDetails(&resource).
 			WithTasks(tasks).
