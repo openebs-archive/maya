@@ -551,6 +551,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.deleteAppsV1STS()
 	} else if m.MetaExec.isExecCoreV1Pod() {
 		err = m.execCoreV1Pod()
+	} else if m.MetaExec.isGetAppsV1Deploy() {
+		err = m.getAppsV1Deployment()
 	} else {
 		err = ErrorUnSupportedTask
 	}
@@ -1252,7 +1254,7 @@ func (m *executor) extnV1B1DeploymentRollOutStatus() (err error) {
 	return
 }
 
-// getAppsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
+// appsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
 func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
 	dclient := deploy_appsv1.KubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
