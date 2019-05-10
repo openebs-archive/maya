@@ -53,7 +53,7 @@ func (e *err) Error() string { return e.msg }
 
 // Format is implementation of Formater interface
 func (e *err) Format(s fmt.State, verb rune) {
-	message := "error(s) were found: " + e.msg
+	message := wrapErrorMessagePrefix + e.msg
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -111,7 +111,7 @@ type withStack struct {
 
 // Format is implementation of Formater interface
 func (ws *withStack) Format(s fmt.State, verb rune) {
-	message := "error(s) were found: " + fmt.Sprintf("%s", ws.error)
+	message := wrapErrorMessagePrefix + fmt.Sprintf("%s", ws.error)
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
