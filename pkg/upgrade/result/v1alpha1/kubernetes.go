@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
@@ -28,6 +27,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/upgrade/v1alpha1/clientset/internalclientset"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 )
 
@@ -58,9 +58,9 @@ type patchFunc func(cs *clientset.Clientset, name string, pt types.PatchType, pa
 type updateFunc func(cs *clientset.Clientset, updateObj *apis.UpgradeResult,
 	namespace string) (*apis.UpgradeResult, error)
 
-// kubeclient enables kubernetes API operations
+// Kubeclient enables kubernetes API operations
 // on upgrade result instance
-type kubeclient struct {
+type Kubeclient struct {
 	// clientset refers to upgrade's
 	// clientset that will be responsible to
 	// make kubernetes API calls
@@ -75,13 +75,13 @@ type kubeclient struct {
 	update       updateFunc
 }
 
-// kubeclientBuildOption defines the abstraction
+// KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
-type kubeclientBuildOption func(*kubeclient)
+type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options
 // of kubeclient instance
-func (k *kubeclient) withDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
 			config, err := client.GetConfig(client.New())
@@ -137,16 +137,16 @@ func (k *kubeclient) withDefaults() {
 
 // WithClientset sets the kubernetes clientset against
 // the kubeclient instance
-func WithClientset(c *clientset.Clientset) kubeclientBuildOption {
-	return func(k *kubeclient) {
+func WithClientset(c *clientset.Clientset) KubeclientBuildOption {
+	return func(k *Kubeclient) {
 		k.clientset = c
 	}
 }
 
 // KubeClient returns a new instance of kubeclient meant for
 // upgrade result related operations
-func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
-	k := &kubeclient{}
+func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
 	}
@@ -156,15 +156,14 @@ func KubeClient(opts ...kubeclientBuildOption) *kubeclient {
 
 // WithNamespace sets namespace that should be used during
 // kuberenets API calls against upgradeResult resource
-func WithNamespace(namespace string) kubeclientBuildOption {
-	return func(k *kubeclient) {
-		k.namespace = namespace
-	}
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
+	return k
 }
 
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
-func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
+func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
@@ -178,7 +177,7 @@ func (k *kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 
 // List returns a list of upgrade result
 // instances present in kubernetes cluster
-func (k *kubeclient) List(opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
+func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -187,7 +186,7 @@ func (k *kubeclient) List(opts metav1.ListOptions) (*apis.UpgradeResultList, err
 }
 
 // Get returns an upgrade result instance from kubernetes cluster
-func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
+func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResult, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to get upgrade result: missing upgradeResult name")
 	}
@@ -200,7 +199,7 @@ func (k *kubeclient) Get(name string, opts metav1.GetOptions) (*apis.UpgradeResu
 
 // CreateRaw creates an upgrade result instance
 // and returns raw upgradeResult instance
-func (k *kubeclient) CreateRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, error) {
+func (k *Kubeclient) CreateRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, error) {
 	ur, err := k.Create(upgradeResultObj)
 	if err != nil {
 		return nil, err
@@ -209,7 +208,7 @@ func (k *kubeclient) CreateRaw(upgradeResultObj *apis.UpgradeResult) ([]byte, er
 }
 
 // Create creates an upgrade result instance in kubernetes cluster
-func (k *kubeclient) Create(upgradeResultObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
+func (k *Kubeclient) Create(upgradeResultObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -218,7 +217,7 @@ func (k *kubeclient) Create(upgradeResultObj *apis.UpgradeResult) (*apis.Upgrade
 }
 
 // Patch returns the patched upgrade result instance
-func (k *kubeclient) Patch(name string, pt types.PatchType,
+func (k *Kubeclient) Patch(name string, pt types.PatchType,
 	patchObj []byte) (*apis.UpgradeResult, error) {
 	if strings.TrimSpace(name) == "" {
 		return nil, errors.New("failed to patch upgrade result: missing upgradeResult name")
@@ -231,7 +230,7 @@ func (k *kubeclient) Patch(name string, pt types.PatchType,
 }
 
 // Update returns the updated upgrade result instance
-func (k *kubeclient) Update(updateObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
+func (k *Kubeclient) Update(updateObj *apis.UpgradeResult) (*apis.UpgradeResult, error) {
 	cs, err := k.getClientOrCached()
 	if err != nil {
 		return nil, err
@@ -251,17 +250,17 @@ type UpdateUpgradeResult struct {
 // to build an update instance for upgrade result
 type UpgradeResultUpdateOption func(*UpdateUpgradeResult)
 
-// WithURName sets the name of the upgrade
+// WithName sets the name of the upgrade
 // result
-func WithURName(name string) UpgradeResultUpdateOption {
+func WithName(name string) UpgradeResultUpdateOption {
 	return func(u *UpdateUpgradeResult) {
 		u.name = name
 	}
 }
 
-// WithURNamespace sets namespace where upgrade
+// WithNamespace sets namespace where upgrade
 // result is present
-func WithURNamespace(namespace string) UpgradeResultUpdateOption {
+func WithNamespace(namespace string) UpgradeResultUpdateOption {
 	return func(u *UpdateUpgradeResult) {
 		u.namespace = namespace
 	}
@@ -330,36 +329,46 @@ func NewUpdateUpgradeResult(opts ...UpgradeResultUpdateOption) *UpdateUpgradeRes
 	return u
 }
 
-// Update is a template function exposed for
+// UpdateTasks is a template function exposed for
 // updating an upgrade result instance
-func Update(opts ...UpgradeResultUpdateOption) error {
-	u := NewUpdateUpgradeResult(opts...)
-	if u.name == "" {
-		return errors.New("missing upgrade result name")
+func UpdateTasks(opts ...UpgradeResultUpdateOption) error {
+	new := NewUpdateUpgradeResult(opts...)
+	if new.name == "" {
+		return errors.New("failed to update upgrade result tasks: missing upgrade result name")
 	}
 	// First get the desired upgrade result instance
 	k := KubeClient()
-	k.namespace = u.namespace
-	ur, err := k.Get(u.name, metav1.GetOptions{})
+	k.namespace = new.namespace
+	existing, err := k.Get(new.name, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"failed to update upgrade result tasks: upgrade result name {%s} namespace {%s}",
+			new.name,
+			new.namespace,
+		)
 	}
 	// Iterate over the upgrade result tasks to check if the
 	// desired task to be updated exists or not,
 	// if exists then update the task instance with the given values.
-	for i, task := range ur.Tasks {
+	for i, existingTask := range existing.Tasks {
 		i := i
-		task := task
-		if task.Name == u.task.Name {
-			task = *u.task
+		existingTask := existingTask
+		if existingTask.Name == new.task.Name {
+			existingTask = *new.task
 		}
-		ur.Tasks[i] = task
+		existing.Tasks[i] = existingTask
 	}
 	// Update the upgrade result instance with
 	// the provided values
-	_, err = k.Update(ur)
+	_, err = k.Update(existing)
 	if err != nil {
-		return err
+		return errors.Wrapf(
+			err,
+			"failed to update upgrade result tasks: upgrade result name {%s} namespace {%s}",
+			existing.Name,
+			existing.Namespace,
+		)
 	}
 	return nil
 }
@@ -368,14 +377,14 @@ func Update(opts ...UpgradeResultUpdateOption) error {
 // go template functions to be used for upgrade result
 func TemplateFunctions() template.FuncMap {
 	return template.FuncMap{
-		"updateUpgradeResult": Update,
-		"withURName":          WithURName,
-		"withURNamespace":     WithURNamespace,
-		"withTaskName":        WithTaskName,
-		"withTaskStatus":      WithTaskStatus,
-		"withTaskMessage":     WithTaskMessage,
-		"withTaskStartTime":   WithTaskStartTime,
-		"withTaskEndTime":     WithTaskEndTime,
-		"withTaskRetries":     WithTaskRetries,
+		"upgradeResultUpdateTasks":       UpdateTasks,
+		"upgradeResultWithName":          WithName,
+		"upgradeResultWithNamespace":     WithNamespace,
+		"upgradeResultWithTaskName":      WithTaskName,
+		"upgradeResultWithTaskStatus":    WithTaskStatus,
+		"upgradeResultWithTaskMessage":   WithTaskMessage,
+		"upgradeResultWithTaskStartTime": WithTaskStartTime,
+		"upgradeResultWithTaskEndTime":   WithTaskEndTime,
+		"upgradeResultWithTaskRetries":   WithTaskRetries,
 	}
 }

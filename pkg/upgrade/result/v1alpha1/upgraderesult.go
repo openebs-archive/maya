@@ -94,9 +94,9 @@ func (b *Builder) WithResultConfig(resource apis.ResourceDetails,
 	return b
 }
 
-// BuilderForTemplateObject returns a new instance
+// BuilderForYAMLObject returns a new instance
 // of Builder for a given template object
-func BuilderForTemplateObject(object []byte) *Builder {
+func BuilderForYAMLObject(object []byte) *Builder {
 	b := &Builder{
 		upgradeResult: &upgradeResult{
 			object: &apis.UpgradeResult{},
