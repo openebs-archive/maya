@@ -63,7 +63,9 @@ OPENEBS_CLUSTER=openebs-cluster
 # Specify the date o build
 BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image
+include ./buildscripts/provisioner-localpv/Makefile.mk
+
+all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
@@ -357,5 +359,6 @@ deploy-images:
 	@DIMAGE="openebs/cstor-pool-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/cstor-volume-mgmt" ./buildscripts/push
 	@DIMAGE="openebs/admission-server" ./buildscripts/push
+	@DIMAGE="openebs/provisioner-localpv" ./buildscripts/push
 
 .PHONY: all bin cov integ test vet test-nodep apiserver image apiserver-image golint deploy kubegen kubegen2 generated_files deploy-images admission-server-image

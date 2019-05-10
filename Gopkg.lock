@@ -280,6 +280,18 @@
   version = "1.1.5"
 
 [[projects]]
+  digest = "1:87b8c5f48e71daa0fa2e0f1f18fbaafc797bc287f4da3bedc5ed653f3443dc11"
+  name = "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner"
+  packages = [
+    "controller",
+    "controller/metrics",
+    "util",
+  ]
+  pruneopts = "UT"
+  revision = "cdaf8fa71bb51d0a633d28d6f4ab46063d6e8f94"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:fc2b04b0069d6b10bdef96d278fe20c345794009685ed3c8c7f1a6dc023eefec"
   name = "github.com/mattbaird/jsonpatch"
@@ -294,6 +306,14 @@
   pruneopts = "UT"
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  digest = "1:3a3bc3c022d600ed4aced1d220d92c80bf3e42ff5acf95b59839f7af9ac53346"
+  name = "github.com/miekg/dns"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8aa92d4e02c501ba21e26fb92cf2fb9f23f56917"
+  version = "v1.1.9"
 
 [[projects]]
   digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
@@ -509,9 +529,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:69b3fcb7a41b18436a85471cbdcfc70ad10ba3206f8c87563e1c773610e1bcad"
+  digest = "1:28c92854b02898c94c1d983db50970fb7d9b3ee31c3ae02b1c6afc665abcc46e"
   name = "golang.org/x/crypto"
   packages = [
+    "ed25519",
+    "ed25519/internal/edwards25519",
     "pbkdf2",
     "scrypt",
     "ssh/terminal",
@@ -521,9 +543,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e9b5f44a9dd339afa0658606991de208ca826a819cb951ac1409dceb294c21ea"
+  digest = "1:6232f0f139cf4c94f85094cdc85b003ee02409f771cf712e1fae0e311ad4a715"
   name = "golang.org/x/net"
   packages = [
+    "bpf",
     "context",
     "context/ctxhttp",
     "html",
@@ -533,7 +556,11 @@
     "http2",
     "http2/hpack",
     "idna",
+    "internal/iana",
+    "internal/socket",
     "internal/timeseries",
+    "ipv4",
+    "ipv6",
     "trace",
   ]
   pruneopts = "UT"
@@ -998,7 +1025,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:aa0d5fbf4eb99ae4cfaf645d4ffdef921777a5b761a28ee0a2cd5e9754ba130e"
+  digest = "1:956680ced4f44452e3865c5ce920e5b6292056d0977d024a1d72aad59ce36d36"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/client-gen",
@@ -1011,6 +1038,8 @@
     "cmd/client-gen/types",
     "cmd/deepcopy-gen",
     "cmd/deepcopy-gen/args",
+    "cmd/defaulter-gen",
+    "cmd/defaulter-gen/args",
     "cmd/informer-gen",
     "cmd/informer-gen/args",
     "cmd/informer-gen/generators",
@@ -1025,11 +1054,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:63d18b00923c8c3b9b230b752bf0ab6da6bfdd02ca029c49455bfda97f3e0c26"
+  digest = "1:5249c83f0fb9e277b2d28c19eca814feac7ef05dc762e4deaf0a2e4b1a7c5df3"
   name = "k8s.io/gengo"
   packages = [
     "args",
     "examples/deepcopy-gen/generators",
+    "examples/defaulter-gen/generators",
     "examples/set-gen/sets",
     "generator",
     "namer",
@@ -1046,6 +1076,14 @@
   packages = ["pkg/util/proto"]
   pruneopts = "UT"
   revision = "9dfdf9be683f61f82cda12362c44c784e0778b56"
+
+[[projects]]
+  digest = "1:90dee264ac3a6110108bf208eee8caf064a70c8eecb96316e1fe2ba29fba225f"
+  name = "k8s.io/kubernetes"
+  packages = ["pkg/util/version"]
+  pruneopts = "UT"
+  revision = "a89f8c11a5f4f132503edbc4918c98518fd504e3"
+  version = "v1.12.8"
 
 [[projects]]
   digest = "1:b96e8e4a7931b07c33fdb206bfc4d27273bd599e48061500138ed69303388140"
@@ -1099,6 +1137,7 @@
     "github.com/hashicorp/hcl",
     "github.com/hashicorp/hcl/hcl/ast",
     "github.com/jpillora/go-ogle-analytics",
+    "github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller",
     "github.com/mitchellh/mapstructure",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
@@ -1161,6 +1200,7 @@
     "k8s.io/client-go/util/workqueue",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/code-generator/cmd/defaulter-gen",
     "k8s.io/code-generator/cmd/informer-gen",
     "k8s.io/code-generator/cmd/lister-gen",
     "sigs.k8s.io/controller-runtime/pkg/client",

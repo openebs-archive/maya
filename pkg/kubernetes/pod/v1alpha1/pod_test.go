@@ -1,136 +1,40 @@
+// Copyright © 2018-2019 The OpenEBS Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package v1alpha1
 
 import (
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func fakeAPIPodList(podNames []string) *v1.PodList {
-	if len(podNames) == 0 {
-		return nil
-	}
-
-	list := &v1.PodList{}
-	for _, name := range podNames {
-		pod := v1.Pod{}
-		pod.SetName(name)
-		list.Items = append(list.Items, pod)
-	}
-	return list
-}
-
-func fakeRunningAPIPodObject(podNames []string) []v1.Pod {
-	plist := []v1.Pod{}
-	for _, podName := range podNames {
-		pod := v1.Pod{}
-		pod.SetName(podName)
-		pod.Status.Phase = "Running"
-		plist = append(plist, pod)
-	}
-	return plist
-}
-
-func fakeNonRunningPodList(podNames []string) []v1.Pod {
-	plist := []v1.Pod{}
-	for _, podName := range podNames {
-		pod := v1.Pod{}
-		pod.SetName(podName)
-		plist = append(plist, pod)
-	}
-	return plist
-}
-
-func fakeAPIPodListFromNameStatusMap(pods map[string]string) []*pod {
-	plist := []*pod{}
-	for k, v := range pods {
-		p := &v1.Pod{}
-		p.SetName(k)
-		p.Status.Phase = v1.PodPhase(v)
-		plist = append(plist, &pod{p})
-	}
-	return plist
-}
-
-func TestListBuilderWithAPIList(t *testing.T) {
-	tests := map[string]struct {
-		availablePods  []string
-		expectedPodLen int
-	}{
-		"Pod set 1":  {[]string{}, 0},
-		"Pod set 2":  {[]string{"pod1"}, 1},
-		"Pod set 3":  {[]string{"pod1", "pod2"}, 2},
-		"Pod set 4":  {[]string{"pod1", "pod2", "pod3"}, 3},
-		"Pod set 5":  {[]string{"pod1", "pod2", "pod3", "pod4"}, 4},
-		"Pod set 6":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5"}, 5},
-		"Pod set 7":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6"}, 6},
-		"Pod set 8":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7"}, 7},
-		"Pod set 9":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8"}, 8},
-		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
-	}
-	for name, mock := range tests {
-		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods))
-			if mock.expectedPodLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.list.items))
-			}
-		})
-	}
-}
-
-func TestListBuilderWithAPIObjects(t *testing.T) {
-	tests := map[string]struct {
-		availablePods  []string
-		expectedPodLen int
-	}{
-		"Pod set 2":  {[]string{"pod1"}, 1},
-		"Pod set 3":  {[]string{"pod1", "pod2"}, 2},
-		"Pod set 4":  {[]string{"pod1", "pod2", "pod3"}, 3},
-		"Pod set 5":  {[]string{"pod1", "pod2", "pod3", "pod4"}, 4},
-		"Pod set 6":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5"}, 5},
-		"Pod set 7":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6"}, 6},
-		"Pod set 8":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7"}, 7},
-		"Pod set 9":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8"}, 8},
-		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
-	}
-	for name, mock := range tests {
-		name := name
-		mock := mock
-		t.Run(name, func(t *testing.T) {
-			poditems := fakeAPIPodList(mock.availablePods).Items
-			b := ListBuilder().WithAPIObject(poditems...)
-			if mock.expectedPodLen != len(b.list.items) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.list.items))
-			}
-
-			for index, ob := range b.list.items {
-				if ob.object.Name != poditems[index].Name {
-					t.Fatalf("test %q failed: expected %v \n got : %v \n", name, poditems[index].Name, ob.object.Name)
-				}
-			}
-		})
-	}
-}
 
 func TestListBuilderToAPIList(t *testing.T) {
 	tests := map[string]struct {
 		availablePods  []string
 		expectedPodLen int
 	}{
-		"Pod set 1":  {[]string{}, 0},
-		"Pod set 2":  {[]string{"pod1"}, 1},
-		"Pod set 3":  {[]string{"pod1", "pod2"}, 2},
-		"Pod set 4":  {[]string{"pod1", "pod2", "pod3"}, 3},
-		"Pod set 5":  {[]string{"pod1", "pod2", "pod3", "pod4"}, 4},
-		"Pod set 6":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5"}, 5},
-		"Pod set 7":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6"}, 6},
-		"Pod set 8":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7"}, 7},
-		"Pod set 9":  {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8"}, 8},
-		"Pod set 10": {[]string{"pod1", "pod2", "pod3", "pod4", "pod5", "pod6", "pod7", "pod8", "pod9"}, 9},
+		"Pod set 1": {[]string{}, 0},
+		"Pod set 2": {[]string{"pod1"}, 1},
+		"Pod set 3": {[]string{"pod1", "pod2"}, 2},
+		"Pod set 4": {[]string{"pod1", "pod2", "pod3"}, 3},
 	}
 	for name, mock := range tests {
+		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := ListBuilder().WithAPIList(fakeAPIPodList(mock.availablePods)).List().ToAPIList()
+			b := ListBuilderForAPIList(fakeAPIPodList(mock.availablePods)).List().ToAPIList()
 			if mock.expectedPodLen != len(b.Items) {
 				t.Fatalf("Test %v failed: expected %v got %v", name, mock.expectedPodLen, len(b.Items))
 			}
@@ -138,34 +42,63 @@ func TestListBuilderToAPIList(t *testing.T) {
 	}
 }
 
-func TestFilterList(t *testing.T) {
+func TestHasLabelPredicate(t *testing.T) {
 	tests := map[string]struct {
-		availablePods map[string]string
-		filteredPods  []string
-		filters       predicateList
+		availableLabels          map[string]string
+		checkForKey, checkForVal string
+		hasLabels                bool
 	}{
-		"Pods Set 1": {
-			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "CrashLoopBackOff"},
-			filteredPods:  []string{"Pod 1"},
-			filters:       predicateList{IsRunning()},
-		},
-		"Pods Set 2": {
-			availablePods: map[string]string{"Pod 1": "Running", "Pod 2": "Running"},
-			filteredPods:  []string{"Pod 1", "Pod 2"},
-			filters:       predicateList{IsRunning()},
-		},
+		"Test1": {map[string]string{"Label 1": "Key 1"}, "Label 1", "Key 1", true},
+		"Test2": {map[string]string{"Label 1": "Key 1", "Label 2": "Key 2"}, "Label 1", "Key 1", true},
+		"Test3": {map[string]string{"Label 1": "Key 1", "Label 2": "Key 2"}, "Label 3", "Key 3", false},
+		"Test4": {map[string]string{"Label 1": "Key 1", "Label 2": "Key 2"}, "Label 1", "Key 0", false},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			fakePod := &Pod{&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: test.availableLabels}}}
+			ok := HasLabel(test.checkForKey, test.checkForVal)(fakePod)
+			if ok != test.hasLabels {
+				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableLabels, fakePod.object.GetLabels())
+			}
+		})
+	}
+}
 
-		"Pods Set 3": {
-			availablePods: map[string]string{"Pod 1": "CrashLoopBackOff", "Pod 2": "CrashLoopBackOff", "Pod 3": "CrashLoopBackOff"},
-			filteredPods:  []string{},
-			filters:       predicateList{IsRunning()},
+func TestHasLabels(t *testing.T) {
+	tests := map[string]struct {
+		availableLabels map[string]string
+		checkLabels     map[string]string
+		hasLabels       bool
+	}{
+		"Test1": {
+			availableLabels: map[string]string{"Label 1": "Key 1"},
+			checkLabels:     map[string]string{"Label 1": "Key 1"},
+			hasLabels:       true,
+		},
+		"Test2": {
+			availableLabels: map[string]string{"Label 1": "Key 1", "Label 2": "Key 2", "L1": "K1", "L3": "K3"},
+			checkLabels:     map[string]string{"Label 1": "Key 1", "L3": "K3"},
+			hasLabels:       true,
+		},
+		"Test3": {
+			availableLabels: map[string]string{"Label 1": "Key 1", "Label 2": "Key 2", "L1": "K1"},
+			checkLabels:     map[string]string{"L1": "K1", "Label 3": "Key 3"},
+			hasLabels:       false,
+		},
+		"Test4": {
+			availableLabels: map[string]string{"Label 1": "Key 1", "Label 2": "Key 2"},
+			checkLabels:     map[string]string{"Label 1": "Key 0"},
+			hasLabels:       false,
 		},
 	}
-	for name, mock := range tests {
+	for name, test := range tests {
+		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			list := ListBuilder().WithObject(fakeAPIPodListFromNameStatusMap(mock.availablePods)...).WithFilter(mock.filters...).List()
-			if len(list.items) != len(mock.filteredPods) {
-				t.Fatalf("Test %v failed: expected %v got %v", name, len(mock.filteredPods), len(list.items))
+			fakePod := &Pod{&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: test.availableLabels}}}
+			ok := HasLabels(test.checkLabels)(fakePod)
+			if ok != test.hasLabels {
+				t.Fatalf("Test %v failed, Expected %v but got %v", name, test.availableLabels, fakePod.object.GetLabels())
 			}
 		})
 	}
