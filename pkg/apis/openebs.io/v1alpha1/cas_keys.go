@@ -54,6 +54,18 @@ const (
 	// PersistentVolumeClaimKey is the key to fetch name of PersistentVolumeClaim
 	PersistentVolumeClaimKey CASKey = "openebs.io/persistentvolumeclaim"
 
+	// CASKeyIsPatchJivaReplicaNodeAffinityHeader is the key to fetch value of IsPatchKey
+	// its value is "enabled".
+	CASKeyIsPatchJivaReplicaNodeAffinityHeader CASKey = "Is-Patch-Jiva-Replica-Node-Affinity"
+
+	// NodeAffinityReplicaJivaIsPatchKey is the key to fetch value of IsPatchKey
+	// its value is "enabled".
+	NodeAffinityReplicaJivaIsPatchKey CASKey = "nodeAffinity.replica.jiva.openebs.io/is-patch"
+
+	// CASKeyIsPatchJivaReplicaNodeAffinity is the key to fetch value of IsPatchKey
+	// its value is "enabled".
+	CASKeyIsPatchJivaReplicaNodeAffinity CASKey = "isPatchJivaReplicaNodeAffinity"
+
 	// StorageClassKey is the key to fetch name of StorageClass
 	StorageClassKey CASKey = "openebs.io/storageclass"
 
