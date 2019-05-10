@@ -238,38 +238,38 @@ func (k *Kubeclient) Update(updateObj *apis.UpgradeResult) (*apis.UpgradeResult,
 	return k.update(cs, updateObj, k.namespace)
 }
 
-// UpdateUpgradeResult enables update
-// operation on upgrade result instance
-type UpdateUpgradeResult struct {
+// UpgradeResultForTask enables update
+// operation on upgrade result task instance
+type UpgradeResultForTask struct {
 	name      string
 	namespace string
 	task      *apis.UpgradeResultTask
 }
 
-// UpgradeResultUpdateOption defines the abstraction
-// to build an update instance for upgrade result
-type UpgradeResultUpdateOption func(*UpdateUpgradeResult)
+// UpgradeResultForTaskOption defines the abstraction
+// to build an update instance for upgrade result's task
+type UpgradeResultForTaskOption func(*UpgradeResultForTask)
 
-// WithName sets the name of the upgrade
+// WithTaskOwnerName sets the name of the upgrade
 // result
-func WithName(name string) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskOwnerName(name string) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.name = name
 	}
 }
 
-// WithNamespace sets namespace where upgrade
+// WithTaskOwnerNamespace sets namespace where upgrade
 // result is present
-func WithNamespace(namespace string) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskOwnerNamespace(namespace string) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.namespace = namespace
 	}
 }
 
 // WithTaskName sets the name of the
 // task to be updated
-func WithTaskName(name string) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskName(name string) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.Name = name
 	}
 }
@@ -277,8 +277,8 @@ func WithTaskName(name string) UpgradeResultUpdateOption {
 // WithTaskStatus sets the current status
 // of the task i.e. whether it has successfully
 // completed or not
-func WithTaskStatus(status string) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskStatus(status string) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.Status = status
 	}
 }
@@ -286,40 +286,40 @@ func WithTaskStatus(status string) UpgradeResultUpdateOption {
 // WithTaskMessage sets the message for a
 // particular task i.e. the message about its
 // successful completion or failure
-func WithTaskMessage(message string) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskMessage(message string) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.Message = message
 	}
 }
 
 // WithTaskStartTime sets the time when the
 // task started to execute
-func WithTaskStartTime(startTime time.Time) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskStartTime(startTime time.Time) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.StartTime = &metav1.Time{startTime}
 	}
 }
 
 // WithTaskEndTime sets the time when the
 // task finished execution
-func WithTaskEndTime(endTime time.Time) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskEndTime(endTime time.Time) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.EndTime = &metav1.Time{endTime}
 	}
 }
 
 // WithTaskRetries sets the no of times that
 // a runtask has retried executing a particular task
-func WithTaskRetries(retries int) UpgradeResultUpdateOption {
-	return func(u *UpdateUpgradeResult) {
+func WithTaskRetries(retries int) UpgradeResultForTaskOption {
+	return func(u *UpgradeResultForTask) {
 		u.task.Retries = retries
 	}
 }
 
 // NewUpdateUpgradeResult returns a new instance of updateUpgradeResult
 // meant for updating an upgrade result instance
-func NewUpdateUpgradeResult(opts ...UpgradeResultUpdateOption) *UpdateUpgradeResult {
-	u := &UpdateUpgradeResult{
+func NewUpdateUpgradeResult(opts ...UpgradeResultForTaskOption) *UpgradeResultForTask {
+	u := &UpgradeResultForTask{
 		task: &apis.UpgradeResultTask{},
 	}
 	for _, o := range opts {
@@ -331,7 +331,7 @@ func NewUpdateUpgradeResult(opts ...UpgradeResultUpdateOption) *UpdateUpgradeRes
 
 // UpdateTasks is a template function exposed for
 // updating an upgrade result instance
-func UpdateTasks(opts ...UpgradeResultUpdateOption) error {
+func UpdateTasks(opts ...UpgradeResultForTaskOption) error {
 	new := NewUpdateUpgradeResult(opts...)
 	if new.name == "" {
 		return errors.New("failed to update upgrade result tasks: missing upgrade result name")
@@ -377,14 +377,14 @@ func UpdateTasks(opts ...UpgradeResultUpdateOption) error {
 // go template functions to be used for upgrade result
 func TemplateFunctions() template.FuncMap {
 	return template.FuncMap{
-		"upgradeResultUpdateTasks":       UpdateTasks,
-		"upgradeResultWithName":          WithName,
-		"upgradeResultWithNamespace":     WithNamespace,
-		"upgradeResultWithTaskName":      WithTaskName,
-		"upgradeResultWithTaskStatus":    WithTaskStatus,
-		"upgradeResultWithTaskMessage":   WithTaskMessage,
-		"upgradeResultWithTaskStartTime": WithTaskStartTime,
-		"upgradeResultWithTaskEndTime":   WithTaskEndTime,
-		"upgradeResultWithTaskRetries":   WithTaskRetries,
+		"upgradeResultUpdateTasks":            UpdateTasks,
+		"upgradeResultWithTaskOwnerName":      WithTaskOwnerName,
+		"upgradeResultWithTaskOwnerNamespace": WithTaskOwnerNamespace,
+		"upgradeResultWithTaskName":           WithTaskName,
+		"upgradeResultWithTaskStatus":         WithTaskStatus,
+		"upgradeResultWithTaskMessage":        WithTaskMessage,
+		"upgradeResultWithTaskStartTime":      WithTaskStartTime,
+		"upgradeResultWithTaskEndTime":        WithTaskEndTime,
+		"upgradeResultWithTaskRetries":        WithTaskRetries,
 	}
 }
