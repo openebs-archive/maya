@@ -254,6 +254,47 @@ func (sb *Builder) WithMaxPool(val int) *Builder {
 	return sb
 }
 
+//
+func (sb *Builder) WithNode(nodeName string) *Builder {
+	newNodespec := &apisv1alpha1.CStorPoolClusterNodeSpec{
+		Name: nodeName,
+	}
+	if len(sb.CSPC.Object.Spec.Nodes) == 0 {
+		sb.CSPC.Object.Spec.Nodes = []apisv1alpha1.CStorPoolClusterNodeSpec{*newNodespec}
+	} else {
+		sb.CSPC.Object.Spec.Nodes = append(sb.CSPC.Object.Spec.Nodes, *newNodespec)
+	}
+
+	return sb
+}
+
+func (sb *Builder) WithNodeStripedType(nodeName string) *Builder {
+	for k, node := range sb.CSPC.Object.Spec.Nodes {
+		if node.Name == nodeName {
+			sb.CSPC.Object.Spec.Nodes[k].PoolSpec.PoolType = apisv1alpha1.PoolStriped
+		}
+	}
+	return sb
+}
+
+func (sb *Builder) WithNodeMirroredType(nodeName string) *Builder {
+	for k, node := range sb.CSPC.Object.Spec.Nodes {
+		if node.Name == nodeName {
+			sb.CSPC.Object.Spec.Nodes[k].PoolSpec.PoolType = apisv1alpha1.PoolMirrored
+		}
+	}
+	return sb
+}
+
+func (sb *Builder) WithNodeGroup(nodeName string, diskGroup apisv1alpha1.CStorPoolClusterDiskGroups) *Builder {
+	for k, node := range sb.CSPC.Object.Spec.Nodes {
+		if node.Name == nodeName {
+			sb.CSPC.Object.Spec.Nodes[k].DiskGroups = append(sb.CSPC.Object.Spec.Nodes[k].DiskGroups, diskGroup)
+		}
+	}
+	return sb
+}
+
 // newInt returns a pointer to the int value.
 func newInt(val int) *int {
 	newVal := val
