@@ -141,6 +141,10 @@ func NewCStorVolumeReplicaController(
 			}
 			// ToDo: Need to have statuses in more organised manner
 			// ToDo: IsErrorDuplicate(newCVR) is ignored as of now.
+
+			// If DeletionFails -- cVR will not be reconciled.
+			// Anyway -- due to removal of finalizers this cVR will not exist for reconciliation. But this code
+			// is present if we might need to add finalizers.
 			if IsDeletionFailedBefore(newCVR) {
 				return
 			}
