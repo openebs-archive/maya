@@ -25,10 +25,14 @@ kind: CASTemplate
 metadata:
   name: jiva-volume-read-default
 spec:
+  defaultConfig:
+  - name: OpenEBSNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
     - jiva-volume-isvalidversion-default
+    - jiva-volume-podsinopenebsns-default
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
@@ -43,6 +47,20 @@ metadata:
   name: jiva-volume-create-default
 spec:
   defaultConfig:
+  - name: OpenEBSNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
+  # The value will be filled by the installer. 
+  # Administrator can select to deploy the jiva pods
+  # in the openebs namespace instead of target namespace
+  # for the following reasons:
+  # - avoid granting access to hostpath in user namespace
+  # - manage all the storage pods in a single namespace
+  # By default, this is set to false to retain 
+  # backward compatability. However in the future releases
+  # if more and more deployments prefer to use this option, 
+  # the default can be set to deploy in openebs. 
+  - name: DeployInOpenEBSNamespace
+    enabled: "false"
   - name: ControllerImage
     value: {{env "OPENEBS_IO_JIVA_CONTROLLER_IMAGE" | default "openebs/jiva:latest"}}
   - name: ReplicaImage
@@ -238,6 +256,8 @@ metadata:
   name: jiva-volume-delete-default
 spec:
   defaultConfig:
+  - name: OpenEBSNamespace
+    value: {{env "OPENEBS_NAMESPACE"}}
   - name: ScrubImage
     value: "quay.io/openebs/openebs-tools:3.8"
   # RetainReplicaData specifies whether jiva replica data folder
@@ -248,6 +268,7 @@ spec:
   run:
     tasks:
     - jiva-volume-isvalidversion-default
+    - jiva-volume-podsinopenebsns-default
     - jiva-volume-delete-listtargetservice-default
     - jiva-volume-delete-listtargetdeployment-default
     - jiva-volume-delete-listreplicadeployment-default
@@ -289,6 +310,30 @@ spec:
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "is070jivavolume.name" .TaskResult | noop -}}
     {{- .TaskResult.is070jivavolume.name | empty | not | versionMismatchErr "is not a jiva volume of 0.7.0 version" | saveIf "is070jivavolume.versionMismatchErr" .TaskResult | noop -}}
+---
+# Use this generic task in jiva operations like 
+# read, delete or snapshot to determine if the 
+# jiva pods were created in openebs namespace or
+# pvc namespace. This task will check if the service
+# is deployed in openebs and saves the result. 
+# Each of the further run tasks, will check on this
+# saved result to determine if the read operations
+# should be performed on openebs or pvc namespace. 
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-podsinopenebsns-default
+spec:
+  meta: |
+    id: jivapodsinopenebsns
+    runNamespace: {{ .Config.OpenEBSNamespace.value }}
+    apiVersion: v1
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.namespace}" | trim | saveAs "jivapodsinopenebsns.ns" .TaskResult | noop -}}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -438,8 +483,9 @@ metadata:
   name: jiva-volume-read-listtargetservice-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: readlistsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: v1
     kind: Service
     action: list
@@ -456,8 +502,9 @@ metadata:
   name: jiva-volume-read-listtargetpod-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: readlistctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -478,8 +525,9 @@ metadata:
   name: jiva-volume-read-listreplicapod-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: readlistrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: v1
     kind: Pod
     action: list
@@ -503,8 +551,9 @@ spec:
     {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
     {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
     {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: verifyreplicationfactor
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: list
@@ -529,8 +578,9 @@ spec:
     {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
     {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
     {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: readpatchrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     objectName: {{ .Volume.owner }}-rep
@@ -606,14 +656,22 @@ spec:
       fsType: {{ .TaskResult.readlistctrl.fsType }}
       casType: jiva
 ---
+#Creating a Target Service is the first operation in 
+#creating K8s objects for the given PVC. Determine
+#the namespace and save it for further create options.
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
   name: jiva-volume-create-puttargetservice-default
 spec:
   meta: |
+    {{- $deployInOpenEBSNamespace := .Config.DeployInOpenEBSNamespace.enabled | default "false" | lower -}}
     id: createputsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    {{- if eq $deployInOpenEBSNamespace "false" }}
+    runNamespace: {{ .Volume.runNamespace | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
+    {{ else }}
+    runNamespace: {{ .Config.OpenEBSNamespace.value | trim | saveAs "createputsvc.jivapodsns" .TaskResult }}
+    {{ end }}
     apiVersion: v1
     kind: Service
     action: put
@@ -797,7 +855,7 @@ metadata:
 spec:
   meta: |
     id: createputctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .TaskResult.createputsvc.jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -992,7 +1050,7 @@ metadata:
 spec:
   meta: |
     id: createputrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ .TaskResult.createputsvc.jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: put
@@ -1175,8 +1233,9 @@ metadata:
   name: jiva-volume-delete-listtargetservice-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletelistsvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: v1
     kind: Service
     action: list
@@ -1193,8 +1252,9 @@ metadata:
   name: jiva-volume-delete-listtargetdeployment-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletelistctrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: list
@@ -1211,8 +1271,9 @@ metadata:
   name: jiva-volume-delete-listreplicadeployment-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletelistrep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: list
@@ -1229,8 +1290,9 @@ metadata:
   name: jiva-volume-delete-deletetargetservice-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletedeletesvc
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: v1
     kind: Service
     action: delete
@@ -1242,8 +1304,9 @@ metadata:
   name: jiva-volume-delete-deletetargetdeployment-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletedeletectrl
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: delete
@@ -1255,8 +1318,9 @@ metadata:
   name: jiva-volume-delete-listreplicapod-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletelistreppods
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     disable: {{ .Config.RetainReplicaData.enabled }}
     apiVersion: v1
     kind: Pod
@@ -1273,8 +1337,9 @@ metadata:
   name: jiva-volume-delete-deletereplicadeployment-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     id: deletedeleterep
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     apiVersion: extensions/v1beta1
     kind: Deployment
     action: delete
@@ -1286,8 +1351,9 @@ metadata:
   name: jiva-volume-delete-putreplicascrub-default
 spec:
   meta: |
+    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     apiVersion: batch/v1
-    runNamespace: {{ .Volume.runNamespace }}
+    runNamespace: {{ $jivapodsns }}
     disable: {{ .Config.RetainReplicaData.enabled }}
     kind: Job
     action: put
