@@ -1211,10 +1211,10 @@ func (k *K8sClient) ExecCoreV1Pod(name string,
 		return
 	}
 
-	// exec output struct contaons stdout and std error
+	// exec output struct contains stdout and stderr
 	type execOutput struct {
-		Stdout string `json:"Stdout"`
-		Stderr string `json:"Stderr"`
+		Stdout string `json:"stdout"`
+		Stderr string `json:"stderr"`
 	}
 
 	op := execOutput{

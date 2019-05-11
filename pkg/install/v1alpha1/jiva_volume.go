@@ -32,6 +32,8 @@ spec:
     - jiva-volume-read-listtargetservice-default
     - jiva-volume-read-listtargetpod-default
     - jiva-volume-read-listreplicapod-default
+    - jiva-volume-read-verifyreplicationfactor-default
+    - jiva-volume-read-patchreplicadeployment-default
   output: jiva-volume-read-output-default
   fallback: jiva-volume-read-default-0.6.0
 ---
@@ -489,6 +491,72 @@ spec:
     {{- jsonpath .JsonResult "{.items[*].status.podIP}" | trim | saveAs "readlistrep.podIP" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].status.containerStatuses[*].ready}" | trim | saveAs "readlistrep.status" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.items[*].metadata.annotations.openebs\\.io/capacity}" | trim | saveAs "readlistrep.capacity" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].spec.nodeName}" | trim | saveAs "readlistrep.nodeNames" .TaskResult | noop -}}
+    {{- .TaskResult.readlistrep.nodeNames | default "" | splitListLen " " | saveAs "readlistrep.noOfReplicas" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-read-verifyreplicationfactor-default
+spec:
+  meta: |
+    {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
+    {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
+    {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
+    id: verifyreplicationfactor
+    runNamespace: {{ .Volume.runNamespace }}
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    action: list
+    disable: {{ ne $shouldPatch "true" }}
+    options: |-
+      labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "verifyreplicationfactor.items" .TaskResult | noop -}}
+    {{- $errMsg := printf "replica deployment not found" -}}
+    {{- .TaskResult.verifyreplicationfactor.items | notFoundErr $errMsg | saveIf "verifyreplicationfactor.notFoundErr" .TaskResult | noop -}}
+    {{- jsonpath .JsonResult "{.items[*].status.replicas}" | trim | saveAs "verifyreplicationfactor.noOfReplicas" .TaskResult | noop -}}
+    {{- $expectedRepCount := .TaskResult.verifyreplicationfactor.noOfReplicas | int -}}
+    {{- $msg := printf "expected %v no of replica pod(s), found only %v replica pod(s)" $expectedRepCount .TaskResult.readlistrep.noOfReplicas -}}
+    {{- .TaskResult.readlistrep.nodeNames | default "" | splitList " " | isLen $expectedRepCount | not | verifyErr $msg | saveIf "verifyreplicationfactor.verifyErr" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
+  name: jiva-volume-read-patchreplicadeployment-default
+spec:
+  meta: |
+    {{ $isPatchValNotEmpty := ne .Volume.isPatchJivaReplicaNodeAffinity "" }}
+    {{ $isPatchValEnabled := eq .Volume.isPatchJivaReplicaNodeAffinity "enabled" }}
+    {{ $shouldPatch := and $isPatchValNotEmpty $isPatchValEnabled | toString }}
+    id: readpatchrep
+    runNamespace: {{ .Volume.runNamespace }}
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    objectName: {{ .Volume.owner }}-rep
+    disable: {{ ne $shouldPatch "true" }}
+    action: patch
+  task: |
+      {{- $nodeNames := .TaskResult.readlistrep.nodeNames -}}
+      type: strategic
+      pspec: |-
+        spec:
+          template:
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                        {{- if ne $nodeNames "" }}
+                        {{- $nodeNamesMap := $nodeNames | split " " }}
+                        {{- range $k, $v := $nodeNamesMap }}
+                        - {{ $v }}
+                        {{- end }}
+                        {{- end }}
 ---
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
@@ -657,7 +725,7 @@ spec:
     action: list
     options: |-
       labelSelector: openebs.io/replica=jiva-replica,openebs.io/persistent-volume={{ .Volume.owner }}
-    retry: "12,10s"
+    retry: "24,5s"
   post: |
     {{- jsonpath .JsonResult "{.items[*].metadata.name}" | trim | saveAs "createlistrep.items" .TaskResult | noop -}}
     {{- .TaskResult.createlistrep.items | empty | verifyErr "replica pod(s) not found" | saveIf "createlistrep.verifyErr" .TaskResult | noop -}}
