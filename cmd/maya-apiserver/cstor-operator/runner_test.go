@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-// TestRun is to run spc controller and check if it crashes or returns back.
+// TestRun is to run cspc controller and check if it crashes or returns back.
 func TestRun(t *testing.T) {
 	// fakeKubeClient, fakeOpenebsClient, kubeInformerFactory, and openebsInformerFactory
 	// are arguments that is expected by the NewController function.
@@ -36,8 +36,8 @@ func TestRun(t *testing.T) {
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
-		withcspcSynced(openebsInformerFactory).
-		withSpcLister(openebsInformerFactory).
+		withCSPCSynced(openebsInformerFactory).
+		withCSPCLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
 		withWorkqueueRateLimiting().
 		withEventHandler(openebsInformerFactory).

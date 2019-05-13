@@ -79,14 +79,14 @@ func (c *Controller) syncHandler(key string) error {
 	// Deep-copy otherwise we are mutating our cache.
 	// TODO: Deep-copy only when needed.
 	cspcGot := cspc.DeepCopy()
-	err = c.syncSpc(cspcGot)
+	err = c.syncCSPC(cspcGot)
 	return err
 }
 
-// enqueueSpc takes a SPC resource and converts it into a namespace/name
+// enqueueCSPC takes a CSPC resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than SPC.
-func (c *Controller) enqueueSpc(cspc interface{}) {
+// passed resources of any type other than CSPC.
+func (c *Controller) enqueueCSPC(cspc interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(cspc); err != nil {
@@ -96,8 +96,8 @@ func (c *Controller) enqueueSpc(cspc interface{}) {
 	c.workqueue.Add(key)
 }
 
-// synSpc is the function which tries to converge to a desired state for the cspc.
-func (c *Controller) syncSpc(cspc *apisv1alpha1.CStorPoolCluster) error {
+// synCSPC is the function which tries to converge to a desired state for the cspc.
+func (c *Controller) syncCSPC(cspc *apisv1alpha1.CStorPoolCluster) error {
 	po := c.NewPoolOperation(cspc)
 	pendingPoolCount, err := po.GetPendingPoolCount()
 	if err != nil {
@@ -121,14 +121,13 @@ func (c *Controller) syncSpc(cspc *apisv1alpha1.CStorPoolCluster) error {
 // create is a wrapper function that calls the actual function to create pool as many time
 // as the number of pools need to be created.
 func (po *PoolOperation) create(pendingPoolCount int, cspc *apisv1alpha1.CStorPoolCluster) error {
-	var newSpcLease Leaser
-	newSpcLease = &Lease{cspc, SpcLeaseKey, po.clientset, po.kubeclientset}
-	err := newSpcLease.Hold()
+	var newCSPCLease Leaser = &Lease{cspc, CSPCLeaseKey, po.clientset, po.kubeclientset}
+	err := newCSPCLease.Hold()
 	if err != nil {
 		return errors.Wrapf(err, "Could not acquire lease on cspc object")
 	}
 	glog.V(4).Infof("Lease acquired successfully on storagepoolclaim %s ", cspc.Name)
-	defer newSpcLease.Release()
+	defer newCSPCLease.Release()
 	for poolCount := 1; poolCount <= pendingPoolCount; poolCount++ {
 		glog.Infof("Provisioning pool %d/%d for storagepoolclaim %s", poolCount, pendingPoolCount, cspc.Name)
 		err = po.CreateStoragePool(cspc)

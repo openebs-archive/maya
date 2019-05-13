@@ -19,6 +19,7 @@ package spc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/golang/glog"
@@ -31,20 +32,20 @@ import (
 )
 
 const (
-	// SpcLeaseKey is the key that will be used to acquire lease on spc object.
-	// It will be present in spc annotations.
-	// If key has an empty value, that means no one has acquired a lease on spc object.
-	SpcLeaseKey = "openebs.io/spc-lease"
+	// CSPCLeaseKey is the key that will be used to acquire lease on cspc object.
+	// It will be present in cspc annotations.
+	// If key has an empty value, that means no one has acquired a lease on cspc object.
+	CSPCLeaseKey = "openebs.io/cspc-lease"
 	// PatchOperation is the strategy of patch operation.
 	PatchOperation = "replace"
-	// PatchPath is the path to the field on spc object which need to be patched.
-	PatchPath = "/metadata/annotations/openebs.io~1spc-lease"
+	// PatchPath is the path to the field on cspc object which need to be patched.
+	PatchPath = "/metadata/annotations/openebs.io~1cspc-lease"
 )
 
 // Patch struct represent the struct used to patch
-// the spc object
+// the cspc object
 
-// Patch struct will used to patch the spc object by a lease holder
+// Patch struct will used to patch the cspc object by a lease holder
 // to release the lease once done.
 type Patch struct {
 	// Op defines the operation
@@ -65,14 +66,14 @@ type Patch struct {
 }
 
 // Hold is the implenetation of method from interface Leases
-// It will try to hold a lease on spc object.
+// It will try to hold a lease on cspc object.
 func (sl *Lease) Hold() error {
 	// Get the lease value.
-	spcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
+	cspcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
-		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
+		return fmt.Errorf("expected cspc object for leasing but got %#v", cspcObject)
 	}
-	leaseValue := spcObject.Annotations[sl.leaseKey]
+	leaseValue := cspcObject.Annotations[sl.leaseKey]
 	var leaseValueObj LeaseContract
 	var err error
 	if !(strings.TrimSpace(leaseValue) == "") {
@@ -92,31 +93,35 @@ func (sl *Lease) Hold() error {
 		return nil
 	}
 	// If none of the above three conditions are met, lease can not be acquired.
-	return fmt.Errorf("lease on spc already acquired by a live pod")
+	return fmt.Errorf("lease on cspc already acquired by a live pod")
 }
 
-// Update will update a lease on spc depending on type of update that is required.
+// Update will update a lease on cspc depending on type of update that is required.
 // We have following type of update strategy:
 // 1.putKeyValue
 // 2.putValue
 // 3.putUpdatedValue
 // See the functions(below) for more details on update strategy
 func (sl *Lease) Update(podName string) error {
-	newSpcObject := sl.Object.(*apisv1alpha1.CStorPoolCluster)
-	if newSpcObject.Annotations == nil {
-		sl.putKeyValue(podName, newSpcObject)
-	} else if newSpcObject.Annotations[sl.leaseKey] == "" {
-		sl.putValue(podName, newSpcObject)
+	var err error
+	newCSPCObject := sl.Object.(*apisv1alpha1.CStorPoolCluster)
+	if newCSPCObject.Annotations == nil {
+		_, err = sl.putKeyValue(podName, newCSPCObject)
+	} else if newCSPCObject.Annotations[sl.leaseKey] == "" {
+		_, err = sl.putValue(podName, newCSPCObject)
 	} else {
-		sl.putUpdatedValue(podName, newSpcObject)
+		_, err = sl.putUpdatedValue(podName, newCSPCObject)
 	}
-	_, err := sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Update(newSpcObject)
+	if err != nil {
+		return errors.Wrap(err, "updation for lease failed")
+	}
+	_, err = sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Update(newCSPCObject)
 	return err
 }
 
-// Release method is implementation of  to release lease on a given spc.
+// Release method is implementation of  to release lease on a given cspc.
 func (sl *Lease) Release() {
-	err := sl.patchSpcLeaseAnnotation()
+	err := sl.patchCSPCLeaseAnnotation()
 	if err != nil {
 		newErr := fmt.Errorf("Lease could not be removed:%v", err)
 		runtime.HandleError(newErr)
@@ -130,18 +135,18 @@ func (sl *Lease) getPodName() string {
 	return podNameSpace + "/" + podName
 }
 
-// patchSpcLeaseAnnotation will patch the lease key annotation on spc object to release the lease
-func (sl *Lease) patchSpcLeaseAnnotation() error {
-	spcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
+// patchCSPCLeaseAnnotation will patch the lease key annotation on cspc object to release the lease
+func (sl *Lease) patchCSPCLeaseAnnotation() error {
+	cspcObject, ok := sl.Object.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
-		return fmt.Errorf("expected spc object for leasing but got %#v", spcObject)
+		return fmt.Errorf("expected cspc object for leasing but got %#v", cspcObject)
 	}
-	spcPatch := make([]Patch, 1)
+	cspcPatch := make([]Patch, 1)
 	// setting operation as remove
-	spcPatch[0].Op = PatchOperation
+	cspcPatch[0].Op = PatchOperation
 	// object to be removed is finalizers
-	spcPatch[0].Path = PatchPath
-	leaseValueObj, err := parseLeaseValue(spcObject.Annotations[SpcLeaseKey])
+	cspcPatch[0].Path = PatchPath
+	leaseValueObj, err := parseLeaseValue(cspcObject.Annotations[CSPCLeaseKey])
 	if err != nil {
 		return err
 	}
@@ -150,12 +155,12 @@ func (sl *Lease) patchSpcLeaseAnnotation() error {
 	if err != nil {
 		return err
 	}
-	spcPatch[0].Value = string(newLeaseValue)
-	spcPatchJSON, err := json.Marshal(spcPatch)
+	cspcPatch[0].Value = string(newLeaseValue)
+	cspcPatchJSON, err := json.Marshal(cspcPatch)
 	if err != nil {
-		return fmt.Errorf("error marshalling spcPatch object: %s", err)
+		return fmt.Errorf("error marshalling cspcPatch object: %s", err)
 	}
-	_, err = sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Patch(spcObject.Name, types.JSONPatchType, spcPatchJSON)
+	_, err = sl.oecs.OpenebsV1alpha1().CStorPoolClusters().Patch(cspcObject.Name, types.JSONPatchType, cspcPatchJSON)
 	return err
 }
 
@@ -200,9 +205,9 @@ func parseLeaseValue(leaseValue string) (LeaseContract, error) {
 	return *leaseValueObj, nil
 }
 
-// putKeyValue function will update lease on such SPC which was not acquired by any pod ever in its lifetime.
-func (sl *Lease) putKeyValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
-	// make a map that should contain the lease key in spc
+// putKeyValue function will update lease on such CSPC which was not acquired by any pod ever in its lifetime.
+func (sl *Lease) putKeyValue(podName string, newCSPCObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+	// make a map that should contain the lease key in cspc
 	mapLease := make(map[string]string)
 	leaseValueObj := &LeaseContract{
 		podName,
@@ -214,12 +219,12 @@ func (sl *Lease) putKeyValue(podName string, newSpcObject *apisv1alpha1.CStorPoo
 	}
 	// Fill the map lease key with lease value
 	mapLease[sl.leaseKey] = string(leaseValue)
-	newSpcObject.Annotations = mapLease
-	return newSpcObject, nil
+	newCSPCObject.Annotations = mapLease
+	return newCSPCObject, nil
 }
 
-// putValue function will update lease on SPC if the holder of lease has released the lease successfully.
-func (sl *Lease) putValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+// putValue function will update lease on CSPC if the holder of lease has released the lease successfully.
+func (sl *Lease) putValue(podName string, newCSPCObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
 	leaseValueObj := &LeaseContract{
 		podName,
 		1,
@@ -228,13 +233,13 @@ func (sl *Lease) putValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCl
 	if err != nil {
 		return nil, err
 	}
-	newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
-	return newSpcObject, nil
+	newCSPCObject.Annotations[sl.leaseKey] = string(leaseValue)
+	return newCSPCObject, nil
 }
 
-// putUpdatedValue function will update lease on SPC if the holder of lease has died before releasing the lease.
-func (sl *Lease) putUpdatedValue(podName string, newSpcObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
-	leaseValueObj, err := parseLeaseValue(newSpcObject.Annotations[sl.leaseKey])
+// putUpdatedValue function will update lease on CSPC if the holder of lease has died before releasing the lease.
+func (sl *Lease) putUpdatedValue(podName string, newCSPCObject *apisv1alpha1.CStorPoolCluster) (*apisv1alpha1.CStorPoolCluster, error) {
+	leaseValueObj, err := parseLeaseValue(newCSPCObject.Annotations[sl.leaseKey])
 	if err != nil {
 		return nil, err
 	}
@@ -244,6 +249,6 @@ func (sl *Lease) putUpdatedValue(podName string, newSpcObject *apisv1alpha1.CSto
 	if err != nil {
 		return nil, err
 	}
-	newSpcObject.Annotations[sl.leaseKey] = string(leaseValue)
-	return newSpcObject, nil
+	newCSPCObject.Annotations[sl.leaseKey] = string(leaseValue)
+	return newCSPCObject, nil
 }

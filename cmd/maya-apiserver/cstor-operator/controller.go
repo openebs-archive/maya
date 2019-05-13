@@ -85,15 +85,15 @@ func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *Controll
 	return cb
 }
 
-// withSpcLister fills cspc lister to controller object.
-func (cb *ControllerBuilder) withSpcLister(sl informers.SharedInformerFactory) *ControllerBuilder {
+// withCSPCLister fills cspc lister to controller object.
+func (cb *ControllerBuilder) withCSPCLister(sl informers.SharedInformerFactory) *ControllerBuilder {
 	cspcInformer := sl.Openebs().V1alpha1().CStorPoolClusters()
 	cb.Controller.cspcLister = cspcInformer.Lister()
 	return cb
 }
 
-// withcspcSynced adds object sync information in cache to controller object.
-func (cb *ControllerBuilder) withcspcSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
+// withcCSPCSynced adds object sync information in cache to controller object.
+func (cb *ControllerBuilder) withCSPCSynced(sl informers.SharedInformerFactory) *ControllerBuilder {
 	cspcInformer := sl.Openebs().V1alpha1().CStorPoolClusters()
 	cb.Controller.cspcSynced = cspcInformer.Informer().HasSynced
 	return cb
@@ -121,10 +121,10 @@ func (cb *ControllerBuilder) withEventHandler(cspcInformerFactory informers.Shar
 	cspcInformer := cspcInformerFactory.Openebs().V1alpha1().CStorPoolClusters()
 	// Set up an event handler for when CSPC resources change
 	cspcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    cb.Controller.addSpc,
-		UpdateFunc: cb.Controller.updateSpc,
+		AddFunc:    cb.Controller.addCSPC,
+		UpdateFunc: cb.Controller.updateCSPC,
 		// This will enter the sync loop and no-op, because the cspc has been deleted from the store.
-		DeleteFunc: cb.Controller.deleteSpc,
+		DeleteFunc: cb.Controller.deleteCSPC,
 	})
 	return cb
 }
@@ -138,33 +138,34 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 	return cb.Controller, nil
 }
 
-// addSpc is the add event handler for cspc.
-func (c *Controller) addSpc(obj interface{}) {
+// addCSPC is the add event handler for cspc.
+func (c *Controller) addCSPC(obj interface{}) {
 	cspc, ok := obj.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", obj))
 		return
 	}
 	glog.V(4).Infof("Queuing CSPC %s for add event", cspc.Name)
-	c.enqueueSpc(cspc)
+	c.enqueueCSPC(cspc)
 }
 
-// updateSpc is the update event handler for cspc.
-func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
-	cspc, ok := newSpc.(*apisv1alpha1.CStorPoolCluster)
+// updateCSPC is the update event handler for cspc.
+func (c *Controller) updateCSPC(oldCSPC, newCSPC interface{}) {
+	cspc, ok := newCSPC.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
-		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newSpc))
+		runtime.HandleError(fmt.Errorf("Couldn't get cspc object %#v", newCSPC))
 		return
 	}
 	// Enqueue cspc only when there is a pending pool to be created.
 	po := c.NewPoolOperation(cspc)
 	if po.IsPoolCreationPending() {
-		c.enqueueSpc(newSpc)
+		c.enqueueCSPC(newCSPC)
+		c.enqueueCSPC(newCSPC)
 	}
 }
 
-// deleteSpc is the delete event handler for cspc.
-func (c *Controller) deleteSpc(obj interface{}) {
+// deleteCSPC is the delete event handler for cspc.
+func (c *Controller) deleteCSPC(obj interface{}) {
 	cspc, ok := obj.(*apisv1alpha1.CStorPoolCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -179,5 +180,5 @@ func (c *Controller) deleteSpc(obj interface{}) {
 		}
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", cspc.Name)
-	c.enqueueSpc(cspc)
+	c.enqueueCSPC(cspc)
 }

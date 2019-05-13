@@ -59,21 +59,21 @@ func Start() error {
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
+	cspcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 	controller, err := NewControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
-		withcspcSynced(spcInformerFactory).
-		withSpcLister(spcInformerFactory).
+		withCSPCSynced(cspcInformerFactory).
+		withCSPCLister(cspcInformerFactory).
 		withRecorder(kubeClient).
-		withEventHandler(spcInformerFactory).
+		withEventHandler(cspcInformerFactory).
 		withWorkqueueRateLimiting().Build()
 	if err != nil {
 		return errors.Wrapf(err, "error building controller instance")
 	}
 
 	go kubeInformerFactory.Start(stopCh)
-	go spcInformerFactory.Start(stopCh)
+	go cspcInformerFactory.Start(stopCh)
 
 	// Threadiness defines the number of workers to be launched in Run function
 	return controller.Run(2, stopCh)
