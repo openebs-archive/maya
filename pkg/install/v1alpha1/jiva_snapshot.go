@@ -31,7 +31,7 @@ spec:
   taskNamespace: {{env "OPENEBS_NAMESPACE"}}
   run:
     tasks:
-    - jiva-volume-podsinopenebsns-default
+    - jiva-snapshot-podsinopenebsns-default
     - jiva-snapshot-create-listsourcetargetservice-default
     - jiva-snapshot-create-invokehttp-default
   output: jiva-snapshot-create-output-default
@@ -39,10 +39,26 @@ spec:
 apiVersion: openebs.io/v1alpha1
 kind: RunTask
 metadata:
+  name: jiva-snapshot-podsinopenebsns-default
+spec:
+  meta: |
+    id: jivasnappodsinopenebsns
+    runNamespace: {{ .Config.OpenEBSNamespace.value }}
+    apiVersion: v1
+    kind: Service
+    action: list
+    options: |-
+      labelSelector: openebs.io/controller-service=jiva-controller-svc,openebs.io/persistent-volume={{ .Snapshot.volumeName }}
+  post: |
+    {{- jsonpath .JsonResult "{.items[*].metadata.namespace}" | trim | saveAs "jivasnappodsinopenebsns.ns" .TaskResult | noop -}}
+---
+apiVersion: openebs.io/v1alpha1
+kind: RunTask
+metadata:
   name: jiva-snapshot-create-listsourcetargetservice-default
 spec:
   meta: |
-    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
+    {{- $jivapodsns := .TaskResult.jivasnappodsinopenebsns.ns | default .Snapshot.runNamespace -}}
     id: readSourceSvc
     runNamespace: {{ $jivapodsns }}
     apiVersion: v1
