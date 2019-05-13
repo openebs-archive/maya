@@ -32,7 +32,7 @@ import (
 
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
-	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator"
+	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
