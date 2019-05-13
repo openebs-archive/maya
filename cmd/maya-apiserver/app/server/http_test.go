@@ -357,8 +357,8 @@ func TestCodedErrorf(t *testing.T) {
 		expectedCode    int
 		expectedMessage string
 	}{
-		"401 error": {401, "%s %d", []interface{}{"unauthorized", 401}, 401, "error: {unauthorized 401}"},
-		"500 error": {500, "%s %d", []interface{}{"internal error", 500}, 500, "error: {internal error 500}"},
+		"401 error": {401, "%s %d", []interface{}{"unauthorized", 401}, 401, "{unauthorized 401}"},
+		"500 error": {500, "%s %d", []interface{}{"internal error", 500}, 500, "{internal error 500}"},
 	}
 	for name, mock := range tests {
 		mock := mock // pin it
@@ -383,10 +383,10 @@ func TestCodedErrorWrap(t *testing.T) {
 		expectedMessage string
 	}{
 		"401 error": {
-			401, fmt.Errorf("unauthorized"), 401, "error: {unauthorized}",
+			401, fmt.Errorf("unauthorized"), 401, "{unauthorized}",
 		},
 		"500 error": {
-			500, fmt.Errorf("internal error"), 500, "error: {internal error}",
+			500, fmt.Errorf("internal error"), 500, "{internal error}",
 		},
 	}
 	for name, mock := range tests {

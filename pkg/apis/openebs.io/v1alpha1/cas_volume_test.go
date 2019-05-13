@@ -58,7 +58,7 @@ func TestCASVolumeString(t *testing.T) {
 	}
 }
 
-func TestCASVolumeStringJSONIndent(t *testing.T) {
+func TestCASVolumeJSONIndent(t *testing.T) {
 	tests := map[string]struct {
 		context             string
 		volume              *CASVolume

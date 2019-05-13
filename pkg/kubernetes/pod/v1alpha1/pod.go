@@ -76,6 +76,40 @@ func IsRunning() Predicate {
 	}
 }
 
+// HasLabels returns true if provided labels
+// map[key]value are present in the provided PodList
+// instance
+func HasLabels(keyValuePair map[string]string) Predicate {
+	return func(p *Pod) bool {
+		//		objKeyValues := p.object.GetLabels()
+		for key, value := range keyValuePair {
+			if !p.HasLabel(key, value) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+// HasLabel return true if provided lable
+// key and value are present in the the provided PodList
+// instance
+func (p *Pod) HasLabel(key, value string) bool {
+	val, ok := p.object.GetLabels()[key]
+	if ok {
+		return val == value
+	}
+	return false
+}
+
+// HasLabel is predicate to filter out labeled
+// pod instances
+func HasLabel(key, value string) Predicate {
+	return func(p *Pod) bool {
+		return p.HasLabel(key, value)
+	}
+}
+
 // IsNil returns true if the pod instance
 // is nil
 func (p *Pod) IsNil() bool {

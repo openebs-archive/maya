@@ -20,10 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
-
 	upgrade "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 )
 
 func TestNewCASTEngineBuilder(t *testing.T) {
@@ -31,9 +30,10 @@ func TestNewCASTEngineBuilder(t *testing.T) {
 		expectRuntimeConfig bool
 		expectCASTemplate   bool
 		expectUnitOfUpgrade bool
+		expectError         bool
 	}{
 		"call NewBuilder": {
-			false, false, false,
+			false, false, false, false,
 		},
 	}
 	for name, mock := range tests {
@@ -52,6 +52,10 @@ func TestNewCASTEngineBuilder(t *testing.T) {
 			if (len(b.RuntimeConfig) != 0) != mock.expectUnitOfUpgrade {
 				t.Fatalf("test %s failed, expect RuntimeConfig: %t but got: %t",
 					name, mock.expectUnitOfUpgrade, len(b.RuntimeConfig) != 0)
+			}
+			if (len(b.Errors) != 0) != mock.expectError {
+				t.Fatalf("test %s failed, expect Error: %t but got: %t",
+					name, mock.expectError, len(b.Errors) != 0)
 			}
 		})
 	}
@@ -155,7 +159,8 @@ func TestValidateEngineBuilder(t *testing.T) {
 			&CASTEngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
-				UpgradeResult: "mock-upgrade-cju65",
+				UpgradeResult: &upgrade.UpgradeResult{},
+				ErrorList:     &errors.ErrorList{},
 			},
 			false,
 		},
@@ -163,21 +168,21 @@ func TestValidateEngineBuilder(t *testing.T) {
 			&CASTEngineBuilder{
 				CASTemplate:   &apis.CASTemplate{},
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
-				errors: []error{
-					errors.New("123"),
-				},
+				ErrorList:     &errors.ErrorList{},
 			},
 			true,
 		},
 		"castemplate not present in builder": {
 			&CASTEngineBuilder{
 				UnitOfUpgrade: &upgrade.ResourceDetails{},
+				ErrorList:     &errors.ErrorList{},
 			},
 			true,
 		},
 		"unit of upgrade not present in builder": {
 			&CASTEngineBuilder{
 				CASTemplate: &apis.CASTemplate{},
+				ErrorList:   &errors.ErrorList{},
 			},
 			true,
 		},

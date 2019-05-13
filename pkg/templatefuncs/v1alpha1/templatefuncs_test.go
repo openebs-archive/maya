@@ -30,7 +30,7 @@ limitations under the License.
 // Templating guides:
 // - https://github.com/kubernetes/helm/tree/master/docs/chart_template_guide
 // - https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
-package template
+package templatefuncs
 
 import (
 	"bytes"
@@ -1654,7 +1654,7 @@ kind: Pod
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			// augment the standard templating with sprig template functions
-			tpl := template.New("TestTemplatingWithMutatingTemplateValues").Funcs(allCustomFuncs())
+			tpl := template.New("TestTemplatingWithMutatingTemplateValues").Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.templateInYaml)
 			if err != nil {
 				t.Fatalf("test failed: expected 'no template parse error': actual '%s'", err.Error())
@@ -2086,7 +2086,7 @@ all:
 	for name, mock := range tests {
 		t.Run(name, func(t *testing.T) {
 			// augment the standard templating with sprig template functions
-			tpl := template.New("testdynamicvartemplating").Funcs(allCustomFuncs())
+			tpl := template.New("testdynamicvartemplating").Funcs(AllCustomFuncs())
 			tpl, err := tpl.Parse(mock.ymlTpl)
 			if err != nil {
 				t.Fatalf("failed to test dynamic templating: expected 'no instantiation error': actual '%s'", err.Error())
