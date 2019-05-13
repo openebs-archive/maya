@@ -21,12 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func init() {
-	// Register adds UpgradeResult and UpgradeResultList objects to
-	// SchemeBuilder so they can be added to a Scheme
-	SchemeBuilder.Register(&UpgradeResult{}, &UpgradeResultList{})
-}
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=upgrade

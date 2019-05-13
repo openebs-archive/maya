@@ -75,8 +75,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) OpenebsV1beta1() openebsv1beta1.OpenebsV1beta1Interface {
 	return &fakeopenebsv1beta1.FakeOpenebsV1beta1{Fake: &c.Fake}
 }
-
-// Openebs retrieves the OpenebsV1beta1Client
-func (c *Clientset) Openebs() openebsv1beta1.OpenebsV1beta1Interface {
-	return &fakeopenebsv1beta1.FakeOpenebsV1beta1{Fake: &c.Fake}
-}

@@ -119,7 +119,7 @@ func (c *FakeBackupCStorLasts) DeleteCollection(options *v1.DeleteOptions, listO
 // Patch applies the patch and returns the patched backupCStorLast.
 func (c *FakeBackupCStorLasts) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.BackupCStorLast, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(backupcstorlastsResource, c.ns, name, data, subresources...), &v1alpha1.BackupCStorLast{})
+		Invokes(testing.NewPatchSubresourceAction(backupcstorlastsResource, c.ns, name, pt, data, subresources...), &v1alpha1.BackupCStorLast{})
 
 	if obj == nil {
 		return nil, err

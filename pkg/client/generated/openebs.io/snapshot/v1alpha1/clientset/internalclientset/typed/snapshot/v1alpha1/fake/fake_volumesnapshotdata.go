@@ -123,7 +123,7 @@ func (c *FakeVolumeSnapshotDatas) DeleteCollection(options *v1.DeleteOptions, li
 // Patch applies the patch and returns the patched volumeSnapshotData.
 func (c *FakeVolumeSnapshotDatas) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.VolumeSnapshotData, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(volumesnapshotdatasResource, name, data, subresources...), &v1alpha1.VolumeSnapshotData{})
+		Invokes(testing.NewRootPatchSubresourceAction(volumesnapshotdatasResource, name, pt, data, subresources...), &v1alpha1.VolumeSnapshotData{})
 	if obj == nil {
 		return nil, err
 	}

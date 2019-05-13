@@ -49,9 +49,6 @@ BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
 # ALL_API_GROUPS has the list of all API resources from various groups
 ALL_API_GROUPS=\
 	openebs.io/runtask/v1beta1 \
-	openebs.io/openebscluster/v1alpha1 \
-	openebs.io/catalog/v1alpha1 \
-	openebs.io/kubeassert/v1alpha1 \
 	openebs.io/upgrade/v1alpha1 \
 	openebs.io/snapshot/v1alpha1
 

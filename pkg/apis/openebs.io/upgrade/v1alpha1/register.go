@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/scheme"
 )
 
 var (
@@ -27,7 +28,7 @@ var (
 	SchemeGroupVersion = schema.GroupVersion{Group: "openebs.io", Version: "v1alpha1"}
 
 	// SchemeBuilder for upgrade
-	SchemeBuilder = &scheme.Builder{GroupVersion: SchemeGroupVersion}
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 
 	// AddToScheme function for upgrade is required by pkg/client/...
 	AddToScheme = SchemeBuilder.AddToScheme
@@ -36,4 +37,21 @@ var (
 // Resource is required by pkg/client/listers/...
 func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
+}
+
+func init() {
+	// We only register manually written functions here. The registration of the
+	// generated functions takes place in the generated files. The separation
+	// makes the code compile even when the generated files are missing.
+	SchemeBuilder.Register(addKnownTypes)
+}
+
+// addKnownTypes adds the set of types defined in this package to the supplied scheme.
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(SchemeGroupVersion,
+		&UpgradeResult{},
+		&UpgradeResultList{},
+	)
+	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	return nil
 }
