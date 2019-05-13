@@ -26,6 +26,7 @@ import (
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -100,7 +101,7 @@ func createRestoreResource(openebsClient *versioned.Clientset, rst *v1alpha1.CSt
 	}
 
 	for _, cvr := range cvrList.Items {
-		rst.Name = rst.Spec.RestoreName + "-" + cvr.ObjectMeta.Labels["cstorpool.openebs.io/uid"]
+		rst.Name = rst.Spec.RestoreName + "-" + string(uuid.NewUUID())
 		oldrst, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).Get(rst.Name, v1.GetOptions{})
 		if err != nil {
 			rst.Status = v1alpha1.RSTCStorStatusPending
@@ -168,6 +169,9 @@ func (rOps *restoreAPIOps) get() (interface{}, error) {
 	}
 
 	rstatus, err = getRestoreStatus(rst)
+	if err != nil {
+		return nil, CodedError(400, fmt.Sprintf("Failed to fetch status '%v'", err))
+	}
 
 	resp, err = json.Marshal(rstatus)
 	if err == nil {
@@ -190,7 +194,7 @@ func getRestoreStatus(rst *v1alpha1.CStorRestore) (v1alpha1.CStorRestoreStatus, 
 	}
 
 	listOptions := v1.ListOptions{
-		LabelSelector: "openebs.io/restore=" + rst.Spec.RestoreName,
+		LabelSelector: "openebs.io/restore=" + rst.Spec.RestoreName + ",openebs.io/persistent-volume=" + rst.Spec.VolumeName,
 	}
 
 	rlist, err := openebsClient.OpenebsV1alpha1().CStorRestores(rst.Namespace).List(listOptions)
