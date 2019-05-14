@@ -19,25 +19,21 @@ package v1alpha1
 import (
 	"os"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/upgrade/v1alpha1"
 	cast "github.com/openebs/maya/pkg/castemplate/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	upgrade "github.com/openebs/maya/pkg/upgrade/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// envSelfName represent name of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfName = "OPENEBS_IO_SELF_NAME"
-	// envSelfNamespace represent namespace of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfNamespace = "OPENEBS_IO_SELF_NAMESPACE"
-	// envSelfUID represent UID of job in which upgrade process is running.
-	// This is required to build owner reference of upgrade result cr.
-	envSelfUID = "OPENEBS_IO_SELF_UID"
+	// envPodName represent name of pod in which upgrade process is running.
+	// This is required to get owner reference for upgrade result cr.
+	envPodName = "OPENEBS_IO_POD_NAME"
+	// envPodNamespace represent namespace of pod in which upgrade process is running.
+	// This is required to get owner reference for upgrade result cr.
+	envPodNamespace = "OPENEBS_IO_POD_NAMESPACE"
 )
 
 // Executor contains list of castEngine
@@ -58,25 +54,33 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 		ErrorList: &errors.ErrorList{},
 	}
 
-	selfName := os.Getenv(envSelfName)
-	if selfName == "" {
+	podName := os.Getenv(envPodName)
+	if podName == "" {
 		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfName))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envPodName))
 		return executorBuilder
 	}
-	selfNamespace := os.Getenv(envSelfNamespace)
-	if selfNamespace == "" {
+	podNamespace := os.Getenv(envPodNamespace)
+	if podNamespace == "" {
 		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfNamespace))
+			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envPodNamespace))
 		return executorBuilder
 
 	}
-	selfUID := types.UID(os.Getenv(envSelfUID))
-	if selfUID == "" {
-		executorBuilder.Errors = append(executorBuilder.Errors,
-			errors.Errorf("failed to instantiate executor builder: ENV {%s} not present", envSelfUID))
-		return executorBuilder
 
+	p, err := pod.NewKubeClient(pod.WithNamespace(podNamespace)).
+		Get(podName, metav1.GetOptions{})
+	if err != nil {
+		executorBuilder.Errors = append(executorBuilder.Errors,
+			errors.Wrap(err, "failed to instantiate executor builder"))
+		return executorBuilder
+	}
+
+	owners := p.ObjectMeta.OwnerReferences
+	if len(owners) == 0 {
+		executorBuilder.Errors = append(executorBuilder.Errors,
+			errors.New("failed to instantiate executor builder: pod does not have a owner"))
+		return executorBuilder
 	}
 
 	castObj, err := cast.KubeClient().
@@ -101,9 +105,8 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 	for _, resource := range cfg.Resources {
 		resource := resource // pin it
 		upgradeResult, err := NewUpgradeResultGetOrCreateBuilder().
-			WithSelfName(selfName).
-			WithSelfNamespace(selfNamespace).
-			WithSelfUID(selfUID).
+			WithSelfNamespace(podNamespace).
+			WithOwner(&owners[0]).
 			WithUpgradeConfig(cfg).
 			WithResourceDetails(&resource).
 			WithTasks(tasks).
