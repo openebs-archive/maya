@@ -23,22 +23,22 @@ import (
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=backupcstorlast
+// +resource:path=cstorcompletedbackup
 
-// BackupCStorLast describes a cstor last-backup resource created as custom resource
-type BackupCStorLast struct {
+// CStorCompletedBackup describes a cstor completed-backup resource created as custom resource
+type CStorCompletedBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              BackupCStorSpec `json:"spec"`
+	Spec              CStorBackupSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=backupcstorlast
+// +resource:path=cstorcompletedbackup
 
-// BackupCStorLastList is a list of backupcstorlast resources
-type BackupCStorLastList struct {
+// CStorCompletedBackupList is a list of cstorcompletedbackup resources
+type CStorCompletedBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []BackupCStorLast `json:"items"`
+	Items []CStorCompletedBackup `json:"items"`
 }

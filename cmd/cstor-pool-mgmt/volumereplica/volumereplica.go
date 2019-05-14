@@ -205,8 +205,8 @@ func builldVolumeCloneCommand(cStorVolumeReplica *apis.CStorVolumeReplica, snapN
 	return cloneVolCmd
 }
 
-// CreateVolumeBackup sends cStor snapshots to remote location specified by backupcstor.
-func CreateVolumeBackup(bkp *apis.BackupCStor) error {
+// CreateVolumeBackup sends cStor snapshots to remote location specified by cstorbackup.
+func CreateVolumeBackup(bkp *apis.CStorBackup) error {
 	var cmd []string
 	var retryCount int
 	var err error

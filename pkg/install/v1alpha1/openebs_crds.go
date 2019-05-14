@@ -291,15 +291,15 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: backupcstors.openebs.io
+  name: cstorbackups.openebs.io
 spec:
   group: openebs.io
   version: v1alpha1
   scope: Namespaced
   names:
-    plural: backupcstors
-    singular: backupcstor
-    kind: BackupCStor
+    plural: cstorbackups
+    singular: cstorbackup
+    kind: CStorBackup
     shortNames:
     - bkp
     - bkps
@@ -323,18 +323,18 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: backupcstorlasts.openebs.io
+  name: cstorcompletedbackups.openebs.io
 spec:
   group: openebs.io
   version: v1alpha1
   scope: Namespaced
   names:
-    plural: backupcstorlasts
-    singular: backupcstorlast
-    kind: BackupCStorLast
+    plural: cstorcompletedbackups
+    singular: cstorcompletedbackup
+    kind: CStorCompletedBackup
     shortNames:
-    - bkplast
-    - backuplast
+    - bkpcompleted
+    - backupcompleted
   additionalPrinterColumns:
     - JSONPath: .spec.volumeName
       name: volume

@@ -35,7 +35,7 @@ func (c *BackupController) Run(threadiness int, stopCh <-chan struct{}) error {
 	defer c.workqueue.ShutDown()
 
 	// Start the informer factories to begin populating the informer caches
-	glog.Info("Starting BackupCStor controller")
+	glog.Info("Starting CStorBackup controller")
 
 	// Wait for the k8s caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
@@ -43,16 +43,16 @@ func (c *BackupController) Run(threadiness int, stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
-	glog.Info("Starting BackupCStor workers")
+	glog.Info("Starting CStorBackup workers")
 
-	// Launch two workers to process BackupCStor resources
+	// Launch two workers to process CStorBackup resources
 	for i := 0; i < threadiness; i++ {
 		go wait.Until(c.runWorker, common.ResourceWorkerInterval, stopCh)
 	}
 
-	glog.Info("Started BackupCStor workers")
+	glog.Info("Started CStorBackup workers")
 	<-stopCh
-	glog.Info("Shutting down BackupCStor workers")
+	glog.Info("Shutting down CStorBackup workers")
 
 	return nil
 }
@@ -99,7 +99,7 @@ func (c *BackupController) processNextWorkItem() bool {
 			return nil
 		}
 		// Run the syncHandler, passing it the namespace/name string of the
-		// BackupCStor resource to be synced.
+		// CStorBackup resource to be synced.
 		if err := c.syncHandler(q.Key, q.Operation); err != nil {
 			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
 		}
