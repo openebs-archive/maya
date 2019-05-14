@@ -124,10 +124,9 @@ func (k *Kubeclient) withDefaults() {
 
 // WithNamespace sets the kubernetes client against
 // the provided namespace
-func WithNamespace(namespace string) KubeclientBuildOption {
-	return func(k *Kubeclient) {
-		k.namespace = namespace
-	}
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
+	return k
 }
 
 // WithClientSet sets the kubernetes client against
