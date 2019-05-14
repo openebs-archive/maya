@@ -373,7 +373,7 @@ func CodedErrorWrapf(code int, err error, msg string, args ...interface{}) HTTPC
 // CodedErrorWrap is used to provide HTTP error
 // Code and corresponding error
 func CodedErrorWrap(code int, err error) HTTPCodedError {
-	errMsg := fmt.Sprintf("{%+v}", err)
+	errMsg := fmt.Sprintf("%+v", err)
 	return CodedError(code, errMsg)
 }
 
@@ -381,7 +381,7 @@ func CodedErrorWrap(code int, err error) HTTPCodedError {
 // Code and corresponding error details in
 // a format decided by the caller
 func CodedErrorf(code int, msg string, args ...interface{}) HTTPCodedError {
-	errMsg := fmt.Sprintf("{%s}", msg)
+	errMsg := fmt.Sprintf("%s", msg)
 	finalMsg := fmt.Sprintf(errMsg, args...)
 	return CodedError(code, finalMsg)
 }
