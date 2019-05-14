@@ -301,10 +301,10 @@ spec:
     singular: cstorbackup
     kind: CStorBackup
     shortNames:
-    - bkp
-    - bkps
-    - backups
-    - backup
+    - cbkp
+    - cbkps
+    - cbackups
+    - cbackup
   additionalPrinterColumns:
     - JSONPath: .spec.volumeName
       name: volume
@@ -333,8 +333,8 @@ spec:
     singular: cstorcompletedbackup
     kind: CStorCompletedBackup
     shortNames:
-    - bkpcompleted
-    - backupcompleted
+    - cbkpc
+    - cbackupcompleted
   additionalPrinterColumns:
     - JSONPath: .spec.volumeName
       name: volume
@@ -362,10 +362,10 @@ spec:
     singular: cstorrestore
     kind: CStorRestore
     shortNames:
-    - rst
-    - rsts
-    - restores
-    - restore
+    - crst
+    - crsts
+    - crestores
+    - crestore
   additionalPrinterColumns:
     - JSONPath: .spec.restoreName
       name: backup
