@@ -31,59 +31,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// BackupCStorInformer provides access to a shared informer and lister for
-// BackupCStors.
-type BackupCStorInformer interface {
+// CStorBackupInformer provides access to a shared informer and lister for
+// CStorBackups.
+type CStorBackupInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.BackupCStorLister
+	Lister() v1alpha1.CStorBackupLister
 }
 
-type backupCStorInformer struct {
+type cStorBackupInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewBackupCStorInformer constructs a new informer for BackupCStor type.
+// NewCStorBackupInformer constructs a new informer for CStorBackup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewBackupCStorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredBackupCStorInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewCStorBackupInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredCStorBackupInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredBackupCStorInformer constructs a new informer for BackupCStor type.
+// NewFilteredCStorBackupInformer constructs a new informer for CStorBackup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredBackupCStorInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredCStorBackupInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BackupCStors(namespace).List(options)
+				return client.OpenebsV1alpha1().CStorBackups(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BackupCStors(namespace).Watch(options)
+				return client.OpenebsV1alpha1().CStorBackups(namespace).Watch(options)
 			},
 		},
-		&openebsiov1alpha1.BackupCStor{},
+		&openebsiov1alpha1.CStorBackup{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *backupCStorInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredBackupCStorInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *cStorBackupInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredCStorBackupInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *backupCStorInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&openebsiov1alpha1.BackupCStor{}, f.defaultInformer)
+func (f *cStorBackupInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&openebsiov1alpha1.CStorBackup{}, f.defaultInformer)
 }
 
-func (f *backupCStorInformer) Lister() v1alpha1.BackupCStorLister {
-	return v1alpha1.NewBackupCStorLister(f.Informer().GetIndexer())
+func (f *cStorBackupInformer) Lister() v1alpha1.CStorBackupLister {
+	return v1alpha1.NewCStorBackupLister(f.Informer().GetIndexer())
 }
