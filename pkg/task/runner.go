@@ -73,7 +73,7 @@ func (m *TaskGroupRunner) AddRunTask(runtask *v1alpha1.RunTask) (err error) {
 	}
 
 	if len(runtask.Spec.Meta) == 0 {
-		err = fmt.Errorf("failed to add run task: nil meta task specs found: task name '%s'", runtask.Name)
+		err = fmt.Errorf("failed to add run task: nil meta task specs found: task name {%s}", runtask.Name)
 		return
 	}
 
@@ -93,12 +93,12 @@ func (m *TaskGroupRunner) SetOutputTask(runtask *v1alpha1.RunTask) (err error) {
 	}
 
 	if len(runtask.Spec.Meta) == 0 {
-		err = fmt.Errorf("failed to set output task: nil meta task specs found: task name '%s'", runtask.Name)
+		err = fmt.Errorf("failed to set output task: nil meta task specs found: task name {%s}", runtask.Name)
 		return
 	}
 
 	if len(runtask.Spec.Task) == 0 {
-		err = fmt.Errorf("failed to set output task: nil task specs found: task name '%s'", runtask.Name)
+		err = fmt.Errorf("failed to set output task: nil task specs found: task name {%s}", runtask.Name)
 		return
 	}
 
@@ -174,14 +174,14 @@ func (m *TaskGroupRunner) rollback() {
 		err := m.rollbacks[i].ExecuteIt()
 		if err != nil {
 			// warn this rollback error & continue with the next rollbacks
-			glog.Warningf("failed to rollback run task: '%s': error '%s'", m.rollbacks[i], err.Error())
+			glog.Warningf("failed to rollback run task {%s}: %s", m.rollbacks[i].Runtask.Name, errors.Cause(err))
 		}
 	}
 }
 
 // rollback will rollback the previously run operation(s)
 func (m *TaskGroupRunner) fallback(values map[string]interface{}) (output []byte, err error) {
-	glog.Warningf("task group runner will fallback to '%s'", m.fallbackTemplate)
+	glog.Warningf("task group runner will fallback to {%s}", m.fallbackTemplate)
 	f, err := NewFallbackRunner(m.fallbackTemplate, values)
 	if err != nil {
 		return
@@ -200,7 +200,7 @@ func (m *TaskGroupRunner) runATask(runtask *v1alpha1.RunTask, values map[string]
 
 	// check if the task ID is unique in this group
 	if !m.isTaskIDUnique(te.getTaskIdentity()) {
-		return fmt.Errorf("failed to execute the run task: multiple tasks having same identity is not allowed in a group run: duplicate id '%s'", te.getTaskIdentity())
+		return errors.Errorf("failed to execute runtask {%s}: multiple tasks having same identity is not allowed in a group run duplicate id {%s}", runtask.Name, te.getTaskIdentity())
 	}
 
 	errExecute := te.Execute()
@@ -211,13 +211,13 @@ func (m *TaskGroupRunner) runATask(runtask *v1alpha1.RunTask, values map[string]
 	redactJsonResult(values)
 
 	if errExecute != nil {
-		return errors.Wrapf(errExecute, "failed to execute runtask: %s %s", runtask, stringer.Yaml("template values", values))
+		return errors.Wrapf(errExecute, "failed to execute runtask {%s}: %s", runtask.Name, stringer.Yaml("template values", values))
 	}
 
 	// this is planning & not the actual rollback
 	errRollback := m.planForRollback(te, util.GetNestedString(values, string(v1alpha1.TaskResultTLP), te.getTaskIdentity(), string(v1alpha1.ObjectNameTRTP)))
 	if errRollback != nil {
-		return errors.Wrapf(errRollback, "failed to plan for rollback: '%+v'", errRollback)
+		return errors.Wrapf(errRollback, "failed to plan for rollback")
 	}
 
 	return
@@ -267,7 +267,6 @@ func (m *TaskGroupRunner) Run(values map[string]interface{}) (output []byte, err
 		return m.runOutput(values)
 	}
 
-	glog.Warningf("%+v: failed to execute runtasks", err)
 	m.rollback()
 
 	if templatefuncs.IsVersionMismatch(err) && len(m.fallbackTemplate) != 0 {
