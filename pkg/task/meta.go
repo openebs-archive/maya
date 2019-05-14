@@ -422,6 +422,10 @@ func (m *MetaExecutor) isGetExtnV1B1Deploy() bool {
 	return m.identifier.isExtnV1B1Deploy() && m.isGet()
 }
 
+func (m *MetaExecutor) isGetAppsV1Deploy() bool {
+	return m.identifier.isAppsV1Deploy() && m.isGet()
+}
+
 func (m *MetaExecutor) isGetCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isGet()
 }
