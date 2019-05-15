@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provision
+package volume
 
 import (
 	"flag"
@@ -22,12 +22,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/integration-tests/artifacts"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,7 +43,17 @@ const (
 )
 
 var (
-	kubeConfigPath string
+	kubeConfigPath        string
+	nsName                = "provision-ns"
+	scName                = "jiva-pods-in-openebs-ns"
+	openebsCASConfigValue = "- name: ReplicaCount\n  Value: 1"
+	openebsProvisioner    = "openebs.io/provisioner-iscsi"
+	nsObj                 *corev1.Namespace
+	scObj                 *storagev1.StorageClass
+	annotations           = map[string]string{
+		string(apis.CASTypeKey):   string(apis.JivaVolume),
+		string(apis.CASConfigKey): openebsCASConfigValue,
+	}
 )
 
 type operations struct {
@@ -72,9 +85,40 @@ var _ = BeforeSuite(func() {
 	By("Waiting for openebs-provisioner pod to come into running state")
 	podCount = ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 	Expect(podCount).To(Equal(1))
+
+	By("Building a namespace")
+	nsObj, err = ns.NewBuilder().
+		WithName(nsName).
+		APIObject()
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
+
+	By("Building a storageclass")
+	scObj, err = sc.NewBuilder().
+		WithName(scName).
+		WithAnnotations(annotations).
+		WithProvisioner(openebsProvisioner).Build()
+	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
+
+	By("Creating a namespace")
+	_, err = ops.nsClient.Create(nsObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
+
+	By("Creating a storageclass")
+	_, err = ops.scClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
+
 })
 
 var _ = AfterSuite(func() {
+
+	By("deleting storageclass")
+	err := ops.scClient.Delete(scName, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting storrageclass {%s}", scObj.Name)
+
+	By("deleting namespace")
+	err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting storrageclass {%s}", nsObj.Name)
+
 })
 
 var ops = &operations{}
