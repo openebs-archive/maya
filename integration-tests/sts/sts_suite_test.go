@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 	// Check for maya-apiserver pod to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.MayaAPIServerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).
@@ -103,7 +103,7 @@ var _ = BeforeSuite(func() {
 	// Check for provisioner pod to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSProvisionerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).
@@ -117,7 +117,7 @@ var _ = BeforeSuite(func() {
 	// Check for snapshot operator to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSSnapshotOperatorLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).
@@ -131,7 +131,7 @@ var _ = BeforeSuite(func() {
 	// Check for admission server to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSAdmissionServerLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).
@@ -145,7 +145,7 @@ var _ = BeforeSuite(func() {
 	// Check for NDM pods to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSNDMLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).
@@ -159,7 +159,7 @@ var _ = BeforeSuite(func() {
 	// Check for cstor storage pool pods to get created and running
 	Eventually(func() int {
 		pods, err := pod.
-			NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace))).
+			NewKubeClient().WithNamespace(string(artifacts.OpenebsNamespace)).
 			List(metav1.ListOptions{LabelSelector: string(artifacts.OpenEBSCStorPoolLabelSelector)})
 		Expect(err).ShouldNot(HaveOccurred())
 		return pod.ListBuilderForAPIList(pods).

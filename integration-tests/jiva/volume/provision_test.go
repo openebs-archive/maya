@@ -14,71 +14,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provision
+package volume
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
-	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
-	replicaLabel          = "openebs.io/replica=jiva-replica"
-	ctrlLabel             = "openebs.io/controller=jiva-controller"
-	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity              = "5G"
-	scObj                 *storagev1.StorageClass
-	pvcObj                *corev1.PersistentVolumeClaim
-	nsObj                 *corev1.Namespace
-	openebsCASConfigValue = "- name: ReplicaCount\n  Value: 1"
-	err                   error
+	replicaLabel = "openebs.io/replica=jiva-replica"
+	ctrlLabel    = "openebs.io/controller=jiva-controller"
+	accessModes  = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity     = "5G"
+	pvcObj       *corev1.PersistentVolumeClaim
+	err          error
 )
 
 var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 	var (
-		nsName      = "provision-ns"
-		scName      = "jiva-pods-in-openebs-ns"
-		pvcName     = "jiva-volume-claim"
-		annotations = map[string]string{
-			string(apis.CASTypeKey):   string(apis.JivaVolume),
-			string(apis.CASConfigKey): openebsCASConfigValue,
-		}
+		pvcName = "jiva-volume-claim"
 	)
+
 	BeforeEach(func() {
 
-	})
-
-	When("creating namespace and storageclass", func() {
-		It("should create namespace and storageclass", func() {
-
-			By("Building a namespace")
-			nsObj, err = ns.NewBuilder().
-				WithName(nsName).
-				APIObject()
-			Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
-
-			By("Building a storageclass")
-			scObj, err = sc.NewBuilder().
-				WithName(scName).
-				WithAnnotations(annotations).
-				WithProvisioner(openebsProvisioner).Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
-
-			By("Creating a storageclass")
-			_, err = ops.scClient.Create(scObj)
-			Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
-
-			By("Creating a namespace")
-			_, err = ops.nsClient.Create(nsObj)
-			Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
-		})
 	})
 
 	When("jiva pvc with replicacount 1 is created", func() {
@@ -131,19 +92,6 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 		})
 	})
 
-	When("deleting namespace and storageclass", func() {
-		It("should delete namespace and storageclass", func() {
-
-			By("deleting storageclass")
-			err := ops.scClient.Delete(scName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storrageclass {%s}", scObj.Name)
-
-			By("deleting namespace")
-			err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storrageclass {%s}", nsObj.Name)
-
-		})
-	})
 	AfterEach(func() {
 
 	})

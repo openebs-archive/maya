@@ -71,7 +71,7 @@ func getPodList(podKubeClient *pod.KubeClient, namespace, lselector string, podC
 	var err error
 
 	if podKubeClient == nil {
-		podKubeClient = pod.NewKubeClient(pod.WithNamespace(namespace), pod.WithKubeConfigPath(kubeConfigPath))
+		podKubeClient = pod.NewKubeClient(pod.WithKubeConfigPath(kubeConfigPath)).WithNamespace(namespace)
 	}
 
 	Eventually(func() int {
@@ -129,7 +129,7 @@ var _ = BeforeSuite(func() {
 		defaultInstallerList = append(defaultInstallerList, defaultInstaller)
 	}
 
-	podKubeClient := pod.NewKubeClient(pod.WithNamespace(string(artifacts.OpenebsNamespace)), pod.WithKubeConfigPath(kubeConfigPath))
+	podKubeClient := pod.NewKubeClient(pod.WithKubeConfigPath(kubeConfigPath)).WithNamespace(string(artifacts.OpenebsNamespace))
 	// Check for maya-apiserver pod to get created and running
 	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
