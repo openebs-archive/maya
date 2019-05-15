@@ -105,7 +105,7 @@ func StartControllers(kubeconfig string) {
 		openebsInformerFactory)
 
 	// Instantiate the cStor backup controller
-	backupController := backupcontroller.NewBackupCStorController(kubeClient, openebsClient, kubeInformerFactory,
+	backupController := backupcontroller.NewCStorBackupController(kubeClient, openebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	// Instantiate the cStor restore controller
@@ -141,10 +141,10 @@ func StartControllers(kubeconfig string) {
 	}()
 
 	wg.Add(NumRoutinesThatFollow)
-	// Run controller for BackupCStor.
+	// Run controller for CStorBackup
 	go func() {
 		if err = backupController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running BackupCStor controller: %s", err.Error())
+			glog.Fatalf("Error running CStorBackup controller: %s", err.Error())
 		}
 		wg.Done()
 	}()
@@ -153,7 +153,7 @@ func StartControllers(kubeconfig string) {
 	// Run controller for CStorRestore.
 	go func() {
 		if err = restoreController.Run(NumThreads, stopCh); err != nil {
-			glog.Fatalf("Error running BackupCStor controller: %s", err.Error())
+			glog.Fatalf("Error running CStorRestore controller: %s", err.Error())
 		}
 		wg.Done()
 	}()

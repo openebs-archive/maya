@@ -38,12 +38,12 @@ import (
 // with the current status of the resource.
 func (c *BackupController) syncHandler(key string, operation common.QueueOperation) error {
 	glog.Infof("Sync handler called for key:%s with op:%s", key, operation)
-	bkp, err := c.getBackupCStorResource(key)
+	bkp, err := c.getCStorBackupResource(key)
 	if err != nil {
 		return err
 	}
 	if bkp == nil {
-		return fmt.Errorf("cannot retrieve BackupCStor %q", key)
+		return fmt.Errorf("cannot retrieve CStorBackup %q", key)
 	}
 	if IsDoneStatus(bkp) || IsFailedStatus(bkp) {
 		return nil
@@ -58,17 +58,17 @@ func (c *BackupController) syncHandler(key string, operation common.QueueOperati
 		glog.Errorf(err.Error())
 		bkp.Status = apis.BKPCStorStatusFailed
 	} else {
-		bkp.Status = apis.BackupCStorStatus(status)
+		bkp.Status = apis.CStorBackupStatus(status)
 	}
 
-	nbkp, err := c.clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Get(bkp.Name, metav1.GetOptions{})
+	nbkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	nbkp.Status = bkp.Status
 
-	_, err = c.clientset.OpenebsV1alpha1().BackupCStors(nbkp.Namespace).Update(nbkp)
+	_, err = c.clientset.OpenebsV1alpha1().CStorBackups(nbkp.Namespace).Update(nbkp)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (c *BackupController) syncHandler(key string, operation common.QueueOperati
 }
 
 // eventHandler will execute a function according to a given operation
-func (c *BackupController) eventHandler(operation common.QueueOperation, bkp *apis.BackupCStor) (string, error) {
+func (c *BackupController) eventHandler(operation common.QueueOperation, bkp *apis.CStorBackup) (string, error) {
 	switch operation {
 	case common.QOpAdd:
 		return c.addEventHandler(bkp)
@@ -95,7 +95,7 @@ func (c *BackupController) eventHandler(operation common.QueueOperation, bkp *ap
 }
 
 // addEventHandler will change the state of backup to Init state.
-func (c *BackupController) addEventHandler(bkp *apis.BackupCStor) (string, error) {
+func (c *BackupController) addEventHandler(bkp *apis.CStorBackup) (string, error) {
 	if !IsPendingStatus(bkp) {
 		return string(apis.BKPCStorStatusInvalid), nil
 	}
@@ -103,11 +103,11 @@ func (c *BackupController) addEventHandler(bkp *apis.BackupCStor) (string, error
 }
 
 // syncEventHandler will perform the backup if a given backup is in init state
-func (c *BackupController) syncEventHandler(bkp *apis.BackupCStor) (string, error) {
+func (c *BackupController) syncEventHandler(bkp *apis.CStorBackup) (string, error) {
 	// If the backup is in init state then only we will complete the backup
 	if IsInitStatus(bkp) {
 		bkp.Status = apis.BKPCStorStatusInProgress
-		_, err := c.clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Update(bkp)
+		_, err := c.clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
 		if err != nil {
 			glog.Errorf("Failed to update backup:%s status : %v", bkp.Name, err.Error())
 			return "", err
@@ -122,7 +122,7 @@ func (c *BackupController) syncEventHandler(bkp *apis.BackupCStor) (string, erro
 
 		c.recorder.Event(bkp, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 		glog.Infof("backup creation successful: %v, %v", bkp.ObjectMeta.Name, string(bkp.GetUID()))
-		err = c.updateBackupCStorLast(bkp)
+		err = c.updateCStorCompletedBackup(bkp)
 		if err != nil {
 			return string(apis.BKPCStorStatusFailed), err
 		}
@@ -131,8 +131,8 @@ func (c *BackupController) syncEventHandler(bkp *apis.BackupCStor) (string, erro
 	return "", nil
 }
 
-// getBackupCStorResource returns a backup object corresponding to the resource key
-func (c *BackupController) getBackupCStorResource(key string) (*apis.BackupCStor, error) {
+// getCStorBackupResource returns a backup object corresponding to the resource key
+func (c *BackupController) getCStorBackupResource(key string) (*apis.CStorBackup, error) {
 	// Convert the key(namespace/name) string into a distinct name
 	glog.Infof("Finding backup for key:%s", key)
 	ns, name, err := cache.SplitMetaNamespaceKey(key)
@@ -141,7 +141,7 @@ func (c *BackupController) getBackupCStorResource(key string) (*apis.BackupCStor
 		return nil, nil
 	}
 
-	bkp, err := c.clientset.OpenebsV1alpha1().BackupCStors(ns).Get(name, metav1.GetOptions{})
+	bkp, err := c.clientset.OpenebsV1alpha1().CStorBackups(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			runtime.HandleError(fmt.Errorf("bkp '%s' in work queue no longer exists", key))
@@ -153,7 +153,7 @@ func (c *BackupController) getBackupCStorResource(key string) (*apis.BackupCStor
 }
 
 // IsPendingStatus is to check if the backup is in a pending state.
-func IsPendingStatus(bkp *apis.BackupCStor) bool {
+func IsPendingStatus(bkp *apis.CStorBackup) bool {
 	if string(bkp.Status) == string(apis.BKPCStorStatusPending) {
 		return true
 	}
@@ -161,7 +161,7 @@ func IsPendingStatus(bkp *apis.BackupCStor) bool {
 }
 
 // IsInProgressStatus is to check if the backup is in in-progress state.
-func IsInProgressStatus(bkp *apis.BackupCStor) bool {
+func IsInProgressStatus(bkp *apis.CStorBackup) bool {
 	if string(bkp.Status) == string(apis.BKPCStorStatusInProgress) {
 		return true
 	}
@@ -169,7 +169,7 @@ func IsInProgressStatus(bkp *apis.BackupCStor) bool {
 }
 
 // IsInitStatus is to check if the backup is in init state.
-func IsInitStatus(bkp *apis.BackupCStor) bool {
+func IsInitStatus(bkp *apis.CStorBackup) bool {
 	if string(bkp.Status) == string(apis.BKPCStorStatusInit) {
 		return true
 	}
@@ -177,7 +177,7 @@ func IsInitStatus(bkp *apis.BackupCStor) bool {
 }
 
 // IsDoneStatus is to check if the backup is completed or not
-func IsDoneStatus(bkp *apis.BackupCStor) bool {
+func IsDoneStatus(bkp *apis.CStorBackup) bool {
 	if string(bkp.Status) == string(apis.BKPCStorStatusDone) {
 		return true
 	}
@@ -185,7 +185,7 @@ func IsDoneStatus(bkp *apis.BackupCStor) bool {
 }
 
 // IsFailedStatus is to check if the backup is failed or not
-func IsFailedStatus(bkp *apis.BackupCStor) bool {
+func IsFailedStatus(bkp *apis.CStorBackup) bool {
 	if string(bkp.Status) == string(apis.BKPCStorStatusFailed) {
 		return true
 	}
@@ -193,7 +193,7 @@ func IsFailedStatus(bkp *apis.BackupCStor) bool {
 }
 
 // IsRightCStorPoolMgmt is to check if the backup request is for this cstor-pool or not.
-func IsRightCStorPoolMgmt(bkp *apis.BackupCStor) bool {
+func IsRightCStorPoolMgmt(bkp *apis.CStorBackup) bool {
 	if os.Getenv(string(common.OpenEBSIOCStorID)) == bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"] {
 		return true
 	}
@@ -201,15 +201,15 @@ func IsRightCStorPoolMgmt(bkp *apis.BackupCStor) bool {
 }
 
 // IsDestroyEvent is to check if the call is for backup destroy.
-func IsDestroyEvent(bkp *apis.BackupCStor) bool {
+func IsDestroyEvent(bkp *apis.CStorBackup) bool {
 	if bkp.ObjectMeta.DeletionTimestamp != nil {
 		return true
 	}
 	return false
 }
 
-// IsOnlyStatusChange is to check the only status change of BackupCStor object.
-func IsOnlyStatusChange(oldbkp, newbkp *apis.BackupCStor) bool {
+// IsOnlyStatusChange is to check the only status change of CStorBackup object.
+func IsOnlyStatusChange(oldbkp, newbkp *apis.CStorBackup) bool {
 	if reflect.DeepEqual(oldbkp.Spec, newbkp.Spec) &&
 		!reflect.DeepEqual(oldbkp.Status, newbkp.Status) {
 		return true
@@ -217,9 +217,9 @@ func IsOnlyStatusChange(oldbkp, newbkp *apis.BackupCStor) bool {
 	return false
 }
 
-func (c *BackupController) updateBackupCStorLast(bkp *apis.BackupCStor) error {
+func (c *BackupController) updateCStorCompletedBackup(bkp *apis.CStorBackup) error {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	bkplast, err := c.clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	bkplast, err := c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
 		glog.Errorf("Failed to get last completed backup for %s vol:%v", bkp.Spec.BackupName, bkp.Spec.VolumeName)
 		return nil
@@ -227,7 +227,7 @@ func (c *BackupController) updateBackupCStorLast(bkp *apis.BackupCStor) error {
 
 	bkplast.Spec.SnapName = bkplast.Spec.PrevSnapName
 	bkplast.Spec.PrevSnapName = bkp.Spec.SnapName
-	_, err = c.clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Update(bkplast)
+	_, err = c.clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Update(bkplast)
 	if err != nil {
 		glog.Errorf("Failed to update lastbackup for %s", bkplast.Name)
 		return err

@@ -28,16 +28,16 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeOpenebsV1alpha1) BackupCStors(namespace string) v1alpha1.BackupCStorInterface {
-	return &FakeBackupCStors{c, namespace}
-}
-
-func (c *FakeOpenebsV1alpha1) BackupCStorLasts(namespace string) v1alpha1.BackupCStorLastInterface {
-	return &FakeBackupCStorLasts{c, namespace}
-}
-
 func (c *FakeOpenebsV1alpha1) CASTemplates() v1alpha1.CASTemplateInterface {
 	return &FakeCASTemplates{c}
+}
+
+func (c *FakeOpenebsV1alpha1) CStorBackups(namespace string) v1alpha1.CStorBackupInterface {
+	return &FakeCStorBackups{c, namespace}
+}
+
+func (c *FakeOpenebsV1alpha1) CStorCompletedBackups(namespace string) v1alpha1.CStorCompletedBackupInterface {
+	return &FakeCStorCompletedBackups{c, namespace}
 }
 
 func (c *FakeOpenebsV1alpha1) CStorPools() v1alpha1.CStorPoolInterface {

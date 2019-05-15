@@ -11,11 +11,11 @@ ark create schedule SCHEDULE_NAME --schedule="*/5 * * * *" --snapshot-volumes
 
 
 ## To fetch Backup status from CStor controller
-```kubectl get backupcstors```
+```kubectl get cstorbackups`
 
 example:
 ```
-    :~kubectl get backupcstors -n litmus
+    :~kubectl get cstorbackups -n litmus
     NAME                                                         VOLUME                                     BACKUP/SCHEDULE   STATUS
     a0-pvc-a04c4885-5e87-11e9-8f95-42010a80007a                  pvc-a04c4885-5e87-11e9-8f95-42010a80007a   a0                Done
     p0-20190414152745-pvc-a04c4885-5e87-11e9-8f95-42010a80007a   pvc-a04c4885-5e87-11e9-8f95-42010a80007a   p0                Done
@@ -23,11 +23,11 @@ example:
 ```
 
 ## To fetch information about the last successful backup
-```kubectl get backupcstorlast```
+```kubectl get cstorcompletedbackups```
 
 example:
 ```
-    :~kubectl get backupcstorlast -n litmus
+    :~kubectl get cstorcompletedbackups -n litmus
     NAME                                          VOLUME                                     BACKUP/SCHEDULE   LASTSNAP
     a0-pvc-a04c4885-5e87-11e9-8f95-42010a80007a   pvc-a04c4885-5e87-11e9-8f95-42010a80007a   a0                a0
     p0-pvc-a04c4885-5e87-11e9-8f95-42010a80007a   pvc-a04c4885-5e87-11e9-8f95-42010a80007a   p0                p0-20190414153032

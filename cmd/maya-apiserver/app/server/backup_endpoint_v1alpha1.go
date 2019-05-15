@@ -58,7 +58,7 @@ func (s *HTTPServer) backupV1alpha1SpecificRequest(resp http.ResponseWriter, req
 
 // Create is http handler which handles backup create request
 func (bOps *backupAPIOps) create() (interface{}, error) {
-	bkp := &v1alpha1.BackupCStor{}
+	bkp := &v1alpha1.CStorBackup{}
 
 	err := decodeBody(bOps.req, bkp)
 	if err != nil {
@@ -127,7 +127,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 		bkp.Spec.VolumeName,
 		bkp.ObjectMeta.Labels["cstorpool.openebs.io/uid"])
 
-	_, err = openebsClient.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Create(bkp)
+	_, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Create(bkp)
 	if err != nil {
 		glog.Errorf("Failed to create backup: error '%s'", err.Error())
 		return nil, CodedError(500, err.Error())
@@ -138,7 +138,7 @@ func (bOps *backupAPIOps) create() (interface{}, error) {
 }
 
 // createSnapshotForBackup will create a snapshot for given backup
-func createSnapshotForBackup(bkp *v1alpha1.BackupCStor) error {
+func createSnapshotForBackup(bkp *v1alpha1.CStorBackup) error {
 	snapOps, err := snapshot.Snapshot(&v1alpha1.SnapshotOptions{
 		VolumeName: bkp.Spec.VolumeName,
 		Namespace:  bkp.Namespace,
@@ -206,26 +206,26 @@ func findHealthyCVR(openebsClient *internalclientset.Clientset, volume string) (
 }
 
 // getLastBackupSnap will fetch the last successful backup's snapshot name
-func getLastBackupSnap(openebsClient *internalclientset.Clientset, bkp *v1alpha1.BackupCStor) (string, error) {
+func getLastBackupSnap(openebsClient *internalclientset.Clientset, bkp *v1alpha1.CStorBackup) (string, error) {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	b, err := openebsClient.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	b, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
-		bk := &v1alpha1.BackupCStorLast{
+		bk := &v1alpha1.CStorCompletedBackup{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      lastbkpname,
 				Namespace: bkp.Namespace,
 				Labels:    bkp.Labels,
 			},
-			Spec: v1alpha1.BackupCStorSpec{
+			Spec: v1alpha1.CStorBackupSpec{
 				BackupName:   bkp.Spec.BackupName,
 				VolumeName:   bkp.Spec.VolumeName,
 				PrevSnapName: bkp.Spec.SnapName,
 			},
 		}
 
-		_, err := openebsClient.OpenebsV1alpha1().BackupCStorLasts(bk.Namespace).Create(bk)
+		_, err := openebsClient.OpenebsV1alpha1().CStorCompletedBackups(bk.Namespace).Create(bk)
 		if err != nil {
-			glog.Errorf("Error creating last-backup resource for backup:%v err:%v", bk.Spec.BackupName, err)
+			glog.Errorf("Error creating last completed-backup resource for backup:%v err:%v", bk.Spec.BackupName, err)
 			return "", err
 		}
 		glog.Infof("LastBackup resource created for backup:%s volume:%s", bk.Spec.BackupName, bk.Spec.VolumeName)
@@ -236,7 +236,7 @@ func getLastBackupSnap(openebsClient *internalclientset.Clientset, bkp *v1alpha1
 
 // get is http handler which handles backup get request
 func (bOps *backupAPIOps) get() (interface{}, error) {
-	bkp := &v1alpha1.BackupCStor{}
+	bkp := &v1alpha1.CStorBackup{}
 
 	err := decodeBody(bOps.req, bkp)
 	if err != nil {
@@ -264,7 +264,7 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 	}
 
 	bkp.Name = bkp.Spec.SnapName + "-" + bkp.Spec.VolumeName
-	b, err := openebsClient.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
+	b, err := openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
 	if err != nil {
 		return nil, CodedError(400, fmt.Sprintf("Failed to fetch backup error:%v", err))
 	}
@@ -276,13 +276,13 @@ func (bOps *backupAPIOps) get() (interface{}, error) {
 		bkpPodDown := checkIfCSPPoolPodDown(k8sClient, b.Labels["cstorpool.openebs.io/uid"])
 
 		if bkpNodeDown || bkpPodDown {
-			// Backup is stalled, let's find last-backup status
+			// Backup is stalled, let's find last completed-backup status
 			laststat := findLastBackupStat(openebsClient, b)
-			// Update Backup status according to last-backup
+			// Update Backup status according to last completed-backup
 			updateBackupStatus(openebsClient, b, laststat)
 
 			// Get updated backup object
-			b, err = openebsClient.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
+			b, err = openebsClient.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Get(bkp.Name, v1.GetOptions{})
 			if err != nil {
 				return nil, CodedError(400, fmt.Sprintf("Failed to fetch backup error:%v", err))
 			}
@@ -377,12 +377,12 @@ func findPodFromCStorID(k8sclient *kubernetes.Clientset, cstorID string) (corev1
 }
 
 // findLastBackupStat will find the status of given backup from last-backup
-func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor) v1alpha1.BackupCStorStatus {
+func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.CStorBackup) v1alpha1.CStorBackupStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	lastbkp, err := clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
-		glog.Errorf("Failed to fetch last-backup:%s error:%s", lastbkpname, err.Error())
+		glog.Errorf("Failed to fetch last completed-backup:%s error:%s", lastbkpname, err.Error())
 		return v1alpha1.BKPCStorStatusFailed
 	}
 
@@ -396,10 +396,10 @@ func findLastBackupStat(clientset internalclientset.Interface, bkp *v1alpha1.Bac
 }
 
 // updateBackupStatus will update the backup status to given status
-func updateBackupStatus(clientset internalclientset.Interface, bkp *v1alpha1.BackupCStor, status v1alpha1.BackupCStorStatus) {
+func updateBackupStatus(clientset internalclientset.Interface, bkp *v1alpha1.CStorBackup, status v1alpha1.CStorBackupStatus) {
 	bkp.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Update(bkp)
+	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(bkp)
 	if err != nil {
 		glog.Errorf("Failed to update backup:%s with status:%v", bkp.Name, status)
 		return
