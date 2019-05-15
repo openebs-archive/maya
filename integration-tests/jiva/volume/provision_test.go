@@ -66,7 +66,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking jiva controller pod count")
 
-			By("verifying jiva controller pod count as 1")
+			By("verifying jiva replica pod count as 1")
 			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, 1)
 			Expect(replicaPodCount).To(Equal(1), "while checking jiva replica pod count")
 
