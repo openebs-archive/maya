@@ -28,9 +28,9 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// TestNewBackupCStorController tests if the kubernetes and openebs
+// TestNewCStorBackupController tests if the kubernetes and openebs
 // configs are present in cstor backup instance.
-func TestNewBackupCStorController(t *testing.T) {
+func TestNewCStorBackupController(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
 
@@ -38,7 +38,7 @@ func TestNewBackupCStorController(t *testing.T) {
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 
 	// Instantiate the cStor backup controllers.
-	backupController := NewBackupCStorController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
+	backupController := NewCStorBackupController(fakeKubeClient, fakeOpenebsClient, kubeInformerFactory,
 		openebsInformerFactory)
 
 	if backupController.kubeclientset != fakeKubeClient {
