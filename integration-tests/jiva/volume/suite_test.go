@@ -65,7 +65,7 @@ type operations struct {
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test volume provisioning in openebs namespace")
+	RunSpecs(t, "Test jiva volume provisioning ")
 }
 
 func init() {
@@ -78,32 +78,32 @@ var _ = BeforeSuite(func() {
 		f()
 	}
 
-	By("Waiting for maya-apiserver pod to come into running state")
+	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 	Expect(podCount).To(Equal(1))
 
-	By("Waiting for openebs-provisioner pod to come into running state")
+	By("waiting for openebs-provisioner pod to come into running state")
 	podCount = ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.OpenEBSProvisionerLabelSelector), 1)
 	Expect(podCount).To(Equal(1))
 
-	By("Building a namespace")
+	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
 		WithName(nsName).
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
-	By("Building a storageclass")
+	By("building a storageclass")
 	scObj, err = sc.NewBuilder().
 		WithName(scName).
 		WithAnnotations(annotations).
 		WithProvisioner(openebsProvisioner).Build()
 	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
-	By("Creating a namespace")
+	By("creating a namespace")
 	_, err = ops.nsClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
 
-	By("Creating a storageclass")
+	By("creating a storageclass")
 	_, err = ops.scClient.Create(scObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 

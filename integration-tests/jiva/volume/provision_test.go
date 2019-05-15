@@ -43,50 +43,58 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 	})
 
 	When("jiva pvc with replicacount 1 is created", func() {
-		It("1 controller and 1 replica pod should be running", func() {
+		It("should create 1 controller pod and 1 replica pod", func() {
 
-			By("Building a persistentvolumeclaim")
+			By("building a persistent volume claim")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(nsName).
 				WithStorageClass(scName).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-			By("Creating a jiva pvc")
+			By("creating a jiva pvc")
 			_, err = ops.pvcClient.WithNamespace(nsName).Create(pvcObj)
-			Expect(err).To(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
+			Expect(err).To(
+				BeNil(),
+				"while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
-			By("Checking pod counts of controller and replica")
+			By("verifying jiva controller pod count as 1")
 			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking jiva controller pod count")
 
+			By("verifying jiva controller pod count as 1")
 			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, 1)
 			Expect(replicaPodCount).To(Equal(1), "while checking jiva replica pod count")
 
-			By("Checking status of jiva pvc")
+			By("verifying status as bound")
 			status := ops.isBound(pvcName)
-			Expect(status).To(Equal(true), "while checking status")
+			Expect(status).To(Equal(true), "while checking status equal to bound")
 
 		})
 	})
 
 	When("jiva pvc is deleted", func() {
-		It("no pods should be running", func() {
+		It("should not have any jiva controller and replica pods", func() {
 
 			By("deleting jiva pvc")
 			err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
+			Expect(err).To(
+				BeNil(),
+				"while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
-			By("Checking pod counts of controller and replica")
+			By("verifying jiva controller pod count as 0")
 			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 0)
 			Expect(controllerPodCount).To(Equal(0), "while checking jiva controller pod count")
 
+			By("verifying jiva replica pod count as 0")
 			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, 0)
 			Expect(replicaPodCount).To(Equal(0), "while checking jiva replica pod count")
 
-			By("Trying to get deleted jiva pvc")
+			By("verifying deleted jiva pvc")
 			pvc := ops.checkDeletedPVC(pvcName)
 			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
