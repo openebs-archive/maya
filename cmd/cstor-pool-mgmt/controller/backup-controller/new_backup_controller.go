@@ -40,9 +40,9 @@ import (
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 )
 
-const backupControllerName = "BackupCStor"
+const backupControllerName = "CStorBackup"
 
-// BackupController is the controller implementation for BackupCStor resources.
+// BackupController is the controller implementation for CStorBackup resources.
 type BackupController struct {
 	// kubeclientset is a standard kubernetes clientset.
 	kubeclientset kubernetes.Interface
@@ -64,15 +64,15 @@ type BackupController struct {
 	recorder record.EventRecorder
 }
 
-// NewBackupCStorController returns a new cStor Backup controller instance
-func NewBackupCStorController(
+// NewCStorBackupController returns a new cStor Backup controller instance
+func NewCStorBackupController(
 	kubeclientset kubernetes.Interface,
 	clientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	cStorInformerFactory informers.SharedInformerFactory) *BackupController {
 
-	// obtain references to shared index informers for the BackupCStor resources.
-	BackupInformer := cStorInformerFactory.Openebs().V1alpha1().BackupCStors()
+	// obtain references to shared index informers for the CStorBackup resources.
+	BackupInformer := cStorInformerFactory.Openebs().V1alpha1().CStorBackups()
 
 	err := openebsScheme.AddToScheme(scheme.Scheme)
 	if err != nil {
@@ -97,7 +97,7 @@ func NewBackupCStorController(
 		kubeclientset: kubeclientset,
 		clientset:     clientset,
 		BackupSynced:  BackupInformer.Informer().HasSynced,
-		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "BackupCStor"),
+		workqueue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "CStorBackup"),
 		recorder:      recorder,
 	}
 
@@ -109,13 +109,13 @@ func NewBackupCStorController(
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
 
-	// Set up an event handler for when BackupCStor resources change.
+	// Set up an event handler for when CStorBackup resources change.
 	BackupInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			// Note: AddFunc is called when a new object comes into etcd
 			// Note : In case controller reboots and existing object in etcd can cause delivery of
 			// add event when the controller comes again. Be careful in this part and handle accordingly.
-			bkp := obj.(*apis.BackupCStor)
+			bkp := obj.(*apis.CStorBackup)
 
 			if !IsRightCStorPoolMgmt(bkp) {
 				return
@@ -127,8 +127,8 @@ func NewBackupCStorController(
 			// 1. When object is updated/patched i.e. Resource version of object changes.
 			// 2. When object is deleted i.e. the deletion timestamp of object is set.
 			// 3. After every resync interval.
-			newbkp := newVar.(*apis.BackupCStor)
-			oldbkp := oldVar.(*apis.BackupCStor)
+			newbkp := newVar.(*apis.CStorBackup)
+			oldbkp := oldVar.(*apis.CStorBackup)
 
 			if !IsRightCStorPoolMgmt(newbkp) {
 				return
@@ -137,20 +137,20 @@ func NewBackupCStorController(
 			controller.handleBKPUpdateEvent(oldbkp, newbkp, &q)
 		},
 		DeleteFunc: func(obj interface{}) {
-			bkp := obj.(*apis.BackupCStor)
+			bkp := obj.(*apis.CStorBackup)
 			if !IsRightCStorPoolMgmt(bkp) {
 				return
 			}
-			glog.Infof("BackupCStor Resource delete event: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
+			glog.Infof("CStorBackup Resource delete event: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
 		},
 	})
 	return controller
 }
 
-// enqueueBackupCStor takes a BackupCStor resource and converts it into a namespace/name
+// enqueueCStorBackup takes a CStorBackup resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than BackupCStor.
-func (c *BackupController) enqueueBackupCStor(obj *apis.BackupCStor, q common.QueueLoad) {
+// passed resources of any type other than CStorBackup.
+func (c *BackupController) enqueueCStorBackup(obj *apis.CStorBackup, q common.QueueLoad) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -167,7 +167,7 @@ func (c *BackupController) cleanupOldBackup(clientset clientset.Interface) {
 	bkplistop := metav1.ListOptions{
 		LabelSelector: bkplabel,
 	}
-	bkplist, err := clientset.OpenebsV1alpha1().BackupCStors(metav1.NamespaceAll).List(bkplistop)
+	bkplist, err := clientset.OpenebsV1alpha1().CStorBackups(metav1.NamespaceAll).List(bkplistop)
 	if err != nil {
 		return
 	}
@@ -188,23 +188,23 @@ func (c *BackupController) cleanupOldBackup(clientset clientset.Interface) {
 }
 
 // updateBackupStatus will update the backup status to given status
-func updateBackupStatus(clientset clientset.Interface, bkp apis.BackupCStor, status apis.BackupCStorStatus) {
+func updateBackupStatus(clientset clientset.Interface, bkp apis.CStorBackup, status apis.CStorBackupStatus) {
 	bkp.Status = status
 
-	_, err := clientset.OpenebsV1alpha1().BackupCStors(bkp.Namespace).Update(&bkp)
+	_, err := clientset.OpenebsV1alpha1().CStorBackups(bkp.Namespace).Update(&bkp)
 	if err != nil {
 		glog.Errorf("Failed to update backup(%s) status(%s)", status, bkp.Name)
 		return
 	}
 }
 
-// findLastBackupStat will find the status of backup from last-backup
-func findLastBackupStat(clientset clientset.Interface, bkp apis.BackupCStor) apis.BackupCStorStatus {
+// findLastBackupStat will find the status of backup from last completed-backup
+func findLastBackupStat(clientset clientset.Interface, bkp apis.CStorBackup) apis.CStorBackupStatus {
 	lastbkpname := bkp.Spec.BackupName + "-" + bkp.Spec.VolumeName
-	lastbkp, err := clientset.OpenebsV1alpha1().BackupCStorLasts(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
+	lastbkp, err := clientset.OpenebsV1alpha1().CStorCompletedBackups(bkp.Namespace).Get(lastbkpname, v1.GetOptions{})
 	if err != nil {
 		// Unable to fetch the last backup, so we will return fail state
-		glog.Errorf("Failed to fetch last backup:%s error:%s", lastbkpname, err.Error())
+		glog.Errorf("Failed to fetch last completed backup:%s error:%s", lastbkpname, err.Error())
 		return apis.BKPCStorStatusFailed
 	}
 
@@ -218,15 +218,15 @@ func findLastBackupStat(clientset clientset.Interface, bkp apis.BackupCStor) api
 }
 
 // handleBKPAddEvent is to handle add operation of backup controller
-func (c *BackupController) handleBKPAddEvent(bkp *apis.BackupCStor, q *common.QueueLoad) {
+func (c *BackupController) handleBKPAddEvent(bkp *apis.CStorBackup, q *common.QueueLoad) {
 	q.Operation = common.QOpAdd
-	glog.Infof("BackupCStor event added: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
+	glog.Infof("CStorBackup event added: %v, %v", bkp.ObjectMeta.Name, string(bkp.ObjectMeta.UID))
 	c.recorder.Event(bkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageCreateSynced))
-	c.enqueueBackupCStor(bkp, *q)
+	c.enqueueCStorBackup(bkp, *q)
 }
 
 // handleBKPUpdateEvent is to handle add operation of backup controller
-func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.BackupCStor, q *common.QueueLoad) {
+func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.CStorBackup, q *common.QueueLoad) {
 	glog.Infof("Received Update for backup:%s", oldbkp.ObjectMeta.Name)
 
 	if newbkp.ResourceVersion == oldbkp.ResourceVersion {
@@ -235,12 +235,12 @@ func (c *BackupController) handleBKPUpdateEvent(oldbkp, newbkp *apis.BackupCStor
 
 	if IsDestroyEvent(newbkp) {
 		q.Operation = common.QOpDestroy
-		glog.Infof("BackupCstor Destroy event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
+		glog.Infof("CStorBackup Destroy event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
 		c.recorder.Event(newbkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageDestroySynced))
 	} else {
-		glog.Infof("BackupCstor Modify event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
+		glog.Infof("CStorBackup Modify event : %v, %v", newbkp.ObjectMeta.Name, string(newbkp.ObjectMeta.UID))
 		q.Operation = common.QOpSync
 		c.recorder.Event(newbkp, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageModifySynced))
 	}
-	c.enqueueBackupCStor(newbkp, *q)
+	c.enqueueCStorBackup(newbkp, *q)
 }

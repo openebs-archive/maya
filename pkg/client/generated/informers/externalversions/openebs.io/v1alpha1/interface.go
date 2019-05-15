@@ -24,12 +24,12 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// BackupCStors returns a BackupCStorInformer.
-	BackupCStors() BackupCStorInformer
-	// BackupCStorLasts returns a BackupCStorLastInformer.
-	BackupCStorLasts() BackupCStorLastInformer
 	// CASTemplates returns a CASTemplateInformer.
 	CASTemplates() CASTemplateInformer
+	// CStorBackups returns a CStorBackupInformer.
+	CStorBackups() CStorBackupInformer
+	// CStorCompletedBackups returns a CStorCompletedBackupInformer.
+	CStorCompletedBackups() CStorCompletedBackupInformer
 	// CStorPools returns a CStorPoolInformer.
 	CStorPools() CStorPoolInformer
 	// CStorPoolClusters returns a CStorPoolClusterInformer.
@@ -61,19 +61,19 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// BackupCStors returns a BackupCStorInformer.
-func (v *version) BackupCStors() BackupCStorInformer {
-	return &backupCStorInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// BackupCStorLasts returns a BackupCStorLastInformer.
-func (v *version) BackupCStorLasts() BackupCStorLastInformer {
-	return &backupCStorLastInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
 // CASTemplates returns a CASTemplateInformer.
 func (v *version) CASTemplates() CASTemplateInformer {
 	return &cASTemplateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorBackups returns a CStorBackupInformer.
+func (v *version) CStorBackups() CStorBackupInformer {
+	return &cStorBackupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CStorCompletedBackups returns a CStorCompletedBackupInformer.
+func (v *version) CStorCompletedBackups() CStorCompletedBackupInformer {
+	return &cStorCompletedBackupInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // CStorPools returns a CStorPoolInformer.
