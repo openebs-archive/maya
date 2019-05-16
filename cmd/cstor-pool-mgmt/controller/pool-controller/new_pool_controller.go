@@ -32,6 +32,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+
 	//openebsScheme "github.com/openebs/maya/pkg/client/clientset/versioned/scheme"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
 	//informers "github.com/openebs/maya/pkg/client/informers/externalversions"
@@ -72,8 +73,10 @@ func NewCStorPoolController(
 	// obtain references to shared index informers for the cStorPool resources
 	cStorPoolInformer := cStorInformerFactory.Openebs().V1alpha1().CStorPools()
 
-	openebsScheme.AddToScheme(scheme.Scheme)
-
+	err := openebsScheme.AddToScheme(scheme.Scheme)
+	if err != nil {
+		glog.Errorf("failed to add to scheme: error {%v}", err)
+	}
 	// Create event broadcaster to receive events and send them to any EventSink, watcher, or log.
 	// Add NewCstorPoolController types to the default Kubernetes Scheme so Events can be
 	// logged for CstorPool Controller types.
