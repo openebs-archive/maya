@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package volume
+package snapshot
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,12 +32,12 @@ var (
 	accessModes  = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity     = "5G"
 	pvcObj       *corev1.PersistentVolumeClaim
-	err          error
 )
 
-var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
+var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 	var (
-		pvcName = "jiva-volume-claim"
+		pvcName  = "jiva-pvc"
+		snapName = "jivasnapshot"
 	)
 
 	When("jiva pvc with replicacount 1 is created", func() {
@@ -57,8 +59,7 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 
 			By("creating above pvc")
 			_, err = ops.PvcClient.WithNamespace(nsName).Create(pvcObj)
-			Expect(err).To(
-				BeNil(),
+			Expect(err).To(BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
 				pvcObj.Name,
 				nsName,
@@ -75,6 +76,47 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			By("verifying status as bound")
 			status := ops.IsPVCBound(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+		})
+	})
+
+	When("jiva snapshot is created", func() {
+		It("should create a snapshot with type ready", func() {
+
+			By("building a snapshot")
+			snapObj, err = snap.NewBuilder().
+				WithName(snapName).
+				WithNamespace(nsName).
+				WithPVC(pvcName).
+				Build()
+			Expect(err).To(BeNil(), "while building snapshot")
+
+			By("creating above snapshot")
+			_, err = ops.SnapClient.WithNamespace(nsName).Create(snapObj)
+			Expect(err).To(BeNil(), "while creating snapshot")
+
+			By("verifying type as ready")
+			status := ops.GetSnapshotTypeEventually(snapName)
+			Expect(status).To(Equal("Ready"), "while checking snapshot status")
+
+		})
+	})
+
+	When("jiva snapshot is deleted", func() {
+		It("should remove above snapshot", func() {
+
+			By("deleting above snapshot")
+			err := ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting snapshot {%s} in namespace {%s}",
+				pvcObj.Name,
+				nsName,
+			)
+
+			By("verifying deleted snapshot")
+			snap := ops.IsSnapshotDeleted(snapName)
+			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
 
 		})
 	})
