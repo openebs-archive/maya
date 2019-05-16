@@ -18,11 +18,11 @@ limitations under the License.
 
 package v1alpha1
 
-type BackupCStorExpansion interface{}
-
-type BackupCStorLastExpansion interface{}
-
 type CASTemplateExpansion interface{}
+
+type CStorBackupExpansion interface{}
+
+type CStorCompletedBackupExpansion interface{}
 
 type CStorPoolExpansion interface{}
 

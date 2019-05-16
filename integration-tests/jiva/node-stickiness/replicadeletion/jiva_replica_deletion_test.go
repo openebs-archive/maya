@@ -114,15 +114,15 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		By(fmt.Sprintf("deploying the PVC named: %s in namespace: %s", pvcName, namespaceUnstruct.GetName()))
 		_, err = pvc.
 			NewKubeClient(
-				pvc.WithNamespace(testNamespace),
 				pvc.WithKubeConfigPath(kubeConfigPath)).
+			WithNamespace(testNamespace).
 			Create(pvcObj)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		podKubeClient = pod.
 			NewKubeClient(
-				pod.WithNamespace(string(testNamespace)),
-				pod.WithKubeConfigPath(kubeConfigPath))
+				pod.WithKubeConfigPath(kubeConfigPath)).
+			WithNamespace(string(testNamespace))
 
 		// pvcLabel represents the coressponding pvc
 		pvcLabel := defaultPVCLabel + pvcName
@@ -139,8 +139,8 @@ var _ = Describe("[jiva] [node-stickiness] jiva replica pod node-stickiness test
 		By("Uninstall test artifacts")
 		err := pvc.
 			NewKubeClient(
-				pvc.WithNamespace(testNamespace),
 				pvc.WithKubeConfigPath(kubeConfigPath)).
+			WithNamespace(testNamespace).
 			Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).ShouldNot(HaveOccurred())
 		err = sc.

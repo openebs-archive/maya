@@ -18,7 +18,6 @@ package task
 
 import (
 	"encoding/json"
-	"fmt"
 
 	//"fmt"
 	"strings"
@@ -151,7 +150,7 @@ func (m *executor) Output() ([]byte, error) {
 		m.Values,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to generate output: %s", m)
+		return nil, errors.Wrapf(err, "failed to generate output: %s", m)
 	}
 	return output, nil
 }
@@ -682,7 +681,7 @@ func (m *executor) asCoreV1Svc() (*api_core_v1.Service, error) {
 	return s.AsCoreV1Service()
 }
 
-// putBatchV1Job will put a Job object
+// putBatchV1Job will create a Job object
 func (m *executor) putBatchV1Job() error {
 	j, err := m.asBatchV1Job()
 	if err != nil {
@@ -717,7 +716,7 @@ func (m *executor) putAppsV1STS() error {
 	return nil
 }
 
-// putAppsV1B1Deploy will put (i.e. apply to a kubernetes cluster) a Deployment
+// putAppsV1B1Deploy will create (i.e. apply to a kubernetes cluster) a Deployment
 // object. The Deployment specs is configured in the RunTask.
 func (m *executor) putAppsV1B1Deploy() error {
 	d, err := m.asAppsV1B1Deploy()
@@ -734,7 +733,7 @@ func (m *executor) putAppsV1B1Deploy() error {
 	return nil
 }
 
-// putExtnV1B1Deploy will put (i.e. apply to kubernetes cluster) a Deployment
+// putExtnV1B1Deploy will create (i.e. apply to kubernetes cluster) a Deployment
 // whose specifications are defined in the RunTask
 func (m *executor) putExtnV1B1Deploy() error {
 	d, err := m.asExtnV1B1Deploy()
@@ -784,23 +783,23 @@ func (m *executor) patchOEV1alpha1SPC() error {
 func (m *executor) patchOEV1alpha1CSPC() (err error) {
 	patch, err := asTaskPatch("patchSPC", m.Runtask.Spec.Task, m.Values)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cspc object")
 	}
 
 	pe, err := newTaskPatchExecutor(patch)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cspc object")
 	}
 
 	raw, err := pe.toJson()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cspc object")
 	}
 
 	// patch the CSPC
 	cspc, err := m.getK8sClient().PatchOEV1alpha1CSPCAsRaw(m.getTaskObjectName(), pe.patchType(), raw)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cspc object")
 	}
 
 	util.SetNestedField(m.Values, cspc, string(v1alpha1.CurrentJSONResultTLP))
@@ -904,14 +903,14 @@ func (m *executor) patchStoragePool() (err error) {
 		AddCheckf(patch.IsValidType(), "patch type is not valid").
 		Build()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch storage pool")
 	}
 
 	p, err := storagepool.
 		NewKubeClient().
 		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch storage pool")
 	}
 	util.SetNestedField(m.Values, p, string(v1alpha1.CurrentJSONResultTLP))
 	return
@@ -924,14 +923,14 @@ func (m *executor) patchCstorPool() (err error) {
 		AddCheckf(patch.IsValidType(), "patch type is not valid").
 		Build()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cstorpool")
 	}
 
 	p, err := cstorpool.
 		NewKubeClient().
 		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to patch cstorpool")
 	}
 	util.SetNestedField(m.Values, p, string(v1alpha1.CurrentJSONResultTLP))
 	return
@@ -940,7 +939,7 @@ func (m *executor) patchCstorPool() (err error) {
 // patchAppsV1B1Deploy will patch a Deployment object in a kubernetes cluster.
 // The patch specifications as configured in the RunTask
 func (m *executor) patchAppsV1B1Deploy() (err error) {
-	err = fmt.Errorf("patchAppsV1B1Deploy is not implemented")
+	err = errors.Errorf("patchAppsV1B1Deploy is not implemented")
 	return
 }
 
@@ -1100,12 +1099,12 @@ func (m *executor) listExtnV1B1ReplicaSet(opt metav1.ListOptions) ([]byte, error
 func (m *executor) putCoreV1Service() error {
 	s, err := m.asCoreV1Svc()
 	if err != nil {
-		return errors.Wrapf(err, "failed to create service")
+		return errors.Wrap(err, "failed to create service")
 	}
 
 	svc, err := m.getK8sClient().CreateCoreV1ServiceAsRaw(s)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create service")
+		return errors.Wrap(err, "failed to create service")
 	}
 
 	util.SetNestedField(m.Values, svc, string(v1alpha1.CurrentJSONResultTLP))
@@ -1132,7 +1131,7 @@ func (m *executor) deleteCoreV1Service() error {
 func (m *executor) getOEV1alpha1Disk() error {
 	disk, err := m.getK8sClient().GetOEV1alpha1DiskAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get disk")
+		return errors.Wrap(err, "failed to get disk")
 	}
 
 	util.SetNestedField(m.Values, disk, string(v1alpha1.CurrentJSONResultTLP))
@@ -1144,7 +1143,7 @@ func (m *executor) getOEV1alpha1Disk() error {
 func (m *executor) getOEV1alpha1SPC() error {
 	spc, err := m.getK8sClient().GetOEV1alpha1SPCAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get storagepoolclaim")
+		return errors.Wrap(err, "failed to get storagepoolclaim")
 	}
 
 	util.SetNestedField(m.Values, spc, string(v1alpha1.CurrentJSONResultTLP))
@@ -1155,7 +1154,7 @@ func (m *executor) getOEV1alpha1SPC() error {
 func (m *executor) getOEV1alpha1CSPC() (err error) {
 	cspc, err := m.getK8sClient().GetOEV1alpha1CSPCAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get cstor pool cluster")
 	}
 
 	util.SetNestedField(m.Values, cspc, string(v1alpha1.CurrentJSONResultTLP))
@@ -1166,7 +1165,7 @@ func (m *executor) getOEV1alpha1CSPC() (err error) {
 func (m *executor) getOEV1alpha1SP() (err error) {
 	sp, err := m.getK8sClient().GetOEV1alpha1SPAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get storagepool")
+		return errors.Wrap(err, "failed to get storagepool")
 	}
 
 	util.SetNestedField(m.Values, sp, string(v1alpha1.CurrentJSONResultTLP))
@@ -1176,7 +1175,7 @@ func (m *executor) getOEV1alpha1SP() (err error) {
 func (m *executor) getOEV1alpha1CSP() error {
 	csp, err := m.getK8sClient().GetOEV1alpha1CSPAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return errors.Wrapf(err, "failed to get cstorstoragepool")
+		return errors.Wrap(err, "failed to get cstorstoragepool")
 	}
 
 	util.SetNestedField(m.Values, csp, string(v1alpha1.CurrentJSONResultTLP))
@@ -1235,7 +1234,7 @@ func (m *executor) getExtnV1B1Deployment() (err error) {
 		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
 	d, err := dclient.GetRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get deployment")
 	}
 
 	util.SetNestedField(m.Values, d, string(v1alpha1.CurrentJSONResultTLP))
@@ -1249,7 +1248,7 @@ func (m *executor) extnV1B1DeploymentRollOutStatus() (err error) {
 		deploy_extnv1beta1.WithClientset(m.getK8sClient().GetKCS()))
 	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get deployment rollout status")
 	}
 
 	util.SetNestedField(m.Values, res, string(v1alpha1.CurrentJSONResultTLP))
@@ -1263,7 +1262,7 @@ func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get deployment rollout status")
 	}
 
 	util.SetNestedField(m.Values, res, string(v1alpha1.CurrentJSONResultTLP))
@@ -1276,7 +1275,9 @@ func (m *executor) getAppsV1Deployment() (err error) {
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	d, err := dclient.GetRaw(m.getTaskObjectName())
-
+	if err != nil {
+		return errors.Wrap(err, "failed to get deployment")
+	}
 	util.SetNestedField(m.Values, d, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
@@ -1285,7 +1286,7 @@ func (m *executor) getAppsV1Deployment() (err error) {
 func (m *executor) getCoreV1PVC() (err error) {
 	pvc, err := m.getK8sClient().GetCoreV1PVCAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get pvc")
 	}
 
 	util.SetNestedField(m.Values, pvc, string(v1alpha1.CurrentJSONResultTLP))
@@ -1296,7 +1297,7 @@ func (m *executor) getCoreV1PVC() (err error) {
 func (m *executor) getCoreV1PV() (err error) {
 	pv, err := m.getK8sClient().GetCoreV1PersistentVolumeAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get pv")
 	}
 
 	util.SetNestedField(m.Values, pv, string(v1alpha1.CurrentJSONResultTLP))
@@ -1307,7 +1308,7 @@ func (m *executor) getCoreV1PV() (err error) {
 func (m *executor) getBatchV1Job() (err error) {
 	job, err := m.getK8sClient().GetBatchV1JobAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get job")
 	}
 	util.SetNestedField(m.Values, job, string(v1alpha1.CurrentJSONResultTLP))
 	return
@@ -1315,11 +1316,11 @@ func (m *executor) getBatchV1Job() (err error) {
 
 // getCoreV1Pod will get the Pod as specified in the RunTask
 func (m *executor) getCoreV1Pod() (err error) {
-	podClient := pod.NewKubeClient(pod.WithNamespace(m.getTaskRunNamespace()))
+	podClient := pod.NewKubeClient().WithNamespace(m.getTaskRunNamespace())
 
 	pod, err := podClient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get pod")
 	}
 
 	util.SetNestedField(m.Values, pod, string(v1alpha1.CurrentJSONResultTLP))
@@ -1332,7 +1333,7 @@ func (m *executor) deleteBatchV1Job() (err error) {
 	for _, name := range jobs {
 		err = m.getK8sClient().DeleteBatchV1Job(strings.TrimSpace(name))
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to delete job")
 		}
 	}
 	return
@@ -1344,7 +1345,7 @@ func (m *executor) deleteAppsV1STS() (err error) {
 	for _, name := range stss {
 		err = m.getK8sClient().DeleteAppsV1STS(strings.TrimSpace(name))
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to delete statefulset")
 		}
 	}
 	return
@@ -1354,78 +1355,78 @@ func (m *executor) deleteAppsV1STS() (err error) {
 func (m *executor) getStorageV1SC() (err error) {
 	sc, err := m.getK8sClient().GetStorageV1SCAsRaw(m.getTaskObjectName())
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to get storageclass")
 	}
 
 	util.SetNestedField(m.Values, sc, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// putStoragePool will put a CStorPool as defined in the task
+// putStoragePool will create a CStorPool as defined in the task
 func (m *executor) putStoragePool() (err error) {
 	c, err := m.asStoragePool()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create storage pool")
 	}
 
 	storagePool, err := m.getK8sClient().CreateOEV1alpha1SPAsRaw(c)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create storage pool")
 	}
 
 	util.SetNestedField(m.Values, storagePool, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// putCStorVolume will put a CStorVolume as defined in the task
+// putCStorVolume will create a CStorPool as defined in the task
 func (m *executor) putCStorPool() (err error) {
 	c, err := m.asCStorPool()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor pool")
 	}
 
 	cstorPool, err := m.getK8sClient().CreateOEV1alpha1CSPAsRaw(c)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor pool")
 	}
 
 	util.SetNestedField(m.Values, cstorPool, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// putCStorVolume will put a CStorVolume as defined in the task
+// putCStorVolume will create a CStorVolume as defined in the task
 func (m *executor) putCStorVolume() (err error) {
 	c, err := m.asCStorVolume()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor volume")
 	}
 
 	cstorVolume, err := m.getK8sClient().CreateOEV1alpha1CVAsRaw(c)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor volume")
 	}
 
 	util.SetNestedField(m.Values, cstorVolume, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// putCStorVolumeReplica will put a CStorVolumeReplica as defined in the task
+// putCStorVolumeReplica will create a CStorVolumeReplica as defined in the task
 func (m *executor) putCStorVolumeReplica() (err error) {
 	d, err := m.asCstorVolumeReplica()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor volume replica")
 	}
 
 	cstorVolumeReplica, err := m.getK8sClient().CreateOEV1alpha1CVRAsRaw(d)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create cstor volume replica")
 	}
 
 	util.SetNestedField(m.Values, cstorVolumeReplica, string(v1alpha1.CurrentJSONResultTLP))
 	return
 }
 
-// putUpgradeResult will put an upgrade result as defined in the task
+// putUpgradeResult will create an upgrade result as defined in the task
 func (m *executor) putUpgradeResult() (err error) {
 	raw, err := template.AsTemplatedBytes("UpgradeResult", m.Runtask.Spec.Task, m.Values)
 	if err != nil {
@@ -1435,14 +1436,14 @@ func (m *executor) putUpgradeResult() (err error) {
 		BuilderForYAMLObject(raw).
 		Build()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create upgrade result")
 	}
 	uraw, err := upgraderesult.
 		KubeClient().
 		WithNamespace(m.getTaskRunNamespace()).
 		CreateRaw(uresult)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to create upgrade result")
 	}
 	util.SetNestedField(m.Values, uraw, string(v1alpha1.CurrentJSONResultTLP))
 	return
@@ -1456,7 +1457,7 @@ func (m *executor) deleteOEV1alpha1SP() (err error) {
 	for _, name := range objectNames {
 		err = m.getK8sClient().DeleteOEV1alpha1SP(name)
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to delete storage pool")
 		}
 	}
 
@@ -1471,7 +1472,7 @@ func (m *executor) deleteOEV1alpha1CSP() (err error) {
 	for _, name := range objectNames {
 		err = m.getK8sClient().DeleteOEV1alpha1CSP(name)
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to delete cstor pool")
 		}
 	}
 
@@ -1486,7 +1487,7 @@ func (m *executor) deleteOEV1alpha1CSV() (err error) {
 	for _, name := range objectNames {
 		err = m.getK8sClient().DeleteOEV1alpha1CSV(name)
 		if err != nil {
-			return
+			return errors.Wrap(err, "failed to delete cstor volume")
 		}
 	}
 
@@ -1500,12 +1501,12 @@ func (m *executor) execCoreV1Pod() (err error) {
 	podexecopts, err := podexec.WithTemplate("execCoreV1Pod", m.Runtask.Spec.Task, m.Values).
 		AsAPIPodExec()
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to run pod exec")
 	}
 
 	result, err := m.getK8sClient().ExecCoreV1Pod(m.getTaskObjectName(), podexecopts)
 	if err != nil {
-		return
+		return errors.Wrap(err, "failed to run pod exec")
 	}
 
 	util.SetNestedField(m.Values, result, string(v1alpha1.CurrentJSONResultTLP))
@@ -1519,7 +1520,10 @@ func (m *executor) rolloutStatus() (err error) {
 	} else if m.MetaExec.isRolloutstatusAppsV1Deploy() {
 		err = m.appsV1DeploymentRollOutStatus()
 	} else {
-		err = fmt.Errorf("failed to get rollout status : meta task not supported: task details '%+v'", m.MetaExec.getTaskIdentity())
+		err = errors.Errorf("meta task not supported: task details: %+v", m.MetaExec.getTaskIdentity())
+	}
+	if err != nil {
+		err = errors.Wrap(err, "failed to get rollout status ")
 	}
 	return
 }
@@ -1528,6 +1532,7 @@ func (m *executor) rolloutStatus() (err error) {
 func (m *executor) listK8sResources() (err error) {
 	opts, err := m.MetaExec.getListOptions()
 	if err != nil {
+		err = errors.Wrap(err, "failed to list k8s resources")
 		return
 	}
 
@@ -1561,10 +1566,11 @@ func (m *executor) listK8sResources() (err error) {
 	} else if m.MetaExec.isListOEV1alpha1UR() {
 		op, err = m.listOEV1alpha1URRaw(opts)
 	} else {
-		err = fmt.Errorf("failed to list k8s resources: meta task not supported: task details '%+v'", m.MetaExec.getTaskIdentity())
+		err = errors.Errorf("meta task not supported: task details '%+v'", m.MetaExec.getTaskIdentity())
 	}
 
 	if err != nil {
+		err = errors.Wrap(err, "failed to list k8s resources")
 		return
 	}
 
@@ -1580,8 +1586,12 @@ func (m *executor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, 
 		WithNamespace(m.getTaskRunNamespace()).
 		List(opts)
 	if err != nil {
+		err = errors.Wrap(err, "failed to list upgraderesult")
 		return
 	}
 	result, err = json.Marshal(urList)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to list upgraderesult: %s", urList.String())
+	}
 	return
 }

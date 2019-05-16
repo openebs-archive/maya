@@ -356,7 +356,7 @@ func TestWithNamespaceBuildOption(t *testing.T) {
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			k := NewKubeClient(WithNamespace(mock.namespace))
+			k := NewKubeClient().WithNamespace(mock.namespace)
 			if k.namespace != mock.namespace {
 				t.Fatalf("Test %q failed: expected %v got %v", name, mock.namespace, k.namespace)
 			}

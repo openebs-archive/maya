@@ -174,3 +174,13 @@ type UpgradeResultList struct {
 
 	Items []UpgradeResult `json:"items"`
 }
+
+// String implements Stringer interface
+func (urList UpgradeResultList) String() string {
+	return stringer.Yaml("upgraderesult list", urList)
+}
+
+// GoString implements GoStringer interface
+func (urList UpgradeResultList) GoString() string {
+	return urList.String()
+}

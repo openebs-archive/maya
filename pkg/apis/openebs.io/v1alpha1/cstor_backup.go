@@ -23,18 +23,18 @@ import (
 // +genclient
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=backupcstor
+// +resource:path=cstorbackup
 
-// BackupCStor describes a cstor backup resource created as a custom resource
-type BackupCStor struct {
+// CStorBackup describes a cstor backup resource created as a custom resource
+type CStorBackup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              BackupCStorSpec   `json:"spec"`
-	Status            BackupCStorStatus `json:"status"`
+	Spec              CStorBackupSpec   `json:"spec"`
+	Status            CStorBackupStatus `json:"status"`
 }
 
-// BackupCStorSpec is the spec for a BackupCstor resource
-type BackupCStorSpec struct {
+// CStorBackupSpec is the spec for a CStorBackup resource
+type CStorBackupSpec struct {
 	// BackupName is a name of the backup or scheduled backup
 	BackupName string `json:"backupName"`
 
@@ -44,47 +44,47 @@ type BackupCStorSpec struct {
 	// SnapName is a name of the current backup snapshot
 	SnapName string `json:"snapName"`
 
-	// PrevSnapName is the last-backup's snapshot name
+	// PrevSnapName is the last completed-backup's snapshot name
 	PrevSnapName string `json:"prevSnapName"`
 
 	// BackupDest is the remote address for backup transfer
 	BackupDest string `json:"backupDest"`
 }
 
-// BackupCStorStatus is to hold status of backup
-type BackupCStorStatus string
+// CStorBackupStatus is to hold status of backup
+type CStorBackupStatus string
 
-// Status written onto BackupCstor objects.
+// Status written onto CStorBackup objects.
 const (
 	// BKPCStorStatusEmpty ensures the create operation is to be done, if import fails.
-	BKPCStorStatusEmpty BackupCStorStatus = ""
+	BKPCStorStatusEmpty CStorBackupStatus = ""
 
 	// BKPCStorStatusDone , backup is completed.
-	BKPCStorStatusDone BackupCStorStatus = "Done"
+	BKPCStorStatusDone CStorBackupStatus = "Done"
 
 	// BKPCStorStatusFailed , backup is failed.
-	BKPCStorStatusFailed BackupCStorStatus = "Failed"
+	BKPCStorStatusFailed CStorBackupStatus = "Failed"
 
 	// BKPCStorStatusInit , backup is initialized.
-	BKPCStorStatusInit BackupCStorStatus = "Init"
+	BKPCStorStatusInit CStorBackupStatus = "Init"
 
 	// BKPCStorStatusPending , backup is pending.
-	BKPCStorStatusPending BackupCStorStatus = "Pending"
+	BKPCStorStatusPending CStorBackupStatus = "Pending"
 
 	// BKPCStorStatusInProgress , backup is in progress.
-	BKPCStorStatusInProgress BackupCStorStatus = "InProgress"
+	BKPCStorStatusInProgress CStorBackupStatus = "InProgress"
 
 	// BKPCStorStatusInvalid , backup operation is invalid.
-	BKPCStorStatusInvalid BackupCStorStatus = "Invalid"
+	BKPCStorStatusInvalid CStorBackupStatus = "Invalid"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +resource:path=backupcstor
+// +resource:path=cstorbackup
 
-// BackupCStorList is a list of BackupCstor resources
-type BackupCStorList struct {
+// CStorBackupList is a list of CStorBackup resources
+type CStorBackupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []BackupCStor `json:"items"`
+	Items []CStorBackup `json:"items"`
 }

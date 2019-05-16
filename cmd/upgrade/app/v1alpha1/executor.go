@@ -68,7 +68,7 @@ func ExecutorBuilderForConfig(cfg *apis.UpgradeConfig) *ExecutorBuilder {
 
 	}
 
-	p, err := pod.NewKubeClient(pod.WithNamespace(podNamespace)).
+	p, err := pod.NewKubeClient().WithNamespace(podNamespace).
 		Get(podName, metav1.GetOptions{})
 	if err != nil {
 		executorBuilder.Errors = append(executorBuilder.Errors,
