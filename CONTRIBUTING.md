@@ -36,9 +36,9 @@ OpenEBS is an Apache 2.0 Licensed project and all your commits should be signed 
 
 We use the Developer Certificate of Origin (DCO) as an additional safeguard for the OpenEBS project. This is a well established and widely used mechanism to assure that contributors have confirmed their right to license their contribution under the project's license. Please read [dcofile](https://github.com/openebs/openebs/blob/master/contribute/developer-certificate-of-origin). If you can certify it, then just add a line to every git commit message:
 
-````
+```
   Signed-off-by: Random J Developer <random@developer.example.org>
-````
+```
 
 Use your real name (sorry, no pseudonyms or anonymous contributions). The email id should match the email id provided in your GitHub profile.
 If you set your `user.name` and `user.email` in git config, you can sign your commit automatically with `git commit -s`.
@@ -53,3 +53,31 @@ This project is implemented using Go and uses the standard golang tools for deve
 - are familiar with Kubernetes and have access to a Kubernetes cluster or Minikube to test the changes.
 
 For setting up a Development environment on your local host, see the detailed instructions [here](./docs/developer.md).
+
+## Reviews against Pull Requests
+
+A PR can be reviewed by both core as well as external contributors. Below can be referred to during reviews:
+- contributor should be faimilar with maya's [idiomatic standards](https://github.com/openebs/maya/blob/master/docs/idiomatic-maya-guide.md)
+- contributor should fix all the linting issues raised by the lint tools integrated with maya
+- contributor should try to implement relevant golang based unit tests for the fix/enhancement
+- contributor should try to rework on the review comments as much as possible
+- a review comment can be taken up later if it falls under any of the following categories
+  - if the review comment talks about a new idiom or code pattern that is not in use by maya
+  - if the review comment talks about the need to implement integration test corresponding to the fix/enhancement
+  - if contributor as well as reviewer agree that it can be addressed in a different PR
+- contributor should follow below pattern in code comments when some rework needs to be done at a later point:
+```go
+// TD:        -- indicates technical debt
+```
+```go
+// NBDD:      -- indicates needs integration tests in BDD format _(i.e. ginkgo tests)_
+```
+```go
+// TD: SMALL  -- indicates few/similar code changes & hence less impact
+```
+```go
+// TD: MEDIUM -- indicates code changes at multiple files & may impact certain feature
+```
+```go
+// TD: LARGE  -- indicates code changes at multiple files & has impact on more than one features
+```
