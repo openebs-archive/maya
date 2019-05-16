@@ -1316,7 +1316,7 @@ func (m *executor) getBatchV1Job() (err error) {
 
 // getCoreV1Pod will get the Pod as specified in the RunTask
 func (m *executor) getCoreV1Pod() (err error) {
-	podClient := pod.NewKubeClient(pod.WithNamespace(m.getTaskRunNamespace()))
+	podClient := pod.NewKubeClient().WithNamespace(m.getTaskRunNamespace())
 
 	pod, err := podClient.GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {

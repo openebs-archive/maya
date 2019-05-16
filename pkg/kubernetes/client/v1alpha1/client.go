@@ -66,7 +66,7 @@ func GetConfig(c *Client) (*rest.Config, error) {
 	if c == nil {
 		return nil, errors.New("failed to get kubernetes config: nil client was provided")
 	}
-	return c.getConfigForPathOrDirect()
+	return c.GetConfigForPathOrDirect()
 }
 
 // getKubeMasterIPFunc provides the abstraction to get
@@ -178,7 +178,7 @@ func WithKubeConfigPath(kubeConfigPath string) OptionFunc {
 
 // Clientset returns a new instance of kubernetes clientset
 func (c *Client) Clientset() (*kubernetes.Clientset, error) {
-	config, err := c.getConfigForPathOrDirect()
+	config, err := c.GetConfigForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrapf(err,
 			"failed to get kubernetes clientset: failed to get kubernetes config: IsInCluster {%t}: KubeConfigPath {%s}",
@@ -211,7 +211,7 @@ func (c *Client) ConfigForPath(kubeConfigPath string) (config *rest.Config, err 
 	return c.buildConfigFromFlags("", kubeConfigPath)
 }
 
-func (c *Client) getConfigForPathOrDirect() (config *rest.Config, err error) {
+func (c *Client) GetConfigForPathOrDirect() (config *rest.Config, err error) {
 	if c.KubeConfigPath != "" {
 		return c.ConfigForPath(c.KubeConfigPath)
 	}
@@ -235,7 +235,7 @@ func (c *Client) getConfigFromENV() (config *rest.Config, err error) {
 // Dynamic returns a kubernetes dynamic client capable of invoking operations
 // against kubernetes resources
 func (c *Client) Dynamic() (dynamic.Interface, error) {
-	config, err := c.getConfigForPathOrDirect()
+	config, err := c.GetConfigForPathOrDirect()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get dynamic client")
 	}

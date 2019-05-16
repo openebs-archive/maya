@@ -159,7 +159,8 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 		By("verifying pvc to be created and bound with pv")
 		Eventually(func() bool {
 			pvclaim, err = pvc.
-				NewKubeClient(pvc.WithNamespace(PVCUnst.GetNamespace())).
+				NewKubeClient().
+				WithNamespace(PVCUnst.GetNamespace()).
 				Get(PVCUnst.GetName(), metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pvc.
@@ -194,7 +195,8 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 		// Verify deletion of pvc instances
 		Eventually(func() int {
 			pvcs, err := pvc.
-				NewKubeClient(pvc.WithNamespace(PVCUnst.GetNamespace())).
+				NewKubeClient().
+				WithNamespace(PVCUnst.GetNamespace()).
 				List(metav1.ListOptions{LabelSelector: "name=cstor-source-volume"})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
@@ -260,7 +262,8 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			By(fmt.Sprintf("verifying clone pvc '%s' to be created and bound with pv", ClonePVCUnst.GetName()))
 			Eventually(func() bool {
 				pvclone, err := pvc.
-					NewKubeClient(pvc.WithNamespace(ClonePVCUnst.GetNamespace())).
+					NewKubeClient().
+					WithNamespace(ClonePVCUnst.GetNamespace()).
 					Get(ClonePVCUnst.GetName(), metav1.GetOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 				return pvc.
@@ -285,7 +288,8 @@ var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
 			// Verify deletion of pvc instances
 			Eventually(func() int {
 				pvcs, err := pvc.
-					NewKubeClient(pvc.WithNamespace(ClonePVCUnst.GetNamespace())).
+					NewKubeClient().
+					WithNamespace(ClonePVCUnst.GetNamespace()).
 					List(metav1.ListOptions{LabelSelector: "name=test-snap-claim"})
 				Expect(err).ShouldNot(HaveOccurred())
 				return len(pvcs.Items)
