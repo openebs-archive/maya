@@ -13,5 +13,5 @@ go build -o $TEMPDIR/maya || exit 1
 echo "--> Running tests"
 GOBIN="`which go`"
 PATH=$TEMPDIR:$PATH \
-    $GOBIN test ${GOTEST_FLAGS:--cover -timeout=900s} $($GOBIN list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|integration-tests')
+    $GOBIN test ${GOTEST_FLAGS:--cover -timeout=900s} $($GOBIN list ./... | grep -v 'vendor\|pkg/apis\|pkg/client/generated\|tests')
 

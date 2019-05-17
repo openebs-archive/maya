@@ -22,11 +22,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
-	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
 	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	"github.com/openebs/maya/tests/artifacts"
+	installer "github.com/openebs/maya/tests/artifacts/installer/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
