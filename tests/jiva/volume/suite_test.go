@@ -50,7 +50,7 @@ var (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test jiva volume provisioning ")
+	RunSpecs(t, "Test jiva volume provisioning")
 }
 
 func init() {
@@ -93,11 +93,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
 	By("creating a namespace")
-	_, err = ops.NsClient.Create(nsObj)
+	_, err = ops.NSClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
 
 	By("creating a storageclass")
-	_, err = ops.ScClient.Create(scObj)
+	_, err = ops.SCClient.Create(scObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 
 })
@@ -105,11 +105,11 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 
 	By("deleting storageclass")
-	err := ops.ScClient.Delete(scName, &metav1.DeleteOptions{})
+	err := ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 	By("deleting namespace")
-	err = ops.NsClient.Delete(nsName, &metav1.DeleteOptions{})
+	err = ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
 
 })

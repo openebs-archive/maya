@@ -32,12 +32,15 @@ var (
 	accessModes  = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity     = "5G"
 	pvcObj       *corev1.PersistentVolumeClaim
+	cloneObj     *corev1.PersistentVolumeClaim
+	cloneLable   = "openebs.io/persistent-volume-claim=jiva-clone"
 )
 
-var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
+var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 	var (
-		pvcName  = "jiva-pvc"
-		snapName = "jivasnapshot"
+		pvcName   = "jiva-pvc"
+		snapName  = "jiva-snapshot"
+		cloneName = "jiva-clone"
 	)
 
 	When("jiva pvc with replicacount 1 is created", func() {
@@ -101,14 +104,76 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 			_, err = ops.SnapClient.WithNamespace(nsName).Create(snapObj)
 			Expect(err).To(
 				BeNil(),
-				"while creating snapshot {%s} in namespace {%s}",
+				"while creating snapshot{%s} in namespace {%s}",
 				snapName,
 				nsName,
 			)
 
 			By("verifying type as ready")
 			snaptype := ops.GetSnapshotTypeEventually(snapName)
-			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
+			Expect(snaptype).To(Equal("Ready"), "while checking snapshot status")
+
+		})
+	})
+
+	When("jiva clone pvc is created", func() {
+		It("should create same number of pods as above pvc", func() {
+
+			cloneAnnotations := map[string]string{
+				"snapshot.alpha.kubernetes.io/snapshot": snapName,
+			}
+
+			By("building a clone pvc")
+			cloneObj, err = pvc.NewBuilder().
+				WithName(cloneName).
+				WithAnnotations(cloneAnnotations).
+				WithNamespace(nsName).
+				WithStorageClass(scName).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).
+				Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building clone pvc {%s} in namespace {%s}",
+				cloneName,
+				nsName,
+			)
+
+			By("creating above clone pvc")
+			_, err = ops.PVCClient.WithNamespace(nsName).Create(cloneObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating clone pvc {%s} in namespace {%s}",
+				cloneName,
+				nsName,
+			)
+
+			By("verifying clone pod count as 2")
+			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, 2)
+			Expect(clonePodCount).To(Equal(2), "while checking clone pvc pod count")
+
+		})
+	})
+
+	When("deleting clone pvc", func() {
+		It("should remove clone pvc pods", func() {
+
+			By("deleting above clone pvc")
+			err := ops.PVCClient.Delete(cloneName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting clone pvc {%s} in namespace {%s}",
+				cloneName,
+				nsName,
+			)
+
+			By("verifying clone pvc pods as 0")
+			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, 0)
+			Expect(clonePodCount).To(Equal(0), "while checking clone pvc pod count")
+
+			By("verifying deleted clone pvc")
+			pvc := ops.IsPVCDeleted(cloneName)
+			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
 		})
 	})
