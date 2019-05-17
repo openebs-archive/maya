@@ -69,8 +69,10 @@ func NewCStorVolumeReplicaController(
 	// obtain references to shared index informers for the cStorReplica resources.
 	cStorReplicaInformer := cStorInformerFactory.Openebs().V1alpha1().CStorVolumeReplicas()
 
-	openebsScheme.AddToScheme(scheme.Scheme)
-
+	err := openebsScheme.AddToScheme(scheme.Scheme)
+	if err != nil {
+		glog.Errorf("failed to add to scheme: error {%v}", err)
+	}
 	// Create event broadcaster
 	// Add cStor-Replica-controller types to the default Kubernetes Scheme so Events can be
 	// logged for cStor-Replica-controller types.

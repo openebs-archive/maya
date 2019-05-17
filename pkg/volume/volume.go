@@ -282,7 +282,7 @@ func (v *Operation) Delete() (*v1alpha1.CASVolume, error) {
 // Get the openebs volume details
 func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	if len(v.volume.Name) == 0 {
-		return nil, errors.Errorf("failed to read volume: missing volume name: %s", v.volume)
+		return nil, errors.New("failed to read volume: missing volume name")
 	}
 
 	// storage engine type
@@ -294,7 +294,7 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 		// fetch the pv specification
 		pv, err := v.k8sClient.GetPV(v.volume.Name, mach_apis_meta_v1.GetOptions{})
 		if err != nil {
-			return nil, errors.Wrapf(errors.WithStack(err), "failed to get PV for volume: %s", v.volume)
+			return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
 		}
 
 		// extract the sc name
@@ -305,25 +305,25 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	}
 
 	if len(scName) == 0 {
-		return nil, errors.Errorf("failed to read volume: missing storage class name: %s", v.volume)
+		return nil, errors.Errorf("failed to read volume {%s}: missing storage class name for volume", v.volume.Name)
 	}
 
 	// fetch the sc specification
 	sc, err := v.k8sClient.GetStorageV1SC(scName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
 	}
 
 	// extract read cas template name from sc annotation
 	castName := getReadCASTemplate(storageEngine, sc)
 	if len(castName) == 0 {
-		return nil, errors.Errorf("failed to read volume: missing cas template: %s", v.volume)
+		return nil, errors.Errorf("failed to read volume {%s}: missing cas template", v.volume.Name)
 	}
 
 	// fetch read cas template specifications
 	cast, err := v.k8sClient.GetOEV1alpha1CAST(castName, mach_apis_meta_v1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
 	}
 
 	casConfigSC := sc.Annotations[string(v1alpha1.CASConfigKey)]
@@ -347,20 +347,20 @@ func (v *Operation) Read() (*v1alpha1.CASVolume, error) {
 	)
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(err, "failed to read volume {%s}", v.volume.Name)
 	}
 
 	// read volume details by executing engine
 	data, err := engine.Run()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(err, "failed to read volume {%s}", v.volume.Name)
 	}
 
 	// unmarshall into openebs volume
 	vol := &v1alpha1.CASVolume{}
 	err = yaml.Unmarshal(data, vol)
 	if err != nil {
-		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume: %s", v.volume)
+		return nil, errors.Wrapf(errors.WithStack(err), "failed to read volume {%s}", v.volume.Name)
 	}
 
 	return vol, nil
