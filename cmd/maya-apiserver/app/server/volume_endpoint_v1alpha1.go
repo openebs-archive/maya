@@ -178,7 +178,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 
 	// volume name is expected
 	if len(vol.Name) == 0 {
-		return nil, CodedErrorf(400, "failed to read volume: missing volume name: %s", vol)
+		return nil, CodedErrorf(400, "failed to read volume: missing volume name")
 	}
 
 	// use namespace from req headers if volume ns is still not set
@@ -202,7 +202,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 	if err != nil {
 		return nil, CodedErrorWrap(
 			400,
-			errors.Wrapf(err, "failed to read volume: failed to init volume operation: %s", vol),
+			errors.Wrapf(err, "failed to read volume {%s}: failed to init volume operation", vol.Name),
 		)
 	}
 
@@ -214,7 +214,7 @@ func (v *volumeAPIOpsV1alpha1) read(volumeName string) (*v1alpha1.CASVolume, err
 				errors.Errorf("failed to read volume: volume {%s} not found in namespace {%s}", vol.Name, vol.Namespace),
 			)
 		}
-		return nil, CodedErrorWrap(500, errors.Wrapf(err, "failed to read volume: %s", vol))
+		return nil, CodedErrorWrap(500, errors.Wrap(err, "failed to handle volume read request"))
 	}
 
 	glog.Infof("volume '%s' read successfully", cvol.Name)
