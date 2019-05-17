@@ -16,10 +16,10 @@ package nodestickiness
 
 import (
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
-	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	"github.com/openebs/maya/tests/artifacts"
+	installer "github.com/openebs/maya/tests/artifacts/installer/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

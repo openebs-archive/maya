@@ -24,9 +24,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
-	"github.com/openebs/maya/integration-tests/kubernetes"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
+	"github.com/openebs/maya/tests/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

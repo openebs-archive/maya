@@ -19,11 +19,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
-	installer "github.com/openebs/maya/integration-tests/artifacts/installer/v1alpha1"
-	"github.com/openebs/maya/integration-tests/kubernetes"
 	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
+	installer "github.com/openebs/maya/tests/artifacts/installer/v1alpha1"
+	"github.com/openebs/maya/tests/kubernetes"
 
 	validatehook "github.com/openebs/maya/pkg/kubernetes/webhook/validate/v1alpha1"
 	corev1 "k8s.io/api/core/v1"

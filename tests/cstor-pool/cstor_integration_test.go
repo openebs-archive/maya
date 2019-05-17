@@ -117,7 +117,6 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 			_, err = ops.spcClient.Update(obj.Spc.Object)
 			Expect(err).To(BeNil())
 
-
 			// We expect 1 cstorPool objects.
 			cspCount := ops.isHealthyCspCount(spcObj.Name, 1)
 			Expect(cspCount).To(Equal(3))

@@ -15,10 +15,10 @@
 include buildscripts/common.mk
 
 # list only maya source code directories
-PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|integration-tests')
+PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests')
 
 # list maya source code directories along with integration-test code
-PACKAGES_IT = $(shell go list ./... | grep 'integration-test')
+PACKAGES_IT = $(shell go list ./... | grep 'tests')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -188,8 +188,8 @@ bootstrap:
 kubegen2: deepcopy2 clientset2 lister2 informer2
 
 # code generation for custom resources
-kubegen1: 
-	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH} 
+kubegen1:
+	./buildscripts/code-gen.sh ${GENS} ${OUTPUT_PKG} ${APIS_PKG} ${GROUPS_WITH_VERSIONS} --go-header-file ${BOILERPLATE_TEXT_PATH}
 
 # code generation for custom resources
 kubegen: kubegendelete kubegen1 kubegen2

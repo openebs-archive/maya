@@ -17,12 +17,12 @@ package sts
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
 	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha2"
 	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
