@@ -8,8 +8,8 @@ To run the BDD test:
 Example:
 To trigger the statefulesets test
 Step1: Change the pwd to test directory.
-       `cd github.com/openebs/maya/integration-tests/sts/`
-Step2: Execute the command `ginkgo -v`
+       `cd github.com/openebs/maya/tests/sts/`
+Step2: Execute the command `ginkgo -v -- -kubeconfig=/path/to/kubeconfig`
 
 Output:
 Sample example output
@@ -21,7 +21,7 @@ Will run 1 of 2 specs
 
 StatefulSet test statefulset application on cstor
   should distribute the cstor volume replicas across pools
-  /home/sai/gocode/src/github.com/openebs/maya/integration-tests/sts/sts_test.go:227
+  /home/sai/gocode/src/github.com/openebs/maya/tests/sts/sts_test.go:227
 ---------------------------------------------------------
 
 Ran 1 of 1 Specs in 767.022 seconds
@@ -30,4 +30,4 @@ FAIL! -- 1 Passed | 0 Failed | 0 Pending | 0 Skipped
 Ginkgo ran 1 suite in 12m49.573774959s
 Test Suite Failed
 ```
-Note: Above is the sample output how it looks when you ran `ginkgo -v`
+Note: Above is the sample output how it looks when you ran `ginkgo -v -- -kubeconfig=/path/to/kubeconfig`

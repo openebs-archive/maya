@@ -56,11 +56,11 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			)
 
 			By("creating above pvc")
-			_, err = ops.PvcClient.WithNamespace(nsName).Create(pvcObj)
+			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
-				pvcObj.Name,
+				pvcName,
 				nsName,
 			)
 
@@ -83,11 +83,11 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 		It("should not have any jiva controller and replica pods", func() {
 
 			By("deleting above pvc")
-			err := ops.PvcClient.Delete(pvcName, &metav1.DeleteOptions{})
+			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
-				pvcObj.Name,
+				pvcName,
 				nsName,
 			)
 

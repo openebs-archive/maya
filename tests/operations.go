@@ -39,9 +39,9 @@ const (
 // Operations provides clients amd methods to perform operations
 type Operations struct {
 	PodClient      *pod.KubeClient
-	ScClient       *sc.Kubeclient
-	PvcClient      *pvc.Kubeclient
-	NsClient       *ns.Kubeclient
+	SCClient       *sc.Kubeclient
+	PVCClient      *pvc.Kubeclient
+	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
 	kubeConfigPath string
 }
@@ -65,42 +65,28 @@ func NewOperations(opts ...OperationsOptions) *Operations {
 	for _, o := range opts {
 		o(ops)
 	}
-	ops.newPodClient()
-	ops.newNsClient()
-	ops.newSCClient()
-	ops.newPVCClient()
-	ops.newSnapClient()
+	ops.withDefaults()
 	return ops
 }
 
-func (ops *Operations) newPodClient() *Operations {
-	newPodClient := pod.NewKubeClient(pod.WithKubeConfigPath(ops.kubeConfigPath))
-	ops.PodClient = newPodClient
-	return ops
-}
-
-func (ops *Operations) newNsClient() *Operations {
-	newNsClient := ns.NewKubeClient(ns.WithKubeConfigPath(ops.kubeConfigPath))
-	ops.NsClient = newNsClient
-	return ops
-}
-
-func (ops *Operations) newSCClient() *Operations {
-	newSCClient := sc.NewKubeClient(sc.WithKubeConfigPath(ops.kubeConfigPath))
-	ops.ScClient = newSCClient
-	return ops
-}
-
-func (ops *Operations) newPVCClient() *Operations {
-	newPVCClient := pvc.NewKubeClient(pvc.WithKubeConfigPath(ops.kubeConfigPath))
-	ops.PvcClient = newPVCClient
-	return ops
-}
-
-func (ops *Operations) newSnapClient() *Operations {
-	newSnapClient := snap.NewKubeClient(snap.WithKubeConfigPath(ops.kubeConfigPath))
-	ops.SnapClient = newSnapClient
-	return ops
+// withDefaults sets the default options
+// of operations instance
+func (ops *Operations) withDefaults() {
+	if ops.NSClient == nil {
+		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.SCClient == nil {
+		ops.SCClient = sc.NewKubeClient(sc.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.PodClient == nil {
+		ops.PodClient = pod.NewKubeClient(pod.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.PVCClient == nil {
+		ops.PVCClient = pvc.NewKubeClient(pvc.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.SnapClient == nil {
+		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -131,7 +117,7 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 
 // IsPVCBound checks if the pvc is bound or not
 func (ops *Operations) IsPVCBound(pvcName string) bool {
-	volume, err := ops.PvcClient.
+	volume, err := ops.PVCClient.
 		Get(pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pvc.NewForAPIObject(volume).IsBound()
@@ -178,7 +164,7 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 // and returns true if pvc is not found
 // else returns false
 func (ops *Operations) IsPVCDeleted(pvcName string) bool {
-	_, err := ops.PvcClient.
+	_, err := ops.PVCClient.
 		Get(pvcName, metav1.GetOptions{})
 	if isNotFound(err) {
 		return true
