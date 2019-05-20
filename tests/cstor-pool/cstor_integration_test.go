@@ -17,12 +17,14 @@ limitations under the License.
 package cstorpoolit
 
 import (
+	"flag"
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"time"
 
 	//	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,8 +33,11 @@ import (
 )
 
 const (
-	KubeConfigPath = "/home/ashutosh/.kube/config"
-	MaxRetry       = 30
+	MaxRetry = 30
+)
+
+var (
+	kubeConfigPath string
 )
 
 // operations encapsulates various kubernetes object client set for operations.
@@ -47,6 +52,10 @@ func TestIntegrationCstorPool(t *testing.T) {
 	RegisterFailHandler(Fail)
 	// RunSpecs runs all the test cases in the suite.
 	RunSpecs(t, "Cstor pool integration test suite")
+}
+
+func init() {
+	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
 }
 
 var _ = Describe("STRIPED SPARSE SPC", func() {
@@ -300,7 +309,7 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 })
 
 var _ = AfterSuite(func() {
-	spcClient, err := spc.KubeClient().WithFlag(KubeConfigPath)
+	spcClient, err := spc.KubeClient().WithFlag(kubeConfigPath)
 	Expect(err).To(BeNil())
 	spcList, err := spcClient.List(metav1.ListOptions{})
 	Expect(err).To(BeNil())
@@ -327,14 +336,14 @@ var clientBuilderFuncList = []clientBuilderFunc{
 }
 
 func (ops *operations) newCspClient() *operations {
-	newCspClient, err := csp.KubeClient().WithFlag(KubeConfigPath)
+	newCspClient, err := csp.KubeClient().WithFlag(kubeConfigPath)
 	Expect(err).To(BeNil())
 	ops.cspClient = newCspClient
 	return ops
 }
 
 func (ops *operations) newSpcClient() *operations {
-	newSpcClient, err := spc.KubeClient().WithFlag(KubeConfigPath)
+	newSpcClient, err := spc.KubeClient().WithFlag(kubeConfigPath)
 	Expect(err).To(BeNil())
 	ops.spcClient = newSpcClient
 	return ops
