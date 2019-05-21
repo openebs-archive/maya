@@ -309,8 +309,8 @@ var _ = Describe("RAIDZ2 SPARSE SPC", func() {
 })
 
 var _ = AfterSuite(func() {
-	spcClient, err := spc.KubeClient().WithKubeConfigPath(kubeConfigPath)
-	Expect(err).To(BeNil())
+	spcClient := spc.NewKubeClient(spc.WithKubeConfigPath(kubeConfigPath))
+
 	spcList, err := spcClient.List(metav1.ListOptions{})
 	Expect(err).To(BeNil())
 	for _, spc := range spcList.Items {
@@ -343,8 +343,7 @@ func (ops *operations) newCspClient() *operations {
 }
 
 func (ops *operations) newSpcClient() *operations {
-	newSpcClient, err := spc.KubeClient().WithKubeConfigPath(kubeConfigPath)
-	Expect(err).To(BeNil())
+	newSpcClient := spc.NewKubeClient(spc.WithKubeConfigPath(kubeConfigPath))
 	ops.spcClient = newSpcClient
 	return ops
 }
