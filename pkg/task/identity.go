@@ -170,6 +170,14 @@ func (i taskIdentifier) isStorageClass() bool {
 	return i.identity.Kind == string(m_k8s_client.StorageClassKK)
 }
 
+func (i taskIdentifier) isVolumeSnapshotData() bool {
+	return i.identity.Kind == string(m_k8s_client.VolumeSnapshotDataCRKK)
+}
+
+func (i taskIdentifier) isVolumeSnapshot() bool {
+	return i.identity.Kind == string(m_k8s_client.VolumeSnapshotCRKK)
+}
+
 func (i taskIdentifier) isStorageV1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.StorageV1KA)
 }
