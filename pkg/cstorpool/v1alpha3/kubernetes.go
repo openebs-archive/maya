@@ -18,6 +18,7 @@ package v1alpha3
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -90,8 +91,8 @@ func WithKubeClient(c *clientset.Clientset) KubeclientBuildOption {
 	}
 }
 
-// WithFlag sets the client using the kubeconfig path
-func (k *Kubeclient) WithFlag(kubeconfig string) (*Kubeclient, error) {
+// WithKubeConfigPath sets the client using the kubeconfig path
+func (k *Kubeclient) WithKubeConfigPath(kubeconfig string) (*Kubeclient, error) {
 	cfg, err := getClusterConfig(kubeconfig)
 	if err != nil {
 		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())

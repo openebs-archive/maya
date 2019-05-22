@@ -17,12 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-
-	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
@@ -31,6 +27,10 @@ import (
 // getClientsetFn is a typed function that
 // abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *clientset.Clientset, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // listFn is a typed function that abstracts
 // listing of cstor pool
@@ -52,25 +52,38 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFn
-	list         listFn
-	get          getFn
-	create       createFn
-	del          deleteFn
-	update       updateFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	list                listFn
+	get                 getFn
+	create              createFn
+	del                 deleteFn
+	update              updateFn
 }
 
 // KubeclientBuildOption defines the abstraction
 // to build a kubeclient instance
 type KubeclientBuildOption func(*Kubeclient)
 
-// WithDefaults sets the default options
+// withDefaults sets the default options
 // of kubeclient instance
-func (k *Kubeclient) WithDefaults() {
+func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
-			config, err := kclient.New().Config()
+			config, err := client.New().GetConfigForPathOrDirect()
+			if err != nil {
+				return nil, err
+			}
+			return clientset.NewForConfig(config)
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+			config, err := client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
@@ -108,6 +121,17 @@ func (k *Kubeclient) WithDefaults() {
 	}
 }
 
+// NewKubeClient returns a new instance of kubeclient meant for
+// cstor volume replica operations
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+	k := &Kubeclient{}
+	for _, o := range opts {
+		o(k)
+	}
+	k.withDefaults()
+	return k
+}
+
 // WithKubeClient sets the kubernetes client against
 // the kubeclient instance
 func WithKubeClient(c *clientset.Clientset) KubeclientBuildOption {
@@ -116,39 +140,19 @@ func WithKubeClient(c *clientset.Clientset) KubeclientBuildOption {
 	}
 }
 
-// WithFlag sets the client using the kubeconfig path
-func (k *Kubeclient) WithFlag(kubeconfig string) (*Kubeclient, error) {
-	cfg, err := getClusterConfig(kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
 	}
-
-	// Building OpenEBS Clientset
-	openebsClient, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("Error building openebs clientset: %s", err.Error())
-	}
-	k.clientset = openebsClient
-	return k, nil
 }
 
-func getClusterConfig(kubeconfig string) (*rest.Config, error) {
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return nil, fmt.Errorf("Error building kubeconfig: %s", err.Error())
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
 	}
-	return cfg, err
-}
-
-// KubeClient returns a new instance of kubeclient meant for
-// cstor volume replica operations
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
-	k := &Kubeclient{}
-	for _, o := range opts {
-		o(k)
-	}
-	k.WithDefaults()
-	return k
+	return k.getClientset()
 }
 
 // getClientOrCached returns either a new instance
@@ -157,7 +161,7 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
