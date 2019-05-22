@@ -105,11 +105,11 @@ spec:
 )
 
 var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
-	options := framework.FrameworkOptions{
+	options := framework.Framework{
 		MinNodeCount: 1,
 		Artifacts:    "../artifacts/openebs-ci.yaml",
 	}
-	_ = framework.NewFrameworkDefault("AdmissionWebhook pvc delete", options)
+	_ = framework.Default("AdmissionWebhook pvc delete", options)
 
 	var (
 		NSUnst, SCUnst, PVCUnst *unstructured.Unstructured
