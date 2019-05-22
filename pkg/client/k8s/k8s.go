@@ -111,6 +111,12 @@ const (
 
 	// UpgradeResultCRKK is a K8s CR of kind UpgradeResult
 	UpgradeResultCRKK K8sKind = "UpgradeResult"
+
+	// VolumeSnapshotDataCRKK is a K8s CR of kind VolumeSnapshotData
+	VolumeSnapshotDataCRKK K8sKind = "VolumeSnapshotData"
+
+	// VolumeSnapshotCRKK is a K8s CR of kind VolumeSnapshotData
+	VolumeSnapshotCRKK K8sKind = "VolumeSnapshot"
 )
 
 // K8sAPIVersion represents valid kubernetes api version of a native or custom

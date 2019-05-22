@@ -38,6 +38,8 @@ import (
 	podexec "github.com/openebs/maya/pkg/kubernetes/podexec/v1alpha1"
 	replicaset "github.com/openebs/maya/pkg/kubernetes/replicaset/v1alpha1"
 	service "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
+	snapshot "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
+	snapshotdata "github.com/openebs/maya/pkg/kubernetes/snapshotdata/v1alpha1"
 	storagepool "github.com/openebs/maya/pkg/storagepool/v1alpha1"
 	"github.com/openebs/maya/pkg/template"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
@@ -470,6 +472,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.patchOEV1alpha1CSPC()
 	} else if m.MetaExec.isPutCoreV1Service() {
 		err = m.putCoreV1Service()
+	} else if m.MetaExec.isPatchV1alpha1VolumeSnapshotData() {
+		err = m.patchV1alpha1VolumeSnapshotData()
 	} else if m.MetaExec.isPatchCoreV1Service() {
 		err = m.patchCoreV1Service()
 	} else if m.MetaExec.isDeleteExtnV1B1Deploy() {
@@ -488,6 +492,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.deleteCoreV1Service()
 	} else if m.MetaExec.isGetOEV1alpha1Disk() {
 		err = m.getOEV1alpha1Disk()
+	} else if m.MetaExec.isGetV1alpha1VolumeSnapshotData() {
+		err = m.getV1alpha1VolumeSnapshotData()
 	} else if m.MetaExec.isGetOEV1alpha1SPC() {
 		err = m.getOEV1alpha1SPC()
 	} else if m.MetaExec.isGetOEV1alpha1CSPC() {
@@ -806,6 +812,36 @@ func (m *executor) patchOEV1alpha1CSPC() (err error) {
 	return
 }
 
+func (m *executor) patchV1alpha1VolumeSnapshotData() (err error) {
+	patch, err := asTaskPatch("patchVolumeSnapshotData", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch VolumeSnapshotData object")
+	}
+
+	pe, err := newTaskPatchExecutor(patch)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch VolumeSnapshotData object")
+	}
+
+	raw, err := pe.toJson()
+	if err != nil {
+		return errors.Wrap(err, "failed to patch VolumeSnapshotData object")
+	}
+
+	// patch the VolumeSnapshotData
+	vsd, err := snapshotdata.NewKubeClient().Patch(
+		m.getTaskObjectName(),
+		pe.patchType(),
+		raw,
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch VolumeSnapshotData")
+	}
+
+	util.SetNestedField(m.Values, vsd, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
 // patchOEV1alpha1CSV will patch a CStorVolume as defined in the task
 func (m *executor) patchOEV1alpha1CSV() error {
 	patch, err := asTaskPatch("patchCSV", m.Runtask.Spec.Task, m.Values)
@@ -1094,6 +1130,19 @@ func (m *executor) listExtnV1B1ReplicaSet(opt metav1.ListOptions) ([]byte, error
 		ListRaw(opt)
 }
 
+func (m *executor) listV1alpha1VolumeSnapshotData(opt metav1.ListOptions) ([]byte, error) {
+	return snapshotdata.
+		NewKubeClient().
+		ListRaw(opt)
+}
+
+func (m *executor) listV1alpha1VolumeSnapshot(opt metav1.ListOptions) ([]byte, error) {
+	return snapshot.
+		NewKubeClient().
+		WithNamespace(m.getTaskRunNamespace()).
+		ListRaw(opt)
+}
+
 // putCoreV1Service will create a Service whose
 // specs are configured in the RunTask
 func (m *executor) putCoreV1Service() error {
@@ -1135,6 +1184,17 @@ func (m *executor) getOEV1alpha1Disk() error {
 	}
 
 	util.SetNestedField(m.Values, disk, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
+}
+
+func (m *executor) getV1alpha1VolumeSnapshotData() error {
+	//	snapshotData, err := m.getK8sClient().
+	snapshotData, err := snapshotdata.NewKubeClient().GetRaw(m.getTaskObjectName(), metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to get volume snapshot data")
+	}
+
+	util.SetNestedField(m.Values, snapshotData, string(v1alpha1.CurrentJSONResultTLP))
 	return nil
 }
 
@@ -1547,6 +1607,10 @@ func (m *executor) listK8sResources() (err error) {
 		op, err = kc.ListExtnV1B1DeploymentAsRaw(opts)
 	} else if m.MetaExec.isListExtnV1B1ReplicaSet() {
 		op, err = m.listExtnV1B1ReplicaSet(opts)
+	} else if m.MetaExec.isListV1alpha1VolumeSnapshotData() {
+		op, err = m.listV1alpha1VolumeSnapshotData(opts)
+	} else if m.MetaExec.isListV1alpha1VolumeSnapshot() {
+		op, err = m.listV1alpha1VolumeSnapshot(opts)
 	} else if m.MetaExec.isListAppsV1B1Deploy() {
 		op, err = kc.ListAppsV1B1DeploymentAsRaw(opts)
 	} else if m.MetaExec.isListCoreV1PVC() {

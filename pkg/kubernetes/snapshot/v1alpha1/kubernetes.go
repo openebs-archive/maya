@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/snapshot/v1alpha1/clientset/internalclientset/typed/snapshot/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -206,4 +208,13 @@ func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
 func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
 	k.namespace = namespace
 	return k
+}
+
+// ListRaw returns volumesnapshot object for given name in byte format
+func (k *Kubeclient) ListRaw(opts metav1.ListOptions) ([]byte, error) {
+	vsList, err := k.List(opts)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(vsList)
 }

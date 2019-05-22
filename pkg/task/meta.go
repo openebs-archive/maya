@@ -362,6 +362,10 @@ func (m *MetaExecutor) isPutCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPut()
 }
 
+func (m *MetaExecutor) isPatchV1alpha1VolumeSnapshotData() bool {
+	return m.identifier.isVolumeSnapshotData() && m.isPatch()
+}
+
 func (m *MetaExecutor) isPatchCoreV1Service() bool {
 	return m.identifier.isCoreV1Service() && m.isPatch()
 }
@@ -406,6 +410,14 @@ func (m *MetaExecutor) isListExtnV1B1ReplicaSet() bool {
 	return m.identifier.isExtnV1B1ReplicaSet() && m.isList()
 }
 
+func (m *MetaExecutor) isListV1alpha1VolumeSnapshotData() bool {
+	return m.identifier.isVolumeSnapshotData() && m.isList()
+}
+
+func (m *MetaExecutor) isListV1alpha1VolumeSnapshot() bool {
+	return m.identifier.isVolumeSnapshot() && m.isList()
+}
+
 func (m *MetaExecutor) isListAppsV1B1Deploy() bool {
 	return m.identifier.isAppsV1B1Deploy() && m.isList()
 }
@@ -444,6 +456,10 @@ func (m *MetaExecutor) isDeleteAppsV1STS() bool {
 
 func (m *MetaExecutor) isGetOEV1alpha1Disk() bool {
 	return m.identifier.isOEV1alpha1Disk() && m.isGet()
+}
+
+func (m *MetaExecutor) isGetV1alpha1VolumeSnapshotData() bool {
+	return m.identifier.isVolumeSnapshotData() && m.isGet()
 }
 
 func (m *MetaExecutor) isGetOEV1alpha1SPC() bool {
