@@ -48,10 +48,6 @@ required = [
   version = "kubernetes-1.12.3"
 
 [[constraint]]
-  name = "sigs.k8s.io/controller-runtime"
-  version = "=v0.1.9"
-
-[[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "v0.9.0"
 

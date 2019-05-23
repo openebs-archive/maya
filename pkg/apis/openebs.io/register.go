@@ -20,20 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// TODO Deprecate this constant and repeat this
-// group in nested folders. A constant defined
-// in a folder from a parent should not be
-// referred to from a nested folder belonging
-// to the same parent. This gives rise to
-// cyclic dependencies.
-//
-// TODO Once this constant is deprecated, register
-// the AddScheme functions of each resource
-// and each resource's multiple API versions
-//
-// e.g. refer - addtoscheme_catalog_v1alpha1.go
-// e.g. refer - ./catalog/v1alpha1/register.go
-//
 // GroupName assigned to openebs.io
 const (
 	GroupName = "openebs.io"
