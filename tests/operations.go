@@ -18,6 +18,7 @@ package tests
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -35,6 +36,7 @@ import (
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,6 +68,7 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	URClient       *result.Kubeclient
 	kubeConfigPath string
 }
 
@@ -154,6 +157,9 @@ func (ops *Operations) withDefaults() {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 
+	if ops.URClient == nil {
+		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -266,6 +272,14 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 	return false
 }
 
+// GetPVName gives the pv name for the given pvc
+func (ops *Operations) GetPVName(pvcName string) string {
+	p, err := ops.PVCClient.
+		Get(pvcName, metav1.GetOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+	return p.Spec.VolumeName
+}
+
 // isNotFound returns true if the original
 // cause of error was due to castemplate's
 // not found error or kubernetes not found
@@ -360,4 +374,46 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
 	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
 	return execOut.Bytes(), nil
+}
+
+// GetPodCompletedCountEventually gives the number of pods running eventually
+func (ops *Operations) GetPodCompletedCountEventually(namespace, lselector string, expectedPodCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podCount = ops.GetPodCompletedCount(namespace, lselector)
+		if podCount == expectedPodCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
+}
+
+// GetPodCompletedCount gives number of pods running currently
+func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
+		WithFilter(pod.IsCompleted()).
+		List().
+		Len()
+}
+
+// CheckUpgradeResult checks whether all the tasks in upgraderesult
+// have success
+func (ops *Operations) CheckUpgradeResult(namespace, lselector string) bool {
+	urList, err := ops.URClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	for _, task := range urList.Items[0].Tasks {
+		if task.Status == "Fail" {
+			fmt.Printf("task : %v\n", task)
+			return false
+		}
+	}
+	return true
 }
