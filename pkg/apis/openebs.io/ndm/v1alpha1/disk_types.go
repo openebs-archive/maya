@@ -30,12 +30,16 @@ type DiskSpec struct {
 	PartitionDetails []Partition    `json:"partitionDetails,omitempty"` //Details of partitions in the disk (filesystem, partition type)
 }
 
+// DiskCapacity represents the capacity of the disk in bytes.
+// Size of physical sector and logical sector is also defined.
 type DiskCapacity struct {
 	Storage            uint64 `json:"storage"`            // disk size in bytes
 	PhysicalSectorSize uint32 `json:"physicalSectorSize"` // disk physical-Sector size in bytes
 	LogicalSectorSize  uint32 `json:"logicalSectorSize"`  // disk logical-sector size in bytes
 }
 
+// DiskDetails defines the various physical attributes of disk like rotation rate,
+// firmware revision, type of Disk etc.
 type DiskDetails struct {
 	RotationRate     uint16 `json:"rotationRate"`     // Disk rotation speed if disk is not SSD
 	DriveType        string `json:"driveType"`        // DriveType represents the type of drive like SSD, HDD etc.,
@@ -46,7 +50,7 @@ type DiskDetails struct {
 	FirmwareRevision string `json:"firmwareRevision"` // disk firmware revision
 }
 
-// DiskDevlink holds the maping between type and links like by-id type or by-path type link
+// DiskDevLink holds the maping between type and links like by-id type or by-path type link
 type DiskDevLink struct {
 	Kind  string   `json:"kind"`  // Kind is the type of link like by-id or by-path.
 	Links []string `json:"links"` // Links are the soft links of Type type
@@ -63,12 +67,17 @@ type DiskStatus struct {
 	State string `json:"state"` //current state of the disk (Active/Inactive)
 }
 
+// Temperature info provided by the disk. The fields will be filled only if it is possible
+// to get valid temperature data from the disk.
 type Temperature struct {
 	CurrentTemperature int16 `json:"currentTemperature"`
 	HighestTemperature int16 `json:"highestTemperature"`
 	LowestTemperature  int16 `json:"lowestTemperature"`
 }
 
+// DiskStat represents the statistics data related to the Disk. The data represented by all
+// these fields will be continuously changing. Currently its just updated once, when the CR
+// is created.
 type DiskStat struct {
 	TempInfo              Temperature `json:"diskTemperature"`
 	TotalBytesRead        uint64      `json:"totalBytesRead"`
@@ -77,6 +86,7 @@ type DiskStat struct {
 	PercentEnduranceUsed  float64     `json:"percentEnduranceUsed"`
 }
 
+// DeviceInfo holds the UID of the Block Device which is backed by this Disk.
 type DeviceInfo struct {
 	DeviceUID string `json:"blockDeviceUID"` //Cross reference to BlockDevice CR backed by this disk
 }
