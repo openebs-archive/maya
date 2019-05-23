@@ -14,11 +14,11 @@
 
 include buildscripts/common.mk
 
-# list only maya source code directories
+# list only the source code directories
 PACKAGES = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated\|tests')
 
-# list maya source code directories along with integration-test code
-PACKAGES_IT = $(shell go list ./... | grep 'tests')
+# list only the integration tests code directories
+PACKAGES_IT = $(shell go list ./... | grep -v 'vendor\|pkg/client/generated' | grep 'tests')
 
 # Lint our code. Reference: https://golang.org/cmd/vet/
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -49,9 +49,6 @@ BOILERPLATE_TEXT_PATH=buildscripts/custom-boilerplate.go.txt
 # ALL_API_GROUPS has the list of all API resources from various groups
 ALL_API_GROUPS=\
 	openebs.io/runtask/v1beta1 \
-	openebs.io/openebscluster/v1alpha1 \
-	openebs.io/catalog/v1alpha1 \
-	openebs.io/kubeassert/v1alpha1 \
 	openebs.io/upgrade/v1alpha1 \
 	openebs.io/snapshot/v1alpha1
 
@@ -90,7 +87,6 @@ WEBHOOK=admission-server
 POOL_MGMT=cstor-pool-mgmt
 VOLUME_MGMT=cstor-volume-mgmt
 EXPORTER=maya-exporter
-OPENEBS_CLUSTER=openebs-cluster
 UPGRADE=upgrade
 
 # Specify the date o build
@@ -98,7 +94,7 @@ BUILD_DATE = $(shell date +'%Y%m%d%H%M%S')
 
 include ./buildscripts/provisioner-localpv/Makefile.mk
 
-all: mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
+all: compile-tests mayactl apiserver-image exporter-image pool-mgmt-image volume-mgmt-image admission-server-image upgrade-image provisioner-localpv-image
 
 mayactl:
 	@echo "----------------------------"
@@ -118,7 +114,6 @@ clean:
 	rm -rf ${GOPATH}/bin/${APISERVER}
 	rm -rf ${GOPATH}/bin/${POOL_MGMT}
 	rm -rf ${GOPATH}/bin/${VOLUME_MGMT}
-	rm -rf ${GOPATH}/bin/${OPENEBS_CLUSTER}
 	rm -rf ${GOPATH}/bin/${UPGRADE}
 	rm -rf ${GOPATH}/pkg/*
 
@@ -130,10 +125,9 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	@cat /tmp/coverage.html
 
-# Verifies the compilation issues in integratio test
-# TODO: Currently we are checking only for integration-test package
-precompile:
-	@echo "--> Running go vet on integration-test"
+# Verifies compilation issues if any in integration test code
+compile-tests:
+	@echo "--> Running go vet on tests"
 	@for test in  $(PACKAGES_IT) ; do \
 		go vet $$test; \
 	done
@@ -338,22 +332,6 @@ apiserver-image: mayactl apiserver
 	@cd buildscripts/apiserver && sudo docker build -t openebs/m-apiserver:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
 	@rm buildscripts/apiserver/${APISERVER}
 	@rm buildscripts/apiserver/${MAYACTL}
-
-# build openebs cluster binary
-openebs-cluster:
-	@echo "----------------------------"
-	@echo "--> ${OPENEBS_CLUSTER}      "
-	@echo "----------------------------"
-	@PNAME=${OPENEBS_CLUSTER} CTLNAME=${OPENEBS_CLUSTER} sh -c "'$(PWD)/buildscripts/build.sh'"
-
-# build openebs cluster image
-openebs-cluster-image: openebs-cluster
-	@echo "----------------------------"
-	@echo "--> ${OPENEBS_CLUSTER} image"
-	@echo "----------------------------"
-	@cp bin/${OPENEBS_CLUSTER}/${OPENEBS_CLUSTER} buildscripts/${OPENEBS_CLUSTER}/
-	@cd buildscripts/${OPENEBS_CLUSTER} && sudo docker build -t openebs/${OPENEBS_CLUSTER}:${IMAGE_TAG} --build-arg BUILD_DATE=${BUILD_DATE} .
-	@rm buildscripts/${OPENEBS_CLUSTER}/${OPENEBS_CLUSTER}
 
 rhel-apiserver-image: mayactl apiserver
 	@echo "----------------------------"
