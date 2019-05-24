@@ -35,13 +35,14 @@ var (
 	// defaultReplicaLabel represents the jiva replica
 	defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 	// defaultCtrlLabel represents the jiva controller
-	defaultCtrlLabel      = "openebs.io/controller=jiva-controller"
-	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity              = "5G"
-	scObj                 *storagev1.StorageClass
-	pvcObj                *corev1.PersistentVolumeClaim
-	nsObj                 *corev1.Namespace
+	defaultCtrlLabel   = "openebs.io/controller=jiva-controller"
+	openebsProvisioner = "openebs.io/provisioner-iscsi"
+	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity           = "5G"
+	scObj              *storagev1.StorageClass
+	pvcObj             *corev1.PersistentVolumeClaim
+	nsObj              *corev1.Namespace
+	// openebsCASConfigValue contains invalid name ReplicaCount:
 	openebsCASConfigValue = "- name: ReplicaCount:\n  Value: " + replicaCount
 )
 
@@ -84,11 +85,11 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
 		By("Creating a namespace")
-		_, err = ops.nsClient.Create(nsObj)
+		_, err = ops.NSClient.Create(nsObj)
 		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
 		By("Creating a storageclass")
-		_, err = ops.scClient.Create(scObj)
+		_, err = ops.SCClient.Create(scObj)
 		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 
 	})
@@ -97,28 +98,30 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		It("should not create Jiva controller and replica pods", func() {
 
 			By("Creating a persistentvolumeclaim")
-			_, err := ops.pvcClient.WithNamespace(nsName).Create(pvcObj)
+			_, err := ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).To(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
-			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 1)
+			By("verifying controller pod count")
+			controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(0), "while checking jiva controller pod count")
 
-			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, repCountInt)
+			By("verifying replica pod count")
+			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, repCountInt)
 			Expect(replicaPodCount).To(Equal(0), "while checking jiva replica pod count")
 		})
 	})
 
 	AfterEach(func() {
 		By("deleting persistentvolumeclaim")
-		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
+		err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
 		By("deleting storageclass")
-		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
+		err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting storrageclass {%s}", scObj.Name)
 
 		By("deleting namespace")
-		err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
+		err = ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsName)
 	})
 
@@ -130,7 +133,8 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN persistentvolumecl
 		scName                = "jiva-valid-config-sc"
 		pvcName               = "jiva-invalid-config-volume-claim"
 		openebsCASConfigValue = "- name: ReplicaCount\n  Value: " + replicaCount
-		invalidPVCLabel       = map[string]string{"name": "jiva-invalid-config-volume-claim:"}
+		// invalidPVCLabel contains invalid label value
+		invalidPVCLabel = map[string]string{"name": "jiva-invalid-config-volume-claim:"}
 	)
 	BeforeEach(func() {
 		annotations := map[string]string{
@@ -163,33 +167,33 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN persistentvolumecl
 		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
 		By("Creating a namespace")
-		_, err = ops.nsClient.Create(nsObj)
+		_, err = ops.NSClient.Create(nsObj)
 		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
 		By("Createing a storageclass")
-		_, err = ops.scClient.Create(scObj)
+		_, err = ops.SCClient.Create(scObj)
 		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 	})
 
 	When("We apply invalid persistentvolumeclaim yaml in k8s cluster", func() {
 		It("PVC creation should give error because of invalid pvc yaml", func() {
 			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, nsName))
-			_, err := ops.pvcClient.Create(pvcObj)
+			_, err := ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).NotTo(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 		})
 	})
 
 	AfterEach(func() {
 		By("deleting persistentvolumeclaim")
-		err := ops.pvcClient.Delete(pvcName, &metav1.DeleteOptions{})
+		err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 		Expect(err).NotTo(BeNil(), "while deleting persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
 		By("deleting storageclass")
-		err = ops.scClient.Delete(scName, &metav1.DeleteOptions{})
+		err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
 
 		By("deleting namespace")
-		err = ops.nsClient.Delete(nsName, &metav1.DeleteOptions{})
+		err = ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsName)
 	})
 
