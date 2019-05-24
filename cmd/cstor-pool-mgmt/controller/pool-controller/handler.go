@@ -87,7 +87,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	} else {
 		c.recorder.Event(cspObject, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
 	}
-	if string(cStorPool.Status.Phase) == string(apis.CStorPoolStatusOnline) {
+	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
 		glog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
 	} else {
 		glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
@@ -224,7 +224,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
 		if len(common.InitialImportedPoolVol) != 0 {
 			glog.Errorf("improper pool %v status: %v with existing volumes", string(cStorPoolGot.GetUID()), string(cStorPoolGot.Status.Phase))
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailValidate), string(common.MessageImproperPoolStatus))
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
 			return string(apis.CStorPoolStatusOffline), err
 		}
 		err = pool.LabelClear(devIDList)
