@@ -38,6 +38,7 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,6 +167,27 @@ func (ops *Operations) withDefaults() {
 	}
 }
 
+// VerifyOpenebs verify running state of required openebs control plane components
+func (ops *Operations) VerifyOpenebs(expectedPodCount int) *Operations {
+	By("waiting for maya-apiserver pod to come into running state")
+	podCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.MayaAPIServerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	By("waiting for openebs-provisioner pod to come into running state")
+	podCount = ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSProvisionerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	return ops
+}
+
 // GetPodRunningCountEventually gives the number of pods running eventually
 func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string, expectedPodCount int) int {
 	var podCount int
@@ -179,9 +201,9 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 	return podCount
 }
 
-// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// GetCstorVolumeCount gives the count of cstorvolume based on
 // selecter
-func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) int {
+func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expectedCVCount int) int {
 	var cvCount int
 	for i := 0; i < maxRetry; i++ {
 		cvCount = ops.GetCVCount(namespace, lselector)
@@ -191,6 +213,16 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 		time.Sleep(5 * time.Second)
 	}
 	return cvCount
+}
+
+// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// selecter eventually
+func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetCVCount(namespace, lselector)
+		return cvCount
+	},
+		60, 10).Should(Equal(expectedCVCount))
 }
 
 // GetPodRunningCount gives number of pods running currently
@@ -227,6 +259,18 @@ func (ops *Operations) IsPVCBound(pvcName string) bool {
 	return pvc.NewForAPIObject(volume).IsBound()
 }
 
+// IsPVCBoundEventually checks if the pvc is bound or not eventually
+func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
+	return Eventually(func() bool {
+		volume, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pvc.NewForAPIObject(volume).IsBound()
+	},
+		60, 10).
+		Should(BeTrue())
+}
+
 // GetSnapshotTypeEventually returns type of snapshot eventually
 func (ops *Operations) GetSnapshotTypeEventually(snapName string) string {
 	var snaptype string
@@ -257,7 +301,10 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
 		if err != nil {
-			return true
+			if isNotFound(err) {
+				return true
+			}
+			return false
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -332,6 +379,22 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 		time.Sleep(5 * time.Second)
 	}
 	return cspCount
+}
+
+// GetHealthyCSPCountEventually gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPCountEventually(spcName string, expectedCSPCount int) bool {
+	return Eventually(func() int {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		count := csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Len()
+		return count
+	},
+		60, 10).
+		Should(Equal(expectedCSPCount))
 }
 
 // ExecPod executes arbitrary command inside the pod
