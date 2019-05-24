@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
+	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
@@ -64,6 +65,7 @@ type Operations struct {
 	CSPClient      *csp.Kubeclient
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
+	CVClient       *cv.Kubeclient
 	kubeConfigPath string
 }
 
@@ -148,6 +150,10 @@ func (ops *Operations) withDefaults() {
 		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.kubeConfigPath)
 		Expect(err).To(BeNil(), "while initilizing csp client")
 	}
+	if ops.CVClient == nil {
+		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -163,6 +169,20 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 	return podCount
 }
 
+// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// selecter
+func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) int {
+	var cvCount int
+	for i := 0; i < maxRetry; i++ {
+		cvCount = ops.GetCVCount(namespace, lselector)
+		if cvCount == expectedCVCount {
+			return cvCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cvCount
+}
+
 // GetPodRunningCount gives number of pods running currently
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
@@ -172,6 +192,19 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	return pod.
 		ListBuilderForAPIList(pods).
 		WithFilter(pod.IsRunning()).
+		List().
+		Len()
+}
+
+// GetCVCount gives cstorvolume healthy count currently based on selecter
+func (ops *Operations) GetCVCount(namespace, lselector string) int {
+	cvs, err := ops.CVClient.
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return cv.
+		NewListBuilder().
+		WithAPIList(cvs).
+		WithFilter(cv.IsHealthy()).
 		List().
 		Len()
 }
@@ -262,6 +295,25 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 		Expect(err).To(BeNil())
 
 	}
+}
+
+// GetHealthyCSPCount gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) int {
+	var cspCount int
+	for i := 0; i < maxRetry; i++ {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		cspCount = csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Len()
+		if cspCount == expectedCSPCount {
+			return cspCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspCount
 }
 
 // ExecPod executes arbitrary command inside the pod
