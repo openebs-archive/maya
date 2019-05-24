@@ -46,6 +46,10 @@ var (
 	scObj                 *storagev1.StorageClass
 	spcObj                *apis.StoragePoolClaim
 	pvcObj                *corev1.PersistentVolumeClaim
+	cspAPIList            *apis.CStorPoolList
+	pvcs                  *corev1.PersistentVolumeClaimList
+	cvs                   *apis.CStorVolumeList
+	csv                   *apis.CStorVolume
 	annotations           = map[string]string{
 		string(apis.CASTypeKey):   string(apis.CstorVolume),
 		string(apis.CASConfigKey): openebsCASConfigValue,

@@ -60,12 +60,12 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 				Build().Object
 
 			By("creating storagepoolclaim")
-			_, err := ops.SPCClient.Create(spcObj)
+			_, err = ops.SPCClient.Create(spcObj)
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
 			By("verifying healthy csp count")
 			Eventually(func() int {
-				cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+				cspAPIList, err = ops.CSPClient.List(metav1.ListOptions{})
 				Expect(err).To(BeNil())
 				count := csp.
 					ListBuilderForAPIObject(cspAPIList).
@@ -106,12 +106,12 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 	AfterEach(func() {
 		When("we are deleting resources created for testing maya-exporter", func() {
 			By("getting the pvclaim name")
-			pvClaim, err := pvc.
+			pvcObj, err = pvc.
 				NewKubeClient(pvc.WithKubeConfigPath(kubeConfigPath)).
 				WithNamespace(nsName).
 				Get(pvcName, metav1.GetOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(pvClaim.Spec.VolumeName).ShouldNot(BeEmpty())
+			Expect(pvcObj.Spec.VolumeName).ShouldNot(BeEmpty())
 
 			By("deleting pvc")
 			err = pvc.
@@ -122,7 +122,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 
 			By("listing pvc to verify if it is deleted")
 			Eventually(func() int {
-				pvcs, err := pvc.
+				pvcs, err = pvc.
 					NewKubeClient(pvc.WithKubeConfigPath(kubeConfigPath)).
 					WithNamespace(nsName).
 					List(metav1.ListOptions{LabelSelector: "name=exporter-volume"})
@@ -132,12 +132,12 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 				framework.DefaultTimeOut, framework.DefaultPollingInterval).
 				Should(Equal(0), "while listing pvc")
 
-			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvClaim.Spec.VolumeName
+			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
 
 			By("verifying if cv is deleted")
 			// verify deletion of cstorvolume
 			Eventually(func() int {
-				cvs, err := cv.
+				cvs, err = cv.
 					NewKubeclient(cv.WithNamespace("openebs"), cv.WithKubeConfigPath(kubeConfigPath)).
 					List(metav1.ListOptions{LabelSelector: CstorVolumeLabel})
 				Expect(err).ShouldNot(HaveOccurred())
@@ -215,20 +215,20 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 			Eventually(
 				func() bool {
 					By("getting the pvclaim name")
-					pvClaim, err := pvc.
+					pvcObj, err = pvc.
 						NewKubeClient(pvc.WithKubeConfigPath(kubeConfigPath)).
 						WithNamespace(nsName).
 						Get(pvcName, metav1.GetOptions{})
 					Expect(err).ShouldNot(HaveOccurred())
-					Expect(pvClaim.Spec.VolumeName).ShouldNot(BeEmpty())
+					Expect(pvcObj.Spec.VolumeName).ShouldNot(BeEmpty())
 
 					By("verifying whether cvr is created and healthy")
-					cstorvolume, err := cv.
+					csv, err = cv.
 						NewKubeclient(cv.WithNamespace("openebs"), cv.WithKubeConfigPath(kubeConfigPath)).
-						Get(pvClaim.Spec.VolumeName, metav1.GetOptions{})
+						Get(pvcObj.Spec.VolumeName, metav1.GetOptions{})
 					Expect(err).ShouldNot(HaveOccurred())
 					return cv.
-						NewForAPIObject(cstorvolume).IsHealthy()
+						NewForAPIObject(csv).IsHealthy()
 				},
 				framework.DefaultTimeOut, framework.DefaultPollingInterval).
 				Should(BeTrue())
