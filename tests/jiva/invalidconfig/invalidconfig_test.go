@@ -35,15 +35,14 @@ var (
 	// defaultReplicaLabel represents the jiva replica
 	defaultReplicaLabel = "openebs.io/replica=jiva-replica"
 	// defaultCtrlLabel represents the jiva controller
-	defaultCtrlLabel                  = "openebs.io/controller=jiva-controller"
-	openebsProvisioner                = "openebs.io/provisioner-iscsi"
-	accessModes                       = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity                          = "5G"
-	scObj                             *storagev1.StorageClass
-	pvcObj                            *corev1.PersistentVolumeClaim
-	nsObj                             *corev1.Namespace
-	openebsCASConfigValue             = "- name: ReplicaCount:\n  Value: 3"
-	pvcLabel, replicaLabel, ctrlLabel string
+	defaultCtrlLabel      = "openebs.io/controller=jiva-controller"
+	openebsProvisioner    = "openebs.io/provisioner-iscsi"
+	accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity              = "5G"
+	scObj                 *storagev1.StorageClass
+	pvcObj                *corev1.PersistentVolumeClaim
+	nsObj                 *corev1.Namespace
+	openebsCASConfigValue = "- name: ReplicaCount:\n  Value: " + replicaCount
 )
 
 var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
@@ -51,16 +50,16 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 		nsName       = "validation-ns1"
 		scName       = "jiva-invalid-config-sc"
 		pvcName      = "jiva-volume-claim"
-		pvcLabel     = string(apis.PersistentVolumeClaimKey) + "=" + pvcName
+		pvcLabel     = "openebs.io/persistent-volume-claim" + "=" + pvcName
 		replicaLabel = defaultReplicaLabel + "," + pvcLabel
 		ctrlLabel    = defaultCtrlLabel + "," + pvcLabel
 	)
 	BeforeEach(func() {
+		var err error
 		annotations := map[string]string{
 			string(apis.CASTypeKey):   string(apis.JivaVolume),
 			string(apis.CASConfigKey): openebsCASConfigValue,
 		}
-		var err error
 
 		By("Building a namespace")
 		nsObj, err = ns.NewBuilder().
@@ -94,7 +93,7 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 
 	})
 
-	When("jiva pvc referring to invalid sc is applied", func() {
+	When("jiva persistentvolumeclaim referring to invalid storageclass is applied", func() {
 		It("should not create Jiva controller and replica pods", func() {
 
 			By("Creating a persistentvolumeclaim")
@@ -104,7 +103,7 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 			controllerPodCount := ops.getPodCountRunningEventually(nsName, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(0), "while checking jiva controller pod count")
 
-			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, 3)
+			replicaPodCount := ops.getPodCountRunningEventually(nsName, replicaLabel, repCountInt)
 			Expect(replicaPodCount).To(Equal(0), "while checking jiva replica pod count")
 		})
 	})
@@ -125,12 +124,12 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 
 })
 
-var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN PVC", func() {
+var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN persistentvolumeclaim", func() {
 	var (
 		nsName                = "validation-ns2"
 		scName                = "jiva-valid-config-sc"
 		pvcName               = "jiva-invalid-config-volume-claim"
-		openebsCASConfigValue = "- name: ReplicaCount\n  Value: 3"
+		openebsCASConfigValue = "- name: ReplicaCount\n  Value: " + replicaCount
 		invalidPVCLabel       = map[string]string{"name": "jiva-invalid-config-volume-claim:"}
 	)
 	BeforeEach(func() {
@@ -172,7 +171,7 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN PVC", func() {
 		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 	})
 
-	When("We apply invalid pvc yaml in k8s cluster", func() {
+	When("We apply invalid persistentvolumeclaim yaml in k8s cluster", func() {
 		It("PVC creation should give error because of invalid pvc yaml", func() {
 			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, nsName))
 			_, err := ops.pvcClient.Create(pvcObj)

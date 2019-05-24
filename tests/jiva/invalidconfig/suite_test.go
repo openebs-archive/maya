@@ -18,17 +18,18 @@ package invalidconfig
 
 import (
 	"flag"
+	"strconv"
 	"time"
 
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openebs/maya/integration-tests/artifacts"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// auth plugins
@@ -36,12 +37,13 @@ import (
 )
 
 const (
-	MaxRetry         = 30
-	minNodeCount int = 1
+	MaxRetry = 30
 )
 
 var (
 	kubeConfigPath string
+	replicaCount   string
+	repCountInt    int
 )
 
 type operations struct {
@@ -58,13 +60,18 @@ func TestSource(t *testing.T) {
 
 func init() {
 	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
+	flag.StringVar(&replicaCount, "replicas", "", "No.of storage replicas need to be created")
 }
 
 var _ = BeforeSuite(func() {
+	var err error
 	// set pod client set
 	for _, f := range clientBuilderFuncList {
 		f()
 	}
+
+	repCountInt, err = strconv.Atoi(replicaCount)
+	Expect(err).ShouldNot(HaveOccurred(), "while converting replicaCount to integer{%s}", replicaCount)
 
 	By("Waiting for maya-apiserver pod to come into running state")
 	podCount := ops.getPodCountRunningEventually(string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
