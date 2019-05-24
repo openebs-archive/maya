@@ -20,6 +20,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,6 +28,10 @@ import (
 // getClientsetFn is a typed function that
 // abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *clientset.Clientset, err error)
+
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
 
 // getFn is a typed function that abstracts get of cstorvolume instances
 type getFn func(cli *clientset.Clientset, name, namespace string,
@@ -45,17 +50,18 @@ type Kubeclient struct {
 	// clientset refers to cstor volume replica's
 	// clientset that will be responsible to
 	// make kubernetes API calls
-	clientset *clientset.Clientset
-
+	clientset      *clientset.Clientset
+	kubeConfigPath string
 	// namespace holds the namespace on which
 	// kubeclient has to operate
 	namespace string
 
 	// functions useful during mocking
-	getClientset getClientsetFn
-	get          getFn
-	list         listFn
-	del          delFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	get                 getFn
+	list                listFn
+	del                 delFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -74,6 +80,17 @@ func (k *Kubeclient) withDefaults() {
 			return clientset.NewForConfig(config)
 		}
 	}
+
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+			config, err := client.GetConfig(client.New(client.WithKubeConfigPath(kubeConfigPath)))
+			if err != nil {
+				return nil, err
+			}
+			return clientset.NewForConfig(config)
+		}
+	}
+
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name, namespace string, opts metav1.GetOptions) (*apis.CStorVolume, error) {
 			return cli.OpenebsV1alpha1().CStorVolumes(namespace).Get(name, opts)
@@ -116,6 +133,14 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	}
 }
 
+// WithKubeConfigPath sets the kubernetes client against
+// the provided path
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
 // NewKubeclient returns a new instance of kubeclient meant for
 // cstor volume replica operations
 func NewKubeclient(opts ...KubeclientBuildOption) *Kubeclient {
@@ -127,13 +152,20 @@ func NewKubeclient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
