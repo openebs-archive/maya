@@ -59,7 +59,7 @@ const (
 	SuccessImported EventReason = "Imported"
 	// FailureImported holds status for corresponding imported resource.
 	FailureImported EventReason = "Import failure"
-	// FailureImportedOperations holds status for corresponding imported resource.
+	// FailureImportOperations holds status for corresponding imported resource.
 	FailureImportOperations EventReason = "Failure Import operations"
 	// MessageResourceImported holds message for corresponding imported resource.
 	MessageResourceImported EventReason = "Resource imported successfully"
