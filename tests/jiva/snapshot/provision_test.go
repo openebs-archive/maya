@@ -40,8 +40,8 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 		snapName = "jivasnapshot"
 	)
 
-	When("jiva pvc with replicacount 1 is created", func() {
-		It("should create 1 controller pod and 1 replica pod", func() {
+	When("jiva pvc with replicacount n is created", func() {
+		It("should create 1 controller pod and n replica pod", func() {
 
 			By("building a pvc")
 			pvcObj, err = pvc.NewBuilder().
@@ -66,13 +66,13 @@ var _ = Describe("[jiva] TEST JIVA SNAPSHOT CREATION", func() {
 				nsName,
 			)
 
-			By("verifying controller pod count as 1")
+			By("verifying controller pod count")
 			controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
-			By("verifying replica pod count as 1")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, 1)
-			Expect(replicaPodCount).To(Equal(1), "while checking replica pod count")
+			By("verifying replica pod count")
+			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, replicaCount)
+			Expect(replicaPodCount).To(Equal(replicaCount), "while checking replica pod count")
 
 			By("verifying status as bound")
 			status := ops.IsPVCBound(pvcName)

@@ -15,6 +15,7 @@ package volume
 
 import (
 	"flag"
+	"strconv"
 
 	"testing"
 
@@ -36,16 +37,14 @@ import (
 
 var (
 	kubeConfigPath        string
-	nsName                = "provision-ns"
-	scName                = "jiva-pods-in-openebs-ns"
-	openebsCASConfigValue = "- name: ReplicaCount\n  Value: 1"
+	replicaCount          int
+	nsName                = "jiva-volume-ns"
+	scName                = "jiva-volume-sc"
+	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "
 	openebsProvisioner    = "openebs.io/provisioner-iscsi"
 	nsObj                 *corev1.Namespace
 	scObj                 *storagev1.StorageClass
-	annotations           = map[string]string{
-		string(apis.CASTypeKey):   string(apis.JivaVolume),
-		string(apis.CASConfigKey): openebsCASConfigValue,
-	}
+	annotations           = map[string]string{}
 )
 
 func TestSource(t *testing.T) {
@@ -55,6 +54,7 @@ func TestSource(t *testing.T) {
 
 func init() {
 	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
+	flag.IntVar(&replicaCount, "replicas", 1, "value of replica count")
 }
 
 var ops *tests.Operations
@@ -62,6 +62,9 @@ var ops *tests.Operations
 var _ = BeforeSuite(func() {
 
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
+
+	annotations[string(apis.CASTypeKey)] = string(apis.JivaVolume)
+	annotations[string(apis.CASConfigKey)] = openebsCASConfigValue + strconv.Itoa(replicaCount)
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(

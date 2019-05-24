@@ -128,7 +128,7 @@ var _ = Describe("STRIPED SPARSE SPC", func() {
 
 			// We expect 1 cstorPool objects.
 			cspCount := ops.isHealthyCspCount(spcObj.Name, 1)
-			Expect(cspCount).To(Equal(3))
+			Expect(cspCount).To(Equal(1))
 		})
 	})
 
@@ -384,10 +384,6 @@ func (ops *operations) isHealthyCspCount(spcName string, expectedCspCount int) i
 		if cspCount == expectedCspCount {
 			return expectedCspCount
 		}
-		if maxRetry == 0 {
-			break
-		}
-		maxRetry--
 		time.Sleep(5 * time.Second)
 	}
 	return cspCount
