@@ -24,7 +24,7 @@ import (
 var (
 	jobLable      = "job-name=jiva-volume-upgrade"
 	urLable       = "upgradejob.openebs.io/name=jiva-volume-upgrade,upgradeitem.openebs.io/name="
-	upgradedLabel = "openebs.io/persistent-volume-claim=jiva-volume-claim,openebs.io/version=0.9.0-RC4"
+	upgradedLabel = "openebs.io/persistent-volume-claim=jiva-volume-claim,openebs.io/version=0.9.0"
 	data          map[string]string
 )
 
@@ -41,16 +41,16 @@ var _ = Describe("[jiva] TEST VOLUME UPGRADE", func() {
 			urLable = urLable + pvName
 
 			By("applying rbac.yaml")
-			applyYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml", "")
+			applyArtifact(rbacArtifact, "")
 
 			By("applying cr.yaml")
-			applyYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml", "")
+			applyArtifact(crArtifact, "")
 
 			By("applying jiva_upgrade_runtask.yaml")
-			applyYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml", "")
+			applyArtifact(runtaskArtifact, "")
 
 			By("applying volume-upgrade-job.yaml")
-			applyYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml", "job")
+			applyArtifact(jobArtifact, "job")
 
 			By("verifying completed pod count as 1")
 			completedPodCount := ops.GetPodCompletedCountEventually("default", jobLable, 1)

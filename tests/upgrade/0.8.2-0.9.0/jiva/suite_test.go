@@ -55,7 +55,11 @@ var (
 	pvcObj                *corev1.PersistentVolumeClaim
 	pvcName               = "jiva-volume-claim"
 	scObj                 *storagev1.StorageClass
-	err                   error
+	openebsArtifact,
+	rbacArtifact,
+	crArtifact,
+	runtaskArtifact,
+	jobArtifact artifacts.Artifact
 )
 
 func TestSource(t *testing.T) {
@@ -72,15 +76,21 @@ var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
+	openebsArtifact = getArtifactFromURL("https://openebs.github.io/charts/openebs-operator-0.8.2.yaml")
+	rbacArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml")
+	crArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml")
+	runtaskArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml")
+	jobArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml")
+
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 	openebsCASConfigValue = openebsCASConfigValue + strconv.Itoa(replicaCount)
 
 	// Setting the path in environemnt variable
-	err = os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), kubeConfigPath)
+	err := os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), kubeConfigPath)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("applying openebs 0.8.2")
-	applyYAMLFromURL("https://openebs.github.io/charts/openebs-operator-0.8.2.yaml", "")
+	applyArtifact(openebsArtifact, "")
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(
@@ -170,9 +180,25 @@ var _ = AfterSuite(func() {
 	err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
+	By("Cleanup")
+	deleteArtifact(jobArtifact, "job")
+	deleteArtifact(runtaskArtifact, "")
+	deleteArtifact(crArtifact, "")
+	deleteArtifact(rbacArtifact, "")
+	deleteArtifact(openebsArtifact, "")
+	podList, err := ops.PodClient.
+		WithNamespace("default").
+		List(metav1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+	for _, po := range podList.Items {
+		if po.Status.Phase == "Succeeded" {
+			err = ops.PodClient.Delete(po.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting completed pods")
+		}
+	}
 })
 
-func applyYAMLFromURL(url string, flag string) {
+func getArtifactFromURL(url string) artifacts.Artifact {
 	// Read yaml file from the url
 	o, err := fetch(url)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -181,8 +207,11 @@ func applyYAMLFromURL(url string, flag string) {
 	Expect(err).ShouldNot(HaveOccurred())
 	// Connvert the yaml to unstructured objects
 	yamlString := string(b)
-	artifactString := artifacts.Artifact(yamlString)
-	artifactList, errs := artifacts.GetArtifactsListUnstructured(artifactString)
+	return artifacts.Artifact(yamlString)
+}
+
+func applyArtifact(artifact artifacts.Artifact, flag string) {
+	artifactList, errs := artifacts.GetArtifactsListUnstructured(artifact)
 	Expect(errs).Should(HaveLen(0))
 	// Applying unstructured objects
 	for i, artifact := range artifactList {
@@ -196,7 +225,24 @@ func applyYAMLFromURL(url string, flag string) {
 			k8s.GroupVersionResourceFromGVK(artifact),
 			artifact.GetNamespace(),
 		)
-		_, err = cu.Apply(artifact)
+		_, err := cu.Apply(artifact)
+		Expect(err).ShouldNot(HaveOccurred())
+	}
+}
+
+func deleteArtifact(artifact artifacts.Artifact, flag string) {
+	artifactList, errs := artifacts.GetArtifactsListUnstructured(artifact)
+	Expect(errs).Should(HaveLen(0))
+	// Applying unstructured objects
+	for i, artifact := range artifactList {
+		if flag == "job" && i == 1 {
+			artifact.SetNamespace("default")
+		}
+		del := k8s.DeleteResource(
+			k8s.GroupVersionResourceFromGVK(artifact),
+			artifact.GetNamespace(),
+		)
+		err := del.Delete(artifact)
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 }

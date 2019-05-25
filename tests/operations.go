@@ -45,7 +45,7 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry = 50
 )
 
 // Options holds the args used for exec'ing into the pod
