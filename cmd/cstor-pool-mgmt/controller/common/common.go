@@ -57,6 +57,10 @@ const (
 	MessageResourceFailCreate EventReason = "Resource creation failed"
 	// SuccessImported holds status for corresponding imported resource.
 	SuccessImported EventReason = "Imported"
+	// FailureImported holds status for corresponding imported resource.
+	FailureImported EventReason = "Import failure"
+	// FailureImportOperations holds status for corresponding imported resource.
+	FailureImportOperations EventReason = "Failure Import operations"
 	// MessageResourceImported holds message for corresponding imported resource.
 	MessageResourceImported EventReason = "Resource imported successfully"
 	// FailureStatusSync holds status for corresponding failed status sync of resource.
@@ -83,6 +87,8 @@ const (
 	AlreadyPresent EventReason = "AlreadyPresent"
 	// MessageResourceAlreadyPresent holds message for corresponding already present resource.
 	MessageResourceAlreadyPresent EventReason = "Resource already present"
+	// MessageImproperPoolStatus holds message for corresponding failed validate resource.
+	MessageImproperPoolStatus EventReason = "Improper pool status"
 )
 
 // Periodic interval duration.

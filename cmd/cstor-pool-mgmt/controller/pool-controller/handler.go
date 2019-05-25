@@ -56,7 +56,7 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		glog.Errorf("Could not acquire lease on csp object:%v", err)
 		return err
 	}
-	glog.Infof("Lease acquired successfully on csp %s ", cspObject.Name)
+	glog.V(4).Infof("Lease acquired successfully on csp %s ", cspObject.Name)
 
 	status, err := c.cStorPoolEventHandler(operation, cspObject)
 	if status == "" {
@@ -87,8 +87,12 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	} else {
 		c.recorder.Event(cspObject, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
 	}
-	glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
-		string(cspObject.GetUID()), cspObject.Status.Phase)
+	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
+		glog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
+	} else {
+		glog.Infof("cStorPool:%v, %v; Status: %v", cspObject.Name,
+			string(cspObject.GetUID()), cspObject.Status.Phase)
+	}
 	return nil
 }
 
@@ -121,7 +125,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			pool.PoolAddEventHandled = true
 			return status, err
 		}
-		glog.Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
+		glog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
 		status, err := c.getPoolStatus(cStorPoolGot)
 		return status, err
 	}
@@ -147,7 +151,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	Pool CR status is init/online. If entire pod got restarted, both zrepl and watcher
 	are started.
 	a) Zrepl could have come up first, in this case, watcher will update after
-	the specified interval of 120s.
+	the specified interval of (2*30) = 60s.
 	b) Watcher could have come up first, in this case, there is a possibility
 	that zrepl goes down and comes up and the watcher sees that no pool is there,
 	so it will break the loop and attempt to import the pool. */
@@ -157,6 +161,8 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	existingPool, _ := pool.GetPoolName()
 	isPoolExists := len(existingPool) != 0
 
+	// There is no need of loop here, if the GetPoolName returns poolname with cStorPoolGot.GetUID.
+	// It is going to stay forever until zrepl restarts
 	for i := 0; isPoolExists && i < cnt; i++ {
 		// GetVolumes is called because, while importing a pool, volumes corresponding
 		// to the pool are also imported. This needs to be handled and made visible
@@ -167,7 +173,6 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		if common.CheckIfPresent(existingPool, string(pool.PoolPrefix)+string(cStorPoolGot.GetUID())) {
 			// In the last attempt, ignore and update the status.
 			if i == cnt-1 {
-				isPoolExists = false
 				if IsPendingStatus(cStorPoolGot) || IsEmptyStatus(cStorPoolGot) {
 					// Pool CR status is init. This means pool deployment was done
 					// successfully, but before updating the CR to Online status,
@@ -192,13 +197,18 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	}
 	var importPoolErr error
 	var status string
-	cachfileFlags := []bool{true, false}
-	for _, cachefileFlag := range cachfileFlags {
+	cachefileFlags := []bool{true, false}
+	for _, cachefileFlag := range cachefileFlags {
 		status, importPoolErr = c.importPool(cStorPoolGot, cachefileFlag)
 		if status == string(apis.CStorPoolStatusOnline) {
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessImported), string(common.MessageResourceImported))
 			common.SyncResources.IsImported = true
 			return status, nil
+		}
+		if importPoolErr != nil {
+			glog.Errorf("Import succeded, but, other operations failed %v", importPoolErr)
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
+			return status, importPoolErr
 		}
 	}
 
@@ -212,6 +222,11 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
 	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
+		if len(common.InitialImportedPoolVol) != 0 {
+			glog.Errorf("improper pool %v status: %v with existing volumes", string(cStorPoolGot.GetUID()), string(cStorPoolGot.Status.Phase))
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
+			return string(apis.CStorPoolStatusOffline), err
+		}
 		err = pool.LabelClear(devIDList)
 		if err != nil {
 			glog.Errorf(err.Error(), cStorPoolGot.GetUID())
