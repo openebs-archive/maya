@@ -15,7 +15,6 @@ package jiva
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"strconv"
 
@@ -28,7 +27,6 @@ import (
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
-	http "github.com/openebs/maya/pkg/util/http/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
@@ -54,11 +52,11 @@ var (
 	pvcObj                *corev1.PersistentVolumeClaim
 	pvcName               = "jiva-volume-claim"
 	scObj                 *storagev1.StorageClass
-	openebsYAML,
-	rbacYAML,
-	crYAML,
-	runtaskYAML,
-	jobYAML string
+	openebsURL            = "https://openebs.github.io/charts/openebs-operator-0.8.2.yaml"
+	rbacURL               = "https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml"
+	crURL                 = "https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml"
+	runtaskURL            = "https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml"
+	jobURL                = "https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml"
 )
 
 func TestSource(t *testing.T) {
@@ -75,12 +73,6 @@ var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	openebsYAML = getYAMLFromURL("https://openebs.github.io/charts/openebs-operator-0.8.2.yaml")
-	rbacYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml")
-	crYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml")
-	runtaskYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml")
-	jobYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml")
-
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 	openebsCASConfigValue = openebsCASConfigValue + strconv.Itoa(replicaCount)
 
@@ -89,7 +81,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("applying openebs 0.8.2")
-	applyYAML(openebsYAML, "")
+	applyFromURL(openebsURL)
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(
@@ -176,11 +168,18 @@ var _ = AfterSuite(func() {
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 	By("cleanup")
-	deleteYAML(jobYAML, "job")
-	deleteYAML(runtaskYAML, "")
-	deleteYAML(crYAML, "")
-	deleteYAML(rbacYAML, "")
-	deleteYAML(openebsYAML, "")
+	deleteFromURL(jobURL)
+	deleteFromURL(runtaskURL)
+	deleteFromURL(crURL)
+	deleteFromURL(rbacURL)
+	deleteFromURL(openebsURL)
+	By("waiting for maya-apiserver pod to come into running state")
+	podCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.MayaAPIServerLabelSelector),
+		0,
+	)
+	Expect(podCount).To(Equal(0))
 	podList, err := ops.PodClient.
 		WithNamespace("default").
 		List(metav1.ListOptions{})
@@ -193,26 +192,15 @@ var _ = AfterSuite(func() {
 	}
 })
 
-func getYAMLFromURL(url string) string {
-	// Read yaml file from the url
-	o, err := http.Fetch(url)
-	Expect(err).ShouldNot(HaveOccurred())
-	defer o.Close()
-	b, err := ioutil.ReadAll(o)
-	Expect(err).ShouldNot(HaveOccurred())
-	// Connvert the yaml to unstructured objects
-	return string(b)
-}
-
-func applyYAML(yamlString string, flag string) {
-	unstructList, err := unstruct.ListBuilderForYamls(yamlString).Build()
+func applyFromURL(url string) {
+	unstructList, err := unstruct.FromURL(url)
 	Expect(err).ShouldNot(HaveOccurred())
 	// Applying unstructured objects
-	for i, us := range unstructList {
-		if flag == "job" && i == 0 {
+	for _, us := range unstructList.Items {
+		if us.Object.GetName() == "jiva-upgrade-config" {
 			unstructured.SetNestedStringMap(us.Object.Object, data, "data")
 		}
-		if flag == "job" && i == 1 {
+		if us.Object.GetName() == "jiva-volume-upgrade" {
 			us.Object.SetNamespace("default")
 		}
 		err = ops.UnstructClient.Create(us.Object)
@@ -220,12 +208,12 @@ func applyYAML(yamlString string, flag string) {
 	}
 }
 
-func deleteYAML(yamlString string, flag string) {
-	unstructList, err := unstruct.ListBuilderForYamls(yamlString).Build()
+func deleteFromURL(url string) {
+	unstructList, err := unstruct.FromURL(url)
 	Expect(err).ShouldNot(HaveOccurred())
-	// Applying unstructured objects
-	for i, us := range unstructList {
-		if flag == "job" && i == 1 {
+	// Deleting unstructured objects
+	for _, us := range unstructList.Items {
+		if us.Object.GetName() == "jiva-volume-upgrade" {
 			us.Object.SetNamespace("default")
 		}
 		err = ops.UnstructClient.Delete(us.Object)

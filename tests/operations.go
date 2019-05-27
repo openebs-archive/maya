@@ -406,9 +406,9 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 		Len()
 }
 
-// VerifyUpgradeResultTasksIsSuccess checks whether all the tasks in upgraderesult
+// VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
 // have success
-func (ops *Operations) VerifyUpgradeResultTasksIsSuccess(namespace, lselector string) bool {
+func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector string) bool {
 	urList, err := ops.URClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})

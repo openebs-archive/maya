@@ -179,8 +179,8 @@ func TestListBuilderForYamls(t *testing.T) {
 			lb := ListBuilderForYamls(mock.resourceYAML)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.list.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
+			} else if len(lb.list.Items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.Items))
 			}
 		})
 	}
@@ -204,8 +204,8 @@ func TestListUnstructBuilderForObjects(t *testing.T) {
 			lb := ListBuilderForObjects(mock.availableResources...)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.list.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
+			} else if len(lb.list.Items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.Items))
 			}
 		})
 	}

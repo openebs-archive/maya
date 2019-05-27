@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha2
 
 import (
+	"io/ioutil"
 	"strings"
 
 	"github.com/ghodss/yaml"
+	http "github.com/openebs/maya/pkg/util/http/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -95,7 +97,7 @@ func (b *Builder) BuildAPIUnstructured() (*unstructured.Unstructured, error) {
 // UnstructList contains a list of Unstructured
 // items
 type UnstructList struct {
-	items []*Unstruct
+	Items []*Unstruct
 }
 
 // ListBuilder enables building a list
@@ -118,7 +120,7 @@ func ListBuilderForYamls(yamls ...string) *ListBuilder {
 				lb.errs = append(lb.errs, err)
 				continue
 			}
-			lb.list.items = append(lb.list.items, a)
+			lb.list.Items = append(lb.list.Items, a)
 		}
 	}
 	return lb
@@ -130,7 +132,7 @@ func ListBuilderForYamls(yamls ...string) *ListBuilder {
 func ListBuilderForObjects(objs ...*unstructured.Unstructured) *ListBuilder {
 	lb := &ListBuilder{list: &UnstructList{}}
 	for _, obj := range objs {
-		lb.list.items = append(lb.list.items, &Unstruct{obj})
+		lb.list.Items = append(lb.list.Items, &Unstruct{obj})
 	}
 	return lb
 }
@@ -141,5 +143,26 @@ func (l *ListBuilder) Build() ([]*Unstruct, error) {
 	if len(l.errs) > 0 {
 		return nil, errors.Errorf("errors {%+v}", l.errs)
 	}
-	return l.list.items, nil
+	return l.list.Items, nil
+}
+
+// FromURL provides the unstructured objects from given url
+func FromURL(url string) (UnstructList, error) {
+	list := UnstructList{}
+	// Read yaml file from the url
+	read, err := http.Fetch(url)
+	if err != nil {
+		return list, err
+	}
+	defer read.Close()
+	yamls, err := ioutil.ReadAll(read)
+	if err != nil {
+		return list, err
+	}
+	// Connvert the yaml to unstructured objects
+	list.Items, err = ListBuilderForYamls(string(yamls)).Build()
+	if err != nil {
+		return list, err
+	}
+	return list, nil
 }

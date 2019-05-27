@@ -41,23 +41,23 @@ var _ = Describe("[jiva] TEST VOLUME UPGRADE", func() {
 			urLable = urLable + pvName
 
 			By("applying rbac.yaml")
-			applyYAML(rbacYAML, "")
+			applyFromURL(rbacURL)
 
 			By("applying cr.yaml")
-			applyYAML(crYAML, "")
+			applyFromURL(crURL)
 
 			By("applying jiva_upgrade_runtask.yaml")
-			applyYAML(runtaskYAML, "")
+			applyFromURL(runtaskURL)
 
 			By("applying volume-upgrade-job.yaml")
-			applyYAML(jobYAML, "job")
+			applyFromURL(jobURL)
 
 			By("verifying completed pod count as 1")
 			completedPodCount := ops.GetPodCompletedCountEventually("default", jobLable, 1)
 			Expect(completedPodCount).To(Equal(1), "while checking complete pod count")
 
 			By("verifying upgraderesult")
-			status := ops.VerifyUpgradeResultTasksIsSuccess(nsName, urLable)
+			status := ops.VerifyUpgradeResultTasksIsNotFail(nsName, urLable)
 			Expect(status).To(Equal(true), "while checking upgraderesult")
 
 			By("verifying controller pod count")
