@@ -26,6 +26,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var (
+	_, _ = fakeGetErrClientSetForPath("")
+	_, _ = fakeGetNilErrClientSetForPath("")
+)
+
 func fakeGetClientsetOk() (clientset *clientset.Clientset, err error) {
 	return &client.Clientset{}, nil
 }
@@ -65,6 +70,14 @@ func fakeSetClientsetNil(k *Kubeclient) {
 
 func fakeGetNilErrClientSet() (clientset *clientset.Clientset, err error) {
 	return nil, nil
+}
+
+func fakeGetNilErrClientSetForPath(path string) (clientset *clientset.Clientset, err error) {
+	return nil, nil
+}
+
+func fakeGetErrClientSetForPath(path string) (clientset *clientset.Clientset, err error) {
+	return nil, errors.New("Some error")
 }
 
 func fakeGetErrClientSet() (clientset *clientset.Clientset, err error) {
@@ -166,10 +179,10 @@ func TesKubernetestGetClientOrCached(t *testing.T) {
 		KubeClient *Kubeclient
 	}{
 		// Positive tests
-		"Positive 1": {false, &Kubeclient{nil, "", fakeGetNilErrClientSet, fakeGetOk, fakeListOk, fakeDeleteOk}},
-		"Positive 2": {false, &Kubeclient{&client.Clientset{}, "", fakeGetNilErrClientSet, fakeGetOk, fakeListOk, fakeDeleteOk}},
+		"Positive 1": {false, &Kubeclient{nil, "", "", fakeGetNilErrClientSet, fakeGetNilErrClientSetForPath, fakeGetOk, fakeListOk, fakeDeleteOk}},
+		"Positive 2": {false, &Kubeclient{&client.Clientset{}, "", "", fakeGetNilErrClientSet, fakeGetNilErrClientSetForPath, fakeGetOk, fakeListOk, fakeDeleteOk}},
 		// Negative tests
-		"Negative 1": {true, &Kubeclient{nil, "", fakeGetErrClientSet, fakeGetOk, fakeListOk, fakeDeleteOk}},
+		"Negative 1": {true, &Kubeclient{nil, "", "", fakeGetErrClientSet, fakeGetErrClientSetForPath, fakeGetOk, fakeListOk, fakeDeleteOk}},
 	}
 
 	for name, mock := range tests {

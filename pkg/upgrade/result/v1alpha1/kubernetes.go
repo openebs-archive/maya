@@ -35,6 +35,10 @@ import (
 // abstracts fetching internal clientset
 type getClientsetFunc func() (cs *clientset.Clientset, err error)
 
+// getClientsetForPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (cs *clientset.Clientset, err error)
+
 // listFunc is a typed function that abstracts
 // listing upgrade result instances
 type listFunc func(cs *clientset.Clientset, namespace string, opts metav1.ListOptions) (*apis.UpgradeResultList, error)
@@ -66,13 +70,17 @@ type Kubeclient struct {
 	// make kubernetes API calls
 	clientset *clientset.Clientset
 	namespace string
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset getClientsetFunc
-	list         listFunc
-	get          getFunc
-	create       createFunc
-	patch        patchFunc
-	update       updateFunc
+	getClientset        getClientsetFunc
+	list                listFunc
+	get                 getFunc
+	create              createFunc
+	patch               patchFunc
+	update              updateFunc
+	getClientsetForPath getClientsetForPathFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -84,7 +92,17 @@ type KubeclientBuildOption func(*Kubeclient)
 func (k *Kubeclient) withDefaults() {
 	if k.getClientset == nil {
 		k.getClientset = func() (cs *clientset.Clientset, err error) {
-			config, err := client.GetConfig(client.New())
+			config, err := client.New().GetConfigForPathOrDirect()
+			if err != nil {
+				return nil, err
+			}
+			return clientset.NewForConfig(config)
+		}
+	}
+
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+			config, err := client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
@@ -143,9 +161,24 @@ func WithClientset(c *clientset.Clientset) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
+func (k *Kubeclient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
+// NewKubeClient returns a new instance of kubeclient meant for
 // upgrade result related operations
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -167,11 +200,11 @@ func (k *Kubeclient) getClientOrCached() (*clientset.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	cs, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
-	k.clientset = c
+	k.clientset = cs
 	return k.clientset, nil
 }
 
@@ -337,7 +370,7 @@ func UpdateTasks(opts ...UpgradeResultForTaskOption) error {
 		return errors.New("failed to update upgrade result tasks: missing upgrade result name")
 	}
 	// First get the desired upgrade result instance
-	k := KubeClient()
+	k := NewKubeClient()
 	k.namespace = new.namespace
 	existing, err := k.Get(new.name, metav1.GetOptions{})
 	if err != nil {

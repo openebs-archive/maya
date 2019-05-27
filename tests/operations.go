@@ -17,32 +17,60 @@ limitations under the License.
 package tests
 
 import (
+	"bytes"
+	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
+	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
+	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
-	maxRetry = 30
+	maxRetry = 50
 )
+
+// Options holds the args used for exec'ing into the pod
+type Options struct {
+	podName   string
+	container string
+	namespace string
+	cmd       []string
+}
 
 // Operations provides clients amd methods to perform operations
 type Operations struct {
+	KubeClient     *kubeclient.Client
 	PodClient      *pod.KubeClient
 	SCClient       *sc.Kubeclient
 	PVCClient      *pvc.Kubeclient
 	NSClient       *ns.Kubeclient
 	SnapClient     *snap.Kubeclient
+	CSPClient      *csp.Kubeclient
+	SPCClient      *spc.Kubeclient
+	SVCClient      *svc.Kubeclient
+	CVClient       *cv.Kubeclient
+	URClient       *result.Kubeclient
+	UnstructClient *unstruct.Kubeclient
 	kubeConfigPath string
 }
 
@@ -69,9 +97,42 @@ func NewOperations(opts ...OperationsOptions) *Operations {
 	return ops
 }
 
+// NewOptions returns the new instance of Options
+func NewOptions() *Options {
+	return new(Options)
+}
+
+// WithPodName fills the podName field in Options struct
+func (o *Options) WithPodName(name string) *Options {
+	o.podName = name
+	return o
+}
+
+// WithNamespace fills the namespace field in Options struct
+func (o *Options) WithNamespace(ns string) *Options {
+	o.namespace = ns
+	return o
+}
+
+// WithContainer fills the container field in Options struct
+func (o *Options) WithContainer(container string) *Options {
+	o.container = container
+	return o
+}
+
+// WithCommand fills the cmd field in Options struct
+func (o *Options) WithCommand(cmd ...string) *Options {
+	o.cmd = cmd
+	return o
+}
+
 // withDefaults sets the default options
 // of operations instance
 func (ops *Operations) withDefaults() {
+	var err error
+	if ops.KubeClient == nil {
+		ops.KubeClient = kubeclient.New(kubeclient.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 	if ops.NSClient == nil {
 		ops.NSClient = ns.NewKubeClient(ns.WithKubeConfigPath(ops.kubeConfigPath))
 	}
@@ -86,6 +147,22 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.SnapClient == nil {
 		ops.SnapClient = snap.NewKubeClient(snap.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.SPCClient == nil {
+		ops.SPCClient = spc.NewKubeClient(spc.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.CSPClient == nil {
+		ops.CSPClient, err = csp.KubeClient().WithKubeConfigPath(ops.kubeConfigPath)
+		Expect(err).To(BeNil(), "while initilizing csp client")
+	}
+	if ops.CVClient == nil {
+		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.URClient == nil {
+		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.UnstructClient == nil {
+		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
@@ -102,6 +179,20 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 	return podCount
 }
 
+// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// selecter
+func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) int {
+	var cvCount int
+	for i := 0; i < maxRetry; i++ {
+		cvCount = ops.GetCVCount(namespace, lselector)
+		if cvCount == expectedCVCount {
+			return cvCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cvCount
+}
+
 // GetPodRunningCount gives number of pods running currently
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
@@ -111,6 +202,19 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	return pod.
 		ListBuilderForAPIList(pods).
 		WithFilter(pod.IsRunning()).
+		List().
+		Len()
+}
+
+// GetCVCount gives cstorvolume healthy count currently based on selecter
+func (ops *Operations) GetCVCount(namespace, lselector string) int {
+	cvs, err := ops.CVClient.
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return cv.
+		NewListBuilder().
+		WithAPIList(cvs).
+		WithFilter(cv.IsHealthy()).
 		List().
 		Len()
 }
@@ -172,6 +276,14 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 	return false
 }
 
+// GetPVNameFromPVCName gives the pv name for the given pvc
+func (ops *Operations) GetPVNameFromPVCName(pvcName string) string {
+	p, err := ops.PVCClient.
+		Get(pvcName, metav1.GetOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+	return p.Spec.VolumeName
+}
+
 // isNotFound returns true if the original
 // cause of error was due to castemplate's
 // not found error or kubernetes not found
@@ -183,4 +295,129 @@ func isNotFound(err error) bool {
 	default:
 		return k8serrors.IsNotFound(err)
 	}
+}
+
+// DeleteCSP ...
+func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
+	cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+	Expect(err).To(BeNil())
+	cspList := csp.
+		ListBuilderForAPIObject(cspAPIList).
+		List().
+		Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy"))
+	cspCount := cspList.Len()
+	Expect(deleteCount).Should(BeNumerically("<=", cspCount))
+
+	for i := 0; i < deleteCount; i++ {
+		_, err := ops.CSPClient.Delete(cspList.ObjectList.Items[i].Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil())
+
+	}
+}
+
+// GetHealthyCSPCount gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) int {
+	var cspCount int
+	for i := 0; i < maxRetry; i++ {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		cspCount = csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Len()
+		if cspCount == expectedCSPCount {
+			return cspCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspCount
+}
+
+// ExecPod executes arbitrary command inside the pod
+func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
+	var (
+		execOut bytes.Buffer
+		execErr bytes.Buffer
+		err     error
+	)
+	By("getting rest config")
+	config, err := ops.KubeClient.GetConfigForPathOrDirect()
+	Expect(err).To(BeNil(), "while getting config for exec'ing into pod")
+	By("getting clientset")
+	cset, err := ops.KubeClient.Clientset()
+	Expect(err).To(BeNil(), "while getting clientset for exec'ing into pod")
+	req := cset.
+		CoreV1().
+		RESTClient().
+		Post().
+		Resource("pods").
+		Name(opts.podName).
+		Namespace(opts.namespace).
+		SubResource("exec").
+		Param("container", opts.container).
+		VersionedParams(&corev1.PodExecOptions{
+			Container: opts.container,
+			Command:   opts.cmd,
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       false,
+		}, scheme.ParameterCodec)
+
+	By("creating a POST request for executing command")
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	Expect(err).To(BeNil(), "while exec'ing command in pod ", opts.podName)
+
+	By("processing request")
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdout: &execOut,
+		Stderr: &execErr,
+		Tty:    false,
+	})
+	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
+	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
+	return execOut.Bytes(), nil
+}
+
+// GetPodCompletedCountEventually gives the number of pods running eventually
+func (ops *Operations) GetPodCompletedCountEventually(namespace, lselector string, expectedPodCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podCount = ops.GetPodCompletedCount(namespace, lselector)
+		if podCount == expectedPodCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
+}
+
+// GetPodCompletedCount gives number of pods running currently
+func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
+		WithFilter(pod.IsCompleted()).
+		List().
+		Len()
+}
+
+// VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
+// have success
+func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector string) bool {
+	urList, err := ops.URClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	for _, task := range urList.Items[0].Tasks {
+		if task.Status == "Fail" {
+			fmt.Printf("task : %v\n", task)
+			return false
+		}
+	}
+	return true
 }
