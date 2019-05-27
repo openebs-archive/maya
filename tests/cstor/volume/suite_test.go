@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
-	"github.com/openebs/maya/tests/artifacts"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
@@ -68,23 +67,8 @@ var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
+	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath)).VerifyOpenebs(1)
 	var err error
-	By("waiting for maya-apiserver pod to come into running state")
-	podCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.MayaAPIServerLabelSelector),
-		1,
-	)
-	Expect(podCount).To(Equal(1))
-
-	By("waiting for openebs-provisioner pod to come into running state")
-	podCount = ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSProvisionerLabelSelector),
-		1,
-	)
-	Expect(podCount).To(Equal(1))
 
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().

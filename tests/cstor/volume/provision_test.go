@@ -60,8 +60,9 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
 			By("verifying healthy csp count")
-			cspCount := ops.GetHealthyCSPCount(spcName, 1)
-			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
+			cspCount := ops.GetHealthyCSPCountEventually(spcName, 1)
+			Expect(cspCount).To(Equal(true), "while checking cstorpool health status")
+			//		Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
 		})
 	})
@@ -138,7 +139,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			By("verifying if cstorvolume is deleted")
 			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
 			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
-			Expect(cvCount).To(Equal(0), "while checking cstorvolume count")
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})
 

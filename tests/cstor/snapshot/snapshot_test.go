@@ -31,13 +31,13 @@ import (
 var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 	var (
 		err      error
-		pvcName  = "cstor-pvc"
-		snapName = "cstorsnapshot"
+		pvcName  = "test-cstor-snap-pvc"
+		snapName = "test-cstor-snap-snapshot"
 	)
 
 	BeforeEach(func() {
-		When("we are creating pool deployment", func() {
-			By("building object of storageclass")
+		When("deploying cstor sparse pool", func() {
+			By("building storageclass object")
 			scObj, err = sc.NewBuilder().
 				WithName(scName).
 				WithAnnotations(annotations).
@@ -70,15 +70,10 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 
 	AfterEach(func() {
 		By("deleting resources created for cstor volume snapshot provisioning", func() {
-			By("listing spc")
-			spcList, err = ops.SPCClient.List(metav1.ListOptions{})
-			Expect(err).To(BeNil(), "while listing spc clients", spcList)
+			By("deleting storagepoolclaim")
+			_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting the spc's {%s}", spcName)
 
-			By("deleting spc")
-			for _, spc := range spcList.Items {
-				_, err = ops.SPCClient.Delete(spc.Name, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting the spc's", spc)
-			}
 			By("deleting storageclass")
 			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting storageclass", scName)
@@ -89,7 +84,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 	When("cstor pvc with replicacount 1 is created", func() {
 		It("should create cstor volume target pod", func() {
 
-			By("building a pvc")
+			By("building a persistentvolumeclaim")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(nsName).
@@ -103,7 +98,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsName,
 			)
 
-			By("creating above pvc")
+			By("creating cstor persistentvolumeclaim")
 			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
@@ -112,7 +107,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsName,
 			)
 
-			By("verifying target pod count as 1")
+			By("verifying volume target pod count as 1")
 			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
@@ -159,7 +154,6 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			snap := ops.IsSnapshotDeleted(snapName)
 			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
 
-			// volume delete operation step-3
 			By("deleting above pvc")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
