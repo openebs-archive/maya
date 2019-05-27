@@ -15,9 +15,7 @@ package jiva
 
 import (
 	"flag"
-	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strconv"
 
@@ -27,9 +25,10 @@ import (
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	http "github.com/openebs/maya/pkg/util/http/v1alpha1"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
@@ -55,11 +54,11 @@ var (
 	pvcObj                *corev1.PersistentVolumeClaim
 	pvcName               = "jiva-volume-claim"
 	scObj                 *storagev1.StorageClass
-	openebsArtifact,
-	rbacArtifact,
-	crArtifact,
-	runtaskArtifact,
-	jobArtifact artifacts.Artifact
+	openebsYAML,
+	rbacYAML,
+	crYAML,
+	runtaskYAML,
+	jobYAML string
 )
 
 func TestSource(t *testing.T) {
@@ -76,11 +75,11 @@ var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	openebsArtifact = getArtifactFromURL("https://openebs.github.io/charts/openebs-operator-0.8.2.yaml")
-	rbacArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml")
-	crArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml")
-	runtaskArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml")
-	jobArtifact = getArtifactFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml")
+	openebsYAML = getYAMLFromURL("https://openebs.github.io/charts/openebs-operator-0.8.2.yaml")
+	rbacYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/rbac.yaml")
+	crYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/cr.yaml")
+	runtaskYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/jiva_upgrade_runtask.yaml")
+	jobYAML = getYAMLFromURL("https://raw.githubusercontent.com/openebs/openebs/master/k8s/upgrades/0.8.2-0.9.0/jiva/volume-upgrade-job.yaml")
 
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 	openebsCASConfigValue = openebsCASConfigValue + strconv.Itoa(replicaCount)
@@ -90,7 +89,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 
 	By("applying openebs 0.8.2")
-	applyArtifact(openebsArtifact, "")
+	applyYAML(openebsYAML, "")
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(
@@ -151,10 +150,6 @@ var _ = BeforeSuite(func() {
 	status := ops.IsPVCBound(pvcName)
 	Expect(status).To(Equal(true), "while checking status equal to bound")
 
-	// TODO
-	// By("applying openebs 0.9.0")
-	// applyYAMLFromURL("https://openebs.github.io/charts/openebs-operator-0.9.0-RC3.yaml", "")
-
 })
 
 var _ = AfterSuite(func() {
@@ -180,12 +175,12 @@ var _ = AfterSuite(func() {
 	err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
-	By("Cleanup")
-	deleteArtifact(jobArtifact, "job")
-	deleteArtifact(runtaskArtifact, "")
-	deleteArtifact(crArtifact, "")
-	deleteArtifact(rbacArtifact, "")
-	deleteArtifact(openebsArtifact, "")
+	By("cleanup")
+	deleteYAML(jobYAML, "job")
+	deleteYAML(runtaskYAML, "")
+	deleteYAML(crYAML, "")
+	deleteYAML(rbacYAML, "")
+	deleteYAML(openebsYAML, "")
 	podList, err := ops.PodClient.
 		WithNamespace("default").
 		List(metav1.ListOptions{})
@@ -198,60 +193,42 @@ var _ = AfterSuite(func() {
 	}
 })
 
-func getArtifactFromURL(url string) artifacts.Artifact {
+func getYAMLFromURL(url string) string {
 	// Read yaml file from the url
-	o, err := fetch(url)
+	o, err := http.Fetch(url)
 	Expect(err).ShouldNot(HaveOccurred())
 	defer o.Close()
 	b, err := ioutil.ReadAll(o)
 	Expect(err).ShouldNot(HaveOccurred())
 	// Connvert the yaml to unstructured objects
-	yamlString := string(b)
-	return artifacts.Artifact(yamlString)
+	return string(b)
 }
 
-func applyArtifact(artifact artifacts.Artifact, flag string) {
-	artifactList, errs := artifacts.GetArtifactsListUnstructured(artifact)
-	Expect(errs).Should(HaveLen(0))
+func applyYAML(yamlString string, flag string) {
+	unstructList, err := unstruct.ListBuilderForYamls(yamlString).Build()
+	Expect(err).ShouldNot(HaveOccurred())
 	// Applying unstructured objects
-	for i, artifact := range artifactList {
+	for i, us := range unstructList {
 		if flag == "job" && i == 0 {
-			unstructured.SetNestedStringMap(artifact.Object, data, "data")
+			unstructured.SetNestedStringMap(us.Object.Object, data, "data")
 		}
 		if flag == "job" && i == 1 {
-			artifact.SetNamespace("default")
+			us.Object.SetNamespace("default")
 		}
-		cu := k8s.CreateOrUpdate(
-			k8s.GroupVersionResourceFromGVK(artifact),
-			artifact.GetNamespace(),
-		)
-		_, err := cu.Apply(artifact)
+		err = ops.UnstructClient.Create(us.Object)
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 }
 
-func deleteArtifact(artifact artifacts.Artifact, flag string) {
-	artifactList, errs := artifacts.GetArtifactsListUnstructured(artifact)
-	Expect(errs).Should(HaveLen(0))
+func deleteYAML(yamlString string, flag string) {
+	unstructList, err := unstruct.ListBuilderForYamls(yamlString).Build()
+	Expect(err).ShouldNot(HaveOccurred())
 	// Applying unstructured objects
-	for i, artifact := range artifactList {
+	for i, us := range unstructList {
 		if flag == "job" && i == 1 {
-			artifact.SetNamespace("default")
+			us.Object.SetNamespace("default")
 		}
-		del := k8s.DeleteResource(
-			k8s.GroupVersionResourceFromGVK(artifact),
-			artifact.GetNamespace(),
-		)
-		err := del.Delete(artifact)
+		err = ops.UnstructClient.Delete(us.Object)
 		Expect(err).ShouldNot(HaveOccurred())
 	}
-}
-
-func fetch(url string) (io.ReadCloser, error) {
-	httpClient := *http.DefaultClient
-	resp, err := httpClient.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	return resp.Body, nil
 }

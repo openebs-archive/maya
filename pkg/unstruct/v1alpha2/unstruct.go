@@ -26,13 +26,13 @@ import (
 
 // Unstruct holds an object of Unstructured
 type Unstruct struct {
-	object *unstructured.Unstructured
+	Object *unstructured.Unstructured
 }
 
 // GetUnstructured converts Unstruct object
 // to API's Unstructured
 func (u *Unstruct) GetUnstructured() *unstructured.Unstructured {
-	return u.object
+	return u.Object
 }
 
 // Builder enables building of an
@@ -59,7 +59,7 @@ func NewBuilder() *Builder {
 // YAML
 func BuilderForYaml(doc string) *Builder {
 	b := NewBuilder()
-	err := yaml.Unmarshal([]byte(doc), &b.unstruct.object)
+	err := yaml.Unmarshal([]byte(doc), &b.unstruct.Object)
 	if err != nil {
 		b.errs = append(b.errs, err)
 	}
@@ -70,7 +70,7 @@ func BuilderForYaml(doc string) *Builder {
 // Unstruct Builder by making use of the provided object
 func BuilderForObject(obj *unstructured.Unstructured) *Builder {
 	b := NewBuilder()
-	b.unstruct.object = obj
+	b.unstruct.Object = obj
 	return b
 }
 
@@ -89,7 +89,7 @@ func (b *Builder) BuildAPIUnstructured() (*unstructured.Unstructured, error) {
 	if len(b.errs) != 0 {
 		return nil, errors.Errorf("errors {%+v}", b.errs)
 	}
-	return b.unstruct.object, nil
+	return b.unstruct.Object, nil
 }
 
 // UnstructList contains a list of Unstructured

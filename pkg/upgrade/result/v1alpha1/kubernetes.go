@@ -35,7 +35,7 @@ import (
 // abstracts fetching internal clientset
 type getClientsetFunc func() (cs *clientset.Clientset, err error)
 
-// getClientsetFromPathFn is a typed function that
+// getClientsetForPathFn is a typed function that
 // abstracts fetching of clientset from kubeConfigPath
 type getClientsetForPathFn func(kubeConfigPath string) (cs *clientset.Clientset, err error)
 

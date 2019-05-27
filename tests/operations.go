@@ -36,6 +36,7 @@ import (
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,6 +70,7 @@ type Operations struct {
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
 	URClient       *result.Kubeclient
+	UnstructClient *unstruct.Kubeclient
 	kubeConfigPath string
 }
 
@@ -156,9 +158,11 @@ func (ops *Operations) withDefaults() {
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
 	}
-
 	if ops.URClient == nil {
 		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.UnstructClient == nil {
+		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
@@ -272,8 +276,8 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 	return false
 }
 
-// GetPVName gives the pv name for the given pvc
-func (ops *Operations) GetPVName(pvcName string) string {
+// GetPVNameFromPVCName gives the pv name for the given pvc
+func (ops *Operations) GetPVNameFromPVCName(pvcName string) string {
 	p, err := ops.PVCClient.
 		Get(pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
@@ -402,9 +406,9 @@ func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
 		Len()
 }
 
-// CheckUpgradeResult checks whether all the tasks in upgraderesult
+// VerifyUpgradeResultTasksIsSuccess checks whether all the tasks in upgraderesult
 // have success
-func (ops *Operations) CheckUpgradeResult(namespace, lselector string) bool {
+func (ops *Operations) VerifyUpgradeResultTasksIsSuccess(namespace, lselector string) bool {
 	urList, err := ops.URClient.
 		WithNamespace(namespace).
 		List(metav1.ListOptions{LabelSelector: lselector})

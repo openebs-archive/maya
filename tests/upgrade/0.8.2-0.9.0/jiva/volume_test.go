@@ -35,29 +35,29 @@ var _ = Describe("[jiva] TEST VOLUME UPGRADE", func() {
 
 			// fetching name of pv to update the configmap with the resource to
 			// be upgraded
-			pvName := ops.GetPVName(pvcName)
+			pvName := ops.GetPVNameFromPVCName(pvcName)
 			data = make(map[string]string)
 			data["upgrade"] = "casTemplate: jiva-volume-update-0.8.2-0.9.0\nresources:\n- name: " + pvName + "\n  kind: jiva-volume\n  namespace: default\n"
 			urLable = urLable + pvName
 
 			By("applying rbac.yaml")
-			applyArtifact(rbacArtifact, "")
+			applyYAML(rbacYAML, "")
 
 			By("applying cr.yaml")
-			applyArtifact(crArtifact, "")
+			applyYAML(crYAML, "")
 
 			By("applying jiva_upgrade_runtask.yaml")
-			applyArtifact(runtaskArtifact, "")
+			applyYAML(runtaskYAML, "")
 
 			By("applying volume-upgrade-job.yaml")
-			applyArtifact(jobArtifact, "job")
+			applyYAML(jobYAML, "job")
 
 			By("verifying completed pod count as 1")
 			completedPodCount := ops.GetPodCompletedCountEventually("default", jobLable, 1)
 			Expect(completedPodCount).To(Equal(1), "while checking complete pod count")
 
 			By("verifying upgraderesult")
-			status := ops.CheckUpgradeResult(nsName, urLable)
+			status := ops.VerifyUpgradeResultTasksIsSuccess(nsName, urLable)
 			Expect(status).To(Equal(true), "while checking upgraderesult")
 
 			By("verifying controller pod count")
