@@ -340,12 +340,13 @@ func LabelClear(disks []string) error {
 		labelClearStr := []string{"labelclear", "-f", disk}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label: %v, err = %v", string(stdoutStderr), err)
+			glog.Errorf("Unable to clear label on disk %v: %v, err = %v", disk,
+				string(stdoutStderr), err)
 			failLabelClear = true
 		}
 	}
 	if failLabelClear {
-		return fmt.Errorf("Unable to clear labels from the disks of the pool")
+		return fmt.Errorf("Unable to clear labels from all the disks of the pool")
 	}
 	return nil
 }
