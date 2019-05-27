@@ -19,6 +19,7 @@ package snapshot
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openebs/maya/tests/jiva"
 
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
@@ -74,8 +75,8 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying replica pod count")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, replicaCount)
-			Expect(replicaPodCount).To(Equal(replicaCount), "while checking replica pod count")
+			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, jiva.ReplicaCount)
+			Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 			By("verifying status as bound")
 			status := ops.IsPVCBound(pvcName)
@@ -149,8 +150,8 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			)
 
 			By("verifying clone pod count")
-			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, replicaCount+1)
-			Expect(clonePodCount).To(Equal(replicaCount+1), "while checking clone pvc pod count")
+			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, jiva.ReplicaCount+1)
+			Expect(clonePodCount).To(Equal(jiva.ReplicaCount+1), "while checking clone pvc pod count")
 
 		})
 	})

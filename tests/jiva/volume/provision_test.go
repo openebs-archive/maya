@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	"github.com/openebs/maya/tests/jiva"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,8 +70,8 @@ var _ = Describe("[jiva] TEST VOLUME PROVISIONING", func() {
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying replica pod count ")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, replicaCount)
-			Expect(replicaPodCount).To(Equal(replicaCount), "while checking replica pod count")
+			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, jiva.ReplicaCount)
+			Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 			By("verifying status as bound")
 			status := ops.IsPVCBound(pvcName)
