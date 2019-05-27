@@ -62,20 +62,20 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 			string(apis.CASConfigKey): openebsCASConfigValue,
 		}
 
-		By("Building a namespace")
+		By("building a namespace")
 		nsObj, err = ns.NewBuilder().
 			WithName(nsName).
 			APIObject()
 		Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
-		By("Building a storageclass")
+		By("building a storageclass")
 		scObj, err = sc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
 			WithProvisioner(openebsProvisioner).Build()
 		Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
-		By("Building a persistentvolumeclaim")
+		By("building a persistentvolumeclaim")
 		pvcObj, err = pvc.NewBuilder().
 			WithName(pvcName).
 			WithNamespace(nsName).
@@ -84,11 +84,11 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 			WithCapacity(capacity).Build()
 		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-		By("Creating a namespace")
+		By("creating a namespace")
 		_, err = ops.NSClient.Create(nsObj)
 		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
-		By("Creating a storageclass")
+		By("creating a storageclass")
 		_, err = ops.SCClient.Create(scObj)
 		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 
@@ -97,7 +97,7 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CAS CONFIGURATIONS IN SC", func() {
 	When("jiva persistentvolumeclaim referring to invalid storageclass is applied", func() {
 		It("should not create Jiva controller and replica pods", func() {
 
-			By("Creating a persistentvolumeclaim")
+			By("creating a persistentvolumeclaim")
 			_, err := ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).To(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 
@@ -143,20 +143,20 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN persistentvolumecl
 		}
 		var err error
 
-		By("Building a namespace")
+		By("building a namespace")
 		nsObj, err = ns.NewBuilder().
 			WithName(nsName).
 			APIObject()
 		Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
-		By("Building a storageclass")
+		By("building a storageclass")
 		scObj, err = sc.NewBuilder().
 			WithName(scName).
 			WithAnnotations(annotations).
 			WithProvisioner(openebsProvisioner).Build()
 		Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
-		By("Building a persistentvolumeclaim")
+		By("building a persistentvolumeclaim")
 		pvcObj, err = pvc.NewBuilder().
 			WithName(pvcName).
 			WithNamespace(nsName).
@@ -166,18 +166,18 @@ var _ = Describe("[jiva] [-ve] TEST INVALID CONFIGURATIONS IN persistentvolumecl
 			WithCapacity(capacity).Build()
 		Expect(err).ShouldNot(HaveOccurred(), "while building persistentvolumeclaim {%s} in namespace {%s}", pvcName, nsName)
 
-		By("Creating a namespace")
+		By("creating a namespace")
 		_, err = ops.NSClient.Create(nsObj)
 		Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 
-		By("Createing a storageclass")
+		By("createing a storageclass")
 		_, err = ops.SCClient.Create(scObj)
 		Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 	})
 
 	When("We apply invalid persistentvolumeclaim yaml in k8s cluster", func() {
 		It("PVC creation should give error because of invalid pvc yaml", func() {
-			By(fmt.Sprintf("Create PVC named {%s} in Namespace: {%s}", pvcName, nsName))
+			By(fmt.Sprintf("create PVC named {%s} in Namespace: {%s}", pvcName, nsName))
 			_, err := ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).NotTo(BeNil(), "while creating persistentvolumeclaim {%s} in namespace {%s}", pvcObj.Name, nsName)
 		})
