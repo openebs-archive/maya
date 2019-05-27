@@ -26,7 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type upgradeResult struct {
+//UpgradeResult holds the apis upgraderesult object
+type UpgradeResult struct {
 	// upgrade result object
 	object *apis.UpgradeResult
 }
@@ -35,13 +36,13 @@ type upgradeResult struct {
 // upgradeResults
 type UpgradeResultList struct {
 	// list of upgrade results
-	items []*upgradeResult
+	items []*UpgradeResult
 }
 
 // Builder enables building an instance of
 // upgradeResult
 type Builder struct {
-	*upgradeResult
+	*UpgradeResult
 	checks map[*Predicate]string
 	errors []error
 }
@@ -55,12 +56,12 @@ type Builder struct {
 // NOTE:
 // Predicate approach enables clear separation of conditionals from
 // imperatives i.e. actions that form the business logic
-type Predicate func(*upgradeResult) bool
+type Predicate func(*UpgradeResult) bool
 
 // NewBuilder returns a new instance of Builder
 func NewBuilder() *Builder {
 	return &Builder{
-		upgradeResult: &upgradeResult{
+		UpgradeResult: &UpgradeResult{
 			object: &apis.UpgradeResult{},
 		},
 		checks: make(map[*Predicate]string),
@@ -98,7 +99,7 @@ func (b *Builder) WithResultConfig(resource apis.ResourceDetails,
 // of Builder for a given template object
 func BuilderForYAMLObject(object []byte) *Builder {
 	b := &Builder{
-		upgradeResult: &upgradeResult{
+		UpgradeResult: &UpgradeResult{
 			object: &apis.UpgradeResult{},
 		},
 		checks: make(map[*Predicate]string),
@@ -120,14 +121,14 @@ func (b *Builder) Build() (*apis.UpgradeResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b.upgradeResult.object, nil
+	return b.UpgradeResult.object, nil
 }
 
 // validate will run checks against upgrade
 // result instance
 func (b *Builder) validate() error {
 	for cond := range b.checks {
-		pass := (*cond)(b.upgradeResult)
+		pass := (*cond)(b.UpgradeResult)
 		if !pass {
 			b.errors = append(b.errors,
 				errors.Errorf("validation failed: %s", b.checks[cond]))
@@ -183,7 +184,7 @@ func (b *ListBuilder) WithAPIList(list *apis.UpgradeResultList) *ListBuilder {
 		return b
 	}
 	for i := range list.Items {
-		b.list.items = append(b.list.items, &upgradeResult{object: &list.Items[i]})
+		b.list.items = append(b.list.items, &UpgradeResult{object: &list.Items[i]})
 	}
 	return b
 }

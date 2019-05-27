@@ -106,12 +106,14 @@ func TestBuilderForYAML(t *testing.T) {
 		"Test 2": {fakeInvalidK8sResource, "", true},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := BuilderForYaml(mock.resourceYAML)
 			if mock.expectError && len(b.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got 0", name)
-			} else if b.unstruct.object.GetName() != mock.expectedName {
-				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.object.GetName())
+			} else if b.unstruct.Object.GetName() != mock.expectedName {
+				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.Object.GetName())
 			}
 		})
 	}
@@ -125,11 +127,13 @@ func TestBuilderForObject(t *testing.T) {
 		"Test 2": {"icstcee1", "icstcee1"},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			mockObj := fakeUnstructObject(mock.resourceName)
 			b := BuilderForObject(mockObj)
-			if b.unstruct.object.GetName() != mock.expectedName {
-				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.object.GetName())
+			if b.unstruct.Object.GetName() != mock.expectedName {
+				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.unstruct.Object.GetName())
 			}
 		})
 	}
@@ -144,12 +148,14 @@ func TestBuilderForYamlBuild(t *testing.T) {
 		"Test 2": {fakeInvalidK8sResource, "", true},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b, err := BuilderForYaml(mock.resourceYAML).Build()
 			if mock.expectError && err == nil {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if b != nil && b.object.GetName() != mock.expectedName {
-				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.object.GetName())
+			} else if b != nil && b.Object.GetName() != mock.expectedName {
+				t.Fatalf("Test %s failed, expected %v but got %v", name, mock.expectedName, b.Object.GetName())
 			}
 		})
 	}
@@ -167,12 +173,14 @@ func TestListBuilderForYamls(t *testing.T) {
 		"Test 4": {fakeK8sResourceList(fakeInvalidK8sResource, 2), 0, true},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilderForYamls(mock.resourceYAML)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.list.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
+			} else if len(lb.list.Items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.Items))
 			}
 		})
 	}
@@ -190,12 +198,14 @@ func TestListUnstructBuilderForObjects(t *testing.T) {
 		"Test 4": {[]*unstructured.Unstructured{fakePodObject(), fakeDeploymentObject(), fakeServiceObject(), fakeNamespaceObject()}, 4, false},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			lb := ListBuilderForObjects(mock.availableResources...)
 			if mock.expectErr && len(lb.errs) == 0 {
 				t.Fatalf("Test %s failed, expected err but got nil", name)
-			} else if len(lb.list.items) != mock.expectedResourceCount {
-				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.items))
+			} else if len(lb.list.Items) != mock.expectedResourceCount {
+				t.Fatalf("Test %s failed, expected resource count %v but got %v", name, mock.expectedResourceCount, len(lb.list.Items))
 			}
 		})
 	}

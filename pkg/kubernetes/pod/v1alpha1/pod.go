@@ -76,6 +76,20 @@ func IsRunning() Predicate {
 	}
 }
 
+// IsCompleted retuns true if the pod is in completed
+// state
+func (p *Pod) IsCompleted() bool {
+	return p.object.Status.Phase == "Succeeded"
+}
+
+// IsCompleted is a predicate to filter out pods
+// which in completed state
+func IsCompleted() Predicate {
+	return func(p *Pod) bool {
+		return p.IsCompleted()
+	}
+}
+
 // HasLabels returns true if provided labels
 // map[key]value are present in the provided PodList
 // instance
