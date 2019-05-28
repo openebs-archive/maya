@@ -128,7 +128,8 @@ var _ = Describe("StatefulSet", func() {
 		// Check for pvc to get created and bound
 		Eventually(func() int {
 			pvcs, err := pvc.
-				NewKubeClient().WithNamespace(stsNamespace).
+				NewKubeClient().
+				WithNamespace(stsNamespace).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			pvcCount, err := pvc.
@@ -160,7 +161,8 @@ var _ = Describe("StatefulSet", func() {
 		// Check for statefulset pods to get created and running
 		Eventually(func() int {
 			pods, err := pod.
-				NewKubeClient().WithNamespace(stsNamespace).
+				NewKubeClient().
+				WithNamespace(stsNamespace).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return pod.
@@ -189,12 +191,14 @@ var _ = Describe("StatefulSet", func() {
 		stsApplicationLabel := "app=" + STSUnstructured.GetName()
 
 		// Fetch PVCs to be deleted
-		pvcs, err := pvc.NewKubeClient().WithNamespace(stsNamespace).
+		pvcs, err := pvc.NewKubeClient().
+			WithNamespace(stsNamespace).
 			List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 		Expect(err).ShouldNot(HaveOccurred())
 		// Delete PVCs
 		for _, p := range pvcs.Items {
-			err = pvc.NewKubeClient().WithNamespace(stsNamespace).
+			err = pvc.NewKubeClient().
+				WithNamespace(stsNamespace).
 				Delete(p.GetName(), &metav1.DeleteOptions{})
 			Expect(err).ShouldNot(HaveOccurred())
 		}
@@ -210,7 +214,8 @@ var _ = Describe("StatefulSet", func() {
 		// Verify deletion of sts instances
 		Eventually(func() int {
 			pods, err := pod.
-				NewKubeClient().WithNamespace(stsNamespace).
+				NewKubeClient().
+				WithNamespace(stsNamespace).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pods.Items)
@@ -220,7 +225,8 @@ var _ = Describe("StatefulSet", func() {
 		// Verify deletion of pvc instances
 		Eventually(func() int {
 			pvcs, err := pvc.
-				NewKubeClient().WithNamespace(stsNamespace).
+				NewKubeClient().
+				WithNamespace(stsNamespace).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return len(pvcs.Items)
@@ -252,7 +258,8 @@ var _ = Describe("StatefulSet", func() {
 			replicaAntiAffinityLabel := "openebs.io/replica-anti-affinity=" + STSUnstructured.GetName()
 
 			pvcs, err := pvc.
-				NewKubeClient().WithNamespace(stsNamespace).
+				NewKubeClient().
+				WithNamespace(stsNamespace).
 				List(metav1.ListOptions{LabelSelector: stsApplicationLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			pvcList, err := pvc.
