@@ -129,7 +129,9 @@ var _ = BeforeSuite(func() {
 		defaultInstallerList = append(defaultInstallerList, defaultInstaller)
 	}
 
-	podKubeClient := pod.NewKubeClient(pod.WithKubeConfigPath(kubeConfigPath)).WithNamespace(string(artifacts.OpenebsNamespace))
+	podKubeClient := pod.NewKubeClient(
+		pod.WithKubeConfigPath(kubeConfigPath)).
+		WithNamespace(string(artifacts.OpenebsNamespace))
 	// Check for maya-apiserver pod to get created and running
 	_ = getPodList(podKubeClient, string(artifacts.OpenebsNamespace), string(artifacts.MayaAPIServerLabelSelector), 1)
 
