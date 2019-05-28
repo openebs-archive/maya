@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package volume
+package snapshot
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -22,20 +22,22 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
+var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 	var (
-		err     error
-		pvcName = "cstor-volume-claim"
+		err      error
+		pvcName  = "test-cstor-snap-pvc"
+		snapName = "test-cstor-snap-snapshot"
 	)
 
 	BeforeEach(func() {
-		When(" creating a cstor based volume", func() {
-			By("building object of storageclass")
+		When("deploying cstor sparse pool", func() {
+			By("building storageclass object")
 			scObj, err = sc.NewBuilder().
 				WithName(scName).
 				WithAnnotations(annotations).
@@ -60,35 +62,29 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
 			By("verifying healthy csp count")
-			cspCount := ops.GetHealthyCSPCountEventually(spcName, 1)
-			Expect(cspCount).To(Equal(true), "while checking cstorpool health status")
-			//		Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
+			cspCount := ops.GetHealthyCSPCount(spcName, 1)
+			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
 		})
 	})
 
 	AfterEach(func() {
-		By("deleting resources created for testing cstor volume provisioning", func() {
+		By("deleting resources created for cstor volume snapshot provisioning", func() {
+			By("deleting storagepoolclaim")
+			_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting the spc's {%s}", spcName)
+
 			By("deleting storageclass")
 			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting storageclass", scName)
 
-			By("listing spc")
-			spcList, err = ops.SPCClient.List(metav1.ListOptions{})
-			Expect(err).To(BeNil(), "while listing spc clients", spcList)
-
-			By("deleting spc")
-			for _, spc := range spcList.Items {
-				_, err = ops.SPCClient.Delete(spc.Name, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting the spc's", spc)
-			}
 		})
 	})
 
 	When("cstor pvc with replicacount 1 is created", func() {
 		It("should create cstor volume target pod", func() {
 
-			By("building a pvc")
+			By("building a persistentvolumeclaim")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(nsName).
@@ -102,7 +98,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 				nsName,
 			)
 
-			By("creating above pvc")
+			By("creating cstor persistentvolumeclaim")
 			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
@@ -111,16 +107,55 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 				nsName,
 			)
 
-			By("verifying target pod count as 1")
+			By("verifying volume target pod count as 1")
 			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying pvc status as bound")
-			status := ops.IsPVCBound(pvcName)
+			status := ops.IsPVCBoundEventually(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
+			By("building a cstor volume snapshot")
+			snapObj, err = snap.NewBuilder().
+				WithName(snapName).
+				WithNamespace(nsName).
+				WithPVC(pvcName).
+				Build()
+			Expect(err).To(
+				BeNil(),
+				"while building snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("creating cstor volume snapshot")
+			_, err = ops.SnapClient.WithNamespace(nsName).Create(snapObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("verifying type as ready")
+			snaptype := ops.GetSnapshotTypeEventually(snapName)
+			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
+
+			By("deleting cstor volume snapshot")
+			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("verifying deleted snapshot")
+			snap := ops.IsSnapshotDeleted(snapName)
+			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
 			By("deleting above pvc")
-			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
