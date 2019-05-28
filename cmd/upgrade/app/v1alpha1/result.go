@@ -158,7 +158,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 	opts := metav1.ListOptions{
 		LabelSelector: l,
 	}
-	urList, err := upgraderesult.KubeClient().
+	urList, err := upgraderesult.NewKubeClient().
 		WithNamespace(urb.SelfNamespace).
 		List(opts)
 	if err != nil {
@@ -173,7 +173,7 @@ func (urb *UpgradeResultGetOrCreateBuilder) GetOrCreate() (
 				errors.Wrapf(err, "failed to get or create upgrade result: %s", urb)
 		}
 
-		urb.UpgradeResult.object, err = upgraderesult.KubeClient().
+		urb.UpgradeResult.object, err = upgraderesult.NewKubeClient().
 			WithNamespace(urb.SelfNamespace).
 			Create(ur)
 		if err != nil {
