@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package volume
+package snapshot
 
 import (
 	"flag"
@@ -28,6 +28,7 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
@@ -35,20 +36,25 @@ import (
 var (
 	kubeConfigPath        string
 	openebsNamespace      = "openebs"
-	nsName                = "cstor-provision"
-	scName                = "cstor-volume"
-	openebsCASConfigValue = "- name: ReplicaCount\n  value: 1\n- name: StoragePoolClaim\n  value: sparse-pool-auto"
-	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	spcName               = "sparse-pool-auto"
-	nsObj                 *corev1.Namespace
-	scObj                 *storagev1.StorageClass
-	spcObj                *apis.StoragePoolClaim
-	pvcObj                *corev1.PersistentVolumeClaim
-	spcList               *apis.StoragePoolClaimList
-	targetLabel           = "openebs.io/target=cstor-target"
-	accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity              = "5G"
-	annotations           = map[string]string{
+	nsName                = "test-cstor-snap"
+	scName                = "test-cstor-snap-sc"
+	openebsCASConfigValue = `
+- name: ReplicaCount
+  value: 1
+- name: StoragePoolClaim
+  value: test-cstor-snap-sparse-pool
+`
+	openebsProvisioner = "openebs.io/provisioner-iscsi"
+	spcName            = "test-cstor-snap-sparse-pool"
+	nsObj              *corev1.Namespace
+	scObj              *storagev1.StorageClass
+	spcObj             *apis.StoragePoolClaim
+	pvcObj             *corev1.PersistentVolumeClaim
+	snapObj            *snapshot.VolumeSnapshot
+	targetLabel        = "openebs.io/target=cstor-target"
+	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity           = "5G"
+	annotations        = map[string]string{
 		string(apis.CASTypeKey):   string(apis.CstorVolume),
 		string(apis.CASConfigKey): openebsCASConfigValue,
 	}
@@ -56,7 +62,7 @@ var (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test cstor volume provisioning")
+	RunSpecs(t, "Test cstor volume snapshot provisioning")
 }
 
 func init() {
