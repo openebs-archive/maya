@@ -50,7 +50,6 @@ var (
 	scObj              *storagev1.StorageClass
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
-	spcList            *apis.StoragePoolClaimList
 	targetLabel        = "openebs.io/target=cstor-target"
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
