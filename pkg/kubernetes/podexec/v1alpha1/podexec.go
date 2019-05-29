@@ -23,7 +23,8 @@ import (
 	api_core_v1 "k8s.io/api/core/v1"
 )
 
-type podexec struct {
+// PodExec represents the details of pod exec options
+type PodExec struct {
 	object       *api_core_v1.PodExecOptions
 	ignoreErrors bool
 	errs         []error
@@ -31,7 +32,7 @@ type podexec struct {
 
 // AsAPIPodExec validate and returns PodExecOptions object pointer and error
 // depending on ignoreErrors opt and errors
-func (p *podexec) AsAPIPodExec() (*api_core_v1.PodExecOptions, error) {
+func (p *PodExec) AsAPIPodExec() (*api_core_v1.PodExecOptions, error) {
 	err := p.Validate()
 	if err != nil && !p.ignoreErrors {
 		return nil, err
@@ -41,8 +42,8 @@ func (p *podexec) AsAPIPodExec() (*api_core_v1.PodExecOptions, error) {
 
 // BuilderForYAMLObject returns a new instance
 // of Builder for a given template object
-func BuilderForYAMLObject(object []byte) *podexec {
-	p := &podexec{}
+func BuilderForYAMLObject(object []byte) *PodExec {
+	p := &PodExec{}
 	exec := &api_core_v1.PodExecOptions{}
 	err := yaml.Unmarshal(object, exec)
 	if err != nil {
@@ -55,7 +56,7 @@ func BuilderForYAMLObject(object []byte) *podexec {
 
 // Validate validates PodExecOptions it mainly checks for container name is present or not and
 // commands are present or not.
-func (p *podexec) Validate() error {
+func (p *PodExec) Validate() error {
 	if len(p.errs) != 0 {
 		return fmt.Errorf("validation failed: %v", p.errs)
 	}
@@ -68,17 +69,19 @@ func (p *podexec) Validate() error {
 	return nil
 }
 
-type buildOption func(*podexec)
+// BuildOption represents the various build options
+// against PodExec operation
+type BuildOption func(*PodExec)
 
 // IgnoreErrors is a buildOption that is used ignore errors
-func IgnoreErrors() buildOption {
-	return func(p *podexec) {
+func IgnoreErrors() BuildOption {
+	return func(p *PodExec) {
 		p.ignoreErrors = true
 	}
 }
 
-// Apply applies all build options in podexec
-func (p *podexec) Apply(opts ...buildOption) *podexec {
+// Apply applies all build options in PodExec
+func (p *PodExec) Apply(opts ...BuildOption) *PodExec {
 	for _, o := range opts {
 		o(p)
 	}
