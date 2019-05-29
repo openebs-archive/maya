@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	"github.com/openebs/maya/pkg/template"
 	api_core_v1 "k8s.io/api/core/v1"
 )
 
@@ -40,23 +39,18 @@ func (p *podexec) AsAPIPodExec() (*api_core_v1.PodExecOptions, error) {
 	return p.object, nil
 }
 
-// WithTemplate takes Yaml values which is given in runtask and key in which configuration
-// is present and unmarshal it with PodExecOptions.
-func WithTemplate(context, yamlString string, values map[string]interface{}) (p *podexec) {
-	p = &podexec{}
-	b, err := template.AsTemplatedBytes(context, yamlString, values)
-	if err != nil {
-		p.errs = append(p.errs, err)
-		return
-	}
+// BuilderForYAMLObject returns a new instance
+// of Builder for a given template object
+func BuilderForYAMLObject(object []byte) *podexec {
+	p := &podexec{}
 	exec := &api_core_v1.PodExecOptions{}
-	err = yaml.Unmarshal(b, exec)
+	err := yaml.Unmarshal(object, exec)
 	if err != nil {
 		p.errs = append(p.errs, err)
-		return
+		return p
 	}
 	p.object = exec
-	return
+	return p
 }
 
 // Validate validates PodExecOptions it mainly checks for container name is present or not and
