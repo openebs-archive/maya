@@ -448,11 +448,6 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	}
 }
 
-func (c *CStorPoolController) getCStorPoolSpec(csp *apis.CStorPool) (*pool.CStorPoolSpec) {
-	// TODO: Add error handling
-	return pool.GetCStorPoolSpec(csp)
-}
-
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
 	// TODO: Add error handling
 	return pool.GetDeviceIDs(csp)
