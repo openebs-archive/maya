@@ -45,15 +45,15 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 
 // BlockDevices returns a BlockDeviceInformer.
 func (v *version) BlockDevices() BlockDeviceInformer {
-	return &blockDeviceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &blockDeviceInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // BlockDeviceClaims returns a BlockDeviceClaimInformer.
 func (v *version) BlockDeviceClaims() BlockDeviceClaimInformer {
-	return &blockDeviceClaimInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &blockDeviceClaimInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Disks returns a DiskInformer.
 func (v *version) Disks() DiskInformer {
-	return &diskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &diskInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

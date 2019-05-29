@@ -75,6 +75,7 @@ type DeviceClaimDetails struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=blockDeviceClaim
 // +k8s:openapi-gen=true

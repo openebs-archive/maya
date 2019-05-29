@@ -29,8 +29,8 @@ import (
 type BlockDeviceLister interface {
 	// List lists all BlockDevices in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.BlockDevice, err error)
-	// BlockDevices returns an object that can list and get BlockDevices.
-	BlockDevices(namespace string) BlockDeviceNamespaceLister
+	// Get retrieves the BlockDevice from the index for a given name.
+	Get(name string) (*v1alpha1.BlockDevice, error)
 	BlockDeviceListerExpansion
 }
 
@@ -52,38 +52,9 @@ func (s *blockDeviceLister) List(selector labels.Selector) (ret []*v1alpha1.Bloc
 	return ret, err
 }
 
-// BlockDevices returns an object that can list and get BlockDevices.
-func (s *blockDeviceLister) BlockDevices(namespace string) BlockDeviceNamespaceLister {
-	return blockDeviceNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// BlockDeviceNamespaceLister helps list and get BlockDevices.
-type BlockDeviceNamespaceLister interface {
-	// List lists all BlockDevices in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.BlockDevice, err error)
-	// Get retrieves the BlockDevice from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.BlockDevice, error)
-	BlockDeviceNamespaceListerExpansion
-}
-
-// blockDeviceNamespaceLister implements the BlockDeviceNamespaceLister
-// interface.
-type blockDeviceNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all BlockDevices in the indexer for a given namespace.
-func (s blockDeviceNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.BlockDevice, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BlockDevice))
-	})
-	return ret, err
-}
-
-// Get retrieves the BlockDevice from the indexer for a given namespace and name.
-func (s blockDeviceNamespaceLister) Get(name string) (*v1alpha1.BlockDevice, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the BlockDevice from the index for a given name.
+func (s *blockDeviceLister) Get(name string) (*v1alpha1.BlockDevice, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}

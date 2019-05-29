@@ -41,33 +41,32 @@ type BlockDeviceInformer interface {
 type blockDeviceInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
-	namespace        string
 }
 
 // NewBlockDeviceInformer constructs a new informer for BlockDevice type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewBlockDeviceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredBlockDeviceInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewBlockDeviceInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredBlockDeviceInformer(client, resyncPeriod, indexers, nil)
 }
 
 // NewFilteredBlockDeviceInformer constructs a new informer for BlockDevice type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredBlockDeviceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredBlockDeviceInformer(client internalclientset.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BlockDevices(namespace).List(options)
+				return client.OpenebsV1alpha1().BlockDevices().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.OpenebsV1alpha1().BlockDevices(namespace).Watch(options)
+				return client.OpenebsV1alpha1().BlockDevices().Watch(options)
 			},
 		},
 		&ndmv1alpha1.BlockDevice{},
@@ -77,7 +76,7 @@ func NewFilteredBlockDeviceInformer(client internalclientset.Interface, namespac
 }
 
 func (f *blockDeviceInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredBlockDeviceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	return NewFilteredBlockDeviceInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
 func (f *blockDeviceInformer) Informer() cache.SharedIndexInformer {

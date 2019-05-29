@@ -30,7 +30,7 @@ import (
 // BlockDeviceClaimsGetter has a method to return a BlockDeviceClaimInterface.
 // A group's client should implement this interface.
 type BlockDeviceClaimsGetter interface {
-	BlockDeviceClaims(namespace string) BlockDeviceClaimInterface
+	BlockDeviceClaims() BlockDeviceClaimInterface
 }
 
 // BlockDeviceClaimInterface has methods to work with BlockDeviceClaim resources.
@@ -50,14 +50,12 @@ type BlockDeviceClaimInterface interface {
 // blockDeviceClaims implements BlockDeviceClaimInterface
 type blockDeviceClaims struct {
 	client rest.Interface
-	ns     string
 }
 
 // newBlockDeviceClaims returns a BlockDeviceClaims
-func newBlockDeviceClaims(c *OpenebsV1alpha1Client, namespace string) *blockDeviceClaims {
+func newBlockDeviceClaims(c *OpenebsV1alpha1Client) *blockDeviceClaims {
 	return &blockDeviceClaims{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -65,7 +63,6 @@ func newBlockDeviceClaims(c *OpenebsV1alpha1Client, namespace string) *blockDevi
 func (c *blockDeviceClaims) Get(name string, options v1.GetOptions) (result *v1alpha1.BlockDeviceClaim, err error) {
 	result = &v1alpha1.BlockDeviceClaim{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -78,7 +75,6 @@ func (c *blockDeviceClaims) Get(name string, options v1.GetOptions) (result *v1a
 func (c *blockDeviceClaims) List(opts v1.ListOptions) (result *v1alpha1.BlockDeviceClaimList, err error) {
 	result = &v1alpha1.BlockDeviceClaimList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -90,7 +86,6 @@ func (c *blockDeviceClaims) List(opts v1.ListOptions) (result *v1alpha1.BlockDev
 func (c *blockDeviceClaims) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -100,7 +95,6 @@ func (c *blockDeviceClaims) Watch(opts v1.ListOptions) (watch.Interface, error) 
 func (c *blockDeviceClaims) Create(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (result *v1alpha1.BlockDeviceClaim, err error) {
 	result = &v1alpha1.BlockDeviceClaim{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		Body(blockDeviceClaim).
 		Do().
@@ -112,7 +106,6 @@ func (c *blockDeviceClaims) Create(blockDeviceClaim *v1alpha1.BlockDeviceClaim) 
 func (c *blockDeviceClaims) Update(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (result *v1alpha1.BlockDeviceClaim, err error) {
 	result = &v1alpha1.BlockDeviceClaim{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		Name(blockDeviceClaim.Name).
 		Body(blockDeviceClaim).
@@ -127,7 +120,6 @@ func (c *blockDeviceClaims) Update(blockDeviceClaim *v1alpha1.BlockDeviceClaim) 
 func (c *blockDeviceClaims) UpdateStatus(blockDeviceClaim *v1alpha1.BlockDeviceClaim) (result *v1alpha1.BlockDeviceClaim, err error) {
 	result = &v1alpha1.BlockDeviceClaim{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		Name(blockDeviceClaim.Name).
 		SubResource("status").
@@ -140,7 +132,6 @@ func (c *blockDeviceClaims) UpdateStatus(blockDeviceClaim *v1alpha1.BlockDeviceC
 // Delete takes name of the blockDeviceClaim and deletes it. Returns an error if one occurs.
 func (c *blockDeviceClaims) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		Name(name).
 		Body(options).
@@ -151,7 +142,6 @@ func (c *blockDeviceClaims) Delete(name string, options *v1.DeleteOptions) error
 // DeleteCollection deletes a collection of objects.
 func (c *blockDeviceClaims) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -163,7 +153,6 @@ func (c *blockDeviceClaims) DeleteCollection(options *v1.DeleteOptions, listOpti
 func (c *blockDeviceClaims) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.BlockDeviceClaim, err error) {
 	result = &v1alpha1.BlockDeviceClaim{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("blockdeviceclaims").
 		SubResource(subresources...).
 		Name(name).

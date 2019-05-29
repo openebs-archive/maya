@@ -22,22 +22,10 @@ package v1alpha1
 // BlockDeviceLister.
 type BlockDeviceListerExpansion interface{}
 
-// BlockDeviceNamespaceListerExpansion allows custom methods to be added to
-// BlockDeviceNamespaceLister.
-type BlockDeviceNamespaceListerExpansion interface{}
-
 // BlockDeviceClaimListerExpansion allows custom methods to be added to
 // BlockDeviceClaimLister.
 type BlockDeviceClaimListerExpansion interface{}
 
-// BlockDeviceClaimNamespaceListerExpansion allows custom methods to be added to
-// BlockDeviceClaimNamespaceLister.
-type BlockDeviceClaimNamespaceListerExpansion interface{}
-
 // DiskListerExpansion allows custom methods to be added to
 // DiskLister.
 type DiskListerExpansion interface{}
-
-// DiskNamespaceListerExpansion allows custom methods to be added to
-// DiskNamespaceLister.
-type DiskNamespaceListerExpansion interface{}

@@ -80,6 +80,7 @@ const (
 )
 
 // +genclient
+// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +resource:path=blockDevice
 // +k8s:openapi-gen=true

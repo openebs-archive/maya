@@ -31,7 +31,6 @@ import (
 // FakeBlockDevices implements BlockDeviceInterface
 type FakeBlockDevices struct {
 	Fake *FakeOpenebsV1alpha1
-	ns   string
 }
 
 var blockdevicesResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha1", Resource: "blockdevices"}
@@ -41,8 +40,7 @@ var blockdevicesKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1
 // Get takes name of the blockDevice, and returns the corresponding blockDevice object, and an error if there is any.
 func (c *FakeBlockDevices) Get(name string, options v1.GetOptions) (result *v1alpha1.BlockDevice, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(blockdevicesResource, c.ns, name), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootGetAction(blockdevicesResource, name), &v1alpha1.BlockDevice{})
 	if obj == nil {
 		return nil, err
 	}
@@ -52,8 +50,7 @@ func (c *FakeBlockDevices) Get(name string, options v1.GetOptions) (result *v1al
 // List takes label and field selectors, and returns the list of BlockDevices that match those selectors.
 func (c *FakeBlockDevices) List(opts v1.ListOptions) (result *v1alpha1.BlockDeviceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(blockdevicesResource, blockdevicesKind, c.ns, opts), &v1alpha1.BlockDeviceList{})
-
+		Invokes(testing.NewRootListAction(blockdevicesResource, blockdevicesKind, opts), &v1alpha1.BlockDeviceList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,15 +71,13 @@ func (c *FakeBlockDevices) List(opts v1.ListOptions) (result *v1alpha1.BlockDevi
 // Watch returns a watch.Interface that watches the requested blockDevices.
 func (c *FakeBlockDevices) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(blockdevicesResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(blockdevicesResource, opts))
 }
 
 // Create takes the representation of a blockDevice and creates it.  Returns the server's representation of the blockDevice, and an error, if there is any.
 func (c *FakeBlockDevices) Create(blockDevice *v1alpha1.BlockDevice) (result *v1alpha1.BlockDevice, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(blockdevicesResource, c.ns, blockDevice), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootCreateAction(blockdevicesResource, blockDevice), &v1alpha1.BlockDevice{})
 	if obj == nil {
 		return nil, err
 	}
@@ -92,8 +87,7 @@ func (c *FakeBlockDevices) Create(blockDevice *v1alpha1.BlockDevice) (result *v1
 // Update takes the representation of a blockDevice and updates it. Returns the server's representation of the blockDevice, and an error, if there is any.
 func (c *FakeBlockDevices) Update(blockDevice *v1alpha1.BlockDevice) (result *v1alpha1.BlockDevice, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(blockdevicesResource, c.ns, blockDevice), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootUpdateAction(blockdevicesResource, blockDevice), &v1alpha1.BlockDevice{})
 	if obj == nil {
 		return nil, err
 	}
@@ -104,8 +98,7 @@ func (c *FakeBlockDevices) Update(blockDevice *v1alpha1.BlockDevice) (result *v1
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeBlockDevices) UpdateStatus(blockDevice *v1alpha1.BlockDevice) (*v1alpha1.BlockDevice, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(blockdevicesResource, "status", c.ns, blockDevice), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(blockdevicesResource, "status", blockDevice), &v1alpha1.BlockDevice{})
 	if obj == nil {
 		return nil, err
 	}
@@ -115,14 +108,13 @@ func (c *FakeBlockDevices) UpdateStatus(blockDevice *v1alpha1.BlockDevice) (*v1a
 // Delete takes name of the blockDevice and deletes it. Returns an error if one occurs.
 func (c *FakeBlockDevices) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(blockdevicesResource, c.ns, name), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootDeleteAction(blockdevicesResource, name), &v1alpha1.BlockDevice{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeBlockDevices) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(blockdevicesResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(blockdevicesResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.BlockDeviceList{})
 	return err
@@ -131,8 +123,7 @@ func (c *FakeBlockDevices) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched blockDevice.
 func (c *FakeBlockDevices) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.BlockDevice, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(blockdevicesResource, c.ns, name, data, subresources...), &v1alpha1.BlockDevice{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(blockdevicesResource, name, data, subresources...), &v1alpha1.BlockDevice{})
 	if obj == nil {
 		return nil, err
 	}

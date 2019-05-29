@@ -28,16 +28,16 @@ type FakeOpenebsV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeOpenebsV1alpha1) BlockDevices(namespace string) v1alpha1.BlockDeviceInterface {
-	return &FakeBlockDevices{c, namespace}
+func (c *FakeOpenebsV1alpha1) BlockDevices() v1alpha1.BlockDeviceInterface {
+	return &FakeBlockDevices{c}
 }
 
-func (c *FakeOpenebsV1alpha1) BlockDeviceClaims(namespace string) v1alpha1.BlockDeviceClaimInterface {
-	return &FakeBlockDeviceClaims{c, namespace}
+func (c *FakeOpenebsV1alpha1) BlockDeviceClaims() v1alpha1.BlockDeviceClaimInterface {
+	return &FakeBlockDeviceClaims{c}
 }
 
-func (c *FakeOpenebsV1alpha1) Disks(namespace string) v1alpha1.DiskInterface {
-	return &FakeDisks{c, namespace}
+func (c *FakeOpenebsV1alpha1) Disks() v1alpha1.DiskInterface {
+	return &FakeDisks{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -29,8 +29,8 @@ import (
 type BlockDeviceClaimLister interface {
 	// List lists all BlockDeviceClaims in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.BlockDeviceClaim, err error)
-	// BlockDeviceClaims returns an object that can list and get BlockDeviceClaims.
-	BlockDeviceClaims(namespace string) BlockDeviceClaimNamespaceLister
+	// Get retrieves the BlockDeviceClaim from the index for a given name.
+	Get(name string) (*v1alpha1.BlockDeviceClaim, error)
 	BlockDeviceClaimListerExpansion
 }
 
@@ -52,38 +52,9 @@ func (s *blockDeviceClaimLister) List(selector labels.Selector) (ret []*v1alpha1
 	return ret, err
 }
 
-// BlockDeviceClaims returns an object that can list and get BlockDeviceClaims.
-func (s *blockDeviceClaimLister) BlockDeviceClaims(namespace string) BlockDeviceClaimNamespaceLister {
-	return blockDeviceClaimNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// BlockDeviceClaimNamespaceLister helps list and get BlockDeviceClaims.
-type BlockDeviceClaimNamespaceLister interface {
-	// List lists all BlockDeviceClaims in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.BlockDeviceClaim, err error)
-	// Get retrieves the BlockDeviceClaim from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.BlockDeviceClaim, error)
-	BlockDeviceClaimNamespaceListerExpansion
-}
-
-// blockDeviceClaimNamespaceLister implements the BlockDeviceClaimNamespaceLister
-// interface.
-type blockDeviceClaimNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all BlockDeviceClaims in the indexer for a given namespace.
-func (s blockDeviceClaimNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.BlockDeviceClaim, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.BlockDeviceClaim))
-	})
-	return ret, err
-}
-
-// Get retrieves the BlockDeviceClaim from the indexer for a given namespace and name.
-func (s blockDeviceClaimNamespaceLister) Get(name string) (*v1alpha1.BlockDeviceClaim, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the BlockDeviceClaim from the index for a given name.
+func (s *blockDeviceClaimLister) Get(name string) (*v1alpha1.BlockDeviceClaim, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
