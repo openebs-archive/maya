@@ -60,6 +60,40 @@ type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.Ge
 // pod exec
 type execFn func(cli *clientset.Clientset, config *rest.Config, name, namespace string, opts *corev1.PodExecOptions) (*ExecOutput, error)
 
+// defaultExec is the default implementation of execFn
+func defaultExec(cli *clientset.Clientset, config *rest.Config, name, namespace string,
+	opts *corev1.PodExecOptions) (*ExecOutput, error) {
+	var stdout, stderr bytes.Buffer
+	req := cli.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(name).
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(opts, scheme.ParameterCodec)
+	// create exec executor which is an interface for transporting shell-style streams.
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to exec into pod {%s}: failed to connect to the provided server", name)
+	}
+	// Stream initiates the transport of the standard shell streams. It will transport any
+	// non-nil stream to a remote system, and return an error if a problem occurs.
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  nil,
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Tty:    opts.TTY,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to exec into pod {%s}: failed to stream", name)
+	}
+	execOutput := &ExecOutput{
+		Stdout: stdout.String(),
+		Stderr: stderr.String(),
+	}
+	return execOutput, nil
+}
+
 // KubeClient enables kubernetes API operations
 // on pod instance
 type KubeClient struct {
@@ -87,6 +121,12 @@ type KubeClient struct {
 	del                  deleteFn
 	get                  getFn
 	exec                 execFn
+}
+
+// ExecOutput struct contains stdout and stderr
+type ExecOutput struct {
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -132,7 +172,7 @@ func (k *KubeClient) withDefaults() {
 		}
 	}
 	if k.exec == nil {
-		k.exec = k.defaultExec
+		k.exec = defaultExec
 	}
 }
 
@@ -265,12 +305,6 @@ func (k *KubeClient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error)
 	return json.Marshal(p)
 }
 
-// ExecOutput struct contains stdout and stderr
-type ExecOutput struct {
-	Stdout string `json:"stdout"`
-	Stderr string `json:"stderr"`
-}
-
 // Exec runs a command remotely in a container of a pod
 func (k *KubeClient) Exec(name string,
 	opts *corev1.PodExecOptions) (*ExecOutput, error) {
@@ -294,38 +328,4 @@ func (k *KubeClient) ExecRaw(name string,
 		return nil, err
 	}
 	return json.Marshal(execOutput)
-}
-
-// defaultExec is the default implementation of execFn
-func (k *KubeClient) defaultExec(cli *clientset.Clientset, config *rest.Config, name, namespace string,
-	opts *corev1.PodExecOptions) (*ExecOutput, error) {
-	var stdout, stderr bytes.Buffer
-	req := cli.CoreV1().RESTClient().Post().
-		Resource("pods").
-		Name(name).
-		Namespace(namespace).
-		SubResource("exec").
-		VersionedParams(opts, scheme.ParameterCodec)
-	// create exec executor which is an interface for transporting shell-style streams.
-	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
-	if err != nil {
-		return nil, errors.Wrapf(err,
-			"failed to exec into pod {%s}: failed to connect to the provided server", name)
-	}
-	// Stream initiates the transport of the standard shell streams. It will transport any
-	// non-nil stream to a remote system, and return an error if a problem occurs.
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  nil,
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Tty:    opts.TTY,
-	})
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to exec into pod {%s}: failed to stream", name)
-	}
-	execOutput := &ExecOutput{
-		Stdout: stdout.String(),
-		Stderr: stderr.String(),
-	}
-	return execOutput, nil
 }
