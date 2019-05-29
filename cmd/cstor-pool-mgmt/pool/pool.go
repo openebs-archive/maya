@@ -50,6 +50,18 @@ var PoolAddEventHandled = false
 // PoolNamePrefix is a typed string to store pool name prefix
 type PoolNamePrefix string
 
+type diskGroup struct {
+	ids	[]string
+}
+
+type CStorPoolSpec struct {
+	groups	[]diskGroup
+	pooltype	string
+}
+
+var CStorPools map[string]*apis.CStorPool
+var CStorZpools map[string]PoolTopology
+
 // PoolPrefix is prefix for pool name
 const (
 	PoolPrefix PoolNamePrefix = "cstor-"
@@ -349,6 +361,19 @@ func LabelClear(disks []string) error {
 		return fmt.Errorf("Unable to clear labels from all the disks of the pool")
 	}
 	return nil
+}
+
+// GetGroupIDs returns the list of device IDs for the csp.
+func GetCStorPoolSpec(csp *apis.CStorPool) (*CStorPoolSpec) {
+	var spec CStorPoolSpec
+	for _, group := range csp.Spec.Group {
+		var g diskGroup
+		for _, disk := range group.Item {
+			g.ids = append(g.ids, disk.DeviceID)
+		}
+		spec.groups = append(spec.groups, g)
+	}
+	return &spec
 }
 
 // GetDeviceIDs returns the list of device IDs for the csp.

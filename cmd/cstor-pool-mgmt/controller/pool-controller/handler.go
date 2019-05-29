@@ -98,7 +98,10 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 
 // cStorPoolEventHandler is to handle cstor pool related events.
 func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperation, cStorPoolGot *apis.CStorPool) (string, error) {
+	var zpoolDumpErr error
 	pool.RunnerVar = util.RealRunner{}
+	uid := string(cStorPoolGot.GetUID())
+	csp := pool.CStorPools[uid]
 	switch operation {
 	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
@@ -106,7 +109,17 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// lock is to synchronize pool and volumereplica. Until certain pool related
 		// operations are over, the volumereplica threads will be held.
 		common.SyncResources.Mux.Lock()
+		if csp != nil {
+			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+		}
 		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+		if status == string(apis.CStorPoolStatusOnline) {
+			pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
+			pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
+			if zpoolDumpErr != nil {
+				delete(pool.CStorZpools, uid)
+			}
+		}
 		common.SyncResources.Mux.Unlock()
 		pool.PoolAddEventHandled = true
 		return status, err
@@ -120,7 +133,17 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// try to import/create pool gere as part of resync.
 		if IsPendingStatus(cStorPoolGot) {
 			common.SyncResources.Mux.Lock()
+			if csp != nil {
+				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+			}
 			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+			if status == string(apis.CStorPoolStatusOnline) {
+				pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
+				pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
+				if zpoolDumpErr != nil {
+					delete(pool.CStorZpools, uid)
+				}
+			}
 			common.SyncResources.Mux.Unlock()
 			pool.PoolAddEventHandled = true
 			return status, err
@@ -245,7 +268,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeNormal, string(common.SuccessCreated), string(common.MessageResourceCreated))
 		return string(apis.CStorPoolStatusOnline), nil
 	}
-	glog.Infof("Not init status: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
+	glog.Infof("Not init status %v: %v, %v", string(cStorPoolGot.Status.Phase), cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 	return string(apis.CStorPoolStatusOffline), importPoolErr
 }
@@ -423,6 +446,11 @@ func (c *CStorPoolController) syncCsp(cStorPool *apis.CStorPool) {
 	} else {
 		cStorPool.Status.Capacity = *capacity
 	}
+}
+
+func (c *CStorPoolController) getCStorPoolSpec(csp *apis.CStorPool) (*pool.CStorPoolSpec) {
+	// TODO: Add error handling
+	return pool.GetCStorPoolSpec(csp)
 }
 
 func (c *CStorPoolController) getDeviceIDs(csp *apis.CStorPool) ([]string, error) {
