@@ -25,7 +25,7 @@ import (
 )
 
 func fakePredicate() Predicate {
-	return func(p *upgradeResult) bool {
+	return func(p *UpgradeResult) bool {
 		return true
 	}
 }
@@ -43,9 +43,9 @@ func TestNewBuilder(t *testing.T) {
 		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			b := NewBuilder()
-			if (b.upgradeResult != nil) != mock.expectUpgradeResult {
+			if (b.UpgradeResult != nil) != mock.expectUpgradeResult {
 				t.Fatalf("test %s failed, expect upgraderesult: %t but got: %t",
-					name, mock.expectUpgradeResult, b.upgradeResult != nil)
+					name, mock.expectUpgradeResult, b.UpgradeResult != nil)
 			}
 			if (b.checks != nil) != mock.expectChecks {
 				t.Fatalf("test %s failed, expect checks: %t but got: %t",
@@ -80,7 +80,7 @@ func TestAddCheck(t *testing.T) {
 func TestWithAPIList(t *testing.T) {
 	inputURItems := []apis.UpgradeResult{apis.UpgradeResult{
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}
-	outputURItems := []*upgradeResult{&upgradeResult{object: &apis.UpgradeResult{
+	outputURItems := []*UpgradeResult{&UpgradeResult{object: &apis.UpgradeResult{
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.UpgradeResultList
@@ -113,7 +113,7 @@ func TestWithAPIList(t *testing.T) {
 func TestList(t *testing.T) {
 	inputURItems := []apis.UpgradeResult{apis.UpgradeResult{
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}
-	outputURItems := []*upgradeResult{&upgradeResult{object: &apis.UpgradeResult{
+	outputURItems := []*UpgradeResult{&UpgradeResult{object: &apis.UpgradeResult{
 		ObjectMeta: metav1.ObjectMeta{Name: "upgradeResultList1"}}}}
 	tests := map[string]struct {
 		inputURList    *apis.UpgradeResultList
@@ -176,7 +176,7 @@ func TestWithTypeMeta(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			upgradeResult: &upgradeResult{
+			UpgradeResult: &UpgradeResult{
 				object: &apis.UpgradeResult{},
 			},
 			checks: make(map[*Predicate]string),
@@ -226,7 +226,7 @@ func TestWithObjectMeta(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			upgradeResult: &upgradeResult{
+			UpgradeResult: &UpgradeResult{
 				object: &apis.UpgradeResult{},
 			},
 			checks: make(map[*Predicate]string),
@@ -271,7 +271,7 @@ func TestWithTasks(t *testing.T) {
 		name := name // pin it
 		mock := mock // pin it
 		b := &Builder{
-			upgradeResult: &upgradeResult{
+			UpgradeResult: &UpgradeResult{
 				object: &apis.UpgradeResult{},
 			},
 			checks: make(map[*Predicate]string),
@@ -312,7 +312,7 @@ func TestWithResultConfig(t *testing.T) {
 		name := name
 		mock := mock
 		b := &Builder{
-			upgradeResult: &upgradeResult{
+			UpgradeResult: &UpgradeResult{
 				object: &apis.UpgradeResult{},
 			},
 			checks: make(map[*Predicate]string),

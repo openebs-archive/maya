@@ -18,6 +18,7 @@ package tests
 
 import (
 	"bytes"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -35,6 +36,9 @@ import (
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
+	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
+	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +47,7 @@ import (
 )
 
 const (
-	maxRetry = 30
+	maxRetry = 50
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -66,6 +70,8 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	URClient       *result.Kubeclient
+	UnstructClient *unstruct.Kubeclient
 	kubeConfigPath string
 }
 
@@ -153,7 +159,33 @@ func (ops *Operations) withDefaults() {
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
 	}
+	if ops.URClient == nil {
+		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.UnstructClient == nil {
+		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+}
 
+// VerifyOpenebs verify running state of required openebs control plane components
+func (ops *Operations) VerifyOpenebs(expectedPodCount int) *Operations {
+	By("waiting for maya-apiserver pod to come into running state")
+	podCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.MayaAPIServerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	By("waiting for openebs-provisioner pod to come into running state")
+	podCount = ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSProvisionerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	return ops
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -169,9 +201,9 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 	return podCount
 }
 
-// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// GetCstorVolumeCount gives the count of cstorvolume based on
 // selecter
-func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) int {
+func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expectedCVCount int) int {
 	var cvCount int
 	for i := 0; i < maxRetry; i++ {
 		cvCount = ops.GetCVCount(namespace, lselector)
@@ -181,6 +213,16 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 		time.Sleep(5 * time.Second)
 	}
 	return cvCount
+}
+
+// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// selecter eventually
+func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetCVCount(namespace, lselector)
+		return cvCount
+	},
+		60, 10).Should(Equal(expectedCVCount))
 }
 
 // GetPodRunningCount gives number of pods running currently
@@ -217,6 +259,18 @@ func (ops *Operations) IsPVCBound(pvcName string) bool {
 	return pvc.NewForAPIObject(volume).IsBound()
 }
 
+// IsPVCBoundEventually checks if the pvc is bound or not eventually
+func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
+	return Eventually(func() bool {
+		volume, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pvc.NewForAPIObject(volume).IsBound()
+	},
+		60, 10).
+		Should(BeTrue())
+}
+
 // GetSnapshotTypeEventually returns type of snapshot eventually
 func (ops *Operations) GetSnapshotTypeEventually(snapName string) string {
 	var snaptype string
@@ -247,7 +301,10 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
 		if err != nil {
-			return true
+			if isNotFound(err) {
+				return true
+			}
+			return false
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -264,6 +321,14 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 		return true
 	}
 	return false
+}
+
+// GetPVNameFromPVCName gives the pv name for the given pvc
+func (ops *Operations) GetPVNameFromPVCName(pvcName string) string {
+	p, err := ops.PVCClient.
+		Get(pvcName, metav1.GetOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+	return p.Spec.VolumeName
 }
 
 // isNotFound returns true if the original
@@ -316,6 +381,22 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 	return cspCount
 }
 
+// GetHealthyCSPCountEventually gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPCountEventually(spcName string, expectedCSPCount int) bool {
+	return Eventually(func() int {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		count := csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Len()
+		return count
+	},
+		60, 10).
+		Should(Equal(expectedCSPCount))
+}
+
 // ExecPod executes arbitrary command inside the pod
 func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 	var (
@@ -360,4 +441,46 @@ func (ops *Operations) ExecPod(opts *Options) ([]byte, error) {
 	Expect(err).To(BeNil(), "while streaming the command in pod ", opts.podName, execOut.String(), execErr.String())
 	Expect(execOut.Len()).Should(BeNumerically(">", 0), "while streaming the command in pod ", opts.podName, execErr.String(), execOut.String())
 	return execOut.Bytes(), nil
+}
+
+// GetPodCompletedCountEventually gives the number of pods running eventually
+func (ops *Operations) GetPodCompletedCountEventually(namespace, lselector string, expectedPodCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podCount = ops.GetPodCompletedCount(namespace, lselector)
+		if podCount == expectedPodCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
+}
+
+// GetPodCompletedCount gives number of pods running currently
+func (ops *Operations) GetPodCompletedCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
+		WithFilter(pod.IsCompleted()).
+		List().
+		Len()
+}
+
+// VerifyUpgradeResultTasksIsNotFail checks whether all the tasks in upgraderesult
+// have success
+func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector string) bool {
+	urList, err := ops.URClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	for _, task := range urList.Items[0].Tasks {
+		if task.Status == "Fail" {
+			fmt.Printf("task : %v\n", task)
+			return false
+		}
+	}
+	return true
 }

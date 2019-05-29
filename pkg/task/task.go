@@ -920,7 +920,7 @@ func (m *executor) patchUpgradeResult() error {
 
 	// patch Upgrade Result
 	p, err := upgraderesult.
-		KubeClient().
+		NewKubeClient().
 		WithNamespace(m.getTaskRunNamespace()).
 		Patch(m.getTaskObjectName(), patch.Type, patch.Object)
 	if err != nil {
@@ -1246,7 +1246,7 @@ func (m *executor) getOEV1alpha1CSP() error {
 // as specified in the RunTask
 func (m *executor) getOEV1alpha1UR() error {
 	uresult, err := upgraderesult.
-		KubeClient().
+		NewKubeClient().
 		WithNamespace(m.getTaskRunNamespace()).
 		Get(m.getTaskObjectName(), metav1.GetOptions{})
 	if err != nil {
@@ -1499,7 +1499,7 @@ func (m *executor) putUpgradeResult() (err error) {
 		return errors.Wrap(err, "failed to create upgrade result")
 	}
 	uraw, err := upgraderesult.
-		KubeClient().
+		NewKubeClient().
 		WithNamespace(m.getTaskRunNamespace()).
 		CreateRaw(uresult)
 	if err != nil {
@@ -1646,7 +1646,7 @@ func (m *executor) listK8sResources() (err error) {
 // listOEV1alpha1URRaw fetches a list of UpgradeResults as per the
 // provided options
 func (m *executor) listOEV1alpha1URRaw(opts metav1.ListOptions) (result []byte, err error) {
-	urList, err := upgraderesult.KubeClient().
+	urList, err := upgraderesult.NewKubeClient().
 		WithNamespace(m.getTaskRunNamespace()).
 		List(opts)
 	if err != nil {

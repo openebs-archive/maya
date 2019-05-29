@@ -17,12 +17,13 @@ limitations under the License.
 package snapshot
 
 import (
-	"flag"
+	"strconv"
 
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openebs/maya/tests/jiva"
 
 	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -39,19 +40,15 @@ import (
 )
 
 var (
-	kubeConfigPath        string
 	nsObj                 *corev1.Namespace
 	snapObj               *snapshot.VolumeSnapshot
 	scObj                 *storagev1.StorageClass
-	nsName                = "jiva-ns"
-	scName                = "jiva-sc"
+	nsName                = "jiva-snapshot-ns"
+	scName                = "jiva-snapshot-sc"
 	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	openebsCASConfigValue = "- name: ReplicaCount\n  Value: 1"
-	annotations           = map[string]string{
-		string(apis.CASTypeKey):   string(apis.JivaVolume),
-		string(apis.CASConfigKey): openebsCASConfigValue,
-	}
-	err error
+	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "
+	annotations           = map[string]string{}
+	err                   error
 )
 
 func TestSource(t *testing.T) {
@@ -60,14 +57,17 @@ func TestSource(t *testing.T) {
 }
 
 func init() {
-	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
+	jiva.ParseFlags()
 }
 
 var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
+	ops = tests.NewOperations(tests.WithKubeConfigPath(jiva.KubeConfigPath))
+
+	annotations[string(apis.CASTypeKey)] = string(apis.JivaVolume)
+	annotations[string(apis.CASConfigKey)] = openebsCASConfigValue + strconv.Itoa(jiva.ReplicaCount)
 
 	By("waiting for maya-apiserver pod to come into running state")
 	podCount := ops.GetPodRunningCountEventually(

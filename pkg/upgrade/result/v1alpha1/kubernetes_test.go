@@ -29,6 +29,10 @@ func fakeGetClientset() (cs *clientset.Clientset, err error) {
 	return &clientset.Clientset{}, nil
 }
 
+func fakeGetClientsetForPath(kubeConfigPath string) (cs *clientset.Clientset, err error) {
+	return &clientset.Clientset{}, nil
+}
+
 func fakeListfn(cs *clientset.Clientset, namespace string,
 	opts metav1.ListOptions) (*apis.UpgradeResultList, error) {
 	return &apis.UpgradeResultList{}, nil
@@ -182,7 +186,7 @@ but got %v`, name, fake.clientset)
 		})
 	}
 }
-func TestKubeClientWithClientset(t *testing.T) {
+func TestNewKubeClientWithClientset(t *testing.T) {
 	tests := map[string]struct {
 		expectClientSet bool
 		opts            []KubeclientBuildOption
@@ -203,8 +207,10 @@ func TestKubeClientWithClientset(t *testing.T) {
 	}
 
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c := KubeClient(mock.opts...)
+			c := NewKubeClient(mock.opts...)
 			if !mock.expectClientSet && c.clientset != nil {
 				t.Fatalf(`test %s failed, expected nil c.clientset
 but got %v`, name, c.clientset)
@@ -242,16 +248,21 @@ func TestGetClientOrCached(t *testing.T) {
 		expectErr  bool
 	}{
 		// Positive tests
-		"When clientset is nil": {&Kubeclient{nil, "default",
-			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, false},
+		"When clientset is nil": {&Kubeclient{nil, "default", "",
+			fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk,
+			fakePatchOk, fakeUpdateOk, fakeGetClientsetForPath}, false},
 		"When clientset is not nil": {&Kubeclient{&clientset.Clientset{},
-			"", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, false},
+			"", "", fakeGetNilErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk,
+			fakePatchOk, fakeUpdateOk, fakeGetClientsetForPath}, false},
 		// Negative tests
-		"When getting clientset throws error": {&Kubeclient{nil, "",
-			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk, fakePatchOk, fakeUpdateOk}, true},
+		"When getting clientset throws error": {&Kubeclient{nil, "", "",
+			fakeGetErrClientSet, fakeListfn, fakeGetfn, fakeCreateOk,
+			fakePatchOk, fakeUpdateOk, fakeGetClientsetForPath}, true},
 	}
 
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			c, err := mock.Kubeclient.getClientOrCached()
 			if mock.expectErr && err == nil {
