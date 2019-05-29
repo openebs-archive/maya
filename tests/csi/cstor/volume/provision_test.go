@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
+var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	var (
 		err     error
 		pvcName = "cstor-volume-claim"
@@ -35,18 +35,18 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
-			By("building object of storageclass")
+			By("building a storageclass")
 			scObj, err = sc.NewBuilder().
 				WithName(scName).
 				WithAnnotations(annotations).
 				WithProvisioner(openebsProvisioner).Build()
 			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
 
-			By("creating storageclass")
+			By("creating above storageclass")
 			_, err = ops.SCClient.Create(scObj)
-			Expect(err).To(BeNil(), "while creating storageclass", scName)
+			Expect(err).To(BeNil(), "while creating storageclass {%s}", scName)
 
-			By("building spc object")
+			By("building a storagepoolclaim")
 			spcObj = spc.NewBuilder().
 				WithName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
@@ -55,11 +55,11 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
-			By("creating storagepoolclaim")
+			By("creating above storagepoolclaim")
 			_, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating spc", spcName)
+			Expect(err).To(BeNil(), "while creating spc {%s}", spcName)
 
-			By("verifying healthy csp count")
+			By("verifying healthy cstorpool count")
 			cspCount := ops.GetHealthyCSPCount(spcName, 1)
 			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
@@ -68,19 +68,16 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 
 	AfterEach(func() {
 		By("deleting resources created for testing cstor volume provisioning", func() {
-			By("deleting storageclass")
-			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass", scName)
-
-			By("listing spc")
-			spcList, err = ops.SPCClient.List(metav1.ListOptions{})
-			Expect(err).To(BeNil(), "while listing spc clients", spcList)
-
-			By("deleting spc")
-			for _, spc := range spcList.Items {
-				_, err = ops.SPCClient.Delete(spc.Name, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting the spc's", spc)
-			}
+			It("should delete storageclass", func() {
+				By("deleting storageclass")
+				err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
+			})
+			It("should delete storagepoolclaim", func() {
+				By("deleting storagepoolclaim")
+				_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(), "while deleting spc {%s}", spcName)
+			})
 		})
 	})
 
@@ -118,14 +115,16 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			status := ops.IsPVCBound(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
-			By("deleting above pvc")
-			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
-			Expect(err).To(
-				BeNil(),
-				"while deleting pvc {%s} in namespace {%s}",
-				pvcName,
-				nsName,
-			)
+			It("should delete pvc", func() {
+				By("deleting above pvc")
+				err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+				Expect(err).To(
+					BeNil(),
+					"while deleting pvc {%s} in namespace {%s}",
+					pvcName,
+					nsName,
+				)
+			})
 
 			By("verifying target pod count as 0")
 			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 0)

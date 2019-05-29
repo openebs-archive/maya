@@ -38,18 +38,23 @@ var (
 	openebsNamespace      = "openebs"
 	nsName                = "cstor-provision"
 	scName                = "cstor-volume"
-	openebsCASConfigValue = "- name: ReplicaCount\n  value: 1\n- name: StoragePoolClaim\n  value: sparse-pool-auto"
-	openebsProvisioner    = "openebs-csi.openebs.io"
-	spcName               = "sparse-pool-auto"
-	nsObj                 *corev1.Namespace
-	scObj                 *storagev1.StorageClass
-	spcObj                *apis.StoragePoolClaim
-	pvcObj                *corev1.PersistentVolumeClaim
-	spcList               *apis.StoragePoolClaimList
-	targetLabel           = "openebs.io/target=cstor-target"
-	accessModes           = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity              = "5G"
-	annotations           = map[string]string{
+	openebsCASConfigValue = `
+	- name: ReplicaCount
+	  value: 1
+	- name: StoragePoolClaim
+	  value: sparse-pool-auto
+	`
+	openebsProvisioner = "openebs-csi.openebs.io"
+	spcName            = "sparse-pool-auto"
+	nsObj              *corev1.Namespace
+	scObj              *storagev1.StorageClass
+	spcObj             *apis.StoragePoolClaim
+	pvcObj             *corev1.PersistentVolumeClaim
+	spcList            *apis.StoragePoolClaimList
+	targetLabel        = "openebs.io/target=cstor-target"
+	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity           = "5G"
+	annotations        = map[string]string{
 		string(apis.CASTypeKey):   string(apis.CstorVolume),
 		string(apis.CASConfigKey): openebsCASConfigValue,
 	}
@@ -92,15 +97,16 @@ var _ = BeforeSuite(func() {
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
-	By("creating a namespace")
+	By("creating above namespace")
 	_, err = ops.NSClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
 })
 
 var _ = AfterSuite(func() {
 
-	By("deleting namespace")
-	err := ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
-
+	It("should delete namespace", func() {
+		By("deleting namespace")
+		err := ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
+	})
 })
