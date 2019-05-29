@@ -1351,9 +1351,8 @@ metadata:
   name: jiva-volume-delete-putreplicascrub-default
 spec:
   meta: |
-    {{- $jivapodsns := .TaskResult.jivapodsinopenebsns.ns | default .Volume.runNamespace -}}
     apiVersion: batch/v1
-    runNamespace: {{ $jivapodsns }}
+    runNamespace: {{ .Config.OpenEBSNamespace.value }}
     disable: {{ .Config.RetainReplicaData.enabled }}
     kind: Job
     action: put
@@ -1373,6 +1372,9 @@ spec:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/cas-type: jiva
     spec:
+      {{- if kubeVersionGte .CAST.kubeVersion "v1.12" }}
+      ttlSecondsAfterFinished: 0
+      {{- end }}
       backoffLimit: 4
       template:
         spec:
