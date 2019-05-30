@@ -157,6 +157,14 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 }
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
+	if pool.CStorPools == nil {
+		pool.CStorPools = map[string]*apis.CStorPool{}
+	}
+
+	if pool.CStorZpools == nil {
+		pool.CStorZpools = map[string]pool.PoolTopology{}
+	}
+
 	// CheckValidPool is to check if pool attributes are correct.
 	devIDList, err := c.getDeviceIDs(cStorPoolGot)
 	if err != nil {
