@@ -14,13 +14,15 @@ limitations under the License.
 package snapshot
 
 import (
-	"flag"
+	"strconv"
+	"strings"
 
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
+	"github.com/openebs/maya/tests/cstor"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
@@ -40,7 +42,7 @@ var (
 	scName                = "test-cstor-snap-sc"
 	openebsCASConfigValue = `
 - name: ReplicaCount
-  value: 1
+  value: $count
 - name: StoragePoolClaim
   value: test-cstor-snap-sparse-pool
 `
@@ -54,10 +56,7 @@ var (
 	targetLabel        = "openebs.io/target=cstor-target"
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
-	annotations        = map[string]string{
-		string(apis.CASTypeKey):   string(apis.CstorVolume),
-		string(apis.CASConfigKey): openebsCASConfigValue,
-	}
+	annotations        = map[string]string{}
 )
 
 func TestSource(t *testing.T) {
@@ -66,15 +65,21 @@ func TestSource(t *testing.T) {
 }
 
 func init() {
-	flag.StringVar(&kubeConfigPath, "kubeconfig", "", "path to kubeconfig to invoke kubernetes API calls")
+	cstor.ParseFlags()
+
 }
 
 var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath)).VerifyOpenebs(1)
+	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath)).VerifyOpenebs(1)
 	var err error
+
+	By("building a CAS Config")
+	CASConfig := strings.Replace(openebsCASConfigValue, "$count", strconv.Itoa(cstor.ReplicaCount), 1)
+	annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
+	annotations[string(apis.CASConfigKey)] = CASConfig
 
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
