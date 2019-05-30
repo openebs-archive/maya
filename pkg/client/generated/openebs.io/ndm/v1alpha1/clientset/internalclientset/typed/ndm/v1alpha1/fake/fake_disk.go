@@ -31,7 +31,6 @@ import (
 // FakeDisks implements DiskInterface
 type FakeDisks struct {
 	Fake *FakeOpenebsV1alpha1
-	ns   string
 }
 
 var disksResource = schema.GroupVersionResource{Group: "openebs.io", Version: "v1alpha1", Resource: "disks"}
@@ -41,8 +40,7 @@ var disksKind = schema.GroupVersionKind{Group: "openebs.io", Version: "v1alpha1"
 // Get takes name of the disk, and returns the corresponding disk object, and an error if there is any.
 func (c *FakeDisks) Get(name string, options v1.GetOptions) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(disksResource, c.ns, name), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootGetAction(disksResource, name), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
@@ -52,8 +50,7 @@ func (c *FakeDisks) Get(name string, options v1.GetOptions) (result *v1alpha1.Di
 // List takes label and field selectors, and returns the list of Disks that match those selectors.
 func (c *FakeDisks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(disksResource, disksKind, c.ns, opts), &v1alpha1.DiskList{})
-
+		Invokes(testing.NewRootListAction(disksResource, disksKind, opts), &v1alpha1.DiskList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,15 +71,13 @@ func (c *FakeDisks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err er
 // Watch returns a watch.Interface that watches the requested disks.
 func (c *FakeDisks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(disksResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(disksResource, opts))
 }
 
 // Create takes the representation of a disk and creates it.  Returns the server's representation of the disk, and an error, if there is any.
 func (c *FakeDisks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(disksResource, c.ns, disk), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootCreateAction(disksResource, disk), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
@@ -92,8 +87,7 @@ func (c *FakeDisks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err erro
 // Update takes the representation of a disk and updates it. Returns the server's representation of the disk, and an error, if there is any.
 func (c *FakeDisks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(disksResource, c.ns, disk), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootUpdateAction(disksResource, disk), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
@@ -104,8 +98,7 @@ func (c *FakeDisks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err erro
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *FakeDisks) UpdateStatus(disk *v1alpha1.Disk) (*v1alpha1.Disk, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(disksResource, "status", c.ns, disk), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootUpdateSubresourceAction(disksResource, "status", disk), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
@@ -115,14 +108,13 @@ func (c *FakeDisks) UpdateStatus(disk *v1alpha1.Disk) (*v1alpha1.Disk, error) {
 // Delete takes name of the disk and deletes it. Returns an error if one occurs.
 func (c *FakeDisks) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(disksResource, c.ns, name), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootDeleteAction(disksResource, name), &v1alpha1.Disk{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeDisks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(disksResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(disksResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.DiskList{})
 	return err
@@ -131,8 +123,7 @@ func (c *FakeDisks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.L
 // Patch applies the patch and returns the patched disk.
 func (c *FakeDisks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Disk, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(disksResource, c.ns, name, data, subresources...), &v1alpha1.Disk{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(disksResource, name, data, subresources...), &v1alpha1.Disk{})
 	if obj == nil {
 		return nil, err
 	}
