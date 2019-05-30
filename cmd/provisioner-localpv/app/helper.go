@@ -45,11 +45,17 @@ var (
 // getPathAndNodeForPV inspects the PV spec to determine the host path used
 //  and the node (via the NodeAffinity) on which host path exists.
 func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node string, err error) {
-	hostPath := pv.Spec.PersistentVolumeSource.HostPath
-	if hostPath == nil {
+	local := pv.Spec.PersistentVolumeSource.Local
+	if local == nil {
+		//This could be a volume created in 0.9 which used hostpath
+		hostPath := pv.Spec.PersistentVolumeSource.HostPath
+		if hostPath != nil {
+			path = hostPath.Path
+		}
 		return "", "", fmt.Errorf("no HostPath set")
+	} else {
+		path = local.Path
 	}
-	path = hostPath.Path
 
 	nodeAffinity := pv.Spec.NodeAffinity
 	if nodeAffinity == nil {
@@ -81,13 +87,90 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (path, node s
 	return path, node, nil
 }
 
+// createInitPod launches a helper(busybox) pod, to create the host path.
+//  The local pv expect the hostpath to be already present before mounting
+//  into pod. Validate that the local pv host path is not created under root.
+func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) (err error) {
+	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
+		return fmt.Errorf("invalid empty name or path or node")
+	}
+
+	// Initialize HostPath builder and validate that
+	// non-root directories are not passed for create
+	// Extract the base path and the volume unique path.
+	parentDir, volumeDir, vErr := hostpath.NewBuilder().WithPath(pOpts.path).
+		WithCheckf(hostpath.IsNonRoot(), "path should not be a root directory: path %v", pOpts.path).
+		ExtractSubPath()
+	if vErr != nil {
+		return vErr
+	}
+
+	conObj, _ := mContainer.Builder().
+		WithName("local-path-init").
+		WithImage(p.helperImage).
+		WithCommand(append(pOpts.cmdsForPath, filepath.Join("/data/", volumeDir))).
+		WithVolumeMounts([]v1.VolumeMount{
+			{
+				Name:      "data",
+				ReadOnly:  false,
+				MountPath: "/data/",
+			},
+		}).
+		Build()
+	containers := []v1.Container{conObj}
+
+	volObj, _ := mVolume.NewBuilder().
+		WithName("data").
+		WithHostDirectory(parentDir).
+		Build()
+	volumes := []v1.Volume{*volObj}
+
+	helperPod, _ := mPod.NewBuilder().
+		WithName("init-" + pOpts.name).
+		WithRestartPolicy(v1.RestartPolicyNever).
+		WithNodeName(pOpts.nodeName).
+		WithContainers(containers).
+		WithVolumes(volumes).
+		Build()
+
+	//Launch the init pod.
+	pod, err := p.kubeClient.CoreV1().Pods(p.namespace).Create(helperPod)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		e := p.kubeClient.CoreV1().Pods(p.namespace).Delete(pod.Name, &metav1.DeleteOptions{})
+		if e != nil {
+			glog.Errorf("unable to delete the helper pod: %v", e)
+		}
+	}()
+
+	//Wait for the cleanup pod to complete it job and exit
+	completed := false
+	for i := 0; i < CmdTimeoutCounts; i++ {
+		if pod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(pod.Name, metav1.GetOptions{}); err != nil {
+			return err
+		} else if pod.Status.Phase == v1.PodSucceeded {
+			completed = true
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	if !completed {
+		return fmt.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
+	}
+
+	glog.Infof("Volume %v has been initialized on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
+	return nil
+}
+
 // createCleanupPod launches a helper(busybox) pod, to delete the host path.
 //  This provisioner expects that the host paths are created using
 //  an unique PV path - under a given BasePath. From the absolute path,
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) (err error) {
-	//func (p *Provisioner) createCleanupPod(cmdsForPath []string, name, path, node string) (err error) {
 	if pOpts.name == "" || pOpts.path == "" || pOpts.nodeName == "" {
 		return fmt.Errorf("invalid empty name or path or node")
 	}
