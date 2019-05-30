@@ -15,7 +15,6 @@ package jiva
 
 import (
 	"flag"
-	"os"
 	"strconv"
 
 	"testing"
@@ -23,7 +22,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	"github.com/openebs/maya/pkg/client/k8s/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
@@ -76,10 +74,6 @@ var _ = BeforeSuite(func() {
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 	openebsCASConfigValue = openebsCASConfigValue + strconv.Itoa(replicaCount)
 
-	// Setting the path in environemnt variable
-	err := os.Setenv(string(v1alpha1.KubeConfigEnvironmentKey), kubeConfigPath)
-	Expect(err).ShouldNot(HaveOccurred())
-
 	By("applying openebs 0.8.2")
 	applyFromURL(openebsURL)
 
@@ -97,7 +91,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	By("building a storageclass")
-	scObj, err = sc.NewBuilder().
+	scObj, err := sc.NewBuilder().
 		WithName(scName).
 		WithAnnotations(annotations).
 		WithProvisioner(openebsProvisioner).Build()
@@ -131,8 +125,8 @@ var _ = BeforeSuite(func() {
 	)
 
 	By("verifying controller pod count ")
-	controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, replicaCount)
-	Expect(controllerPodCount).To(Equal(replicaCount), "while checking controller pod count")
+	controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 1)
+	Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 	By("verifying replica pod count ")
 	replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, replicaCount)
@@ -165,7 +159,7 @@ var _ = AfterSuite(func() {
 
 	By("deleting storageclass")
 	err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
+	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
 
 	By("cleanup")
 	deleteFromURL(jobURL)
@@ -173,13 +167,14 @@ var _ = AfterSuite(func() {
 	deleteFromURL(crURL)
 	deleteFromURL(rbacURL)
 	deleteFromURL(openebsURL)
-	By("waiting for maya-apiserver pod to come into running state")
+	By("waiting for maya-apiserver pod to terminate")
 	podCount := ops.GetPodRunningCountEventually(
 		string(artifacts.OpenebsNamespace),
 		string(artifacts.MayaAPIServerLabelSelector),
 		0,
 	)
 	Expect(podCount).To(Equal(0))
+	// deleting all completed pods
 	podList, err := ops.PodClient.
 		WithNamespace("default").
 		List(metav1.ListOptions{})
