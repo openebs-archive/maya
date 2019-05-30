@@ -68,16 +68,12 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 
 	AfterEach(func() {
 		By("deleting resources created for testing cstor volume provisioning", func() {
-			It("should delete storageclass", func() {
-				By("deleting storageclass")
-				err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
-			})
-			It("should delete storagepoolclaim", func() {
-				By("deleting storagepoolclaim")
-				_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
-				Expect(err).To(BeNil(), "while deleting spc {%s}", spcName)
-			})
+			By("deleting storageclass")
+			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
+			By("deleting storagepoolclaim")
+			_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting spc {%s}", spcName)
 		})
 	})
 
@@ -87,7 +83,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			By("building a pvc")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
-				WithNamespace(nsName).
+				WithNamespace(nsObj.Name).
 				WithStorageClass(scName).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
@@ -95,16 +91,16 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 				HaveOccurred(),
 				"while building pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
+			_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying target pod count as 1")
@@ -115,16 +111,14 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			status := ops.IsPVCBound(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
-			It("should delete pvc", func() {
-				By("deleting above pvc")
-				err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
-				Expect(err).To(
-					BeNil(),
-					"while deleting pvc {%s} in namespace {%s}",
-					pvcName,
-					nsName,
-				)
-			})
+			By("deleting above pvc")
+			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsObj.Name,
+			)
 
 			By("verifying target pod count as 0")
 			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 0)
@@ -137,7 +131,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			By("verifying if cstorvolume is deleted")
 			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
 			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
-			Expect(cvCount).To(Equal(0), "while checking cstorvolume count")
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})
 

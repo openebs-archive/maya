@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/artifacts"
+	uuid "github.com/satori/go.uuid"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
@@ -39,11 +40,11 @@ var (
 	nsName                = "cstor-provision"
 	scName                = "cstor-volume"
 	openebsCASConfigValue = `
-	- name: ReplicaCount
-	  value: 1
-	- name: StoragePoolClaim
-	  value: sparse-pool-auto
-	`
+- name: ReplicaCount
+  value: 1
+- name: StoragePoolClaim
+  value: sparse-pool-auto
+`
 	openebsProvisioner = "openebs-csi.openebs.io"
 	spcName            = "sparse-pool-auto"
 	nsObj              *corev1.Namespace
@@ -55,7 +56,7 @@ var (
 	capacity           = "5G"
 	annotations        = map[string]string{
 		string(apis.CASTypeKey):   string(apis.CstorVolume),
-		string(apis.CASConfigKey): openebsCASConfigValue,
+		string(apis.CASConfigKey): string(openebsCASConfigValue),
 	}
 )
 
@@ -92,9 +93,9 @@ var _ = BeforeSuite(func() {
 
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
-		WithName(nsName).
+		WithName(nsName + "-" + uuid.NewV4().String()).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsObj.Name)
 
 	By("creating above namespace")
 	_, err = ops.NSClient.Create(nsObj)
@@ -103,9 +104,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 
-	It("should delete namespace", func() {
-		By("deleting namespace")
-		err := ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
-	})
+	By("deleting namespace")
+	err := ops.NSClient.Delete(nsObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
 })
