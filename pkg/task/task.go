@@ -1317,7 +1317,7 @@ func (m *executor) extnV1B1DeploymentRollOutStatus() (err error) {
 
 // appsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
 func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
-	dclient := deploy_appsv1.KubeClient(
+	dclient := deploy_appsv1.NewKubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
@@ -1331,7 +1331,7 @@ func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
 
 // getAppsV1Deployment will get the Deployment as specified in the RunTask
 func (m *executor) getAppsV1Deployment() (err error) {
-	dclient := deploy_appsv1.KubeClient(
+	dclient := deploy_appsv1.NewKubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	d, err := dclient.GetRaw(m.getTaskObjectName())
