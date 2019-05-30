@@ -18,32 +18,34 @@ package pool
 
 import (
 	"encoding/json"
+	"github.com/golang/glog"
 )
 
 type PoolTopology struct {
-	children	string		`json:"vdev_children"`
-	vdev_tree	PoolVdevTree	`json:"vdev_tree"`
+	Children	int		`json:"vdev_children,omitempty"`
+	Vdev_tree	PoolVdevTree	`json:"vdev_tree,omitempty"`
 }
 
 type PoolVdevTree struct {
-	vdev_type	string		`json:"type"`
-	topvdev		[]Vdev		`json:"children"`
-	readcache	[]Vdev		`json:"l2cache"`
-	spares		[]Vdev		`json:"spares"`
+	Vdev_type	string		`json:"type,omitempty"`
+	Topvdev		[]Vdev		`json:"children,omitempty"`
+	Readcache	[]Vdev		`json:"l2cache,omitempty"`
+	Spares		[]Vdev		`json:"spares,omitempty"`
 }
 
 type Vdev struct {
-	vdev_type	string		`json:"type"`
-	path		string		`json:"path"`
-	is_log		string		`json:"is_log"`
-	is_spare	string		`json:"is_spare"`
-	vdev		[]Vdev		`json:"children"`
+	Vdev_type	string		`json:"type,omitempty"`
+	Path		string		`json:"path,omitempty"`
+	Is_log		int		`json:"is_log,omitempty"`
+	Is_spare	int		`json:"is_spare,omitempty"`
+	Vdev		[]Vdev		`json:"children,omitempty"`
 }
 
 func ZpoolDump() (PoolTopology, error) {
 	var t PoolTopology
 	out, err := RunnerVar.RunCombinedOutput(PoolOperator, "dump")
 	if err != nil {
+		glog.Errorf("error in zpool dump output: %v", err)
 		return t, err;
 	}
 	err = json.Unmarshal(out, &t)

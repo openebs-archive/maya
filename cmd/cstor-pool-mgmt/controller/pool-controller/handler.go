@@ -117,6 +117,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
 			pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
 			if zpoolDumpErr != nil {
+				glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr);
 				delete(pool.CStorZpools, uid)
 			}
 		}
@@ -141,6 +142,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 				pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
 				pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
 				if zpoolDumpErr != nil {
+					glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr);
 					delete(pool.CStorZpools, uid)
 				}
 			}
@@ -237,7 +239,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 			return status, nil
 		}
 		if importPoolErr != nil {
-			glog.Errorf("Import succeded, but, other operations failed %v", importPoolErr)
+			glog.Errorf("failed to handle add event: import succeded with failed operations %v", importPoolErr)
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureImported), string(common.FailureImportOperations))
 			return status, importPoolErr
 		}
@@ -254,7 +256,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	// IsInitStatus is to check if initial status of cstorpool object is `init`.
 	if IsEmptyStatus(cStorPoolGot) || IsPendingStatus(cStorPoolGot) {
 		if len(common.InitialImportedPoolVol) != 0 {
-			glog.Errorf("improper pool %v status: %v with existing volumes", string(cStorPoolGot.GetUID()), string(cStorPoolGot.Status.Phase))
+			glog.Errorf("failed to handle add event: invalid status %v for pool %v with existing volumes", string(cStorPoolGot.Status.Phase), string(cStorPoolGot.GetUID()))
 			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageImproperPoolStatus))
 			return string(apis.CStorPoolStatusOffline), err
 		}
