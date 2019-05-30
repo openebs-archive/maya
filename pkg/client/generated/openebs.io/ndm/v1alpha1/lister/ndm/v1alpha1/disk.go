@@ -29,8 +29,8 @@ import (
 type DiskLister interface {
 	// List lists all Disks in the indexer.
 	List(selector labels.Selector) (ret []*v1alpha1.Disk, err error)
-	// Disks returns an object that can list and get Disks.
-	Disks(namespace string) DiskNamespaceLister
+	// Get retrieves the Disk from the index for a given name.
+	Get(name string) (*v1alpha1.Disk, error)
 	DiskListerExpansion
 }
 
@@ -52,38 +52,9 @@ func (s *diskLister) List(selector labels.Selector) (ret []*v1alpha1.Disk, err e
 	return ret, err
 }
 
-// Disks returns an object that can list and get Disks.
-func (s *diskLister) Disks(namespace string) DiskNamespaceLister {
-	return diskNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// DiskNamespaceLister helps list and get Disks.
-type DiskNamespaceLister interface {
-	// List lists all Disks in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1alpha1.Disk, err error)
-	// Get retrieves the Disk from the indexer for a given namespace and name.
-	Get(name string) (*v1alpha1.Disk, error)
-	DiskNamespaceListerExpansion
-}
-
-// diskNamespaceLister implements the DiskNamespaceLister
-// interface.
-type diskNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Disks in the indexer for a given namespace.
-func (s diskNamespaceLister) List(selector labels.Selector) (ret []*v1alpha1.Disk, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1alpha1.Disk))
-	})
-	return ret, err
-}
-
-// Get retrieves the Disk from the indexer for a given namespace and name.
-func (s diskNamespaceLister) Get(name string) (*v1alpha1.Disk, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the Disk from the index for a given name.
+func (s *diskLister) Get(name string) (*v1alpha1.Disk, error) {
+	obj, exists, err := s.indexer.GetByKey(name)
 	if err != nil {
 		return nil, err
 	}
