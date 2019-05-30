@@ -117,7 +117,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 			pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
 			pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
 			if zpoolDumpErr != nil {
-				glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr);
+				glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
 				delete(pool.CStorZpools, uid)
 			}
 		}
@@ -142,7 +142,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 				pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
 				pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
 				if zpoolDumpErr != nil {
-					glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr);
+					glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
 					delete(pool.CStorZpools, uid)
 				}
 			}

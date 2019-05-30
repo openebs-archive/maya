@@ -21,34 +21,37 @@ import (
 	"github.com/golang/glog"
 )
 
+// PoolTopology contains the topology strucure of disks used in backend
 type PoolTopology struct {
-	Children	int		`json:"vdev_children,omitempty"`
-	Vdev_tree	PoolVdevTree	`json:"vdev_tree,omitempty"`
+	Children  int          `json:"vdev_children,omitempty"`
+	Vdev_tree PoolVdevTree `json:"vdev_tree,omitempty"`
 }
 
+// PoolVdevTree contains the tree strucure of disks used in backend
 type PoolVdevTree struct {
-	Vdev_type	string		`json:"type,omitempty"`
-	Topvdev		[]Vdev		`json:"children,omitempty"`
-	Readcache	[]Vdev		`json:"l2cache,omitempty"`
-	Spares		[]Vdev		`json:"spares,omitempty"`
+	Vdev_type string `json:"type,omitempty"`
+	Topvdev   []Vdev `json:"children,omitempty"`
+	Readcache []Vdev `json:"l2cache,omitempty"`
+	Spares    []Vdev `json:"spares,omitempty"`
 }
 
+// Vdev relates to a logical or physical disk in backend
 type Vdev struct {
-	Vdev_type	string		`json:"type,omitempty"`
-	Path		string		`json:"path,omitempty"`
-	Is_log		int		`json:"is_log,omitempty"`
-	Is_spare	int		`json:"is_spare,omitempty"`
-	Vdev		[]Vdev		`json:"children,omitempty"`
+	Vdev_type string `json:"type,omitempty"`
+	Path      string `json:"path,omitempty"`
+	Is_log    int    `json:"is_log,omitempty"`
+	Is_spare  int    `json:"is_spare,omitempty"`
+	Vdev      []Vdev `json:"children,omitempty"`
 }
 
+// ZpoolDump runs 'zpool dump' command and unmarshal the output in above schema
 func ZpoolDump() (PoolTopology, error) {
 	var t PoolTopology
 	out, err := RunnerVar.RunCombinedOutput(PoolOperator, "dump")
 	if err != nil {
 		glog.Errorf("error in zpool dump output: %v", err)
-		return t, err;
+		return t, err
 	}
 	err = json.Unmarshal(out, &t)
 	return t, err
 }
-
