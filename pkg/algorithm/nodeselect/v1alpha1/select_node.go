@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
 	"github.com/pkg/errors"
@@ -75,7 +76,7 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 	return usedNodeMap, nil
 }
 
-func (ac *Config) getCandidateNode(listDisk *apis.DiskList) (map[string]*diskList, error) {
+func (ac *Config) getCandidateNode(listDisk *ndmapis.DiskList) (map[string]*diskList, error) {
 	usedDiskMap, err := ac.getUsedDiskMap()
 	if err != nil {
 		return nil, err
@@ -180,7 +181,7 @@ func (ac *Config) poolType() string {
 }
 
 // getDisk return the all disks of a certain type(e.g. sparse, disk) which is specified in spc.
-func (ac *Config) getDisk() (*apis.DiskList, error) {
+func (ac *Config) getDisk() (*ndmapis.DiskList, error) {
 	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
 	dL, err := ac.DiskClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {

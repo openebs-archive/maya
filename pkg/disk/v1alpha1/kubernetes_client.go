@@ -17,25 +17,25 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is Kubernetes client implementation to get disk.
 func (k *KubernetesClient) Get(name string) (*Disk, error) {
-	d, err := k.Clientset.OpenebsV1alpha1().Disks().Get(name, v1.GetOptions{})
+	d, err := k.NDMClientset.OpenebsV1alpha1().Disks().Get(name, v1.GetOptions{})
 
 	return &Disk{d, nil}, err
 }
 
 // List is kubernetes client implementation to list disk.
 func (k *KubernetesClient) List(opts v1.ListOptions) (*DiskList, error) {
-	dl, err := k.Clientset.OpenebsV1alpha1().Disks().List(opts)
+	dl, err := k.NDMClientset.OpenebsV1alpha1().Disks().List(opts)
 	return &DiskList{dl, nil}, err
 }
 
 // Create is kubernetes client implementation to create disk.
 func (k *KubernetesClient) Create(diskObj *apis.Disk) (*Disk, error) {
-	d, err := k.Clientset.OpenebsV1alpha1().Disks().Create(diskObj)
+	d, err := k.NDMClientset.OpenebsV1alpha1().Disks().Create(diskObj)
 	return &Disk{d, nil}, err
 }
