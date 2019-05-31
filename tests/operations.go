@@ -29,6 +29,7 @@ import (
 	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -74,6 +75,7 @@ type Operations struct {
 	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
+	DeployClient   *deploy.Kubeclient
 	kubeConfigPath string
 }
 
@@ -169,6 +171,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.UnstructClient == nil {
 		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.DeployClient == nil {
+		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
