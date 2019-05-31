@@ -99,8 +99,8 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (string, stri
 //  The local pv expect the hostpath to be already present before mounting
 //  into pod. Validate that the local pv host path is not created under root.
 func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
-	err := pOpts.validate()
-	if err != nil {
+	//err := pOpts.validate()
+	if err := pOpts.validate(); err != nil {
 		return err
 	}
 
@@ -126,20 +126,20 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 			},
 		}).
 		Build()
-	containers := []v1.Container{conObj}
+	//containers := []v1.Container{conObj}
 
 	volObj, _ := volume.NewBuilder().
 		WithName("data").
 		WithHostDirectory(parentDir).
 		Build()
-	volumes := []v1.Volume{*volObj}
+	//volumes := []v1.Volume{*volObj}
 
 	helperPod, _ := pod.NewBuilder().
 		WithName("init-" + pOpts.name).
 		WithRestartPolicy(v1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
-		WithContainers(containers).
-		WithVolumes(volumes).
+		WithContainer(conObj).
+		WithVolume(*volObj).
 		Build()
 
 	//Launch the init pod.
@@ -171,7 +171,7 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 		return errors.Errorf("create process timeout after %v seconds", CmdTimeoutCounts)
 	}
 
-	glog.Infof("Volume %v has been initialized on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
+	//glog.Infof("Volume %v has been initialized on %v:%v", pOpts.name, pOpts.nodeName, pOpts.path)
 	return nil
 }
 
