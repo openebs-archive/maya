@@ -164,7 +164,7 @@ func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorP
 	}
 
 	if pool.CStorZpools == nil {
-		pool.CStorZpools = map[string]pool.PoolTopology{}
+		pool.CStorZpools = map[string]pool.Topology{}
 	}
 
 	// CheckValidPool is to check if pool attributes are correct.

@@ -21,15 +21,15 @@ import (
 	"github.com/golang/glog"
 )
 
-// PoolTopology contains the topology strucure of disks used in backend
-type PoolTopology struct {
-	Children  int          `json:"vdev_children,omitempty"`
-	Vdev_tree PoolVdevTree `json:"vdev_tree,omitempty"`
+// Topology contains the topology strucure of disks used in backend
+type Topology struct {
+	Children int      `json:"vdev_children,omitempty"`
+	VdevTree VdevTree `json:"vdev_tree,omitempty"`
 }
 
-// PoolVdevTree contains the tree strucure of disks used in backend
-type PoolVdevTree struct {
-	Vdev_type string `json:"type,omitempty"`
+// VdevTree contains the tree strucure of disks used in backend
+type VdevTree struct {
+	VdevType  string `json:"type,omitempty"`
 	Topvdev   []Vdev `json:"children,omitempty"`
 	Readcache []Vdev `json:"l2cache,omitempty"`
 	Spares    []Vdev `json:"spares,omitempty"`
@@ -39,14 +39,14 @@ type PoolVdevTree struct {
 type Vdev struct {
 	Vdev_type string `json:"type,omitempty"`
 	Path      string `json:"path,omitempty"`
-	Is_log    int    `json:"is_log,omitempty"`
-	Is_spare  int    `json:"is_spare,omitempty"`
+	IsLog     int    `json:"is_log,omitempty"`
+	IsSpare   int    `json:"is_spare,omitempty"`
 	Vdev      []Vdev `json:"children,omitempty"`
 }
 
 // ZpoolDump runs 'zpool dump' command and unmarshal the output in above schema
-func ZpoolDump() (PoolTopology, error) {
-	var t PoolTopology
+func ZpoolDump() (Topology, error) {
+	var t Topology
 	out, err := RunnerVar.RunCombinedOutput(PoolOperator, "dump")
 	if err != nil {
 		glog.Errorf("error in zpool dump output: %v", err)
