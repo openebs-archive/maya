@@ -23,8 +23,10 @@ import (
 	"strconv"
 
 	"github.com/golang/glog"
+	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
 	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
@@ -39,7 +41,7 @@ func FakeDiskCreator(dc *disk.KubernetesClient) {
 	// That meant 14*5 i.e. 70 disk objects should be created
 
 	// diskObjectList will hold the list of disk objects
-	var diskObjectList [70]*v1alpha1.Disk
+	var diskObjectList [70]*ndmapis.Disk
 
 	sparseDiskCount := 2
 	var diskLabel string
@@ -58,7 +60,7 @@ func FakeDiskCreator(dc *disk.KubernetesClient) {
 		} else {
 			diskLabel = "disk"
 		}
-		diskObjectList[diskListIndex] = &v1alpha1.Disk{
+		diskObjectList[diskListIndex] = &ndmapis.Disk{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "disk" + diskIdentifier,
@@ -67,7 +69,7 @@ func FakeDiskCreator(dc *disk.KubernetesClient) {
 					"ndm.io/disk-type":       diskLabel,
 				},
 			},
-			Status: v1alpha1.DiskStatus{
+			Status: ndmapis.DiskStatus{
 				State: DiskStateActive,
 			},
 		}
@@ -81,7 +83,7 @@ func FakeDiskCreator(dc *disk.KubernetesClient) {
 func fakeDiskClient() {
 	diskK8sClient = &disk.KubernetesClient{
 		fake.NewSimpleClientset(),
-		openebsFakeClientset.NewSimpleClientset(),
+		ndmFakeClientset.NewSimpleClientset(),
 	}
 }
 func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {

@@ -60,10 +60,6 @@ func (c *FakeOpenebsV1alpha1) CStorVolumeReplicas(namespace string) v1alpha1.CSt
 	return &FakeCStorVolumeReplicas{c, namespace}
 }
 
-func (c *FakeOpenebsV1alpha1) Disks() v1alpha1.DiskInterface {
-	return &FakeDisks{c}
-}
-
 func (c *FakeOpenebsV1alpha1) RunTasks(namespace string) v1alpha1.RunTaskInterface {
 	return &FakeRunTasks{c, namespace}
 }
