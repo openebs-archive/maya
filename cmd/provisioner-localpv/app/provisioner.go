@@ -134,9 +134,10 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 		nodeName:    node.Name,
 	}
 
-	if err := p.createInitPod(podOpts); err != nil {
-		glog.Infof("Initialize volume %v failed: %v", name, err)
-		return nil, err
+	iErr := p.createInitPod(podOpts)
+	if iErr != nil {
+		glog.Infof("Initialize volume %v failed: %v", name, iErr)
+		return nil, iErr
 	}
 
 	// VolumeMode will always be specified as Filesystem for host path volume,

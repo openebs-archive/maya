@@ -57,10 +57,10 @@ func (p *Provisioner) getPathAndNodeForPV(pv *v1.PersistentVolume) (string, stri
 	if local == nil {
 		//Handle the case of Local PV created in 0.9 using HostPathVolumeSource
 		hostPath := pv.Spec.PersistentVolumeSource.HostPath
-		if hostPath != nil {
-			path = hostPath.Path
+		if hostPath == nil {
+			return "", "", errors.Errorf("no HostPath set")
 		}
-		return "", "", errors.Errorf("no HostPath set")
+		path = hostPath.Path
 	} else {
 		path = local.Path
 	}
@@ -158,9 +158,10 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 	//Wait for the cleanup pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		if hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{}); err != nil {
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
+		if err != nil {
 			return err
-		} else if hPod.Status.Phase == v1.PodSucceeded {
+		} else if checkPod.Status.Phase == v1.PodSucceeded {
 			completed = true
 			break
 		}
@@ -239,9 +240,10 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 	//Wait for the cleanup pod to complete it job and exit
 	completed := false
 	for i := 0; i < CmdTimeoutCounts; i++ {
-		if hPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{}); err != nil {
+		checkPod, err := p.kubeClient.CoreV1().Pods(p.namespace).Get(hPod.Name, metav1.GetOptions{})
+		if err != nil {
 			return err
-		} else if hPod.Status.Phase == v1.PodSucceeded {
+		} else if checkPod.Status.Phase == v1.PodSucceeded {
 			completed = true
 			break
 		}
