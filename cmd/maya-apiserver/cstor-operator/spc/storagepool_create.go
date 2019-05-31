@@ -218,7 +218,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 // TODO: Move to disk package
 func (pc *PoolCreateConfig) getDeviceID(diskName string) (string, error) {
 	var deviceID string
-	disk, err := pc.clientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
+	disk, err := pc.ndmclientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

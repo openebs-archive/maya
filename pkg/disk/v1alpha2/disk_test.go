@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	"testing"
 
-	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

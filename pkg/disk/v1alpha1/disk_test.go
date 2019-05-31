@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
