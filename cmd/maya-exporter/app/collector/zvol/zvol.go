@@ -160,7 +160,8 @@ func (v *volume) get(ch chan<- prometheus.Metric) (zvol.Stats, error) {
 		return stats, err
 	}
 
-	if err := v.checkError(stdout, ch); err != nil {
+	err = v.checkError(stdout, ch)
+	if err != nil {
 		return stats, err
 	}
 

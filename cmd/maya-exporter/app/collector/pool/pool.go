@@ -130,7 +130,8 @@ func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 		return zpoolStats, err
 	}
 
-	if err := p.checkError(stdoutZpool, ch); err != nil {
+	err = p.checkError(stdoutZpool, ch)
+	if err != nil {
 		return zpoolStats, err
 	}
 

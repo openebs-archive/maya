@@ -25,7 +25,6 @@ import (
 )
 
 func TestZfsListCollector(t *testing.T) {
-	var runner types.Runner
 	cases := map[string]struct {
 		zfsListOutput  string
 		isError        bool
@@ -149,15 +148,15 @@ func TestZfsListCollector(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			if tt.isError {
-				runner = mock.StdoutBuilder().Error().Build()
+				tt.runner = mock.StdoutBuilder().Error().Build()
 			} else {
 				out := tt.zfsListOutput
-				runner = mock.StdoutBuilder().WithOutput(out).Build()
+				tt.runner = mock.StdoutBuilder().WithOutput(out).Build()
 			}
 			// Build prometheus like output using regular expressions
 			out := tt.expectedOutput
 			regex := mockServer.BuildRegex(out)
-			vol := NewVolumeList(runner)
+			vol := NewVolumeList(tt.runner)
 			stop := make(chan struct{})
 			buf := mockServer.PrometheusService(vol, stop)
 			// expectedOutput the regex after parsing the expected output of zfs list command into prometheus's format.
