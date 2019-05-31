@@ -1556,21 +1556,25 @@ func (m *executor) deleteOEV1alpha1CSV() (err error) {
 
 // execCoreV1Pod runs given command remotely in given container of given pod
 // and post stdout and and stderr in JsonResult. You can get it using -
-// {{- jsonpath .JsonResult "{.Stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
-func (m *executor) execCoreV1Pod() (err error) {
-	podexecopts, err := podexec.WithTemplate("execCoreV1Pod", m.Runtask.Spec.Task, m.Values).
-		AsAPIPodExec()
+// {{- jsonpath .JsonResult "{.stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
+func (m *executor) execCoreV1Pod() error {
+	raw, err := template.AsTemplatedBytes("execCoreV1Pod", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return errors.Wrap(err, "failed to run templating on pod exec object")
+	}
+	podexecopts, err := podexec.BuilderForYAMLObject(raw).AsAPIPodExec()
+	if err != nil {
+		return errors.Wrap(err, "failed to build pod exec options")
+	}
+	execRaw, err := pod.NewKubeClient().
+		WithNamespace(m.getTaskRunNamespace()).
+		ExecRaw(m.getTaskObjectName(), podexecopts)
 	if err != nil {
 		return errors.Wrap(err, "failed to run pod exec")
 	}
 
-	result, err := m.getK8sClient().ExecCoreV1Pod(m.getTaskObjectName(), podexecopts)
-	if err != nil {
-		return errors.Wrap(err, "failed to run pod exec")
-	}
-
-	util.SetNestedField(m.Values, result, string(v1alpha1.CurrentJSONResultTLP))
-	return
+	util.SetNestedField(m.Values, execRaw, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
 }
 
 // rolloutStatus generates rollout status of a given resource form it's object details

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package snapshot
+package clone
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -29,11 +29,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
+var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 	var (
-		err      error
-		pvcName  = "test-cstor-snap-pvc"
-		snapName = "test-cstor-snap-snapshot"
+		err          error
+		pvcName      = "test-cstor-clone-pvc"
+		snapName     = "test-cstor-clone-snapshot"
+		clonepvcName = "test-cstor-clone-pvc-cloned"
 	)
 
 	BeforeEach(func() {
@@ -49,7 +50,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			_, err = ops.SCClient.Create(scObj)
 			Expect(err).To(BeNil(), "while creating storageclass", scName)
 
-			By("building spc object")
+			By("building storagepoolclaim")
 			spcObj = spc.NewBuilder().
 				WithName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
@@ -58,11 +59,11 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
-			By("creating storagepoolclaim")
+			By("creating above storagepoolclaim")
 			_, err = ops.SPCClient.Create(spcObj)
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
-			By("verifying healthy csp count")
+			By("verifying healthy cstorpool count")
 			cspCount := ops.GetHealthyCSPCount(spcName, cstor.PoolCount)
 			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
@@ -128,6 +129,11 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			status := ops.IsPVCBoundEventually(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
+			By("verifying cstorVolume status as healthy")
+			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 1)
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
 			By("building a cstor volume snapshot")
 			snapObj, err = snap.NewBuilder().
 				WithName(snapName).
@@ -150,9 +156,82 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsName,
 			)
 
-			By("verifying snapshot status as ready")
 			snaptype := ops.GetSnapshotTypeEventually(snapName)
 			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
+
+			By("builing clone persistentvolumeclaim")
+			cloneAnnotations := map[string]string{
+				"snapshot.alpha.kubernetes.io/snapshot": snapName,
+			}
+
+			cloneObj, err := pvc.NewBuilder().
+				WithName(clonepvcName).
+				WithAnnotations(cloneAnnotations).
+				WithNamespace(nsName).
+				WithStorageClass(clonescName).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).
+				Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("creating clone persistentvolumeclaim")
+			_, err = ops.PVCClient.WithNamespace(nsName).Create(cloneObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("verifying clone volume target pod count")
+
+			clonetargetLabel := "openebs.io/persistent-volume-claim=" + clonepvcName
+			clonePodCount := ops.GetPodRunningCountEventually(openebsNamespace, clonetargetLabel, 1)
+			Expect(clonePodCount).To(Equal(1), "while checking clone pvc pod count")
+
+			By("verifying clone volumeereplica count")
+			clonepvcObj, err := ops.PVCClient.WithNamespace(nsName).Get(clonepvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			clonecvrLabel := "openebs.io/persistent-volume=" + clonepvcObj.Spec.VolumeName
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, clonecvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			By("verifying clone pvc status as bound")
+			status = ops.IsPVCBoundEventually(clonepvcName)
+			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+			By("deleting clone persistentvolumeclaim")
+			err = ops.PVCClient.Delete(clonepvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying clone target pod count as 0")
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, clonetargetLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
+
+			By("verifying deleted clone pvc")
+			clonepvc := ops.IsPVCDeleted(clonepvcName)
+			Expect(clonepvc).To(Equal(true), "while trying to get deleted pvc")
+
+			By("verifying if clone cstorvolume is deleted")
+			CstorVolumeLabel = "openebs.io/persistent-volume=" + clonepvcObj.Spec.VolumeName
+			clonecvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			Expect(clonecvCount).To(Equal(true), "while checking cstorvolume count")
 
 			By("deleting cstor volume snapshot")
 			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
@@ -167,7 +246,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			snap := ops.IsSnapshotDeleted(snapName)
 			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
 
-			By("deleting above pvc")
+			By("deleting source persistentvolumeclaim")
 			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
@@ -176,18 +255,21 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsName,
 			)
 
-			By("verifying target pod count as 0")
-			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 0)
+			By("verifying source volume target pod count as 0")
+
+			sourcetargetLabel := "openebs.io/persistent-volume-claim=" + pvcName
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, sourcetargetLabel, 0)
 			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
-			By("verifying deleted pvc")
+			By("verifying deleted source pvc")
 			pvc := ops.IsPVCDeleted(pvcName)
 			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
-			By("verifying if cstorvolume is deleted")
-			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
-			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			By("verifying if source cstorvolume is deleted")
+			CstorVolumeLabel = "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvCount = ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
 		})
 	})
 

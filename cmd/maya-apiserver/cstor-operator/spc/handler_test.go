@@ -368,6 +368,7 @@ func TestCurrentPoolCount(t *testing.T) {
 	}
 }
 
+/*
 func TestPendingPoolCount(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
@@ -494,7 +495,7 @@ func TestIsPoolPending(t *testing.T) {
 		})
 	}
 }
-
+*/
 func TestIsValidPendingPoolCount(t *testing.T) {
 	tests := map[string]struct {
 		pendingPoolCount int
