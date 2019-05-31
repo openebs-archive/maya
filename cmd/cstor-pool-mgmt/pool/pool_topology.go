@@ -38,10 +38,10 @@ type VdevTree struct {
 // Vdev relates to a logical or physical disk in backend
 type Vdev struct {
 	VdevType string `json:"type,omitempty"`
-	Path      string `json:"path,omitempty"`
-	IsLog     int    `json:"is_log,omitempty"`
-	IsSpare   int    `json:"is_spare,omitempty"`
-	Vdev      []Vdev `json:"children,omitempty"`
+	Path     string `json:"path,omitempty"`
+	IsLog    int    `json:"is_log,omitempty"`
+	IsSpare  int    `json:"is_spare,omitempty"`
+	Vdev     []Vdev `json:"children,omitempty"`
 }
 
 // ZpoolDump runs 'zpool dump' command and unmarshal the output in above schema
