@@ -37,7 +37,7 @@ type VdevTree struct {
 
 // Vdev relates to a logical or physical disk in backend
 type Vdev struct {
-	Vdev_type string `json:"type,omitempty"`
+	VdevType string `json:"type,omitempty"`
 	Path      string `json:"path,omitempty"`
 	IsLog     int    `json:"is_log,omitempty"`
 	IsSpare   int    `json:"is_spare,omitempty"`

@@ -53,7 +53,7 @@ type PoolNamePrefix string
 // CStorPools is a map of string, API version of CStorPool
 var CStorPools map[string]*apis.CStorPool
 
-// CStorZPools is a map of string, backend topology of CStorPool
+// CStorZpools is a map of string, backend topology of CStorPool
 var CStorZpools map[string]Topology
 
 // PoolPrefix is prefix for pool name
