@@ -27,6 +27,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/pool/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
@@ -96,33 +97,39 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	return nil
 }
 
-// cStorPoolEventHandler is to handle cstor pool related events.
-func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperation, cStorPoolGot *apis.CStorPool) (string, error) {
+func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
 	var zpoolDumpErr error
 	pool.RunnerVar = util.RealRunner{}
 	uid := string(cStorPoolGot.GetUID())
-	csp := pool.CStorPools[uid]
+	csp := pool.ImportedCStorPools[uid]
+
+	common.SyncResources.Mux.Lock()
+	if csp != nil {
+		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
+	}
+	status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+	if status == string(apis.CStorPoolStatusOnline) {
+		pool.ImportedCStorPools[uid] = cStorPoolGot.DeepCopy()
+		pool.CStorZpools[uid], zpoolDumpErr = zpool.Dump()
+		if zpoolDumpErr != nil {
+			glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
+			delete(pool.CStorZpools, uid)
+		}
+	}
+	common.SyncResources.Mux.Unlock()
+	pool.PoolAddEventHandled = true
+	return status, err
+}
+
+// cStorPoolEventHandler is to handle cstor pool related events.
+func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperation, cStorPoolGot *apis.CStorPool) (string, error) {
 	switch operation {
 	case common.QOpAdd:
 		glog.Infof("Processing cStorPool added event: %v, %v", cStorPoolGot.ObjectMeta.Name, string(cStorPoolGot.GetUID()))
 
 		// lock is to synchronize pool and volumereplica. Until certain pool related
 		// operations are over, the volumereplica threads will be held.
-		common.SyncResources.Mux.Lock()
-		if csp != nil {
-			c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-		}
-		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
-		if status == string(apis.CStorPoolStatusOnline) {
-			pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
-			pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
-			if zpoolDumpErr != nil {
-				glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
-				delete(pool.CStorZpools, uid)
-			}
-		}
-		common.SyncResources.Mux.Unlock()
-		pool.PoolAddEventHandled = true
+		status, err := c.cStorPoolAddEvent(cStorPoolGot)
 		return status, err
 
 	case common.QOpDestroy:
@@ -133,21 +140,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
 		// try to import/create pool gere as part of resync.
 		if IsPendingStatus(cStorPoolGot) {
-			common.SyncResources.Mux.Lock()
-			if csp != nil {
-				c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
-			}
-			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
-			if status == string(apis.CStorPoolStatusOnline) {
-				pool.CStorPools[uid] = cStorPoolGot.DeepCopy()
-				pool.CStorZpools[uid], zpoolDumpErr = pool.ZpoolDump()
-				if zpoolDumpErr != nil {
-					glog.Errorf("failed in getting zpool dump %v", zpoolDumpErr)
-					delete(pool.CStorZpools, uid)
-				}
-			}
-			common.SyncResources.Mux.Unlock()
-			pool.PoolAddEventHandled = true
+			status, err := c.cStorPoolAddEvent(cStorPoolGot)
 			return status, err
 		}
 		glog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
@@ -159,12 +152,12 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 }
 
 func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
-	if pool.CStorPools == nil {
-		pool.CStorPools = map[string]*apis.CStorPool{}
+	if pool.ImportedCStorPools == nil {
+		pool.ImportedCStorPools = map[string]*apis.CStorPool{}
 	}
 
 	if pool.CStorZpools == nil {
-		pool.CStorZpools = map[string]pool.Topology{}
+		pool.CStorZpools = map[string]zpool.Topology{}
 	}
 
 	// CheckValidPool is to check if pool attributes are correct.

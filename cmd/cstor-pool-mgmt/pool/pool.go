@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/pool/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
@@ -50,11 +51,11 @@ var PoolAddEventHandled = false
 // PoolNamePrefix is a typed string to store pool name prefix
 type PoolNamePrefix string
 
-// CStorPools is a map of string, API version of CStorPool
-var CStorPools map[string]*apis.CStorPool
+// ImportedCStorPools is a map of imported cstor pools API config identified via their UID
+var ImportedCStorPools map[string]*apis.CStorPool
 
-// CStorZpools is a map of string, backend topology of CStorPool
-var CStorZpools map[string]Topology
+// CStorZpools is a map of imported cstor pools config at backend identified via their UID
+var CStorZpools map[string]zpool.Topology
 
 // PoolPrefix is prefix for pool name
 const (
