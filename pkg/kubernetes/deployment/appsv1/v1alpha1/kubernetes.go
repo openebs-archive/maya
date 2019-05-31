@@ -17,8 +17,10 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"strings"
 
 	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,9 +30,21 @@ import (
 // that abstracts fetching of internal clientset
 type getClientsetFn func() (clientset *kubernetes.Clientset, err error)
 
+// getClientsetFromPathFn is a typed function that
+// abstracts fetching of clientset from kubeConfigPath
+type getClientsetForPathFn func(kubeConfigPath string) (clientset *kubernetes.Clientset, err error)
+
 // getFn is a typed function that abstracts get of deployment instances
 type getFn func(cli *kubernetes.Clientset, name, namespace string,
 	opts *metav1.GetOptions) (*appsv1.Deployment, error)
+
+// createFn is a typed function that abstracts
+// creation of deployment
+type createFn func(cli *kubernetes.Clientset, namespace string, deploy *appsv1.Deployment) (*appsv1.Deployment, error)
+
+// deleteFn is a typed function that abstracts
+// deletion of deployments
+type deleteFn func(cli *kubernetes.Clientset, namespace string, name string, opts *metav1.DeleteOptions) error
 
 // rolloutStatusFn is a typed function that abstracts
 // rollout status of deployment instances
@@ -40,6 +54,57 @@ type rolloutStatusFn func(d *appsv1.Deployment) (*RolloutOutput, error)
 // rollout status of deployment instances
 type rolloutStatusfFn func(d *appsv1.Deployment) ([]byte, error)
 
+// defaultGet is default implementation of get function
+func defaultGet(cli *kubernetes.Clientset, name,
+	namespace string, opts *metav1.GetOptions) (
+	d *appsv1.Deployment, err error) {
+	d, err = cli.AppsV1().
+		Deployments(namespace).
+		Get(name, *opts)
+	return
+}
+
+// defaultCreate is default implementation of create function
+func defaultCreate(cli *kubernetes.Clientset,
+	namespace string, deploy *appsv1.Deployment) (
+	d *appsv1.Deployment, err error) {
+	d, err = cli.AppsV1().
+		Deployments(namespace).
+		Create(deploy)
+	return
+}
+
+// defaultDel is default implementation of del function
+func defaultDel(cli *kubernetes.Clientset, namespace,
+	name string, opts *metav1.DeleteOptions) (err error) {
+	err = cli.AppsV1().
+		Deployments(namespace).
+		Delete(name, opts)
+	return
+}
+
+// defaultRolloutStatus is default implementation of rolloutStatus function
+func defaultRolloutStatus(d *appsv1.Deployment) (
+	*RolloutOutput, error) {
+	b, err := NewBuilderForAPIObject(d).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+	return b.RolloutStatus()
+}
+
+// deafultRolloutStatusf is default implementation of rolloutStatusf function
+func deafultRolloutStatusf(d *appsv1.Deployment) (
+	[]byte, error) {
+	b, err := NewBuilderForAPIObject(d).
+		Build()
+	if err != nil {
+		return nil, err
+	}
+	return b.RolloutStatusRaw()
+}
+
 // Kubeclient enables kubernetes API operations on deployment instance
 type Kubeclient struct {
 	// clientset refers to kubernetes clientset. It is responsible to
@@ -47,11 +112,17 @@ type Kubeclient struct {
 	clientset *kubernetes.Clientset
 	namespace string
 
+	// kubeconfig path to get kubernetes clientset
+	kubeConfigPath string
+
 	// functions useful during mocking
-	getClientset   getClientsetFn
-	get            getFn
-	rolloutStatus  rolloutStatusFn
-	rolloutStatusf rolloutStatusfFn
+	getClientset        getClientsetFn
+	getClientsetForPath getClientsetForPathFn
+	get                 getFn
+	create              createFn
+	del                 deleteFn
+	rolloutStatus       rolloutStatusFn
+	rolloutStatusf      rolloutStatusfFn
 }
 
 // KubeclientBuildOption defines the abstraction to build a kubeclient instance
@@ -59,50 +130,61 @@ type KubeclientBuildOption func(*Kubeclient)
 
 // withDefaults sets the default options of kubeclient instance
 func (k *Kubeclient) withDefaults() {
+
 	if k.getClientset == nil {
 		k.getClientset = func() (
 			clients *kubernetes.Clientset, err error) {
-			config, err := client.GetConfig(client.New())
-			if err != nil {
-				return nil, err
-			}
-			return kubernetes.NewForConfig(config)
+			return client.New().
+				Clientset()
+		}
+	}
+	if k.getClientsetForPath == nil {
+		k.getClientsetForPath = func(kubeConfigPath string) (
+			clients *kubernetes.Clientset, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).
+				Clientset()
 		}
 	}
 
 	if k.get == nil {
-		k.get = func(cli *kubernetes.Clientset, name,
-			namespace string, opts *metav1.GetOptions) (
+		k.get = defaultGet
+	}
+
+	if k.create == nil {
+		k.create = defaultCreate
+	}
+
+	if k.del == nil {
+		k.del = defaultDel
+	}
+
+	if k.create == nil {
+		k.create = func(cli *kubernetes.Clientset,
+			namespace string, deploy *appsv1.Deployment) (
 			d *appsv1.Deployment, err error) {
 			d, err = cli.AppsV1().
 				Deployments(namespace).
-				Get(name, *opts)
+				Create(deploy)
+			return
+		}
+	}
+
+	if k.del == nil {
+		k.del = func(cli *kubernetes.Clientset, namespace,
+			name string, opts *metav1.DeleteOptions) (err error) {
+			err = cli.AppsV1().
+				Deployments(namespace).
+				Delete(name, opts)
 			return
 		}
 	}
 
 	if k.rolloutStatus == nil {
-		k.rolloutStatus = func(d *appsv1.Deployment) (
-			*RolloutOutput, error) {
-			b, err := NewBuilderForAPIObject(d).
-				Build()
-			if err != nil {
-				return nil, err
-			}
-			return b.RolloutStatus()
-		}
+		k.rolloutStatus = defaultRolloutStatus
 	}
 
 	if k.rolloutStatusf == nil {
-		k.rolloutStatusf = func(d *appsv1.Deployment) (
-			[]byte, error) {
-			b, err := NewBuilderForAPIObject(d).
-				Build()
-			if err != nil {
-				return nil, err
-			}
-			return b.RolloutStatusRaw()
-		}
+		k.rolloutStatusf = deafultRolloutStatusf
 	}
 
 }
@@ -114,6 +196,21 @@ func WithClientset(c *kubernetes.Clientset) KubeclientBuildOption {
 	}
 }
 
+// WithNamespace sets the kubernetes client against
+// the provided namespace
+func (k *Kubeclient) WithNamespace(namespace string) *Kubeclient {
+	k.namespace = namespace
+	return k
+}
+
+// WithKubeConfigPath sets the kubeConfig path
+// against client instance
+func WithKubeConfigPath(path string) KubeclientBuildOption {
+	return func(k *Kubeclient) {
+		k.kubeConfigPath = path
+	}
+}
+
 // WithNamespace set namespace in kubeclient object
 func WithNamespace(namespace string) KubeclientBuildOption {
 	return func(k *Kubeclient) {
@@ -121,9 +218,9 @@ func WithNamespace(namespace string) KubeclientBuildOption {
 	}
 }
 
-// KubeClient returns a new instance of kubeclient meant for deployment.
+// NewKubeClient returns a new instance of kubeclient meant for deployment.
 // caller can configure it with different kubeclientBuildOption
-func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
+func NewKubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	k := &Kubeclient{}
 	for _, o := range opts {
 		o(k)
@@ -132,13 +229,20 @@ func KubeClient(opts ...KubeclientBuildOption) *Kubeclient {
 	return k
 }
 
+func (k *Kubeclient) getClientsetForPathOrDirect() (*kubernetes.Clientset, error) {
+	if k.kubeConfigPath != "" {
+		return k.getClientsetForPath(k.kubeConfigPath)
+	}
+	return k.getClientset()
+}
+
 // getClientOrCached returns either a new instance
 // of kubernetes client or its cached copy
 func (k *Kubeclient) getClientOrCached() (*kubernetes.Clientset, error) {
 	if k.clientset != nil {
 		return k.clientset, nil
 	}
-	c, err := k.getClientset()
+	c, err := k.getClientsetForPathOrDirect()
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +270,31 @@ func (k *Kubeclient) GetRaw(name string) ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(d)
+}
+
+// Delete deletes a deployment instance from the
+// kubernetes cluster
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to delete deployment: missing deployment name")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete deployment {%s}", name)
+	}
+	return k.del(cli, k.namespace, name, opts)
+}
+
+// Create creates a deployment in specified namespace in kubernetes cluster
+func (k *Kubeclient) Create(deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+	if deployment == nil {
+		return nil, errors.New("failed to create deployment: nil deployment object")
+	}
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create deployment {%s} in namespace {%s}", deployment.Name, deployment.Namespace)
+	}
+	return k.create(cli, k.namespace, deployment)
 }
 
 // RolloutStatusf returns deployment's rollout status for given name
