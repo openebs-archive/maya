@@ -181,8 +181,8 @@ func (p *Provisioner) createInitPod(pOpts *HelperPodOptions) error {
 //  it extracts the base path and the PV path. The helper pod is then launched
 //  by mounting the base path - and performing a delete on the unique PV path.
 func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
-	err := pOpts.validate()
-	if err != nil {
+	//err := pOpts.validate()
+	if err := pOpts.validate(); err != nil {
 		return err
 	}
 
@@ -208,20 +208,20 @@ func (p *Provisioner) createCleanupPod(pOpts *HelperPodOptions) error {
 			},
 		}).
 		Build()
-	containers := []v1.Container{conObj}
+	//containers := []v1.Container{conObj}
 
 	volObj, _ := volume.NewBuilder().
 		WithName("data").
 		WithHostDirectory(parentDir).
 		Build()
-	volumes := []v1.Volume{*volObj}
+	//volumes := []v1.Volume{*volObj}
 
 	helperPod, _ := pod.NewBuilder().
 		WithName("cleanup-" + pOpts.name).
 		WithRestartPolicy(v1.RestartPolicyNever).
 		WithNodeName(pOpts.nodeName).
-		WithContainers(containers).
-		WithVolumes(volumes).
+		WithContainer(conObj).
+		WithVolume(*volObj).
 		Build()
 
 	//Launch the cleanup pod.
