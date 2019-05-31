@@ -49,7 +49,7 @@ import (
 )
 
 const (
-	maxRetry = 50
+	maxRetry = 30
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -395,6 +395,24 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	}
 }
 
+// GetCSPCount gets csp count based on spcName
+func (ops *Operations) GetCSPCount(spcName string, expectedCSPCount int) int {
+	var cspCount int
+	for i := 0; i < maxRetry; i++ {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		cspCount = csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Len()
+		if cspCount == expectedCSPCount {
+			return cspCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspCount
+}
+
 // GetHealthyCSPCount gets healthy csp based on spcName
 func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) int {
 	var cspCount int
@@ -516,4 +534,11 @@ func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector st
 		}
 	}
 	return true
+}
+
+// GenerateName creates a name field with time stamp attached
+// to make it unique
+func GenerateName(name string) string {
+	generatedName := name + "-" + fmt.Sprintf("%d", time.Now().UnixNano())
+	return generatedName
 }

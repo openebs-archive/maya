@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package volume
+package negative
 
 import (
 	"testing"
@@ -33,15 +33,14 @@ import (
 
 var (
 	openebsNamespace   = "openebs"
-	namespace          = "cstor-invalidconfig"
-	scName             = "cstor-volume"
+	namespace          = tests.GenerateName("cstor-invalidconfig")
+	scName             = "cstor-volume-test"
 	openebsProvisioner = "openebs.io/provisioner-iscsi"
-	spcName            = "test-cstor-provision-sparse-pool-auto"
+	spcName            = "sparse-pool-claim"
 	namespaceObj       *corev1.Namespace
 	scObj              *storagev1.StorageClass
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
-	spcList            *apis.StoragePoolClaimList
 	targetLabel        = "openebs.io/target=cstor-target"
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
