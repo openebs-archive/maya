@@ -266,7 +266,7 @@ func (c *Controller) getFreeDiskNodeMap() (map[string]string, error) {
 	freeNodeDiskMap := make(map[string]string)
 
 	// Get all disk from kube-apiserver
-	diskList, err := c.clientset.OpenebsV1alpha1().Disks().List(metav1.ListOptions{})
+	diskList, err := c.ndmclientset.OpenebsV1alpha1().Disks().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

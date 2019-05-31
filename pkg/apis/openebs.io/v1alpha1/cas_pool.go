@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -104,5 +105,5 @@ type CasPool struct {
 	PendingPoolCount int
 
 	DeviceID []string
-	Disks    DiskList
+	Disks    ndm.DiskList
 }
