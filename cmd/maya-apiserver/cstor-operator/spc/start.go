@@ -54,11 +54,6 @@ func Start() error {
 		return errors.Wrap(err, "error building kubernetes clientset")
 	}
 
-	ndmClient, err := ndmClientset.NewForConfig(cfg)
-	if err != nil {
-		return errors.Wrap(err, "error building ndm clientset")
-	}
-
 	// Building OpenEBS Clientset
 	openebsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {

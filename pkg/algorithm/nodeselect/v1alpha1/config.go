@@ -43,13 +43,13 @@ var DefaultDiskCount = map[string]int{
 	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2DiskCountCPV),
 }
 
-type diskList struct {
+type blockDeviceList struct {
 	Items []string
 }
 
-type nodeDisk struct {
-	NodeName string
-	Disks    diskList
+type nodeBlockDevice struct {
+	NodeName     string
+	BlockDevices blockDeviceList
 }
 
 // Config embeds clients for disk,csp and sp and contains, SPC object and ProvisioningType field which should tell
@@ -57,8 +57,8 @@ type nodeDisk struct {
 type Config struct {
 	// Spc is the StoragePoolClaim object.
 	Spc *apis.StoragePoolClaim
-	// DiskClient is the client for Disk to perform CRUD operations on Disk object.
-	DiskClient blockdevice.BlockDeviceInterface
+	// BlockDeviceClient is the client for Disk to perform CRUD operations on Disk object.
+	BlockDeviceClient blockdevice.BlockDeviceInterface
 	// SpClient is the client for SP to perform CRUD operations on SP object.
 	SpClient sp.StoragepoolInterface
 	// CspClient is the client for CSP to perform CRUD operations on CSP object.
@@ -128,11 +128,11 @@ func NewConfig(spc *apis.StoragePoolClaim) *Config {
 	spK8sClient := getSpK8sClient()
 	pT := ProvisioningType(spc)
 	ac := &Config{
-		Spc:              spc,
-		DiskClient:       bdClient,
-		CspClient:        cspK8sClient,
-		SpClient:         spK8sClient,
-		ProvisioningType: pT,
+		Spc:               spc,
+		BlockDeviceClient: bdClient,
+		CspClient:         cspK8sClient,
+		SpClient:          spK8sClient,
+		ProvisioningType:  pT,
 	}
 	return ac
 }

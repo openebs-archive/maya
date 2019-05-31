@@ -175,7 +175,7 @@ func validatePoolType(spc *apis.StoragePoolClaim) error {
 // validateDiskType validates the disk types in spc.
 func validateDiskType(spc *apis.StoragePoolClaim) error {
 	diskType := spc.Spec.Type
-	if !(diskType == string(apis.TypeSparseCPV) || diskType == string(apis.TypeDiskCPV) || diskType == string(apis.TypeBlockDeviceCPV)) {
+	if !(diskType == string(apis.TypeSparseCPV) || diskType == string(apis.TypeBlockDeviceCPV)) {
 		return errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
 	return nil
@@ -268,7 +268,7 @@ func (c *Controller) getFreeDiskNodeMap() (map[string]string, error) {
 
 	// Get all disk from kube-apiserver
 	namespace := env.Get(env.OpenEBSNamespace)
-	blockDeviceList, err := c.ndmClientset.OpenebsV1alpha1().BlockDevices(namespace).List(metav1.ListOptions{})
+	blockDeviceList, err := c.ndmclientset.OpenebsV1alpha1().BlockDevices(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

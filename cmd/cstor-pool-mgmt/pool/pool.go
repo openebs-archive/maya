@@ -248,7 +248,7 @@ func Status(poolName string) (string, error) {
 	} else {
 		return string(apis.CStorPoolStatusError), nil
 	}
-	return poolStatus, nil
+	//	return poolStatus, nil
 }
 
 // poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.
@@ -359,14 +359,14 @@ func LabelClear(disks []string) error {
 
 // GetDeviceIDs returns the list of device IDs for the csp.
 func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
-	var diskDeviceID []string
+	var bdDeviceID []string
 	for _, group := range csp.Spec.Group {
-		for _, disk := range group.Item {
-			diskDeviceID = append(diskDeviceID, disk.DeviceID)
+		for _, blockDevice := range group.Item {
+			bdDeviceID = append(bdDeviceID, blockDevice.DeviceID)
 		}
 	}
-	if len(diskDeviceID) == 0 {
+	if len(bdDeviceID) == 0 {
 		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
 	}
-	return diskDeviceID, nil
+	return bdDeviceID, nil
 }

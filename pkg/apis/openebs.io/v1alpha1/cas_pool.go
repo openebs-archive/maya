@@ -84,8 +84,8 @@ type CasPool struct {
 	// execution of namespaced resources with respect to storagepool
 	Namespace string
 
-	// DiskList is the list of disks over which a storagepool will be provisioned
-	DiskList []DiskGroup
+	// BlockDeviceList is the list of block devices over which a storagepool will be provisioned
+	BlockDeviceList []BlockDeviceGroup
 
 	// PoolType is the type of pool to be provisioned e.g. striped or mirrored
 	PoolType string
@@ -108,6 +108,6 @@ type CasPool struct {
 	// PendingPoolCount is the number of pools that will be tried for creation as a part of reconciliation.
 	PendingPoolCount int
 
-	DeviceID        []string
-	BlockDeviceList ndm.BlockDeviceList
+	DeviceID           []string
+	APIBlockDeviceList ndm.BlockDeviceList
 }

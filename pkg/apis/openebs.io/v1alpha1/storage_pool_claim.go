@@ -40,7 +40,7 @@ type StoragePoolClaimSpec struct {
 	Type         string          `json:"type"`
 	MaxPools     *int            `json:"maxPools"`
 	MinPools     int             `json:"minPools"`
-	BlockDevices BlockDeviceAttr `json:"blockdevices"`
+	BlockDevices BlockDeviceAttr `json:"blockDevices"`
 	PoolSpec     CStorPoolAttr   `json:"poolSpec"`
 }
 
