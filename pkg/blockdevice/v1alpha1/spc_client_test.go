@@ -86,6 +86,7 @@ func TestSpcClientGet(t *testing.T) {
 		},
 	}
 	for name, test := range tests {
+		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			blockDevice, err := blockDeviceSpc.Get(test.blockDeviceName, metav1.GetOptions{})
 			if test.expectedErr {
@@ -333,6 +334,7 @@ func TestSpcClientFilteredList(t *testing.T) {
 		},
 	}
 	for name, test := range tests {
+		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			blockDeviceList, err := test.spcClientObj.List(metav1.ListOptions{})
 			blockDeviceList = blockDeviceList.Filter(FilterInactive)

@@ -24,6 +24,7 @@ import (
 // Get is Kubernetes client implementation to get disk.
 func (k *KubernetesClient) Get(name string) (*Disk, error) {
 	d, err := k.NDMClientset.OpenebsV1alpha1().Disks().Get(name, v1.GetOptions{})
+
 	return &Disk{d, nil}, err
 }
 

@@ -40,7 +40,6 @@ type KubernetesClient struct {
 
 	// NDMClientset is a NDM custom resource package generated for custom API group.
 	NDMClientset clientset.Interface
-	Namespace    string
 }
 
 type SpcObjectClient struct {

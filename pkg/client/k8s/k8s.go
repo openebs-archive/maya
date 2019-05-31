@@ -642,7 +642,7 @@ func (k *K8sClient) GetAppsV1B1DeploymentAsRaw(name string) (result []byte, err 
 	return
 }
 
-// GetNDMV1alpha1BlockDeviceAsRaw fetches the OpenEBS Disk with the provided name
+// GetOEV1alpha1BlockDeviceAsRaw fetches the OpenEBS Disk with the provided name
 func (k *K8sClient) GetOEV1alpha1BlockDeviceAsRaw(name string) (result []byte, err error) {
 	bd, err := k.GetOEV1alpha1BlockDevice(name)
 	if err != nil {

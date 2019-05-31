@@ -26,6 +26,7 @@ import (
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 )
 
+//TODO: Update the file with latest pattern
 const (
 	// StorageNodePredicateKey is the key for StorageNodePredicate function.
 	FilterInactive        = "filterInactive"
@@ -47,16 +48,24 @@ type KubernetesClient struct {
 
 type errs []error
 
+// SpcObjectClient is the kubernetes client perform block devie operations in
+// case of manual provisioning
 type SpcObjectClient struct {
 	*KubernetesClient
 	Spc *apis.StoragePoolClaim
 }
 
+// BlockDevice is a wrapper over BlockDevice api
+// object. It provides build, validations and other common
+// logic to be used by various feature specific callers
 type BlockDevice struct {
 	*ndm.BlockDevice
 	errs
 }
 
+// BlockDeviceList is a wrapper over BlockDeviceList api
+// object. It provides build, validations and other common
+// logic to be used by various feature specific callers
 type BlockDeviceList struct {
 	*ndm.BlockDeviceList
 	errs
@@ -164,6 +173,7 @@ func checkName(db *BlockDevice) (string, bool) {
 	return "", true
 }
 
+// Filter adds filters on which the blockdevice has to be filtered
 func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 	// Initialize filtered block device list
 	filteredBlockDeviceList := &BlockDeviceList{
@@ -223,6 +233,7 @@ func filterClaimedDevices(orignialList *BlockDeviceList) *BlockDeviceList {
 	return filteredList
 }
 
+// Hasitems checks whether the BlockDeviceList contains BlockDevices
 func (bd *BlockDeviceList) Hasitem() (string, bool) {
 	if bd == nil || bd.BlockDeviceList == nil || bd.Items == nil {
 		return "No item found in blockdevice list", false

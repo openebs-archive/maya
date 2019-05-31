@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Get is spc client implementation to get disk.
+// Get is spc client implementation to get blockdevice
 func (s *SpcObjectClient) Get(name string, opts metav1.GetOptions) (*BlockDevice, error) {
 	spcBDList := s.Spc.Spec.BlockDevices.BlockDeviceList
 	var diskName string
@@ -40,6 +40,7 @@ func (s *SpcObjectClient) Get(name string, opts metav1.GetOptions) (*BlockDevice
 	return &BlockDevice{d, nil}, err
 }
 
+// List is spc client implementation to list blockdevices
 func (s *SpcObjectClient) List(opts metav1.ListOptions) (*BlockDeviceList, error) {
 	bdL := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
@@ -68,7 +69,7 @@ func (s *SpcObjectClient) List(opts metav1.ListOptions) (*BlockDeviceList, error
 	return bdL, err
 }
 
-// Create is kubernetes client implementation to create disk.
+// Create is kubernetes client implementation to create blockdevice
 func (s *SpcObjectClient) Create(bs *ndm.BlockDevice) (*BlockDevice, error) {
 	return nil, errors.New("Disk object creation is not supported through spc client")
 }

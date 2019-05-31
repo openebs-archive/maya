@@ -65,6 +65,7 @@ func TestFilteredList(t *testing.T) {
 		},
 	}
 	for name, test := range tests {
+		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			blockDeviceList, err := blockDeviceK8s.List(metav1.ListOptions{})
 			filtteredBlockDeviceList := blockDeviceList.Filter(FilterInactive)
