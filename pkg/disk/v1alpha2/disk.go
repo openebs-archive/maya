@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha2
 
 import (
+	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
@@ -39,13 +40,13 @@ var DefaultDiskCount = map[string]int{
 // Disk encapsulates Disk api object.
 type Disk struct {
 	// actual disk object
-	Object *apisv1alpha1.Disk
+	Object *ndmapisv1alpha1.Disk
 }
 
 // DiskList holds the list of Disk api
 type DiskList struct {
 	// list of disk
-	ObjectList *apisv1alpha1.DiskList
+	ObjectList *ndmapisv1alpha1.DiskList
 }
 
 // Builder is the builder object for Disk.
@@ -169,7 +170,7 @@ func (l *DiskList) Filter(p ...Predicate) *DiskList {
 // NewBuilder returns an empty instance of the Builder object.
 func NewBuilder() *Builder {
 	return &Builder{
-		Disk: &Disk{&apisv1alpha1.Disk{}},
+		Disk: &Disk{&ndmapisv1alpha1.Disk{}},
 	}
 }
 
@@ -181,7 +182,7 @@ func BuilderForObject(Disk *Disk) *Builder {
 }
 
 // BuilderForAPIObject returns an instance of the Builder object based on disk api object.
-func BuilderForAPIObject(disk *apisv1alpha1.Disk) *Builder {
+func BuilderForAPIObject(disk *ndmapisv1alpha1.Disk) *Builder {
 	return &Builder{
 		Disk: &Disk{disk},
 	}
@@ -207,7 +208,7 @@ func (sb *Builder) Build() *Disk {
 
 // NewListBuilder returns a new instance of ListBuilder object.
 func NewListBuilder() *ListBuilder {
-	return &ListBuilder{DiskList: &DiskList{ObjectList: &apisv1alpha1.DiskList{}}}
+	return &ListBuilder{DiskList: &DiskList{ObjectList: &ndmapisv1alpha1.DiskList{}}}
 }
 
 // WithList builds the list based on the provided *DiskList instances.
@@ -220,7 +221,7 @@ func (b *ListBuilder) WithList(disks *DiskList) *ListBuilder {
 }
 
 // WithAPIList builds the list based on the provided *apisv1alpha1.CStorPoolList.
-func (b *ListBuilder) WithAPIList(disks *apisv1alpha1.DiskList) *ListBuilder {
+func (b *ListBuilder) WithAPIList(disks *ndmapisv1alpha1.DiskList) *ListBuilder {
 	if disks == nil {
 		return b
 	}
@@ -241,7 +242,7 @@ func NewListBuilderForObjectList(disk *DiskList) *ListBuilder {
 }
 
 // NewListBuilderForAPIList returns a new instance of ListBuilderForApiList object based on csp api list.
-func NewListBuilderForAPIList(diskAPIList *apisv1alpha1.DiskList) *ListBuilder {
+func NewListBuilderForAPIList(diskAPIList *ndmapisv1alpha1.DiskList) *ListBuilder {
 	newLb := NewListBuilder()
 	newLb.DiskList.ObjectList.Items = append(newLb.DiskList.ObjectList.Items, diskAPIList.Items...)
 	return newLb

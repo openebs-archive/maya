@@ -36,8 +36,8 @@ func (c *FakeOpenebsV1alpha1) BlockDeviceClaims(namespace string) v1alpha1.Block
 	return &FakeBlockDeviceClaims{c, namespace}
 }
 
-func (c *FakeOpenebsV1alpha1) Disks(namespace string) v1alpha1.DiskInterface {
-	return &FakeDisks{c, namespace}
+func (c *FakeOpenebsV1alpha1) Disks() v1alpha1.DiskInterface {
+	return &FakeDisks{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

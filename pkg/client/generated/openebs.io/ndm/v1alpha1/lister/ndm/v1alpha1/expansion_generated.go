@@ -37,7 +37,3 @@ type BlockDeviceClaimNamespaceListerExpansion interface{}
 // DiskListerExpansion allows custom methods to be added to
 // DiskLister.
 type DiskListerExpansion interface{}
-
-// DiskNamespaceListerExpansion allows custom methods to be added to
-// DiskNamespaceLister.
-type DiskNamespaceListerExpansion interface{}
