@@ -26,8 +26,10 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -70,8 +72,10 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
+	DeployClient   *deploy.Kubeclient
 	kubeConfigPath string
 }
 
@@ -159,11 +163,17 @@ func (ops *Operations) withDefaults() {
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
 	}
+	if ops.CVRClient == nil {
+		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 	if ops.URClient == nil {
 		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 	if ops.UnstructClient == nil {
 		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.DeployClient == nil {
+		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
@@ -225,6 +235,16 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 		60, 10).Should(Equal(expectedCVCount))
 }
 
+// GetCstorVolumeReplicaCountEventually gives the count of cstorvolume based on
+// selecter eventually
+func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector string, expectedCVRCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetCstorVolumeReplicaCount(namespace, lselector)
+		return cvCount
+	},
+		60, 10).Should(Equal(expectedCVRCount))
+}
+
 // GetPodRunningCount gives number of pods running currently
 func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 	pods, err := ops.PodClient.
@@ -247,6 +267,19 @@ func (ops *Operations) GetCVCount(namespace, lselector string) int {
 		NewListBuilder().
 		WithAPIList(cvs).
 		WithFilter(cv.IsHealthy()).
+		List().
+		Len()
+}
+
+// GetCstorVolumeReplicaCount gives cstorvolumereplica healthy count currently based on selecter
+func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) int {
+	cvrs, err := ops.CVRClient.
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return cvr.
+		ListBuilder().
+		WithAPIList(cvrs).
+		WithFilter(cvr.IsHealthy()).
 		List().
 		Len()
 }

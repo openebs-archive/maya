@@ -34,8 +34,6 @@ type CStorVolumeExpansion interface{}
 
 type CStorVolumeReplicaExpansion interface{}
 
-type DiskExpansion interface{}
-
 type RunTaskExpansion interface{}
 
 type StoragePoolExpansion interface{}
