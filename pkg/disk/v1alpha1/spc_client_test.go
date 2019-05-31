@@ -17,12 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strconv"
+	"testing"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"strconv"
-	"testing"
 )
 
 func TestSpcClientGet(t *testing.T) {
@@ -41,8 +42,8 @@ func TestSpcClientGet(t *testing.T) {
 				Name: "pool1",
 			},
 			Spec: apis.StoragePoolClaimSpec{
-				Disks: apis.DiskAttr{
-					DiskList: []string{"mydisk1", "mydisk4"},
+				BlockDevices: apis.BlockDeviceAttr{
+					BlockDeviceList: []string{"mydisk1", "mydisk4"},
 				},
 			},
 		},
@@ -143,8 +144,8 @@ func TestSpcClientList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk1", "mydisk2"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk1", "mydisk2"},
 						},
 					},
 				},
@@ -161,8 +162,8 @@ func TestSpcClientList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk4"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk4"},
 						},
 					},
 				},
@@ -179,8 +180,8 @@ func TestSpcClientList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk3", "mydisk4", "mydisk5", "mydisk6"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk3", "mydisk4", "mydisk5", "mydisk6"},
 						},
 					},
 				},
@@ -271,8 +272,8 @@ func TestSpcClientFilteredList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk4", "mydisk5"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk4", "mydisk5"},
 						},
 					},
 				},
@@ -290,8 +291,8 @@ func TestSpcClientFilteredList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk6"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk1", "mydisk2", "mydisk3", "mydisk6"},
 						},
 					},
 				},
@@ -308,8 +309,8 @@ func TestSpcClientFilteredList(t *testing.T) {
 						Name: "pool1",
 					},
 					Spec: apis.StoragePoolClaimSpec{
-						Disks: apis.DiskAttr{
-							DiskList: []string{"mydisk6", "mydisk7", "mydisk8", "mydisk9"},
+						BlockDevices: apis.BlockDeviceAttr{
+							BlockDeviceList: []string{"mydisk6", "mydisk7", "mydisk8", "mydisk9"},
 						},
 					},
 				},

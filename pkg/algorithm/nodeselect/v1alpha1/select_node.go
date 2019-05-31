@@ -19,27 +19,27 @@ package v1alpha1
 import (
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NodeDiskSelector selects a node and disks attached to it.
 func (ac *Config) NodeDiskSelector() (*nodeDisk, error) {
-	listDisk, err := ac.getDisk()
+	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
 	}
-	if listDisk == nil || len(listDisk.Items) == 0 {
-		return nil, errors.New("no disk object found")
+	if listBD == nil || len(listBD.Items) == 0 {
+		return nil, errors.New("no block device object found")
 	}
-	nodeDiskMap, err := ac.getCandidateNode(listDisk)
+	nodeDiskMap, err := ac.getCandidateNode(listBD)
 	if err != nil {
 		return nil, err
 	}
-	selectedDisk := ac.selectNode(nodeDiskMap)
+	selectedBD := ac.selectNode(nodeDiskMap)
 
-	return selectedDisk, nil
+	return selectedBD, nil
 }
 
 // getUsedDiskMap gives list of disks that has already been used for pool provisioning.
@@ -76,7 +76,7 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 	return usedNodeMap, nil
 }
 
-func (ac *Config) getCandidateNode(listDisk *ndmapis.DiskList) (map[string]*diskList, error) {
+func (ac *Config) getCandidateNode(listDisk *ndmapis.BlockDeviceList) (map[string]*diskList, error) {
 	usedDiskMap, err := ac.getUsedDiskMap()
 	if err != nil {
 		return nil, err
@@ -149,15 +149,17 @@ func diskFilterConstraint(diskType string) string {
 	var label string
 	if diskType == string(apis.TypeSparseCPV) {
 		label = string(apis.NdmDiskTypeCPK) + "=" + string(apis.TypeSparseCPV)
-	} else {
+	} else if diskType == string(apis.TypeDiskCPV) {
 		label = string(apis.NdmDiskTypeCPK) + "=" + string(apis.TypeDiskCPV)
+	} else {
+		label = string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
 	}
 	return label
 }
 
 // ProvisioningType returns the way pool should be provisioned e.g. auto or manual.
 func ProvisioningType(spc *apis.StoragePoolClaim) string {
-	if len(spc.Spec.Disks.DiskList) == 0 {
+	if len(spc.Spec.BlockDevices.BlockDeviceList) == 0 {
 		return ProvisioningTypeAuto
 	}
 	return ProvisioningTypeManual
@@ -180,13 +182,13 @@ func (ac *Config) poolType() string {
 	return ""
 }
 
-// getDisk return the all disks of a certain type(e.g. sparse, disk) which is specified in spc.
-func (ac *Config) getDisk() (*ndmapis.DiskList, error) {
+// getBlockDevice return the all disks of a certain type(e.g. sparse, disk) which is specified in spc.
+func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
-	dL, err := ac.DiskClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
+	bdL, err := ac.DiskClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
 		return nil, err
 	}
-	dl := dL.Filter(disk.FilterInactiveReverse)
-	return dl.DiskList, nil
+	bdl := bdL.Filter(blockdevice.FilterClaimedDevices)
+	return bdl.BlockDeviceList, nil
 }

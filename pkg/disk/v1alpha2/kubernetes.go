@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -51,6 +52,7 @@ type Kubeclient struct {
 	clientset *clientset.Clientset
 	// kubeconfig path to get kubernetes clientset
 	kubeConfigPath string
+	namespace      string
 	// functions useful during mocking
 	getClientset        getClientsetFn
 	getClientsetForPath getClientsetForPathFn
@@ -85,13 +87,13 @@ func (k *Kubeclient) WithDefaults() {
 	}
 	if k.list == nil {
 		k.list = func(cli *clientset.Clientset, opts metav1.ListOptions) (*apis.DiskList, error) {
-			return cli.OpenebsV1alpha1().Disks().List(opts)
+			return cli.OpenebsV1alpha1().Disks(k.namespace).List(opts)
 		}
 	}
 
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, name string, opts metav1.GetOptions) (*apis.Disk, error) {
-			return cli.OpenebsV1alpha1().Disks().Get(name, opts)
+			return cli.OpenebsV1alpha1().Disks(k.namespace).Get(name, opts)
 		}
 	}
 }

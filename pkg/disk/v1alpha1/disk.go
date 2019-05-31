@@ -20,8 +20,9 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	oeapis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 )
@@ -37,8 +38,9 @@ type KubernetesClient struct {
 	// kubeclientset is a standard kubernetes clientset
 	Kubeclientset kubernetes.Interface
 
-	// NDMclientset is a NDM custom resource package generated for custom API group.
+	// NDMClientset is a NDM custom resource package generated for custom API group.
 	NDMClientset clientset.Interface
+	Namespace    string
 }
 
 type SpcObjectClient struct {

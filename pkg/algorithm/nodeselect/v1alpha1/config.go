@@ -20,7 +20,9 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/client/k8s"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
-	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
+
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	sp "github.com/openebs/maya/pkg/sp/v1alpha1"
 )
 
@@ -56,7 +58,7 @@ type Config struct {
 	// Spc is the StoragePoolClaim object.
 	Spc *apis.StoragePoolClaim
 	// DiskClient is the client for Disk to perform CRUD operations on Disk object.
-	DiskClient disk.DiskInterface
+	DiskClient blockdevice.BlockDeviceInterface
 	// SpClient is the client for SP to perform CRUD operations on SP object.
 	SpClient sp.StoragepoolInterface
 	// CspClient is the client for CSP to perform CRUD operations on CSP object.
@@ -66,21 +68,23 @@ type Config struct {
 }
 
 // getDiskK8sClient returns an instance of kubernetes client for Disk.
-func getDiskK8sClient() *disk.KubernetesClient {
+func getBlockDeviceK8sClient() *blockdevice.KubernetesClient {
+	namespace := env.Get(env.OpenEBSNamespace)
 	newClient, _ := k8s.NewK8sClient("")
-	K8sClient := &disk.KubernetesClient{
+	K8sClient := &blockdevice.KubernetesClient{
 		newClient.GetKCS(),
 		newClient.GetNDMCS(),
+		namespace,
 	}
 	return K8sClient
 }
 
-// getDiskSpcClient returns an instance of SPC client for Disk.
-// NOTE : SPC is a typed client which embeds regular kubernetes disk client and SPC object.
+// getDiskSpcClient returns an instance of SPC client for Block Device.
+// NOTE : SPC is a typed client which embeds regular kubernetes block device client and SPC object.
 // This client is used in manual provisioning of SPC.
-func getDiskSpcClient(spc *apis.StoragePoolClaim) *disk.SpcObjectClient {
-	K8sClient := &disk.SpcObjectClient{
-		getDiskK8sClient(),
+func getBlockDeviceSpcClient(spc *apis.StoragePoolClaim) *blockdevice.SpcObjectClient {
+	K8sClient := &blockdevice.SpcObjectClient{
+		getBlockDeviceK8sClient(),
 		spc,
 	}
 	return K8sClient
@@ -109,13 +113,15 @@ func getCspK8sClient() *cstorpool.KubernetesClient {
 
 // NewConfig returns an instance of Config based on SPC object.
 func NewConfig(spc *apis.StoragePoolClaim) *Config {
-	var diskClient disk.DiskInterface
-	// If provisioning type is manual diskClient is assigned SPC disk client
-	// else it is assigned kubernetes disk client.
+	var bdClient blockdevice.BlockDeviceInterface
+
+	// If provisioning type is manual blockdeviceClient is assigned SPC
+	// blockdevice client
+	// else it is assigned kubernetes blockdevice client.
 	if ProvisioningType(spc) == ProvisioningTypeManual {
-		diskClient = getDiskSpcClient(spc)
+		bdClient = getBlockDeviceSpcClient(spc)
 	} else {
-		diskClient = getDiskK8sClient()
+		bdClient = getBlockDeviceK8sClient()
 	}
 
 	cspK8sClient := getCspK8sClient()
@@ -123,7 +129,7 @@ func NewConfig(spc *apis.StoragePoolClaim) *Config {
 	pT := ProvisioningType(spc)
 	ac := &Config{
 		Spc:              spc,
-		DiskClient:       diskClient,
+		DiskClient:       bdClient,
 		CspClient:        cspK8sClient,
 		SpClient:         spK8sClient,
 		ProvisioningType: pT,

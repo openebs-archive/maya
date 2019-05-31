@@ -58,9 +58,9 @@ type CspDisk struct {
 	InUseByPool bool `json:"inUseByPool"`
 }
 
-// DiskAttr stores the disk related attributes.
-type DiskAttr struct {
-	DiskList []string `json:"diskList"`
+// BlockDeviceAttr stores the BD related attributes.
+type BlockDeviceAttr struct {
+	BlockDeviceList []string `json:"blockDeviceList"`
 }
 
 // CStorPoolAttr is to describe zpool related attributes.

@@ -37,6 +37,8 @@ const (
 	StoragePoolClaimCPK CasPoolKey = "openebs.io/storage-pool-claim"
 	// NdmDiskTypeCPK is the node-disk-manager disk type e.g. 'sparse' or 'disk'
 	NdmDiskTypeCPK CasPoolKey = "ndm.io/disk-type"
+	// NdmBlockDeviceTypeCPK is the node-disk-manager blockdevice type e.g. // 'blockdevice'
+	NdmBlockDeviceTypeCPK CasPoolKey = "ndm.io/blockdevice-type"
 	// PoolTypeMirroredCPV is a key for mirrored for pool
 	PoolTypeMirroredCPV CasPoolValString = "mirrored"
 	// PoolTypeStripedCPV is a key for striped for pool
@@ -49,6 +51,8 @@ const (
 	TypeSparseCPV CasPoolValString = "sparse"
 	// TypeDiskCPV is a key for physical,iscsi,virtual etc disk pool
 	TypeDiskCPV CasPoolValString = "disk"
+	// TypeBlockDeviceCPV is a key for physical,iscsi,virtual etc disk pool
+	TypeBlockDeviceCPV CasPoolValString = "blockdevice"
 	// StripedDiskCountCPV is the count for striped type pool
 	StripedDiskCountCPV CasPoolValInt = 1
 	// MirroredDiskCountCPV is the count for mirrored type pool
@@ -104,6 +108,6 @@ type CasPool struct {
 	// PendingPoolCount is the number of pools that will be tried for creation as a part of reconciliation.
 	PendingPoolCount int
 
-	DeviceID []string
-	Disks    ndm.DiskList
+	DeviceID        []string
+	BlockDeviceList ndm.BlockDeviceList
 }

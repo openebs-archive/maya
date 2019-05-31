@@ -20,6 +20,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"time"
+
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
@@ -28,7 +30,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"time"
 )
 
 var (
@@ -51,6 +52,11 @@ func Start() error {
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return errors.Wrap(err, "error building kubernetes clientset")
+	}
+
+	ndmClient, err := ndmClientset.NewForConfig(cfg)
+	if err != nil {
+		return errors.Wrap(err, "error building ndm clientset")
 	}
 
 	// Building OpenEBS Clientset

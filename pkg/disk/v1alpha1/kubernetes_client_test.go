@@ -17,9 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"k8s.io/client-go/kubernetes/fake"
 	"strconv"
 	"testing"
+
+	"k8s.io/client-go/kubernetes/fake"
 
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

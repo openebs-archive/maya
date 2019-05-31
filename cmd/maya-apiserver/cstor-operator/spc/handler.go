@@ -24,6 +24,7 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -174,7 +175,7 @@ func validatePoolType(spc *apis.StoragePoolClaim) error {
 // validateDiskType validates the disk types in spc.
 func validateDiskType(spc *apis.StoragePoolClaim) error {
 	diskType := spc.Spec.Type
-	if !(diskType == string(apis.TypeSparseCPV) || diskType == string(apis.TypeDiskCPV)) {
+	if !(diskType == string(apis.TypeSparseCPV) || diskType == string(apis.TypeDiskCPV) || diskType == string(apis.TypeBlockDeviceCPV)) {
 		return errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
 	return nil
@@ -266,7 +267,8 @@ func (c *Controller) getFreeDiskNodeMap() (map[string]string, error) {
 	freeNodeDiskMap := make(map[string]string)
 
 	// Get all disk from kube-apiserver
-	diskList, err := c.ndmclientset.OpenebsV1alpha1().Disks().List(metav1.ListOptions{})
+	namespace := env.Get(env.OpenEBSNamespace)
+	blockDeviceList, err := c.ndmClientset.OpenebsV1alpha1().BlockDevices(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +277,7 @@ func (c *Controller) getFreeDiskNodeMap() (map[string]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get the used disk map ")
 	}
-	for _, disk := range diskList.Items {
+	for _, disk := range blockDeviceList.Items {
 		if usedDiskMap[disk.Name] == 1 {
 			continue
 		}
@@ -291,9 +293,9 @@ func (c *Controller) getUsableNodeCount(spc *apis.StoragePoolClaim) (map[string]
 	if err != nil {
 		return nil, err
 	}
-	for _, spcDisk := range spc.Spec.Disks.DiskList {
-		if !(len(strings.TrimSpace(freeNodeDiskMap[spcDisk])) == 0) {
-			nodeCountMap[freeNodeDiskMap[spcDisk]]++
+	for _, spcBlockDevice := range spc.Spec.BlockDevices.BlockDeviceList {
+		if !(len(strings.TrimSpace(freeNodeDiskMap[spcBlockDevice])) == 0) {
+			nodeCountMap[freeNodeDiskMap[spcBlockDevice]]++
 		}
 	}
 	return nodeCountMap, nil
@@ -329,7 +331,7 @@ func isValidPendingPoolCount(pendingPoolCout int) bool {
 
 // isAutoProvisioning returns true the spc is auto provisioning type.
 func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
-	if spc.Spec.Disks.DiskList == nil {
+	if spc.Spec.BlockDevices.BlockDeviceList == nil {
 		return true
 	}
 	return false
@@ -337,7 +339,7 @@ func isAutoProvisioning(spc *apis.StoragePoolClaim) bool {
 
 // isManualProvisioning returns true if the spc is auto provisioning type.
 func isManualProvisioning(spc *apis.StoragePoolClaim) bool {
-	if spc.Spec.Disks.DiskList != nil {
+	if spc.Spec.BlockDevices.BlockDeviceList != nil {
 		return true
 	}
 	return false

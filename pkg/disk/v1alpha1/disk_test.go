@@ -17,9 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestFilter(t *testing.T) {

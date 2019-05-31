@@ -179,7 +179,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 			}
 			devID, err := pc.getDeviceID(disk.Name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", disk.Name, spc.Name)
+				return nil, errors.Wrapf(err, "failed to get dev for disk %s for spc %s", disk.Name, spc.Name)
 			}
 			disk.DeviceID = devID
 			diskList = append(diskList, disk)
@@ -218,7 +218,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 // TODO: Move to disk package
 func (pc *PoolCreateConfig) getDeviceID(diskName string) (string, error) {
 	var deviceID string
-	disk, err := pc.ndmclientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
+	disk, err := pc.DiskClient.Get(diskName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

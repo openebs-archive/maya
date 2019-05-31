@@ -17,16 +17,17 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is spc client implementation to get disk.
-func (s *SpcObjectClient) Get(name string) (*Disk, error) {
-	spcDiskList := s.Spc.Spec.BlockDevices.BlockDeviceList
+func (s *SpcObjectClient) Get(name string, opts metav1.GetOptions) (*BlockDevice, error) {
+	spcBDList := s.Spc.Spec.BlockDevices.BlockDeviceList
 	var diskName string
-	for _, disk := range spcDiskList {
+	for _, disk := range spcBDList {
 		if name == disk {
 			diskName = name
 		}
@@ -34,38 +35,40 @@ func (s *SpcObjectClient) Get(name string) (*Disk, error) {
 	if diskName == "" {
 		return nil, errors.Errorf("Disk %s not found in the given SPC %s", diskName, s.Spc.Name)
 	}
-	d, err := s.NDMClientset.OpenebsV1alpha1().Disks().Get(diskName, v1.GetOptions{})
-	return &Disk{d, nil}, err
+	namespace := env.Get(env.OpenEBSNamespace)
+	d, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).Get(diskName, opts)
+	return &BlockDevice{d, nil}, err
 }
 
-// List is spc client implementation to list disk.
-func (s *SpcObjectClient) List(opts v1.ListOptions) (*DiskList, error) {
-	diskL := &DiskList{
-		DiskList: &apis.DiskList{},
-		errs:     nil,
+func (s *SpcObjectClient) List(opts metav1.ListOptions) (*BlockDeviceList, error) {
+	bdL := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
 	}
 	var err error
-	spcDiskList := s.Spc.Spec.BlockDevices.BlockDeviceList
-	if len(spcDiskList) == 0 {
+	spcBDList := s.Spc.Spec.BlockDevices.BlockDeviceList
+	if len(spcBDList) == 0 {
 		return nil, errors.Errorf("No disk found in the given SPC %s", s.Spc.Name)
 	}
 	spcDiskMap := make(map[string]int)
-	for _, diskName := range spcDiskList {
+	for _, diskName := range spcBDList {
 		spcDiskMap[diskName]++
 	}
-	getAllDisk, err := s.NDMClientset.OpenebsV1alpha1().Disks().List(opts)
+
+	namespace := env.Get(env.OpenEBSNamespace)
+	getAllDisk, err := s.Clientset.OpenebsV1alpha1().BlockDevices(namespace).List(opts)
 	if getAllDisk.Items == nil {
 		return nil, errors.Wrapf(err, "Could not get disk from kube apiserver")
 	}
 	for _, disk := range getAllDisk.Items {
 		if spcDiskMap[disk.Name] > 0 {
-			diskL.DiskList.Items = append(diskL.DiskList.Items, disk)
+			bdL.BlockDeviceList.Items = append(bdL.BlockDeviceList.Items, disk)
 		}
 	}
-	return diskL, err
+	return bdL, err
 }
 
 // Create is kubernetes client implementation to create disk.
-func (s *SpcObjectClient) Create(diskObj *apis.Disk) (*Disk, error) {
+func (s *SpcObjectClient) Create(bs *ndm.BlockDevice) (*BlockDevice, error) {
 	return nil, errors.New("Disk object creation is not supported through spc client")
 }
