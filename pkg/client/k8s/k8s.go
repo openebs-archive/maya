@@ -21,11 +21,13 @@ import (
 	"encoding/json"
 
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	ndm "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	api_ndm_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	api_oe_v1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 
@@ -40,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	typed_oe_v1alpha1 "github.com/openebs/maya/pkg/client/generated/clientset/versioned/typed/openebs.io/v1alpha1"
+	typed_ndm_v1alpha1 "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/typed/ndm/v1alpha1"
 
 	typed_apps_v1beta1 "k8s.io/client-go/kubernetes/typed/apps/v1beta1"
 	typed_core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -161,6 +164,10 @@ type K8sClient struct {
 	// within the current K8s cluster for OpenEBS objects
 	oecs *openebs.Clientset
 
+	// ndmcs refers to the Clientset capable of communicating
+	// within the current K8s cluster for NDM objects
+	ndmcs *ndm.Clientset
+
 	// PV refers to a K8s PersistentVolume object
 	PV *api_core_v1.PersistentVolume
 
@@ -192,7 +199,7 @@ type K8sClient struct {
 	// Disk refers to a K8s Disk CRD object
 	// NOTE: This property is useful to mock
 	// during unit testing
-	Disk *api_oe_v1alpha1.Disk
+	Disk *api_ndm_v1alpha1.Disk
 
 	// StoragePoolClaim refers to a K8s StoragePoolClaim CRD object
 	// NOTE: This property is useful to mock
@@ -251,10 +258,17 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 		return nil, err
 	}
 
+	// get the appropriate openebs clientset
+	ndmcs, err := getInClusterNDMCS()
+	if err != nil {
+		return nil, err
+	}
+
 	return &K8sClient{
-		ns:   ns,
-		cs:   cs,
-		oecs: oecs,
+		ns:    ns,
+		cs:    cs,
+		oecs:  oecs,
+		ndmcs: ndmcs,
 	}, nil
 }
 
@@ -262,6 +276,12 @@ func NewK8sClient(ns string) (*K8sClient, error) {
 // the openebs clientset is not exported.
 func (k *K8sClient) GetOECS() *openebs.Clientset {
 	return k.oecs
+}
+
+// GetNDMCS is a getter method for fetching ndm clientset as
+// the ndm clientset is not exported.
+func (k *K8sClient) GetNDMCS() *ndm.Clientset {
+	return k.ndmcs
 }
 
 // GetKCS is a getter method for fetching kubernetes clientset as
@@ -330,8 +350,8 @@ func (k *K8sClient) oeV1alpha1SPOps() typed_oe_v1alpha1.StoragePoolInterface {
 
 // oeV1alpha1DiskOps is a utility function that provides a instance capable of
 // executing various OpenEBS Disk related operations
-func (k *K8sClient) oeV1alpha1DiskOps() typed_oe_v1alpha1.DiskInterface {
-	return k.oecs.OpenebsV1alpha1().Disks()
+func (k *K8sClient) oeV1alpha1DiskOps() typed_ndm_v1alpha1.DiskInterface {
+	return k.ndmcs.OpenebsV1alpha1().Disks()
 }
 
 // oeV1alpha1CSPOps is a utility function that provides a instance capable of
@@ -353,7 +373,7 @@ func (k *K8sClient) GetOEV1alpha1CSP(name string) (*api_oe_v1alpha1.CStorPool, e
 
 // GetOEV1alpha1Disk fetches the disk specs based on
 // the provided name
-func (k *K8sClient) GetOEV1alpha1Disk(name string) (*api_oe_v1alpha1.Disk, error) {
+func (k *K8sClient) GetOEV1alpha1Disk(name string) (*api_ndm_v1alpha1.Disk, error) {
 	if k.Disk != nil {
 		return k.Disk, nil
 	}
@@ -1281,6 +1301,23 @@ func getInClusterOECS() (clientset *openebs.Clientset, err error) {
 
 	// creates the in-cluster openebs clientset
 	clientset, err = openebs.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset, nil
+}
+
+// getInClusterNDMCS is used to initialize and return a new http client capable
+// of invoking NDM CRD APIs within the cluster
+func getInClusterNDMCS() (clientset *ndm.Clientset, err error) {
+	config, err := getK8sConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// creates the in-cluster openebs clientset
+	clientset, err = ndm.NewForConfig(config)
 	if err != nil {
 		return nil, err
 	}

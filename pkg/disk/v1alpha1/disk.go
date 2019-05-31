@@ -17,12 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	oeapis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 )
 
 const (
@@ -36,13 +37,13 @@ type KubernetesClient struct {
 	// kubeclientset is a standard kubernetes clientset
 	Kubeclientset kubernetes.Interface
 
-	// clientset is a openebs custom resource package generated for custom API group.
-	Clientset clientset.Interface
+	// NDMclientset is a NDM custom resource package generated for custom API group.
+	NDMClientset clientset.Interface
 }
 
 type SpcObjectClient struct {
 	*KubernetesClient
-	Spc *apis.StoragePoolClaim
+	Spc *oeapis.StoragePoolClaim
 }
 
 type errs []error
