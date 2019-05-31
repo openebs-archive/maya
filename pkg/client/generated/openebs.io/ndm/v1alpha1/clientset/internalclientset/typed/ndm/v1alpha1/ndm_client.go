@@ -45,8 +45,8 @@ func (c *OpenebsV1alpha1Client) BlockDeviceClaims(namespace string) BlockDeviceC
 	return newBlockDeviceClaims(c, namespace)
 }
 
-func (c *OpenebsV1alpha1Client) Disks(namespace string) DiskInterface {
-	return newDisks(c, namespace)
+func (c *OpenebsV1alpha1Client) Disks() DiskInterface {
+	return newDisks(c)
 }
 
 // NewForConfig creates a new OpenebsV1alpha1Client for the given config.
