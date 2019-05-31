@@ -30,7 +30,7 @@ import (
 // DisksGetter has a method to return a DiskInterface.
 // A group's client should implement this interface.
 type DisksGetter interface {
-	Disks(namespace string) DiskInterface
+	Disks() DiskInterface
 }
 
 // DiskInterface has methods to work with Disk resources.
@@ -50,14 +50,12 @@ type DiskInterface interface {
 // disks implements DiskInterface
 type disks struct {
 	client rest.Interface
-	ns     string
 }
 
 // newDisks returns a Disks
-func newDisks(c *OpenebsV1alpha1Client, namespace string) *disks {
+func newDisks(c *OpenebsV1alpha1Client) *disks {
 	return &disks{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -65,7 +63,6 @@ func newDisks(c *OpenebsV1alpha1Client, namespace string) *disks {
 func (c *disks) Get(name string, options v1.GetOptions) (result *v1alpha1.Disk, err error) {
 	result = &v1alpha1.Disk{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("disks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -78,7 +75,6 @@ func (c *disks) Get(name string, options v1.GetOptions) (result *v1alpha1.Disk, 
 func (c *disks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err error) {
 	result = &v1alpha1.DiskList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("disks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -90,7 +86,6 @@ func (c *disks) List(opts v1.ListOptions) (result *v1alpha1.DiskList, err error)
 func (c *disks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("disks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -100,7 +95,6 @@ func (c *disks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *disks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 	result = &v1alpha1.Disk{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("disks").
 		Body(disk).
 		Do().
@@ -112,7 +106,6 @@ func (c *disks) Create(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 func (c *disks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 	result = &v1alpha1.Disk{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("disks").
 		Name(disk.Name).
 		Body(disk).
@@ -127,7 +120,6 @@ func (c *disks) Update(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 func (c *disks) UpdateStatus(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err error) {
 	result = &v1alpha1.Disk{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("disks").
 		Name(disk.Name).
 		SubResource("status").
@@ -140,7 +132,6 @@ func (c *disks) UpdateStatus(disk *v1alpha1.Disk) (result *v1alpha1.Disk, err er
 // Delete takes name of the disk and deletes it. Returns an error if one occurs.
 func (c *disks) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("disks").
 		Name(name).
 		Body(options).
@@ -151,7 +142,6 @@ func (c *disks) Delete(name string, options *v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *disks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("disks").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -163,7 +153,6 @@ func (c *disks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListO
 func (c *disks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.Disk, err error) {
 	result = &v1alpha1.Disk{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("disks").
 		SubResource(subresources...).
 		Name(name).

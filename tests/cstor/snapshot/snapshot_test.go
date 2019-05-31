@@ -25,6 +25,7 @@ import (
 	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -52,7 +53,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			spcObj = spc.NewBuilder().
 				WithName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(1).
+				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
@@ -62,7 +63,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
 			By("verifying healthy csp count")
-			cspCount := ops.GetHealthyCSPCount(spcName, 1)
+			cspCount := ops.GetHealthyCSPCount(spcName, cstor.PoolCount)
 			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
 		})
@@ -111,6 +112,18 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
+			By("verifying cstorvolume replica count")
+			pvcObj, err = ops.PVCClient.WithNamespace(nsName).Get(pvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+			cvrLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
 			By("verifying pvc status as bound")
 			status := ops.IsPVCBoundEventually(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
@@ -137,7 +150,7 @@ var _ = Describe("[cstor] TEST SNAPSHOT PROVISIONING", func() {
 				nsName,
 			)
 
-			By("verifying type as ready")
+			By("verifying snapshot status as ready")
 			snaptype := ops.GetSnapshotTypeEventually(snapName)
 			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
 

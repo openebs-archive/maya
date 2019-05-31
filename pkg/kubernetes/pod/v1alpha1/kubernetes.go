@@ -15,14 +15,17 @@
 package v1alpha1
 
 import (
+	"bytes"
 	"encoding/json"
 
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	client "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // getClientsetFn is a typed function that
@@ -32,6 +35,14 @@ type getClientsetFn func() (clientset *clientset.Clientset, err error)
 // getClientsetFromPathFn is a typed function that
 // abstracts fetching of clientset from kubeConfigPath
 type getClientsetForPathFn func(kubeConfigPath string) (clientset *clientset.Clientset, err error)
+
+// getKubeConfigFn is a typed function that abstracts fetching
+// rest config
+type getKubeConfigFn func() (config *rest.Config, err error)
+
+// getKubeConfigForPathFn is a typed function that
+// abstracts fetching of config from kubeConfigPath
+type getKubeConfigForPathFn func(kubeConfigPath string) (config *rest.Config, err error)
 
 // listFn is a typed function that abstracts
 // listing of pods
@@ -45,6 +56,44 @@ type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav
 // to get pod
 type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
 
+// execFn is a typed function that abstracts
+// pod exec
+type execFn func(cli *clientset.Clientset, config *rest.Config, name, namespace string, opts *corev1.PodExecOptions) (*ExecOutput, error)
+
+// defaultExec is the default implementation of execFn
+func defaultExec(cli *clientset.Clientset, config *rest.Config, name, namespace string,
+	opts *corev1.PodExecOptions) (*ExecOutput, error) {
+	var stdout, stderr bytes.Buffer
+	req := cli.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(name).
+		Namespace(namespace).
+		SubResource("exec").
+		VersionedParams(opts, scheme.ParameterCodec)
+	// create exec executor which is an interface for transporting shell-style streams.
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return nil, errors.Wrapf(err,
+			"failed to exec into pod {%s}: failed to connect to the provided server", name)
+	}
+	// Stream initiates the transport of the standard shell streams. It will transport any
+	// non-nil stream to a remote system, and return an error if a problem occurs.
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  nil,
+		Stdout: &stdout,
+		Stderr: &stderr,
+		Tty:    opts.TTY,
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to exec into pod {%s}: failed to stream", name)
+	}
+	execOutput := &ExecOutput{
+		Stdout: stdout.String(),
+		Stderr: stderr.String(),
+	}
+	return execOutput, nil
+}
+
 // KubeClient enables kubernetes API operations
 // on pod instance
 type KubeClient struct {
@@ -57,15 +106,27 @@ type KubeClient struct {
 	// KubeClient has to operate
 	namespace string
 
+	// kubeConfig represents kubernetes config
+	kubeConfig *rest.Config
+
 	// kubeconfig path to get kubernetes clientset
 	kubeConfigPath string
 
 	// functions useful during mocking
-	getClientset        getClientsetFn
-	getClientsetForPath getClientsetForPathFn
-	list                listFn
-	del                 deleteFn
-	get                 getFn
+	getKubeConfig        getKubeConfigFn
+	getKubeConfigForPath getKubeConfigForPathFn
+	getClientset         getClientsetFn
+	getClientsetForPath  getClientsetForPathFn
+	list                 listFn
+	del                  deleteFn
+	get                  getFn
+	exec                 execFn
+}
+
+// ExecOutput struct contains stdout and stderr
+type ExecOutput struct {
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
 }
 
 // KubeClientBuildOption defines the abstraction
@@ -75,6 +136,16 @@ type KubeClientBuildOption func(*KubeClient)
 // withDefaults sets the default options
 // of KubeClient instance
 func (k *KubeClient) withDefaults() {
+	if k.getKubeConfig == nil {
+		k.getKubeConfig = func() (config *rest.Config, err error) {
+			return client.New().Config()
+		}
+	}
+	if k.getKubeConfigForPath == nil {
+		k.getKubeConfigForPath = func(kubeConfigPath string) (config *rest.Config, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Config()
+		}
+	}
 	if k.getClientset == nil {
 		k.getClientset = func() (clients *clientset.Clientset, err error) {
 			return client.New().Clientset()
@@ -99,6 +170,9 @@ func (k *KubeClient) withDefaults() {
 		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
 			return cli.CoreV1().Pods(namespace).Get(name, opts)
 		}
+	}
+	if k.exec == nil {
+		k.exec = defaultExec
 	}
 }
 
@@ -136,6 +210,13 @@ func (k *KubeClient) WithNamespace(namespace string) *KubeClient {
 	return k
 }
 
+// WithKubeConfig sets the kubernetes config against
+// the KubeClient instance
+func (k *KubeClient) WithKubeConfig(config *rest.Config) *KubeClient {
+	k.kubeConfig = config
+	return k
+}
+
 func (k *KubeClient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
@@ -156,6 +237,28 @@ func (k *KubeClient) getClientsetOrCached() (*clientset.Clientset, error) {
 	}
 	k.clientset = cs
 	return k.clientset, nil
+}
+
+func (k *KubeClient) getKubeConfigForPathOrDirect() (*rest.Config, error) {
+	if k.kubeConfigPath != "" {
+		return k.getKubeConfigForPath(k.kubeConfigPath)
+	}
+	return k.getKubeConfig()
+}
+
+// getKubeConfigOrCached returns either a new instance
+// of kubernetes config or its cached copy
+func (k *KubeClient) getKubeConfigOrCached() (*rest.Config, error) {
+	if k.kubeConfig != nil {
+		return k.kubeConfig, nil
+	}
+
+	kc, err := k.getKubeConfigForPathOrDirect()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get kube config")
+	}
+	k.kubeConfig = kc
+	return k.kubeConfig, nil
 }
 
 // List returns a list of pod
@@ -200,4 +303,29 @@ func (k *KubeClient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error)
 		return nil, err
 	}
 	return json.Marshal(p)
+}
+
+// Exec runs a command remotely in a container of a pod
+func (k *KubeClient) Exec(name string,
+	opts *corev1.PodExecOptions) (*ExecOutput, error) {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, err
+	}
+	config, err := k.getKubeConfigOrCached()
+	if err != nil {
+		return nil, err
+	}
+	return k.exec(cli, config, name, k.namespace, opts)
+}
+
+// ExecRaw runs a command remotely in a container of a pod
+// and returns raw output
+func (k *KubeClient) ExecRaw(name string,
+	opts *corev1.PodExecOptions) ([]byte, error) {
+	execOutput, err := k.Exec(name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(execOutput)
 }

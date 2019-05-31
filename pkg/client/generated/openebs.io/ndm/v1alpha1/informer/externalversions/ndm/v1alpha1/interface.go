@@ -55,5 +55,5 @@ func (v *version) BlockDeviceClaims() BlockDeviceClaimInformer {
 
 // Disks returns a DiskInformer.
 func (v *version) Disks() DiskInformer {
-	return &diskInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+	return &diskInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
