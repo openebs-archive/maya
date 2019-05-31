@@ -1372,10 +1372,10 @@ spec:
         openebs.io/persistent-volume: {{ .Volume.owner }}
         openebs.io/cas-type: jiva
     spec:
-      {{- if kubeVersionGte .CAST.kubeVersion "v1.12" }}
+      backoffLimit: 4
+      {{- if kubeVersionGte .CAST.kubeVersion "v1.12.0" }}
       ttlSecondsAfterFinished: 0
       {{- end }}
-      backoffLimit: 4
       template:
         spec:
           restartPolicy: Never

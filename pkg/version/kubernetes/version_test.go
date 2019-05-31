@@ -128,7 +128,7 @@ func TestCompare(t *testing.T) {
 		"valid & gt - 4": {"v0.0.5-beta", "v0.0.5-alpha", 1},
 		"valid & gt - 5": {"v0.0.5", "v0.0.5-alpha", 1},
 		"valid & gt - 6": {"v0.0.5-beta.2", "v0.0.5-beta.1", 1},
-		"valid & gt - 7": {"v1.12.7-gke.10", "v1.12", 1},
+		"valid & gt - 7": {"v1.12.7-gke.10", "v1.12.0", 1},
 		// less than
 		"valid & lt - 1": {"v0.0.1", "v0.0.5", -1},
 		"valid & lt - 2": {"v0.1.1", "v0.2.0", -1},
@@ -356,7 +356,7 @@ func TestTemplateFuncs(t *testing.T) {
 				"version3": "v1.1.1",
 				"version4": "v1.1.1-ga",
 				"version5": "v1.12.7-gke.10",
-				"version6": "v1.12",
+				"version6": "v1.12.0",
 			},
 			template: `
 one: {{kubeVersionEq .version3 .version4}}
