@@ -349,7 +349,7 @@ func (k *K8sClient) oeV1alpha1SPOps() typed_oe_v1alpha1.StoragePoolInterface {
 // oeV1alpha1DiskOps is a utility function that provides a instance capable of
 // executing various OpenEBS Disk related operations
 func (k *K8sClient) oeV1alpha1DiskOps() typed_ndm_v1alpha1.DiskInterface {
-	return k.ndmcs.OpenebsV1alpha1().Disks("openebs")
+	return k.ndmcs.OpenebsV1alpha1().Disks()
 }
 
 // oeV1alpha1CSPOps is a utility function that provides a instance capable of
