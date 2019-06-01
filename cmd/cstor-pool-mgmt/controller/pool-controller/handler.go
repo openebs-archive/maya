@@ -130,7 +130,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 
 		// lock is to synchronize pool and volumereplica. Until certain pool related
 		// operations are over, the volumereplica threads will be held.
-		status, err := c.cStorPoolAddEvent(cStorPoolGot)
+		status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 		return status, err
 
 	case common.QOpDestroy:
@@ -141,7 +141,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
 		// try to import/create pool here as part of reconcile.
 		if IsPendingStatus(cStorPoolGot) {
-			status, err := c.cStorPoolAddEvent(cStorPoolGot)
+			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
 			return status, err
 		}
 		glog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
