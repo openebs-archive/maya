@@ -26,7 +26,7 @@ const (
 	PoolOperator = "zpool"
 )
 
-var RunnerVar util.Runner
+var runnerVar util.Runner
 
 // Topology contains the topology strucure of disks used in backend
 type Topology struct {
@@ -75,7 +75,7 @@ type Vdev struct {
 // Dump runs 'zpool dump' command and unmarshal the output in above schema
 func Dump() (Topology, error) {
 	var t Topology
-	out, err := RunnerVar.RunCombinedOutput(PoolOperator, "dump")
+	out, err := runnerVar.RunCombinedOutput(PoolOperator, "dump")
 	if err != nil {
 		return t, err
 	}
