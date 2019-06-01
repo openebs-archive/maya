@@ -71,8 +71,8 @@ type BlockDeviceList struct {
 	errs
 }
 
-// buildOptionFunc is the typed function to build BlockDevice object.
-type buildOptionFunc func(*BlockDevice)
+// BuildOptionFunc is the typed function to build BlockDevice object.
+type BuildOptionFunc func(*BlockDevice)
 
 // predicate is the typed predicate function to validate BlockDevice object.
 type predicate func(*BlockDevice) (message string, ok bool)
@@ -107,7 +107,7 @@ func predicateFailedError(message string) error {
 }
 
 // New is a constructor returns a new instance of block device
-func New(opts ...buildOptionFunc) *BlockDevice {
+func New(opts ...BuildOptionFunc) *BlockDevice {
 	r := &BlockDevice{BlockDevice: &ndm.BlockDevice{}}
 	for _, o := range opts {
 		o(r)
@@ -143,7 +143,7 @@ func (bd *BlockDevice) WithName(name string) *BlockDevice {
 // WithName function is used by WithName method as a util.
 // Ideas is to give flexibility for building object by using dot operator as well as passing
 // build predicated to the New constructor.
-func WithName(name string) buildOptionFunc {
+func WithName(name string) BuildOptionFunc {
 	return func(bd *BlockDevice) {
 		bd.BlockDevice.Name = name
 	}
@@ -158,7 +158,7 @@ func (bd *BlockDevice) WithState(state string) *BlockDevice {
 // WithState function is used by WithState method as a util.
 // Ideas is to give flexibility for building object by using dot operator as well as passing
 // build predicated to the New constructor.
-func WithState(state string) buildOptionFunc {
+func WithState(state string) BuildOptionFunc {
 	return func(bd *BlockDevice) {
 		bd.BlockDevice.Status.State = state
 	}
@@ -234,8 +234,8 @@ func filterClaimedDevices(orignialList *BlockDeviceList) *BlockDeviceList {
 }
 
 // Hasitems checks whether the BlockDeviceList contains BlockDevices
-func (bd *BlockDeviceList) Hasitems() (string, bool) {
-	if bd == nil || bd.BlockDeviceList == nil || bd.Items == nil {
+func (bdl *BlockDeviceList) Hasitems() (string, bool) {
+	if bdl == nil || bdl.BlockDeviceList == nil || bdl.Items == nil {
 		return "No item found in blockdevice list", false
 	}
 	return "", true

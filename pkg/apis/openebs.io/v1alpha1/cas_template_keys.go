@@ -120,9 +120,9 @@ const (
 
 	// BlockDeviceListCTP indicates the list of block devices
 	BlockDeviceListCTP StoragePoolTLPProperty = "blockDeviceList"
-	// BlockDeviceIdListCTP indicates the list of device id of disks
+	// BlockDeviceIDListCTP indicates the list of device id of disks
 	// If device is is not present for a disk, it contians the device path.
-	BlockDeviceIdListCTP StoragePoolTLPProperty = "blockDeviceIdList"
+	BlockDeviceIDListCTP StoragePoolTLPProperty = "blockDeviceIdList"
 	// NodeNameCTP is the name of node where cstorpool will be ceated
 	NodeNameCTP StoragePoolTLPProperty = "nodeName"
 	// PoolTypeCTP is the type of cstorpool that will be ceated
