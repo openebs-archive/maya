@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	zpool "github.com/openebs/maya/pkg/apis/openebs.io/pool/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -35,7 +35,6 @@ var (
 
 // PoolOperator is the name of the tool that makes pool-related operations.
 const (
-	PoolOperator           = "zpool"
 	StatusNoPoolsAvailable = "no pools available"
 	ZpoolStatusDegraded    = "DEGRADED"
 	ZpoolStatusFaulted     = "FAULTED"
@@ -68,7 +67,7 @@ var RunnerVar util.Runner
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
 	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, importAttr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
 	if err != nil {
 		glog.Errorf("Unable to import pool: %v, %v", err.Error(), string(stdoutStderr))
 		return err
@@ -95,7 +94,7 @@ func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
 	createAttr := createPoolBuilder(cStorPool, diskList)
 	glog.V(4).Info("createAttr : ", createAttr)
 
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, createAttr...)
 	if err != nil {
 		glog.Errorf("Unable to create pool: %v", string(stdoutStderr))
 		return err
@@ -161,7 +160,7 @@ func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 // GetPoolName return the pool already created.
 func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
-	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
+	poolNameByte, err := RunnerVar.RunStdoutPipe(zpool.PoolOperator, GetPoolStr...)
 	if err != nil || len(string(poolNameByte)) == 0 {
 		return []string{}, err
 	}
@@ -178,7 +177,7 @@ func GetPoolName() ([]string, error) {
 // DeletePool destroys the pool created.
 func DeletePool(poolName string) error {
 	deletePoolStr := []string{"destroy", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, deletePoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, deletePoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
 		return err
@@ -197,7 +196,7 @@ cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  allocated  202K   -
 */
 func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 	capacityPoolStr := []string{"get", "size,free,allocated", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, capacityPoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, capacityPoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to get pool capacity: %v", string(stdoutStderr))
 		return nil, err
@@ -228,7 +227,7 @@ func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 func Status(poolName string) (string, error) {
 	var poolStatus string
 	statusPoolStr := []string{"status", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, statusPoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
 		return "", err
@@ -300,7 +299,7 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	setCachefileStr := []string{"set", "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile,
 		poolNameUID}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, setCachefileStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, setCachefileStr...)
 	if err != nil {
 		glog.Errorf("Unable to set cachefile: %v", string(stdoutStderr))
 		return err
@@ -311,7 +310,7 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 // CheckForZreplInitial is blocking call for checking status of zrepl in cstor-pool container.
 func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 	for {
-		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		_, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
 			glog.Errorf("zpool status returned error in zrepl startup : %v", err)
@@ -325,7 +324,7 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 // CheckForZreplContinuous is continuous health checker for status of zrepl in cstor-pool container.
 func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	for {
-		out, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		out, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, "status")
 		if err == nil {
 			//even though we imported pool, it disappeared (may be due to zrepl container crashing).
 			// so we need to reimport.
@@ -345,7 +344,7 @@ func LabelClear(disks []string) error {
 	var failLabelClear = false
 	for _, disk := range disks {
 		labelClearStr := []string{"labelclear", "-f", disk}
-		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
+		stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, labelClearStr...)
 		if err != nil {
 			glog.Errorf("Unable to clear label on disk %v: %v, err = %v", disk,
 				string(stdoutStderr), err)

@@ -27,8 +27,8 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
-	zpool "github.com/openebs/maya/pkg/apis/openebs.io/pool/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	"github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -97,7 +97,8 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	return nil
 }
 
-func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
+// cStorPoolAddEventHandler calls cStorPoolAddEvent, and makes in-mem structures of successfully imported/created pool
+func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
 	var zpoolDumpErr error
 	pool.RunnerVar = util.RealRunner{}
 	uid := string(cStorPoolGot.GetUID())
@@ -107,7 +108,7 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 	if csp != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.AlreadyPresent), string(common.MessageResourceAlreadyPresent))
 	}
-	status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+	status, err := c.cStorPoolAddEvent(cStorPoolGot)
 	if status == string(apis.CStorPoolStatusOnline) {
 		pool.ImportedCStorPools[uid] = cStorPoolGot.DeepCopy()
 		pool.CStorZpools[uid], zpoolDumpErr = zpool.Dump()
@@ -138,7 +139,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		return status, err
 	case common.QOpSync:
 		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
-		// try to import/create pool gere as part of resync.
+		// try to import/create pool here as part of reconcile.
 		if IsPendingStatus(cStorPoolGot) {
 			status, err := c.cStorPoolAddEvent(cStorPoolGot)
 			return status, err
@@ -151,7 +152,8 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 	return string(apis.CStorPoolStatusInvalid), nil
 }
 
-func (c *CStorPoolController) cStorPoolAddEventHandler(cStorPoolGot *apis.CStorPool) (string, error) {
+// cStorPoolAddEvent does import of pool, and, if it fails, attemps to create pool based on CSP CR state
+func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
 	if pool.ImportedCStorPools == nil {
 		pool.ImportedCStorPools = map[string]*apis.CStorPool{}
 	}
