@@ -18,7 +18,6 @@ package zpool
 
 import (
 	"encoding/json"
-	"github.com/golang/glog"
 	"github.com/openebs/maya/pkg/util"
 )
 
