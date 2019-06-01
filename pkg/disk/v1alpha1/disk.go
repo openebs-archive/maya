@@ -20,7 +20,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	oeapis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	//clientset "github.com/openebs/maya/pkg/client/clientset/versioned"
@@ -72,7 +72,7 @@ type filterOptionFunc func(original *DiskList) *DiskList
 // Different orchestrators may need to implement this interface.
 type DiskInterface interface {
 	Get(name string) (*Disk, error)
-	List(opts v1.ListOptions) (*DiskList, error)
+	List(opts metav1.ListOptions) (*DiskList, error)
 	Create(*apis.Disk) (*Disk, error)
 }
 

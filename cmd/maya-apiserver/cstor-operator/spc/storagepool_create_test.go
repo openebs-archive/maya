@@ -87,6 +87,7 @@ func FakeDiskCreator(dc *blockdevice.KubernetesClient) {
 			glog.Error(err)
 		}
 	}
+	fakeDiskCreateFlag = true
 }
 
 func (focs *PoolCreateConfig) FakeDiskCreator() {
@@ -134,13 +135,12 @@ func (focs *PoolCreateConfig) FakeDiskCreator() {
 			glog.Error(err)
 		}
 	}
-	fakeDiskCreateFlag = true
 }
 func fakeDiskClient() {
 	bdK8sClient = &blockdevice.KubernetesClient{
-		fake.NewSimpleClientset(),
-		ndmFakeClientset.NewSimpleClientset(),
-		"fake-ns",
+		Kubeclientset: fake.NewSimpleClientset(),
+		Clientset:     ndmFakeClientset.NewSimpleClientset(),
+		Namespace:     "fake-ns",
 	}
 }
 func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *nodeselect.Config {
@@ -149,20 +149,20 @@ func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *nodeselect.Config {
 	FakeDiskCreator(bdK8sClient)
 	if nodeselect.ProvisioningType(spc) == ProvisioningTypeManual {
 		diskClient = &blockdevice.SpcObjectClient{
-			bdK8sClient,
-			spc,
+			KubernetesClient: bdK8sClient,
+			Spc:              spc,
 		}
 	} else {
 		diskClient = bdK8sClient
 	}
 
 	cspK8sClient := &cstorpool.KubernetesClient{
-		fake.NewSimpleClientset(),
-		openebsFakeClientset.NewSimpleClientset(),
+		Kubeclientset: fake.NewSimpleClientset(),
+		Clientset:     openebsFakeClientset.NewSimpleClientset(),
 	}
 	spK8sClient := &sp.KubernetesClient{
-		fake.NewSimpleClientset(),
-		openebsFakeClientset.NewSimpleClientset(),
+		Kubeclientset: fake.NewSimpleClientset(),
+		Clientset:     openebsFakeClientset.NewSimpleClientset(),
 	}
 	ac := &nodeselect.Config{
 		Spc:               spc,

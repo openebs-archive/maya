@@ -98,20 +98,20 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 	FakeDiskCreator(blockDeviceK8sClient)
 	if ProvisioningType(spc) == ProvisioningTypeManual {
 		bdClient = &blockdevice.SpcObjectClient{
-			blockDeviceK8sClient,
-			spc,
+			KubernetesClient: blockDeviceK8sClient,
+			Spc:              spc,
 		}
 	} else {
 		bdClient = blockDeviceK8sClient
 	}
 
 	cspK8sClient := &cstorpool.KubernetesClient{
-		fake.NewSimpleClientset(),
-		openebsFakeClientset.NewSimpleClientset(),
+		Kubeclientset: fake.NewSimpleClientset(),
+		Clientset:     openebsFakeClientset.NewSimpleClientset(),
 	}
 	spK8sClient := &sp.KubernetesClient{
-		fake.NewSimpleClientset(),
-		openebsFakeClientset.NewSimpleClientset(),
+		Kubeclientset: fake.NewSimpleClientset(),
+		Clientset:     openebsFakeClientset.NewSimpleClientset(),
 	}
 	ac := &Config{
 		Spc: spc,

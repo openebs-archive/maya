@@ -21,7 +21,7 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // NodeBlockDeviceSelector selects a node and disks attached to it.
@@ -45,7 +45,7 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 // getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
 func (ac *Config) getUsedBlockDeviceMap() (map[string]int, error) {
 	// Get the list of block devices that has been used already for pool provisioning
-	cspList, err := ac.CspClient.List(v1.ListOptions{})
+	cspList, err := ac.CspClient.List(metav1.ListOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools")
@@ -65,7 +65,7 @@ func (ac *Config) getUsedBlockDeviceMap() (map[string]int, error) {
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
 func (ac *Config) getUsedNodeMap() (map[string]int, error) {
-	cspList, err := ac.CspClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	cspList, err := ac.CspClient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", ac.Spc.Name)
 	}
@@ -183,7 +183,7 @@ func (ac *Config) poolType() string {
 // getBlockDevice return the all disks of a certain type(e.g. sparse, blockdevice) which is specified in spc.
 func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
-	bdL, err := ac.BlockDeviceClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
+	bdL, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
 		return nil, err
 	}

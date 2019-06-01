@@ -324,3 +324,55 @@ func TestFilter(t *testing.T) {
 		})
 	}
 }
+
+func TestHasitems(t *testing.T) {
+	tests := map[string]struct {
+		blockDeviceList BlockDeviceList
+		expectedOutput  bool
+	}{
+		"Nil block device list": {
+			blockDeviceList: BlockDeviceList{nil, nil},
+			expectedOutput:  false,
+		},
+		"Empty block device list": {
+			blockDeviceList: BlockDeviceList{
+				&ndm.BlockDeviceList{},
+				nil,
+			},
+			expectedOutput: false,
+		},
+		"Empty block device items": {
+			blockDeviceList: BlockDeviceList{
+				&ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{},
+				},
+				nil,
+			},
+			expectedOutput: true,
+		},
+		"Valid block device list": {
+			blockDeviceList: BlockDeviceList{
+				&ndm.BlockDeviceList{
+					Items: []ndm.BlockDevice{
+						{
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "blockdevice",
+							},
+						},
+					},
+				},
+				nil,
+			},
+			expectedOutput: true,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			_, actual := test.blockDeviceList.Hasitems()
+			if actual != test.expectedOutput {
+				t.Errorf("Test %q failed expected blockdevice list items: %t and got: %t", name, test.expectedOutput, actual)
+			}
+		})
+	}
+}

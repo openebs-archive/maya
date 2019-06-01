@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is spc client implementation to get disk.
@@ -34,12 +34,12 @@ func (s *SpcObjectClient) Get(name string) (*Disk, error) {
 	if diskName == "" {
 		return nil, errors.Errorf("Disk %s not found in the given SPC %s", diskName, s.Spc.Name)
 	}
-	d, err := s.NDMClientset.OpenebsV1alpha1().Disks().Get(diskName, v1.GetOptions{})
+	d, err := s.NDMClientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
 	return &Disk{d, nil}, err
 }
 
 // List is spc client implementation to list disk.
-func (s *SpcObjectClient) List(opts v1.ListOptions) (*DiskList, error) {
+func (s *SpcObjectClient) List(opts metav1.ListOptions) (*DiskList, error) {
 	diskL := &DiskList{
 		DiskList: &apis.DiskList{},
 		errs:     nil,

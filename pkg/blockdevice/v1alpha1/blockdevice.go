@@ -180,7 +180,7 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
-	errMsg, ok := bdl.Hasitem()
+	errMsg, ok := bdl.Hasitems()
 	if !ok {
 		filteredBlockDeviceList.errs = append(filteredBlockDeviceList.errs, errors.New(errMsg))
 		return filteredBlockDeviceList
@@ -234,7 +234,7 @@ func filterClaimedDevices(orignialList *BlockDeviceList) *BlockDeviceList {
 }
 
 // Hasitems checks whether the BlockDeviceList contains BlockDevices
-func (bd *BlockDeviceList) Hasitem() (string, bool) {
+func (bd *BlockDeviceList) Hasitems() (string, bool) {
 	if bd == nil || bd.BlockDeviceList == nil || bd.Items == nil {
 		return "No item found in blockdevice list", false
 	}

@@ -180,7 +180,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 			}
 			devID, err := pc.getDeviceID(blockDevice.Name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev for disk %s for spc %s", blockDevice.Name, spc.Name)
+				return nil, errors.Wrapf(err, "failed to get dev Id for block device %s for spc %s", blockDevice.Name, spc.Name)
 			}
 			blockDevice.DeviceID = devID
 			bdList = append(bdList, blockDevice)
@@ -203,7 +203,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 			}
 			devID, err := pc.getDeviceID(blockDevice.Name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", blockDevice.Name, spc.Name)
+				return nil, errors.Wrapf(err, "failed to get dev Id is for block device %s for spc %s", blockDevice.Name, spc.Name)
 			}
 			blockDevice.DeviceID = devID
 			bdList = append(bdList, blockDevice)
@@ -216,7 +216,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 	return casPool, nil
 }
 
-// TODO: Move to disk package
+// TODO: Move to block device package
 func (pc *PoolCreateConfig) getDeviceID(blockDeviceName string) (string, error) {
 	var deviceID string
 	blockDevice, err := pc.BlockDeviceClient.Get(blockDeviceName, metav1.GetOptions{})

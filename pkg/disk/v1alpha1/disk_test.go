@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestFilter(t *testing.T) {
@@ -56,12 +56,12 @@ func TestFilter(t *testing.T) {
 		"diskList3": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -70,8 +70,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -80,8 +80,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -99,12 +99,12 @@ func TestFilter(t *testing.T) {
 		"diskList4": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -113,8 +113,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -123,8 +123,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -142,12 +142,12 @@ func TestFilter(t *testing.T) {
 		"diskList5": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -156,8 +156,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -166,8 +166,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -185,12 +185,12 @@ func TestFilter(t *testing.T) {
 		"diskList6": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -199,8 +199,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -209,8 +209,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -228,12 +228,12 @@ func TestFilter(t *testing.T) {
 		"diskList7": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -242,8 +242,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -252,8 +252,8 @@ func TestFilter(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -312,12 +312,12 @@ func TestFilterAny(t *testing.T) {
 		"diskList3": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -326,8 +326,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -336,8 +336,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -355,12 +355,12 @@ func TestFilterAny(t *testing.T) {
 		"diskList4": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -369,8 +369,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -379,8 +379,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -398,12 +398,12 @@ func TestFilterAny(t *testing.T) {
 		"diskList5": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -412,8 +412,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -422,8 +422,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -441,12 +441,12 @@ func TestFilterAny(t *testing.T) {
 		"diskList6": {
 			diskList: &DiskList{
 				DiskList: &apis.DiskList{
-					TypeMeta: v1.TypeMeta{},
-					ListMeta: v1.ListMeta{},
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
 					Items: []apis.Disk{
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -455,8 +455,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},
@@ -465,8 +465,8 @@ func TestFilterAny(t *testing.T) {
 							},
 						},
 						{
-							TypeMeta:   v1.TypeMeta{},
-							ObjectMeta: v1.ObjectMeta{},
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
 							Spec: apis.DiskSpec{
 								Path: "/dev/sda",
 							},

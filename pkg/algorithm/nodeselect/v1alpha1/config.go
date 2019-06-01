@@ -72,9 +72,9 @@ func getBlockDeviceK8sClient() *blockdevice.KubernetesClient {
 	namespace := env.Get(env.OpenEBSNamespace)
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &blockdevice.KubernetesClient{
-		newClient.GetKCS(),
-		newClient.GetNDMCS(),
-		namespace,
+		Kubeclientset: newClient.GetKCS(),
+		Clientset:     newClient.GetNDMCS(),
+		Namespace:     namespace,
 	}
 	return K8sClient
 }
@@ -84,8 +84,8 @@ func getBlockDeviceK8sClient() *blockdevice.KubernetesClient {
 // This client is used in manual provisioning of SPC.
 func getBlockDeviceSpcClient(spc *apis.StoragePoolClaim) *blockdevice.SpcObjectClient {
 	K8sClient := &blockdevice.SpcObjectClient{
-		getBlockDeviceK8sClient(),
-		spc,
+		KubernetesClient: getBlockDeviceK8sClient(),
+		Spc:              spc,
 	}
 	return K8sClient
 }
@@ -95,8 +95,8 @@ func getBlockDeviceSpcClient(spc *apis.StoragePoolClaim) *blockdevice.SpcObjectC
 func getSpK8sClient() *sp.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &sp.KubernetesClient{
-		newClient.GetKCS(),
-		newClient.GetOECS(),
+		Kubeclientset: newClient.GetKCS(),
+		Clientset:     newClient.GetOECS(),
 	}
 	return K8sClient
 }
@@ -105,8 +105,8 @@ func getSpK8sClient() *sp.KubernetesClient {
 func getCspK8sClient() *cstorpool.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &cstorpool.KubernetesClient{
-		newClient.GetKCS(),
-		newClient.GetOECS(),
+		Kubeclientset: newClient.GetKCS(),
+		Clientset:     newClient.GetOECS(),
 	}
 	return K8sClient
 }

@@ -129,7 +129,7 @@ func TestValidatePoolType(t *testing.T) {
 	}
 }
 
-func TestValidateDiskType(t *testing.T) {
+func TestValidateBlockDeviceType(t *testing.T) {
 	tests := map[string]struct {
 		spc           *apis.StoragePoolClaim
 		expectedError bool
@@ -143,7 +143,7 @@ func TestValidateDiskType(t *testing.T) {
 					Type: string(apis.TypeSparseCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"Disk pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -151,10 +151,10 @@ func TestValidateDiskType(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type: string(apis.TypeSparseCPV),
+					Type: string(apis.TypeDiskCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"block device pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -178,7 +178,7 @@ func TestValidateDiskType(t *testing.T) {
 			},
 			expectedError: true,
 		},
-		"Wrong pool type": {
+		"Invalid pool type": {
 			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pool-claim-1",
@@ -290,7 +290,7 @@ func TestValidateSpc(t *testing.T) {
 					PoolSpec: apis.CStorPoolAttr{
 						PoolType: string(apis.PoolTypeRaidz2CPV),
 					},
-					Type:     string(apis.TypeSparseCPV),
+					Type:     string(apis.TypeBlockDeviceCPV),
 					MaxPools: newInt(3),
 				},
 			},
@@ -308,10 +308,25 @@ func TestValidateSpc(t *testing.T) {
 					BlockDevices: apis.BlockDeviceAttr{
 						BlockDeviceList: []string{"blockdevice-1"},
 					},
-					Type: string(apis.TypeSparseCPV),
+					Type: string(apis.TypeBlockDeviceCPV),
 				},
 			},
 			expectedError: false,
+		},
+		"InValid Auto SPC with invalid pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidz2CPV),
+					},
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedError: true,
 		},
 	}
 
@@ -611,11 +626,21 @@ func TestIsAutoProvisioning(t *testing.T) {
 			},
 			autoProvisioning: true,
 		},
-		"Not a auto spc config": {
+		"Not a auto spc config#1": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
 					BlockDevices: apis.BlockDeviceAttr{
 						BlockDeviceList: []string{},
+					},
+				},
+			},
+			autoProvisioning: false,
+		},
+		"Not a auto spc config#2": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice1"},
 					},
 				},
 			},
