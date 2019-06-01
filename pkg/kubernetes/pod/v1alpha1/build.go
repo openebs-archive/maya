@@ -68,6 +68,11 @@ func (b *Builder) WithContainers(containers []corev1.Container) *Builder {
 	return b
 }
 
+// WithContainer sets the Containers field in Pod with provided arguments
+func (b *Builder) WithContainer(container corev1.Container) *Builder {
+	return b.WithContainers([]corev1.Container{container})
+}
+
 // WithVolumes sets the Volumes field in Pod with provided arguments
 func (b *Builder) WithVolumes(volumes []corev1.Volume) *Builder {
 	if len(volumes) == 0 {
@@ -76,6 +81,11 @@ func (b *Builder) WithVolumes(volumes []corev1.Volume) *Builder {
 	}
 	b.pod.object.Spec.Volumes = volumes
 	return b
+}
+
+// WithVolume sets the Volumes field in Pod with provided arguments
+func (b *Builder) WithVolume(volume corev1.Volume) *Builder {
+	return b.WithVolumes([]corev1.Volume{volume})
 }
 
 // Build returns the Pod API instance
