@@ -201,7 +201,7 @@ func TestBuildWithCapacity(t *testing.T) {
 	}
 }
 
-func TestBuildWithHostDirectory(t *testing.T) {
+func TestBuildWithLocalHostDirectory(t *testing.T) {
 	tests := map[string]struct {
 		path      string
 		builder   *Builder
@@ -225,7 +225,7 @@ func TestBuildWithHostDirectory(t *testing.T) {
 	for name, mock := range tests {
 		name, mock := name, mock
 		t.Run(name, func(t *testing.T) {
-			b := mock.builder.WithHostDirectory(mock.path)
+			b := mock.builder.WithLocalHostDirectory(mock.path)
 			if mock.expectErr && len(b.errs) == 0 {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}
@@ -273,8 +273,6 @@ func TestBuildWithNodeAffinity(t *testing.T) {
 
 func TestBuildHostPath(t *testing.T) {
 
-	hostPathType := corev1.HostPathDirectoryOrCreate
-
 	tests := map[string]struct {
 		name        string
 		capacity    string
@@ -295,9 +293,9 @@ func TestBuildHostPath(t *testing.T) {
 						corev1.ResourceStorage: fakeCapacity("10Ti"),
 					},
 					PersistentVolumeSource: corev1.PersistentVolumeSource{
-						HostPath: &corev1.HostPathVolumeSource{
-							Path: "/var/openebs/local/PV1",
-							Type: &hostPathType,
+						Local: &corev1.LocalVolumeSource{
+							Path:   "/var/openebs/local/PV1",
+							FSType: nil,
 						},
 					},
 					NodeAffinity: &corev1.VolumeNodeAffinity{
@@ -336,7 +334,7 @@ func TestBuildHostPath(t *testing.T) {
 			pvObj, err := NewBuilder().
 				WithName(mock.name).
 				WithCapacity(mock.capacity).
-				WithHostDirectory(mock.path).
+				WithLocalHostDirectory(mock.path).
 				WithNodeAffinity(mock.nodeName).
 				Build()
 			if mock.expectedErr && err == nil {
