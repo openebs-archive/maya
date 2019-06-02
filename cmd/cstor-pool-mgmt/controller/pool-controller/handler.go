@@ -145,7 +145,7 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 		// Check if pool is not imported/created earlier due to any failure or failure in getting lease
 		// try to import/create pool here as part of reconcile.
 		if IsPendingStatus(cStorPoolGot) {
-			status, err := c.cStorPoolAddEventHandler(cStorPoolGot)
+			status, err := c.cStorPoolAddEvent(cStorPoolGot)
 			return status, err
 		}
 		glog.V(4).Infof("Synchronizing cStor pool status for pool %s", cStorPoolGot.ObjectMeta.Name)
@@ -166,12 +166,12 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		pool.CStorZpools = map[string]zpool.Topology{}
 	}
 
-	// CheckValidPool is to check if pool attributes are correct.
 	devIDList, err := c.getDeviceIDs(cStorPoolGot)
 	if err != nil {
 		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
 	}
-	err = pool.CheckValidPool(cStorPoolGot, devIDList)
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 		return string(apis.CStorPoolStatusOffline), err

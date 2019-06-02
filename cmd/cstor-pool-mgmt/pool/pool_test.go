@@ -815,7 +815,7 @@ func TestCheckValidPool(t *testing.T) {
 		name := name
 		ut := ut
 		t.Run(name, func(t *testing.T) {
-			Obtainederr := CheckValidPool(ut.test, ut.deviceIDs)
+			Obtainederr := ValidatePool(ut.test, ut.deviceIDs)
 			if ut.expectedError && Obtainederr == nil {
 				t.Fatalf("Desc : %q, Expected error not be nil", name)
 			}

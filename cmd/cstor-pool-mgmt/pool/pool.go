@@ -125,10 +125,8 @@ func createPoolBuilder(cStorPool *apis.CStorPool, blockDeviceList []string) []st
 		return createAttr
 	}
 	// To generate pool of the following types:
-	// mirrored (grouped by multiples of 2): mirror blockdevice1 blockdevice2
-	// mirror blockdevice3 blockdevice4
-	// raidz (grouped by multiples of 3): raidz blockdevice1 blockdevice2
-	// blockdevice3 raidz blockdevice 4 blockdevice5 blockdevice6
+	// mirrored (grouped by multiples of 2): mirror blockdevice1 blockdevice2 mirror blockdevice3 blockdevice4
+	// raidz (grouped by multiples of 3): raidz blockdevice1 blockdevice2 blockdevice3 raidz blockdevice 4 blockdevice5 blockdevice6
 	// raidz2 (grouped by multiples of 6): raidz2 blockdevice1 blockdevice2 blockdevice3 blockdevice4 blockdevice5 blockdevice6
 	for i, bd := range blockDeviceList {
 		if i%defaultGroupSize[poolType] == 0 {
@@ -140,8 +138,8 @@ func createPoolBuilder(cStorPool *apis.CStorPool, blockDeviceList []string) []st
 	return createAttr
 }
 
-// CheckValidPool checks for validity of CStorPool resource.
-func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
+// ValidatePool checks for validity of CStorPool resource.
+func ValidatePool(cStorPool *apis.CStorPool, devID []string) error {
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
@@ -149,10 +147,20 @@ func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 	diskCount := len(devID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
-		return errors.Errorf("Expected %v no of blockdevices, got %v no of blockdevices for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"validate pool failed: expected {%d} blockdevices got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	if diskCount%defaultGroupSize[poolType] != 0 {
-		return errors.Errorf("Expected multiples of %v number of blockdevices, got %v no of blockdevices for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"validate pool failed: expected multiples of {%d} blockdevices required got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	return nil
 }
