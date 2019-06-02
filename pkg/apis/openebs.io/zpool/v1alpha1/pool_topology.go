@@ -26,8 +26,6 @@ const (
 	PoolOperator = "zpool"
 )
 
-var runnerVar util.Runner
-
 // Topology contains the topology strucure of disks used in backend
 type Topology struct {
 	// Number of top-level children in topology (doesnt include spare/l2cache)
@@ -75,6 +73,7 @@ type Vdev struct {
 // Dump runs 'zpool dump' command and unmarshal the output in above schema
 func Dump() (Topology, error) {
 	var t Topology
+	runnerVar := util.RealRunner{}
 	out, err := runnerVar.RunCombinedOutput(PoolOperator, "dump")
 	if err != nil {
 		return t, err
