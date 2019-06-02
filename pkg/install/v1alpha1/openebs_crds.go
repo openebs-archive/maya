@@ -291,6 +291,81 @@ spec:
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: blockdevices.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: blockdevices
+    # singular name to be used as an alias on the CLI and for display
+    singular: blockdevice
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: BlockDevice
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - bd
+  additionalPrinterColumns:
+  - JSONPath: .spec.capacity.storage
+    name: Size
+    description: Identifies the block device size(in Bytes)
+    type: string
+  - JSONPath: .status.claimState
+    name: ClaimState
+    description: Identifies the current claim status of the block device
+    type: string
+  - JSONPath: .status.state
+    name: Status
+    description: Identifies the current health of the block device
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: blockdeviceclaims.openebs.io
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: openebs.io
+  # version name to use for REST API: /apis/<group>/<version>
+  version: v1alpha1
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: blockdeviceclaims
+    # singular name to be used as an alias on the CLI and for display
+    singular: blockdeviceclaim
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: BlockDeviceClaim
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - bdc
+  additionalPrinterColumns:
+  - JSONPath: .spec.blockDeviceName
+    name: BlockDeviceName
+    description: Identifies the block device associated with the claim
+    type: string
+  - JSONPath: .status.phase
+    name: Phase
+    description: Identifies the phase of block device claim
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
   name: cstorbackups.openebs.io
 spec:
   group: openebs.io
