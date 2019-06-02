@@ -70,7 +70,7 @@ func getDiskK8sClient() *disk.KubernetesClient {
 	newClient, _ := k8s.NewK8sClient("")
 	K8sClient := &disk.KubernetesClient{
 		newClient.GetKCS(),
-		newClient.GetOECS(),
+		newClient.GetNDMCS(),
 	}
 	return K8sClient
 }

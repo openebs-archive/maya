@@ -24,8 +24,8 @@ import (
 
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 )
 
 // getClientsetFn is a typed function that

@@ -11,11 +11,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package volume
+package clone
 
 import (
 	"strconv"
 	"strings"
+
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -29,28 +30,29 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	snapshot "github.com/openebs/maya/pkg/apis/openebs.io/snapshot/v1alpha1"
 	// auth plugins
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 var (
-	kubeConfigPath        string
 	openebsNamespace      = "openebs"
-	nsName                = "cstor-provision"
-	scName                = "cstor-volume"
+	nsName                = "test-cstor-clone"
+	scName                = "test-cstor-clone-sc"
+	clonescName           = "openebs-snapshot-promoter"
 	openebsCASConfigValue = `
 - name: ReplicaCount
   value: $count
 - name: StoragePoolClaim
-  value: test-cstor-provision-sparse-pool-auto
+  value: test-cstor-snap-sparse-pool
 `
 	openebsProvisioner = "openebs.io/provisioner-iscsi"
-	spcName            = "test-cstor-provision-sparse-pool-auto"
+	spcName            = "test-cstor-snap-sparse-pool"
 	nsObj              *corev1.Namespace
 	scObj              *storagev1.StorageClass
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
-	spcList            *apis.StoragePoolClaimList
+	snapObj            *snapshot.VolumeSnapshot
 	targetLabel        = "openebs.io/target=cstor-target"
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
@@ -59,11 +61,12 @@ var (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test cstor volume provisioning")
+	RunSpecs(t, "Test cstor volume clone provisioning")
 }
 
 func init() {
 	cstor.ParseFlags()
+
 }
 
 var ops *tests.Operations

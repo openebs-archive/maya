@@ -18,7 +18,7 @@ package v1alpha1
 
 import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 	"strconv"
@@ -31,7 +31,7 @@ func TestSpcClientGet(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	spcClient := &SpcObjectClient{
 		KubernetesClient: focs,
@@ -111,7 +111,7 @@ func TestSpcClientList(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	diskObj, err := New().WithName("mydisk1").Build()
@@ -231,7 +231,7 @@ func TestSpcClientFilteredList(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	// Create some disk objects
