@@ -49,6 +49,16 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithGenerateName sets the GenerateName field of namespace with provided argument.
+func (b *Builder) WithGenerateName(name string) *Builder {
+	if len(name) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build namespace: missing namespace name"))
+		return b
+	}
+	b.ns.object.GenerateName = name
+	return b
+}
+
 // Build returns the Namespace instance
 func (b *Builder) Build() (*Namespace, error) {
 	if len(b.errs) > 0 {
