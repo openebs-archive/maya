@@ -18,10 +18,10 @@ package volumecontroller
 
 import (
 	"fmt"
+	pkg_errors "github.com/pkg/errors"
 	"os"
 	"reflect"
 	"time"
-	pkg_errors "github.com/pkg/errors"
 
 	"strings"
 
