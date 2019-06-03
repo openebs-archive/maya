@@ -535,10 +535,3 @@ func (ops *Operations) VerifyUpgradeResultTasksIsNotFail(namespace, lselector st
 	}
 	return true
 }
-
-// GenerateName creates a name field with time stamp attached
-// to make it unique
-func GenerateName(name string) string {
-	generatedName := name + "-" + fmt.Sprintf("%d", time.Now().UnixNano())
-	return generatedName
-}

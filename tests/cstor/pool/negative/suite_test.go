@@ -33,7 +33,7 @@ import (
 
 var (
 	openebsNamespace   = "openebs"
-	namespace          = tests.GenerateName("cstor-invalidconfig")
+	namespace          = "cstor-invalidconfig"
 	scName             = "cstor-volume-test"
 	openebsProvisioner = "openebs.io/provisioner-iscsi"
 	spcName            = "sparse-pool-claim"
@@ -65,19 +65,20 @@ var _ = BeforeSuite(func() {
 
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
-		WithName(namespace).
+		WithGenerateName(namespace).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespaceObj.GenerateName)
 
 	By("creating a namespace")
-	_, err = ops.NSClient.Create(namespaceObj)
+	namespaceObj, err = ops.NSClient.Create(namespaceObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.Name)
+
 })
 
 var _ = AfterSuite(func() {
 
 	By("deleting namespace")
-	err := ops.NSClient.Delete(namespace, &metav1.DeleteOptions{})
+	err := ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })

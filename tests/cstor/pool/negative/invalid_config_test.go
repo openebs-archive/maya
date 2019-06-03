@@ -24,22 +24,20 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 	var (
-		err              error
-		generatedSPCName string
+		err error
 	)
 
 	AfterEach(func() {
 
 		By("deleting storagepoolclaim")
-		_, err = ops.SPCClient.Delete(generatedSPCName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", generatedSPCName)
+		_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", spcObj.Name)
 
 		time.Sleep(5 * time.Second)
 	})
@@ -47,11 +45,9 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 	When("creating storagepoolclaim with invalid disk type", func() {
 		It("should not create any cstorpool", func() {
 
-			generatedSPCName = tests.GenerateName(spcName)
-
 			By("building storagepoolclaim with invalid disk type")
 			spcObj = spc.NewBuilder().
-				WithName(generatedSPCName).
+				WithGenerateName(spcName).
 				WithDiskType("invalid-disk-type").
 				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
@@ -59,11 +55,11 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				Build().Object
 
 			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", generatedSPCName)
+			spcObj, err = ops.SPCClient.Create(spcObj)
+			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(generatedSPCName, cstor.PoolCount)
+			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})
@@ -72,11 +68,9 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 	When("creating storagepoolclaim with invalid pool type", func() {
 		It("should not create any cstorpool", func() {
 
-			generatedSPCName = tests.GenerateName(spcName)
-
 			By("building a storagepoolclaim with invalid pool type")
 			spcObj = spc.NewBuilder().
-				WithName(generatedSPCName).
+				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
@@ -84,11 +78,11 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				Build().Object
 
 			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", generatedSPCName)
+			spcObj, err = ops.SPCClient.Create(spcObj)
+			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(generatedSPCName, cstor.PoolCount)
+			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})
@@ -97,11 +91,9 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 	When("creating storagepoolclaim with invalid pool count", func() {
 		It("should not create any cstorpool", func() {
 
-			generatedSPCName = tests.GenerateName(spcName)
-
 			By("building storagepoolclaim with invalid pool count")
 			spcObj = spc.NewBuilder().
-				WithName(generatedSPCName).
+				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(-1).
 				WithOverProvisioning(false).
@@ -109,11 +101,11 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGEPOOLCLAIM", func() {
 				Build().Object
 
 			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", generatedSPCName)
+			spcObj, err = ops.SPCClient.Create(spcObj)
+			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying cstorpool count as 0")
-			cspCount := ops.GetCSPCount(generatedSPCName, cstor.PoolCount)
+			cspCount := ops.GetCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(0), "while checking cstorpool count")
 
 		})

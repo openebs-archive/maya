@@ -28,14 +28,12 @@ import (
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
-	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 	var (
-		generatedSPCName      string
 		err                   error
 		pvcName               = "cstor-volume-claim"
 		openebsCASConfigValue = `
@@ -49,11 +47,9 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
 
-			generatedSPCName = tests.GenerateName(spcName)
-
 			By("building storagepoolclaim")
 			spcObj = spc.NewBuilder().
-				WithName(generatedSPCName).
+				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
@@ -61,11 +57,11 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 				Build().Object
 
 			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", generatedSPCName)
+			spcObj, err = ops.SPCClient.Create(spcObj)
+			Expect(err).To(BeNil(), "while creating storagepoolclaim {%s}", spcObj.Name)
 
 			By("verifying healthy csp count")
-			cspCount := ops.GetHealthyCSPCountEventually(generatedSPCName, cstor.PoolCount)
+			cspCount := ops.GetHealthyCSPCountEventually(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(true), "while checking cstorpool health status")
 
 		})
@@ -73,10 +69,10 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 
 	AfterEach(func() {
 		By("deleting storagepoolclaim")
-		_, err = ops.SPCClient.Delete(generatedSPCName, &metav1.DeleteOptions{})
-		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", generatedSPCName)
+		_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+		Expect(err).To(BeNil(), "while deleting the storagepoolclaim {%s}", spcObj.Name)
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 	})
 
 	When("creating storageclass with invalid CASConfig", func() {
@@ -93,39 +89,37 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 			// adding invalid character to casconfig
 			annotations[string(apis.CASConfigKey)] = CASConfig + ":"
 
-			generatedSCName := tests.GenerateName(scName)
-
 			By("building storageclass with invalid CASConfig")
 			scObj, err = sc.NewBuilder().
-				WithName(generatedSCName).
+				WithGenerateName(scName).
 				WithAnnotations(annotations).
 				WithProvisioner(openebsProvisioner).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building storageclass obj for storageclass {%s}",
-				generatedSCName,
+				scObj.GenerateName,
 			)
 
 			By("creating above storageclass")
-			_, err = ops.SCClient.Create(scObj)
-			Expect(err).To(BeNil(), "while creating storageclass {%s}", scName)
+			scObj, err = ops.SCClient.Create(scObj)
+			Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
 
 			By("building a pvc")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
-				WithNamespace(namespace).
-				WithStorageClass(scName).
+				WithNamespace(namespaceObj.Name).
+				WithStorageClass(scObj.Name).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building pvc {%s} in namespace {%s}",
 				pvcName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(namespace).Create(pvcObj)
+			pvcObj, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
@@ -142,8 +136,8 @@ var _ = Describe("[cstor] [-ve] TEST INVALID STORAGECLASS", func() {
 			Expect(err).To(BeNil(), "while delete=ing pvc {%s}", pvcName)
 
 			By("deleting storageclass")
-			err = ops.SCClient.Delete(generatedSCName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
+			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 		})
 	})
