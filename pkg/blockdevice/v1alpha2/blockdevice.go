@@ -17,11 +17,12 @@ limitations under the License.
 package v1alpha2
 
 import (
-	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	apisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 )
 
-//TODO: While using these packages UnitTest must be written to corresponding function
+//TODO: While using these packages UnitTest
+//must be written to corresponding function
 
 // BlockDeviceState is label for block device states
 type BlockDeviceState string
@@ -31,24 +32,25 @@ const (
 	BlockDeviceStateActive BlockDeviceState = "Active"
 )
 
-// DefaultBlockDeviceCount is a map containing the default block device count of various raid types.
+// DefaultBlockDeviceCount is a map containing the
+// default block device count of various raid types.
 var DefaultBlockDeviceCount = map[string]int{
-	string(apisv1alpha1.PoolTypeMirroredCPV): int(apisv1alpha1.MirroredBlockDeviceCountCPV),
-	string(apisv1alpha1.PoolTypeStripedCPV):  int(apisv1alpha1.StripedBlockDeviceCountCPV),
-	string(apisv1alpha1.PoolTypeRaidzCPV):    int(apisv1alpha1.RaidzBlockDeviceCountCPV),
-	string(apisv1alpha1.PoolTypeRaidz2CPV):   int(apisv1alpha1.Raidz2BlockDeviceCountCPV),
+	string(apis.PoolTypeMirroredCPV): int(apis.MirroredBlockDeviceCountCPV),
+	string(apis.PoolTypeStripedCPV):  int(apis.StripedBlockDeviceCountCPV),
+	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzBlockDeviceCountCPV),
+	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2BlockDeviceCountCPV),
 }
 
 // BlockDevice encapsulates BlockDevice api object.
 type BlockDevice struct {
 	// actual block device object
-	Object *ndmapisv1alpha1.BlockDevice
+	Object *ndm.BlockDevice
 }
 
 // BlockDeviceList holds the list of BlockDevice api
 type BlockDeviceList struct {
 	// list of blockdevices
-	ObjectList *ndmapisv1alpha1.BlockDeviceList
+	ObjectList *ndm.BlockDeviceList
 }
 
 // Predicate defines an abstraction to determine conditional checks against the
@@ -69,8 +71,8 @@ func (l predicateList) all(c *BlockDevice) bool {
 	return true
 }
 
-// HasAnnotation returns true if provided annotation key and value are present
-// in the provided block deive instance.
+// HasAnnotation is predicate to filter out based on
+// annotation in BDC instances
 func HasAnnotation(key, value string) Predicate {
 	return func(bd *BlockDevice) bool {
 		return bd.HasAnnotation(key, value)
@@ -93,29 +95,46 @@ func (bd *BlockDevice) HasAnnotation(key, value string) bool {
 //func IsSparse() Predicate {
 //	return func(d *BlockDevice) bool {
 //		return
-//		d.Object.GetLabels()[string(apisv1alpha1.NdmBlockDeviceTypeCPK)] ==
-//		string(apisv1alpha1.TypeBlockDeviceCPV)
+//		d.Object.GetLabels()[string(apis.NdmBlockDeviceTypeCPK)] ==
+//		string(apis.TypeBlockDeviceCPV)
 //	}
 //}
 
 // IsType returns true if the block device is of type same as passed argument
 //func IsType(bdType string) Predicate {
 //	return func(d *BlockDevice) bool {
-//		return d.Object.GetLabels()[string(apisv1alpha1.NdmBlockDeviceTypeCPK)] == bdType
+//		return d.Object.GetLabels()[string(apis.NdmBlockDeviceTypeCPK)] == bdType
 //	}
 //}
 
-// IsActive returns true if the block device is active.
+// IsActive filters the block device based on the active status
 func IsActive() Predicate {
 	return func(bd *BlockDevice) bool {
-		return bd.Object.Status.State == string(BlockDeviceStateActive)
+		return bd.IsActive()
+	}
+}
+
+// IsActive returns true if the block device is active.
+func (bd *BlockDevice) IsActive() bool {
+	return bd.Object.Status.State == string(BlockDeviceStateActive)
+}
+
+// IsClaimed filters the block deive based on claimed status
+func IsClaimed() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsActive()
 	}
 }
 
 // IsClaimed returns true if the block device is claimed
-func IsClaimed() Predicate {
+func (bd *BlockDevice) IsClaimed() bool {
+	return bd.Object.Status.ClaimState == ndm.BlockDeviceClaimed
+}
+
+// IsUsable filters the block device based on usage of disk
+func IsUsable(usedBlockDevices map[string]int) Predicate {
 	return func(bd *BlockDevice) bool {
-		return bd.Object.Status.ClaimState == ndmapisv1alpha1.BlockDeviceClaimed
+		return bd.IsUsable(usedBlockDevices)
 	}
 }
 
@@ -125,26 +144,35 @@ func IsClaimed() Predicate {
 // key as block device cr name and value as integer.
 // If the value of map is greater than 0 ,
 // then this corresponding block device is not usable.
-func IsUsable(usedBlockDevices map[string]int) Predicate {
+func (bd *BlockDevice) IsUsable(usedBD map[string]int) bool {
+	return usedBD[bd.Object.Name] == 0
+}
+
+// IsUsableNode filters the block device based on usage of node
+func IsUsableNode(usedNodes map[string]bool) Predicate {
 	return func(bd *BlockDevice) bool {
-		return usedBlockDevices[bd.Object.Name] == 0
+		return bd.IsUsableNode(usedNodes)
 	}
 }
 
-// IsUsableNode returns true if block device of this node can be used for pool provisioning.
-// The argument usedNodes is a map containing key as node name and value as bool.
-// If the value of map is greater than false, then this corresponding node is not usable.
-func IsUsableNode(usedNodes map[string]bool) Predicate {
-	return func(bd *BlockDevice) bool {
-		return !usedNodes[bd.GetNodeName()]
-	}
+// IsUsableNode returns true if block device of this node can be used
+// for pool provisioning. The argument usedNodes is a map containing
+// key as node name and value as bool. If the value of map is greater
+// than false, then this corresponding node is not usable.
+func (bd *BlockDevice) IsUsableNode(usedNodes map[string]bool) bool {
+	return !usedNodes[bd.GetNodeName()]
 }
 
 // IsBelongToNode returns true if the block device belongs to the provided node.
 func IsBelongToNode(nodeName string) Predicate {
 	return func(bd *BlockDevice) bool {
-		return bd.GetNodeName() == nodeName
+		return bd.IsBelongToNode(nodeName)
 	}
+}
+
+// IsBelongToNode returns true if the block device belongs to the provided node.
+func (bd *BlockDevice) IsBelongToNode(nodeName string) bool {
+	return bd.GetNodeName() == nodeName
 }
 
 // IsValidPoolTopology returns true if the block device count
@@ -155,7 +183,7 @@ func IsValidPoolTopology(poolType string, bdCount int) bool {
 
 // GetNodeName returns the node name to which the block device is attached
 func (bd *BlockDevice) GetNodeName() string {
-	return bd.Object.GetLabels()[string(apisv1alpha1.HostNameCPK)]
+	return bd.Object.GetLabels()[string(apis.HostNameCPK)]
 }
 
 // Filter will filter the block device instances if all the predicates succeed
@@ -172,7 +200,9 @@ func (l *BlockDeviceList) Filter(p ...Predicate) *BlockDeviceList {
 		bdAPI := bdAPI // pin it
 		BlockDevice := BuilderForAPIObject(&bdAPI).BlockDevice
 		if plist.all(BlockDevice) {
-			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *BlockDevice.Object)
+			filtered.ObjectList.Items = append(
+				filtered.ObjectList.Items,
+				*BlockDevice.Object)
 		}
 	}
 	return filtered
@@ -195,7 +225,8 @@ func (bd *BlockDevice) GetDeviceID() string {
 // GetLink returns the link of the block device
 // if present else return empty string
 func (bd *BlockDevice) GetLink() string {
-	if len(bd.Object.Spec.DevLinks) != 0 && len(bd.Object.Spec.DevLinks[0].Links) != 0 {
+	if len(bd.Object.Spec.DevLinks) != 0 &&
+		len(bd.Object.Spec.DevLinks[0].Links) != 0 {
 		return bd.Object.Spec.DevLinks[0].Links[0]
 	}
 	return ""

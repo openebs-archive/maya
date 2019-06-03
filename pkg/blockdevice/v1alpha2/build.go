@@ -17,10 +17,11 @@ limitations under the License.
 package v1alpha2
 
 import (
-	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
-//TODO: While using these packages UnitTest must be written to corresponding function
+//TODO: While using these packages
+// UnitTest must be written to corresponding function
 
 // Builder is the builder object for BlockDevice
 type Builder struct {
@@ -30,7 +31,7 @@ type Builder struct {
 // NewBuilder returns an empty instance of the Builder object.
 func NewBuilder() *Builder {
 	return &Builder{
-		BlockDevice: &BlockDevice{&ndmapisv1alpha1.BlockDevice{}},
+		BlockDevice: &BlockDevice{&ndm.BlockDevice{}},
 	}
 }
 
@@ -44,7 +45,7 @@ func BuilderForObject(BlockDevice *BlockDevice) *Builder {
 
 // BuilderForAPIObject returns an instance of the Builder object based on block
 // device api object.
-func BuilderForAPIObject(bd *ndmapisv1alpha1.BlockDevice) *Builder {
+func BuilderForAPIObject(bd *ndm.BlockDevice) *Builder {
 	return &Builder{
 		BlockDevice: &BlockDevice{bd},
 	}

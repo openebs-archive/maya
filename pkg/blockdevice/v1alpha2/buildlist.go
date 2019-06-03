@@ -19,17 +19,21 @@ package v1alpha2
 //TODO: While using these packages UnitTest must be written to corresponding function
 
 import (
-	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
 // ListBuilder is the builder object for BlockDeviceList
 type ListBuilder struct {
-	BlockDeviceList *BlockDeviceList
+	BDL *BlockDeviceList
 }
 
 // NewListBuilder returns a new instance of ListBuilder object.
 func NewListBuilder() *ListBuilder {
-	return &ListBuilder{BlockDeviceList: &BlockDeviceList{ObjectList: &ndmapisv1alpha1.BlockDeviceList{}}}
+	return &ListBuilder{
+		BDL: &BlockDeviceList{
+			ObjectList: &ndm.BlockDeviceList{},
+		},
+	}
 }
 
 // WithList builds the list based on the provided *BlockDeviceList instances.
@@ -37,36 +41,41 @@ func (b *ListBuilder) WithList(bdl *BlockDeviceList) *ListBuilder {
 	if bdl == nil {
 		return b
 	}
-	b.BlockDeviceList.ObjectList.Items = append(b.BlockDeviceList.ObjectList.Items, bdl.ObjectList.Items...)
+	b.BDL.ObjectList.Items = append(
+		b.BDL.ObjectList.Items,
+		bdl.ObjectList.Items...)
 	return b
 }
 
 // WithAPIList builds the list based on the provided *apisv1alpha1.CStorPoolList.
-func (b *ListBuilder) WithAPIList(bdl *ndmapisv1alpha1.BlockDeviceList) *ListBuilder {
+func (b *ListBuilder) WithAPIList(bdl *ndm.BlockDeviceList) *ListBuilder {
 	if bdl == nil {
 		return b
 	}
-	b.BlockDeviceList.ObjectList.Items = append(b.BlockDeviceList.ObjectList.Items, bdl.Items...)
+	b.BDL.ObjectList.Items = append(
+		b.BDL.ObjectList.Items,
+		bdl.Items...)
 	return b
 }
 
-// List returns the list of block device instances that were built by this builder.
+// List returns the list of block device instances
+// that were built by this builder.
 func (b *ListBuilder) List() *BlockDeviceList {
-	return b.BlockDeviceList
+	return b.BDL
 }
 
 // NewListBuilderForObjectList builds the list based on the provided
 // *BlockDeviceList instances.
 func NewListBuilderForObjectList(bdl *BlockDeviceList) *ListBuilder {
 	newLB := NewListBuilder()
-	newLB.BlockDeviceList.ObjectList.Items = append(newLB.BlockDeviceList.ObjectList.Items, bdl.ObjectList.Items...)
+	newLB.BDL.ObjectList.Items = append(newLB.BDL.ObjectList.Items, bdl.ObjectList.Items...)
 	return newLB
 }
 
 // NewListBuilderForAPIList returns a new instance of ListBuilderForApiList
 // object based on block device api list.
-func NewListBuilderForAPIList(bdAPIList *ndmapisv1alpha1.BlockDeviceList) *ListBuilder {
+func NewListBuilderForAPIList(bdAPIList *ndm.BlockDeviceList) *ListBuilder {
 	newLb := NewListBuilder()
-	newLb.BlockDeviceList.ObjectList.Items = append(newLb.BlockDeviceList.ObjectList.Items, bdAPIList.Items...)
+	newLb.BDL.ObjectList.Items = append(newLb.BDL.ObjectList.Items, bdAPIList.Items...)
 	return newLb
 }

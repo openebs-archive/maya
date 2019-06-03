@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
 //TODO: While using these packages UnitTest must be written to corresponding function
@@ -35,7 +35,7 @@ type Builder struct {
 // NewBuilder returns an empty instance of the Builder object
 func NewBuilder() *Builder {
 	return &Builder{
-		BDC: &BlockDeviceClaim{&ndmapisv1alpha1.BlockDeviceClaim{}},
+		BDC: &BlockDeviceClaim{&ndm.BlockDeviceClaim{}},
 	}
 }
 
@@ -49,7 +49,7 @@ func BuilderForObject(BlockDeviceClaim *BlockDeviceClaim) *Builder {
 
 // BuilderForAPIObject returns an instance of the Builder object based on block
 // device claim api object.
-func BuilderForAPIObject(bdc *ndmapisv1alpha1.BlockDeviceClaim) *Builder {
+func BuilderForAPIObject(bdc *ndm.BlockDeviceClaim) *Builder {
 	return &Builder{
 		BDC: &BlockDeviceClaim{bdc},
 	}
@@ -66,7 +66,10 @@ func (b *Builder) Build() (*BlockDeviceClaim, error) {
 // WithName sets the Name field of PVC with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing BDC name"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing BDC name"),
+		)
 		return b
 	}
 	b.BDC.Object.Name = name
@@ -76,7 +79,11 @@ func (b *Builder) WithName(name string) *Builder {
 // WithNamespace sets the Namespace field of PVC provided arguments
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
-		namespace = "default"
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing BDC namespace"),
+		)
+		return b
 	}
 	b.BDC.Object.Namespace = namespace
 	return b
@@ -85,7 +92,10 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 // WithAnnotations sets the Annotations field of PVC with provided arguments
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing annotations"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing annotations"),
+		)
 		return b
 	}
 	b.BDC.Object.Annotations = annotations
@@ -95,7 +105,10 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 // WithLabels sets the Labels field of PVC with provided arguments
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing labels"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing labels"),
+		)
 		return b
 	}
 	b.BDC.Object.Labels = labels
@@ -105,7 +118,10 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 // WithBlockDeviceName sets the BlockDeviceName field of BDC provided arguments
 func (b *Builder) WithBlockDeviceName(bdName string) *Builder {
 	if len(bdName) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing BlockDevice name"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing BlockDevice name"),
+		)
 		return b
 	}
 	b.BDC.Object.Spec.BlockDeviceName = bdName
@@ -115,7 +131,10 @@ func (b *Builder) WithBlockDeviceName(bdName string) *Builder {
 // WithDeviceType sets the DeviceType field of BDC provided arguments
 func (b *Builder) WithDeviceType(dType string) *Builder {
 	if len(dType) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing device type"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing device type"),
+		)
 		return b
 	}
 	b.BDC.Object.Spec.DeviceType = dType
@@ -125,7 +144,10 @@ func (b *Builder) WithDeviceType(dType string) *Builder {
 // WithHostName sets the hostName field of BDC provided arguments
 func (b *Builder) WithHostName(hName string) *Builder {
 	if len(hName) == 0 {
-		b.errs = append(b.errs, errors.New("failed to build BDC object: missing host name"))
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing host name"),
+		)
 		return b
 	}
 	b.BDC.Object.Spec.HostName = hName
@@ -136,7 +158,13 @@ func (b *Builder) WithHostName(hName string) *Builder {
 func (b *Builder) WithCapacity(capacity string) *Builder {
 	resCapacity, err := resource.ParseQuantity(capacity)
 	if err != nil {
-		b.errs = append(b.errs, errors.Wrapf(err, "failed to build BDC object: failed to parse capacity {%s}", capacity))
+		b.errs = append(
+			b.errs,
+			errors.Wrapf(
+				err, "failed to build BDC object: failed to parse capacity {%s}",
+				capacity,
+			),
+		)
 		return b
 	}
 	resourceList := corev1.ResourceList{

@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	ndmapisv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
 //TODO: While using these packages UnitTest must be written to corresponding function
@@ -25,13 +25,13 @@ import (
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
 type BlockDeviceClaim struct {
 	// actual block device claim object
-	Object *ndmapisv1alpha1.BlockDeviceClaim
+	Object *ndm.BlockDeviceClaim
 }
 
 // BlockDeviceClaimList encapsulates BlockDeviceClaimList api object
 type BlockDeviceClaimList struct {
 	// list of blockdeviceclaims
-	ObjectList *ndmapisv1alpha1.BlockDeviceClaimList
+	ObjectList *ndm.BlockDeviceClaimList
 }
 
 // Predicate defines an abstraction to determine conditional checks against the
@@ -97,7 +97,8 @@ func IsStatus(status string) Predicate {
 	}
 }
 
-// IsStatus returns true if the status on block device claim matches with provided status.
+// IsStatus returns true if the status on
+// block device claim matches with provided status.
 func (bdc *BlockDeviceClaim) IsStatus(status string) bool {
 	return string(bdc.Object.Status.Phase) == status
 }
@@ -116,7 +117,9 @@ func (l *BlockDeviceClaimList) Filter(p ...Predicate) *BlockDeviceClaimList {
 		bdcAPI := bdcAPI // pin it
 		BlockDeviceClaim := BuilderForAPIObject(&bdcAPI).BDC
 		if plist.all(BlockDeviceClaim) {
-			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *BlockDeviceClaim.Object)
+			filtered.ObjectList.Items = append(
+				filtered.ObjectList.Items,
+				*BlockDeviceClaim.Object)
 		}
 	}
 	return filtered
