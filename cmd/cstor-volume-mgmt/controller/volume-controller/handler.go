@@ -55,19 +55,17 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 		glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
 			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
 
-		_, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
-		if err != nil {
-			glog.Infof("failed to update cStorVolume:%v, %v; Status: %v err: %v", cStorVolumeGot.Name,
+		_, err1 := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
+		if err1 != nil {
+			return errors.Wrapf(err1, "failed to update cStorVolume:%v, %v; Status: %v err: %v", cStorVolumeGot.Name,
 				string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase, err)
-			return err
 		}
 		return err
 	}
 	_, err = c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 	if err != nil {
-		glog.Infof("failed to update cStorVolume:%v, %v; Status: %v err: %v", cStorVolumeGot.Name,
-			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase, err)
-		return err
+		return errors.Wrapf(err, "failed to update cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
+			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
 	}
 	glog.V(4).Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
 		string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
