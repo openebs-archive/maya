@@ -42,6 +42,12 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithGenerateName appends a random string after the name
+func (b *Builder) WithGenerateName(name string) *Builder {
+	b.sc.object.GenerateName = name + "-"
+	return b
+}
+
 // WithAnnotations sets the Annotations field of storageclass with provided value.
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
