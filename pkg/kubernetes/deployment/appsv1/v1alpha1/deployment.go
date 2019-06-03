@@ -18,7 +18,9 @@ package v1alpha1
 
 import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -111,9 +113,38 @@ func (b *Builder) WithContainer(container *corev1.Container) *Builder {
 	return b
 }
 
+// WithContainerBuilder builds the containerbuilder provided and
+// sets the container field of the deployment object with the given container object
+func (b *Builder) WithContainerBuilder(containerBuilder *container.Builder) *Builder {
+	containerObj, err := containerBuilder.Build()
+	if err != nil {
+		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		return b
+	}
+	b.deployment.Object.Spec.Template.Spec.Containers = append(
+		b.deployment.Object.Spec.Template.Spec.Containers,
+		containerObj,
+	)
+	return b
+}
+
 // WithVolumes sets Volumes field of deployment.
 func (b *Builder) WithVolumes(vol []corev1.Volume) *Builder {
 	b.deployment.Object.Spec.Template.Spec.Volumes = vol
+	return b
+}
+
+// WithVolumeBuilder sets Volumes field of deployment.
+func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
+	vol, err := volumeBuilder.Build()
+	if err != nil {
+		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		return b
+	}
+	b.deployment.Object.Spec.Template.Spec.Volumes = append(
+		b.deployment.Object.Spec.Template.Spec.Volumes,
+		*vol,
+	)
 	return b
 }
 
