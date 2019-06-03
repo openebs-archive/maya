@@ -24,6 +24,7 @@ import (
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,7 +51,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			spcObj = spc.NewBuilder().
 				WithName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(1).
+				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
@@ -60,7 +61,7 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
 			By("verifying healthy csp count")
-			cspCount := ops.GetHealthyCSPCountEventually(spcName, 1)
+			cspCount := ops.GetHealthyCSPCountEventually(spcName, cstor.PoolCount)
 			Expect(cspCount).To(Equal(true), "while checking cstorpool health status")
 			//		Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
@@ -115,6 +116,19 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
+			pvcObj, err = ops.PVCClient.WithNamespace(nsName).Get(pvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying cstorvolume replica count")
+			cvrLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
 			By("verifying pvc status as bound")
 			status := ops.IsPVCBound(pvcName)
 			Expect(status).To(Equal(true), "while checking status equal to bound")
@@ -137,8 +151,8 @@ var _ = Describe("[cstor] TEST VOLUME PROVISIONING", func() {
 			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
 			By("verifying if cstorvolume is deleted")
-			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
-			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			cvLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, cvLabel, 0)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})

@@ -35,7 +35,6 @@ type OpenebsV1alpha1Interface interface {
 	CStorRestoresGetter
 	CStorVolumesGetter
 	CStorVolumeReplicasGetter
-	DisksGetter
 	RunTasksGetter
 	StoragePoolsGetter
 	StoragePoolClaimsGetter
@@ -76,10 +75,6 @@ func (c *OpenebsV1alpha1Client) CStorVolumes(namespace string) CStorVolumeInterf
 
 func (c *OpenebsV1alpha1Client) CStorVolumeReplicas(namespace string) CStorVolumeReplicaInterface {
 	return newCStorVolumeReplicas(c, namespace)
-}
-
-func (c *OpenebsV1alpha1Client) Disks() DiskInterface {
-	return newDisks(c)
 }
 
 func (c *OpenebsV1alpha1Client) RunTasks(namespace string) RunTaskInterface {
