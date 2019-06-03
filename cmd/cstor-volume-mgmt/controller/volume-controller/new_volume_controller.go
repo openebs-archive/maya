@@ -119,10 +119,9 @@ func NewCStorVolumeController(
 			// Two different versions of the same CStorVolume will always have different RVs.
 			if newCStorVolume.ResourceVersion == oldCStorVolume.ResourceVersion {
 				q.Operation = common.QOpPeriodicSync
-				glog.Infof("cStorVolume periodic sync event : %v %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
-				controller.recorder.Event(newCStorVolume, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.SuccessSynced))
+				glog.V(4).Infof("cStorVolume periodic sync event : %v %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 			} else if IsOnlyStatusChange(oldCStorVolume, newCStorVolume) {
-				glog.Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
+				glog.V(4).Infof("Only cStorVolume status change: %v, %v", newCStorVolume.ObjectMeta.Name, string(newCStorVolume.ObjectMeta.UID))
 				return
 			} else if IsDestroyEvent(newCStorVolume) {
 				q.Operation = common.QOpDestroy

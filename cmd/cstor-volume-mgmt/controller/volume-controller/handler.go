@@ -40,7 +40,7 @@ import (
 // converge the two. It then updates the Status block of the cStorVolumeUpdated resource
 // with the current status of the resource.
 func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOperation) error {
-	glog.Infof("Handling %v operation for resource : %s ", operation, key)
+	glog.V(4).Infof("Handling %v operation for resource : %s ", operation, key)
 	cStorVolumeGot, err := c.getVolumeResource(key)
 	if err != nil {
 		return err
@@ -57,15 +57,19 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 
 		_, err := c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 		if err != nil {
+			glog.Infof("failed to update cStorVolume:%v, %v; Status: %v err: %v", cStorVolumeGot.Name,
+				string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase, err)
 			return err
 		}
 		return err
 	}
 	_, err = c.clientset.OpenebsV1alpha1().CStorVolumes(cStorVolumeGot.Namespace).Update(cStorVolumeGot)
 	if err != nil {
+		glog.Infof("failed to update cStorVolume:%v, %v; Status: %v err: %v", cStorVolumeGot.Name,
+			string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase, err)
 		return err
 	}
-	glog.Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
+	glog.V(4).Infof("cStorVolume:%v, %v; Status: %v", cStorVolumeGot.Name,
 		string(cStorVolumeGot.GetUID()), cStorVolumeGot.Status.Phase)
 	return nil
 
@@ -73,7 +77,7 @@ func (c *CStorVolumeController) syncHandler(key string, operation common.QueueOp
 
 // cStorVolumeEventHandler is to handle cstor volume related events.
 func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOperation, cStorVolumeGot *apis.CStorVolume) (common.CStorVolumeStatus, error) {
-	glog.Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Name)
+	glog.V(4).Infof("%v event received for volume : %v ", operation, cStorVolumeGot.Name)
 	switch operation {
 	case common.QOpAdd:
 		// CheckValidVolume is to check if volume attributes are correct.
@@ -135,7 +139,7 @@ func (c *CStorVolumeController) cStorVolumeEventHandler(operation common.QueueOp
 		return common.CVStatusIgnore, nil
 	}
 
-	glog.Infof("Ignoring changes for volume %s", cStorVolumeGot.Name)
+	glog.Infof("Ignoring changes for volume %s for operation %v", cStorVolumeGot.Name, operation)
 	return common.CVStatusIgnore, nil
 }
 
