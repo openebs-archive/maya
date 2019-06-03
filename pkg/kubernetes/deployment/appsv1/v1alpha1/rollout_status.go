@@ -38,25 +38,25 @@ var rolloutStatuses = map[PredicateName]rolloutStatus{
 	// PredicateOlderReplicaActive refer to rolloutStatus for
 	// predicate IsOlderReplicaActive.
 	PredicateOlderReplicaActive: func(d *Deploy) string {
-		if d.object.Spec.Replicas == nil {
+		if d.Object.Spec.Replicas == nil {
 			return "replica update in-progress: some older replicas were updated"
 		}
 		return fmt.Sprintf(
 			"replica update in-progress: %d of %d new replicas were updated",
-			d.object.Status.UpdatedReplicas, *d.object.Spec.Replicas)
+			d.Object.Status.UpdatedReplicas, *d.Object.Spec.Replicas)
 	},
 	// PredicateTerminationInProgress refer rolloutStatus
 	// for predicate IsTerminationInProgress.
 	PredicateTerminationInProgress: func(d *Deploy) string {
 		return fmt.Sprintf(
 			"replica termination in-progress: %d old replicas are pending termination",
-			d.object.Status.Replicas-d.object.Status.UpdatedReplicas)
+			d.Object.Status.Replicas-d.Object.Status.UpdatedReplicas)
 	},
 	// PredicateUpdateInProgress refer to rolloutStatus for predicate IsUpdateInProgress.
 	PredicateUpdateInProgress: func(d *Deploy) string {
 		return fmt.Sprintf(
 			"replica update in-progress: %d of %d updated replicas are available",
-			d.object.Status.AvailableReplicas, d.object.Status.UpdatedReplicas)
+			d.Object.Status.AvailableReplicas, d.Object.Status.UpdatedReplicas)
 	},
 	// PredicateNotSpecSynced refer to status rolloutStatus for predicate IsNotSyncSpec.
 	PredicateNotSpecSynced: func(d *Deploy) string {

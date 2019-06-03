@@ -145,7 +145,7 @@ var _ = Describe("StatefulSet", func() {
 		// Check for CVR to get healthy
 		Eventually(func() int {
 			cvrs, err := cvr.
-				KubeClient(cvr.WithNamespace("")).
+				NewKubeclient(cvr.WithNamespace("")).
 				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
 			Expect(err).ShouldNot(HaveOccurred())
 			return cvr.
@@ -270,7 +270,7 @@ var _ = Describe("StatefulSet", func() {
 			Expect(pvcList.Len()).Should(Equal(3), "pvc count should be "+string(3))
 
 			cvrs, err := cvr.
-				KubeClient(cvr.WithNamespace("")).
+				NewKubeclient(cvr.WithNamespace("")).
 				List(metav1.ListOptions{LabelSelector: replicaAntiAffinityLabel})
 			Expect(cvrs.Items).Should(HaveLen(3), "cvr count should be "+string(3))
 

@@ -22,6 +22,7 @@ import (
 
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	"github.com/openebs/maya/pkg/signals"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -58,11 +59,18 @@ func Start() error {
 		return errors.Wrap(err, "error building openebs clientset")
 	}
 
+	// Building NDM Clientset
+	ndmClient, err := ndmclientset.NewForConfig(cfg)
+	if err != nil {
+		return errors.Wrap(err, "error building ndm clientset")
+	}
+
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	spcInformerFactory := informers.NewSharedInformerFactory(openebsClient, time.Second*30)
 	controller, err := NewControllerBuilder().
 		withKubeClient(kubeClient).
 		withOpenEBSClient(openebsClient).
+		withNDMClient(ndmClient).
 		withspcSynced(spcInformerFactory).
 		withSpcLister(spcInformerFactory).
 		withRecorder(kubeClient).

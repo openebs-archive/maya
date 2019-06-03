@@ -105,21 +105,15 @@ func (b *Builder) WithCapacityQty(resCapacity resource.Quantity) *Builder {
 	return b
 }
 
-// WithHostDirectory sets the VolumeSource field of PV with provided hostpath
-// as type directory.
-func (b *Builder) WithHostDirectory(path string) *Builder {
+// WithLocalHostDirectory sets the LocalVolumeSource field of PV with provided hostpath
+func (b *Builder) WithLocalHostDirectory(path string) *Builder {
 	if len(path) == 0 {
 		b.errs = append(b.errs, errors.New("failed to build PV object: missing PV path"))
 		return b
 	}
-	// It is possible that the HostPath doesn't already exist on the node.
-	// Set the Local PV to create it.
-	hostPathType := corev1.HostPathDirectoryOrCreate
-
 	volumeSource := corev1.PersistentVolumeSource{
-		HostPath: &corev1.HostPathVolumeSource{
+		Local: &corev1.LocalVolumeSource{
 			Path: path,
-			Type: &hostPathType,
 		},
 	}
 

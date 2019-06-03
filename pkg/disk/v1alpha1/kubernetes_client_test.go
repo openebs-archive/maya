@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"testing"
 
-	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,7 +30,7 @@ func TestGet(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	diskObj, err := New().WithName("mydisk1").Build()
@@ -70,7 +70,7 @@ func TestCreate(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	tests := map[string]struct {
@@ -109,7 +109,7 @@ func TestList(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	// Create some disk objects
@@ -159,7 +159,7 @@ func TestFilteredList(t *testing.T) {
 	// Get a fake openebs client set
 	focs := &KubernetesClient{
 		Kubeclientset: fake.NewSimpleClientset(),
-		Clientset:     openebsFakeClientset.NewSimpleClientset(),
+		NDMClientset:  ndmFakeClientset.NewSimpleClientset(),
 	}
 	diskK8s = focs
 	// Create some disk objects
