@@ -53,20 +53,20 @@ var _ = BeforeSuite(func() {
 
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
-		WithName(namespace).
+		WithGenerateName(namespace).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespaceObj.GenerateName)
 
 	By("creating a namespace")
-	_, err = ops.NSClient.Create(namespaceObj)
-	Expect(err).To(BeNil(), "while creating namespace {%s}", namespace)
+	namespaceObj, err = ops.NSClient.Create(namespaceObj)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
 })
 
 var _ = AfterSuite(func() {
 
 	By("deleting namespace")
-	err = ops.NSClient.Delete(namespace, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespace)
+	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })

@@ -19,8 +19,10 @@ package localpv
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	con "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,10 +31,6 @@ var (
 	deployName    = "busybox-deploy"
 	label         = "demo=deployment"
 	deployObj     *deploy.Deploy
-	conObj        corev1.Container
-	command       []string
-	mounts        []corev1.VolumeMount
-	volumes       []corev1.Volume
 	labelselector = map[string]string{
 		"demo": "deployment",
 	}
@@ -40,72 +38,90 @@ var (
 
 var _ = Describe("TEST LOCAL PV", func() {
 
+	When("pvc with storageclass openebs-hostpath is created", func() {
+		It("should create a pvc ", func() {
+			var (
+				scName = "openebs-hostpath"
+			)
+
+			By("building a pvc")
+			pvcObj, err = pvc.NewBuilder().
+				WithName(pvcName).
+				WithNamespace(namespaceObj.Name).
+				WithStorageClass(scName).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
+
+			By("creating above pvc")
+			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
+		})
+	})
+
 	When("deployment with busybox image is created", func() {
 		It("should create a deployment and a running pod", func() {
-
-			command = append(
-				command,
-				"sh",
-				"-c",
-				"date > /mnt/store1/date.txt; hostname >> /mnt/store1/hostname.txt; sync; sleep 5; sync; tail -f /dev/null;",
-			)
-
-			mounts = append(
-				mounts,
-				corev1.VolumeMount{
-					Name:      "demo-vol1",
-					MountPath: "/mnt/store1",
-				},
-			)
-
-			volumes = append(
-				volumes,
-				corev1.Volume{
-					Name: "demo-vol1",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: pvcName,
-						},
-					},
-				},
-			)
-
-			By("building a container")
-			conObj, err = con.Builder().
-				WithName("busybox").
-				WithImage("busybox").
-				WithCommand(command).
-				WithVolumeMounts(mounts).
-				Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building a container")
 
 			By("building a deployment")
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
-				WithNamespace(namespace).
+				WithNamespace(namespaceObj.Name).
 				WithLabelsAndSelector(labelselector).
-				WithContainer(&conObj).
-				WithVolumes(volumes).
+				WithContainerBuilder(
+					container.NewBuilder().
+						WithName("busybox").
+						WithImage("busybox").
+						WithCommand(
+							[]string{
+								"sleep",
+								"3600",
+							},
+						).
+						WithVolumeMounts(
+							[]corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "demo-vol1",
+									MountPath: "/mnt/store1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilder(
+					volume.NewBuilder().
+						WithName("demo-vol1").
+						WithPVCSource(pvcName),
+				).
 				Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building delpoyment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("creating above deployment")
-			_, err = ops.DeployClient.WithNamespace(namespace).Create(deployObj.Object)
+			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).Create(deployObj.Object)
 			Expect(err).To(
 				BeNil(),
 				"while creating deployment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("verifying pod count as 1")
-			podCount := ops.GetPodRunningCountEventually(namespace, label, 1)
+			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 1)
 			Expect(podCount).To(Equal(1), "while verifying pod count")
+
 		})
 	})
 
@@ -113,17 +129,32 @@ var _ = Describe("TEST LOCAL PV", func() {
 		It("should not have any deployment or running pod", func() {
 
 			By("deleting above deployment")
-			err := ops.DeployClient.WithNamespace(namespace).Delete(deployName, &metav1.DeleteOptions{})
+			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting deployment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespace, label, 0)
+			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
+
+		})
+	})
+
+	When("pvc with storageclass openebs-hostpath is deleted ", func() {
+		It("should delete the pvc", func() {
+
+			By("deleting above pvc")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
 
 		})
 	})
