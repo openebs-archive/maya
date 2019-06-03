@@ -44,39 +44,36 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 
 			command = append(command, "sleep", "3600")
 
-			By("building a container")
-			conObj, err = con.Builder().
-				WithName("busybox").
-				WithImage("busybox").
-				WithCommand(command).
-				Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building a container")
-
 			By("building a deployment")
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
-				WithNamespace(namespace).
+				WithNamespace(namespaceObj.Name).
 				WithLabelsAndSelector(labelselector).
-				WithContainer(&conObj).
+				WithContainerBuilder(
+					con.NewBuilder().
+						WithName("busybox").
+						WithImage("busybox").
+						WithCommand(command),
+				).
 				Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building delpoyment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("creating above deployment")
-			_, err = ops.DeployClient.WithNamespace(namespace).Create(deployObj.Object)
+			_, err = ops.DeployClient.WithNamespace(namespaceObj.Name).Create(deployObj.Object)
 			Expect(err).To(
 				BeNil(),
 				"while creating deployment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("verifying pod count as 1")
-			podCount := ops.GetPodRunningCountEventually(namespace, label, 1)
+			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 1)
 			Expect(podCount).To(Equal(1), "while verifying pod count")
 		})
 	})
@@ -85,16 +82,16 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 		It("should not have any deployment or running pod", func() {
 
 			By("deleting above deployment")
-			err := ops.DeployClient.WithNamespace(namespace).Delete(deployName, &metav1.DeleteOptions{})
+			err := ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting deployment {%s} in namespace {%s}",
 				deployName,
-				namespace,
+				namespaceObj.Name,
 			)
 
 			By("verifying pod count as 0")
-			podCount := ops.GetPodRunningCountEventually(namespace, label, 0)
+			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
 
 		})

@@ -24,7 +24,6 @@ import (
 	"github.com/openebs/maya/tests/artifacts"
 
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
-	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -38,7 +37,6 @@ var (
 	namespaceObj   *corev1.Namespace
 	pvcObj         *corev1.PersistentVolumeClaim
 	pvcName        = "pvc-hp"
-	scName         = "openebs-hostpath"
 	accessModes    = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity       = "2Gi"
 	err            error
@@ -67,7 +65,7 @@ var _ = BeforeSuite(func() {
 	)
 	Expect(podCount).To(Equal(1))
 
-	By("waiting for openebs-provisioner pod to come into running state")
+	By("waiting for openebs-localpv-provisioner pod to come into running state")
 	podCount = ops.GetPodRunningCountEventually(
 		string(artifacts.OpenebsNamespace),
 		string(artifacts.OpenEBSLocalPVProvisionerLabelSelector),
@@ -77,52 +75,20 @@ var _ = BeforeSuite(func() {
 
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
-		WithName(namespace).
+		WithGenerateName(namespace).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespaceObj.GenerateName)
 
 	By("creating above namespace")
-	_, err = ops.NSClient.Create(namespaceObj)
-	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.Name)
-
-	By("building a pvc")
-	pvcObj, err = pvc.NewBuilder().
-		WithName(pvcName).
-		WithNamespace(namespace).
-		WithStorageClass(scName).
-		WithAccessModes(accessModes).
-		WithCapacity(capacity).Build()
-	Expect(err).ShouldNot(
-		HaveOccurred(),
-		"while building pvc {%s} in namespace {%s}",
-		pvcName,
-		namespace,
-	)
-
-	By("creating above pvc")
-	_, err = ops.PVCClient.WithNamespace(namespace).Create(pvcObj)
-	Expect(err).To(
-		BeNil(),
-		"while creating pvc {%s} in namespace {%s}",
-		pvcName,
-		namespace,
-	)
+	namespaceObj, err = ops.NSClient.Create(namespaceObj)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
 })
 
 var _ = AfterSuite(func() {
 
-	By("deleting above pvc")
-	err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
-	Expect(err).To(
-		BeNil(),
-		"while deleting pvc {%s} in namespace {%s}",
-		pvcName,
-		namespace,
-	)
-
 	By("deleting namespace")
-	err = ops.NSClient.Delete(namespace, &metav1.DeleteOptions{})
+	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })
