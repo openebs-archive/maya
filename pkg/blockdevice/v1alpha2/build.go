@@ -51,6 +51,6 @@ func BuilderForAPIObject(bd *ndmapisv1alpha1.BlockDevice) *Builder {
 }
 
 // Build returns the block device object built by this builder.
-func (sb *Builder) Build() *BlockDevice {
-	return sb.BlockDevice
+func (b *Builder) Build() *BlockDevice {
+	return b.BlockDevice
 }

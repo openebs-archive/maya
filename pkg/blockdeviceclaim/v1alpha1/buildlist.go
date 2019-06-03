@@ -29,7 +29,11 @@ type ListBuilder struct {
 
 // NewListBuilder returns a new instance of ListBuilder object.
 func NewListBuilder() *ListBuilder {
-	return &ListBuilder{BlockDeviceClaimList: &BlockDeviceClaimList{ObjectList: &ndmapisv1alpha1.BlockDeviceClaimList{}}}
+	return &ListBuilder{
+		BlockDeviceClaimList: &BlockDeviceClaimList{
+			ObjectList: &ndmapisv1alpha1.BlockDeviceClaimList{},
+		},
+	}
 }
 
 // WithList builds the list based on the provided *BlockDeviceClaimList instances.
@@ -37,7 +41,9 @@ func (b *ListBuilder) WithList(bdcl *BlockDeviceClaimList) *ListBuilder {
 	if bdcl == nil {
 		return b
 	}
-	b.BlockDeviceClaimList.ObjectList.Items = append(b.BlockDeviceClaimList.ObjectList.Items, bdcl.ObjectList.Items...)
+	b.BlockDeviceClaimList.ObjectList.Items =
+		append(b.BlockDeviceClaimList.ObjectList.Items,
+			bdcl.ObjectList.Items...)
 	return b
 }
 

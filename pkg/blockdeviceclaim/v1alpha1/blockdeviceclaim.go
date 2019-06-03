@@ -52,37 +52,54 @@ func (l predicateList) all(c *BlockDeviceClaim) bool {
 	return true
 }
 
-// HasAnnotation returns true if provided annotation key and value are present
-// in the provided block deive instance.
+// HasAnnotation is predicate to filter out based on
+// annotation in BDC instances
 func HasAnnotation(key, value string) Predicate {
-	return func(c *BlockDeviceClaim) bool {
-		val, ok := c.Object.GetAnnotations()[key]
-		if ok {
-			return val == value
-		}
-		return false
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.HasAnnotation(key, value)
+	}
+}
+
+// HasAnnotation return true if provided annotation
+// key and value are present in the the provided BDCList
+// instance
+func (bdc *BlockDeviceClaim) HasAnnotation(key, value string) bool {
+	val, ok := bdc.Object.GetAnnotations()[key]
+	if ok {
+		return val == value
+	}
+	return false
+}
+
+// HasLabel is predicate to filter out labeled
+// BDC instances
+func HasLabel(key, value string) Predicate {
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.HasLabel(key, value)
 	}
 }
 
 // HasLabel returns true if provided label
 // key and value are present in the provided BDC(BlockDeviceClaim)
 // instance
-func HasLabel(key, value string) Predicate {
-	return func(c *BlockDeviceClaim) bool {
-		val, ok := c.Object.GetLabels()[key]
-		if ok {
-			return val == value
-		}
-		return false
+func (bdc *BlockDeviceClaim) HasLabel(key, value string) bool {
+	val, ok := bdc.Object.GetLabels()[key]
+	if ok {
+		return val == value
+	}
+	return false
+}
+
+// IsStatus is predicate to filter out BDC instances based on argument provided
+func IsStatus(status string) Predicate {
+	return func(bdc *BlockDeviceClaim) bool {
+		return bdc.IsStatus(status)
 	}
 }
 
 // IsStatus returns true if the status on block device claim matches with provided status.
-func IsStatus(status string) Predicate {
-	return func(c *BlockDeviceClaim) bool {
-		val := c.Object.Status.Phase
-		return string(val) == status
-	}
+func (bdc *BlockDeviceClaim) IsStatus(status string) bool {
+	return string(bdc.Object.Status.Phase) == status
 }
 
 // Filter will filter the BDC instances if all the predicates succeed

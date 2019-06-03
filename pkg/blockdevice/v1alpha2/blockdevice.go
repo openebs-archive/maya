@@ -72,20 +72,29 @@ func (l predicateList) all(c *BlockDevice) bool {
 // HasAnnotation returns true if provided annotation key and value are present
 // in the provided block deive instance.
 func HasAnnotation(key, value string) Predicate {
-	return func(c *BlockDevice) bool {
-		val, ok := c.Object.GetAnnotations()[key]
-		if ok {
-			return val == value
-		}
-		return false
+	return func(bd *BlockDevice) bool {
+		return bd.HasAnnotation(key, value)
 	}
+}
+
+// HasAnnotation return true if provided annotation
+// key and value are present in the the provided block device List
+// instance
+func (bd *BlockDevice) HasAnnotation(key, value string) bool {
+	val, ok := bd.Object.GetAnnotations()[key]
+	if ok {
+		return val == value
+	}
+	return false
 }
 
 // TODO: fix below snippet when #1227 merged
 //// IsSparse returns true if the block device is of sparse type.
 //func IsSparse() Predicate {
 //	return func(d *BlockDevice) bool {
-//		return d.Object.GetLabels()[string(apisv1alpha1.NdmBlockDeviceTypeCPK)] == string(apisv1alpha1.TypeBlockDeviceCPV)
+//		return
+//		d.Object.GetLabels()[string(apisv1alpha1.NdmBlockDeviceTypeCPK)] ==
+//		string(apisv1alpha1.TypeBlockDeviceCPV)
 //	}
 //}
 
@@ -103,9 +112,19 @@ func IsActive() Predicate {
 	}
 }
 
-// IsUsable returns true if this block device can be used for pool provisioning.
-// The argument usedBlockDevice is a map containing key as block device cr name and value as integer.
-// If the value of map is greater than 0 , then this corresponding block device is not usable.
+// IsClaimed returns true if the block device is claimed
+func IsClaimed() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.Object.Status.ClaimState == ndmapisv1alpha1.BlockDeviceClaimed
+	}
+}
+
+// IsUsable returns true if this block device
+// can be used for pool provisioning.
+// The argument usedBlockDevice is a map containing
+// key as block device cr name and value as integer.
+// If the value of map is greater than 0 ,
+// then this corresponding block device is not usable.
 func IsUsable(usedBlockDevices map[string]int) Predicate {
 	return func(bd *BlockDevice) bool {
 		return usedBlockDevices[bd.Object.Name] == 0
@@ -128,9 +147,10 @@ func IsBelongToNode(nodeName string) Predicate {
 	}
 }
 
-// IsValidPoolTopology returns true if the topology is valid.
-func IsValidPoolTopology(poolType string, diskCount int) bool {
-	return DefaultBlockDeviceCount[poolType]%diskCount == 0
+// IsValidPoolTopology returns true if the block device count
+// is multiples of default block device count of various raid types
+func IsValidPoolTopology(poolType string, bdCount int) bool {
+	return DefaultBlockDeviceCount[poolType]%bdCount == 0
 }
 
 // GetNodeName returns the node name to which the block device is attached
@@ -158,18 +178,32 @@ func (l *BlockDeviceList) Filter(p ...Predicate) *BlockDeviceList {
 	return filtered
 }
 
-// GetDeviceID returns the device link of the block device. If device link is not found it returns device path.
-// For a cstor pool creation -- this link or path is used. For convenience, we call it as device ID.
-// Hence, device ID can either be a  device link or device path depending on
-// what was available in block device cr.
+// GetDeviceID returns the device link of the block device.
+// If device link is not found it returns device path.
+// For a cstor pool creation -- this link or path is used.
+// For convenience, we call it as device ID.
+// Hence, device ID can either be a  device link or device path
+// depending on what was available in block device cr.
 func (bd *BlockDevice) GetDeviceID() string {
-	var deviceID string
-	if len(bd.Object.Spec.DevLinks) != 0 && len(bd.Object.Spec.DevLinks[0].Links) != 0 {
-		deviceID = bd.Object.Spec.DevLinks[0].Links[0]
-	} else {
-		deviceID = bd.Object.Spec.Path
+	deviceID := bd.GetLink()
+	if deviceID != "" {
+		return deviceID
 	}
-	return deviceID
+	return bd.GetPath()
+}
+
+// GetLink returns the link of the block device
+// if present else return empty string
+func (bd *BlockDevice) GetLink() string {
+	if len(bd.Object.Spec.DevLinks) != 0 && len(bd.Object.Spec.DevLinks[0].Links) != 0 {
+		return bd.Object.Spec.DevLinks[0].Links[0]
+	}
+	return ""
+}
+
+// GetPath returns path of the block device
+func (bd *BlockDevice) GetPath() string {
+	return bd.Object.Spec.Path
 }
 
 // Len returns the length og BlockDeviceList.
