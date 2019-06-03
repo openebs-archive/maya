@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	// DefaultCstorSparsePool is the environment variable that flags if default
-	// cstor pool should be configured or not
+	// DefaultCstorSparsePool is the environment variable that
+	// flags if default cstor pool should be configured or not
 	//
-	// If value is "true", default cstor pool will be installed/configured else
-	// for "false" it will not be configured
+	// If value is "true", default cstor pool will be
+	// installed/configured else for "false" it will
+	// not be configured
 	DefaultCstorSparsePool menv.ENVKey = "OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL"
 )
