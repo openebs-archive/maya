@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// TODO
-// Make use of pkg/msg instead of errorList
-
 package v1alpha1
 
 import (
@@ -41,6 +38,8 @@ type Installer interface {
 type simpleInstaller struct {
 	artifactTemplater ArtifactMiddleware
 	envLister         EnvLister
+
+	// TODO use pkg/errors/v1alpha1
 	errorList
 }
 
@@ -52,7 +51,7 @@ func (i *simpleInstaller) prepareResources() k8s.UnstructedList {
 
 	// set the environments conditionally required for install
 	eslist := elist.SetIf(version.Current(), isEnvNotPresent)
-	glog.Infof("%+v", eslist.Infos())
+	glog.V(2).Infof("%+v", eslist.Infos())
 	i.addErrors(eslist.Errors())
 
 	// list the artifacts w.r.t latest version
@@ -115,7 +114,12 @@ func (i *simpleInstaller) Install() []error {
 		cu := k8s.CreateOrUpdate(k8s.GroupVersionResourceFromGVK(unstruct), unstruct.GetNamespace())
 		u, err := cu.Apply(unstruct)
 		if err == nil {
-			glog.Infof("'%s' '%s' installed successfully at namespace '%s'", u.GroupVersionKind(), u.GetName(), u.GetNamespace())
+			glog.V(2).Infof(
+				"{%s/%s} installed successfully at namespace {%s}",
+				u.GroupVersionKind(),
+				u.GetName(),
+				u.GetNamespace(),
+			)
 		} else {
 			i.addError(err)
 		}
