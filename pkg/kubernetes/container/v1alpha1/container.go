@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -89,22 +89,22 @@ func New(opts ...OptionFunc) corev1.Container {
 	return c.asContainer()
 }
 
-// builder provides utilities required to build a kubernetes container type
-type builder struct {
+// Builder provides utilities required to build a kubernetes container type
+type Builder struct {
 	con    *container  // container instance
 	checks []Predicate // validations to be done while building the container instance
 	errors []error     // errors found while building the container instance
 }
 
-// Builder returns a new instance of builder
-func Builder() *builder {
-	return &builder{
+// NewBuilder returns a new instance of builder
+func NewBuilder() *Builder {
+	return &Builder{
 		con: &container{},
 	}
 }
 
 // validate will run checks against container instance
-func (b *builder) validate() error {
+func (b *Builder) validate() error {
 	for _, c := range b.checks {
 		if m, ok := c(b.con); !ok {
 			b.errors = append(b.errors, predicateFailedError(m))
@@ -117,7 +117,7 @@ func (b *builder) validate() error {
 }
 
 // Build returns the final kubernetes container
-func (b *builder) Build() (corev1.Container, error) {
+func (b *Builder) Build() (corev1.Container, error) {
 	err := b.validate()
 	if err != nil {
 		return corev1.Container{}, err
@@ -127,14 +127,14 @@ func (b *builder) Build() (corev1.Container, error) {
 
 // AddCheck adds the predicate as a condition to be validated against the
 // container instance
-func (b *builder) AddCheck(p Predicate) *builder {
+func (b *Builder) AddCheck(p Predicate) *Builder {
 	b.checks = append(b.checks, p)
 	return b
 }
 
 // AddChecks adds the provided predicates as conditions to be validated against
 // the container instance
-func (b *builder) AddChecks(p []Predicate) *builder {
+func (b *Builder) AddChecks(p []Predicate) *Builder {
 	for _, check := range p {
 		b.AddCheck(check)
 	}
@@ -142,7 +142,7 @@ func (b *builder) AddChecks(p []Predicate) *builder {
 }
 
 // WithName sets the name of the container
-func (b *builder) WithName(name string) *builder {
+func (b *Builder) WithName(name string) *Builder {
 	WithName(name)(b.con)
 	return b
 }
@@ -155,7 +155,7 @@ func WithName(name string) OptionFunc {
 }
 
 // WithImage sets the image of the container
-func (b *builder) WithImage(img string) *builder {
+func (b *Builder) WithImage(img string) *Builder {
 	WithImage(img)(b.con)
 	return b
 }
@@ -168,7 +168,7 @@ func WithImage(img string) OptionFunc {
 }
 
 // WithCommand sets the command of the container
-func (b *builder) WithCommand(cmd []string) *builder {
+func (b *Builder) WithCommand(cmd []string) *Builder {
 	WithCommand(cmd)(b.con)
 	return b
 }
@@ -181,7 +181,7 @@ func WithCommand(cmd []string) OptionFunc {
 }
 
 // WithArguments sets the command arguments of the container
-func (b *builder) WithArguments(args []string) *builder {
+func (b *Builder) WithArguments(args []string) *Builder {
 	WithArguments(args)(b.con)
 	return b
 }
@@ -194,7 +194,7 @@ func WithArguments(args []string) OptionFunc {
 }
 
 // WithArguments sets the command arguments of the container
-func (b *builder) WithVolumeMounts(args []corev1.VolumeMount) *builder {
+func (b *Builder) WithVolumeMounts(args []corev1.VolumeMount) *Builder {
 	WithVolumeMounts(args)(b.con)
 	return b
 }
