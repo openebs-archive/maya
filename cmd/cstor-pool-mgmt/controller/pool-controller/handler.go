@@ -85,8 +85,6 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 	if err != nil {
 		c.recorder.Event(cspObject, corev1.EventTypeWarning, string(common.FailedSynced), string(common.MessageResourceSyncFailure)+err.Error())
 		return err
-	} else {
-		c.recorder.Event(cspObject, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.MessageResourceSyncSuccess))
 	}
 	if string(cspObject.Status.Phase) == string(apis.CStorPoolStatusOnline) {
 		glog.V(4).Infof("cStorPool:%v, %v; Status: Online", cspObject.Name, string(cspObject.GetUID()))
