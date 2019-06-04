@@ -93,11 +93,11 @@ func (v *casPoolOperation) Create() (*v1alpha1.CasPool, error) {
 		openebsConfig,
 		string(v1alpha1.StoragePoolTLP),
 		map[string]interface{}{
-			string(v1alpha1.OwnerCTP):          v.pool.StoragePoolClaim,
-			string(v1alpha1.DiskListCTP):       v.pool.DiskList,
-			string(v1alpha1.NodeNameCTP):       v.pool.NodeName,
-			string(v1alpha1.PoolTypeCTP):       v.pool.PoolType,
-			string(v1alpha1.DiskDeviceListCTP): v.pool.DeviceID,
+			string(v1alpha1.OwnerCTP):             v.pool.StoragePoolClaim,
+			string(v1alpha1.BlockDeviceListCTP):   v.pool.BlockDeviceList,
+			string(v1alpha1.NodeNameCTP):          v.pool.NodeName,
+			string(v1alpha1.PoolTypeCTP):          v.pool.PoolType,
+			string(v1alpha1.BlockDeviceIDListCTP): v.pool.DeviceID,
 		},
 	)
 	if err != nil {

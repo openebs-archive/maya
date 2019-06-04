@@ -124,14 +124,14 @@ spec:
     {{- jsonpath .JsonResult "{.metadata.uid}" | trim | addTo "putcstorpoolcr.objectUID" .TaskResult | noop -}}
     {{- jsonpath .JsonResult "{.metadata.labels.kubernetes\\.io/hostname}" | trim | addTo "putcstorpoolcr.nodeName" .TaskResult | noop -}}
   task: |-
-    {{- $diskDeviceIdList:= toYaml .Storagepool | fromYaml -}}
+    {{- $blockDeviceIdList:= toYaml .Storagepool | fromYaml -}}
     apiVersion: openebs.io/v1alpha1
     kind: CStorPool
     metadata:
-      name: {{$diskDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
+      name: {{$blockDeviceIdList.owner}}-{{randAlphaNum 4 |lower }}
       labels:
-        openebs.io/storage-pool-claim: {{$diskDeviceIdList.owner}}
-        kubernetes.io/hostname: {{$diskDeviceIdList.nodeName}}
+        openebs.io/storage-pool-claim: {{$blockDeviceIdList.owner}}
+        kubernetes.io/hostname: {{$blockDeviceIdList.nodeName}}
         openebs.io/version: {{ .CAST.version }}
         openebs.io/cas-template-name: {{ .CAST.castName }}
         openebs.io/cas-type: cstor
@@ -140,20 +140,20 @@ spec:
         blockOwnerDeletion: true
         controller: true
         kind: StoragePoolClaim
-        name: {{$diskDeviceIdList.owner}}
-        uid: {{ .TaskResult.getspc.objectUID }} 
+        name: {{$blockDeviceIdList.owner}}
+        uid: {{ .TaskResult.getspc.objectUID }}
     spec:
       group:
-        {{- range $k, $v := $diskDeviceIdList.diskList }}
-        - disk:
-          {{- range $ki, $disk := $v.disk }}
-          - name: {{$disk.name}} 
+        {{- range $k, $v := $blockDeviceIdList.blockDeviceList }}
+        - blockDevice:
+          {{- range $ki, $blockDevice := $v.blockDevice }}
+          - name: {{$blockDevice.name}}
             inUseByPool: true
-            deviceID: {{$disk.deviceID}}
+            deviceID: {{$blockDevice.deviceID}}
           {{- end }}
         {{- end }}
       poolSpec:
-        poolType: {{$diskDeviceIdList.poolType}}
+        poolType: {{$blockDeviceIdList.poolType}}
         overProvisioning: false
     status:
       phase: Init

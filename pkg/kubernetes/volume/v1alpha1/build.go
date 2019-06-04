@@ -59,6 +59,21 @@ func (b *Builder) WithHostDirectory(path string) *Builder {
 	return b
 }
 
+// WithPVCSource sets the Volume field of Volume with provided pvc
+func (b *Builder) WithPVCSource(pvcName string) *Builder {
+	if len(pvcName) == 0 {
+		b.errs = append(b.errs, errors.New("failed to build volume object: missing pvc name"))
+		return b
+	}
+	volumeSource := corev1.VolumeSource{
+		PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+			ClaimName: pvcName,
+		},
+	}
+	b.volume.object.VolumeSource = volumeSource
+	return b
+}
+
 // Build returns the Volume API instance
 func (b *Builder) Build() (*corev1.Volume, error) {
 	if len(b.errs) > 0 {

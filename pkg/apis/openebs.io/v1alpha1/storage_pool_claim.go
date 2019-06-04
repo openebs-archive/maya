@@ -36,12 +36,12 @@ type StoragePoolClaim struct {
 
 // StoragePoolClaimSpec is the spec for a StoragePoolClaimSpec resource
 type StoragePoolClaimSpec struct {
-	Name     string        `json:"name"`
-	Type     string        `json:"type"`
-	MaxPools *int          `json:"maxPools"`
-	MinPools int           `json:"minPools"`
-	Disks    DiskAttr      `json:"disks"`
-	PoolSpec CStorPoolAttr `json:"poolSpec"`
+	Name         string          `json:"name"`
+	Type         string          `json:"type"`
+	MaxPools     *int            `json:"maxPools"`
+	MinPools     int             `json:"minPools"`
+	BlockDevices BlockDeviceAttr `json:"blockDevices"`
+	PoolSpec     CStorPoolAttr   `json:"poolSpec"`
 }
 
 // StoragePoolClaimStatus is for handling status of pool.

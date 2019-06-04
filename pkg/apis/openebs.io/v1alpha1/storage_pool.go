@@ -36,14 +36,14 @@ type StoragePool struct {
 
 // StoragePoolSpec is the spec for a StoragePool resource
 type StoragePoolSpec struct {
-	Name       string        `json:"name"`
-	Format     string        `json:"format"`
-	Mountpoint string        `json:"mountpoint"`
-	Nodename   string        `json:"nodename"`
-	Message    string        `json:"message"`
-	Path       string        `json:"path"`
-	Disks      DiskAttr      `json:"disks"`
-	PoolSpec   CStorPoolAttr `json:"poolSpec"`
+	Name         string          `json:"name"`
+	Format       string          `json:"format"`
+	Mountpoint   string          `json:"mountpoint"`
+	Nodename     string          `json:"nodename"`
+	Message      string          `json:"message"`
+	Path         string          `json:"path"`
+	BlockDevices BlockDeviceAttr `json:"blockdevices"`
+	PoolSpec     CStorPoolAttr   `json:"poolSpec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

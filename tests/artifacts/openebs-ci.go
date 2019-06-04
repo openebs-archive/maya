@@ -58,12 +58,13 @@ const (
 type LabelSelector string
 
 const (
-	MayaAPIServerLabelSelector           LabelSelector = "name=maya-apiserver"
-	OpenEBSProvisionerLabelSelector      LabelSelector = "name=openebs-provisioner"
-	OpenEBSSnapshotOperatorLabelSelector LabelSelector = "name=openebs-snapshot-operator"
-	OpenEBSAdmissionServerLabelSelector  LabelSelector = "app=admission-webhook"
-	OpenEBSNDMLabelSelector              LabelSelector = "name=openebs-ndm"
-	OpenEBSCStorPoolLabelSelector        LabelSelector = "app=cstor-pool"
+	MayaAPIServerLabelSelector             LabelSelector = "name=maya-apiserver"
+	OpenEBSProvisionerLabelSelector        LabelSelector = "name=openebs-provisioner"
+	OpenEBSLocalPVProvisionerLabelSelector LabelSelector = "name=openebs-localpv-provisioner"
+	OpenEBSSnapshotOperatorLabelSelector   LabelSelector = "name=openebs-snapshot-operator"
+	OpenEBSAdmissionServerLabelSelector    LabelSelector = "app=admission-webhook"
+	OpenEBSNDMLabelSelector                LabelSelector = "name=openebs-ndm"
+	OpenEBSCStorPoolLabelSelector          LabelSelector = "app=cstor-pool"
 )
 
 func parseK8sYaml(yamls string) (k8s.UnstructedList, []error) {

@@ -454,8 +454,8 @@ func (m *MetaExecutor) isDeleteAppsV1STS() bool {
 	return m.identifier.isAppsV1STS() && m.isDelete()
 }
 
-func (m *MetaExecutor) isGetOEV1alpha1Disk() bool {
-	return m.identifier.isOEV1alpha1Disk() && m.isGet()
+func (m *MetaExecutor) isGetOEV1alpha1BlockDevice() bool {
+	return m.identifier.isOEV1alpha1BlockDevice() && m.isGet()
 }
 
 func (m *MetaExecutor) isGetV1alpha1VolumeSnapshotData() bool {
@@ -552,8 +552,8 @@ func (m *MetaExecutor) isPatchOEV1alpha1CSP() bool {
 	return m.identifier.isOEV1alpha1CSP() && m.isPatch()
 }
 
-func (m *MetaExecutor) isListOEV1alpha1Disk() bool {
-	return m.identifier.isOEV1alpha1Disk() && m.isList()
+func (m *MetaExecutor) isListOEV1alpha1BlockDevice() bool {
+	return m.identifier.isOEV1alpha1BlockDevice() && m.isList()
 }
 
 func (m *MetaExecutor) isListOEV1alpha1SP() bool {
