@@ -77,8 +77,8 @@ func (l *listMetrics) withUsedSize() *listMetrics {
 	l.used = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
-			Name:      "used_size",
-			Help:      "Used size of pool and volume",
+			Name:      "volume_replica_used_size",
+			Help:      "Used size of volume replica on a pool",
 		},
 		[]string{"name"},
 	)
@@ -88,8 +88,8 @@ func (l *listMetrics) withAvailableSize() *listMetrics {
 	l.available = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
-			Name:      "available_size",
-			Help:      "Available size of pool and volume",
+			Name:      "volume_replica_available_size",
+			Help:      "Available size of volume replica on a pool",
 		},
 		[]string{"name"},
 	)
@@ -161,7 +161,7 @@ func (m *metrics) withReadBytes() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_read_bytes",
-			Help:      "Total read in bytes",
+			Help:      "Total read in bytes of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -173,7 +173,7 @@ func (m *metrics) withWriteBytes() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_write_bytes",
-			Help:      "Total write in bytes",
+			Help:      "Total write in bytes of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -185,7 +185,7 @@ func (m *metrics) withReadCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_read_count",
-			Help:      "Total read io count",
+			Help:      "Total read io count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -197,7 +197,7 @@ func (m *metrics) withWriteCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_write_count",
-			Help:      "Total write io count",
+			Help:      "Total write io count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -209,7 +209,7 @@ func (m *metrics) withSyncCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "sync_count",
-			Help:      "Total no of sync on replica",
+			Help:      "Total sync io count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -221,7 +221,7 @@ func (m *metrics) withSyncLatency() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "sync_latency",
-			Help:      "Sync latency on replica",
+			Help:      "Sync latency on volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -233,7 +233,7 @@ func (m *metrics) withReadLatency() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "read_latency",
-			Help:      "Read latency on replica",
+			Help:      "Read latency on volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -245,7 +245,7 @@ func (m *metrics) withWriteLatency() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "write_latency",
-			Help:      "Write latency on replica",
+			Help:      "Write latency on volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -257,7 +257,7 @@ func (m *metrics) withReplicaStatus() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "replica_status",
-			Help:      `Status of replica (0, 1, 2, 3) = {"Offline", "Healthy", "Degraded", "Rebuilding"}`,
+			Help:      `Status of volume replica (0, 1, 2, 3) = {"Offline", "Healthy", "Degraded", "Rebuilding"}`,
 		},
 		[]string{"vol", "pool"},
 	)
@@ -269,7 +269,7 @@ func (m *metrics) withinflightIOCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "inflight_io_count",
-			Help:      "Inflight IO's count",
+			Help:      "Inflight IO's count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -281,7 +281,7 @@ func (m *metrics) withDispatchedIOCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "dispatched_io_count",
-			Help:      "Dispatched IO's count",
+			Help:      "Dispatched IO's count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -293,7 +293,7 @@ func (m *metrics) withRebuildCount() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "rebuild_count",
-			Help:      "Rebuild count",
+			Help:      "Rebuild count of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -305,7 +305,7 @@ func (m *metrics) withRebuildBytes() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "rebuild_bytes",
-			Help:      "Rebuild bytes",
+			Help:      "Rebuild bytes of volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -317,7 +317,7 @@ func (m *metrics) withRebuildStatus() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "rebuild_status",
-			Help:      `Status of rebuild on replica (0, 1, 2, 3, 4, 5, 6)= {"INIT", "DONE", "SNAP REBUILD INPROGRESS", "ACTIVE DATASET REBUILD INPROGRESS", "ERRORED", "FAILED", "UNKNOWN"}`,
+			Help:      `Status of rebuild on volume replica (0, 1, 2, 3, 4, 5, 6)= {"INIT", "DONE", "SNAP REBUILD INPROGRESS", "ACTIVE DATASET REBUILD INPROGRESS", "ERRORED", "FAILED", "UNKNOWN"}`,
 		},
 		[]string{"vol", "pool"},
 	)
@@ -329,7 +329,7 @@ func (m *metrics) withRebuildDone() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_rebuild_done",
-			Help:      "Total no of rebuild done on replica",
+			Help:      "Total no of rebuild done on volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
@@ -341,7 +341,7 @@ func (m *metrics) withFailedRebuild() *metrics {
 		prometheus.GaugeOpts{
 			Namespace: "openebs",
 			Name:      "total_failed_rebuild",
-			Help:      "Total no of failed rebuilds on replica",
+			Help:      "Total no of failed rebuilds on volume replica",
 		},
 		[]string{"vol", "pool"},
 	)
