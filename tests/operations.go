@@ -195,6 +195,14 @@ func (ops *Operations) VerifyOpenebs(expectedPodCount int) *Operations {
 	)
 	Expect(podCount).To(Equal(expectedPodCount))
 
+	By("Verifying 'admission-server' pod status as running")
+	_ = ops.GetPodRunningCountEventually(string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSAdmissionServerLabelSelector),
+		expectedPodCount,
+	)
+
+	Expect(podCount).To(Equal(expectedPodCount))
+
 	return ops
 }
 
