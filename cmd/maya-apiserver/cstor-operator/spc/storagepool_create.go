@@ -152,80 +152,81 @@ func poolCreateWorker(pool *apis.CasPool) error {
 	return nil
 }
 
-// withDisks builds the CasPool object by filling details like diskList,nodeName etc.
+// withBlockDevices builds the CasPool object by filling details like
+// blockDeviceList,nodeName etc.
 // Some of the fields of the CasPool object is passed to CAS engine.
 // CasPool object(type) is the contract on which CAS engine is instantiated for cStor pool creation.
 func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePoolClaim) (*apis.CasPool, error) {
-	// getDiskList will hold node and disks attached to it to be used for storagepool provisioning.
-	nodeDisks, err := pc.NodeDiskSelector()
+	// getDiskList will hold node and block devices attached to it to be used for storagepool provisioning.
+	nodeBDs, err := pc.NodeBlockDeviceSelector()
 	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
-	if len(nodeDisks.Disks.Items) == 0 {
-		return nil, errors.New("aborting storagepool create operation as no disk was found")
+	if len(nodeBDs.BlockDevices.Items) == 0 {
+		return nil, errors.New("aborting storagepool create operation as no block device was found")
 	}
 
 	// Fill the node name to the CasPool object.
-	casPool.NodeName = nodeDisks.NodeName
+	casPool.NodeName = nodeBDs.NodeName
 	//casPool.DiskList = nodeDisks.Disks.Items
 	//TODO: Improve Following Code
 	if spc.Spec.PoolSpec.PoolType == string(apis.PoolTypeStripedCPV) {
-		for _, disk := range nodeDisks.Disks.Items {
-			var diskList []apis.CspDisk
-			var group apis.DiskGroup
-			disk := apis.CspDisk{
-				Name:        disk,
+		for _, bd := range nodeBDs.BlockDevices.Items {
+			var bdList []apis.CspBlockDevice
+			var group apis.BlockDeviceGroup
+			blockDevice := apis.CspBlockDevice{
+				Name:        bd,
 				InUseByPool: true,
 			}
-			devID, err := pc.getDeviceID(disk.Name)
+			devID, err := pc.getDeviceID(blockDevice.Name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", disk.Name, spc.Name)
+				return nil, errors.Wrapf(err, "failed to get dev Id for block device %s for spc %s", blockDevice.Name, spc.Name)
 			}
-			disk.DeviceID = devID
-			diskList = append(diskList, disk)
-			group = apis.DiskGroup{
-				Item: diskList,
+			blockDevice.DeviceID = devID
+			bdList = append(bdList, blockDevice)
+			group = apis.BlockDeviceGroup{
+				Item: bdList,
 			}
-			casPool.DiskList = append(casPool.DiskList, group)
+			casPool.BlockDeviceList = append(casPool.BlockDeviceList, group)
 		}
 		return casPool, nil
 	}
 	count := nodeselect.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
-	for i := 0; i <= len(nodeDisks.Disks.Items)/count; i = i + count {
-		var diskList []apis.CspDisk
-		var group apis.DiskGroup
+	for i := 0; i < len(nodeBDs.BlockDevices.Items); i = i + count {
+		var bdList []apis.CspBlockDevice
+		var group apis.BlockDeviceGroup
 		for j := 0; j < count; j++ {
 
-			disk := apis.CspDisk{
-				Name:        nodeDisks.Disks.Items[i+j],
+			blockDevice := apis.CspBlockDevice{
+				Name:        nodeBDs.BlockDevices.Items[i+j],
 				InUseByPool: true,
 			}
-			devID, err := pc.getDeviceID(disk.Name)
+			devID, err := pc.getDeviceID(blockDevice.Name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev is for disk %s for spc %s", disk.Name, spc.Name)
+				return nil, errors.Wrapf(err, "failed to get dev Id is for block device %s for spc %s", blockDevice.Name, spc.Name)
 			}
-			disk.DeviceID = devID
-			diskList = append(diskList, disk)
+			blockDevice.DeviceID = devID
+			bdList = append(bdList, blockDevice)
 		}
-		group = apis.DiskGroup{
-			Item: diskList,
+		group = apis.BlockDeviceGroup{
+			Item: bdList,
 		}
-		casPool.DiskList = append(casPool.DiskList, group)
+		casPool.BlockDeviceList = append(casPool.BlockDeviceList, group)
 	}
 	return casPool, nil
 }
 
-// TODO: Move to disk package
-func (pc *PoolCreateConfig) getDeviceID(diskName string) (string, error) {
+// TODO: Move to block device package
+func (pc *PoolCreateConfig) getDeviceID(blockDeviceName string) (string, error) {
 	var deviceID string
-	disk, err := pc.ndmclientset.OpenebsV1alpha1().Disks().Get(diskName, metav1.GetOptions{})
+	blockDevice, err := pc.BlockDeviceClient.Get(blockDeviceName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	if len(disk.Spec.DevLinks) != 0 && len(disk.Spec.DevLinks[0].Links) != 0 {
-		deviceID = disk.Spec.DevLinks[0].Links[0]
+	if len(blockDevice.Spec.DevLinks) != 0 && len(blockDevice.Spec.DevLinks[0].Links) != 0 {
+		deviceID = blockDevice.Spec.DevLinks[0].Links[0]
 	} else {
-		deviceID = disk.Spec.Path
+		deviceID = blockDevice.Spec.Path
 	}
 	return deviceID, nil
 }
