@@ -187,6 +187,6 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	bdl := bdL.Filter(blockdevice.FilterClaimedDevices, blockdevice.FilterInactiveReverse)
+	bdl := bdL.Filter(blockdevice.FilterClaimedDevices, blockdevice.FilterNonInactive)
 	return bdl.BlockDeviceList, nil
 }

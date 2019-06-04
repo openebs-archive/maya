@@ -192,7 +192,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 		return casPool, nil
 	}
 	count := nodeselect.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
-	for i := 0; i <= len(nodeBDs.BlockDevices.Items)/count; i = i + count {
+	for i := 0; i < len(nodeBDs.BlockDevices.Items); i = i + count {
 		var bdList []apis.CspBlockDevice
 		var group apis.BlockDeviceGroup
 		for j := 0; j < count; j++ {

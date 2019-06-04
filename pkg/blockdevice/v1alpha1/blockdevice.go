@@ -29,9 +29,10 @@ import (
 //TODO: Update the file with latest pattern
 const (
 	// StorageNodePredicateKey is the key for StorageNodePredicate function.
-	FilterInactive        = "filterInactive"
-	FilterInactiveReverse = "filterInactiveReverse"
-	FilterClaimedDevices  = "filterClaimedDevices"
+	FilterInactive       = "filterInactive"
+	FilterNonInactive    = "filterNonInactive"
+	FilterClaimedDevices = "filterClaimedDevices"
+	InActiveStatus       = "Inactive"
 )
 
 // KubernetesClient is the kubernetes client which will implement block device actions/behaviours
@@ -96,9 +97,9 @@ var checkPredicatesFuncs = [...]predicate{
 // filterPredicatesFuncMap is an array of filter predicate functions
 // filter predicates should be tunable by client.
 var filterOptionFuncMap = map[string]filterOptionFunc{
-	FilterInactive:        filterInactive,
-	FilterInactiveReverse: filterInactiveReverse,
-	FilterClaimedDevices:  filterClaimedDevices,
+	FilterInactive:       filterInactive,
+	FilterNonInactive:    filterNonInactive,
+	FilterClaimedDevices: filterClaimedDevices,
 }
 
 // predicateFailedError returns the predicate error which is provided to this function as an argument
@@ -199,21 +200,21 @@ func filterInactive(orignialList *BlockDeviceList) *BlockDeviceList {
 		errs:            nil,
 	}
 	for _, device := range orignialList.Items {
-		if device.Status.State == "Inactive" {
+		if device.Status.State == InActiveStatus {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}
 	return filteredList
 }
 
-//filterInactiveReverse give out all the block device except inactive block devices
-func filterInactiveReverse(orignialList *BlockDeviceList) *BlockDeviceList {
+//filterNonInactive give out all the block device except inactive block devices
+func filterNonInactive(orignialList *BlockDeviceList) *BlockDeviceList {
 	filteredList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
 	for _, device := range orignialList.Items {
-		if !(device.Status.State == "Inactive") {
+		if !(device.Status.State == InActiveStatus) {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}

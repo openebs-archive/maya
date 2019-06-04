@@ -135,7 +135,7 @@ func TestFilter(t *testing.T) {
 				},
 				errs: nil,
 			},
-			filterPredicate:          []string{FilterInactiveReverse},
+			filterPredicate:          []string{FilterNonInactive},
 			expectedBlockDeviceCount: 0,
 		},
 		"blockDeviceList5": {
@@ -178,7 +178,7 @@ func TestFilter(t *testing.T) {
 				},
 				errs: nil,
 			},
-			filterPredicate:          []string{FilterInactiveReverse, FilterInactive},
+			filterPredicate:          []string{FilterNonInactive, FilterInactive},
 			expectedBlockDeviceCount: 0,
 		},
 		"blockDeviceList6": {
@@ -221,7 +221,7 @@ func TestFilter(t *testing.T) {
 				},
 				errs: nil,
 			},
-			filterPredicate:          []string{FilterInactive, FilterInactiveReverse},
+			filterPredicate:          []string{FilterInactive, FilterNonInactive},
 			expectedBlockDeviceCount: 0,
 		},
 		"blockDeviceList7": {
@@ -264,7 +264,7 @@ func TestFilter(t *testing.T) {
 				},
 				errs: nil,
 			},
-			filterPredicate:          []string{FilterInactiveReverse},
+			filterPredicate:          []string{FilterNonInactive},
 			expectedBlockDeviceCount: 1,
 		},
 		"blockDeviceList8": {
