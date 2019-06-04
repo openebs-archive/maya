@@ -27,36 +27,31 @@ import (
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProvisionHostPath is invoked by the Provisioner which expect HostPath PV
-//  to be provisioned and a valid PV spec returned.
-func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
+// ProvisionBlockDevice is invoked by the Provisioner to create a Local PV
+//  with a Block Device
+func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volumeConfig *VolumeConfig) (*v1.PersistentVolume, error) {
 	pvc := opts.PVC
 	node := opts.SelectedNode
 	name := opts.PVName
+	capacity := opts.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	stgType := volumeConfig.GetStorageType()
 
-	path, err := volumeConfig.GetPath()
+	glog.Infof("Creating volume %v at %v", name, node.Name)
+
+	//Extract the details to create a Block Device Claim
+	blkDevOpts := &HelperBlockDeviceOptions{
+		nodeName: node.Name,
+		name:     name,
+		capacity: capacity.String(),
+	}
+
+	path, err := p.getBlockDevicePath(blkDevOpts)
 	if err != nil {
+		glog.Infof("Initialize volume %v failed: %v", name, err)
 		return nil, err
 	}
 
-	glog.Infof("Creating volume %v at %v:%v", name, node.Name, path)
-
-	//Before using the path for local PV, make sure it is created.
-	initCmdsForPath := []string{"mkdir", "-m", "0777", "-p"}
-	podOpts := &HelperPodOptions{
-		cmdsForPath: initCmdsForPath,
-		name:        name,
-		path:        path,
-		nodeName:    node.Name,
-	}
-
-	iErr := p.createInitPod(podOpts)
-	if iErr != nil {
-		glog.Infof("Initialize volume %v failed: %v", name, iErr)
-		return nil, iErr
-	}
-
+	// TODO
 	// VolumeMode will always be specified as Filesystem for host path volume,
 	// and the value passed in from the PVC spec will be ignored.
 	fs := v1.PersistentVolumeFilesystem
@@ -95,32 +90,28 @@ func (p *Provisioner) ProvisionHostPath(opts pvController.VolumeOptions, volumeC
 
 }
 
-// DeleteHostPath is invoked by the PVC controller to perform clean-up
+// DeleteBlockDevice is invoked by the PVC controller to perform clean-up
 //  activities before deleteing the PV object. If reclaim policy is
-//  set to not-retain, then this function will create a helper pod
-//  to delete the host path from the node.
-func (p *Provisioner) DeleteHostPath(pv *v1.PersistentVolume) (err error) {
+//  set to not-retain, then this function will delete the associated BDC
+func (p *Provisioner) DeleteBlockDevice(pv *v1.PersistentVolume) (err error) {
 	defer func() {
 		err = errors.Wrapf(err, "failed to delete volume %v", pv.Name)
 	}()
 
-	//Determine the path and node of the Local PV.
-	path, node, err := p.getPathAndNodeForPV(pv)
+	blkDevOpts := &HelperBlockDeviceOptions{
+		name: pv.Name,
+	}
+
+	//Determine if a BDC is set on the PV and save it to BlockDeviceOptions
+	err = blkDevOpts.setBlockDeviceClaimFromPV(pv)
 	if err != nil {
 		return err
 	}
 
 	//Initiate clean up only when reclaim policy is not retain.
-	glog.Infof("Deleting volume %v at %v:%v", pv.Name, node, path)
-	cleanupCmdsForPath := []string{"rm", "-rf"}
-	podOpts := &HelperPodOptions{
-		cmdsForPath: cleanupCmdsForPath,
-		name:        pv.Name,
-		path:        path,
-		nodeName:    node,
-	}
+	glog.Infof("Release the Block Device Claim %v for PV %v", blkDevOpts.bdcName, pv.Name)
 
-	if err := p.createCleanupPod(podOpts); err != nil {
+	if err := p.deleteBlockDeviceClaim(blkDevOpts); err != nil {
 		glog.Infof("clean up volume %v failed: %v", pv.Name, err)
 		return err
 	}
