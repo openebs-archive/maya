@@ -44,12 +44,14 @@ var (
 )
 
 // HelperPodOptions contains the options that
-// will be extracted from the persistent volume
+// will launch a Pod on a specific node (nodeName)
+// to execute a command (cmdsForPath) on a given
+// volume path (path)
 type HelperPodOptions struct {
-	cmdsForPath []string
-	name        string
-	path        string
 	nodeName    string
+	name        string
+	cmdsForPath []string
+	path        string
 }
 
 // validate checks that the required fields to launch
