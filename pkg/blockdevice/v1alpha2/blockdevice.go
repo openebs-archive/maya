@@ -90,22 +90,17 @@ func (bd *BlockDevice) HasAnnotation(key, value string) bool {
 	return false
 }
 
-// TODO: fix below snippet when #1227 merged
-//// IsSparse returns true if the block device is of sparse type.
-//func IsSparse() Predicate {
-//	return func(d *BlockDevice) bool {
-//		return
-//		d.Object.GetLabels()[string(apis.NdmBlockDeviceTypeCPK)] ==
-//		string(apis.TypeBlockDeviceCPV)
-//	}
-//}
+// IsSparse filters the block device based on type of the disk
+func IsSparse() Predicate {
+	return func(bd *BlockDevice) bool {
+		return bd.IsSparse()
+	}
+}
 
-// IsType returns true if the block device is of type same as passed argument
-//func IsType(bdType string) Predicate {
-//	return func(d *BlockDevice) bool {
-//		return d.Object.GetLabels()[string(apis.NdmBlockDeviceTypeCPK)] == bdType
-//	}
-//}
+// IsSparse returns true if the block device is of sparse type
+func (bd *BlockDevice) IsSparse() bool {
+	return bd.Object.Spec.Details.DeviceType == string(apis.TypeBlockDeviceCPV)
+}
 
 // IsActive filters the block device based on the active status
 func IsActive() Predicate {
@@ -122,7 +117,7 @@ func (bd *BlockDevice) IsActive() bool {
 // IsClaimed filters the block deive based on claimed status
 func IsClaimed() Predicate {
 	return func(bd *BlockDevice) bool {
-		return bd.IsActive()
+		return bd.IsClaimed()
 	}
 }
 

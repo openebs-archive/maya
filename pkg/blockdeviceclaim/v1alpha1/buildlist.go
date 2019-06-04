@@ -36,27 +36,29 @@ func NewListBuilder() *ListBuilder {
 	}
 }
 
-// WithList builds the list based on the
+// ListBuilderFromList builds the list based on the
 // provided *BlockDeviceClaimList instances.
-func (b *ListBuilder) WithList(bdcl *BlockDeviceClaimList) *ListBuilder {
+func ListBuilderFromList(bdcl *BlockDeviceClaimList) *ListBuilder {
+	lb := NewListBuilder()
 	if bdcl == nil {
-		return b
+		return lb
 	}
-	b.BlockDeviceClaimList.ObjectList.Items =
-		append(b.BlockDeviceClaimList.ObjectList.Items,
+	lb.BlockDeviceClaimList.ObjectList.Items =
+		append(lb.BlockDeviceClaimList.ObjectList.Items,
 			bdcl.ObjectList.Items...)
-	return b
+	return lb
 }
 
-// WithAPIList builds the list based on the provided APIBDC List
-func (b *ListBuilder) WithAPIList(bdcl *ndm.BlockDeviceClaimList) *ListBuilder {
+// ListBuilderFromAPIList builds the list based on the provided APIBDC List
+func ListBuilderFromAPIList(bdcl *ndm.BlockDeviceClaimList) *ListBuilder {
+	lb := NewListBuilder()
 	if bdcl == nil {
-		return b
+		return lb
 	}
-	b.BlockDeviceClaimList.ObjectList.Items = append(
-		b.BlockDeviceClaimList.ObjectList.Items,
+	lb.BlockDeviceClaimList.ObjectList.Items = append(
+		lb.BlockDeviceClaimList.ObjectList.Items,
 		bdcl.Items...)
-	return b
+	return lb
 }
 
 // List returns the list of block device claim
@@ -73,14 +75,4 @@ func NewListBuilderForObjectList(bdcl *BlockDeviceClaimList) *ListBuilder {
 		newLB.BlockDeviceClaimList.ObjectList.Items,
 		bdcl.ObjectList.Items...)
 	return newLB
-}
-
-// NewListBuilderForAPIList returns a new instance of ListBuilderForApiList
-// Object based on BDC api list.
-func NewListBuilderForAPIList(bdAPIList *ndm.BlockDeviceClaimList) *ListBuilder {
-	newLb := NewListBuilder()
-	newLb.BlockDeviceClaimList.ObjectList.Items = append(
-		newLb.BlockDeviceClaimList.ObjectList.Items,
-		bdAPIList.Items...)
-	return newLb
 }

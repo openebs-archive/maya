@@ -36,26 +36,14 @@ func NewListBuilder() *ListBuilder {
 	}
 }
 
-// WithList builds the list based on the provided *BlockDeviceList instances.
-func (b *ListBuilder) WithList(bdl *BlockDeviceList) *ListBuilder {
-	if bdl == nil {
-		return b
-	}
-	b.BDL.ObjectList.Items = append(
-		b.BDL.ObjectList.Items,
+// ListBuilderFromList builds the list based on
+// the provided *BlockDeviceList instances.
+func ListBuilderFromList(bdl *BlockDeviceList) *ListBuilder {
+	lb := NewListBuilder()
+	lb.BDL.ObjectList.Items = append(
+		lb.BDL.ObjectList.Items,
 		bdl.ObjectList.Items...)
-	return b
-}
-
-// WithAPIList builds the list based on the provided *apisv1alpha1.CStorPoolList.
-func (b *ListBuilder) WithAPIList(bdl *ndm.BlockDeviceList) *ListBuilder {
-	if bdl == nil {
-		return b
-	}
-	b.BDL.ObjectList.Items = append(
-		b.BDL.ObjectList.Items,
-		bdl.Items...)
-	return b
+	return lb
 }
 
 // List returns the list of block device instances
@@ -64,18 +52,24 @@ func (b *ListBuilder) List() *BlockDeviceList {
 	return b.BDL
 }
 
-// NewListBuilderForObjectList builds the list based on the provided
-// *BlockDeviceList instances.
-func NewListBuilderForObjectList(bdl *BlockDeviceList) *ListBuilder {
+// ListBuilderFromObjectList builds the list based
+// on the provided Object instances.
+func ListBuilderFromObjectList(bdl *BlockDeviceList) *ListBuilder {
 	newLB := NewListBuilder()
-	newLB.BDL.ObjectList.Items = append(newLB.BDL.ObjectList.Items, bdl.ObjectList.Items...)
+	newLB.BDL.ObjectList.Items = append(
+		newLB.BDL.ObjectList.Items,
+		bdl.ObjectList.Items...,
+	)
 	return newLB
 }
 
-// NewListBuilderForAPIList returns a new instance of ListBuilderForApiList
+// ListBuilderFromAPIList returns a new instance of ListBuilderForApiList
 // object based on block device api list.
-func NewListBuilderForAPIList(bdAPIList *ndm.BlockDeviceList) *ListBuilder {
+func ListBuilderFromAPIList(bdAPIList *ndm.BlockDeviceList) *ListBuilder {
 	newLb := NewListBuilder()
-	newLb.BDL.ObjectList.Items = append(newLb.BDL.ObjectList.Items, bdAPIList.Items...)
+	newLb.BDL.ObjectList.Items = append(
+		newLb.BDL.ObjectList.Items,
+		bdAPIList.Items...,
+	)
 	return newLb
 }
