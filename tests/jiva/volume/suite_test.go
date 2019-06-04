@@ -36,11 +36,11 @@ import (
 )
 
 var (
-	nsName                = "jiva-volume-ns"
+	namespace             = "jiva-volume-ns"
 	scName                = "jiva-volume-sc"
 	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "
 	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	nsObj                 *corev1.Namespace
+	namespaceObj          *corev1.Namespace
 	scObj                 *storagev1.StorageClass
 	annotations           = map[string]string{}
 )
@@ -80,36 +80,36 @@ var _ = BeforeSuite(func() {
 	Expect(podCount).To(Equal(1))
 
 	By("building a namespace")
-	nsObj, err = ns.NewBuilder().
-		WithName(nsName).
+	namespaceObj, err = ns.NewBuilder().
+		WithGenerateName(namespace).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
 
 	By("building a storageclass")
 	scObj, err = sc.NewBuilder().
-		WithName(scName).
+		WithGenerateName(scName).
 		WithAnnotations(annotations).
 		WithProvisioner(openebsProvisioner).Build()
 	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
 	By("creating a namespace")
-	_, err = ops.NSClient.Create(nsObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
+	namespaceObj, err = ops.NSClient.Create(namespaceObj)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
 	By("creating a storageclass")
-	_, err = ops.SCClient.Create(scObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
+	scObj, err = ops.SCClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.GenerateName)
 
 })
 
 var _ = AfterSuite(func() {
 
 	By("deleting storageclass")
-	err := ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
+	err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 	By("deleting namespace")
-	err = ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
+	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })
