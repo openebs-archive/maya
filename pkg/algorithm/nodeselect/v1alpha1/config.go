@@ -35,14 +35,6 @@ const (
 	ProvisioningTypeAuto = "auto"
 )
 
-// DefaultDiskCount is a map containing the default disk count of various raid types.
-var DefaultDiskCount = map[string]int{
-	string(apis.PoolTypeMirroredCPV): int(apis.MirroredDiskCountCPV),
-	string(apis.PoolTypeStripedCPV):  int(apis.StripedDiskCountCPV),
-	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzDiskCountCPV),
-	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2DiskCountCPV),
-}
-
 type blockDeviceList struct {
 	Items []string
 }
