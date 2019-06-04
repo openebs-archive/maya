@@ -14,13 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package localpv
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	con "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
+	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -29,20 +31,46 @@ var (
 	deployName    = "busybox-deploy"
 	label         = "demo=deployment"
 	deployObj     *deploy.Deploy
-	conObj        corev1.Container
-	err           error
-	command       []string
 	labelselector = map[string]string{
 		"demo": "deployment",
 	}
 )
 
-var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
+var _ = Describe("TEST LOCAL PV", func() {
+
+	When("pvc with storageclass openebs-hostpath is created", func() {
+		It("should create a pvc ", func() {
+			var (
+				scName = "openebs-hostpath"
+			)
+
+			By("building a pvc")
+			pvcObj, err = pvc.NewBuilder().
+				WithName(pvcName).
+				WithNamespace(namespaceObj.Name).
+				WithStorageClass(scName).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
+
+			By("creating above pvc")
+			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
+		})
+	})
 
 	When("deployment with busybox image is created", func() {
 		It("should create a deployment and a running pod", func() {
-
-			command = append(command, "sleep", "3600")
 
 			By("building a deployment")
 			deployObj, err = deploy.NewBuilder().
@@ -50,10 +78,28 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 				WithNamespace(namespaceObj.Name).
 				WithLabelsAndSelector(labelselector).
 				WithContainerBuilder(
-					con.NewBuilder().
+					container.NewBuilder().
 						WithName("busybox").
 						WithImage("busybox").
-						WithCommand(command),
+						WithCommand(
+							[]string{
+								"sleep",
+								"3600",
+							},
+						).
+						WithVolumeMounts(
+							[]corev1.VolumeMount{
+								corev1.VolumeMount{
+									Name:      "demo-vol1",
+									MountPath: "/mnt/store1",
+								},
+							},
+						),
+				).
+				WithVolumeBuilder(
+					volume.NewBuilder().
+						WithName("demo-vol1").
+						WithPVCSource(pvcName),
 				).
 				Build()
 			Expect(err).ShouldNot(
@@ -75,6 +121,7 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 			By("verifying pod count as 1")
 			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 1)
 			Expect(podCount).To(Equal(1), "while verifying pod count")
+
 		})
 	})
 
@@ -82,7 +129,7 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 		It("should not have any deployment or running pod", func() {
 
 			By("deleting above deployment")
-			err := ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
+			err = ops.DeployClient.WithNamespace(namespaceObj.Name).Delete(deployName, &metav1.DeleteOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while deleting deployment {%s} in namespace {%s}",
@@ -93,6 +140,21 @@ var _ = Describe("TEST DEPLOYMENT CREATION ", func() {
 			By("verifying pod count as 0")
 			podCount := ops.GetPodRunningCountEventually(namespaceObj.Name, label, 0)
 			Expect(podCount).To(Equal(0), "while verifying pod count")
+
+		})
+	})
+
+	When("pvc with storageclass openebs-hostpath is deleted ", func() {
+		It("should delete the pvc", func() {
+
+			By("deleting above pvc")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				namespaceObj.Name,
+			)
 
 		})
 	})

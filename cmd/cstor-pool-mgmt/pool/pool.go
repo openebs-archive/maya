@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -34,7 +35,6 @@ var (
 
 // PoolOperator is the name of the tool that makes pool-related operations.
 const (
-	PoolOperator           = "zpool"
 	StatusNoPoolsAvailable = "no pools available"
 	ZpoolStatusDegraded    = "DEGRADED"
 	ZpoolStatusFaulted     = "FAULTED"
@@ -50,6 +50,12 @@ var PoolAddEventHandled = false
 // PoolNamePrefix is a typed string to store pool name prefix
 type PoolNamePrefix string
 
+// ImportedCStorPools is a map of imported cstor pools API config identified via their UID
+var ImportedCStorPools map[string]*apis.CStorPool
+
+// CStorZpools is a map of imported cstor pools config at backend identified via their UID
+var CStorZpools map[string]zpool.Topology
+
 // PoolPrefix is prefix for pool name
 const (
 	PoolPrefix PoolNamePrefix = "cstor-"
@@ -61,7 +67,7 @@ var RunnerVar util.Runner
 // ImportPool imports cStor pool if already present.
 func ImportPool(cStorPool *apis.CStorPool, cachefileFlag bool) error {
 	importAttr := importPoolBuilder(cStorPool, cachefileFlag)
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, importAttr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, importAttr...)
 	if err != nil {
 		glog.Errorf("Unable to import pool: %v, %v", err.Error(), string(stdoutStderr))
 		return err
@@ -84,11 +90,11 @@ func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 }
 
 // CreatePool creates a new cStor pool.
-func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
-	createAttr := createPoolBuilder(cStorPool, diskList)
+func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
+	createAttr := createPoolBuilder(cStorPool, blockDeviceList)
 	glog.V(4).Info("createAttr : ", createAttr)
 
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, createAttr...)
 	if err != nil {
 		glog.Errorf("Unable to create pool: %v", string(stdoutStderr))
 		return err
@@ -97,10 +103,10 @@ func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
 }
 
 // createPoolBuilder is to build create pool command.
-func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
+func createPoolBuilder(cStorPool *apis.CStorPool, blockDeviceList []string) []string {
 	// populate pool creation attributes.
 	var createAttr []string
-	// When disks of other file formats, say ext4, are used to create cstorpool,
+	// When block devices of other file formats, say ext4, are used to create cstorpool,
 	// it errors out with normal zpool create. To avoid that, we go for forceful create.
 	createAttr = append(createAttr, "create", "-f")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" {
@@ -115,27 +121,25 @@ func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
 	createAttr = append(createAttr, poolNameUID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if poolType == "striped" {
-		for _, disk := range diskList {
-			createAttr = append(createAttr, disk)
-		}
+		createAttr = append(createAttr, blockDeviceList...)
 		return createAttr
 	}
 	// To generate pool of the following types:
-	// mirrored (grouped by multiples of 2): mirror disk1 disk2 mirror disk3 disk4
-	// raidz (grouped by multiples of 3): raidz disk1 disk2 disk3 raidz disk 4 disk5 disk6
-	// raidz2 (grouped by multiples of 6): raidz2 disk1 disk2 disk3 disk4 disk5 disk6
-	for i, disk := range diskList {
+	// mirrored (grouped by multiples of 2): mirror blockdevice1 blockdevice2 mirror blockdevice3 blockdevice4
+	// raidz (grouped by multiples of 3): raidz blockdevice1 blockdevice2 blockdevice3 raidz blockdevice 4 blockdevice5 blockdevice6
+	// raidz2 (grouped by multiples of 6): raidz2 blockdevice1 blockdevice2 blockdevice3 blockdevice4 blockdevice5 blockdevice6
+	for i, bd := range blockDeviceList {
 		if i%defaultGroupSize[poolType] == 0 {
 			createAttr = append(createAttr, poolTypeCommand[poolType])
 		}
-		createAttr = append(createAttr, disk)
+		createAttr = append(createAttr, bd)
 	}
 
 	return createAttr
 }
 
-// CheckValidPool checks for validity of CStorPool resource.
-func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
+// ValidatePool checks for validity of CStorPool resource.
+func ValidatePool(cStorPool *apis.CStorPool, devID []string) error {
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
@@ -143,10 +147,20 @@ func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 	diskCount := len(devID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
-		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"csp validation failed: expected {%d} blockdevices got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	if diskCount%defaultGroupSize[poolType] != 0 {
-		return errors.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"csp validation failed: expected multiples of {%d} blockdevices required got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	return nil
 }
@@ -154,7 +168,7 @@ func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 // GetPoolName return the pool already created.
 func GetPoolName() ([]string, error) {
 	GetPoolStr := []string{"get", "-Hp", "name", "-o", "name"}
-	poolNameByte, err := RunnerVar.RunStdoutPipe(PoolOperator, GetPoolStr...)
+	poolNameByte, err := RunnerVar.RunStdoutPipe(zpool.PoolOperator, GetPoolStr...)
 	if err != nil || len(string(poolNameByte)) == 0 {
 		return []string{}, err
 	}
@@ -171,7 +185,7 @@ func GetPoolName() ([]string, error) {
 // DeletePool destroys the pool created.
 func DeletePool(poolName string) error {
 	deletePoolStr := []string{"destroy", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, deletePoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, deletePoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to delete pool: %v", string(stdoutStderr))
 		return err
@@ -190,7 +204,7 @@ cstor-2ebe403a-f2e2-11e8-87fd-42010a800087  allocated  202K   -
 */
 func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 	capacityPoolStr := []string{"get", "size,free,allocated", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, capacityPoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, capacityPoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to get pool capacity: %v", string(stdoutStderr))
 		return nil, err
@@ -221,7 +235,7 @@ func Capacity(poolName string) (*apis.CStorPoolCapacityAttr, error) {
 func Status(poolName string) (string, error) {
 	var poolStatus string
 	statusPoolStr := []string{"status", poolName}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, statusPoolStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, statusPoolStr...)
 	if err != nil {
 		glog.Errorf("Unable to get pool status: %v", string(stdoutStderr))
 		return "", err
@@ -242,7 +256,6 @@ func Status(poolName string) (string, error) {
 	} else {
 		return string(apis.CStorPoolStatusError), nil
 	}
-	return poolStatus, nil
 }
 
 // poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.
@@ -293,7 +306,7 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 	poolNameUID := string(PoolPrefix) + string(cStorPool.ObjectMeta.UID)
 	setCachefileStr := []string{"set", "cachefile=" + cStorPool.Spec.PoolSpec.CacheFile,
 		poolNameUID}
-	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, setCachefileStr...)
+	stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, setCachefileStr...)
 	if err != nil {
 		glog.Errorf("Unable to set cachefile: %v", string(stdoutStderr))
 		return err
@@ -304,7 +317,7 @@ func SetCachefile(cStorPool *apis.CStorPool) error {
 // CheckForZreplInitial is blocking call for checking status of zrepl in cstor-pool container.
 func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 	for {
-		_, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		_, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, "status")
 		if err != nil {
 			time.Sleep(ZreplRetryInterval)
 			glog.Errorf("zpool status returned error in zrepl startup : %v", err)
@@ -318,7 +331,7 @@ func CheckForZreplInitial(ZreplRetryInterval time.Duration) {
 // CheckForZreplContinuous is continuous health checker for status of zrepl in cstor-pool container.
 func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	for {
-		out, err := RunnerVar.RunCombinedOutput(PoolOperator, "status")
+		out, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, "status")
 		if err == nil {
 			//even though we imported pool, it disappeared (may be due to zrepl container crashing).
 			// so we need to reimport.
@@ -333,34 +346,34 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	}
 }
 
-// LabelClear is to clear zpool label on disks.
-func LabelClear(disks []string) error {
+// LabelClear is to clear zpool label on block devices.
+func LabelClear(blockDevices []string) error {
 	var failLabelClear = false
-	for _, disk := range disks {
-		labelClearStr := []string{"labelclear", "-f", disk}
-		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
+	for _, bd := range blockDevices {
+		labelClearStr := []string{"labelclear", "-f", bd}
+		stdoutStderr, err := RunnerVar.RunCombinedOutput(zpool.PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label on disk %v: %v, err = %v", disk,
+			glog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,
 				string(stdoutStderr), err)
 			failLabelClear = true
 		}
 	}
 	if failLabelClear {
-		return fmt.Errorf("Unable to clear labels from all the disks of the pool")
+		return fmt.Errorf("Unable to clear labels from all the blockdevices of the pool")
 	}
 	return nil
 }
 
 // GetDeviceIDs returns the list of device IDs for the csp.
 func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
-	var diskDeviceID []string
+	var bdDeviceID []string
 	for _, group := range csp.Spec.Group {
-		for _, disk := range group.Item {
-			diskDeviceID = append(diskDeviceID, disk.DeviceID)
+		for _, blockDevice := range group.Item {
+			bdDeviceID = append(bdDeviceID, blockDevice.DeviceID)
 		}
 	}
-	if len(diskDeviceID) == 0 {
+	if len(bdDeviceID) == 0 {
 		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
 	}
-	return diskDeviceID, nil
+	return bdDeviceID, nil
 }

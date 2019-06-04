@@ -17,25 +17,25 @@ limitations under the License.
 package v1alpha1
 
 import (
-	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Get is Kubernetes client implementation to get disk.
-func (k *KubernetesClient) Get(name string) (*Disk, error) {
-	d, err := k.NDMClientset.OpenebsV1alpha1().Disks().Get(name, v1.GetOptions{})
+func (k *KubernetesClient) Get(name string, opts metav1.GetOptions) (*BlockDevice, error) {
+	bd, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Get(name, opts)
 
-	return &Disk{d, nil}, err
+	return &BlockDevice{bd, nil}, err
 }
 
 // List is kubernetes client implementation to list disk.
-func (k *KubernetesClient) List(opts v1.ListOptions) (*DiskList, error) {
-	dl, err := k.NDMClientset.OpenebsV1alpha1().Disks().List(opts)
-	return &DiskList{dl, nil}, err
+func (k *KubernetesClient) List(opts metav1.ListOptions) (*BlockDeviceList, error) {
+	bdl, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).List(opts)
+	return &BlockDeviceList{bdl, nil}, err
 }
 
 // Create is kubernetes client implementation to create disk.
-func (k *KubernetesClient) Create(diskObj *apis.Disk) (*Disk, error) {
-	d, err := k.NDMClientset.OpenebsV1alpha1().Disks().Create(diskObj)
-	return &Disk{d, nil}, err
+func (k *KubernetesClient) Create(bdObj *ndm.BlockDevice) (*BlockDevice, error) {
+	bdObj, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Create(bdObj)
+	return &BlockDevice{bdObj, nil}, err
 }

@@ -17,7 +17,6 @@ limitations under the License.
 package command
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -29,11 +28,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
 	"github.com/openebs/maya/cmd/maya-apiserver/app/config"
 	"github.com/openebs/maya/cmd/maya-apiserver/app/server"
 	spc "github.com/openebs/maya/cmd/maya-apiserver/cstor-operator/spc"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	install "github.com/openebs/maya/pkg/install/v1alpha1"
 	"github.com/openebs/maya/pkg/usage"
 	"github.com/openebs/maya/pkg/util"
@@ -256,14 +255,16 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	// run maya installer
 	installErrs := install.SimpleInstaller().Install()
 	if len(installErrs) != 0 {
-		glog.Errorf("Install errors were found: %+v", installErrs)
-		return fmt.Errorf("Failed to install resources")
+		glog.Errorf("failed to apply resources: %+v", installErrs)
+		return errors.New("failed to apply resources")
 	}
+
+	glog.Info("resources applied successfully by installer")
 
 	// Setup maya service i.e. maya api server
 	maya, err := server.NewMayaApiServer(mconfig, os.Stdout)
 	if err != nil {
-		glog.Errorf("Error starting maya api server: %s", err)
+		glog.Errorf("failed to start api server: %+v", err)
 		return err
 	}
 
@@ -273,12 +274,11 @@ func (c *CmdStartOptions) setupMayaServer(mconfig *config.MayaConfig) error {
 	http, err := server.NewHTTPServer(maya, mconfig, os.Stdout)
 	if err != nil {
 		maya.Shutdown()
-		glog.Errorf("Error starting http server: %s", err)
+		glog.Errorf("failed to start http server: %+v", err)
 		return err
 	}
 
 	c.httpServer = http
-
 	return nil
 }
 

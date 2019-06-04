@@ -127,7 +127,7 @@ func NewCStorPoolController(
 				return
 			}
 			if IsOnlyStatusChange(oldCStorPool, newCStorPool) {
-				glog.Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
+				glog.V(4).Infof("Only cStorPool status change: %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
 				return
 			}
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
@@ -138,8 +138,7 @@ func NewCStorPoolController(
 			if newCStorPool.ResourceVersion == oldCStorPool.ResourceVersion {
 				// Synchronize Cstor pool status
 				q.Operation = common.QOpSync
-				glog.Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
-				controller.recorder.Event(newCStorPool, corev1.EventTypeNormal, string(common.SuccessSynced), string(common.StatusSynced))
+				glog.V(4).Infof("cStorPool sync event for %s", newCStorPool.ObjectMeta.Name)
 			} else if IsDestroyEvent(newCStorPool) {
 				q.Operation = common.QOpDestroy
 				glog.Infof("cStorPool Destroy event : %v, %v ", newCStorPool.ObjectMeta.Name, string(newCStorPool.ObjectMeta.UID))
