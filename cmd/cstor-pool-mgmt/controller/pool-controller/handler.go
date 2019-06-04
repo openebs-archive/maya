@@ -18,10 +18,11 @@ package poolcontroller
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
 	"reflect"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
@@ -29,7 +30,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
-	"github.com/openebs/maya/pkg/lease/v1alpha1"
+	lease "github.com/openebs/maya/pkg/lease/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +48,12 @@ func (c *CStorPoolController) syncHandler(key string, operation common.QueueOper
 		return err
 	}
 	var newCspLease lease.Leaser
-	newCspLease = &lease.Lease{cStorPoolGot, lease.CspLeaseKey, c.clientset, c.kubeclientset}
+	newCspLease = &lease.Lease{
+		Object:        cStorPoolGot,
+		LeaseKey:      lease.CspLeaseKey,
+		Oecs:          c.clientset,
+		Kubeclientset: c.kubeclientset,
+	}
 	csp, err := newCspLease.Hold()
 	cspObject, ok := csp.(*apis.CStorPool)
 	if !ok {
@@ -160,12 +166,12 @@ func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (s
 		pool.CStorZpools = map[string]zpool.Topology{}
 	}
 
-	// CheckValidPool is to check if pool attributes are correct.
 	devIDList, err := c.getDeviceIDs(cStorPoolGot)
 	if err != nil {
 		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
 	}
-	err = pool.CheckValidPool(cStorPoolGot, devIDList)
+	// ValidatePool is to check if pool attributes are correct.
+	err = pool.ValidatePool(cStorPoolGot, devIDList)
 	if err != nil {
 		c.recorder.Event(cStorPoolGot, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
 		return string(apis.CStorPoolStatusOffline), err
