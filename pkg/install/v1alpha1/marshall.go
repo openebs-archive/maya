@@ -22,8 +22,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ConfigUnmarshaller abstracts un-marshalling of config specifications into an
-// instance of install config
+// ConfigUnmarshaller abstracts un-marshalling of
+// config specifications into an instance of install
+// config
 type ConfigUnmarshaller func(conf string) (config *InstallConfig, err error)
 
 // UnmarshallConfig is an implementation of ConfigUnmarshaller
