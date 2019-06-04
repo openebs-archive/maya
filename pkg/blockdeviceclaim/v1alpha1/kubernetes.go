@@ -198,6 +198,9 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.BlockDeviceClaimList, 
 
 // Get returns a disk object
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("failed to get bdc: missing bdc name")
+	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
 		return nil, err

@@ -98,7 +98,9 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		)
 		return b
 	}
-	b.BDC.Object.Annotations = annotations
+	for key, value := range annotations {
+		b.BDC.Object.Annotations[key] = value
+	}
 	return b
 }
 
@@ -111,7 +113,9 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		)
 		return b
 	}
-	b.BDC.Object.Labels = labels
+	for key, value := range labels {
+		b.BDC.Object.Labels[key] = value
+	}
 	return b
 }
 
