@@ -266,6 +266,31 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 		Len()
 }
 
+// GetPodCount gives number of pods currently
+func (ops *Operations) GetPodCount(namespace, lselector string) int {
+	pods, err := ops.PodClient.
+		WithNamespace(namespace).
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return pod.
+		ListBuilderForAPIList(pods).
+		List().
+		Len()
+}
+
+// GetPodCountEventually gives the number of pods eventually
+func (ops *Operations) GetPodCountEventually(namespace, lselector string, expectedPodCount int) int {
+	var podCount int
+	for i := 0; i < maxRetry; i++ {
+		podCount = ops.GetPodCount(namespace, lselector)
+		if podCount == expectedPodCount {
+			return podCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return podCount
+}
+
 // GetCVCount gives cstorvolume healthy count currently based on selecter
 func (ops *Operations) GetCVCount(namespace, lselector string) int {
 	cvs, err := ops.CVClient.
