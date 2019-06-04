@@ -116,6 +116,9 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 	if stgType == "hostpath" {
 		return p.ProvisionHostPath(opts, pvCASConfig)
 	}
+	if stgType == "device" {
+		return p.ProvisionBlockDevice(opts, pvCASConfig)
+	}
 
 	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
@@ -131,7 +134,11 @@ func (p *Provisioner) Delete(pv *v1.PersistentVolume) (err error) {
 
 	//Initiate clean up only when reclaim policy is not retain.
 	if pv.Spec.PersistentVolumeReclaimPolicy != v1.PersistentVolumeReclaimRetain {
-		//TODO: Determine the type of volume.
+		//TODO: Determine the type of PV
+		pvType := GetLocalPVType(pv)
+		if pvType == "local-device" {
+			return p.DeleteBlockDevice(pv)
+		}
 		return p.DeleteHostPath(pv)
 	}
 
