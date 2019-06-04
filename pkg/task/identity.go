@@ -150,8 +150,8 @@ func (i taskIdentifier) isOEV1alpha1() bool {
 	return i.identity.APIVersion == string(m_k8s_client.OEV1alpha1KA)
 }
 
-func (i taskIdentifier) isDisk() bool {
-	return i.identity.Kind == string(m_k8s_client.DiskCRKK)
+func (i taskIdentifier) isBlockDevice() bool {
+	return i.identity.Kind == string(m_k8s_client.BlockDeviceCRKK)
 }
 
 func (i taskIdentifier) isCstorPool() bool {
@@ -186,8 +186,8 @@ func (i taskIdentifier) isStorageV1SC() bool {
 	return i.isStorageV1() && i.isStorageClass()
 }
 
-func (i taskIdentifier) isOEV1alpha1Disk() bool {
-	return i.isOEV1alpha1() && i.isDisk()
+func (i taskIdentifier) isOEV1alpha1BlockDevice() bool {
+	return i.isOEV1alpha1() && i.isBlockDevice()
 }
 
 func (i taskIdentifier) isOEV1alpha1CSP() bool {

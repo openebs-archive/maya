@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	openebsio "github.com/openebs/maya/pkg/apis/openebs.io"
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -71,8 +70,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CStorCompletedBackupList{},
 		&CStorRestore{},
 		&CStorRestoreList{},
-		&ndm.Disk{},
-		&ndm.DiskList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

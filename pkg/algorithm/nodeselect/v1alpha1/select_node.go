@@ -19,53 +19,53 @@ package v1alpha1
 import (
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	disk "github.com/openebs/maya/pkg/disk/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NodeDiskSelector selects a node and disks attached to it.
-func (ac *Config) NodeDiskSelector() (*nodeDisk, error) {
-	listDisk, err := ac.getDisk()
+// NodeBlockDeviceSelector selects a node and disks attached to it.
+func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
+	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
 	}
-	if listDisk == nil || len(listDisk.Items) == 0 {
-		return nil, errors.New("no disk object found")
+	if listBD == nil || len(listBD.Items) == 0 {
+		return nil, errors.New("no block device object found")
 	}
-	nodeDiskMap, err := ac.getCandidateNode(listDisk)
+	nodeBlockDeviceMap, err := ac.getCandidateNode(listBD)
 	if err != nil {
 		return nil, err
 	}
-	selectedDisk := ac.selectNode(nodeDiskMap)
+	selectedBD := ac.selectNode(nodeBlockDeviceMap)
 
-	return selectedDisk, nil
+	return selectedBD, nil
 }
 
-// getUsedDiskMap gives list of disks that has already been used for pool provisioning.
-func (ac *Config) getUsedDiskMap() (map[string]int, error) {
-	// Get the list of disk that has been used already for pool provisioning
-	cspList, err := ac.CspClient.List(v1.ListOptions{})
+// getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
+func (ac *Config) getUsedBlockDeviceMap() (map[string]int, error) {
+	// Get the list of block devices that has been used already for pool provisioning
+	cspList, err := ac.CspClient.List(metav1.ListOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools")
 	}
-	usedDiskMap := make(map[string]int)
+	usedBDMap := make(map[string]int)
 	for _, csp := range cspList.CStorPoolList.Items {
 		for _, group := range csp.Spec.Group {
 			for _, disk := range group.Item {
-				usedDiskMap[disk.Name]++
+				usedBDMap[disk.Name]++
 			}
 		}
 	}
 
-	return usedDiskMap, nil
+	return usedBDMap, nil
 }
 
 // getUsedNodeMap form a used node map to keep a track of nodes on the top of which storagepool cannot be provisioned
 // for a given storagepoolclaim.
 func (ac *Config) getUsedNodeMap() (map[string]int, error) {
-	cspList, err := ac.CspClient.List(v1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	cspList, err := ac.CspClient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get the list of storagepools for stragepoolclaim %s", ac.Spc.Name)
 	}
@@ -76,8 +76,8 @@ func (ac *Config) getUsedNodeMap() (map[string]int, error) {
 	return usedNodeMap, nil
 }
 
-func (ac *Config) getCandidateNode(listDisk *ndmapis.DiskList) (map[string]*diskList, error) {
-	usedDiskMap, err := ac.getUsedDiskMap()
+func (ac *Config) getCandidateNode(listBlockDevice *ndmapis.BlockDeviceList) (map[string]*blockDeviceList, error) {
+	usedDiskMap, err := ac.getUsedBlockDeviceMap()
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +85,10 @@ func (ac *Config) getCandidateNode(listDisk *ndmapis.DiskList) (map[string]*disk
 	if err != nil {
 		return nil, err
 	}
-	// nodeDiskMap is the data structure holding host name as key
-	// and nodeDisk struct as value.
-	nodeDiskMap := make(map[string]*diskList)
-	for _, value := range listDisk.Items {
+	// nodeBlockDeviceMap is the data structure holding host name as key
+	// and nodeBlockDevice struct as value.
+	nodeBlockDeviceMap := make(map[string]*blockDeviceList)
+	for _, value := range listBlockDevice.Items {
 		// If the disk is already being used, do not consider this as a part for provisioning pool.
 		if usedDiskMap[value.Name] == 1 {
 			continue
@@ -97,25 +97,25 @@ func (ac *Config) getCandidateNode(listDisk *ndmapis.DiskList) (map[string]*disk
 		if usedNodeMap[value.Labels[string(apis.HostNameCPK)]] == 1 {
 			continue
 		}
-		if nodeDiskMap[value.Labels[string(apis.HostNameCPK)]] == nil {
+		if nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] == nil {
 			// Entry to this block means first time the hostname will be mapped for the first time.
 			// Obviously, this entry of hostname(node) is for a usable disk and initialize diskCount to 1.
-			nodeDiskMap[value.Labels[string(apis.HostNameCPK)]] = &diskList{Items: []string{value.Name}}
+			nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]] = &blockDeviceList{Items: []string{value.Name}}
 		} else {
 			// Entry to this block means the hostname was already mapped and it has more than one disk and at least two disks.
-			nodeDisk := nodeDiskMap[value.Labels[string(apis.HostNameCPK)]]
+			nodeDisk := nodeBlockDeviceMap[value.Labels[string(apis.HostNameCPK)]]
 			// Add the current disk to the diskList for this node.
 			nodeDisk.Items = append(nodeDisk.Items, value.Name)
 		}
 	}
-	return nodeDiskMap, nil
+	return nodeBlockDeviceMap, nil
 }
 
-func (ac *Config) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
-	// selectedDisk will hold a node capable to form pool and list of disks attached to it.
-	selectedDisk := &nodeDisk{
+func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *nodeBlockDevice {
+	// selectedBlockDevice will hold a node capable to form pool and list of disks attached to it.
+	selectedBlockDevice := &nodeBlockDevice{
 		NodeName: "",
-		Disks: diskList{
+		BlockDevices: blockDeviceList{
 			Items: []string{},
 		},
 	}
@@ -125,7 +125,7 @@ func (ac *Config) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	minRequiredDiskCount := DefaultDiskCount[ac.poolType()]
-	for node, val := range nodeDiskMap {
+	for node, val := range nodeBlockDeviceMap {
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
 		if len(val.Items) < minRequiredDiskCount {
@@ -136,12 +136,12 @@ func (ac *Config) selectNode(nodeDiskMap map[string]*diskList) *nodeDisk {
 			diskCount = (len(val.Items) / minRequiredDiskCount) * minRequiredDiskCount
 		}
 		for i := 0; i < diskCount; i++ {
-			selectedDisk.Disks.Items = append(selectedDisk.Disks.Items, val.Items[i])
+			selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, val.Items[i])
 		}
-		selectedDisk.NodeName = node
+		selectedBlockDevice.NodeName = node
 		break
 	}
-	return selectedDisk
+	return selectedBlockDevice
 }
 
 // diskFilterConstraint takes a value for key "ndm.io/disk-type" and form a label.
@@ -150,14 +150,14 @@ func diskFilterConstraint(diskType string) string {
 	if diskType == string(apis.TypeSparseCPV) {
 		label = string(apis.NdmDiskTypeCPK) + "=" + string(apis.TypeSparseCPV)
 	} else {
-		label = string(apis.NdmDiskTypeCPK) + "=" + string(apis.TypeDiskCPV)
+		label = string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
 	}
 	return label
 }
 
 // ProvisioningType returns the way pool should be provisioned e.g. auto or manual.
 func ProvisioningType(spc *apis.StoragePoolClaim) string {
-	if len(spc.Spec.Disks.DiskList) == 0 {
+	if len(spc.Spec.BlockDevices.BlockDeviceList) == 0 {
 		return ProvisioningTypeAuto
 	}
 	return ProvisioningTypeManual
@@ -180,13 +180,13 @@ func (ac *Config) poolType() string {
 	return ""
 }
 
-// getDisk return the all disks of a certain type(e.g. sparse, disk) which is specified in spc.
-func (ac *Config) getDisk() (*ndmapis.DiskList, error) {
+// getBlockDevice return the all disks of a certain type(e.g. sparse, blockdevice) which is specified in spc.
+func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
-	dL, err := ac.DiskClient.List(v1.ListOptions{LabelSelector: diskFilterLabel})
+	bdL, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
 		return nil, err
 	}
-	dl := dL.Filter(disk.FilterInactiveReverse)
-	return dl.DiskList, nil
+	bdl := bdL.Filter(blockdevice.FilterClaimedDevices, blockdevice.FilterNonInactive)
+	return bdl.BlockDeviceList, nil
 }
