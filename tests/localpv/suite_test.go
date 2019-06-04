@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package app
+package localpv
 
 import (
 	"flag"
@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
+	"github.com/openebs/maya/tests/artifacts"
 
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,8 +33,13 @@ import (
 
 var (
 	kubeConfigPath string
-	namespace      = "application-ns"
+	namespace      = "localpv-ns"
 	namespaceObj   *corev1.Namespace
+	pvcObj         *corev1.PersistentVolumeClaim
+	pvcName        = "pvc-hp"
+	accessModes    = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity       = "2Gi"
+	err            error
 )
 
 func TestSource(t *testing.T) {
@@ -51,13 +57,29 @@ var _ = BeforeSuite(func() {
 
 	ops = tests.NewOperations(tests.WithKubeConfigPath(kubeConfigPath))
 
+	By("waiting for maya-apiserver pod to come into running state")
+	podCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.MayaAPIServerLabelSelector),
+		1,
+	)
+	Expect(podCount).To(Equal(1))
+
+	By("waiting for openebs-localpv-provisioner pod to come into running state")
+	podCount = ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSLocalPVProvisionerLabelSelector),
+		1,
+	)
+	Expect(podCount).To(Equal(1))
+
 	By("building a namespace")
 	namespaceObj, err = ns.NewBuilder().
 		WithGenerateName(namespace).
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespaceObj.GenerateName)
 
-	By("creating a namespace")
+	By("creating above namespace")
 	namespaceObj, err = ops.NSClient.Create(namespaceObj)
 	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 

@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+	"time"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -114,6 +117,12 @@ func (sb *Builder) WithName(name string) *Builder {
 	sb.Spc.Object.Name = name
 	sb.Spc.Object.Spec.Name = name
 	return sb
+}
+
+// WithGenerateName appends a random string after the name
+func (sb *Builder) WithGenerateName(name string) *Builder {
+	name = name + "-" + fmt.Sprintf("%d", time.Now().UnixNano())
+	return sb.WithName(name)
 }
 
 // WithDiskType sets the Type field of spc with provided argument value.

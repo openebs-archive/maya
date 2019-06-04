@@ -24,7 +24,8 @@ import (
 	ver "github.com/openebs/maya/pkg/version"
 )
 
-// EnvStatus represents the status of operation against an env instance
+// EnvStatus represents the status of operation
+// against an env instance
 type EnvStatus string
 
 // env set completion statuses
@@ -44,11 +45,13 @@ type env struct {
 	Err     error
 }
 
-// envPredicate abstracts evaluation condition of the given instance and returns
-// the name of evaluation along with result of evaluation
+// envPredicate abstracts evaluation condition of
+// the given instance and returns the name of
+// evaluation along with result of evaluation
 type envPredicate func(given *env) (name string, success bool)
 
-// isEnvNotPresent returns true if env in not set previously
+// isEnvNotPresent returns true if env in not set
+// previously
 func isEnvNotPresent(given *env) (name string, success bool) {
 	name = "isEnvNotPresent"
 	if given == nil {
@@ -73,10 +76,11 @@ func isEnvError(given *env) (name string, hasErr bool) {
 	return
 }
 
-// envMiddleware abstracts updating the given env instance
+// envMiddleware abstracts updating given env instance
 type envMiddleware func(given *env) (updated *env)
 
-// EnvUpdateStatus updates the env instance with provided status info
+// EnvUpdateStatus updates the env instance with
+// provided status info
 func EnvUpdateStatus(context, reason string, status EnvStatus) envMiddleware {
 	return func(given *env) (updated *env) {
 		if given == nil {
@@ -90,7 +94,8 @@ func EnvUpdateStatus(context, reason string, status EnvStatus) envMiddleware {
 	}
 }
 
-// EnvUpdateError updates the env instance with provided error
+// EnvUpdateError updates the env instance with
+// provided error
 func EnvUpdateError(context string, err error) envMiddleware {
 	return func(given *env) (updated *env) {
 		if given == nil || err == nil {
@@ -102,7 +107,8 @@ func EnvUpdateError(context string, err error) envMiddleware {
 	}
 }
 
-// EnvUpdateSuccess updates the env instance with success status
+// EnvUpdateSuccess updates the env instance with
+// success status
 func EnvUpdateSuccess(context string) envMiddleware {
 	return func(given *env) (updated *env) {
 		return EnvUpdateStatus(context, "", EnvSetSuccess)(given)
@@ -154,7 +160,17 @@ func (l *envList) Infos() (msgs []string) {
 		if env == nil || env.Err != nil {
 			continue
 		}
-		msgs = append(msgs, fmt.Sprintf("{env '%s': val '%s': msg: '%s' '%s' '%s'}", env.Key, env.Value, env.Context, env.Status, env.Reason))
+		msgs = append(
+			msgs,
+			fmt.Sprintf(
+				"{env '%s': val '%s': msg: '%s' '%s' '%s'}",
+				env.Key,
+				env.Value,
+				env.Context,
+				env.Status,
+				env.Reason,
+			),
+		)
 	}
 	return
 }
@@ -230,7 +246,11 @@ func (e *envInstall) List() (l *envList, err error) {
 	l.Items = append(l.Items, &env{
 		Key: menv.CASTemplateToListVolumeENVK,
 		Value: strings.Join(ver.WithSuffixesIf(
-			[]string{"jiva-volume-list-default-0.6.0", "jiva-volume-list-default", "cstor-volume-list-default"},
+			[]string{
+				"jiva-volume-list-default-0.6.0",
+				"jiva-volume-list-default",
+				"cstor-volume-list-default",
+			},
 			ver.IsNotVersioned), ","),
 	})
 	l.Items = append(l.Items, &env{
