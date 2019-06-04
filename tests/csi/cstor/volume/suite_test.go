@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
 	"github.com/openebs/maya/tests/artifacts"
+	uuid "github.com/satori/go.uuid"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
@@ -92,12 +93,12 @@ var _ = BeforeSuite(func() {
 
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
-		WithGenerateName(nsName + "-").
+		WithName(nsName + "-" + uuid.NewV4().String()).
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsObj.Name)
 
 	By("creating above namespace")
-	nsObj, err = ops.NSClient.Create(nsObj)
+	_, err = ops.NSClient.Create(nsObj)
 	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
 })
 
