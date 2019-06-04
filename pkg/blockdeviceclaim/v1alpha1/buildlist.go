@@ -66,13 +66,3 @@ func ListBuilderFromAPIList(bdcl *ndm.BlockDeviceClaimList) *ListBuilder {
 func (b *ListBuilder) List() *BlockDeviceClaimList {
 	return b.BlockDeviceClaimList
 }
-
-// NewListBuilderForObjectList builds the list based on the provided
-// *BlockDeviceClaimList instances.
-func NewListBuilderForObjectList(bdcl *BlockDeviceClaimList) *ListBuilder {
-	newLB := NewListBuilder()
-	newLB.BlockDeviceClaimList.ObjectList.Items = append(
-		newLB.BlockDeviceClaimList.ObjectList.Items,
-		bdcl.ObjectList.Items...)
-	return newLB
-}

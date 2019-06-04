@@ -191,7 +191,7 @@ func (k *Kubeclient) getClientsetOrCached() (*clientset.Clientset, error) {
 func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.BlockDeviceClaimList, error) {
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list bdc in namespace {%s}", k.namespace)
 	}
 	return k.list(cli, k.namespace, opts)
 }
@@ -199,11 +199,11 @@ func (k *Kubeclient) List(opts metav1.ListOptions) (*apis.BlockDeviceClaimList, 
 // Get returns a disk object
 func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.BlockDeviceClaim, error) {
 	if strings.TrimSpace(name) == "" {
-		return errors.New("failed to get bdc: missing bdc name")
+		return nil, errors.New("failed to get bdc: missing bdc name")
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to get bdc {%s} in namespace {%s}", name, k.namespace)
 	}
 	return k.get(cli, k.namespace, name, opts)
 }

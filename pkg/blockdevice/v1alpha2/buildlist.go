@@ -52,17 +52,6 @@ func (b *ListBuilder) List() *BlockDeviceList {
 	return b.BDL
 }
 
-// ListBuilderFromObjectList builds the list based
-// on the provided Object instances.
-func ListBuilderFromObjectList(bdl *BlockDeviceList) *ListBuilder {
-	newLB := NewListBuilder()
-	newLB.BDL.ObjectList.Items = append(
-		newLB.BDL.ObjectList.Items,
-		bdl.ObjectList.Items...,
-	)
-	return newLB
-}
-
 // ListBuilderFromAPIList returns a new instance of ListBuilderForApiList
 // object based on block device api list.
 func ListBuilderFromAPIList(bdAPIList *ndm.BlockDeviceList) *ListBuilder {

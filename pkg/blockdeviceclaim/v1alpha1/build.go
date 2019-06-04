@@ -35,7 +35,8 @@ type Builder struct {
 // NewBuilder returns an empty instance of the Builder object
 func NewBuilder() *Builder {
 	return &Builder{
-		BDC: &BlockDeviceClaim{&ndm.BlockDeviceClaim{}},
+		BDC:  &BlockDeviceClaim{&ndm.BlockDeviceClaim{}},
+		errs: []error{},
 	}
 }
 
@@ -43,7 +44,8 @@ func NewBuilder() *Builder {
 // device object
 func BuilderForObject(BlockDeviceClaim *BlockDeviceClaim) *Builder {
 	return &Builder{
-		BDC: BlockDeviceClaim,
+		BDC:  BlockDeviceClaim,
+		errs: []error{},
 	}
 }
 
@@ -51,7 +53,8 @@ func BuilderForObject(BlockDeviceClaim *BlockDeviceClaim) *Builder {
 // device claim api object.
 func BuilderForAPIObject(bdc *ndm.BlockDeviceClaim) *Builder {
 	return &Builder{
-		BDC: &BlockDeviceClaim{bdc},
+		BDC:  &BlockDeviceClaim{bdc},
+		errs: []error{},
 	}
 }
 
@@ -98,6 +101,7 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		)
 		return b
 	}
+	b.BDC.Object.Annotations = make(map[string]string)
 	for key, value := range annotations {
 		b.BDC.Object.Annotations[key] = value
 	}
@@ -113,6 +117,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		)
 		return b
 	}
+	b.BDC.Object.Labels = make(map[string]string)
 	for key, value := range labels {
 		b.BDC.Object.Labels[key] = value
 	}
