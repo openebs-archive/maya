@@ -148,7 +148,7 @@ func ValidatePool(cStorPool *apis.CStorPool, devID []string) error {
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
 		return errors.Errorf(
-			"validate pool failed: expected {%d} blockdevices got {%d}, for pool type {%s}",
+			"csp validation failed: expected {%d} blockdevices got {%d}, for pool type {%s}",
 			defaultGroupSize[poolType],
 			diskCount,
 			poolType,
@@ -156,7 +156,7 @@ func ValidatePool(cStorPool *apis.CStorPool, devID []string) error {
 	}
 	if diskCount%defaultGroupSize[poolType] != 0 {
 		return errors.Errorf(
-			"validate pool failed: expected multiples of {%d} blockdevices required got {%d}, for pool type {%s}",
+			"csp validation failed: expected multiples of {%d} blockdevices required got {%d}, for pool type {%s}",
 			defaultGroupSize[poolType],
 			diskCount,
 			poolType,
@@ -256,7 +256,6 @@ func Status(poolName string) (string, error) {
 	} else {
 		return string(apis.CStorPoolStatusError), nil
 	}
-	//	return poolStatus, nil
 }
 
 // poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.

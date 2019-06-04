@@ -174,7 +174,6 @@ func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *nodeselect.Config {
 	return ac
 }
 
-//TODO: Below Test case is failing fix it later before PR checked in
 func TestNewCasPool(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()

@@ -124,7 +124,6 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 	return ac
 }
 
-// TODO: Below Cases are failing will fix it later
 func TestNodeBlockDeviceAlloter(t *testing.T) {
 	tests := map[string]struct {
 		// fakeCasPool holds the fake fakeCasPool object in test cases.

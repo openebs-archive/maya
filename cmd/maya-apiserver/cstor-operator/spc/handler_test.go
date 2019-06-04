@@ -398,7 +398,6 @@ func TestCurrentPoolCount(t *testing.T) {
 	}
 }
 
-/*
 func TestPendingPoolCount(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
@@ -495,7 +494,7 @@ func TestIsPoolPending(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type:     string(apis.TypeSparseCPV),
+					Type:     string(apis.TypeBlockDeviceCPV),
 					MaxPools: newInt(3),
 				},
 			},
@@ -507,7 +506,7 @@ func TestIsPoolPending(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type: string(apis.TypeSparseCPV),
+					Type: string(apis.TypeBlockDeviceCPV),
 					BlockDevices: apis.BlockDeviceAttr{
 						BlockDeviceList: []string{"blockdevice-1"},
 					},
@@ -529,7 +528,7 @@ func TestIsPoolPending(t *testing.T) {
 		})
 	}
 }
-*/
+
 func TestIsValidPendingPoolCount(t *testing.T) {
 	tests := map[string]struct {
 		pendingPoolCount int
