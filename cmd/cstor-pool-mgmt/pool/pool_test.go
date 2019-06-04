@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	"github.com/openebs/maya/pkg/util"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -569,12 +569,12 @@ func TestGetPool(t *testing.T) {
 // TestCheckValidPool tests pool related operations.
 func TestCheckValidPool(t *testing.T) {
 	testPoolResource := map[string]struct {
-		expectedError error
 		test          *apis.CStorPool
 		deviceIDs     []string
+		expectedError bool
 	}{
 		"Invalid-poolNameEmpty": {
-			expectedError: fmt.Errorf("Poolname/UID cannot be empty"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -593,7 +593,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-StripedDisks1": {
-			expectedError: nil,
+			expectedError: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -611,7 +611,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0"},
 		},
 		"Valid-StripedDisks2": {
-			expectedError: nil,
+			expectedError: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -630,7 +630,7 @@ func TestCheckValidPool(t *testing.T) {
 		},
 
 		"Invalid-StripedDisks": {
-			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 1, 0, "striped"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -649,7 +649,7 @@ func TestCheckValidPool(t *testing.T) {
 		},
 
 		"Invalid-DiskListEmpty": {
-			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 2, 0, "mirrored"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -667,7 +667,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{},
 		},
 		"Invalid-MirrorOddDisks": {
-			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 2, 3, "mirrored"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -685,7 +685,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2"},
 		},
 		"Valid-Pool": {
-			expectedError: nil,
+			expectedError: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -703,7 +703,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-RaidzDisks": {
-			expectedError: nil,
+			expectedError: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -721,7 +721,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2"},
 		},
 		"Invalid-NoOfRaidzDisks": {
-			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 3, 2, "raidz"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -739,7 +739,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1"},
 		},
 		"Valid-Raidz2Disks": {
-			expectedError: nil,
+			expectedError: false,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -757,7 +757,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4", "/var/img-5"},
 		},
 		"Invalid-Raidz2Disks": {
-			expectedError: fmt.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", 6, 5, "raidz2"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -775,7 +775,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4"},
 		},
 		"Valid-RaidzDisks2": {
-			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 7, "raidz"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -793,7 +793,7 @@ func TestCheckValidPool(t *testing.T) {
 			deviceIDs: []string{"/var/img-0", "/var/img-1", "/var/img-2", "/var/img-3", "/var/img-4", "/var/img-5", "/var/img-6"},
 		},
 		"InValid-RaidzDisks3": {
-			expectedError: fmt.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", 3, 5, "raidz"),
+			expectedError: true,
 			test: &apis.CStorPool{
 				TypeMeta: v1.TypeMeta{},
 				ObjectMeta: v1.ObjectMeta{
@@ -815,12 +815,12 @@ func TestCheckValidPool(t *testing.T) {
 		name := name
 		ut := ut
 		t.Run(name, func(t *testing.T) {
-			Obtainederr := CheckValidPool(ut.test, ut.deviceIDs)
-			if Obtainederr != nil {
-				if Obtainederr.Error() != ut.expectedError.Error() {
-					t.Fatalf("Desc : %v, Expected error: %v, Got : %v",
-						name, ut.expectedError, Obtainederr)
-				}
+			Obtainederr := ValidatePool(ut.test, ut.deviceIDs)
+			if ut.expectedError && Obtainederr == nil {
+				t.Fatalf("Desc : %q, Expected error not be nil", name)
+			}
+			if !ut.expectedError && Obtainederr != nil {
+				t.Fatalf("Desc : %q, Expected error to be nil got: %v", name, Obtainederr)
 			}
 		})
 	}

@@ -84,8 +84,8 @@ func importPoolBuilder(cStorPool *apis.CStorPool, cachefileFlag bool) []string {
 }
 
 // CreatePool creates a new cStor pool.
-func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
-	createAttr := createPoolBuilder(cStorPool, diskList)
+func CreatePool(cStorPool *apis.CStorPool, blockDeviceList []string) error {
+	createAttr := createPoolBuilder(cStorPool, blockDeviceList)
 	glog.V(4).Info("createAttr : ", createAttr)
 
 	stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, createAttr...)
@@ -97,10 +97,10 @@ func CreatePool(cStorPool *apis.CStorPool, diskList []string) error {
 }
 
 // createPoolBuilder is to build create pool command.
-func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
+func createPoolBuilder(cStorPool *apis.CStorPool, blockDeviceList []string) []string {
 	// populate pool creation attributes.
 	var createAttr []string
-	// When disks of other file formats, say ext4, are used to create cstorpool,
+	// When block devices of other file formats, say ext4, are used to create cstorpool,
 	// it errors out with normal zpool create. To avoid that, we go for forceful create.
 	createAttr = append(createAttr, "create", "-f")
 	if cStorPool.Spec.PoolSpec.CacheFile != "" {
@@ -115,27 +115,25 @@ func createPoolBuilder(cStorPool *apis.CStorPool, diskList []string) []string {
 	createAttr = append(createAttr, poolNameUID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if poolType == "striped" {
-		for _, disk := range diskList {
-			createAttr = append(createAttr, disk)
-		}
+		createAttr = append(createAttr, blockDeviceList...)
 		return createAttr
 	}
 	// To generate pool of the following types:
-	// mirrored (grouped by multiples of 2): mirror disk1 disk2 mirror disk3 disk4
-	// raidz (grouped by multiples of 3): raidz disk1 disk2 disk3 raidz disk 4 disk5 disk6
-	// raidz2 (grouped by multiples of 6): raidz2 disk1 disk2 disk3 disk4 disk5 disk6
-	for i, disk := range diskList {
+	// mirrored (grouped by multiples of 2): mirror blockdevice1 blockdevice2 mirror blockdevice3 blockdevice4
+	// raidz (grouped by multiples of 3): raidz blockdevice1 blockdevice2 blockdevice3 raidz blockdevice 4 blockdevice5 blockdevice6
+	// raidz2 (grouped by multiples of 6): raidz2 blockdevice1 blockdevice2 blockdevice3 blockdevice4 blockdevice5 blockdevice6
+	for i, bd := range blockDeviceList {
 		if i%defaultGroupSize[poolType] == 0 {
 			createAttr = append(createAttr, poolTypeCommand[poolType])
 		}
-		createAttr = append(createAttr, disk)
+		createAttr = append(createAttr, bd)
 	}
 
 	return createAttr
 }
 
-// CheckValidPool checks for validity of CStorPool resource.
-func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
+// ValidatePool checks for validity of CStorPool resource.
+func ValidatePool(cStorPool *apis.CStorPool, devID []string) error {
 	poolUID := cStorPool.ObjectMeta.UID
 	if len(poolUID) == 0 {
 		return fmt.Errorf("Poolname/UID cannot be empty")
@@ -143,10 +141,20 @@ func CheckValidPool(cStorPool *apis.CStorPool, devID []string) error {
 	diskCount := len(devID)
 	poolType := cStorPool.Spec.PoolSpec.PoolType
 	if diskCount < defaultGroupSize[poolType] {
-		return errors.Errorf("Expected %v no of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"csp validation failed: expected {%d} blockdevices got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	if diskCount%defaultGroupSize[poolType] != 0 {
-		return errors.Errorf("Expected multiples of %v number of disks, got %v no of disks for pool type: %v", defaultGroupSize[poolType], diskCount, poolType)
+		return errors.Errorf(
+			"csp validation failed: expected multiples of {%d} blockdevices required got {%d}, for pool type {%s}",
+			defaultGroupSize[poolType],
+			diskCount,
+			poolType,
+		)
 	}
 	return nil
 }
@@ -242,7 +250,6 @@ func Status(poolName string) (string, error) {
 	} else {
 		return string(apis.CStorPoolStatusError), nil
 	}
-	return poolStatus, nil
 }
 
 // poolStatusOutputParser parse output of `zpool status` command to extract the status of the pool.
@@ -333,34 +340,34 @@ func CheckForZreplContinuous(ZreplRetryInterval time.Duration) {
 	}
 }
 
-// LabelClear is to clear zpool label on disks.
-func LabelClear(disks []string) error {
+// LabelClear is to clear zpool label on block devices.
+func LabelClear(blockDevices []string) error {
 	var failLabelClear = false
-	for _, disk := range disks {
-		labelClearStr := []string{"labelclear", "-f", disk}
+	for _, bd := range blockDevices {
+		labelClearStr := []string{"labelclear", "-f", bd}
 		stdoutStderr, err := RunnerVar.RunCombinedOutput(PoolOperator, labelClearStr...)
 		if err != nil {
-			glog.Errorf("Unable to clear label on disk %v: %v, err = %v", disk,
+			glog.Errorf("Unable to clear label on blockdevice %v: %v, err = %v", bd,
 				string(stdoutStderr), err)
 			failLabelClear = true
 		}
 	}
 	if failLabelClear {
-		return fmt.Errorf("Unable to clear labels from all the disks of the pool")
+		return fmt.Errorf("Unable to clear labels from all the blockdevices of the pool")
 	}
 	return nil
 }
 
 // GetDeviceIDs returns the list of device IDs for the csp.
 func GetDeviceIDs(csp *apis.CStorPool) ([]string, error) {
-	var diskDeviceID []string
+	var bdDeviceID []string
 	for _, group := range csp.Spec.Group {
-		for _, disk := range group.Item {
-			diskDeviceID = append(diskDeviceID, disk.DeviceID)
+		for _, blockDevice := range group.Item {
+			bdDeviceID = append(bdDeviceID, blockDevice.DeviceID)
 		}
 	}
-	if len(diskDeviceID) == 0 {
+	if len(bdDeviceID) == 0 {
 		return nil, errors.Errorf("No device IDs found on the csp %s", csp.Name)
 	}
-	return diskDeviceID, nil
+	return bdDeviceID, nil
 }
