@@ -37,18 +37,18 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 		When(" creating a cstor based volume", func() {
 			By("building a storageclass")
 			scObj, err = sc.NewBuilder().
-				WithName(scName).
+				WithGenerateName(scName).
 				WithAnnotations(annotations).
 				WithProvisioner(openebsProvisioner).Build()
 			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
 
 			By("creating above storageclass")
-			_, err = ops.SCClient.Create(scObj)
+			scObj, err = ops.SCClient.Create(scObj)
 			Expect(err).To(BeNil(), "while creating storageclass {%s}", scName)
 
 			By("building a storagepoolclaim")
 			spcObj = spc.NewBuilder().
-				WithName(spcName).
+				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(1).
 				WithOverProvisioning(false).
@@ -56,7 +56,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 				Build().Object
 
 			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
+			spcObj, err = ops.SPCClient.Create(spcObj)
 			Expect(err).To(BeNil(), "while creating spc {%s}", spcName)
 
 			By("verifying healthy cstorpool count")
@@ -69,11 +69,11 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 	AfterEach(func() {
 		By("deleting resources created for testing cstor volume provisioning", func() {
 			By("deleting storageclass")
-			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
+			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 			By("deleting storagepoolclaim")
-			_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting spc {%s}", spcName)
+			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
 		})
 	})
 
@@ -84,7 +84,7 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
 				WithNamespace(nsObj.Name).
-				WithStorageClass(scName).
+				WithStorageClass(scObj.Name).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
