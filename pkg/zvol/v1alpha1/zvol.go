@@ -18,9 +18,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"time"
+	"strings"
 
-	"github.com/openebs/maya/pkg/util"
+	"github.com/openebs/maya/pkg/exec"
 )
 
 // ZVolStatus is zvol's status
@@ -31,18 +31,32 @@ type ZVolRebuildStatus string
 
 const (
 	// Binary represents zfs binary
-	Binary                      = "zfs"
-	StatusOffline    ZVolStatus = "Offline"
-	StatusHealthy    ZVolStatus = "Healthy"
-	StatusDegraded   ZVolStatus = "Degraded"
+	Binary = "zfs"
+	// StatusOffline ...
+	StatusOffline ZVolStatus = "Offline"
+	// StatusHealthy ...
+	StatusHealthy ZVolStatus = "Healthy"
+	// StatusDegraded ...
+	StatusDegraded ZVolStatus = "Degraded"
+	// StatusRebuilding ...
 	StatusRebuilding ZVolStatus = "Rebuilding"
-
-	RebuildStatusInit                    ZVolRebuildStatus = "INIT"
-	RebuildStatusDone                    ZVolRebuildStatus = "DONE"
-	RebuildStatusErrored                 ZVolRebuildStatus = "ERRORED  "
-	RebuildStatusFailed                  ZVolRebuildStatus = "FAILED"
-	RebuildStatusUnknown                 ZVolRebuildStatus = "UNKNOWN"
-	RebuildStatusInProgress              ZVolRebuildStatus = "SNAP REBUILD INPROGRESS"
+	// NoDataSetAvailable ...
+	NoDataSetAvailable ZVolStatus = "no datasets available"
+	// InitializeLibuzfsClientErr ...
+	InitializeLibuzfsClientErr ZVolStatus = "failed to initialize libuzfs client"
+	// RebuildStatusInit ...
+	RebuildStatusInit ZVolRebuildStatus = "INIT"
+	// RebuildStatusDone ...
+	RebuildStatusDone ZVolRebuildStatus = "DONE"
+	// RebuildStatusErrored ...
+	RebuildStatusErrored ZVolRebuildStatus = "ERRORED  "
+	// RebuildStatusFailed ...
+	RebuildStatusFailed ZVolRebuildStatus = "FAILED"
+	// RebuildStatusUnknown ...
+	RebuildStatusUnknown ZVolRebuildStatus = "UNKNOWN"
+	// RebuildStatusInProgress ...
+	RebuildStatusInProgress ZVolRebuildStatus = "SNAP REBUILD INPROGRESS"
+	// RebuildStatusActiveDataSetInProgress ...
 	RebuildStatusActiveDataSetInProgress ZVolRebuildStatus = "ACTIVE DATASET REBUILD INPROGRESS"
 )
 
@@ -96,25 +110,56 @@ type Volume struct {
 	RebuildFailedCount float64 `json:"rebuildFailedCnt"` // Total no of failed rebuilds
 }
 
+func (z ZVolStatus) String() string {
+	return string(z)
+}
+
 // Run is wrapper over RunCommandWithTimeoutContext for zfs commands
-func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, error) {
-	out, err := runner.RunCommandWithTimeoutContext(timeout, Binary, args...)
+func Run(runner exec.Runner) ([]byte, error) {
+	out, err := runner.RunCommandWithTimeoutContext()
 	if err != nil {
 		return out, err
 	}
 	return out, nil
 }
 
+func checkError(str string) error {
+	if IsNotInitialized(str) {
+		return errors.New(string(InitializeLibuzfsClientErr))
+	}
+
+	if IsNoDataSetAvailable(str) {
+		return errors.New(string(NoDataSetAvailable))
+	}
+	return nil
+}
+
 // StatsParser parses the json response of zfs stats command.
 func StatsParser(stdout []byte) (Stats, error) {
 	var stats = Stats{}
+	if err := checkError(string(stdout)); err != nil {
+		return Stats{}, err
+	}
+
 	if err := json.NewDecoder(bytes.NewReader(stdout)).Decode(&stats); err != nil {
 		return stats, err
 	}
+
 	if isNotPresent(stats.Volumes) {
 		return stats, errors.New("Got empty pool/volume name")
 	}
+
 	return stats, nil
+}
+
+// IsNotInitialized check whether libuzfs is initialized or not
+func IsNotInitialized(str string) bool {
+	return strings.Contains(str, string(InitializeLibuzfsClientErr))
+}
+
+// IsNoDataSetAvailable check whether dataset available or not
+func IsNoDataSetAvailable(str string) bool {
+	return strings.Contains(str, string(NoDataSetAvailable))
 }
 
 func isNotPresent(vol []Volume) bool {

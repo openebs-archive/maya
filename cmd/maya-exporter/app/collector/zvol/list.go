@@ -16,9 +16,12 @@ package zvol
 
 import (
 	"sync"
-	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang/glog"
+	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
+	types "github.com/openebs/maya/pkg/exec"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -26,14 +29,23 @@ import (
 // volumeList implements prometheus.Collector interface
 type volumeList struct {
 	sync.Mutex
-	listMetrics
+	*listMetrics
 	request bool
+	runner  types.Runner
 }
 
 // NewVolumeList returns new instance of volumeList
-func NewVolumeList() *volumeList {
+func NewVolumeList(runner types.Runner) col.Collector {
 	return &volumeList{
-		listMetrics: newListMetrics(),
+		listMetrics: newListMetrics().
+			withUsedSize().
+			withAvailableSize().
+			withParseErrorCounter().
+			withCommandErrorCounter().
+			withRequestRejectCounter().
+			withNoDatasetAvailableErrorCounter().
+			withInitializeLibuzfsClientErrorCounter(),
+		runner: runner,
 	}
 }
 
@@ -55,6 +67,8 @@ func (v *volumeList) collectors() []prometheus.Collector {
 		v.zfsListParseErrorCounter,
 		v.zfsListCommandErrorCounter,
 		v.zfsListRequestRejectCounter,
+		v.zfsListNoDataSetAvailableErrorCounter,
+		v.zfsListInitializeLibuzfsClientErrorCounter,
 	}
 }
 
@@ -66,21 +80,38 @@ func (v *volumeList) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+func (v *volumeList) checkError(stdout []byte, ch chan<- prometheus.Metric) error {
+	if zvol.IsNotInitialized(string(stdout)) {
+		v.zfsListInitializeLibuzfsClientErrorCounter.Inc()
+		v.zfsListInitializeLibuzfsClientErrorCounter.Collect(ch)
+		return errors.New(zvol.InitializeLibuzfsClientErr.String())
+	}
+
+	if zvol.IsNoDataSetAvailable(string(stdout)) {
+		v.zfsListNoDataSetAvailableErrorCounter.Inc()
+		v.zfsListNoDataSetAvailableErrorCounter.Collect(ch)
+		return errors.New(zvol.NoDataSetAvailable.String())
+	}
+	return nil
+}
+
 func (v *volumeList) get(ch chan<- prometheus.Metric) ([]fields, error) {
 	v.Lock()
 	defer v.Unlock()
-	var timeout = 30 * time.Second
 
 	glog.V(2).Info("Run zfs list command")
-	stdout, err := zvol.Run(timeout, runner, "list", "-Hp")
+	stdout, err := zvol.Run(v.runner)
 	if err != nil {
 		v.zfsListCommandErrorCounter.Inc()
 		v.zfsListCommandErrorCounter.Collect(ch)
 		return nil, err
 	}
 
+	if err := v.checkError(stdout, ch); err != nil {
+		return nil, err
+	}
 	glog.V(2).Infof("Parse stdout of zfs list command, got stdout: \n%v", string(stdout))
-	list := listParser(stdout, &v.listMetrics)
+	list := listParser(stdout, v.listMetrics)
 
 	return list, nil
 }
@@ -93,7 +124,6 @@ func (v *volumeList) Collect(ch chan<- prometheus.Metric) {
 		v.Unlock()
 		v.zfsListRequestRejectCounter.Collect(ch)
 		return
-
 	}
 
 	v.request = true

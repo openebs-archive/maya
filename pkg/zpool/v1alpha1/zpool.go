@@ -16,26 +16,35 @@ package v1alpha1
 
 import (
 	"strings"
-	"time"
 
+	"github.com/openebs/maya/pkg/exec"
 	"github.com/pkg/errors"
-
-	"github.com/openebs/maya/pkg/util"
 )
 
 // ZpoolStatus is pool's status
 type ZpoolStatus string
 
 const (
-	Binary                          = "zpool" // Binary represents zpool binary
-	Offline             ZpoolStatus = "OFFLINE"
-	Online              ZpoolStatus = "ONLINE"
-	Degraded            ZpoolStatus = "DEGRADED"
-	Faulted             ZpoolStatus = "FAULTED"
-	Removed             ZpoolStatus = "REMOVED"
-	Unavail             ZpoolStatus = "UNAVAIL"
-	NoPoolAvailable     ZpoolStatus = "no pools available"
-	InCompleteStdoutErr             = "Couldn't receive complete output"
+	// Binary represent zpool binary
+	Binary = "zpool"
+	// Offline ...
+	Offline ZpoolStatus = "OFFLINE"
+	// Online ...
+	Online ZpoolStatus = "ONLINE"
+	// Degraded ...
+	Degraded ZpoolStatus = "DEGRADED"
+	// Faulted ...
+	Faulted ZpoolStatus = "FAULTED"
+	// Removed ...
+	Removed ZpoolStatus = "REMOVED"
+	// Unavail ...
+	Unavail ZpoolStatus = "UNAVAIL"
+	// NoPoolAvailable ...
+	NoPoolAvailable ZpoolStatus = "no pools available"
+	// InitializeLibuzfsClientErr ...
+	InitializeLibuzfsClientErr ZpoolStatus = "failed to initialize libuzfs client"
+	// InCompleteStdoutErr is err msg when recieved output id incomplete
+	InCompleteStdoutErr = "Couldn't receive complete output"
 )
 
 var (
@@ -62,9 +71,14 @@ type Stats struct {
 	UsedCapacityPercent string // Used size of pools in precent
 }
 
+// String returns string
+func (z ZpoolStatus) String() string {
+	return string(z)
+}
+
 // Run is wrapper over RunCommandWithTimeoutContext for running zpool commands
-func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, error) {
-	status, err := runner.RunCommandWithTimeoutContext(timeout, Binary, args...)
+func Run(runner exec.Runner) ([]byte, error) {
+	status, err := runner.RunCommandWithTimeoutContext()
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +87,12 @@ func Run(timeout time.Duration, runner util.Runner, args ...string) ([]byte, err
 
 // IsNotAvailable checks whether any pool is availble or not.
 func IsNotAvailable(str string) bool {
-	return strings.Contains(str, string(NoPoolAvailable))
+	return strings.Contains(str, NoPoolAvailable.String())
+}
+
+// IsNotInitialized checks whether libuzfs client initialized or not.
+func IsNotInitialized(str string) bool {
+	return strings.Contains(str, InitializeLibuzfsClientErr.String())
 }
 
 func isValid(stats string) ([]string, bool) {
@@ -90,10 +109,6 @@ func isValid(stats string) ([]string, bool) {
 // cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	10670309376	716288	10669593088	-	0	0	1.00 ONLINE	-
 func ListParser(output []byte) (Stats, error) {
 	str := string(output)
-	if IsNotAvailable(str) {
-		return Stats{}, errors.New(string(NoPoolAvailable))
-	}
-
 	stats, ok := isValid(str)
 	if !ok {
 		return Stats{}, errors.New(InCompleteStdoutErr)
