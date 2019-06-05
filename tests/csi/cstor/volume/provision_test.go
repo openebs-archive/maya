@@ -17,6 +17,9 @@ limitations under the License.
 package volume
 
 import (
+	"strconv"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -24,6 +27,7 @@ import (
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
 	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,46 +39,60 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 
 	BeforeEach(func() {
 		When(" creating a cstor based volume", func() {
-			By("building a storageclass")
-			scObj, err = sc.NewBuilder().
-				WithGenerateName(scName).
-				WithAnnotations(annotations).
-				WithProvisioner(openebsProvisioner).Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
-
-			By("creating above storageclass")
-			scObj, err = ops.SCClient.Create(scObj)
-			Expect(err).To(BeNil(), "while creating storageclass {%s}", scName)
-
 			By("building a storagepoolclaim")
 			spcObj = spc.NewBuilder().
 				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
-				WithMaxPool(1).
+				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
 			By("creating above storagepoolclaim")
 			spcObj, err = ops.SPCClient.Create(spcObj)
-			Expect(err).To(BeNil(), "while creating spc {%s}", spcName)
+			Expect(err).To(BeNil(),
+				"while creating spc with prefix {%s}", spcName)
 
 			By("verifying healthy cstorpool count")
-			cspCount := ops.GetHealthyCSPCount(spcName, 1)
-			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
+			Expect(cspCount).To(Equal(cstor.PoolCount),
+				"while checking healthy cstor pool count")
+
+			By("building a CAS Config with generated SPC name")
+			CASConfig := strings.Replace(openebsCASConfigValue,
+				"$spcName", spcObj.Name, 1)
+			CASConfig = strings.Replace(CASConfig,
+				"$count", strconv.Itoa(cstor.ReplicaCount), 1)
+			annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
+			annotations[string(apis.CASConfigKey)] = CASConfig
+
+			By("building a storageclass")
+			scObj, err = sc.NewBuilder().
+				WithGenerateName(scName).
+				WithAnnotations(annotations).
+				WithProvisioner(openebsProvisioner).Build()
+			Expect(err).ShouldNot(HaveOccurred(),
+				"while building storageclass obj with prefix {%s}", scName)
+
+			By("creating above storageclass")
+			scObj, err = ops.SCClient.Create(scObj)
+			Expect(err).To(BeNil(), "while creating storageclass with prefix {%s}", scName)
 
 		})
 	})
 
 	AfterEach(func() {
-		By("deleting resources created for testing cstor volume provisioning", func() {
-			By("deleting storageclass")
-			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
-			By("deleting storagepoolclaim")
-			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
-		})
+		By("deleting resources created for testing cstor volume provisioning",
+			func() {
+				By("deleting storagepoolclaim")
+				_, err = ops.SPCClient.Delete(
+					spcObj.Name, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
+				By("deleting storageclass")
+				err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+				Expect(err).To(BeNil(),
+					"while deleting storageclass {%s}", scObj.Name)
+			})
 	})
 
 	When("cstor pvc with replicacount 1 is created", func() {
@@ -104,12 +122,15 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			)
 
 			By("verifying target pod count as 1")
-			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
-			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+			controllerPodCount := ops.GetPodRunningCountEventually(
+				openebsNamespace, targetLabel, 1)
+			Expect(controllerPodCount).To(Equal(1),
+				"while checking controller pod count")
 
 			By("verifying pvc status as bound")
 			status := ops.IsPVCBound(pvcName)
-			Expect(status).To(Equal(true), "while checking status equal to bound")
+			Expect(status).To(Equal(true),
+				"while checking status equal to bound")
 
 			By("deleting above pvc")
 			err := ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
@@ -121,8 +142,10 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			)
 
 			By("verifying target pod count as 0")
-			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 0)
-			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
+			controllerPodCount = ops.GetPodRunningCountEventually(
+				openebsNamespace, targetLabel, 0)
+			Expect(controllerPodCount).To(Equal(0),
+				"while checking controller pod count")
 
 			By("verifying deleted pvc")
 			pvc := ops.IsPVCDeleted(pvcName)
@@ -130,7 +153,8 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 
 			By("verifying if cstorvolume is deleted")
 			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
-			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			cvCount := ops.GetCstorVolumeCountEventually(
+				openebsNamespace, CstorVolumeLabel, 0)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 		})
 	})

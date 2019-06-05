@@ -40,9 +40,9 @@ var (
 	scName                = "cstor-volume"
 	openebsCASConfigValue = `
 - name: ReplicaCount
-  value: 1
+  value: $count
 - name: StoragePoolClaim
-  value: sparse-pool-auto
+  value: $spcName
 `
 	openebsProvisioner = "openebs-csi.openebs.io"
 	spcName            = "sparse-pool-auto"
@@ -98,7 +98,7 @@ var _ = BeforeSuite(func() {
 
 	By("creating above namespace")
 	nsObj, err = ops.NSClient.Create(nsObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 })
 
 var _ = AfterSuite(func() {
