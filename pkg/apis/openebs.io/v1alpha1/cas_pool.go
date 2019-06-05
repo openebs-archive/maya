@@ -53,14 +53,14 @@ const (
 	TypeDiskCPV CasPoolValString = "disk"
 	// TypeBlockDeviceCPV is a key for physical,iscsi,virtual etc disk pool
 	TypeBlockDeviceCPV CasPoolValString = "blockdevice"
-	// StripedDiskCountCPV is the count for striped type pool
-	StripedDiskCountCPV CasPoolValInt = 1
-	// MirroredDiskCountCPV is the count for mirrored type pool
-	MirroredDiskCountCPV CasPoolValInt = 2
-	// RaidzDiskCountCPV is the count for raidz type pool
-	RaidzDiskCountCPV CasPoolValInt = 3
-	// Raidz2DiskCountCPV is the count for raidz2 type pool
-	Raidz2DiskCountCPV CasPoolValInt = 6
+	// StripedBlockDeviceCountCPV is the count for striped type pool
+	StripedBlockDeviceCountCPV CasPoolValInt = 1
+	// MirroredBlockDeviceCountCPV is the count for mirrored type pool
+	MirroredBlockDeviceCountCPV CasPoolValInt = 2
+	// RaidzBlockDeviceCountCPV is the count for raidz type pool
+	RaidzBlockDeviceCountCPV CasPoolValInt = 3
+	// Raidz2BlockDeviceCountCPV is the count for raidz2 type pool
+	Raidz2BlockDeviceCountCPV CasPoolValInt = 6
 )
 
 // CasPool is a type which will be utilised by CAS engine to perform
