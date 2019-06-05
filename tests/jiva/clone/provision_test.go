@@ -50,32 +50,32 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			By("building a pvc")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
-				WithNamespace(nsName).
-				WithStorageClass(scName).
+				WithNamespace(namespaceObj.Name).
+				WithStorageClass(scObj.Name).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("creating above pvc")
-			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
+			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying controller pod count")
-			controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 1)
+			controllerPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, ctrlLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying replica pod count")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, jiva.ReplicaCount)
+			replicaPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, replicaLabel, jiva.ReplicaCount)
 			Expect(replicaPodCount).To(Equal(jiva.ReplicaCount), "while checking replica pod count")
 
 			By("verifying status as bound")
@@ -91,23 +91,23 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			By("building a snapshot")
 			snapObj, err = snap.NewBuilder().
 				WithName(snapName).
-				WithNamespace(nsName).
+				WithNamespace(namespaceObj.Name).
 				WithPVC(pvcName).
 				Build()
 			Expect(err).To(
 				BeNil(),
 				"while building snapshot {%s} in namespace {%s}",
 				snapName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("creating above snapshot")
-			_, err = ops.SnapClient.WithNamespace(nsName).Create(snapObj)
+			_, err = ops.SnapClient.WithNamespace(namespaceObj.Name).Create(snapObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating snapshot{%s} in namespace {%s}",
 				snapName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying type as ready")
@@ -128,8 +128,8 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 			cloneObj, err = pvc.NewBuilder().
 				WithName(cloneName).
 				WithAnnotations(cloneAnnotations).
-				WithNamespace(nsName).
-				WithStorageClass(scName).
+				WithNamespace(namespaceObj.Name).
+				WithStorageClass(openebsCloneStorageclass).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).
 				Build()
@@ -137,20 +137,20 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 				HaveOccurred(),
 				"while building clone pvc {%s} in namespace {%s}",
 				cloneName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("creating above clone pvc")
-			_, err = ops.PVCClient.WithNamespace(nsName).Create(cloneObj)
+			_, err = ops.PVCClient.WithNamespace(namespaceObj.Name).Create(cloneObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating clone pvc {%s} in namespace {%s}",
 				cloneName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying clone pod count")
-			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, jiva.ReplicaCount+1)
+			clonePodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, cloneLable, jiva.ReplicaCount+1)
 			Expect(clonePodCount).To(Equal(jiva.ReplicaCount+1), "while checking clone pvc pod count")
 
 		})
@@ -165,11 +165,11 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 				BeNil(),
 				"while deleting clone pvc {%s} in namespace {%s}",
 				cloneName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying clone pvc pods as 0")
-			clonePodCount := ops.GetPodRunningCountEventually(nsName, cloneLable, 0)
+			clonePodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, cloneLable, 0)
 			Expect(clonePodCount).To(Equal(0), "while checking clone pvc pod count")
 
 			By("verifying deleted clone pvc")
@@ -188,7 +188,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 				BeNil(),
 				"while deleting snapshot {%s} in namespace {%s}",
 				snapName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying deleted snapshot")
@@ -207,15 +207,15 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				namespaceObj.Name,
 			)
 
 			By("verifying controller pod count as 0")
-			controllerPodCount := ops.GetPodRunningCountEventually(nsName, ctrlLabel, 0)
+			controllerPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, ctrlLabel, 0)
 			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
 			By("verifying replica pod count as 0")
-			replicaPodCount := ops.GetPodRunningCountEventually(nsName, replicaLabel, 0)
+			replicaPodCount := ops.GetPodRunningCountEventually(namespaceObj.Name, replicaLabel, 0)
 			Expect(replicaPodCount).To(Equal(0), "while checking replica pod count")
 
 			By("verifying deleted pvc")

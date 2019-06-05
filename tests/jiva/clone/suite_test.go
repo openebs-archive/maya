@@ -39,15 +39,16 @@ import (
 )
 
 var (
-	nsObj                 *corev1.Namespace
-	snapObj               *snapshot.VolumeSnapshot
-	scObj                 *storagev1.StorageClass
-	nsName                = "jiva-clone-ns"
-	scName                = "jiva-clone-sc"
-	openebsProvisioner    = "openebs.io/provisioner-iscsi"
-	openebsCASConfigValue = "- name: ReplicaCount\n  Value: "
-	annotations           = map[string]string{}
-	err                   error
+	namespaceObj             *corev1.Namespace
+	snapObj                  *snapshot.VolumeSnapshot
+	scObj                    *storagev1.StorageClass
+	namespace                = "jiva-clone-ns"
+	scName                   = "jiva-clone-sc"
+	openebsProvisioner       = "openebs.io/provisioner-iscsi"
+	openebsCASConfigValue    = "- name: ReplicaCount\n  Value: "
+	openebsCloneStorageclass = "openebs-snapshot-promoter"
+	annotations              = map[string]string{}
+	err                      error
 )
 
 func TestSource(t *testing.T) {
@@ -93,35 +94,35 @@ var _ = BeforeSuite(func() {
 	Expect(podCount).To(Equal(1))
 
 	By("building a namespace")
-	nsObj, err = ns.NewBuilder().
-		WithName(nsName).
+	namespaceObj, err = ns.NewBuilder().
+		WithGenerateName(namespace).
 		APIObject()
-	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
+	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", namespace)
 
 	By("building a storageclass")
 	scObj, err = sc.NewBuilder().
-		WithName(scName).
+		WithGenerateName(scName).
 		WithAnnotations(annotations).
 		WithProvisioner(openebsProvisioner).Build()
 	Expect(err).ShouldNot(HaveOccurred(), "while building storageclass {%s}", scName)
 
 	By("creating a namespace")
-	_, err = ops.NSClient.Create(nsObj)
-	Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
+	namespaceObj, err = ops.NSClient.Create(namespaceObj)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", namespaceObj.GenerateName)
 
 	By("creating a storageclass")
-	_, err = ops.SCClient.Create(scObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.Name)
+	scObj, err = ops.SCClient.Create(scObj)
+	Expect(err).To(BeNil(), "while creating storageclass {%s}", scObj.GenerateName)
 })
 
 var _ = AfterSuite(func() {
 
 	By("deleting storageclass")
-	err := ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
+	err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting storageclass {%s}", scObj.Name)
 
 	By("deleting namespace")
-	err = ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsName)
+	err = ops.NSClient.Delete(namespaceObj.Name, &metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "while deleting namespace {%s}", namespaceObj.Name)
 
 })
