@@ -36,7 +36,7 @@ rules:
   resources: ["customresourcedefinitions"]
   verbs: [ "get", "list", "create", "update", "delete"]
 - apiGroups: ["*"]
-  resources: [ "disks"]
+  resources: [ "disks", "blockdevices", "blockdeviceclaims"]
   verbs: ["*" ]
 - apiGroups: ["*"]
   resources: [ "cstorpoolclusters", "storagepoolclaims", "storagepoolclaims/finalizers", "storagepools"]
@@ -46,6 +46,9 @@ rules:
   verbs: ["*" ]
 - apiGroups: ["*"]
   resources: [ "cstorpools", "cstorpools/finalizers", "cstorvolumereplicas", "cstorvolumes"]
+  verbs: ["*" ]
+- apiGroups: ["*"]
+  resources: [ "cstorbackups", "cstorrestores", "cstorcompletedbackups"]
   verbs: ["*" ]
 - nonResourceURLs: ["/metrics"]
   verbs: ["get"]
@@ -86,7 +89,7 @@ spec:
       containers:
       - name: maya-apiserver
         imagePullPolicy: IfNotPresent
-        image: openebs/m-apiserver:ci
+        image: quay.io/openebs/m-apiserver:ci
         ports:
         - containerPort: 5656
         env:
@@ -104,7 +107,7 @@ spec:
         # configured as a part of openebs installation.
         # If "true" a default cstor sparse pool will be configured, if "false" it will not be configured.
         - name: OPENEBS_IO_INSTALL_DEFAULT_CSTOR_SPARSE_POOL
-          value: "true"
+          value: "false"
         # OPENEBS_NAMESPACE provides the namespace of this deployment as an
         # environment variable
         - name: OPENEBS_NAMESPACE
@@ -124,27 +127,27 @@ spec:
             fieldRef:
               fieldPath: metadata.name
         - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
-          value: "openebs/jiva:ci"
+          value: "quay.io/openebs/jiva:ci"
         - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
-          value: "openebs/jiva:ci"
+          value: "quay.io/openebs/jiva:ci"
         - name: OPENEBS_IO_JIVA_REPLICA_COUNT
           value: "3"
         - name: OPENEBS_IO_CSTOR_TARGET_IMAGE
-          value: "openebs/cstor-istgt:ci"
+          value: "quay.io/openebs/cstor-istgt:ci"
         - name: OPENEBS_IO_CSTOR_POOL_IMAGE
-          value: "openebs/cstor-pool:ci"
+          value: "quay.io/openebs/cstor-pool:ci"
         - name: OPENEBS_IO_CSTOR_POOL_MGMT_IMAGE
-          value: "openebs/cstor-pool-mgmt:ci"
+          value: "quay.io/openebs/cstor-pool-mgmt:ci"
         - name: OPENEBS_IO_CSTOR_VOLUME_MGMT_IMAGE
-          value: "openebs/cstor-volume-mgmt:ci"
+          value: "quay.io/openebs/cstor-volume-mgmt:ci"
         - name: OPENEBS_IO_VOLUME_MONITOR_IMAGE
-          value: "openebs/m-exporter:ci"
+          value: "quay.io/openebs/m-exporter:ci"
         - name: OPENEBS_IO_CSTOR_POOL_EXPORTER_IMAGE
-          value: "openebs/m-exporter:ci"
+          value: "quay.io/openebs/m-exporter:ci"
         # OPENEBS_IO_ENABLE_ANALYTICS if set to true sends anonymous usage
         # events to Google Analytics
         - name: OPENEBS_IO_ENABLE_ANALYTICS
-          value: "true"
+          value: "false"
         # OPENEBS_IO_ANALYTICS_PING_INTERVAL can be used to specify the duration (in hours)
         # for periodic ping events sent to Google Analytics.
         # Default is 24h.
@@ -199,7 +202,7 @@ spec:
       containers:
       - name: openebs-provisioner
         imagePullPolicy: IfNotPresent
-        image: openebs/openebs-k8s-provisioner:ci
+        image: quay.io/openebs/openebs-k8s-provisioner:ci
         env:
         # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
         # based on this address. This is ignored if empty.
@@ -252,7 +255,7 @@ spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: snapshot-controller
-          image: openebs/snapshot-controller:ci
+          image: quay.io/openebs/snapshot-controller:ci
           imagePullPolicy: IfNotPresent
           env:
           - name: OPENEBS_NAMESPACE
@@ -273,7 +276,7 @@ spec:
         #- name: OPENEBS_MAYA_SERVICE_NAME
         #  value: "maya-apiserver-apiservice"
         - name: snapshot-provisioner
-          image: openebs/snapshot-provisioner:ci
+          image: quay.io/openebs/snapshot-provisioner:ci
           imagePullPolicy: IfNotPresent
           env:
           - name: OPENEBS_NAMESPACE
@@ -360,8 +363,8 @@ spec:
       hostNetwork: true
       containers:
       - name: node-disk-manager
-        image: openebs/node-disk-manager-amd64:v0.3.5
-        imagePullPolicy: IfNotPresent
+        image: quay.io/openebs/node-disk-manager-amd64:ci
+        imagePullPolicy: Always
         securityContext:
           privileged: true
         volumeMounts:
@@ -377,6 +380,12 @@ spec:
         - name: sparsepath
           mountPath: /var/openebs/sparse
         env:
+        # namespace in which NDM is installed will be passed to NDM Daemonset
+        # as environment variable
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         # pass hostname as env variable using downward API to the NDM container
         - name: NODE_NAME
           valueFrom:
@@ -417,6 +426,50 @@ spec:
         hostPath:
           path: /var/openebs/sparse
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-ndm-operator
+  namespace: openebs
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      name: openebs-ndm-operator
+  template:
+    metadata:
+      labels:
+        name: openebs-ndm-operator
+        openebs.io/component-name: ndm-operator
+        openebs.io/version: dev
+    spec:
+      serviceAccountName: openebs-maya-operator
+      containers:
+        - name: node-disk-operator
+          image: quay.io/openebs/node-disk-operator-amd64:ci
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 4
+            periodSeconds: 10
+            failureThreshold: 1
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "node-disk-operator"
+---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -450,9 +503,6 @@ kind: Deployment
 metadata:
   name: openebs-admission-server
   namespace: openebs
-  labels:
-    app: admission-webhook
-    openebs.io/component: admission-server
 spec:
   replicas: 1
   selector:
@@ -463,11 +513,12 @@ spec:
       labels:
         app: admission-webhook
         openebs.io/version: dev
+        openebs.io/component: admission-server
     spec:
       serviceAccountName: openebs-maya-operator
       containers:
         - name: admission-webhook
-          image: openebs/admission-server:ci
+          image: quay.io/openebs/admission-server:ci
           imagePullPolicy: IfNotPresent
           args:
             - -tlsCertFile=/etc/webhook/certs/cert.pem
@@ -525,7 +576,7 @@ spec:
       containers:
       - name: openebs-provisioner-hostpath
         imagePullPolicy: Always
-        image: openebs/provisioner-localpv:ci
+        image: quay.io/openebs/provisioner-localpv:ci
         env:
         # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
         # based on this address. This is ignored if empty.
