@@ -17,6 +17,9 @@ limitations under the License.
 package clone
 
 import (
+	"strconv"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -39,45 +42,50 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 
 	BeforeEach(func() {
 		When("deploying cstor sparse pool", func() {
-			By("building storageclass object")
-			scObj, err = sc.NewBuilder().
-				WithName(scName).
-				WithAnnotations(annotations).
-				WithProvisioner(openebsProvisioner).Build()
-			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
-
-			By("creating storageclass")
-			_, err = ops.SCClient.Create(scObj)
-			Expect(err).To(BeNil(), "while creating storageclass", scName)
-
-			By("building storagepoolclaim")
+			By("building spc object")
 			spcObj = spc.NewBuilder().
-				WithName(spcName).
+				WithGenerateName(spcName).
 				WithDiskType(string(apis.TypeSparseCPV)).
 				WithMaxPool(cstor.PoolCount).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
 				Build().Object
 
-			By("creating above storagepoolclaim")
-			_, err = ops.SPCClient.Create(spcObj)
+			By("creating storagepoolclaim")
+			spcObj, err = ops.SPCClient.Create(spcObj)
 			Expect(err).To(BeNil(), "while creating spc", spcName)
 
-			By("verifying healthy cstorpool count")
-			cspCount := ops.GetHealthyCSPCount(spcName, cstor.PoolCount)
+			By("verifying healthy csp count")
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
 			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
+			By("building a CAS Config with generated SPC name")
+			CASConfig := strings.Replace(openebsCASConfigValue, "$spcName", spcObj.Name, 1)
+			CASConfig = strings.Replace(CASConfig, "$count", strconv.Itoa(cstor.ReplicaCount), 1)
+			annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
+			annotations[string(apis.CASConfigKey)] = CASConfig
+
+			By("building storageclass object")
+			scObj, err = sc.NewBuilder().
+				WithGenerateName(scName).
+				WithAnnotations(annotations).
+				WithProvisioner(openebsProvisioner).Build()
+			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
+
+			By("creating storageclass")
+			scObj, err = ops.SCClient.Create(scObj)
+			Expect(err).To(BeNil(), "while creating storageclass", scName)
 		})
 	})
 
 	AfterEach(func() {
 		By("deleting resources created for cstor volume snapshot provisioning", func() {
 			By("deleting storagepoolclaim")
-			_, err = ops.SPCClient.Delete(spcName, &metav1.DeleteOptions{})
+			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting the spc's {%s}", spcName)
 
 			By("deleting storageclass")
-			err = ops.SCClient.Delete(scName, &metav1.DeleteOptions{})
+			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
 			Expect(err).To(BeNil(), "while deleting storageclass", scName)
 
 		})
@@ -89,39 +97,40 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			By("building a persistentvolumeclaim")
 			pvcObj, err = pvc.NewBuilder().
 				WithName(pvcName).
-				WithNamespace(nsName).
-				WithStorageClass(scName).
+				WithNamespace(nsObj.Name).
+				WithStorageClass(scObj.Name).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).Build()
 			Expect(err).ShouldNot(
 				HaveOccurred(),
 				"while building pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("creating cstor persistentvolumeclaim")
-			_, err = ops.PVCClient.WithNamespace(nsName).Create(pvcObj)
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying volume target pod count as 1")
-			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetLabel, 1)
+			sourcetargetLabel := pvcLabel + pvcObj.Name
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, sourcetargetLabel, 1)
 			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
 
 			By("verifying cstorvolume replica count")
-			pvcObj, err = ops.PVCClient.WithNamespace(nsName).Get(pvcName, metav1.GetOptions{})
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcName, metav1.GetOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while getting pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
-			cvrLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
 			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
@@ -130,30 +139,30 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			Expect(status).To(Equal(true), "while checking status equal to bound")
 
 			By("verifying cstorVolume status as healthy")
-			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			CstorVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
 			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 1)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 
 			By("building a cstor volume snapshot")
 			snapObj, err = snap.NewBuilder().
 				WithName(snapName).
-				WithNamespace(nsName).
+				WithNamespace(nsObj.Name).
 				WithPVC(pvcName).
 				Build()
 			Expect(err).To(
 				BeNil(),
 				"while building snapshot {%s} in namespace {%s}",
 				snapName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("creating cstor volume snapshot")
-			_, err = ops.SnapClient.WithNamespace(nsName).Create(snapObj)
+			_, err = ops.SnapClient.WithNamespace(nsObj.Name).Create(snapObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating snapshot {%s} in namespace {%s}",
 				snapName,
-				nsName,
+				nsObj.Name,
 			)
 
 			snaptype := ops.GetSnapshotTypeEventually(snapName)
@@ -167,7 +176,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			cloneObj, err := pvc.NewBuilder().
 				WithName(clonepvcName).
 				WithAnnotations(cloneAnnotations).
-				WithNamespace(nsName).
+				WithNamespace(nsObj.Name).
 				WithStorageClass(clonescName).
 				WithAccessModes(accessModes).
 				WithCapacity(capacity).
@@ -176,34 +185,34 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				HaveOccurred(),
 				"while building clone pvc {%s} in namespace {%s}",
 				clonepvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("creating clone persistentvolumeclaim")
-			_, err = ops.PVCClient.WithNamespace(nsName).Create(cloneObj)
+			_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(cloneObj)
 			Expect(err).To(
 				BeNil(),
 				"while creating clone pvc {%s} in namespace {%s}",
 				clonepvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying clone volume target pod count")
 
-			clonetargetLabel := "openebs.io/persistent-volume-claim=" + clonepvcName
+			clonetargetLabel := pvcLabel + clonepvcName
 			clonePodCount := ops.GetPodRunningCountEventually(openebsNamespace, clonetargetLabel, 1)
 			Expect(clonePodCount).To(Equal(1), "while checking clone pvc pod count")
 
 			By("verifying clone volumeereplica count")
-			clonepvcObj, err := ops.PVCClient.WithNamespace(nsName).Get(clonepvcName, metav1.GetOptions{})
+			clonepvcObj, err := ops.PVCClient.WithNamespace(nsObj.Name).Get(clonepvcName, metav1.GetOptions{})
 			Expect(err).To(
 				BeNil(),
 				"while getting pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
-			clonecvrLabel := "openebs.io/persistent-volume=" + clonepvcObj.Spec.VolumeName
+			clonecvrLabel := pvLabel + clonepvcObj.Spec.VolumeName
 			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, clonecvrLabel, cstor.ReplicaCount)
 			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
 
@@ -217,7 +226,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying clone target pod count as 0")
@@ -229,7 +238,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			Expect(clonepvc).To(Equal(true), "while trying to get deleted pvc")
 
 			By("verifying if clone cstorvolume is deleted")
-			CstorVolumeLabel = "openebs.io/persistent-volume=" + clonepvcObj.Spec.VolumeName
+			CstorVolumeLabel = pvLabel + clonepvcObj.Spec.VolumeName
 			clonecvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
 			Expect(clonecvCount).To(Equal(true), "while checking cstorvolume count")
 
@@ -239,7 +248,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				BeNil(),
 				"while deleting snapshot {%s} in namespace {%s}",
 				snapName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying deleted snapshot")
@@ -252,12 +261,12 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 				BeNil(),
 				"while deleting pvc {%s} in namespace {%s}",
 				pvcName,
-				nsName,
+				nsObj.Name,
 			)
 
 			By("verifying source volume target pod count as 0")
 
-			sourcetargetLabel := "openebs.io/persistent-volume-claim=" + pvcName
+			sourcetargetLabel = "openebs.io/persistent-volume-claim=" + pvcName
 			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, sourcetargetLabel, 0)
 			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
 
@@ -266,7 +275,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
 
 			By("verifying if source cstorvolume is deleted")
-			CstorVolumeLabel = "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			CstorVolumeLabel = pvLabel + pvcObj.Spec.VolumeName
 			cvCount = ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
 			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
 
