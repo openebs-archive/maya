@@ -1,4 +1,4 @@
-// Copyright © 2019 The OpenEBS Authors
+// Copyright © 2018-2019 The OpenEBS Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package admission_test
+package exec
 
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+// Runner interface implements various methods of running binaries which can be
+// modified for unit testing.
+type Runner interface {
+	RunCommandWithTimeoutContext() ([]byte, error)
+}
 
-	"testing"
-)
-
-func TestAdmission(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Admission Suite")
+// BuilderInterface is used for building the object
+// of runner
+type BuilderInterface interface {
+	Build() Runner
 }

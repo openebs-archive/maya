@@ -15,11 +15,12 @@
 package pool
 
 import (
+	"errors"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/util"
+	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
+	types "github.com/openebs/maya/pkg/exec"
 	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -27,24 +28,27 @@ import (
 // pool implements prometheus.Collector interface
 type pool struct {
 	sync.Mutex
-	metrics
+	*metrics
 	request bool
-}
-
-var (
-	// runner variable is used for executing binaries
-	runner util.Runner
-)
-
-// InitVar initialize runner variable
-func InitVar() {
-	runner = util.RealRunner{}
+	runner  types.Runner
 }
 
 // New returns new instance of pool
-func New() *pool {
+func New(runner types.Runner) col.Collector {
 	return &pool{
-		metrics: newMetrics(),
+		metrics: newMetrics().
+			withSize().
+			withStatus().
+			withUsedCapacity().
+			withFreeCapacity().
+			withUsedCapacityPercent().
+			withParseErrorCounter().
+			withRejectRequestCounter().
+			withCommandErrorCounter().
+			withNoPoolAvailableErrorCounter().
+			withIncompleteOutputErrorCounter().
+			withInitializeLibuzfsClientErrorCounter(),
+		runner: runner,
 	}
 }
 
@@ -58,28 +62,6 @@ func (p *pool) setRequestToFalse() {
 	p.Unlock()
 }
 
-// GetInitStatus run zpool binary to verify whether zpool container
-// has started.
-func (p *pool) GetInitStatus(timeout time.Duration) {
-
-	for {
-		stdout, err := zpool.Run(timeout, runner, "status")
-		if err != nil {
-			glog.Warningf("Failed to get zpool status, error: %v, pool container may be initializing,  retry after 2s", err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		str := string(stdout)
-		if zpool.IsNotAvailable(str) {
-			glog.Warning("No pool available, pool must be creating, retry after 3s")
-			time.Sleep(3 * time.Second)
-			continue
-		}
-		glog.Info("\n", string(stdout))
-		break
-	}
-}
-
 // collectors returns the list of the collectors
 func (p *pool) collectors() []prometheus.Collector {
 	return []prometheus.Collector{
@@ -90,9 +72,10 @@ func (p *pool) collectors() []prometheus.Collector {
 		p.usedCapacityPercent,
 		p.zpoolCommandErrorCounter,
 		p.zpoolRejectRequestCounter,
-		p.zpoolListparseErrorCounter,
+		p.zpoolListParseErrorCounter,
 		p.noPoolAvailableErrorCounter,
-		p.incompleteOutputErrorCounter,
+		p.inCompleteOutputErrorCounter,
+		p.initializeLibUZFSClientErrorCounter,
 	}
 }
 
@@ -117,32 +100,46 @@ func (p *pool) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+func (p *pool) checkError(stdout []byte, ch chan<- prometheus.Metric) error {
+	if zpool.IsNotInitialized(string(stdout)) {
+		p.initializeLibUZFSClientErrorCounter.Inc()
+		p.initializeLibUZFSClientErrorCounter.Collect(ch)
+		return errors.New(zpool.InitializeLibuzfsClientErr.String())
+	}
+
+	if zpool.IsNotAvailable(string(stdout)) {
+		p.noPoolAvailableErrorCounter.Inc()
+		p.noPoolAvailableErrorCounter.Collect(ch)
+		return errors.New(zpool.NoPoolAvailable.String())
+	}
+	return nil
+}
+
 func (p *pool) getZpoolStats(ch chan<- prometheus.Metric) (zpool.Stats, error) {
 	var (
 		err         error
 		stdoutZpool []byte
-		timeout     = 30 * time.Second
 		zpoolStats  = zpool.Stats{}
 	)
 
-	stdoutZpool, err = zpool.Run(timeout, runner, "list", "-Hp")
+	glog.V(2).Info("Run zpool list command")
+	stdoutZpool, err = zpool.Run(p.runner)
 	if err != nil {
 		p.zpoolCommandErrorCounter.Inc()
 		p.zpoolCommandErrorCounter.Collect(ch)
 		return zpoolStats, err
 	}
 
+	err = p.checkError(stdoutZpool, ch)
+	if err != nil {
+		return zpoolStats, err
+	}
+
 	glog.V(2).Infof("Parse stdout of zpool list command, stdout: %v", string(stdoutZpool))
 	zpoolStats, err = zpool.ListParser(stdoutZpool)
 	if err != nil {
-		if err.Error() == string(zpool.NoPoolAvailable) {
-			p.noPoolAvailableErrorCounter.Inc()
-			p.noPoolAvailableErrorCounter.Collect(ch)
-		} else {
-			p.incompleteOutputErrorCounter.Inc()
-			p.incompleteOutputErrorCounter.Collect(ch)
-		}
-
+		p.inCompleteOutputErrorCounter.Inc()
+		p.inCompleteOutputErrorCounter.Collect(ch)
 		return zpoolStats, err
 	}
 

@@ -16,231 +16,158 @@ package zvol
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"regexp"
 	"testing"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	types "github.com/openebs/maya/pkg/exec"
+	mock "github.com/openebs/maya/pkg/exec/mock/v1alpha1"
+	mockServer "github.com/openebs/maya/pkg/prometheus/exporter/mock/v1alpha1"
+	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
 )
 
-func TestGetZfsList(t *testing.T) {
+func TestZfsListCollector(t *testing.T) {
 	cases := map[string]struct {
-		run   testRunner
-		match []*regexp.Regexp
+		zfsListOutput  string
+		isError        bool
+		expectedOutput []string
+		runner         types.Runner
 	}{
 		"Test0": {
-			run: testRunner{
-				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
+			// expected output if there is one volume with different used size
+			zfsListOutput: `cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
-				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`,
+			expectedOutput: []string{
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
 			},
 		},
 		"Test1": {
-			run: testRunner{
-				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
+			// expected output if there is one volume with different used size
+			zfsListOutput: `cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	3055	3000	6144	-
-				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3055`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`,
+			expectedOutput: []string{
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3055`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
 			},
 		},
 		"Test2": {
-			run: testRunner{
-				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
+			// expected output if there are two volumes
+			zfsListOutput: `cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
-				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`,
+			expectedOutput: []string{
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
 			},
 		},
 		"Test3": {
-			run: testRunner{
-				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
+			// Expected output when there are three volumes
+			zfsListOutput: `cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-
 				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
-				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`),
-				regexp.MustCompile(`openebs_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`),
-				regexp.MustCompile(`openebs_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`),
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`,
+			expectedOutput: []string{
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 3000`,
+				`openebs_volume_replica_available_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 3000`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5"} 238592`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c3a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c1a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5"} 6144`,
+				`openebs_volume_replica_used_size{name="cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone"} 0`,
 			},
 		},
 		"Test4": {
-			run: testRunner{
-				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	liaub	kzjsfvn	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
-						cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
-						cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zfs_list_parse_error 2`),
+			// if there is unexpected output from zpool
+			zfsListOutput: `cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	liaub	kzjsfvn	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
+				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`,
+			expectedOutput: []string{
+				`openebs_zfs_list_parse_error 2`,
 			},
 		},
 		"Test5": {
-			run: testRunner{
-				isError: true,
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zfs_list_command_error 1`),
+			// if there is any error while running zfs list command
+			isError: true,
+			expectedOutput: []string{
+				`openebs_zfs_list_command_error 1`,
 			},
 		},
 		"Test6": {
-			run: testRunner{
-				stdout: []byte(``),
+			// if expected output from zfs binary is empty
+			zfsListOutput: ``,
+			expectedOutput: []string{
+				`openebs_zfs_list_parse_error 1`,
 			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zfs_list_parse_error 1`),
+		},
+		"Test7": {
+			// if expected output from is "failed to initialize libuzfs client"
+			zfsListOutput: string(zvol.InitializeLibuzfsClientErr),
+			expectedOutput: []string{
+				`zfs_list_failed_to_initialize_libuzfs_client_error_counter 1`,
+			},
+		},
+		"Test8": {
+			// if expected output from zfs binary is empty
+			zfsListOutput: string(zvol.NoDataSetAvailable),
+			expectedOutput: []string{
+				`zfs_list_no_dataset_available_error_counter 1`,
 			},
 		},
 	}
 
 	for name, tt := range cases {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
-			runner = tt.run
-			vol := NewVolumeList()
-			if err := prometheus.Register(vol); err != nil {
-				t.Fatalf("collector failed to register: %s", err)
+			if tt.isError {
+				tt.runner = mock.StdoutBuilder().Error().Build()
+			} else {
+				out := tt.zfsListOutput
+				tt.runner = mock.StdoutBuilder().WithOutput(out).Build()
 			}
-
-			server := httptest.NewServer(promhttp.Handler())
-
-			client := http.DefaultClient
-			client.Timeout = 5 * time.Second
-			resp, err := client.Get(server.URL)
-			if err != nil {
-				t.Fatalf("unexpected failed response from prometheus: %s", err)
-			}
-			defer resp.Body.Close()
-
-			buf, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatalf("failed reading server response: %s", err)
-			}
-
-			for _, re := range tt.match {
+			// Build prometheus like output using regular expressions
+			out := tt.expectedOutput
+			regex := mockServer.BuildRegex(out)
+			vol := NewVolumeList(tt.runner)
+			stop := make(chan struct{})
+			buf := mockServer.PrometheusService(vol, stop)
+			// expectedOutput the regex after parsing the expected output of zfs list command into prometheus's format.
+			for _, re := range regex {
 				if !re.Match(buf) {
 					fmt.Println(string(buf))
-					t.Errorf("failed matching: %q", re)
+					t.Errorf("failed expectedOutputing: %q", re)
 				}
 			}
-
-			prometheus.Unregister(vol)
-			server.Close()
+			mockServer.Unregister(vol)
+			stop <- struct{}{}
 		})
 	}
 }
-
-//func TestRejectRequestCounter(t *testing.T) {
-//	cases := map[string]struct {
-//		run      testRunner
-//		reqCount int
-//		col      prometheus.Collector
-//		output   *regexp.Regexp
-//	}{
-//		"Test0": {
-//			run: testRunner{
-//				stdout: []byte(`cstor-f1ea249b-417d-11e9-9c76-42010a8001a5	238592	3000	512	/cstor-f1ea249b-417d-11e9-9c76-42010a8001a5
-//				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5	6144	3000	6144	-
-//				cstor-f1ea249b-417d-11e9-9c76-42010a8001a5/pvc-c4a68fa3-4183-11e9-9c76-42010a8001a5_rebuild_clone	0	3000	6144	-`),
-//			},
-//			reqCount: 200,
-//			col:      NewVolumeList(),
-//			output:   regexp.MustCompile(`openebs_zfs_list_request_reject_count\s\d+`),
-//		},
-//		"Test1": {
-//			run: testRunner{
-//				stdout: []byte(`{"stats": [{"name": "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a/pvc-1c1698bb-2dc6-11e9-bbe3-42010a80017a","status": "Rebuilding","rebuildStatus": "SNAP REBUILD INPROGRESS","runningIONum": 0,"rebuildBytes": 500,"rebuildCnt": 3,"rebuildDoneCnt": 2,"rebuildFailedCnt": 0,"readCount": 1000,"readLatency": 150,"readByte": 1024,"writeCount": 1000,"writeLatency": 200,"writeByte": 1024,"syncCount": 100,"syncLatency": 10,"inflightIOCnt": 2000,"dispatchedIOCnt": 50}]}`),
-//			},
-//			reqCount: 200,
-//			col:      New(),
-//			output:   regexp.MustCompile(`openebs_zfs_stats_reject_request_count\s\d+`),
-//		},
-//	}
-//	for name, tt := range cases {
-//		t.Run(name, func(t *testing.T) {
-//			runner = tt.run
-//			if err := prometheus.Register(tt.col); err != nil {
-//				t.Fatalf("collector failed to register: %s", err)
-//			}
-//
-//			server := httptest.NewServer(promhttp.Handler())
-//			var body io.ReadCloser
-//
-//			wg := sync.WaitGroup{}
-//			wg.Add(tt.reqCount)
-//			for i := 0; i < tt.reqCount; i++ {
-//				go func(server *httptest.Server) {
-//					defer wg.Done()
-//					client := http.DefaultClient
-//					client.Timeout = 5 * time.Second
-//					resp, err := client.Get(server.URL)
-//					body = resp.Body
-//					if err != nil {
-//						t.Fatalf("unexpected failed response from prometheus: %s", err)
-//					}
-//				}(server)
-//			}
-//
-//			wg.Wait()
-//			defer body.Close()
-//
-//			buf, err := ioutil.ReadAll(body)
-//			if err != nil {
-//				t.Fatalf("failed reading server response: %s", err)
-//			}
-//
-//			str := tt.output.FindStringSubmatch(string(buf))
-//			newStr := strings.Fields(str[0])
-//			reqCount, _ := strconv.Atoi(newStr[1])
-//			if reqCount <= 0 {
-//				t.Fatalf("Failed to test reject request count, fount str: %s, buf: %s", str, string(buf))
-//			}
-//			prometheus.Unregister(tt.col)
-//			server.Close()
-//		})
-//	}
-//}

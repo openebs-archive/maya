@@ -1152,6 +1152,8 @@ spec:
             - --size
             - {{ .Volume.capacity }}
             - /openebs
+            securityContext:
+                privileged: true
             command:
             - launch
             image: {{ .Config.ReplicaImage.value }}

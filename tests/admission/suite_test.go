@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clone
+package admission
 
 import (
 	"testing"
@@ -34,8 +34,8 @@ import (
 
 var (
 	openebsNamespace      = "openebs"
-	nsName                = "test-cstor-clone"
-	scName                = "test-cstor-clone-sc"
+	nsName                = "test-cstor-admission"
+	scName                = "test-cstor-admission-sc"
 	clonescName           = "openebs-snapshot-promoter"
 	openebsCASConfigValue = `
 - name: ReplicaCount
@@ -43,24 +43,23 @@ var (
 - name: StoragePoolClaim
   value: $spcName
 `
-	openebsProvisioner = "openebs.io/provisioner-iscsi"
-	spcName            = "test-cstor-clone-sparse-pool"
-	nsObj              *corev1.Namespace
-	scObj              *storagev1.StorageClass
-	spcObj             *apis.StoragePoolClaim
-	pvcObj             *corev1.PersistentVolumeClaim
-	snapObj            *snapshot.VolumeSnapshot
-	targetLabel        = "openebs.io/target=cstor-target"
-	pvLabel            = "openebs.io/persistent-volume="
-	pvcLabel           = "openebs.io/persistent-volume-claim="
-	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity           = "5G"
-	annotations        = map[string]string{}
+	openebsProvisioner  = "openebs.io/provisioner-iscsi"
+	spcName             = "test-cstor-snap-sparse-pool"
+	nsObj               *corev1.Namespace
+	scObj               *storagev1.StorageClass
+	spcObj              *apis.StoragePoolClaim
+	pvcObj, clonepvcObj *corev1.PersistentVolumeClaim
+	snapObj             *snapshot.VolumeSnapshot
+	pvLabel             = "openebs.io/persistent-volume="
+	pvcLabel            = "openebs.io/persistent-volume-claim="
+	accessModes         = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity            = "5G"
+	annotations         = map[string]string{}
 )
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test cstor volume clone provisioning")
+	RunSpecs(t, "Test admission server validations")
 }
 
 func init() {

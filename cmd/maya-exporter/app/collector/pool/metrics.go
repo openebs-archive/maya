@@ -28,11 +28,12 @@ type metrics struct {
 	usedCapacityPercent prometheus.Gauge
 	status              *prometheus.GaugeVec
 
-	zpoolCommandErrorCounter     prometheus.Gauge
-	zpoolRejectRequestCounter    prometheus.Gauge
-	zpoolListparseErrorCounter   prometheus.Gauge
-	noPoolAvailableErrorCounter  prometheus.Gauge
-	incompleteOutputErrorCounter prometheus.Gauge
+	zpoolCommandErrorCounter            prometheus.Gauge
+	zpoolRejectRequestCounter           prometheus.Gauge
+	zpoolListParseErrorCounter          prometheus.Gauge
+	noPoolAvailableErrorCounter         prometheus.Gauge
+	inCompleteOutputErrorCounter        prometheus.Gauge
+	initializeLibUZFSClientErrorCounter prometheus.Gauge
 }
 
 type statsFloat64 struct {
@@ -58,101 +59,140 @@ func (s *statsFloat64) List() []float64 {
 func parseFloat64(e string, m *metrics) float64 {
 	num, err := strconv.ParseFloat(e, 64)
 	if err != nil {
-		m.zpoolListparseErrorCounter.Inc()
+		m.zpoolListParseErrorCounter.Inc()
 	}
 	return num
 }
 
 func (s *statsFloat64) parse(stats zpool.Stats, p *pool) {
-	s.size = parseFloat64(stats.Size, &p.metrics)
-	s.used = parseFloat64(stats.Used, &p.metrics)
-	s.free = parseFloat64(stats.Free, &p.metrics)
+	s.size = parseFloat64(stats.Size, p.metrics)
+	s.used = parseFloat64(stats.Used, p.metrics)
+	s.free = parseFloat64(stats.Free, p.metrics)
 	s.status = zpool.Status[stats.Status]
-	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, &p.metrics)
+	s.usedCapacityPercent = parseFloat64(stats.UsedCapacityPercent, p.metrics)
 }
 
-// newMetrics initializes fields of the metrics and returns its instance
-func newMetrics() metrics {
-	return metrics{
-		size: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "pool_size",
-				Help:      "Size of pool",
-			},
-		),
+func (m *metrics) withSize() *metrics {
+	m.size = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "pool_size",
+			Help:      "Size of pool",
+		},
+	)
+	return m
+}
 
-		status: prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "pool_status",
-				Help:      `Status of pool (0, 1, 2, 3, 4, 5, 6)= {"Offline", "Online", "Degraded", "Faulted", "Removed", "Unavail", "NoPoolsAvailable"}`,
-			},
-			[]string{"pool"},
-		),
+func (m *metrics) withStatus() *metrics {
+	m.status = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "pool_status",
+			Help:      `Status of pool (0, 1, 2, 3, 4, 5, 6)= {"Offline", "Online", "Degraded", "Faulted", "Removed", "Unavail", "NoPoolsAvailable"}`,
+		},
+		[]string{"pool"},
+	)
+	return m
+}
+func (m *metrics) withUsedCapacity() *metrics {
+	m.usedCapacity = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "used_pool_capacity",
+			Help:      "Capacity used by pool",
+		},
+	)
+	return m
+}
 
-		usedCapacity: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "used_pool_capacity",
-				Help:      "Capacity used by pool",
-			},
-		),
+func (m *metrics) withFreeCapacity() *metrics {
+	m.freeCapacity = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "free_pool_capacity",
+			Help:      "Free capacity in pool",
+		},
+	)
+	return m
+}
 
-		freeCapacity: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "free_pool_capacity",
-				Help:      "Free capacity in pool",
-			},
-		),
+func (m *metrics) withUsedCapacityPercent() *metrics {
+	m.usedCapacityPercent = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "used_pool_capacity_percent",
+			Help:      "Capacity used by pool in percent",
+		},
+	)
+	return m
+}
 
-		usedCapacityPercent: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "used_pool_capacity_percent",
-				Help:      "Capacity used by pool in percent",
-			},
-		),
+func (m *metrics) withParseErrorCounter() *metrics {
+	m.zpoolListParseErrorCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_parse_error_count",
+			Help:      "Total no of parsing errors",
+		},
+	)
+	return m
+}
 
-		zpoolListparseErrorCounter: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "zpool_list_parse_error_count",
-				Help:      "Total no of parsing errors",
-			},
-		),
+func (m *metrics) withRejectRequestCounter() *metrics {
+	m.zpoolRejectRequestCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_reject_request_count",
+			Help:      "Total no of rejected requests of zpool command",
+		},
+	)
+	return m
+}
 
-		zpoolRejectRequestCounter: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "zpool_reject_request_count",
-				Help:      "Total no of rejected requests of zpool command",
-			},
-		),
+func (m *metrics) withCommandErrorCounter() *metrics {
+	m.zpoolCommandErrorCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_command_error",
+			Help:      "Total no of zpool command errors",
+		},
+	)
+	return m
+}
 
-		zpoolCommandErrorCounter: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "zpool_command_error",
-				Help:      "Total no of zpool command errors",
-			},
-		),
+func (m *metrics) withNoPoolAvailableErrorCounter() *metrics {
+	m.noPoolAvailableErrorCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_no_pool_available_error",
+			Help:      "Total no of no pool available errors",
+		},
+	)
+	return m
+}
 
-		noPoolAvailableErrorCounter: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "no_pool_available_error",
-				Help:      "Total no of no pool available errors",
-			},
-		),
+func (m *metrics) withIncompleteOutputErrorCounter() *metrics {
+	m.inCompleteOutputErrorCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_incomplete_stdout_error",
+			Help:      "Total no of incomplete stdout errors",
+		},
+	)
+	return m
+}
 
-		incompleteOutputErrorCounter: prometheus.NewGauge(
-			prometheus.GaugeOpts{
-				Namespace: "openebs",
-				Name:      "zpool_list_incomplete_stdout_error",
-				Help:      "Total no of incomplete stdout of zpool list command errors",
-			},
-		),
-	}
+func (m *metrics) withInitializeLibuzfsClientErrorCounter() *metrics {
+	m.initializeLibUZFSClientErrorCounter = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "openebs",
+			Name:      "zpool_list_failed_to_initialize_libuzfs_client_error_counter",
+			Help:      "Total no of initialize libuzfs client error",
+		},
+	)
+	return m
+}
+
+func newMetrics() *metrics {
+	return new(metrics)
 }

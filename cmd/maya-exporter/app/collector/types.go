@@ -16,6 +16,7 @@ package collector
 
 import (
 	v1 "github.com/openebs/maya/pkg/stats/v1alpha1"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type volumeStatus int
@@ -74,4 +75,11 @@ type Parser interface {
 // to collect the stats from the Jiva and Cstor.
 type Getter interface {
 	get() (v1.VolumeStats, error)
+}
+
+// Collector is an interface that is used for initializing
+// various collectors for collecting volume and pool metrics
+type Collector interface {
+	Describe(chan<- *prometheus.Desc)
+	Collect(chan<- prometheus.Metric)
 }

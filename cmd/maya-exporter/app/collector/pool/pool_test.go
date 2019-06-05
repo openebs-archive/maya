@@ -15,235 +15,139 @@
 package pool
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"regexp"
 	"testing"
-	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	types "github.com/openebs/maya/pkg/exec"
+	mock "github.com/openebs/maya/pkg/exec/mock/v1alpha1"
+	mockServer "github.com/openebs/maya/pkg/prometheus/exporter/mock/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/zpool/v1alpha1"
 )
 
-var count int
-
-type testRunner struct {
-	stdout  []byte
-	isError bool
-}
-
-func (r testRunner) RunCombinedOutput(cmd string, args ...string) ([]byte, error) {
-	return nil, nil
-}
-
-func (r testRunner) RunStdoutPipe(cmd string, args ...string) ([]byte, error) {
-	return nil, nil
-}
-
-func (r testRunner) RunCommandWithTimeoutContext(timeout time.Duration, cmd string, args ...string) ([]byte, error) {
-	if r.isError {
-		switch count {
-		case 1:
-			count++
-			return []byte("no pools available"), nil
-		case 2:
-			return []byte("ONLINE"), nil
-		case 3:
-			count = 1
-			return nil, errors.New("some dummy error")
-		default:
-			return nil, errors.New("some dummy error")
-		}
-	}
-	return r.stdout, nil
-}
-
-func TestGetZpoolStats(t *testing.T) {
+func TestPoolCollector(t *testing.T) {
+	var runner types.Runner
 	cases := map[string]struct {
-		run            testRunner
-		match, unmatch []*regexp.Regexp
+		zpoolOutput    string
+		isError        bool
+		expectedOutput []string
 	}{
+		// pool status is online
 		"Test0": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 ONLINE	-"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_pool_size 1024`),
-				regexp.MustCompile(`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 1`),
-				regexp.MustCompile(`openebs_used_pool_capacity 24`),
-				regexp.MustCompile(`openebs_free_pool_capacity 1000`),
-				regexp.MustCompile(`openebs_used_pool_capacity_percent 0`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 ONLINE	-",
+			expectedOutput: []string{
+				`openebs_pool_size 1024`,
+				`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 1`,
+				`openebs_used_pool_capacity 24`,
+				`openebs_free_pool_capacity 1000`,
+				`openebs_used_pool_capacity_percent 0`,
 			},
 		},
+		// pool status is offline
 		"Test1": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 OFFLINE	-"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_pool_size 1024`),
-				regexp.MustCompile(`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 0`),
-				regexp.MustCompile(`openebs_used_pool_capacity 24`),
-				regexp.MustCompile(`openebs_free_pool_capacity 1000`),
-				regexp.MustCompile(`openebs_used_pool_capacity_percent 0`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 OFFLINE	-",
+			expectedOutput: []string{
+				`openebs_pool_size 1024`,
+				`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 0`,
+				`openebs_used_pool_capacity 24`,
+				`openebs_free_pool_capacity 1000`,
+				`openebs_used_pool_capacity_percent 0`,
 			},
 		},
+		// pool status is unavailable
 		"Test2": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 UNAVAIL	-"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_pool_size 1024`),
-				regexp.MustCompile(`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 5`),
-				regexp.MustCompile(`openebs_used_pool_capacity 24`),
-				regexp.MustCompile(`openebs_free_pool_capacity 1000`),
-				regexp.MustCompile(`openebs_used_pool_capacity_percent 0`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 UNAVAIL	-",
+			expectedOutput: []string{
+				`openebs_pool_size 1024`,
+				`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 5`,
+				`openebs_used_pool_capacity 24`,
+				`openebs_free_pool_capacity 1000`,
+				`openebs_used_pool_capacity_percent 0`,
 			},
 		},
+		// pool status is faulted
 		"Test3": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 FAULTED	-"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_pool_size 1024`),
-				regexp.MustCompile(`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 3`),
-				regexp.MustCompile(`openebs_used_pool_capacity 24`),
-				regexp.MustCompile(`openebs_free_pool_capacity 1000`),
-				regexp.MustCompile(`openebs_used_pool_capacity_percent 0`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 FAULTED	-",
+			expectedOutput: []string{
+				`openebs_pool_size 1024`,
+				`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 3`,
+				`openebs_used_pool_capacity 24`,
+				`openebs_free_pool_capacity 1000`,
+				`openebs_used_pool_capacity_percent 0`,
 			},
 		},
+		// pool status is removed
 		"Test4": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 REMOVED	-"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_pool_size 1024`),
-				regexp.MustCompile(`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 4`),
-				regexp.MustCompile(`openebs_used_pool_capacity 24`),
-				regexp.MustCompile(`openebs_free_pool_capacity 1000`),
-				regexp.MustCompile(`openebs_used_pool_capacity_percent 0`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	1024	24	1000	-	0	0	1.00 REMOVED	-",
+			expectedOutput: []string{
+				`openebs_pool_size 1024`,
+				`openebs_pool_status{pool="cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a"} 4`,
+				`openebs_used_pool_capacity 24`,
+				`openebs_free_pool_capacity 1000`,
+				`openebs_used_pool_capacity_percent 0`,
 			},
 		},
+		// no pools available
 		"Test5": {
-			run: testRunner{
-				stdout: []byte("no pools available"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_no_pool_available_error 1`),
+			zpoolOutput: zpool.NoPoolAvailable.String(),
+			expectedOutput: []string{
+				`openebs_zpool_list_no_pool_available_error 1`,
 			},
 		},
+		// incomplete stdout of zpool list command
 		"Test6": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a  1024    24  1000    -"),
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zpool_list_incomplete_stdout_error 1`),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a  1024    24  1000    -",
+			expectedOutput: []string{
+				`openebs_zpool_list_incomplete_stdout_error 1`,
 			},
 		},
-
+		// if there is an error while running zpool list command
 		"Test7": {
-			run: testRunner{
-				isError: true,
-			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zpool_command_error 1`),
+			isError: true,
+			expectedOutput: []string{
+				`openebs_zpool_list_command_error 1`,
 			},
 		},
+		// if there is unexpected response
 		"Test8": {
-			run: testRunner{
-				stdout: []byte("cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	iaueb7	aiwub	aliubv	-	0	iauwb	1.00 REMOVED	-"),
+			zpoolOutput: "cstor-5ce4639a-2dc1-11e9-bbe3-42010a80017a	iaueb7	aiwub	aliubv	-	0	iauwb	1.00 REMOVED	-",
+			expectedOutput: []string{
+				`openebs_zpool_list_parse_error_count 4`,
 			},
-			match: []*regexp.Regexp{
-				regexp.MustCompile(`openebs_zpool_list_parse_error_count 4`),
+		},
+		// if failed to initialize libuzfs client err
+		"Test9": {
+			zpoolOutput: zpool.InitializeLibuzfsClientErr.String(),
+			expectedOutput: []string{
+				`openebs_zpool_list_failed_to_initialize_libuzfs_client_error_counter 1`,
 			},
 		},
 	}
 
 	for name, tt := range cases {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
-			runner = tt.run
-			pool := New()
-			if err := prometheus.Register(pool); err != nil {
-				t.Fatalf("collector failed to register: %s", err)
+			if tt.isError {
+				runner = mock.StdoutBuilder().Error().Build()
+			} else {
+				out := tt.zpoolOutput
+				runner = mock.StdoutBuilder().WithOutput(out).Build()
 			}
-			defer prometheus.Unregister(pool)
-
-			server := httptest.NewServer(promhttp.Handler())
-			defer server.Close()
-
-			client := http.DefaultClient
-			client.Timeout = 5 * time.Second
-			resp, err := client.Get(server.URL)
-			if err != nil {
-				t.Fatalf("unexpected failed response from prometheus: %s", err)
-			}
-			defer resp.Body.Close()
-
-			buf, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				t.Fatalf("failed reading server response: %s", err)
-			}
-
-			for _, re := range tt.match {
+			// Build prometheus like output using regular expressions
+			out := tt.expectedOutput
+			regex := mockServer.BuildRegex(out)
+			pool := New(runner)
+			stop := make(chan struct{})
+			buf := mockServer.PrometheusService(pool, stop)
+			// expectedOutput the regex after parsing the expected output of zfs
+			// list command into prometheus's format.
+			for _, re := range regex {
 				if !re.Match(buf) {
 					fmt.Println(string(buf))
-					t.Errorf("failed matching: %q", re)
+					t.Errorf("failed expectedOutputing: %q", re)
 				}
 			}
-
-			for _, re := range tt.unmatch {
-				if !re.Match(buf) {
-					t.Errorf("failed unmatching: %q", re)
-				}
-			}
-		})
-	}
-}
-
-func TestGetInitStatus(t *testing.T) {
-	cases := map[string]struct {
-		run   testRunner
-		count int
-	}{
-		"Test0": {
-			run: testRunner{
-				stdout: []byte(`
-				pool: mypool
-				state: ONLINE
-				 scan: none requested
-			   config:
-
-				   NAME                                  STATE     READ WRITE CKSUM
-				   mypool                                ONLINE       0     0     0
-					 raidz1-0                            ONLINE       0     0     0
-					   /home/infinity/experiments/pool1  ONLINE       0     0     0
-					   /home/infinity/experiments/pool2  ONLINE       0     0     0
-					 raidz1-1                            ONLINE       0     0     0
-					   /home/infinity/experiments/pool3  ONLINE       0     0     0
-					   /home/infinity/experiments/pool4  ONLINE       0     0     0`),
-			},
-		},
-		"Test1": {
-			run: testRunner{
-				isError: true,
-			},
-			count: 3,
-		},
-		"Test2": {
-			run: testRunner{
-				isError: true,
-			},
-			count: 1,
-		},
-	}
-	for name, tt := range cases {
-		t.Run(name, func(t *testing.T) {
-			runner = tt.run
-			pool := New()
-			count = tt.count
-			pool.GetInitStatus(1 * time.Second)
+			mockServer.Unregister(pool)
+			stop <- struct{}{}
 		})
 	}
 }
