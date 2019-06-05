@@ -57,7 +57,7 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 
 			By("verifying healthy csp count")
 			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
-			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
+			Expect(cspCount).To(Equal(cstor.PoolCount), "while checking healthy cstorpool count")
 
 			By("building a CAS Config with generated SPC name")
 			CASConfig := strings.Replace(openebsCASConfigValue, "$spcName", spcObj.Name, 1)
@@ -82,11 +82,11 @@ var _ = Describe("[cstor] TEST VOLUME CLONE PROVISIONING", func() {
 		By("deleting resources created for cstor volume snapshot provisioning", func() {
 			By("deleting storagepoolclaim")
 			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting the spc's {%s}", spcName)
+			Expect(err).To(BeNil(), "while deleting the spc {%s}", spcObj.Name)
 
 			By("deleting storageclass")
 			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass", scName)
+			Expect(err).To(BeNil(), "while deleting storageclass", scObj.Name)
 
 		})
 	})
