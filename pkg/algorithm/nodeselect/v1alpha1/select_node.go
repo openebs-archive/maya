@@ -124,7 +124,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 	var diskCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
-	minRequiredDiskCount := DefaultDiskCount[ac.poolType()]
+	minRequiredDiskCount := blockdevice.DefaultDiskCount[ac.poolType()]
 	for node, val := range nodeBlockDeviceMap {
 		// If the current disk count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
