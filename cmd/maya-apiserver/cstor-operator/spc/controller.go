@@ -18,12 +18,14 @@ package spc
 
 import (
 	"fmt"
+
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	openebsScheme "github.com/openebs/maya/pkg/client/generated/clientset/versioned/scheme"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	listers "github.com/openebs/maya/pkg/client/generated/listers/openebs.io/v1alpha1"
+	ndmclientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -43,6 +45,9 @@ type Controller struct {
 
 	// clientset is a openebs custom resource package generated for custom API group.
 	clientset clientset.Interface
+
+	// ndmclientset is a ndm custom resource package generated for custom API group.
+	ndmclientset ndmclientset.Interface
 
 	spcLister listers.StoragePoolClaimLister
 
@@ -82,6 +87,12 @@ func (cb *ControllerBuilder) withKubeClient(ks kubernetes.Interface) *Controller
 // withOpenEBSClient fills openebs client to controller object.
 func (cb *ControllerBuilder) withOpenEBSClient(cs clientset.Interface) *ControllerBuilder {
 	cb.Controller.clientset = cs
+	return cb
+}
+
+// withNDMClient fills ndm client to controller object.
+func (cb *ControllerBuilder) withNDMClient(ndmcs ndmclientset.Interface) *ControllerBuilder {
+	cb.Controller.ndmclientset = ndmcs
 	return cb
 }
 

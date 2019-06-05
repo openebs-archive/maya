@@ -16,12 +16,14 @@ limitations under the License.
 package spc
 
 import (
+	"time"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
+	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"time"
 
 	"testing"
 )
@@ -127,7 +129,7 @@ func TestValidatePoolType(t *testing.T) {
 	}
 }
 
-func TestValidateDiskType(t *testing.T) {
+func TestValidateBlockDeviceType(t *testing.T) {
 	tests := map[string]struct {
 		spc           *apis.StoragePoolClaim
 		expectedError bool
@@ -141,7 +143,7 @@ func TestValidateDiskType(t *testing.T) {
 					Type: string(apis.TypeSparseCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"Disk pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -149,7 +151,18 @@ func TestValidateDiskType(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type: string(apis.TypeSparseCPV),
+					Type: string(apis.TypeDiskCPV),
+				},
+			},
+			expectedError: true,
+		},
+		"block device pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-2",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					Type: string(apis.TypeBlockDeviceCPV),
 				},
 			},
 			expectedError: false,
@@ -165,7 +178,7 @@ func TestValidateDiskType(t *testing.T) {
 			},
 			expectedError: true,
 		},
-		"Wrong pool type": {
+		"Invalid pool type": {
 			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pool-claim-1",
@@ -277,7 +290,7 @@ func TestValidateSpc(t *testing.T) {
 					PoolSpec: apis.CStorPoolAttr{
 						PoolType: string(apis.PoolTypeRaidz2CPV),
 					},
-					Type:     string(apis.TypeSparseCPV),
+					Type:     string(apis.TypeBlockDeviceCPV),
 					MaxPools: newInt(3),
 				},
 			},
@@ -292,13 +305,28 @@ func TestValidateSpc(t *testing.T) {
 					PoolSpec: apis.CStorPoolAttr{
 						PoolType: string(apis.PoolTypeRaidz2CPV),
 					},
-					Disks: apis.DiskAttr{
-						DiskList: []string{"disk-1"},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1"},
 					},
-					Type: string(apis.TypeSparseCPV),
+					Type: string(apis.TypeBlockDeviceCPV),
 				},
 			},
 			expectedError: false,
+		},
+		"InValid Auto SPC with invalid pool type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeRaidz2CPV),
+					},
+					Type:     string(apis.TypeSparseCPV),
+					MaxPools: newInt(3),
+				},
+			},
+			expectedError: true,
 		},
 	}
 
@@ -321,10 +349,12 @@ func TestValidateSpc(t *testing.T) {
 func TestCurrentPoolCount(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
+		withNDMClient(fakeNDMClient).
 		withspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
@@ -371,10 +401,12 @@ func TestCurrentPoolCount(t *testing.T) {
 func TestPendingPoolCount(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
+		withNDMClient(fakeNDMClient).
 		withspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
@@ -408,8 +440,8 @@ func TestPendingPoolCount(t *testing.T) {
 				},
 				Spec: apis.StoragePoolClaimSpec{
 					Type: string(apis.TypeSparseCPV),
-					Disks: apis.DiskAttr{
-						DiskList: []string{"disk-1"},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1"},
 					},
 				},
 			},
@@ -436,10 +468,12 @@ func TestPendingPoolCount(t *testing.T) {
 func TestIsPoolPending(t *testing.T) {
 	fakeKubeClient := fake.NewSimpleClientset()
 	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
 	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
 	controller, err := NewControllerBuilder().
 		withKubeClient(fakeKubeClient).
 		withOpenEBSClient(fakeOpenebsClient).
+		withNDMClient(fakeNDMClient).
 		withspcSynced(openebsInformerFactory).
 		withSpcLister(openebsInformerFactory).
 		withRecorder(fakeKubeClient).
@@ -460,7 +494,7 @@ func TestIsPoolPending(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type:     string(apis.TypeSparseCPV),
+					Type:     string(apis.TypeBlockDeviceCPV),
 					MaxPools: newInt(3),
 				},
 			},
@@ -472,9 +506,9 @@ func TestIsPoolPending(t *testing.T) {
 					Name: "test-pool-claim-1",
 				},
 				Spec: apis.StoragePoolClaimSpec{
-					Type: string(apis.TypeSparseCPV),
-					Disks: apis.DiskAttr{
-						DiskList: []string{"disk-1"},
+					Type: string(apis.TypeBlockDeviceCPV),
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1"},
 					},
 				},
 			},
@@ -531,8 +565,8 @@ func TestIsManualProvisioning(t *testing.T) {
 		"A manual spc Config": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{},
 					},
 				},
 			},
@@ -541,7 +575,7 @@ func TestIsManualProvisioning(t *testing.T) {
 		"Not a manual spc config": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{},
+					BlockDevices: apis.BlockDeviceAttr{},
 				},
 			},
 			manualProvisioning: false,
@@ -570,7 +604,7 @@ func TestIsAutoProvisioning(t *testing.T) {
 		"A auto spc Config #1": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{},
+					BlockDevices: apis.BlockDeviceAttr{},
 				},
 			},
 			autoProvisioning: true,
@@ -584,18 +618,28 @@ func TestIsAutoProvisioning(t *testing.T) {
 		"A auto spc Config #3": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{
-						DiskList: nil,
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: nil,
 					},
 				},
 			},
 			autoProvisioning: true,
 		},
-		"Not a auto spc config": {
+		"Not a auto spc config#1": {
 			spc: &apis.StoragePoolClaim{
 				Spec: apis.StoragePoolClaimSpec{
-					Disks: apis.DiskAttr{
-						DiskList: []string{},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{},
+					},
+				},
+			},
+			autoProvisioning: false,
+		},
+		"Not a auto spc config#2": {
+			spc: &apis.StoragePoolClaim{
+				Spec: apis.StoragePoolClaimSpec{
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice1"},
 					},
 				},
 			},

@@ -118,12 +118,12 @@ const (
 	// {{ .Storagepool.owner }}
 	OwnerCTP StoragePoolTLPProperty = "owner"
 
-	// DiskListCTP indicates the list of disks
-	DiskListCTP StoragePoolTLPProperty = "diskList"
-	// DiskDeviceListCTP indicates the list of device id of disks
+	// BlockDeviceListCTP indicates the list of block devices
+	BlockDeviceListCTP StoragePoolTLPProperty = "blockDeviceList"
+	// BlockDeviceIDListCTP indicates the list of device id of disks
 	// If device is is not present for a disk, it contians the device path.
-	DiskDeviceListCTP StoragePoolTLPProperty = "diskDeviceIdList"
-	// NOodeNameCTP is the name of node where cstorpool will be ceated
+	BlockDeviceIDListCTP StoragePoolTLPProperty = "blockDeviceIdList"
+	// NodeNameCTP is the name of node where cstorpool will be ceated
 	NodeNameCTP StoragePoolTLPProperty = "nodeName"
 	// PoolTypeCTP is the type of cstorpool that will be ceated
 	PoolTypeCTP StoragePoolTLPProperty = "poolType"

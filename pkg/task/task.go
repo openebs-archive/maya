@@ -490,8 +490,8 @@ func (m *executor) ExecuteIt() (err error) {
 		err = m.deleteAppsV1B1Deployment()
 	} else if m.MetaExec.isDeleteCoreV1Service() {
 		err = m.deleteCoreV1Service()
-	} else if m.MetaExec.isGetOEV1alpha1Disk() {
-		err = m.getOEV1alpha1Disk()
+	} else if m.MetaExec.isGetOEV1alpha1BlockDevice() {
+		err = m.getOEV1alpha1BlockDevice()
 	} else if m.MetaExec.isGetV1alpha1VolumeSnapshotData() {
 		err = m.getV1alpha1VolumeSnapshotData()
 	} else if m.MetaExec.isGetOEV1alpha1SPC() {
@@ -1177,8 +1177,8 @@ func (m *executor) deleteCoreV1Service() error {
 
 // getOEV1alpha1Disk() will get the Disk
 // as specified in the RunTask
-func (m *executor) getOEV1alpha1Disk() error {
-	disk, err := m.getK8sClient().GetOEV1alpha1DiskAsRaw(m.getTaskObjectName())
+func (m *executor) getOEV1alpha1BlockDevice() error {
+	disk, err := m.getK8sClient().GetOEV1alpha1BlockDeviceAsRaw(m.getTaskObjectName())
 	if err != nil {
 		return errors.Wrap(err, "failed to get disk")
 	}
@@ -1617,8 +1617,8 @@ func (m *executor) listK8sResources() (err error) {
 		op, err = kc.ListCoreV1PVCAsRaw(opts)
 	} else if m.MetaExec.isListCoreV1PV() {
 		op, err = kc.ListCoreV1PVAsRaw(opts)
-	} else if m.MetaExec.isListOEV1alpha1Disk() {
-		op, err = kc.ListOEV1alpha1DiskRaw(opts)
+	} else if m.MetaExec.isListOEV1alpha1BlockDevice() {
+		op, err = kc.ListOEV1alpha1BlockDeviceRaw(opts)
 	} else if m.MetaExec.isListOEV1alpha1SP() {
 		op, err = kc.ListOEV1alpha1SPRaw(opts)
 	} else if m.MetaExec.isListOEV1alpha1CSP() {
