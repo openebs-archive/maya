@@ -25,6 +25,7 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	zpool "github.com/openebs/maya/pkg/apis/openebs.io/zpool/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	"github.com/openebs/maya/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -260,5 +261,15 @@ func Init() {
 
 	// Making RunnerVar to use RealRunner
 	pool.RunnerVar = util.RealRunner{}
+
+	// Creating maps to store imported pool info
+	if pool.ImportedCStorPools == nil {
+		pool.ImportedCStorPools = map[string]*apis.CStorPool{}
+	}
+
+	if pool.CStorZpools == nil {
+		pool.CStorZpools = map[string]zpool.Topology{}
+	}
+
 	volumereplica.RunnerVar = util.RealRunner{}
 }

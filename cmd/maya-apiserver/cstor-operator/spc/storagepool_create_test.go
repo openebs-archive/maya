@@ -74,7 +74,7 @@ func FakeDiskCreator(dc *blockdevice.KubernetesClient) {
 				Name: "blockdevice" + diskIdentifier,
 				Labels: map[string]string{
 					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
-					key:                      diskLabel,
+					key: diskLabel,
 				},
 			},
 			Status: ndmapis.DeviceStatus{
@@ -123,7 +123,7 @@ func (focs *PoolCreateConfig) FakeDiskCreator() {
 				Name: "blockdevice" + diskIdentifier,
 				Labels: map[string]string{
 					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
-					key:                      diskLabel,
+					key: diskLabel,
 				},
 			},
 			Status: ndmapis.DeviceStatus{

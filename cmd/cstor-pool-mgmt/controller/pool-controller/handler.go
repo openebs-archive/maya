@@ -158,14 +158,6 @@ func (c *CStorPoolController) cStorPoolEventHandler(operation common.QueueOperat
 
 // cStorPoolAddEvent does import of pool, and, if it fails, attemps to create pool based on CSP CR state
 func (c *CStorPoolController) cStorPoolAddEvent(cStorPoolGot *apis.CStorPool) (string, error) {
-	if pool.ImportedCStorPools == nil {
-		pool.ImportedCStorPools = map[string]*apis.CStorPool{}
-	}
-
-	if pool.CStorZpools == nil {
-		pool.CStorZpools = map[string]zpool.Topology{}
-	}
-
 	devIDList, err := c.getDeviceIDs(cStorPoolGot)
 	if err != nil {
 		return string(apis.CStorPoolStatusOffline), errors.Wrapf(err, "failed to get device id of disks for csp %s", cStorPoolGot.Name)
