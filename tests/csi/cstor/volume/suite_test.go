@@ -19,7 +19,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openebs/maya/tests"
-	"github.com/openebs/maya/tests/artifacts"
 	"github.com/openebs/maya/tests/cstor"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
@@ -50,12 +49,11 @@ var (
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
 	targetLabel        = "openebs.io/target=cstor-target"
+	pvLabel            = "openebs.io/persistent-volume="
+	pvcLabel           = "openebs.io/persistent-volume-claim="
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
-	annotations        = map[string]string{
-		string(apis.CASTypeKey):   string(apis.CstorVolume),
-		string(apis.CASConfigKey): string(openebsCASConfigValue),
-	}
+	annotations        = map[string]string{}
 )
 
 func TestSource(t *testing.T) {
@@ -71,24 +69,8 @@ var ops *tests.Operations
 
 var _ = BeforeSuite(func() {
 
-	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath))
+	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath)).VerifyOpenebs(1)
 	var err error
-	By("waiting for maya-apiserver pod to come into running state")
-	podCount := ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.MayaAPIServerLabelSelector),
-		1,
-	)
-	Expect(podCount).To(Equal(1))
-
-	By("waiting for openebs-provisioner pod to come into running state")
-	podCount = ops.GetPodRunningCountEventually(
-		string(artifacts.OpenebsNamespace),
-		string(artifacts.OpenEBSProvisionerLabelSelector),
-		1,
-	)
-	Expect(podCount).To(Equal(1))
-
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
 		WithGenerateName(nsName).

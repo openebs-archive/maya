@@ -122,8 +122,9 @@ var _ = Describe("[cstor] [sparse] TEST VOLUME PROVISIONING", func() {
 			)
 
 			By("verifying target pod count as 1")
+			targetVolumeLabel := pvcLabel + pvcObj.Name
 			controllerPodCount := ops.GetPodRunningCountEventually(
-				openebsNamespace, targetLabel, 1)
+				openebsNamespace, targetVolumeLabel, 1)
 			Expect(controllerPodCount).To(Equal(1),
 				"while checking controller pod count")
 
