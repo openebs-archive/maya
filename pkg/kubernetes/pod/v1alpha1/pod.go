@@ -145,36 +145,26 @@ func (p *Pod) GetAPIObject() *corev1.Pod {
 
 // FromList created a PodList with provided api podlist
 func FromList(pods *corev1.PodList) *PodList {
-	pl := ListBuilderForAPIList(pods).List()
+	pl := ListBuilderForAPIList(pods).
+		List()
 	return pl
 }
 
-// GetNodeNames returns the nodes on which pods are running
-func (pl *PodList) GetNodeNames() []string {
-	nodeNames := []string{}
+// GetScheduledNodes returns the nodes on which pods are scheduled
+func (pl *PodList) GetScheduledNodes() map[string]int {
+	nodeNames := make(map[string]int)
 	for _, p := range pl.items {
-		nodeNames = append(
-			nodeNames,
-			p.object.Spec.NodeName,
-		)
+		p := p // pin it
+		nodeNames[p.object.Spec.NodeName]++
 	}
 	return nodeNames
 }
 
 // IsMatchNodeAny checks the PodList is running on the provided nodes
-func (pl *PodList) IsMatchNodeAny(nodes []string) bool {
-	var result bool
+func (pl *PodList) IsMatchNodeAny(nodes map[string]int) bool {
 	for _, p := range pl.items {
-		result = false
-		// for each pod in current podlist check whether it
-		// is scheduled on any previous node
-		for _, node := range nodes {
-			if p.object.Spec.NodeName == node {
-				result = true
-			}
-		}
-		// if not return false
-		if result == false {
+		p := p // pin it
+		if nodes[p.object.Spec.NodeName] == 0 {
 			return false
 		}
 	}

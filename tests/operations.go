@@ -266,31 +266,6 @@ func (ops *Operations) GetPodRunningCount(namespace, lselector string) int {
 		Len()
 }
 
-// GetPodCount gives number of pods currently
-func (ops *Operations) GetPodCount(namespace, lselector string) int {
-	pods, err := ops.PodClient.
-		WithNamespace(namespace).
-		List(metav1.ListOptions{LabelSelector: lselector})
-	Expect(err).ShouldNot(HaveOccurred())
-	return pod.
-		ListBuilderForAPIList(pods).
-		List().
-		Len()
-}
-
-// GetPodCountEventually gives the number of pods eventually
-func (ops *Operations) GetPodCountEventually(namespace, lselector string, expectedPodCount int) int {
-	var podCount int
-	for i := 0; i < maxRetry; i++ {
-		podCount = ops.GetPodCount(namespace, lselector)
-		if podCount == expectedPodCount {
-			return podCount
-		}
-		time.Sleep(5 * time.Second)
-	}
-	return podCount
-}
-
 // GetCVCount gives cstorvolume healthy count currently based on selecter
 func (ops *Operations) GetCVCount(namespace, lselector string) int {
 	cvs, err := ops.CVClient.
@@ -367,10 +342,7 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
 		if err != nil {
-			if isNotFound(err) {
-				return true
-			}
-			return false
+			return isNotFound(err)
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -387,6 +359,18 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 		return true
 	}
 	return false
+}
+
+// IsPodDeletedEventually checks if the pod is deleted or not eventually
+func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(podName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		60, 10).
+		Should(BeTrue())
 }
 
 // GetPVNameFromPVCName gives the pv name for the given pvc
