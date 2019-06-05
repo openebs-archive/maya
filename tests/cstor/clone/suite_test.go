@@ -14,9 +14,6 @@ limitations under the License.
 package clone
 
 import (
-	"strconv"
-	"strings"
-
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -44,16 +41,18 @@ var (
 - name: ReplicaCount
   value: $count
 - name: StoragePoolClaim
-  value: test-cstor-snap-sparse-pool
+  value: $spcName
 `
 	openebsProvisioner = "openebs.io/provisioner-iscsi"
-	spcName            = "test-cstor-snap-sparse-pool"
+	spcName            = "test-cstor-clone-sparse-pool"
 	nsObj              *corev1.Namespace
 	scObj              *storagev1.StorageClass
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
 	snapObj            *snapshot.VolumeSnapshot
 	targetLabel        = "openebs.io/target=cstor-target"
+	pvLabel            = "openebs.io/persistent-volume="
+	pvcLabel           = "openebs.io/persistent-volume-claim="
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
 	capacity           = "5G"
 	annotations        = map[string]string{}
@@ -76,26 +75,21 @@ var _ = BeforeSuite(func() {
 	ops = tests.NewOperations(tests.WithKubeConfigPath(cstor.KubeConfigPath)).VerifyOpenebs(1)
 	var err error
 
-	By("building a CAS Config")
-	CASConfig := strings.Replace(openebsCASConfigValue, "$count", strconv.Itoa(cstor.ReplicaCount), 1)
-	annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
-	annotations[string(apis.CASConfigKey)] = CASConfig
-
 	By("building a namespace")
 	nsObj, err = ns.NewBuilder().
-		WithName(nsName).
+		WithGenerateName(nsName).
 		APIObject()
 	Expect(err).ShouldNot(HaveOccurred(), "while building namespace {%s}", nsName)
 
 	By("creating a namespace")
-	_, err = ops.NSClient.Create(nsObj)
-	Expect(err).To(BeNil(), "while creating storageclass {%s}", nsObj.Name)
+	nsObj, err = ops.NSClient.Create(nsObj)
+	Expect(err).To(BeNil(), "while creating namespace {%s}", nsObj.Name)
 })
 
 var _ = AfterSuite(func() {
 
 	By("deleting namespace")
-	err := ops.NSClient.Delete(nsName, &metav1.DeleteOptions{})
+	err := ops.NSClient.Delete(nsObj.Name, &metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "while deleting namespace {%s}", nsObj.Name)
 
 })
