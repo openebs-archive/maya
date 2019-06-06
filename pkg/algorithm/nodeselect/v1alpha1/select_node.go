@@ -270,13 +270,18 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		} else {
 			//TODO: Use HasLabel Predicate for below check
 			bdcName = bdObj.Spec.ClaimRef.Name
-			if bdObj.Labels[string(apis.StoragePoolClaimCPK)] == "" {
-				err = bdcKubeclient.PatchBDCWithLabel(labels, bdcName)
+			bdcObj, err := bdcKubeclient.Get(bdcName, metav1.GetOptions{})
+			if err != nil {
+				glog.Infof("failed to get block device claim {%s}", bdcName)
+				continue
+			}
+			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] == "" {
+				err = bdcKubeclient.PatchBDCWithLabel(labels, bdcObj)
 				if err != nil {
 					glog.Errorf("failed to patch block device claim {%s}", bdcName)
 					continue
 				}
-			} else if bdObj.Labels[string(apis.StoragePoolClaimCPK)] != spc.Name {
+			} else if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] != spc.Name {
 				glog.Errorf("block device %s is already in use", bdName)
 				continue
 			}

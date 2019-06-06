@@ -231,7 +231,6 @@ func (k *Kubeclient) Create(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim,
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create bdc {%s} in namespace {%s}", bdc.Name, bdc.Namespace)
 	}
-	glog.Infof("[DEBUG] Create call of BDC: {%#v}", bdc)
 	return k.create(cli, k.namespace, bdc)
 }
 
@@ -270,20 +269,16 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 }
 
 // PatchBDCWithLabel patches the block device claim with provided labels
-func (k *Kubeclient) PatchBDCWithLabel(label map[string]string, bdcName string) error {
-	bdcObj, err := k.Get(bdcName, metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(err, "failed to get bdc {%s}", bdcName)
-	}
+func (k *Kubeclient) PatchBDCWithLabel(label map[string]string, bdcObj *apis.BlockDeviceClaim) error {
 	BuildObj, err := BuilderForAPIObject(bdcObj).
 		WithLabels(label).Build()
 	if err != nil {
-		return errors.Wrapf(err, "failed to build bdc {%s}", bdcName)
+		return errors.Wrapf(err, "failed to build bdc {%s}", bdcObj.Name)
 	}
 	bdcBytes, err := json.Marshal(BuildObj)
-	_, err = k.Patch(bdcName, types.MergePatchType, bdcBytes)
+	_, err = k.Patch(bdcObj.Name, types.MergePatchType, bdcBytes)
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch bdc {%s}", bdcName)
+		return errors.Wrapf(err, "failed to patch bdc {%s}", bdcObj.Name)
 	}
 	return nil
 }
