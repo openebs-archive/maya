@@ -342,10 +342,7 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
 		if err != nil {
-			if isNotFound(err) {
-				return true
-			}
-			return false
+			return isNotFound(err)
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -362,6 +359,18 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 		return true
 	}
 	return false
+}
+
+// IsPodDeletedEventually checks if the pod is deleted or not eventually
+func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(podName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		60, 10).
+		Should(BeTrue())
 }
 
 // GetPVNameFromPVCName gives the pv name for the given pvc
