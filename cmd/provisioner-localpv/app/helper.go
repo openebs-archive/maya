@@ -48,10 +48,15 @@ var (
 // to execute a command (cmdsForPath) on a given
 // volume path (path)
 type HelperPodOptions struct {
-	nodeName    string
-	name        string
+	//nodeName represents the host where pod should be launched.
+	nodeName string
+	//name is the name of the PV for which the pod is being launched
+	name string
+	//cmdsForPath represent either create (mkdir) or delete(rm)
+	//commands that need to be executed on the volume path.
 	cmdsForPath []string
-	path        string
+	//path is the volume hostpath directory
+	path string
 }
 
 // validate checks that the required fields to launch

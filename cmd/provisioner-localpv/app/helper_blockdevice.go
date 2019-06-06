@@ -96,18 +96,20 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return err
 	}
 
-	if blkDevOpts.hasBDC() {
-		//already created
-		glog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, blkDevOpts.bdcName)
-		return nil
-	}
+	//if blkDevOpts.hasBDC() {
+	//	//already created
+	//	glog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, blkDevOpts.bdcName)
+	//	return nil
+	//}
 
-	//Setup the BDC Name using the provided PV name.
-	//To help easily co-relate, the name format for bdc will
-	//be  "bdc-<pvname>"
+	//Create a BDC for this PV (of type device). NDM will
+	//look for the device matching the capacity and node on which
+	//pod is being scheduled. Since this BDC is specific to a PV
+	//use the name of the bdc to be:  "bdc-<pvname>"
+	//TODO: Look into setting the labels and owner references
+	//on BDC with PV/PVC details.
 	bdcName := "bdc-" + blkDevOpts.name
 
-	//TODO: Create BDC
 	bdcObj, err := blockdeviceclaim.NewBuilder().
 		WithNamespace(p.namespace).
 		WithName(bdcName).
@@ -117,10 +119,9 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 	if err != nil {
 		//TODO : Need to relook at this error
-		return errors.Errorf("unable to build BDC for pvc %v", blkDevOpts.name)
+		return errors.Wrapf(err, "unable to build BDC")
 	}
 
-	glog.Infof("Creating Block Device Claim using KubeClient")
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
 		Create(bdcObj.Object)
@@ -128,7 +129,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	if err != nil {
 		//TODO : Need to relook at this error
 		//If the error is about BDC being already present, then return nil
-		return errors.Errorf("unable to save BDC for pvc %v", blkDevOpts.name)
+		return errors.Wrapf(err, "failed to create BDC{%v}", blkDevOpts.name)
 	}
 
 	blkDevOpts.bdcName = bdcName
