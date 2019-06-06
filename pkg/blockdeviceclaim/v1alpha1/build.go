@@ -66,7 +66,7 @@ func (b *Builder) Build() (*BlockDeviceClaim, error) {
 	return b.BDC, nil
 }
 
-// WithName sets the Name field of PVC with provided value.
+// WithName sets the Name field of BDC with provided value.
 func (b *Builder) WithName(name string) *Builder {
 	if len(name) == 0 {
 		b.errs = append(
@@ -79,7 +79,7 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
-// WithNamespace sets the Namespace field of PVC provided arguments
+// WithNamespace sets the Namespace field of BDC provided arguments
 func (b *Builder) WithNamespace(namespace string) *Builder {
 	if len(namespace) == 0 {
 		b.errs = append(
@@ -92,7 +92,24 @@ func (b *Builder) WithNamespace(namespace string) *Builder {
 	return b
 }
 
-// WithAnnotations sets the Annotations field of PVC with provided arguments
+// WithAnnotationsNew sets the Annotations field of BDC with provided arguments
+func (b *Builder) WithAnnotationsNew(annotations map[string]string) *Builder {
+	if len(annotations) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing annotations"),
+		)
+		return b
+	}
+	b.BDC.Object.Annotations = make(map[string]string)
+	for key, value := range annotations {
+		b.BDC.Object.Annotations[key] = value
+	}
+	return b
+}
+
+// WithAnnotations appends or overwrites existing Annotations
+// values of BDC with provided arguments
 func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	if len(annotations) == 0 {
 		b.errs = append(
@@ -102,7 +119,7 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		return b
 	}
 	if b.BDC.Object.Annotations == nil {
-		b.BDC.Object.Annotations = make(map[string]string)
+		return b.WithAnnotationsNew(annotations)
 	}
 	for key, value := range annotations {
 		b.BDC.Object.Annotations[key] = value
@@ -110,7 +127,24 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 	return b
 }
 
-// WithLabels sets the Labels field of PVC with provided arguments
+// WithLabelsNew sets the Labels field of BDC with provided arguments
+func (b *Builder) WithLabelsNew(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: missing labels"),
+		)
+		return b
+	}
+	b.BDC.Object.Labels = make(map[string]string)
+	for key, value := range labels {
+		b.BDC.Object.Labels[key] = value
+	}
+	return b
+}
+
+// WithLabels appends or overwrites existing Labels
+// values of BDC with provided arguments
 func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errs = append(
