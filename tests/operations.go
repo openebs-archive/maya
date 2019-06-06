@@ -312,6 +312,20 @@ func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
 		Should(BeTrue())
 }
 
+// IsPodRunningEventually checks if the pvc is bound or not eventually
+func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
+	return Eventually(func() bool {
+		p, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(podName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pod.NewForAPIObject(p).
+			IsRunning()
+	},
+		150, 10).
+		Should(BeTrue())
+}
+
 // GetSnapshotTypeEventually returns type of snapshot eventually
 func (ops *Operations) GetSnapshotTypeEventually(snapName string) string {
 	var snaptype string
