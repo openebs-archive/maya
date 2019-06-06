@@ -38,6 +38,24 @@ provisioner: openebs.io/local
 volumeBindingMode: WaitForFirstConsumer
 reclaimPolicy: Delete
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-device
+  annotations:
+    #Define a new CAS Type called "local"
+    #which indicates that Data is stored 
+    #directly onto hostpath. The hostpath can be:
+    #- device (as block or mounted path)
+    #- hostpath (sub directory on OS or mounted path)
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "device"
+provisioner: openebs.io/local
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+---
 `
 
 // LocalPVArtifacts returns the default Local PV storage
