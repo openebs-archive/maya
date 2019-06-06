@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"time"
 
-	"github.com/golang/glog"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
@@ -35,12 +34,14 @@ var (
 	waitTime   = 5 * time.Second
 )
 
+// ClaimedBDDetils holds the claimed block device details
 type ClaimedBDDetails struct {
 	DeviceID string
 	BDName   string
-	BDCName  string
 }
 
+// NodeClaimedBDDetails holds the node name and
+// claimed block device deatils corresponding to node
 type NodeClaimedBDDetails struct {
 	NodeName        string
 	BlockDeviceList []ClaimedBDDetails
@@ -216,26 +217,41 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 //TODO: Make changes in below code befor PR checked in
 // 1) Use Builder Pattern or some approach to present below code
 // 2) Refactor the below code before removing WIP
+
 // ClaimBlockDevice will create BDC for corresponding BD
-func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) *NodeClaimedBDDetails {
+func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) (*NodeClaimedBDDetails, error) {
 	nodeClaimedBDs := &NodeClaimedBDDetails{
 		NodeName:        "",
 		BlockDeviceList: []ClaimedBDDetails{},
 	}
+
 	namespace := env.Get(env.OpenEBSNamespace)
 	bdcKubeclient := bdc.NewKubeClient().
 		WithNamespace(namespace)
 	labels := map[string]string{string(apis.StoragePoolClaimCPK): spc.Name}
+	nodeClaimedBDs.NodeName = nodeBDs.NodeName
+
 	for _, bdName := range nodeBDs.BlockDevices.Items {
 		var hostName, bdcName string
 		claimedBD := ClaimedBDDetails{}
+
 		bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
 		if err != nil {
-			glog.Errorf("falied to get block device {%s} object ERR: {%v}", bdName, err)
-			continue
+			return nil, errors.Wrapf(err, "failed to get block device {%s}", bdName)
 		}
 		hostName = bdObj.Labels[string(apis.HostNameCPK)]
-		if !bdObj.IsClaimed() {
+
+		if bdObj.IsClaimed() {
+			//TODO: Use HasLabel Predicate for below check
+			bdcName = bdObj.Spec.ClaimRef.Name
+			bdcObj, err := bdcKubeclient.Get(bdcName, metav1.GetOptions{})
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get block device claim{%s}", bdcName)
+			}
+			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] != spc.Name {
+				return nil, errors.Errorf("block device %s is already in use", bdName)
+			}
+		} else {
 			bdcName = "bdc-" + string(bdObj.UID)
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
 			//TODO: Move below code to some function
@@ -247,64 +263,33 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithHostName(hostName).
 				WithCapacity(capacity).Build()
 			if err != nil {
-				glog.Errorf("failed to build block device claim for bd: {%s} ERR: {%v}", bdName, err)
-				continue
+				return nil, errors.Wrapf(err, "failed to build blockd device claim for bd {%s}", bdName)
 			}
+
 			_, err = bdcKubeclient.Create(bdcObj.Object)
 			if err != nil {
-				glog.Errorf("failed to create block device claim for bdc: {%s} ERR: {%v}", bdName, err)
-				continue
+				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
+
 			isClaimed, err := ac.waitForClaimedStatus(bdName)
 			if err != nil {
 				//TODO: Handle these things from review suggesstions
 				_ = bdcKubeclient.Delete(bdcName, &metav1.DeleteOptions{})
-				glog.Errorf("failed to claim block device bd: {%s} ERR: {%v}", bdName, err)
-				continue
+				return nil, errors.Wrapf(err, "failed to claim block device bd {%s}", bdName)
 			}
 			if !isClaimed {
-				glog.Errorf("Not able to claim the Block Device: %s", bdName)
 				_ = bdcKubeclient.Delete(bdcName, &metav1.DeleteOptions{})
-				continue
-			}
-		} else {
-			//TODO: Use HasLabel Predicate for below check
-			bdcName = bdObj.Spec.ClaimRef.Name
-			bdcObj, err := bdcKubeclient.Get(bdcName, metav1.GetOptions{})
-			if err != nil {
-				glog.Infof("failed to get block device claim {%s}", bdcName)
-				continue
-			}
-			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] == "" {
-				err = bdcKubeclient.PatchBDCWithLabel(labels, bdcObj)
-				if err != nil {
-					glog.Errorf("failed to patch block device claim {%s}", bdcName)
-					continue
-				}
-			} else if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] != spc.Name {
-				glog.Errorf("block device %s is already in use", bdName)
-				continue
+				return nil, errors.Wrapf(err, "failed to claim block device: %s", bdName)
 			}
 		}
 		claimedBD.DeviceID = bdObj.GetDeviceID()
 		claimedBD.BDName = bdObj.Name
-		claimedBD.BDCName = bdcName
-		nodeClaimedBDs.NodeName = hostName
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
-
-	selectedNodeBDs := ac.selectBlockDevices(nodeClaimedBDs)
-	totalCount := len(nodeClaimedBDs.BlockDeviceList)
-	diffCount := totalCount - len(selectedNodeBDs.BlockDeviceList)
-	bdcNameList := []string{}
-	for i := 1; i <= diffCount; i++ {
-		bdcNameList = append(bdcNameList, nodeClaimedBDs.BlockDeviceList[totalCount-i].BDCName)
-	}
-	_ = bdcKubeclient.DeleteMultipleBDCs(bdcNameList)
-	return selectedNodeBDs
+	return nodeClaimedBDs, nil
 }
 
-// waitForClaimStatus will
+// waitForClaimStatus return the claim status of block device
 func (ac *Config) waitForClaimedStatus(bdName string) (bool, error) {
 	for i := 0; i < retryCount; i++ {
 		bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
@@ -317,29 +302,4 @@ func (ac *Config) waitForClaimedStatus(bdName string) (bool, error) {
 		time.Sleep(waitTime)
 	}
 	return false, nil
-}
-
-func (ac *Config) selectBlockDevices(nodeClaimedBDs *NodeClaimedBDDetails) *NodeClaimedBDDetails {
-	var BDCount int
-	qualifiedNodeBDs := &NodeClaimedBDDetails{
-		NodeName:        nodeClaimedBDs.NodeName,
-		BlockDeviceList: []ClaimedBDDetails{},
-	}
-	minRequiredBDCount := blockdevice.DefaultDiskCount[ac.poolType()]
-	currentBDCount := len(nodeClaimedBDs.BlockDeviceList)
-	BDCount = minRequiredBDCount
-
-	if len(nodeClaimedBDs.BlockDeviceList) < minRequiredBDCount {
-		return qualifiedNodeBDs
-	}
-	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
-		BDCount = (currentBDCount / minRequiredBDCount) * minRequiredBDCount
-	}
-	for i := 0; i < BDCount; i++ {
-		BDDetails := ClaimedBDDetails{}
-		BDDetails.DeviceID = nodeClaimedBDs.BlockDeviceList[i].DeviceID
-		BDDetails.BDName = nodeClaimedBDs.BlockDeviceList[i].BDName
-		qualifiedNodeBDs.BlockDeviceList = append(qualifiedNodeBDs.BlockDeviceList, BDDetails)
-	}
-	return qualifiedNodeBDs
 }

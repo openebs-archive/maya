@@ -164,9 +164,9 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
 
-	claimedNodeBDs := pc.ClaimBlockDevice(nodeBDs, spc)
-	if len(claimedNodeBDs.BlockDeviceList) == 0 {
-		return nil, errors.New("aborting storagepool create operation as no claimed block devices")
+	claimedNodeBDs, err := pc.ClaimBlockDevice(nodeBDs, spc)
+	if claimedNodeBDs == nil || len(claimedNodeBDs.BlockDeviceList) == 0 {
+		return nil, errors.Wrapf(err, "aborting storagepool create operation as no claimed block devices available")
 	}
 
 	// Fill the node name to the CasPool object.

@@ -21,11 +21,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/golang/glog"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
-
-	"encoding/json"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
@@ -266,33 +263,4 @@ func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subreso
 		return nil, errors.Wrapf(err, "failed to patch bdc: {%s}", name)
 	}
 	return k.patch(cli, k.namespace, name, pt, data, subresources...)
-}
-
-// PatchBDCWithLabel patches the block device claim with provided labels
-func (k *Kubeclient) PatchBDCWithLabel(label map[string]string, bdcObj *apis.BlockDeviceClaim) error {
-	BuildObj, err := BuilderForAPIObject(bdcObj).
-		WithLabels(label).Build()
-	if err != nil {
-		return errors.Wrapf(err, "failed to build bdc {%s}", bdcObj.Name)
-	}
-	bdcBytes, err := json.Marshal(BuildObj)
-	_, err = k.Patch(bdcObj.Name, types.MergePatchType, bdcBytes)
-	if err != nil {
-		return errors.Wrapf(err, "failed to patch bdc {%s}", bdcObj.Name)
-	}
-	return nil
-}
-
-// DeleteMultiPleBDCs deletes list of block device claim
-func (k *Kubeclient) DeleteMultipleBDCs(bdcList []string) error {
-	if bdcList == nil && len(bdcList) == 0 {
-		return nil
-	}
-	for _, bdcName := range bdcList {
-		err := k.Delete(bdcName, &metav1.DeleteOptions{})
-		if err != nil {
-			glog.Errorf("failed to delete BDC {%s} in namespace {%s}", bdcName, k.namespace)
-		}
-	}
-	return nil
 }
