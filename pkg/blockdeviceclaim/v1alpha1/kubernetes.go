@@ -21,11 +21,15 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/golang/glog"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 
+	"encoding/json"
+
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 //TODO: While using these packages UnitTest must be written to corresponding function
@@ -58,6 +62,10 @@ type deleteFn func(cli *clientset.Clientset, namespace string, name string, dele
 // deletion of bdc's collection
 type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
+// patchFn is a typed function that abstracts
+// to patch block device claim
+type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -76,6 +84,7 @@ type Kubeclient struct {
 	create              createFn
 	del                 deleteFn
 	delCollection       deleteCollectionFn
+	patch               patchFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -127,6 +136,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.delCollection == nil {
 		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).DeleteCollection(deleteOpts, listOpts)
+		}
+	}
+	if k.patch == nil {
+		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Patch(name, pt, data, subresources...)
 		}
 	}
 }
@@ -217,6 +231,7 @@ func (k *Kubeclient) Create(bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim,
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create bdc {%s} in namespace {%s}", bdc.Name, bdc.Namespace)
 	}
+	glog.Infof("[DEBUG] Create call of BDC: {%#v}", bdc)
 	return k.create(cli, k.namespace, bdc)
 }
 
@@ -240,4 +255,49 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 		return errors.Wrapf(err, "failed to delete bdc {%s} in namespace {%s}", name, k.namespace)
 	}
 	return k.del(cli, k.namespace, name, deleteOpts)
+}
+
+// Patch patches the block device claim if present in kubernetes cluster
+func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+	if len(name) == 0 {
+		return nil, errors.New("failed to patch block device claim: missing bdc name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch bdc: {%s}", name)
+	}
+	return k.patch(cli, k.namespace, name, pt, data, subresources...)
+}
+
+// PatchBDCWithLabel patches the block device claim with provided labels
+func (k *Kubeclient) PatchBDCWithLabel(label map[string]string, bdcName string) error {
+	bdcObj, err := k.Get(bdcName, metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get bdc {%s}", bdcName)
+	}
+	BuildObj, err := BuilderForAPIObject(bdcObj).
+		WithLabels(label).Build()
+	if err != nil {
+		return errors.Wrapf(err, "failed to build bdc {%s}", bdcName)
+	}
+	bdcBytes, err := json.Marshal(BuildObj)
+	_, err = k.Patch(bdcName, types.MergePatchType, bdcBytes)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch bdc {%s}", bdcName)
+	}
+	return nil
+}
+
+// DeleteMultiPleBDCs deletes list of block device claim
+func (k *Kubeclient) DeleteMultipleBDCs(bdcList []string) error {
+	if bdcList == nil && len(bdcList) == 0 {
+		return nil
+	}
+	for _, bdcName := range bdcList {
+		err := k.Delete(bdcName, &metav1.DeleteOptions{})
+		if err != nil {
+			glog.Errorf("failed to delete BDC {%s} in namespace {%s}", bdcName, k.namespace)
+		}
+	}
+	return nil
 }

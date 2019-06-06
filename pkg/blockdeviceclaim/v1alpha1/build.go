@@ -154,7 +154,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		return b
 	}
 	if b.BDC.Object.Labels == nil {
-		b.BDC.Object.Labels = make(map[string]string)
+		return b.WithLabelsNew(labels)
 	}
 	for key, value := range labels {
 		b.BDC.Object.Labels[key] = value

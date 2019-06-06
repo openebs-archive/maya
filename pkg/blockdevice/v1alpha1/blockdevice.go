@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/golang/glog"
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -248,4 +249,39 @@ func (bdl *BlockDeviceList) Hasitems() (string, bool) {
 		return "No item found in blockdevice list", false
 	}
 	return "", true
+}
+
+// IsClaimed returns true if block device is claimed
+func (bd *BlockDevice) IsClaimed() bool {
+	glog.Infof("[DEBUG] Status of BD: %s", bd.Status.ClaimState)
+	return bd.Status.ClaimState == ndm.BlockDeviceClaimed
+}
+
+// GetDeviceID returns the device link of the block device.
+// If device link is not found it returns device path.
+// For a cstor pool creation -- this link or path is used.
+// For convenience, we call it as device ID.
+// Hence, device ID can either be a  device link or device path
+// depending on what was available in block device cr.
+func (bd *BlockDevice) GetDeviceID() string {
+	deviceID := bd.GetLink()
+	if deviceID != "" {
+		return deviceID
+	}
+	return bd.GetPath()
+}
+
+// GetLink returns the link of the block device
+// if present else return empty string
+func (bd *BlockDevice) GetLink() string {
+	if len(bd.Spec.DevLinks) != 0 &&
+		len(bd.Spec.DevLinks[0].Links) != 0 {
+		return bd.Spec.DevLinks[0].Links[0]
+	}
+	return ""
+}
+
+// GetPath returns path of the block device
+func (bd *BlockDevice) GetPath() string {
+	return bd.Spec.Path
 }
