@@ -5,7 +5,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: openebs-hostdevice
+  storageClassName: openebs-device
   resources:
     requests:
       storage: 2Gi
