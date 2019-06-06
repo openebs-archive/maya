@@ -25,7 +25,7 @@ import (
 	//"strings"
 	"time"
 
-	//"github.com/golang/glog"
+	"github.com/golang/glog"
 	//"github.com/pkg/errors"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 
@@ -64,6 +64,7 @@ type HelperBlockDeviceOptions struct {
 // validate checks that the required fields to create BDC
 // are available
 func (blkDevOpts *HelperBlockDeviceOptions) validate() error {
+	glog.Infof("Validate Block Device Options")
 	if blkDevOpts.name == "" || blkDevOpts.nodeName == "" {
 		return errors.Errorf("invalid empty name or node")
 	}
@@ -72,12 +73,14 @@ func (blkDevOpts *HelperBlockDeviceOptions) validate() error {
 
 // hasBDC checks if the bdcName has already been determined
 func (blkDevOpts *HelperBlockDeviceOptions) hasBDC() bool {
+	glog.Infof("Already has BDC %t", blkDevOpts.bdcName != "")
 	return blkDevOpts.bdcName != ""
 }
 
 // getBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
 //  with the Local PV.
 func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) error {
+	glog.Infof("Setting Block Device Claim From PV")
 	bdc, found := pv.Annotations[bdcStorageClassAnnotation]
 	if found {
 		blkDevOpts.bdcName = bdc
@@ -88,19 +91,21 @@ func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
 //  Local PV
 func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
+	glog.Infof("Creating Block Device Claim")
 	if err := blkDevOpts.validate(); err != nil {
 		return err
 	}
 
 	if blkDevOpts.hasBDC() {
 		//already created
+		glog.Infof("Volume %v has been initialized with BDC:%v", blkDevOpts.name, blkDevOpts.bdcName)
 		return nil
 	}
 
 	//Setup the BDC Name using the provided PV name.
 	//To help easily co-relate, the name format for bdc will
 	//be  "bdc-<pvname>"
-	bdcName := "bdc" + blkDevOpts.name
+	bdcName := "bdc-" + blkDevOpts.name
 
 	//TODO: Create BDC
 	bdcObj, err := blockdeviceclaim.NewBuilder().
@@ -115,6 +120,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return errors.Errorf("unable to build BDC for pvc %v", blkDevOpts.name)
 	}
 
+	glog.Infof("Creating Block Device Claim using KubeClient")
 	_, err = blockdeviceclaim.NewKubeClient().
 		WithNamespace(p.namespace).
 		Create(bdcObj.Object)
@@ -134,6 +140,7 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 // or creates one. From the BDC, fetch the BD and get the path
 func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (string, string, error) {
 
+	glog.Infof("Getting Block Device Path")
 	if !blkDevOpts.hasBDC() {
 		err := p.createBlockDeviceClaim(blkDevOpts)
 		if err != nil {
@@ -142,6 +149,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 	}
 
 	//TODO
+	glog.Infof("Getting Block Device Path from BDC %v", blkDevOpts.bdcName)
 	bdName := ""
 	//Check if the BDC is created
 	for i := 0; i < WaitForBDTimeoutCounts; i++ {
@@ -152,7 +160,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 		if err != nil {
 			//TODO : Need to relook at this error
 			//If the error is about BDC being already present, then return nil
-			return "", "", errors.Errorf("unable to get BDC %v associated with PV:%v", blkDevOpts.bdcName, blkDevOpts.name)
+			return "", "", errors.Errorf("unable to get BDC %v associated with PV:%v %v", blkDevOpts.bdcName, blkDevOpts.name, err)
 		}
 
 		bdName = bdc.Spec.BlockDeviceName
@@ -187,6 +195,7 @@ func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
 //  PV being deleted.
 func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOptions) error {
+	glog.Infof("Delete Block Device Claim")
 	if !blkDevOpts.hasBDC() {
 		return nil
 	}
