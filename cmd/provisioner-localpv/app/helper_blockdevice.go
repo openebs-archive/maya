@@ -47,7 +47,8 @@ const (
 
 //TODO
 var (
-	//CmdTimeoutCounts specifies the duration to wait for cleanup pod to be launched.
+	//WaitForBDTimeoutCounts specifies the duration to wait for BDC to be associated with a BD
+	//The duration is the value specified here multiplied by 5
 	WaitForBDTimeoutCounts = 12
 )
 
