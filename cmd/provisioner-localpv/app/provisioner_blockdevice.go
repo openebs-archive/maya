@@ -104,12 +104,11 @@ func (p *Provisioner) DeleteBlockDevice(pv *v1.PersistentVolume) (err error) {
 	}
 
 	//Determine if a BDC is set on the PV and save it to BlockDeviceOptions
-	err = blkDevOpts.setBlockDeviceClaimFromPV(pv)
-	if err != nil {
-		return err
-	}
+	blkDevOpts.setBlockDeviceClaimFromPV(pv)
 
 	//Initiate clean up only when reclaim policy is not retain.
+	//TODO: this part of the code could be eliminated by setting up
+	// BDC owner reference to PVC.
 	glog.Infof("Release the Block Device Claim %v for PV %v", blkDevOpts.bdcName, pv.Name)
 
 	if err := p.deleteBlockDeviceClaim(blkDevOpts); err != nil {

@@ -78,15 +78,14 @@ func (blkDevOpts *HelperBlockDeviceOptions) hasBDC() bool {
 	return blkDevOpts.bdcName != ""
 }
 
-// getBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
+// setBlcokDeviceClaimFromPV inspects the PV and fetches the BDC associated
 //  with the Local PV.
-func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) error {
+func (blkDevOpts *HelperBlockDeviceOptions) setBlockDeviceClaimFromPV(pv *corev1.PersistentVolume) {
 	glog.Infof("Setting Block Device Claim From PV")
 	bdc, found := pv.Annotations[bdcStorageClassAnnotation]
 	if found {
 		blkDevOpts.bdcName = bdc
 	}
-	return nil
 }
 
 // createBlockDeviceClaim creates a new BlockDeviceClaim for a given
