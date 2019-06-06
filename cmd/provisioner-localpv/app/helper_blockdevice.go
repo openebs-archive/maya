@@ -34,7 +34,10 @@ import (
 	//container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	//pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	//volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
+	//blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	//ndmv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -89,14 +92,40 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 		return err
 	}
 
-	if !blkDevOpts.hasBDC() {
-		//Setup the BDC Name using the provided PV name.
-		//To help easily co-relate, the name format for bdc will
-		//be  "bdc-<pvname>"
-		blkDevOpts.bdcName = "bdc" + blkDevOpts.name
+	if blkDevOpts.hasBDC() {
+		//already created
+		return nil
 	}
 
+	//Setup the BDC Name using the provided PV name.
+	//To help easily co-relate, the name format for bdc will
+	//be  "bdc-<pvname>"
+	bdcName := "bdc" + blkDevOpts.name
+
 	//TODO: Create BDC
+	bdcObj, err := blockdeviceclaim.NewBuilder().
+		WithNamespace(p.namespace).
+		WithName(bdcName).
+		WithHostName(blkDevOpts.nodeName).
+		WithCapacity(blkDevOpts.capacity).
+		Build()
+
+	if err != nil {
+		//TODO : Need to relook at this error
+		return errors.Errorf("unable to build BDC for pvc %v", blkDevOpts.name)
+	}
+
+	_, err = blockdeviceclaim.NewKubeClient().
+		WithNamespace(p.namespace).
+		Create(bdcObj.Object)
+
+	if err != nil {
+		//TODO : Need to relook at this error
+		//If the error is about BDC being already present, then return nil
+		return errors.Errorf("unable to save BDC for pvc %v", blkDevOpts.name)
+	}
+
+	blkDevOpts.bdcName = bdcName
 
 	return nil
 }
