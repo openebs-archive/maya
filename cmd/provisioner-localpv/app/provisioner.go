@@ -120,10 +120,6 @@ func (p *Provisioner) Provision(opts pvController.VolumeOptions) (*v1.Persistent
 		return p.ProvisionBlockDevice(opts, pvCASConfig)
 	}
 
-	if stgType == "device" {
-		return p.ProvisionBlockDevice(opts, pvCASConfig)
-	}
-
 	return nil, fmt.Errorf("PV with StorageType %v is not supported", stgType)
 }
 
