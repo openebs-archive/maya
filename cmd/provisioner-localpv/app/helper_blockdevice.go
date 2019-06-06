@@ -23,7 +23,7 @@ import (
 	//"fmt"
 	//"path/filepath"
 	//"strings"
-	//"time"
+	"time"
 
 	//"github.com/golang/glog"
 	//"github.com/pkg/errors"
@@ -34,11 +34,11 @@ import (
 	//container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	//pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	//volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
-	//blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	blockdeviceclaim "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	//ndmv1alpha1 "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -46,10 +46,10 @@ const (
 )
 
 //TODO
-//var (
-//CmdTimeoutCounts specifies the duration to wait for cleanup pod to be launched.
-//CmdTimeoutCounts = 120
-//)
+var (
+	//CmdTimeoutCounts specifies the duration to wait for cleanup pod to be launched.
+	WaitForBDTimeoutCounts = 12
+)
 
 // HelperBlockDeviceOptions contains the options that
 // will launch a BDC on a specific node (nodeName)
@@ -132,22 +132,56 @@ func (p *Provisioner) createBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 
 // getBlockDevicePath fetches the BDC associated with this Local PV
 // or creates one. From the BDC, fetch the BD and get the path
-func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (string, error) {
+func (p *Provisioner) getBlockDevicePath(blkDevOpts *HelperBlockDeviceOptions) (string, string, error) {
 
 	if !blkDevOpts.hasBDC() {
 		err := p.createBlockDeviceClaim(blkDevOpts)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 
 	//TODO
-	path := ""
+	bdName := ""
 	//Check if the BDC is created
-	//Check if the BDC is associated with a BD
-	//Get the BD Path.
+	for i := 0; i < WaitForBDTimeoutCounts; i++ {
 
-	return path, nil
+		bdc, err := blockdeviceclaim.NewKubeClient().
+			WithNamespace(p.namespace).
+			Get(blkDevOpts.bdcName, metav1.GetOptions{})
+		if err != nil {
+			//TODO : Need to relook at this error
+			//If the error is about BDC being already present, then return nil
+			return "", "", errors.Errorf("unable to get BDC %v associated with PV:%v", blkDevOpts.bdcName, blkDevOpts.name)
+		}
+
+		bdName = bdc.Spec.BlockDeviceName
+		//Check if the BDC is associated with a BD
+		if bdName == "" {
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
+	}
+
+	//Get the BD Path.
+	bd, err := blockdevice.NewKubeClient().
+		WithNamespace(p.namespace).
+		Get(bdName, metav1.GetOptions{})
+	if err != nil {
+		//TODO : Need to relook at this error
+		//If the error is about BDC being already present, then return nil
+		return "", "", errors.Errorf("unable to find BD:%v for BDC:%v associated with PV:%v", bdName, blkDevOpts.bdcName, blkDevOpts.name)
+	}
+
+	path := bd.Spec.FileSystem.Mountpoint
+	blkPath := bd.Spec.Path
+	if len(bd.Spec.DevLinks) > 0 {
+		//TODO : Iterate and get the first path by id.
+		blkPath = bd.Spec.DevLinks[0].Links[0]
+	}
+
+	return path, blkPath, nil
 }
 
 // deleteBlockDeviceClaim deletes the BlockDeviceClaim associated with the
@@ -158,6 +192,13 @@ func (p *Provisioner) deleteBlockDeviceClaim(blkDevOpts *HelperBlockDeviceOption
 	}
 
 	//TODO: Issue a delete BDC request
+	err := blockdeviceclaim.NewKubeClient().
+		WithNamespace(p.namespace).
+		Delete(blkDevOpts.bdcName, &metav1.DeleteOptions{})
 
+	if err != nil {
+		//TODO : Need to relook at this error
+		return errors.Errorf("unable to delete BDC %v associated with PV:%v", blkDevOpts.bdcName, blkDevOpts.name)
+	}
 	return nil
 }

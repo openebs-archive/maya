@@ -36,8 +36,6 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 	capacity := opts.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	stgType := volumeConfig.GetStorageType()
 
-	glog.Infof("Creating volume %v at %v", name, node.Name)
-
 	//Extract the details to create a Block Device Claim
 	blkDevOpts := &HelperBlockDeviceOptions{
 		nodeName: node.Name,
@@ -45,11 +43,13 @@ func (p *Provisioner) ProvisionBlockDevice(opts pvController.VolumeOptions, volu
 		capacity: capacity.String(),
 	}
 
-	path, err := p.getBlockDevicePath(blkDevOpts)
+	path, blkPath, err := p.getBlockDevicePath(blkDevOpts)
 	if err != nil {
 		glog.Infof("Initialize volume %v failed: %v", name, err)
 		return nil, err
 	}
+
+	glog.Infof("Creating volume %v on %v at %v(%v)", name, node.Name, path, blkPath)
 
 	// TODO
 	// VolumeMode will always be specified as Filesystem for host path volume,
