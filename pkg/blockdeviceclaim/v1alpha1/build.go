@@ -101,7 +101,9 @@ func (b *Builder) WithAnnotations(annotations map[string]string) *Builder {
 		)
 		return b
 	}
-	b.BDC.Object.Annotations = make(map[string]string)
+	if b.BDC.Object.Annotations == nil {
+		b.BDC.Object.Annotations = make(map[string]string)
+	}
 	for key, value := range annotations {
 		b.BDC.Object.Annotations[key] = value
 	}
@@ -117,7 +119,9 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		)
 		return b
 	}
-	b.BDC.Object.Labels = make(map[string]string)
+	if b.BDC.Object.Labels == nil {
+		b.BDC.Object.Labels = make(map[string]string)
+	}
 	for key, value := range labels {
 		b.BDC.Object.Labels[key] = value
 	}
@@ -177,7 +181,7 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		return b
 	}
 	resourceList := corev1.ResourceList{
-		corev1.ResourceName(corev1.ResourceStorage): resCapacity,
+		corev1.ResourceName("capacity"): resCapacity,
 	}
 	b.BDC.Object.Spec.Requirements.Requests = resourceList
 	return b
