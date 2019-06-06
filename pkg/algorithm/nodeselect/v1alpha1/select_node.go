@@ -142,23 +142,23 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 			Items: []string{},
 		},
 	}
-	// diskCount will hold the number of disk that will be selected from a qualified
+	// bdCount will hold the number of block devices that will be selected from a qualified
 	// node for specific pool type
-	var diskCount int
+	var bdCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	minRequiredDiskCount := blockdevice.DefaultDiskCount[ac.poolType()]
 	for node, val := range nodeBlockDeviceMap {
-		// If the current disk count on the node is less than the required disks
+		// If the current block device count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
 		if len(val.Items) < minRequiredDiskCount {
 			continue
 		}
-		diskCount = minRequiredDiskCount
+		bdCount = minRequiredDiskCount
 		if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
-			diskCount = (len(val.Items) / minRequiredDiskCount) * minRequiredDiskCount
+			bdCount = (len(val.Items) / minRequiredDiskCount) * minRequiredDiskCount
 		}
-		for i := 0; i < diskCount; i++ {
+		for i := 0; i < bdCount; i++ {
 			selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, val.Items[i])
 		}
 		selectedBlockDevice.NodeName = node
