@@ -22,6 +22,10 @@ var (
 	// ReplicaCount is the value of
 	// replica count provided at runtime
 	ReplicaCount int
+	// ReplicaLabel is the label for replica pods
+	ReplicaLabel = "openebs.io/replica=jiva-replica"
+	// CtrlLabel is the label for controller pod
+	CtrlLabel = "openebs.io/controller=jiva-controller"
 )
 
 // ParseFlags gets the flag values at run time
