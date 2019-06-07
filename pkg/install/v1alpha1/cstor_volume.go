@@ -706,6 +706,7 @@ spec:
       of the pools from resources list
       */}}
       name: {{ .Volume.owner }}-{{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolList.pools | first }}
+      finalizers: ["cstorvolumereplica.openebs.io/finalizer"]
       labels:
         cstorpool.openebs.io/name: {{ pluck .ListItems.currentRepeatResource .ListItems.cvolPoolList.pools | first }}
         cstorpool.openebs.io/uid: {{ .ListItems.currentRepeatResource }}
