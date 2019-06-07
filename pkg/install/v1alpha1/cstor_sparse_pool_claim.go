@@ -53,13 +53,13 @@ metadata:
   name: cstor-sparse-pool
   annotations:
     cas.openebs.io/config: |
-      #For default sparse pool set the limit at 2Gi to safegaurd 
-      # cstor pool from consuming more memory and causing the node 
-      # to get into memory pressure condition. By default K8s will set the 
+      #For default sparse pool set the limit at 2Gi to safegaurd
+      # cstor pool from consuming more memory and causing the node
+      # to get into memory pressure condition. By default K8s will set the
       # Requests to the same value as Limits. For example, when Limit is
       # set to 2Gi, the pool could get stuck in pending schedule state,
-      # if node doesn't have Requested (2Gi) memory. 
-      # Hence setting the Requests to a minimum (0.5Gi). 
+      # if node doesn't have Requested (2Gi) memory.
+      # Hence setting the Requests to a minimum (0.5Gi).
       - name: PoolResourceRequests
         value: |-
             memory: 0.5Gi
@@ -74,7 +74,7 @@ metadata:
       #      cpu: 100m
 spec:
   name: cstor-sparse-pool
-  type: sparse
+  type: blockdevice
   maxPools: 3
   poolSpec:
     poolType: striped
