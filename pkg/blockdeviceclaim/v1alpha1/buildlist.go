@@ -89,6 +89,7 @@ func (lb *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
 // ListBuilder
 func (lb *ListBuilder) GetBlockDeviceClaim(bdcName string) *ndm.BlockDeviceClaim {
 	for _, bdcObj := range lb.BlockDeviceClaimList.ObjectList.Items {
+		bdcObj := bdcObj
 		if bdcObj.Name == bdcName {
 			return &bdcObj
 		}

@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
-	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -192,18 +191,6 @@ func validateAutoSpcMaxPool(spc *apis.StoragePoolClaim) error {
 		}
 		if *maxPools < 0 {
 			return errors.Errorf("aborting storagepool create operation for %s as invalid maxPool value %d", spc.Name, maxPools)
-		}
-	}
-	return nil
-}
-
-// validateBDCount validates the block device count in case of manual
-// provisioning
-func validateBDCount(spc *apis.StoragePoolClaim) error {
-	if isManualProvisioning(spc) {
-		minReqBDCount := blockdevice.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
-		if len(spc.Spec.BlockDevices.BlockDeviceList)%minReqBDCount != 0 {
-			return errors.Errorf("validation of spc object is failed as invalid no.of of block device  in spc %s", spc.Name)
 		}
 	}
 	return nil

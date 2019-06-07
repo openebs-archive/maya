@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	// StoragePoolKind holds the value of StoragePoolClaim
 	StoragePoolKind = "StoragePoolClaim"
 )
 
