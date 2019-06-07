@@ -62,23 +62,9 @@ func fakeDeleteFnErr(cli *clientset.Clientset, name, namespace string, opts *met
 	return errors.New("some error")
 }
 
-func fakeSetClientset(k *Kubeclient) {
-	k.clientset = &clientset.Clientset{}
-}
-
-func fakeSetKubeConfigPath(k *Kubeclient) {
-	k.kubeConfigPath = "fake-path"
-}
-
-func fakeSetNilClientset(k *Kubeclient) {
-	k.clientset = nil
-}
-
 func fakeGetClientsetErr() (clientset *clientset.Clientset, err error) {
 	return nil, errors.New("Some error")
 }
-
-func fakeClientset(k *Kubeclient) {}
 
 func fakeCreateFnOk(cli *clientset.Clientset, namespace string, bdc *apis.BlockDeviceClaim) (*apis.BlockDeviceClaim, error) {
 	return &apis.BlockDeviceClaim{}, nil

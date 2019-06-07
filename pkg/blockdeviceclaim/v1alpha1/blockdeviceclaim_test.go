@@ -30,17 +30,3 @@ func fakeAPIBDCList(bdcNames []string) *apis.BlockDeviceClaimList {
 	}
 	return list
 }
-
-func fakeAPIBDCListFromNameStatusMap(bdcs map[string]apis.DeviceClaimPhase) *apis.BlockDeviceClaimList {
-	if len(bdcs) == 0 {
-		return nil
-	}
-	list := &apis.BlockDeviceClaimList{}
-	for k, v := range bdcs {
-		bdc := apis.BlockDeviceClaim{}
-		bdc.SetName(k)
-		bdc.Status.Phase = v
-		list.Items = append(list.Items, bdc)
-	}
-	return list
-}

@@ -27,20 +27,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ClaimedBDDetails holds the claimed block device details
-type ClaimedBDDetails struct {
+// BDDetails holds the claimed block device details
+type BDDetails struct {
 	DeviceID string
 	BDName   string
 }
 
-// NodeClaimedBDDetails holds the node name and
+// ClaimedBDDetails holds the node name and
 // claimed block device deatils corresponding to node
-type NodeClaimedBDDetails struct {
+type ClaimedBDDetails struct {
 	NodeName        string
-	BlockDeviceList []ClaimedBDDetails
+	BlockDeviceList []BDDetails
 }
 
-// NodeBlockDeviceSelector selects a node and disks attached to it.
+// NodeBlockDeviceSelector selects a node and block devices attached to it.
 func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
@@ -212,10 +212,10 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 // 2) Refactor the below code before removing WIP
 
 // ClaimBlockDevice will create BDC for corresponding BD
-func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) (*NodeClaimedBDDetails, error) {
-	nodeClaimedBDs := &NodeClaimedBDDetails{
+func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) (*ClaimedBDDetails, error) {
+	nodeClaimedBDs := &ClaimedBDDetails{
 		NodeName:        "",
-		BlockDeviceList: []ClaimedBDDetails{},
+		BlockDeviceList: []BDDetails{},
 	}
 
 	if nodeBDs == nil || len(nodeBDs.BlockDevices.Items) == 0 {
@@ -239,7 +239,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 
 	for _, bdName := range nodeBDs.BlockDevices.Items {
 		var hostName, bdcName string
-		claimedBD := ClaimedBDDetails{}
+		claimedBD := BDDetails{}
 
 		bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
 		if err != nil {
