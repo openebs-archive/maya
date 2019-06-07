@@ -160,7 +160,6 @@ type validateFunc func(*apis.StoragePoolClaim) error
 var validateFuncList = []validateFunc{
 	validatePoolType,
 	validateDiskType,
-	validateBDCount,
 	validateAutoSpcMaxPool,
 }
 

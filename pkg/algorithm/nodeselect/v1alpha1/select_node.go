@@ -34,7 +34,7 @@ var (
 	waitTime   = 5 * time.Second
 )
 
-// ClaimedBDDetils holds the claimed block device details
+// ClaimedBDDetails holds the claimed block device details
 type ClaimedBDDetails struct {
 	DeviceID string
 	BDName   string
@@ -225,11 +225,23 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		BlockDeviceList: []ClaimedBDDetails{},
 	}
 
+	if nodeBDs == nil || len(nodeBDs.BlockDevices.Items) == 0 {
+		return nil, errors.New("No valid block devices are present to claim")
+	}
+
 	namespace := env.Get(env.OpenEBSNamespace)
 	bdcKubeclient := bdc.NewKubeClient().
 		WithNamespace(namespace)
 	labels := map[string]string{string(apis.StoragePoolClaimCPK): spc.Name}
+
 	nodeClaimedBDs.NodeName = nodeBDs.NodeName
+	pendingBDCCount := 0
+
+	bdcObjList, err := bdcKubeclient.List(metav1.ListOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list block device claim for {%s}", spc.Name)
+	}
+	customBDCObjList := bdc.ListBuilderFromAPIList(bdcObjList)
 
 	for _, bdName := range nodeBDs.BlockDevices.Items {
 		var hostName, bdcName string
@@ -244,29 +256,37 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		if bdObj.IsClaimed() {
 			//TODO: Use HasLabel Predicate for below check
 			bdcName = bdObj.Spec.ClaimRef.Name
-			bdcObj, err := bdcKubeclient.Get(bdcName, metav1.GetOptions{})
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get block device claim{%s}", bdcName)
+			bdcObj := customBDCObjList.GetBlockDeviceClaim(bdcName)
+			if bdcObj == nil {
+				return nil, errors.Errorf("failed to get bdc {%s} for bd {%s}",
+					bdcName, bdName)
 			}
 			if bdcObj.Labels[string(apis.StoragePoolClaimCPK)] != spc.Name {
 				return nil, errors.Errorf("block device %s is already in use", bdName)
 			}
 		} else {
 			bdcName = "bdc-" + string(bdObj.UID)
+			bdcObj := customBDCObjList.GetBlockDeviceClaim(bdcName)
+			if bdcObj != nil {
+				pendingBDCCount++
+				continue
+			}
 			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
 			//TODO: Move below code to some function
-			bdcObj, err := bdc.NewBuilder().
+			newBDCObj, err := bdc.NewBuilder().
 				WithName(bdcName).
 				WithNamespace(namespace).
 				WithLabels(labels).
 				WithBlockDeviceName(bdName).
 				WithHostName(hostName).
-				WithCapacity(capacity).Build()
+				WithCapacity(capacity).
+				WithOwnerReference(spc).
+				Build()
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to build blockd device claim for bd {%s}", bdName)
 			}
 
-			_, err = bdcKubeclient.Create(bdcObj.Object)
+			_, err = bdcKubeclient.Create(newBDCObj.Object)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
@@ -274,32 +294,32 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			isClaimed, err := ac.waitForClaimedStatus(bdName)
 			if err != nil {
 				//TODO: Handle these things from review suggesstions
-				_ = bdcKubeclient.Delete(bdcName, &metav1.DeleteOptions{})
 				return nil, errors.Wrapf(err, "failed to claim block device bd {%s}", bdName)
 			}
 			if !isClaimed {
-				_ = bdcKubeclient.Delete(bdcName, &metav1.DeleteOptions{})
-				return nil, errors.Wrapf(err, "failed to claim block device: %s", bdName)
+				pendingBDCCount++
+				continue
 			}
 		}
 		claimedBD.DeviceID = bdObj.GetDeviceID()
 		claimedBD.BDName = bdObj.Name
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
+	if pendingBDCCount != 0 {
+		return nil, errors.Errorf("failed to claim block devcies on node: {%s}", nodeClaimedBDs.NodeName)
+	}
 	return nodeClaimedBDs, nil
 }
 
 // waitForClaimStatus return the claim status of block device
 func (ac *Config) waitForClaimedStatus(bdName string) (bool, error) {
-	for i := 0; i < retryCount; i++ {
-		bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		if bdObj.IsClaimed() {
-			return true, nil
-		}
-		time.Sleep(waitTime)
+	time.Sleep(waitTime)
+	bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
+	if err != nil {
+		return false, err
+	}
+	if bdObj.IsClaimed() {
+		return true, nil
 	}
 	return false, nil
 }

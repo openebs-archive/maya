@@ -165,7 +165,7 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 	}
 
 	claimedNodeBDs, err := pc.ClaimBlockDevice(nodeBDs, spc)
-	if claimedNodeBDs == nil || len(claimedNodeBDs.BlockDeviceList) == 0 {
+	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no claimed block devices available")
 	}
 

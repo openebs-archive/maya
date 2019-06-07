@@ -283,3 +283,13 @@ func (bd *BlockDevice) GetLink() string {
 func (bd *BlockDevice) GetPath() string {
 	return bd.Spec.Path
 }
+
+// GetBlockDevice returns the block device object present in the block device list
+func (bdl *BlockDeviceList) GetBlockDevice(bdcName string) *ndm.BlockDevice {
+	for _, bdcObj := range bdl.Items {
+		if bdcObj.Name == bdcName {
+			return &bdcObj
+		}
+	}
+	return nil
+}
