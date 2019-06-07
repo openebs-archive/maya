@@ -45,6 +45,17 @@ func (pl *PodList) ToAPIList() *corev1.PodList {
 	return plist
 }
 
+type podBuildOption func(*Pod)
+
+// NewForAPIObject returns a new instance of Pod
+func NewForAPIObject(obj *corev1.Pod, opts ...podBuildOption) *Pod {
+	p := &Pod{object: obj}
+	for _, o := range opts {
+		o(p)
+	}
+	return p
+}
+
 // Len returns the number of items present in the PodList
 func (pl *PodList) Len() int {
 	return len(pl.items)

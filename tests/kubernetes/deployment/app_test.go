@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/gomega"
 	con "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,7 +28,6 @@ var (
 	deployName    = "busybox-deploy"
 	label         = "demo=deployment"
 	deployObj     *deploy.Deploy
-	conObj        corev1.Container
 	err           error
 	command       []string
 	labelselector = map[string]string{
