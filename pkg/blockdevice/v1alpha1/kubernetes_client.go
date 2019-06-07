@@ -21,20 +21,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Get is Kubernetes client implementation to get disk.
+// Get is Kubernetes client implementation to get block device
 func (k *KubernetesClient) Get(name string, opts metav1.GetOptions) (*BlockDevice, error) {
 	bd, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Get(name, opts)
 
 	return &BlockDevice{bd, nil}, err
 }
 
-// List is kubernetes client implementation to list disk.
+// List is kubernetes client implementation to list block device
 func (k *KubernetesClient) List(opts metav1.ListOptions) (*BlockDeviceList, error) {
 	bdl, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).List(opts)
 	return &BlockDeviceList{bdl, nil}, err
 }
 
-// Create is kubernetes client implementation to create disk.
+// Create is kubernetes client implementation to create block device
 func (k *KubernetesClient) Create(bdObj *ndm.BlockDevice) (*BlockDevice, error) {
 	bdObj, err := k.Clientset.OpenebsV1alpha1().BlockDevices(k.Namespace).Create(bdObj)
 	return &BlockDevice{bdObj, nil}, err

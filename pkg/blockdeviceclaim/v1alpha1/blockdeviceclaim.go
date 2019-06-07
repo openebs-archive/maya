@@ -38,12 +38,12 @@ type BlockDeviceClaimList struct {
 // provided block device claim instance
 type Predicate func(*BlockDeviceClaim) bool
 
-// predicateList holds the list of Predicates
-type predicateList []Predicate
+// PredicateList holds the list of Predicates
+type PredicateList []Predicate
 
 // all returns true if all the predicates succeed against the provided block
 // device instance.
-func (l predicateList) all(c *BlockDeviceClaim) bool {
+func (l PredicateList) all(c *BlockDeviceClaim) bool {
 	for _, pred := range l {
 		if !pred(c) {
 			return false
@@ -101,28 +101,6 @@ func IsStatus(status string) Predicate {
 // block device claim matches with provided status.
 func (bdc *BlockDeviceClaim) IsStatus(status string) bool {
 	return string(bdc.Object.Status.Phase) == status
-}
-
-// Filter will filter the BDC instances if all the predicates succeed
-// against that BDC.
-func (l *BlockDeviceClaimList) Filter(p ...Predicate) *BlockDeviceClaimList {
-	var plist predicateList
-	plist = append(plist, p...)
-	if len(plist) == 0 {
-		return l
-	}
-
-	filtered := NewListBuilder().List()
-	for _, bdcAPI := range l.ObjectList.Items {
-		bdcAPI := bdcAPI // pin it
-		BlockDeviceClaim := BuilderForAPIObject(&bdcAPI).BDC
-		if plist.all(BlockDeviceClaim) {
-			filtered.ObjectList.Items = append(
-				filtered.ObjectList.Items,
-				*BlockDeviceClaim.Object)
-		}
-	}
-	return filtered
 }
 
 // Len returns the length og BlockDeviceClaimList.

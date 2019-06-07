@@ -163,27 +163,25 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 	if err != nil {
 		return nil, errors.Wrapf(err, "aborting storagepool create operation as no node qualified")
 	}
-	if len(nodeBDs.BlockDevices.Items) == 0 {
-		return nil, errors.New("aborting storagepool create operation as no block device was found")
+
+	claimedNodeBDs, err := pc.ClaimBlockDevice(nodeBDs, spc)
+	if err != nil {
+		return nil, errors.Wrapf(err, "aborting storagepool create operation as no claimed block devices available")
 	}
 
 	// Fill the node name to the CasPool object.
-	casPool.NodeName = nodeBDs.NodeName
+	casPool.NodeName = claimedNodeBDs.NodeName
 	//casPool.DiskList = nodeDisks.Disks.Items
 	//TODO: Improve Following Code
 	if spc.Spec.PoolSpec.PoolType == string(apis.PoolTypeStripedCPV) {
-		for _, bd := range nodeBDs.BlockDevices.Items {
+		for _, claimedBD := range claimedNodeBDs.BlockDeviceList {
 			var bdList []apis.CspBlockDevice
 			var group apis.BlockDeviceGroup
 			blockDevice := apis.CspBlockDevice{
-				Name:        bd,
+				Name:        claimedBD.BDName,
 				InUseByPool: true,
+				DeviceID:    claimedBD.DeviceID,
 			}
-			devID, err := pc.getDeviceID(blockDevice.Name)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev Id for block device %s for spc %s", blockDevice.Name, spc.Name)
-			}
-			blockDevice.DeviceID = devID
 			bdList = append(bdList, blockDevice)
 			group = apis.BlockDeviceGroup{
 				Item: bdList,
@@ -193,20 +191,16 @@ func (pc *PoolCreateConfig) withDisks(casPool *apis.CasPool, spc *apis.StoragePo
 		return casPool, nil
 	}
 	count := blockdevice.DefaultDiskCount[spc.Spec.PoolSpec.PoolType]
-	for i := 0; i < len(nodeBDs.BlockDevices.Items); i = i + count {
+	for i := 0; i < len(claimedNodeBDs.BlockDeviceList); i = i + count {
 		var bdList []apis.CspBlockDevice
 		var group apis.BlockDeviceGroup
 		for j := 0; j < count; j++ {
 
 			blockDevice := apis.CspBlockDevice{
-				Name:        nodeBDs.BlockDevices.Items[i+j],
+				Name:        claimedNodeBDs.BlockDeviceList[i+j].BDName,
 				InUseByPool: true,
+				DeviceID:    claimedNodeBDs.BlockDeviceList[i+j].DeviceID,
 			}
-			devID, err := pc.getDeviceID(blockDevice.Name)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get dev Id is for block device %s for spc %s", blockDevice.Name, spc.Name)
-			}
-			blockDevice.DeviceID = devID
 			bdList = append(bdList, blockDevice)
 		}
 		group = apis.BlockDeviceGroup{
