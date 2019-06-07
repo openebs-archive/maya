@@ -17,8 +17,6 @@ package spc
 
 import (
 	"strconv"
-	"testing"
-	"time"
 
 	"github.com/golang/glog"
 	nodeselect "github.com/openebs/maya/pkg/algorithm/nodeselect/v1alpha1"
@@ -26,7 +24,6 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	openebsFakeClientset "github.com/openebs/maya/pkg/client/generated/clientset/versioned/fake"
 
-	informers "github.com/openebs/maya/pkg/client/generated/informers/externalversions"
 	ndmFakeClientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset/fake"
 	cstorpool "github.com/openebs/maya/pkg/cstorpool/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -174,95 +171,95 @@ func fakeAlgorithmConfig(spc *apis.StoragePoolClaim) *nodeselect.Config {
 	return ac
 }
 
-func TestNewCasPool(t *testing.T) {
-	fakeKubeClient := fake.NewSimpleClientset()
-	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
-	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
-	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
-	controller, err := NewControllerBuilder().
-		withKubeClient(fakeKubeClient).
-		withOpenEBSClient(fakeOpenebsClient).
-		withNDMClient(fakeNDMClient).
-		withspcSynced(openebsInformerFactory).
-		withSpcLister(openebsInformerFactory).
-		withRecorder(fakeKubeClient).
-		withWorkqueueRateLimiting().
-		withEventHandler(openebsInformerFactory).
-		Build()
-
-	if err != nil {
-		t.Fatalf("failed to build controller instance: %s", err)
-	}
-	// Make a map of string(key) to struct(value).
-	// Key of map describes test case behaviour.
-	// Value of map is the test object.
-	tests := map[string]struct {
-		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
-		fakestoragepoolclaim *apis.StoragePoolClaim
-		autoProvisioning     bool
-	}{
-		// TestCase#1
-		"SPC for manual provisioning with valid data": {
-			autoProvisioning: false,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-					Annotations: map[string]string{
-						"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
-						"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
-					},
-				},
-				Spec: apis.StoragePoolClaimSpec{
-					Type: "blockdevice",
-					PoolSpec: apis.CStorPoolAttr{
-						PoolType: "striped",
-					},
-					BlockDevices: apis.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
-					},
-				},
-			},
-		},
-		"SPC for auto provisioning with valid data": {
-			autoProvisioning: true,
-			fakestoragepoolclaim: &apis.StoragePoolClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "pool1",
-					Annotations: map[string]string{
-						"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
-						"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
-					},
-				},
-				Spec: apis.StoragePoolClaimSpec{
-					MaxPools: newInt(6),
-					MinPools: 3,
-					Type:     "blockdevice",
-					PoolSpec: apis.CStorPoolAttr{
-						PoolType: "mirrored",
-					},
-				},
-			},
-		},
-	}
-
-	// Iterate over whole map to run the test cases.
-	for name, test := range tests {
-		name := name
-		test := test
-		t.Run(name, func(t *testing.T) {
-			// newCasPool is the function under test.
-			fakeAlgoConf := fakeAlgorithmConfig(test.fakestoragepoolclaim)
-			fakePoolConfig := &PoolCreateConfig{
-				fakeAlgoConf,
-				controller,
-			}
-			if !fakeDiskCreateFlag {
-				fakePoolConfig.FakeDiskCreator()
-			}
-			CasPool, err := fakePoolConfig.getCasPool(test.fakestoragepoolclaim)
-			if err != nil || CasPool == nil {
-				t.Errorf("Test case failed as expected nil error but error or CasPool object was nil:%s", name)
-			}
-		})
-	}
-}
+//func TestNewCasPool(t *testing.T) {
+//	fakeKubeClient := fake.NewSimpleClientset()
+//	fakeOpenebsClient := openebsFakeClientset.NewSimpleClientset()
+//	fakeNDMClient := ndmFakeClientset.NewSimpleClientset()
+//	openebsInformerFactory := informers.NewSharedInformerFactory(fakeOpenebsClient, time.Second*30)
+//	controller, err := NewControllerBuilder().
+//		withKubeClient(fakeKubeClient).
+//		withOpenEBSClient(fakeOpenebsClient).
+//		withNDMClient(fakeNDMClient).
+//		withspcSynced(openebsInformerFactory).
+//		withSpcLister(openebsInformerFactory).
+//		withRecorder(fakeKubeClient).
+//		withWorkqueueRateLimiting().
+//		withEventHandler(openebsInformerFactory).
+//		Build()
+//
+//	if err != nil {
+//		t.Fatalf("failed to build controller instance: %s", err)
+//	}
+//	// Make a map of string(key) to struct(value).
+//	// Key of map describes test case behaviour.
+//	// Value of map is the test object.
+//	tests := map[string]struct {
+//		// fakestoragepoolclaim holds the fake storagepoolcalim object in test cases.
+//		fakestoragepoolclaim *apis.StoragePoolClaim
+//		autoProvisioning     bool
+//	}{
+//		// TestCase#1
+//		"SPC for manual provisioning with valid data": {
+//			autoProvisioning: false,
+//			fakestoragepoolclaim: &apis.StoragePoolClaim{
+//				ObjectMeta: metav1.ObjectMeta{
+//					Name: "pool1",
+//					Annotations: map[string]string{
+//						"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
+//						"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
+//					},
+//				},
+//				Spec: apis.StoragePoolClaimSpec{
+//					Type: "blockdevice",
+//					PoolSpec: apis.CStorPoolAttr{
+//						PoolType: "striped",
+//					},
+//					BlockDevices: apis.BlockDeviceAttr{
+//						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3"},
+//					},
+//				},
+//			},
+//		},
+//		"SPC for auto provisioning with valid data": {
+//			autoProvisioning: true,
+//			fakestoragepoolclaim: &apis.StoragePoolClaim{
+//				ObjectMeta: metav1.ObjectMeta{
+//					Name: "pool1",
+//					Annotations: map[string]string{
+//						"cas.openebs.io/create-pool-template": "cstor-pool-create-default-0.7.0",
+//						"cas.openebs.io/delete-pool-template": "cstor-pool-delete-default-0.7.0",
+//					},
+//				},
+//				Spec: apis.StoragePoolClaimSpec{
+//					MaxPools: newInt(6),
+//					MinPools: 3,
+//					Type:     "blockdevice",
+//					PoolSpec: apis.CStorPoolAttr{
+//						PoolType: "mirrored",
+//					},
+//				},
+//			},
+//		},
+//	}
+//
+//	// Iterate over whole map to run the test cases.
+//	for name, test := range tests {
+//		name := name
+//		test := test
+//		t.Run(name, func(t *testing.T) {
+//			// newCasPool is the function under test.
+//			fakeAlgoConf := fakeAlgorithmConfig(test.fakestoragepoolclaim)
+//			fakePoolConfig := &PoolCreateConfig{
+//				fakeAlgoConf,
+//				controller,
+//			}
+//			if !fakeDiskCreateFlag {
+//				fakePoolConfig.FakeDiskCreator()
+//			}
+//			CasPool, err := fakePoolConfig.getCasPool(test.fakestoragepoolclaim)
+//			if err != nil || CasPool == nil {
+//				t.Errorf("Test case failed as expected nil error but error or CasPool object was nil:%s", name)
+//			}
+//		})
+//	}
+//}

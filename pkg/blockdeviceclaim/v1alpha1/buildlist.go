@@ -20,11 +20,10 @@ import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
-//TODO: While using these packages UnitTest must be written to corresponding function
-
 // ListBuilder is the builder object for BlockDeviceClaimList
 type ListBuilder struct {
 	BlockDeviceClaimList *BlockDeviceClaimList
+	filters              PredicateList
 }
 
 // NewListBuilder returns a new instance of ListBuilder object.
@@ -33,6 +32,7 @@ func NewListBuilder() *ListBuilder {
 		BlockDeviceClaimList: &BlockDeviceClaimList{
 			ObjectList: &ndm.BlockDeviceClaimList{},
 		},
+		filters: PredicateList{},
 	}
 }
 
@@ -61,8 +61,38 @@ func ListBuilderFromAPIList(bdcl *ndm.BlockDeviceClaimList) *ListBuilder {
 	return lb
 }
 
-// List returns the list of block device claim
-// instances that were built by this builder.
-func (b *ListBuilder) List() *BlockDeviceClaimList {
-	return b.BlockDeviceClaimList
+// List returns the list of bdc
+// instances that was built by this
+// builder
+func (lb *ListBuilder) List() *BlockDeviceClaimList {
+	if lb.filters == nil || len(lb.filters) == 0 {
+		return lb.BlockDeviceClaimList
+	}
+	filtered := NewListBuilder().List()
+	for _, bdcAPI := range lb.BlockDeviceClaimList.ObjectList.Items {
+		bdcAPI := bdcAPI // pin it
+		bdc := BuilderForAPIObject(&bdcAPI).BDC
+		if lb.filters.all(bdc) {
+			filtered.ObjectList.Items = append(filtered.ObjectList.Items, *bdc.Object)
+		}
+	}
+	return filtered
+}
+
+// WithFilter adds filters on which the bdc's has to be filtered
+func (lb *ListBuilder) WithFilter(pred ...Predicate) *ListBuilder {
+	lb.filters = append(lb.filters, pred...)
+	return lb
+}
+
+// GetBlockDeviceClaim returns block device claim object from existing
+// ListBuilder
+func (lb *ListBuilder) GetBlockDeviceClaim(bdcName string) *ndm.BlockDeviceClaim {
+	for _, bdcObj := range lb.BlockDeviceClaimList.ObjectList.Items {
+		bdcObj := bdcObj
+		if bdcObj.Name == bdcName {
+			return &bdcObj
+		}
+	}
+	return nil
 }

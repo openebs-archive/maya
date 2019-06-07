@@ -306,14 +306,16 @@ func TestValidateSpc(t *testing.T) {
 						PoolType: string(apis.PoolTypeRaidz2CPV),
 					},
 					BlockDevices: apis.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice-1"},
+						BlockDeviceList: []string{"blockdevice-1",
+							"blockdevice-2", "blockdevice-3",
+							"bolckdevice-4", "blockdevice-5", "blockdevice-6"},
 					},
 					Type: string(apis.TypeBlockDeviceCPV),
 				},
 			},
 			expectedError: false,
 		},
-		"InValid Auto SPC with invalid pool type": {
+		"InValid Auto SPC with invalid spc type": {
 			spc: &apis.StoragePoolClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-pool-claim-1",
@@ -327,6 +329,25 @@ func TestValidateSpc(t *testing.T) {
 				},
 			},
 			expectedError: true,
+		},
+		"Invalid Manual SPC with invalid BDCount": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeMirroredCPV),
+					},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1",
+							"bolckdevice-2", "blockdevice-3",
+							"blockdevice-4", "blockdevice-5"},
+					},
+					Type: string(apis.TypeBlockDeviceCPV),
+				},
+			},
+			expectedError: false,
 		},
 	}
 

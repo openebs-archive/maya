@@ -26,6 +26,7 @@ import (
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	clientset "github.com/openebs/maya/pkg/client/generated/openebs.io/ndm/v1alpha1/clientset/internalclientset"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 //TODO: While using these packages UnitTest must be written to corresponding function
@@ -58,6 +59,10 @@ type deleteFn func(cli *clientset.Clientset, namespace string, name string, dele
 // deletion of bdc's collection
 type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
 
+// patchFn is a typed function that abstracts
+// to patch block device claim
+type patchFn func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error)
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -76,6 +81,7 @@ type Kubeclient struct {
 	create              createFn
 	del                 deleteFn
 	delCollection       deleteCollectionFn
+	patch               patchFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -127,6 +133,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.delCollection == nil {
 		k.delCollection = func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
 			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).DeleteCollection(deleteOpts, listOpts)
+		}
+	}
+	if k.patch == nil {
+		k.patch = func(cli *clientset.Clientset, namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+			return cli.OpenebsV1alpha1().BlockDeviceClaims(namespace).Patch(name, pt, data, subresources...)
 		}
 	}
 }
@@ -240,4 +251,16 @@ func (k *Kubeclient) Delete(name string, deleteOpts *metav1.DeleteOptions) error
 		return errors.Wrapf(err, "failed to delete bdc {%s} in namespace {%s}", name, k.namespace)
 	}
 	return k.del(cli, k.namespace, name, deleteOpts)
+}
+
+// Patch patches the block device claim if present in kubernetes cluster
+func (k *Kubeclient) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*apis.BlockDeviceClaim, error) {
+	if len(name) == 0 {
+		return nil, errors.New("failed to patch block device claim: missing bdc name")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to patch bdc: {%s}", name)
+	}
+	return k.patch(cli, k.namespace, name, pt, data, subresources...)
 }
