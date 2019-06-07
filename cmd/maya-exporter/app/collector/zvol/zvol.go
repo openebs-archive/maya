@@ -17,35 +17,48 @@ package zvol
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/golang/glog"
-	"github.com/openebs/maya/pkg/util"
+	col "github.com/openebs/maya/cmd/maya-exporter/app/collector"
+	types "github.com/openebs/maya/pkg/exec"
 	zvol "github.com/openebs/maya/pkg/zvol/v1alpha1"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // volume implements prometheus.Collector interface
 type volume struct {
 	sync.Mutex
-	metrics
+	*metrics
 	request bool
-}
-
-var (
-	// runner variable is used for executing binaries
-	runner util.Runner
-)
-
-// InitVar initialize runner variable
-func InitVar() {
-	runner = util.RealRunner{}
+	runner  types.Runner
 }
 
 // New returns new instance of pool
-func New() *volume {
+func New(runner types.Runner) col.Collector {
 	return &volume{
-		metrics: newMetrics(),
+		metrics: newMetrics().withReadBytes().
+			withWriteBytes().
+			withReadCount().
+			withWriteCount().
+			withSyncCount().
+			withSyncLatency().
+			withReadLatency().
+			withWriteLatency().
+			withReplicaStatus().
+			withinflightIOCount().
+			withDispatchedIOCount().
+			withRebuildCount().
+			withRebuildBytes().
+			withRebuildStatus().
+			withRebuildDone().
+			withFailedRebuild().
+			withCommandErrorCounter().
+			withParseErrorCounter().
+			withRequestRejectCounter().
+			withNoDatasetAvailableErrorCounter().
+			withInitializeLibuzfsClientErrorCounter(),
+		runner: runner,
 	}
 }
 
@@ -117,19 +130,38 @@ func (v *volume) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
+func (v *volume) checkError(stdout []byte, ch chan<- prometheus.Metric) error {
+	if zvol.IsNotInitialized(string(stdout)) {
+		v.zfsStatsInitializeLibuzfsClientErrorCounter.Inc()
+		v.zfsStatsInitializeLibuzfsClientErrorCounter.Collect(ch)
+		return errors.New(zvol.InitializeLibuzfsClientErr.String())
+	}
+
+	if zvol.IsNoDataSetAvailable(string(stdout)) {
+		v.zfsStatsNoDataSetAvailableErrorCounter.Inc()
+		v.zfsStatsNoDataSetAvailableErrorCounter.Collect(ch)
+		return errors.New(zvol.NoDataSetAvailable.String())
+	}
+	return nil
+}
+
 func (v *volume) get(ch chan<- prometheus.Metric) (zvol.Stats, error) {
 	var (
-		err     error
-		stdout  []byte
-		timeout = 30 * time.Second
-		stats   = zvol.Stats{}
+		err    error
+		stdout []byte
+		stats  = zvol.Stats{}
 	)
 
 	glog.V(2).Info("Run zfs stats command")
-	stdout, err = zvol.Run(timeout, runner, "stats")
+	stdout, err = zvol.Run(v.runner)
 	if err != nil {
 		v.zfsCommandErrorCounter.Inc()
 		v.zfsCommandErrorCounter.Collect(ch)
+		return stats, err
+	}
+
+	err = v.checkError(stdout, ch)
+	if err != nil {
 		return stats, err
 	}
 
