@@ -376,3 +376,46 @@ func TestHasitems(t *testing.T) {
 		})
 	}
 }
+
+func TestIsClaimed(t *testing.T) {
+	tests := map[string]struct {
+		blockDevice    *BlockDevice
+		expectedOutput bool
+	}{
+		"Test Claimed Status": {
+			blockDevice: &BlockDevice{
+				BlockDevice: &ndm.BlockDevice{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "blockdevice",
+					},
+					Status: ndm.DeviceStatus{
+						ClaimState: ndm.BlockDeviceClaimed,
+					},
+				},
+			},
+			expectedOutput: true,
+		},
+		"Test UnClaimed Status": {
+			blockDevice: &BlockDevice{
+				BlockDevice: &ndm.BlockDevice{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "blockdevice",
+					},
+					Status: ndm.DeviceStatus{
+						ClaimState: ndm.BlockDeviceUnclaimed,
+					},
+				},
+			},
+			expectedOutput: false,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			output := test.blockDevice.IsClaimed()
+			if output != test.expectedOutput {
+				t.Errorf("Test %q failed expected status: %t and got: %t", name, test.expectedOutput, output)
+			}
+		})
+	}
+}
