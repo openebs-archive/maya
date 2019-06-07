@@ -251,7 +251,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			bdcName = bdObj.Spec.ClaimRef.Name
 			bdcObj := customBDCObjList.GetBlockDeviceClaim(bdcName)
 			if bdcObj == nil {
-				return nil, errors.Errorf("bolck device {%s} is already in use", bdcName)
+				return nil, errors.Errorf("block device {%s} is already in use", bdcName)
 			}
 		} else {
 			bdcName = "bdc-" + string(bdObj.UID)
@@ -282,6 +282,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			// As a part of reconcilation we will create pool if all the block
 			// devices are claimed
 			pendingBDCCount++
+			continue
 		}
 		claimedBD.DeviceID = bdObj.GetDeviceID()
 		claimedBD.BDName = bdObj.Name

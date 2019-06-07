@@ -287,6 +287,7 @@ func (bd *BlockDevice) GetPath() string {
 // GetBlockDevice returns the block device object present in the block device list
 func (bdl *BlockDeviceList) GetBlockDevice(bdcName string) *ndm.BlockDevice {
 	for _, bdcObj := range bdl.Items {
+		bdcObj := bdcObj
 		if bdcObj.Name == bdcName {
 			return &bdcObj
 		}
