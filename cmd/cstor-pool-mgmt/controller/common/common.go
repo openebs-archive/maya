@@ -75,10 +75,18 @@ const (
 	MessageResourceSyncSuccess EventReason = "Resource successfully synced"
 	// MessageResourceSyncFailure holds message for corresponding failed sync of resource.
 	MessageResourceSyncFailure EventReason = "Resource sync failed:"
+
 	// FailureDestroy holds status for corresponding failed destroy resource.
 	FailureDestroy EventReason = "FailDestroy"
-	// MessageResourceFailDestroy holds message for corresponding failed destroy resource.
+
+	// FailureRemoveFinalizer holds the status when
+	// the resource's finalizers could not be removed
+	FailureRemoveFinalizer EventReason = "FailRemoveFinalizer"
+
+	// MessageResourceFailDestroy holds descriptive message for
+	// resource could not be deleted
 	MessageResourceFailDestroy EventReason = "Resource Destroy failed"
+
 	// FailureValidate holds status for corresponding failed validate resource.
 	FailureValidate EventReason = "FailValidate"
 	// MessageResourceFailValidate holds message for corresponding failed validate resource.
