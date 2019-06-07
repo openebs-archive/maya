@@ -32,6 +32,16 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
+const (
+	online, healthy float64 = 1, 1
+)
+
+const (
+	poolStatus                = "openebs_pool_status"
+	replicaStatus             = "openebs_replica_status"
+	noPoolAvailableErrorCount = "openebs_zpool_list_no_pool_available_error"
+)
+
 var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 	var (
 		err error
@@ -53,7 +63,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 			By("building spc object")
 			spcObj = spc.NewBuilder().
 				WithName(spcName).
-				WithDiskType(string(apis.TypeSparseCPV)).
+				WithDiskType(string(apis.TypeBlockDeviceCPV)).
 				WithMaxPool(1).
 				WithOverProvisioning(false).
 				WithPoolType(string(apis.PoolTypeStripedCPV)).
@@ -185,10 +195,10 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 			mapResp := stats.ToMap()
 
 			By("verifying whether pool status is online")
-			Expect(apis.GetValue("openebs_pool_status", mapResp)).To(Equal(float64(1)), "while getting pool status of", pod.Items[0].Name)
+			Expect(apis.GetValue(poolStatus, mapResp)).To(Equal(online), "while getting pool status of", pod.Items[0].Name)
 
 			By("verifying whether there is no error")
-			Expect(apis.GetValue("openebs_no_pool_available_error", mapResp)).To(Equal(float64(0)), "while getting total no of no pool available errors", pod.Items[0].Name, mapResp)
+			Expect(apis.GetValue(noPoolAvailableErrorCount, mapResp)).To(Equal(float64(0)), "while getting total no of no pool available errors", pod.Items[0].Name, mapResp)
 
 			By("building pvc object")
 			pvcObj, err = pvc.NewBuilder().
@@ -241,7 +251,7 @@ var _ = Describe("Test maya-exporter [single-pool-pod]", func() {
 			By("unmarshalling the metrics")
 			Expect(err).To(BeNil(), "while unmarshalling the stats", string(out))
 			mapResp = stats.ToMap()
-			Expect(apis.GetValue("openebs_replica_status", mapResp)).To(Equal(float64(1)), "while getting pool status of", pod.Items[0].Name, mapResp)
+			Expect(apis.GetValue(replicaStatus, mapResp)).To(Equal(healthy), "while getting pool status of", pod.Items[0].Name, mapResp)
 		})
 	})
 })
