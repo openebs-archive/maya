@@ -125,7 +125,9 @@ const (
 // InitialImportedPoolVol is to store pool-volume names while pod restart.
 var InitialImportedPoolVol []string
 
-// QueueLoad is for storing the key and type of operation before entering workqueue
+// QueueLoad represents the payload of the workqueue
+//
+// It stores the key and corresponding type of operation
 type QueueLoad struct {
 	Key       string
 	Operation QueueOperation
@@ -139,15 +141,19 @@ const (
 	OpenEBSIOCStorID Environment = "OPENEBS_IO_CSTOR_ID"
 )
 
-//QueueOperation represents the type of operation on resource
+// QueueOperation determines the type of operation
+// that needs to be executed on the watched resource
 type QueueOperation string
 
-//Different type of operations on the controller
+// Different type of operations that can be
+// supported by the controller/watcher logic
 const (
 	QOpAdd     QueueOperation = "add"
 	QOpDestroy QueueOperation = "destroy"
 	QOpModify  QueueOperation = "modify"
-	// QOpSync is the operation for syncing(reconciling) on cstor pool object.
+
+	// QOpSync is the operation to reconcile
+	// cstor pool resource
 	QOpSync QueueOperation = "Sync"
 )
 
