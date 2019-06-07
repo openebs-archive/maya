@@ -72,7 +72,7 @@ ifeq (${IMAGE_TAG}, )
 endif
 
 ifeq (${TRAVIS_TAG}, )
-  BASE_TAG = ci
+  BASE_TAG = develop-ci
   export BASE_TAG
 else
   BASE_TAG = ${TRAVIS_TAG}
