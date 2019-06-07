@@ -17,6 +17,7 @@ limitations under the License.
 package replicacontroller
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -26,9 +27,11 @@ import (
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/pool"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/volumereplica"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	merrors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -53,97 +56,204 @@ type CVRPatch struct {
 	Value string `json:"value"`
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the CStorReplicaUpdated resource
-// with the current status of the resource.
-func (c *CStorVolumeReplicaController) syncHandler(key string, operation common.QueueOperation) error {
-	cVRGot, err := c.getVolumeReplicaResource(key)
+// syncHandler handles CVR changes based on the provided
+// operation. It reconciles desired state of CVR with the
+// actual state.
+//
+// Finally, it updates CVR Status
+func (c *CStorVolumeReplicaController) syncHandler(
+	key string,
+	operation common.QueueOperation,
+) error {
+	cvrGot, err := c.getVolumeReplicaResource(key)
 	if err != nil {
 		return err
 	}
-	if cVRGot == nil {
-		return fmt.Errorf("cannot retrieve cStorVolumeReplica %q", key)
+	if cvrGot == nil {
+		return merrors.Errorf("failed to reconcile cvr {%s}: object not found", key)
 	}
-	status, err := c.cVREventHandler(operation, cVRGot)
+
+	status, err := c.cVREventHandler(operation, cvrGot)
 	if status == "" {
+		// TODO
+		// need to rethink on this logic !!
+		// status holds more importance than error
 		return nil
 	}
-	cVRGot.Status.Phase = apis.CStorVolumeReplicaPhase(status)
-	if err != nil {
-		glog.Errorf(err.Error())
-		glog.Infof("cVR:%v, %v; Status: %v", cVRGot.Name,
-			string(cVRGot.GetUID()), cVRGot.Status.Phase)
-		_, err := c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVRGot.Namespace).Update(cVRGot)
-		if err != nil {
-			return err
-		}
-		return err
-	}
-	// Synchronize cstor volume total allocated and used capacity fields on CVR object.
-	// Any kind of sync activity should be done from here.
-	// ToDo: Move status sync (of cvr) here from cVREventHandler function.
-	// ToDo: Instead of having statusSync, capacitySync we can make it generic resource sync which syncs all the
-	// ToDo: required fields on CVR ( Some code re-organization will be required)
-	c.syncCvr(cVRGot)
-	_, err = c.clientset.OpenebsV1alpha1().CStorVolumeReplicas(cVRGot.Namespace).Update(cVRGot)
-	if err != nil {
-		return err
-	}
-	glog.Infof("cVR:%v, %v; Status: %v", cVRGot.Name,
-		string(cVRGot.GetUID()), cVRGot.Status.Phase)
-	return nil
 
+	// set phase based on received status
+	cvrGot.Status.Phase = apis.CStorVolumeReplicaPhase(status)
+
+	// need to update cvr before returning this error
+	if err != nil {
+		_, err1 := c.clientset.
+			OpenebsV1alpha1().
+			CStorVolumeReplicas(cvrGot.Namespace).
+			Update(cvrGot)
+		if err1 != nil {
+			return merrors.Wrapf(
+				err,
+				"failed to reconcile cvr {%s}: failed to update cvr with phase {%s}: {%s}",
+				key,
+				cvrGot.Status.Phase,
+				err1.Error(),
+			)
+		}
+		return merrors.Wrapf(err, "failed to reconcile cvr {%s}", key)
+	}
+
+	// Synchronize cstor volume total allocated and
+	// used capacity fields on CVR object.
+	// Any kind of sync activity should be done from here.
+	c.syncCvr(cvrGot)
+
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeReplicas(cvrGot.Namespace).
+		Update(cvrGot)
+	if err != nil {
+		return merrors.Wrapf(
+			err,
+			"failed to reconcile cvr {%s}: failed to update cvr with phase {%s}",
+			key,
+			cvrGot.Status.Phase,
+		)
+	}
+
+	glog.Infof(
+		"cvr {%s} reconciled successfully with current phase being {%s}",
+		key,
+		cvrGot.Status.Phase,
+	)
+	return nil
 }
 
-func (c *CStorVolumeReplicaController) cVREventHandler(operation common.QueueOperation, cVR *apis.CStorVolumeReplica) (string, error) {
+func (c *CStorVolumeReplicaController) cVREventHandler(
+	operation common.QueueOperation,
+	cvrObj *apis.CStorVolumeReplica,
+) (string, error) {
 
-	err := volumereplica.CheckValidVolumeReplica(cVR)
+	err := volumereplica.CheckValidVolumeReplica(cvrObj)
 	if err != nil {
-		c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureValidate), string(common.MessageResourceFailValidate))
+		c.recorder.Event(
+			cvrObj,
+			corev1.EventTypeWarning,
+			string(common.FailureValidate),
+			string(common.MessageResourceFailValidate),
+		)
 		return string(apis.CVRStatusOffline), err
 	}
 
 	// PoolNameHandler tries to get pool name and blocks for
 	// particular number of attempts.
 	var noOfAttempts = 2
-	if !common.PoolNameHandler(cVR, noOfAttempts) {
-		return string(apis.CVRStatusOffline), fmt.Errorf("Pool not present")
+	if !common.PoolNameHandler(cvrObj, noOfAttempts) {
+		return string(apis.CVRStatusOffline), merrors.New("pool not found")
 	}
 
-	// cStorVolumeReplica is created with command which requires fullVolName which is in
-	// the form of poolname/volname.
-	fullVolName := string(pool.PoolPrefix) + cVR.Labels["cstorpool.openebs.io/uid"] + "/" + cVR.Labels["cstorvolume.openebs.io/name"]
-	glog.Infof("fullVolName: %v", fullVolName)
+	// cvr is created at zfs in the form poolname/volname
+	fullVolName :=
+		string(pool.PoolPrefix) +
+			cvrObj.Labels["cstorpool.openebs.io/uid"] + "/" +
+			cvrObj.Labels["cstorvolume.openebs.io/name"]
 
 	switch operation {
 	case common.QOpAdd:
-		glog.Infof("Processing cvr added event: %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
+		glog.Infof(
+			"will process add event for cvr {%s} as volume {%s}",
+			cvrObj.Name,
+			fullVolName,
+		)
 
-		status, err := c.cVRAddEventHandler(cVR, fullVolName)
+		status, err := c.cVRAddEventHandler(cvrObj, fullVolName)
 		return status, err
 
 	case common.QOpDestroy:
-		glog.Infof("Processing cvr deleted event %v, %v", cVR.ObjectMeta.Name, string(cVR.GetUID()))
+		glog.Infof(
+			"will process delete event for cvr {%s} as volume {%s}",
+			cvrObj.Name,
+			fullVolName,
+		)
 
 		err := volumereplica.DeleteVolume(fullVolName)
 		if err != nil {
-			glog.Errorf("Error in deleting volume %q: %s", cVR.ObjectMeta.Name, err)
-			c.recorder.Event(cVR, corev1.EventTypeWarning, string(common.FailureDestroy), string(common.MessageResourceFailDestroy))
+			c.recorder.Event(
+				cvrObj,
+				corev1.EventTypeWarning,
+				string(common.FailureDestroy),
+				string(common.MessageResourceFailDestroy),
+			)
 			return string(apis.CVRStatusDeletionFailed), err
 		}
+
+		err = c.removeFinalizer(cvrObj)
+		if err != nil {
+			c.recorder.Event(
+				cvrObj,
+				corev1.EventTypeWarning,
+				string(common.FailureRemoveFinalizer),
+				string(common.MessageResourceFailDestroy),
+			)
+			return string(apis.CVRStatusDeletionFailed), err
+		}
+
 		return "", nil
+
 	case common.QOpModify:
 		fallthrough
+
 	case common.QOpSync:
-		glog.Infof("CstorVolumeReplica: '%s' got '%v' event", cVR.ObjectMeta.Name, operation)
-		status, err := c.getCVRStatus(cVR)
-		if err != nil {
-			glog.Errorf("Unable to get volume status:%s", err.Error())
-		}
-		return status, err
+		glog.V(4).Infof(
+			"will process sync event for cvr {%s} as volume {%s}",
+			cvrObj.Name,
+			operation,
+		)
+		return c.getCVRStatus(cvrObj)
 	}
-	glog.Errorf("ignored event '%s' for CVR '%s'", string(operation), cVR.ObjectMeta.Name)
+
+	glog.Errorf(
+		"failed to handle event for cvr {%s}: operation {%s} not supported",
+		cvrObj.Name,
+		string(operation),
+	)
 	return string(apis.CVRStatusInvalid), nil
+}
+
+// removeFinalizer removes finalizers present in
+// CVR resource
+func (c *CStorVolumeReplicaController) removeFinalizer(
+	cvrObj *apis.CStorVolumeReplica,
+) error {
+	cvrPatch := []CVRPatch{
+		CVRPatch{
+			Op:   "remove",
+			Path: "/metadata/finalizers",
+		},
+	}
+
+	cvrPatchBytes, err := json.Marshal(cvrPatch)
+	if err != nil {
+		return merrors.Wrapf(
+			err,
+			"failed to remove finalizers from cvr {%s}",
+			cvrObj.Name,
+		)
+	}
+
+	_, err = c.clientset.
+		OpenebsV1alpha1().
+		CStorVolumeReplicas(cvrObj.Namespace).
+		Patch(cvrObj.Name, types.JSONPatchType, cvrPatchBytes)
+	if err != nil {
+		return merrors.Wrapf(
+			err,
+			"failed to remove finalizers from cvr {%s}",
+			cvrObj.Name,
+		)
+	}
+
+	glog.Infof("finalizers removed successfully from cvr {%s}", cvrObj.Name)
+	return nil
 }
 
 func (c *CStorVolumeReplicaController) cVRAddEventHandler(cVR *apis.CStorVolumeReplica, fullVolName string) (string, error) {
