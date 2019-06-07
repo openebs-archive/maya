@@ -21,6 +21,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/openebs/maya/cmd/cstor-pool-mgmt/controller/common"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -83,30 +84,48 @@ func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 		// put back on the workqueue and attempted again after a back-off
 		// period.
 		defer c.workqueue.Done(obj)
+
 		var q common.QueueLoad
 		var ok bool
-		// We expect strings to come off the workqueue. These are of the
-		// form namespace/name. We do this as the delayed nature of the
-		// workqueue means the items in the informer cache may actually be
-		// more up to date that when the item was initially put onto the
-		// workqueue.
+
+		// We expect a particular object type to come off the workqueue.
+		// These are of the form namespace/name. We do this as the delayed
+		// nature of the workqueue means the items in the informer cache
+		// may actually be more up to date that when the item was initially
+		// put onto the workqueue.
 		if q, ok = obj.(common.QueueLoad); !ok {
 			// As the item in the workqueue is actually invalid, we call
 			// Forget here else we'd go into a loop of attempting to
 			// process a work item that is invalid.
 			c.workqueue.Forget(obj)
-			runtime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
+			runtime.HandleError(
+				errors.Errorf(
+					"failed to process workqueue: got unsupported obj {%#v}",
+					obj,
+				),
+			)
 			return nil
 		}
-		// Run the syncHandler, passing it the namespace/name string of the
-		// CStorReplica resource to be synced.
+
+		// run syncHandler, passing it the namespace/name string
+		// of cvr resource to be synced
 		if err := c.syncHandler(q.Key, q.Operation); err != nil {
-			return fmt.Errorf("error syncing '%s': %s", q.Key, err.Error())
+			return errors.Wrapf(
+				err,
+				"failed to process workqueue item {%s} during {%s} operation",
+				q.Key,
+				string(q.Operation),
+			)
 		}
-		// Finally, if no error occurs we Forget this item so it does not
-		// get queued again until another change happens.
+
+		// Finally, if no error occurs we forget this item so that it
+		// does not get queued again until another change happens
 		c.workqueue.Forget(obj)
-		glog.Infof("Successfully synced '%s' for operation: %s", q.Key, string(q.Operation))
+		glog.Infof(
+			"workqueue item {%s} processed successfully for {%s} operation",
+			q.Key,
+			string(q.Operation),
+		)
 		return nil
 	}(obj)
 
@@ -114,5 +133,6 @@ func (c *CStorVolumeReplicaController) processNextWorkItem() bool {
 		runtime.HandleError(err)
 		return true
 	}
+
 	return true
 }
