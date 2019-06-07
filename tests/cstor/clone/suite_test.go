@@ -50,7 +50,6 @@ var (
 	spcObj             *apis.StoragePoolClaim
 	pvcObj             *corev1.PersistentVolumeClaim
 	snapObj            *snapshot.VolumeSnapshot
-	targetLabel        = "openebs.io/target=cstor-target"
 	pvLabel            = "openebs.io/persistent-volume="
 	pvcLabel           = "openebs.io/persistent-volume-claim="
 	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}

@@ -44,6 +44,10 @@ type getKubeConfigFn func() (config *rest.Config, err error)
 // abstracts fetching of config from kubeConfigPath
 type getKubeConfigForPathFn func(kubeConfigPath string) (config *rest.Config, err error)
 
+// createFn is a typed function that abstracts
+// creation of pod
+type createFn func(cli *clientset.Clientset, namespace string, pod *corev1.Pod) (*corev1.Pod, error)
+
 // listFn is a typed function that abstracts
 // listing of pods
 type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error)
@@ -117,6 +121,7 @@ type KubeClient struct {
 	getKubeConfigForPath getKubeConfigForPathFn
 	getClientset         getClientsetFn
 	getClientsetForPath  getClientsetForPathFn
+	create               createFn
 	list                 listFn
 	del                  deleteFn
 	get                  getFn
@@ -143,7 +148,7 @@ func (k *KubeClient) withDefaults() {
 	}
 	if k.getKubeConfigForPath == nil {
 		k.getKubeConfigForPath = func(kubeConfigPath string) (config *rest.Config, err error) {
-			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Config()
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
 		}
 	}
 	if k.getClientset == nil {
@@ -154,6 +159,11 @@ func (k *KubeClient) withDefaults() {
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
 			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
+		}
+	}
+	if k.create == nil {
+		k.create = func(cli *clientset.Clientset, namespace string, pod *corev1.Pod) (*corev1.Pod, error) {
+			return cli.CoreV1().Pods(namespace).Create(pod)
 		}
 	}
 	if k.list == nil {
@@ -217,7 +227,8 @@ func (k *KubeClient) WithKubeConfig(config *rest.Config) *KubeClient {
 	return k
 }
 
-func (k *KubeClient) getClientsetForPathOrDirect() (*clientset.Clientset, error) {
+func (k *KubeClient) getClientsetForPathOrDirect() (
+	*clientset.Clientset, error) {
 	if k.kubeConfigPath != "" {
 		return k.getClientsetForPath(k.kubeConfigPath)
 	}
@@ -278,26 +289,53 @@ func (k *KubeClient) Delete(name string, opts *metav1.DeleteOptions) error {
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return errors.Wrapf(err, "failed to delete pod {%s}: failed to get clientset", name)
+		return errors.Wrapf(
+			err,
+			"failed to delete pod {%s}: failed to get clientset",
+			name,
+		)
 	}
 	return k.del(cli, k.namespace, name, opts)
 }
 
+// Create creates a pod in specified namespace in kubernetes cluster
+func (k *KubeClient) Create(pod *corev1.Pod) (*corev1.Pod, error) {
+	if pod == nil {
+		return nil, errors.New("failed to create pod: nil pod object")
+	}
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"failed to create pod {%s} in namespace {%s}",
+			pod.Name,
+			pod.Namespace,
+		)
+	}
+	return k.create(cli, k.namespace, pod)
+}
+
 // Get gets a pod object present in kubernetes cluster
-func (k *KubeClient) Get(name string, opts metav1.GetOptions) (*corev1.Pod, error) {
+func (k *KubeClient) Get(name string,
+	opts metav1.GetOptions) (*corev1.Pod, error) {
 	if len(name) == 0 {
 		return nil, errors.New("failed to get pod: missing pod name")
 	}
 	cli, err := k.getClientsetOrCached()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get pod {%s}: failed to get clientset", name)
+		return nil, errors.Wrapf(
+			err,
+			"failed to get pod {%s}: failed to get clientset",
+			name,
+		)
 	}
 	return k.get(cli, k.namespace, name, opts)
 }
 
 // GetRaw gets pod object for a given name and namespace present
 // in kubernetes cluster and returns result in raw byte.
-func (k *KubeClient) GetRaw(name string, opts metav1.GetOptions) ([]byte, error) {
+func (k *KubeClient) GetRaw(name string,
+	opts metav1.GetOptions) ([]byte, error) {
 	p, err := k.Get(name, opts)
 	if err != nil {
 		return nil, err
