@@ -17,14 +17,18 @@ limitations under the License.
 package v1alpha1
 
 import (
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//TODO: While using these packages UnitTest must be written to corresponding function
+const (
+	// StoragePoolKind holds the value of StoragePoolClaim
+	StoragePoolKind = "StoragePoolClaim"
+)
 
 // Builder is the builder object for BlockDeviceClaim
 type Builder struct {
@@ -154,7 +158,7 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 		return b
 	}
 	if b.BDC.Object.Labels == nil {
-		b.BDC.Object.Labels = make(map[string]string)
+		return b.WithLabelsNew(labels)
 	}
 	for key, value := range labels {
 		b.BDC.Object.Labels[key] = value
@@ -218,5 +222,28 @@ func (b *Builder) WithCapacity(capacity string) *Builder {
 		corev1.ResourceName("capacity"): resCapacity,
 	}
 	b.BDC.Object.Spec.Requirements.Requests = resourceList
+	return b
+}
+
+// WithOwnerReference sets the OwnerReference field in BDC with required
+//fields
+func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
+	if spc == nil {
+		b.errs = append(
+			b.errs,
+			errors.New("failed to build BDC object: spc object is nil"),
+		)
+		return b
+	}
+	trueVal := true
+	reference := metav1.OwnerReference{
+		APIVersion:         string(apis.OpenEBSVersionKey),
+		Kind:               StoragePoolKind,
+		UID:                spc.ObjectMeta.UID,
+		Name:               spc.ObjectMeta.Name,
+		BlockOwnerDeletion: &trueVal,
+		Controller:         &trueVal,
+	}
+	b.BDC.Object.OwnerReferences = append(b.BDC.Object.OwnerReferences, reference)
 	return b
 }

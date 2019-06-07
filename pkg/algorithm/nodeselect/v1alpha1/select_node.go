@@ -20,11 +20,27 @@ import (
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
+	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
+	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NodeBlockDeviceSelector selects a node and disks attached to it.
+// BDDetails holds the claimed block device details
+type BDDetails struct {
+	DeviceID string
+	BDName   string
+}
+
+// ClaimedBDDetails holds the node name and
+// claimed block device deatils corresponding to node
+type ClaimedBDDetails struct {
+	NodeName        string
+	BlockDeviceList []BDDetails
+}
+
+// NodeBlockDeviceSelector selects a node and block devices attached to it.
 func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
@@ -119,23 +135,23 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 			Items: []string{},
 		},
 	}
-	// diskCount will hold the number of disk that will be selected from a qualified
+	// bdCount will hold the number of block devices that will be selected from a qualified
 	// node for specific pool type
-	var diskCount int
+	var bdCount int
 	// minRequiredDiskCount will hold the required number of disk that should be selected from a qualified
 	// node for specific pool type
 	minRequiredDiskCount := blockdevice.DefaultDiskCount[ac.poolType()]
 	for node, val := range nodeBlockDeviceMap {
-		// If the current disk count on the node is less than the required disks
+		// If the current block device count on the node is less than the required disks
 		// then this is a dirty node and it will not qualify.
 		if len(val.Items) < minRequiredDiskCount {
 			continue
 		}
-		diskCount = minRequiredDiskCount
+		bdCount = minRequiredDiskCount
 		if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
-			diskCount = (len(val.Items) / minRequiredDiskCount) * minRequiredDiskCount
+			bdCount = (len(val.Items) / minRequiredDiskCount) * minRequiredDiskCount
 		}
-		for i := 0; i < diskCount; i++ {
+		for i := 0; i < bdCount; i++ {
 			selectedBlockDevice.BlockDevices.Items = append(selectedBlockDevice.BlockDevices.Items, val.Items[i])
 		}
 		selectedBlockDevice.NodeName = node
@@ -187,6 +203,93 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
-	bdl := bdL.Filter(blockdevice.FilterClaimedDevices, blockdevice.FilterNonInactive)
+	bdl := bdL.Filter(blockdevice.FilterNonInactive)
 	return bdl.BlockDeviceList, nil
+}
+
+//TODO: Make changes in below code befor PR checked in
+// 1) Use Builder Pattern or some approach to present below code
+// 2) Refactor the below code before removing WIP
+
+// ClaimBlockDevice will create BDC for corresponding BD
+func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) (*ClaimedBDDetails, error) {
+	nodeClaimedBDs := &ClaimedBDDetails{
+		NodeName:        "",
+		BlockDeviceList: []BDDetails{},
+	}
+
+	if nodeBDs == nil || len(nodeBDs.BlockDevices.Items) == 0 {
+		return nil, errors.New("No valid block devices are available to claim")
+	}
+
+	namespace := env.Get(env.OpenEBSNamespace)
+	bdcKubeclient := bdc.NewKubeClient().
+		WithNamespace(namespace)
+	labels := map[string]string{string(apis.StoragePoolClaimCPK): spc.Name}
+	lselector := string(apis.StoragePoolClaimCPK) + "=" + spc.Name
+
+	nodeClaimedBDs.NodeName = nodeBDs.NodeName
+	pendingBDCCount := 0
+
+	bdcObjList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: lselector})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list block device claim for {%s}", spc.Name)
+	}
+	customBDCObjList := bdc.ListBuilderFromAPIList(bdcObjList)
+
+	for _, bdName := range nodeBDs.BlockDevices.Items {
+		var hostName, bdcName string
+		claimedBD := BDDetails{}
+
+		bdObj, err := ac.BlockDeviceClient.Get(bdName, metav1.GetOptions{})
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get block device {%s}", bdName)
+		}
+		hostName = bdObj.Labels[string(apis.HostNameCPK)]
+
+		if bdObj.IsClaimed() {
+			bdcName = bdObj.Spec.ClaimRef.Name
+			bdcObj := customBDCObjList.GetBlockDeviceClaim(bdcName)
+			if bdcObj == nil {
+				return nil, errors.Errorf("block device {%s} is already in use", bdcName)
+			}
+		} else {
+			bdcName = "bdc-" + string(bdObj.UID)
+			bdcObj := customBDCObjList.GetBlockDeviceClaim(bdcName)
+			if bdcObj != nil {
+				pendingBDCCount++
+				continue
+			}
+			capacity := volume.ByteCount(bdObj.Spec.Capacity.Storage)
+			//TODO: Move below code to some function
+			newBDCObj, err := bdc.NewBuilder().
+				WithName(bdcName).
+				WithNamespace(namespace).
+				WithLabels(labels).
+				WithBlockDeviceName(bdName).
+				WithHostName(hostName).
+				WithCapacity(capacity).
+				WithOwnerReference(spc).
+				Build()
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to build blockd device claim for bd {%s}", bdName)
+			}
+
+			_, err = bdcKubeclient.Create(newBDCObj.Object)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
+			}
+			// As a part of reconcilation we will create pool if all the block
+			// devices are claimed
+			pendingBDCCount++
+			continue
+		}
+		claimedBD.DeviceID = bdObj.GetDeviceID()
+		claimedBD.BDName = bdObj.Name
+		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
+	}
+	if pendingBDCCount != 0 {
+		return nil, errors.Errorf("failed to claim block devcies on node: {%s}", nodeClaimedBDs.NodeName)
+	}
+	return nodeClaimedBDs, nil
 }
