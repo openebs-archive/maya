@@ -18,8 +18,12 @@ package v1alpha1
 
 import (
 	stringer "github.com/openebs/maya/pkg/apis/stringer/v1alpha1"
-	"github.com/pkg/errors"
+	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
+	container "github.com/openebs/maya/pkg/kubernetes/container/v1alpha1"
+	volume "github.com/openebs/maya/pkg/kubernetes/volume/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Predicate abstracts conditional logic w.r.t the deployment instance
@@ -33,10 +37,10 @@ import (
 // imperatives i.e. actions that form the business logic
 type Predicate func(*Deploy) bool
 
-// Deploy is the wrapper over k8s deployment object
+// Deploy is the wrapper over k8s deployment Object
 type Deploy struct {
 	// kubernetes deployment instance
-	object *appsv1.Deployment
+	Object *appsv1.Deployment
 }
 
 // Builder enables building an instance of
@@ -66,7 +70,7 @@ const (
 
 // String implements the stringer interface
 func (d *Deploy) String() string {
-	return stringer.Yaml("deployment", d.object)
+	return stringer.Yaml("deployment", d.Object)
 }
 
 // GoString implements the goStringer interface
@@ -78,20 +82,100 @@ func (d *Deploy) GoString() string {
 func NewBuilder() *Builder {
 	return &Builder{
 		deployment: &Deploy{
-			object: &appsv1.Deployment{},
+			Object: &appsv1.Deployment{},
 		},
 	}
 }
 
+// WithName sets the Name field of deployment with provided value.
+func (b *Builder) WithName(name string) *Builder {
+	if len(name) == 0 {
+		b.errors = append(b.errors, errors.New("failed to build deployment: missing deployment name"))
+		return b
+	}
+	b.deployment.Object.Name = name
+	return b
+}
+
+// WithNamespace sets the Namespace field of deployment with provided value.
+func (b *Builder) WithNamespace(namespace string) *Builder {
+	if len(namespace) == 0 {
+		b.errors = append(b.errors, errors.New("failed to build deployment: missing namespace"))
+		return b
+	}
+	b.deployment.Object.Namespace = namespace
+	return b
+}
+
+// WithContainer sets the container field of the deployment object with the given container object
+func (b *Builder) WithContainer(container *corev1.Container) *Builder {
+	b.deployment.Object.Spec.Template.Spec.Containers = append(b.deployment.Object.Spec.Template.Spec.Containers, *container)
+	return b
+}
+
+// WithContainerBuilder builds the containerbuilder provided and
+// sets the container field of the deployment object with the given container object
+func (b *Builder) WithContainerBuilder(containerBuilder *container.Builder) *Builder {
+	containerObj, err := containerBuilder.Build()
+	if err != nil {
+		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		return b
+	}
+	b.deployment.Object.Spec.Template.Spec.Containers = append(
+		b.deployment.Object.Spec.Template.Spec.Containers,
+		containerObj,
+	)
+	return b
+}
+
+// WithVolumes sets Volumes field of deployment.
+func (b *Builder) WithVolumes(vol []corev1.Volume) *Builder {
+	b.deployment.Object.Spec.Template.Spec.Volumes = vol
+	return b
+}
+
+// WithVolumeBuilder sets Volumes field of deployment.
+func (b *Builder) WithVolumeBuilder(volumeBuilder *volume.Builder) *Builder {
+	vol, err := volumeBuilder.Build()
+	if err != nil {
+		b.errors = append(b.errors, errors.Wrap(err, "failed to build deployment"))
+		return b
+	}
+	b.deployment.Object.Spec.Template.Spec.Volumes = append(
+		b.deployment.Object.Spec.Template.Spec.Volumes,
+		*vol,
+	)
+	return b
+}
+
+// WithLabels sets the label field of deployment
+func (b *Builder) WithLabels(labels map[string]string) *Builder {
+	b.deployment.Object.Labels = labels
+	return b
+}
+
+// WithLabelsAndSelector sets label selector for template and deployment
+func (b *Builder) WithLabelsAndSelector(labels map[string]string) *Builder {
+	if len(labels) == 0 {
+		b.errors = append(b.errors, errors.New("failed to build deployment: missing labels"))
+		return b
+	}
+	labelselector := metav1.LabelSelector{}
+	labelselector.MatchLabels = labels
+	b.deployment.Object.Spec.Selector = &labelselector
+	b.deployment.Object.Spec.Template.Labels = labels
+	return b
+}
+
 // NewBuilderForAPIObject returns a new instance of builder
-// for a given deployment object
+// for a given deployment Object
 func NewBuilderForAPIObject(deployment *appsv1.Deployment) *Builder {
 	b := NewBuilder()
 	if deployment != nil {
-		b.deployment.object = deployment
+		b.deployment.Object = deployment
 	} else {
 		b.errors = append(b.errors,
-			errors.New("nil deployment object given to get builder instance"))
+			errors.New("nil deployment given to get builder instance"))
 	}
 	return b
 }
@@ -101,8 +185,8 @@ func (b *Builder) Build() (*Deploy, error) {
 	err := b.validate()
 	if err != nil {
 		return nil, errors.Wrapf(err,
-			"failed to build a deployment instance: %s",
-			b.deployment.object)
+			"failed to build a deployment: %s",
+			b.deployment.Object)
 	}
 	return b.deployment, nil
 }
@@ -191,7 +275,7 @@ func IsProgressDeadlineExceeded() Predicate {
 // If `Progressing` condition's reason is `ProgressDeadlineExceeded` then
 // it is not rolled out.
 func (d *Deploy) IsProgressDeadlineExceeded() bool {
-	for _, cond := range d.object.Status.Conditions {
+	for _, cond := range d.Object.Status.Conditions {
 		if cond.Type == appsv1.DeploymentProgressing &&
 			cond.Reason == "ProgressDeadlineExceeded" {
 			return true
@@ -213,8 +297,8 @@ func IsOlderReplicaActive() Predicate {
 // Status.UpdatedReplicas < *Spec.Replicas then some of the replicas are
 // updated and some of them are not.
 func (d *Deploy) IsOlderReplicaActive() bool {
-	return d.object.Spec.Replicas != nil &&
-		d.object.Status.UpdatedReplicas < *d.object.Spec.Replicas
+	return d.Object.Spec.Replicas != nil &&
+		d.Object.Status.UpdatedReplicas < *d.Object.Spec.Replicas
 }
 
 // IsTerminationInProgress checks for older replicas are waiting to
@@ -234,7 +318,7 @@ func IsTerminationInProgress() Predicate {
 // replicas are not in running state. It waits for newer replica to
 // come into running state then terminate.
 func (d *Deploy) IsTerminationInProgress() bool {
-	return d.object.Status.Replicas > d.object.Status.UpdatedReplicas
+	return d.Object.Status.Replicas > d.Object.Status.UpdatedReplicas
 }
 
 // IsUpdateInProgress Checks if all the replicas are updated or not.
@@ -250,7 +334,7 @@ func IsUpdateInProgress() Predicate {
 // If Status.AvailableReplicas < Status.UpdatedReplicas then all the
 // older replicas are not there but there are less number of availableReplicas
 func (d *Deploy) IsUpdateInProgress() bool {
-	return d.object.Status.AvailableReplicas < d.object.Status.UpdatedReplicas
+	return d.Object.Status.AvailableReplicas < d.Object.Status.UpdatedReplicas
 }
 
 // IsNotSyncSpec compare generation in status and spec and check if
@@ -266,5 +350,5 @@ func IsNotSyncSpec() Predicate {
 // deployment spec is synced or not. If Generation <= Status.ObservedGeneration
 // then deployment spec is not updated yet.
 func (d *Deploy) IsNotSyncSpec() bool {
-	return d.object.Generation > d.object.Status.ObservedGeneration
+	return d.Object.Generation > d.Object.Status.ObservedGeneration
 }

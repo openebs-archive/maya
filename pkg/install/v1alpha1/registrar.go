@@ -20,27 +20,31 @@ import (
 	"strings"
 )
 
-// MultiYamlFetcher abstracts aggregating and returning multiple yaml documents
-// as a string
+// MultiYamlFetcher abstracts aggregating and
+// returning multiple yaml documents as a string
 type MultiYamlFetcher interface {
 	FetchYamls() string
 }
 
-// ArtifactListPredicate abstracts evaluating a condition against the provided
-// artifact list
+// ArtifactListPredicate abstracts evaluating a
+// condition against the provided artifact list
 type ArtifactListPredicate func() bool
 
-// ParseArtifactListFromMultipleYamlsIf generates a list of Artifacts from
-// yaml documents if predicate evaluation succeeds
-func ParseArtifactListFromMultipleYamlsIf(m MultiYamlFetcher, p ArtifactListPredicate) (artifacts []*Artifact) {
+// ParseArtifactListFromMultipleYamlsIf generates a
+// list of Artifacts from yaml documents if predicate
+// evaluation succeeds
+func ParseArtifactListFromMultipleYamlsIf(
+	m MultiYamlFetcher,
+	p ArtifactListPredicate,
+) (artifacts []*Artifact) {
 	if p() {
 		return ParseArtifactListFromMultipleYamls(m)
 	}
 	return
 }
 
-// ParseArtifactListFromMultipleYamls generates a list of Artifacts from the
-// yaml documents.
+// ParseArtifactListFromMultipleYamls generates a list of
+// Artifacts from the yaml documents.
 //
 // NOTE:
 //  Each YAML document is assumed to be separated via "---"
@@ -56,16 +60,19 @@ func ParseArtifactListFromMultipleYamls(m MultiYamlFetcher) (artifacts []*Artifa
 	return
 }
 
-// RegisteredArtifacts returns the list of latest Artifacts that will get
-// installed
+// RegisteredArtifacts returns the list of latest
+// Artifacts that will get installed
 func RegisteredArtifacts() (list artifactList) {
-	//Note: CRDs have to be installed first. Keep this at top of the list.
+	// Note: CRDs need to be installed first
+	// Keep this at top of the list
 	list.Items = append(list.Items, OpenEBSCRDArtifacts().Items...)
 
 	list.Items = append(list.Items, JivaVolumeArtifacts().Items...)
-	//Contains the read/list/delete CAST for supporting older volumes
-	//The CAST defined here are provided as fallback options to latest CAST
+
+	// Contains read/list/delete CAST for supporting older volumes
+	// CAST defined here are provided as fallback options to latest CAST
 	list.Items = append(list.Items, JivaVolumeArtifactsFor060().Items...)
+
 	list.Items = append(list.Items, JivaPoolArtifacts().Items...)
 
 	list.Items = append(list.Items, CstorPoolArtifacts().Items...)
@@ -73,8 +80,9 @@ func RegisteredArtifacts() (list artifactList) {
 	list.Items = append(list.Items, CstorSnapshotArtifacts().Items...)
 	list.Items = append(list.Items, CstorSparsePoolArtifacts().Items...)
 
-	//Contains the SC to help with provisioning from clone.
-	//This is generic for release till K8s supports native way of cloning.
+	// Contains SC to help with provisioning from clone
+	// This is generic for release till K8s supports native
+	// way of cloning
 	list.Items = append(list.Items, SnapshotPromoterSCArtifacts().Items...)
 
 	// snapshots

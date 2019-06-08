@@ -1317,7 +1317,7 @@ func (m *executor) extnV1B1DeploymentRollOutStatus() (err error) {
 
 // appsV1DeploymentRollOutStatus generates rollout status for a given deployment from deployment object
 func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
-	dclient := deploy_appsv1.KubeClient(
+	dclient := deploy_appsv1.NewKubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	res, err := dclient.RolloutStatusf(m.getTaskObjectName())
@@ -1331,7 +1331,7 @@ func (m *executor) appsV1DeploymentRollOutStatus() (err error) {
 
 // getAppsV1Deployment will get the Deployment as specified in the RunTask
 func (m *executor) getAppsV1Deployment() (err error) {
-	dclient := deploy_appsv1.KubeClient(
+	dclient := deploy_appsv1.NewKubeClient(
 		deploy_appsv1.WithNamespace(m.getTaskRunNamespace()),
 		deploy_appsv1.WithClientset(m.getK8sClient().GetKCS()))
 	d, err := dclient.GetRaw(m.getTaskObjectName())
@@ -1556,21 +1556,25 @@ func (m *executor) deleteOEV1alpha1CSV() (err error) {
 
 // execCoreV1Pod runs given command remotely in given container of given pod
 // and post stdout and and stderr in JsonResult. You can get it using -
-// {{- jsonpath .JsonResult "{.Stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
-func (m *executor) execCoreV1Pod() (err error) {
-	podexecopts, err := podexec.WithTemplate("execCoreV1Pod", m.Runtask.Spec.Task, m.Values).
-		AsAPIPodExec()
+// {{- jsonpath .JsonResult "{.stdout}" | trim | saveAs "XXX" .TaskResult | noop -}}
+func (m *executor) execCoreV1Pod() error {
+	raw, err := template.AsTemplatedBytes("execCoreV1Pod", m.Runtask.Spec.Task, m.Values)
+	if err != nil {
+		return errors.Wrap(err, "failed to run templating on pod exec object")
+	}
+	podexecopts, err := podexec.BuilderForYAMLObject(raw).AsAPIPodExec()
+	if err != nil {
+		return errors.Wrap(err, "failed to build pod exec options")
+	}
+	execRaw, err := pod.NewKubeClient().
+		WithNamespace(m.getTaskRunNamespace()).
+		ExecRaw(m.getTaskObjectName(), podexecopts)
 	if err != nil {
 		return errors.Wrap(err, "failed to run pod exec")
 	}
 
-	result, err := m.getK8sClient().ExecCoreV1Pod(m.getTaskObjectName(), podexecopts)
-	if err != nil {
-		return errors.Wrap(err, "failed to run pod exec")
-	}
-
-	util.SetNestedField(m.Values, result, string(v1alpha1.CurrentJSONResultTLP))
-	return
+	util.SetNestedField(m.Values, execRaw, string(v1alpha1.CurrentJSONResultTLP))
+	return nil
 }
 
 // rolloutStatus generates rollout status of a given resource form it's object details

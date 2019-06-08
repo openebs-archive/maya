@@ -26,8 +26,10 @@ import (
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
+	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
+	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
@@ -38,6 +40,7 @@ import (
 	templatefuncs "github.com/openebs/maya/pkg/templatefuncs/v1alpha1"
 	unstruct "github.com/openebs/maya/pkg/unstruct/v1alpha2"
 	result "github.com/openebs/maya/pkg/upgrade/result/v1alpha1"
+	"github.com/openebs/maya/tests/artifacts"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +49,7 @@ import (
 )
 
 const (
-	maxRetry = 50
+	maxRetry = 30
 )
 
 // Options holds the args used for exec'ing into the pod
@@ -69,8 +72,10 @@ type Operations struct {
 	SPCClient      *spc.Kubeclient
 	SVCClient      *svc.Kubeclient
 	CVClient       *cv.Kubeclient
+	CVRClient      *cvr.Kubeclient
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
+	DeployClient   *deploy.Kubeclient
 	kubeConfigPath string
 }
 
@@ -158,12 +163,47 @@ func (ops *Operations) withDefaults() {
 	if ops.CVClient == nil {
 		ops.CVClient = cv.NewKubeclient(cv.WithKubeConfigPath(ops.kubeConfigPath))
 	}
+	if ops.CVRClient == nil {
+		ops.CVRClient = cvr.NewKubeclient(cvr.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 	if ops.URClient == nil {
 		ops.URClient = result.NewKubeClient(result.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 	if ops.UnstructClient == nil {
 		ops.UnstructClient = unstruct.NewKubeClient(unstruct.WithKubeConfigPath(ops.kubeConfigPath))
 	}
+	if ops.DeployClient == nil {
+		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+}
+
+// VerifyOpenebs verify running state of required openebs control plane components
+func (ops *Operations) VerifyOpenebs(expectedPodCount int) *Operations {
+	By("waiting for maya-apiserver pod to come into running state")
+	podCount := ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.MayaAPIServerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	By("waiting for openebs-provisioner pod to come into running state")
+	podCount = ops.GetPodRunningCountEventually(
+		string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSProvisionerLabelSelector),
+		expectedPodCount,
+	)
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	By("Verifying 'admission-server' pod status as running")
+	_ = ops.GetPodRunningCountEventually(string(artifacts.OpenebsNamespace),
+		string(artifacts.OpenEBSAdmissionServerLabelSelector),
+		expectedPodCount,
+	)
+
+	Expect(podCount).To(Equal(expectedPodCount))
+
+	return ops
 }
 
 // GetPodRunningCountEventually gives the number of pods running eventually
@@ -179,9 +219,9 @@ func (ops *Operations) GetPodRunningCountEventually(namespace, lselector string,
 	return podCount
 }
 
-// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// GetCstorVolumeCount gives the count of cstorvolume based on
 // selecter
-func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) int {
+func (ops *Operations) GetCstorVolumeCount(namespace, lselector string, expectedCVCount int) int {
 	var cvCount int
 	for i := 0; i < maxRetry; i++ {
 		cvCount = ops.GetCVCount(namespace, lselector)
@@ -191,6 +231,26 @@ func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string
 		time.Sleep(5 * time.Second)
 	}
 	return cvCount
+}
+
+// GetCstorVolumeCountEventually gives the count of cstorvolume based on
+// selecter eventually
+func (ops *Operations) GetCstorVolumeCountEventually(namespace, lselector string, expectedCVCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetCVCount(namespace, lselector)
+		return cvCount
+	},
+		60, 10).Should(Equal(expectedCVCount))
+}
+
+// GetCstorVolumeReplicaCountEventually gives the count of cstorvolume based on
+// selecter eventually
+func (ops *Operations) GetCstorVolumeReplicaCountEventually(namespace, lselector string, expectedCVRCount int) bool {
+	return Eventually(func() int {
+		cvCount := ops.GetCstorVolumeReplicaCount(namespace, lselector)
+		return cvCount
+	},
+		60, 10).Should(Equal(expectedCVRCount))
 }
 
 // GetPodRunningCount gives number of pods running currently
@@ -219,12 +279,51 @@ func (ops *Operations) GetCVCount(namespace, lselector string) int {
 		Len()
 }
 
+// GetCstorVolumeReplicaCount gives cstorvolumereplica healthy count currently based on selecter
+func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) int {
+	cvrs, err := ops.CVRClient.
+		List(metav1.ListOptions{LabelSelector: lselector})
+	Expect(err).ShouldNot(HaveOccurred())
+	return cvr.
+		ListBuilder().
+		WithAPIList(cvrs).
+		WithFilter(cvr.IsHealthy()).
+		List().
+		Len()
+}
+
 // IsPVCBound checks if the pvc is bound or not
 func (ops *Operations) IsPVCBound(pvcName string) bool {
 	volume, err := ops.PVCClient.
 		Get(pvcName, metav1.GetOptions{})
 	Expect(err).ShouldNot(HaveOccurred())
 	return pvc.NewForAPIObject(volume).IsBound()
+}
+
+// IsPVCBoundEventually checks if the pvc is bound or not eventually
+func (ops *Operations) IsPVCBoundEventually(pvcName string) bool {
+	return Eventually(func() bool {
+		volume, err := ops.PVCClient.
+			Get(pvcName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pvc.NewForAPIObject(volume).IsBound()
+	},
+		60, 10).
+		Should(BeTrue())
+}
+
+// IsPodRunningEventually checks if the pvc is bound or not eventually
+func (ops *Operations) IsPodRunningEventually(namespace, podName string) bool {
+	return Eventually(func() bool {
+		p, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(podName, metav1.GetOptions{})
+		Expect(err).ShouldNot(HaveOccurred())
+		return pod.NewForAPIObject(p).
+			IsRunning()
+	},
+		150, 10).
+		Should(BeTrue())
 }
 
 // GetSnapshotTypeEventually returns type of snapshot eventually
@@ -257,7 +356,7 @@ func (ops *Operations) IsSnapshotDeleted(snapName string) bool {
 		_, err := ops.SnapClient.
 			Get(snapName, metav1.GetOptions{})
 		if err != nil {
-			return true
+			return isNotFound(err)
 		}
 		time.Sleep(5 * time.Second)
 	}
@@ -274,6 +373,18 @@ func (ops *Operations) IsPVCDeleted(pvcName string) bool {
 		return true
 	}
 	return false
+}
+
+// IsPodDeletedEventually checks if the pod is deleted or not eventually
+func (ops *Operations) IsPodDeletedEventually(namespace, podName string) bool {
+	return Eventually(func() bool {
+		_, err := ops.PodClient.
+			WithNamespace(namespace).
+			Get(podName, metav1.GetOptions{})
+		return isNotFound(err)
+	},
+		60, 10).
+		Should(BeTrue())
 }
 
 // GetPVNameFromPVCName gives the pv name for the given pvc
@@ -315,6 +426,24 @@ func (ops *Operations) DeleteCSP(spcName string, deleteCount int) {
 	}
 }
 
+// GetCSPCount gets csp count based on spcName
+func (ops *Operations) GetCSPCount(spcName string, expectedCSPCount int) int {
+	var cspCount int
+	for i := 0; i < maxRetry; i++ {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		cspCount = csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Len()
+		if cspCount == expectedCSPCount {
+			return cspCount
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return cspCount
+}
+
 // GetHealthyCSPCount gets healthy csp based on spcName
 func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) int {
 	var cspCount int
@@ -332,6 +461,22 @@ func (ops *Operations) GetHealthyCSPCount(spcName string, expectedCSPCount int) 
 		time.Sleep(5 * time.Second)
 	}
 	return cspCount
+}
+
+// GetHealthyCSPCountEventually gets healthy csp based on spcName
+func (ops *Operations) GetHealthyCSPCountEventually(spcName string, expectedCSPCount int) bool {
+	return Eventually(func() int {
+		cspAPIList, err := ops.CSPClient.List(metav1.ListOptions{})
+		Expect(err).To(BeNil())
+		count := csp.
+			ListBuilderForAPIObject(cspAPIList).
+			List().
+			Filter(csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName), csp.IsStatus("Healthy")).
+			Len()
+		return count
+	},
+		60, 10).
+		Should(Equal(expectedCSPCount))
 }
 
 // ExecPod executes arbitrary command inside the pod

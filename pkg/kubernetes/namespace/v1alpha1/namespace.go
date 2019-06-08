@@ -49,6 +49,12 @@ func (b *Builder) WithName(name string) *Builder {
 	return b
 }
 
+// WithGenerateName appends a random string after the name
+func (b *Builder) WithGenerateName(name string) *Builder {
+	b.ns.object.GenerateName = name + "-"
+	return b
+}
+
 // Build returns the Namespace instance
 func (b *Builder) Build() (*Namespace, error) {
 	if len(b.errs) > 0 {

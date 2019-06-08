@@ -40,6 +40,8 @@ func TestPredicateFailedError(t *testing.T) {
 		"always false": {"fakeAlwaysFalse", "predicatefailed: fakeAlwaysFalse"},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
 			e := predicateFailedError(mock.predicateMessage)
 			if e.Error() != mock.expectedErr {
@@ -82,7 +84,7 @@ func TestNewWithArguments(t *testing.T) {
 }
 
 func TestBuilderBuild(t *testing.T) {
-	_, err := Builder().Build()
+	_, err := NewBuilder().Build()
 	if err != nil {
 		t.Fatalf("test failed: expected no err: actual '%+v'", err)
 	}
@@ -98,8 +100,10 @@ func TestBuilderValidation(t *testing.T) {
 		"true & false": {[]Predicate{fakeAlwaysTrue, fakeAlwaysFalse}, true},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			_, err := Builder().AddChecks(mock.checks).Build()
+			_, err := NewBuilder().AddChecks(mock.checks).Build()
 			if mock.isError && err == nil {
 				t.Fatalf("test '%s' failed: expected error: actual no error", name)
 			}
@@ -120,8 +124,10 @@ func TestBuilderAddChecks(t *testing.T) {
 		"two":  {[]Predicate{fakeAlwaysTrue, fakeAlwaysFalse}, 2},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			b := Builder().AddChecks(mock.checks)
+			b := NewBuilder().AddChecks(mock.checks)
 			if len(b.checks) != mock.expectedCount {
 				t.Fatalf("test '%s' failed: expected no of checks '%d': actual '%d'", name, mock.expectedCount, len(b.checks))
 			}
@@ -139,8 +145,10 @@ func TestBuilderWithName(t *testing.T) {
 		"t3": {"ndm", "ndm"},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := Builder().WithName(mock.name).Build()
+			c, _ := NewBuilder().WithName(mock.name).Build()
 			if c.Name != mock.expectedName {
 				t.Fatalf("test '%s' failed: expected name '%s': actual '%s'", name, mock.expectedName, c.Name)
 			}
@@ -158,8 +166,10 @@ func TestBuilderWithImage(t *testing.T) {
 		"t3": {"openebs.io/ndm:1.0", "openebs.io/ndm:1.0"},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := Builder().WithImage(mock.image).Build()
+			c, _ := NewBuilder().WithImage(mock.image).Build()
 			if c.Image != mock.expectedImage {
 				t.Fatalf("test '%s' failed: expected image '%s': actual '%s'", name, mock.expectedImage, c.Image)
 			}
@@ -175,8 +185,10 @@ func TestBuilderWithCommand(t *testing.T) {
 		"t1": {[]string{"kubectl", "get", "po"}, []string{"kubectl", "get", "po"}},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := Builder().WithCommand(mock.cmd).Build()
+			c, _ := NewBuilder().WithCommand(mock.cmd).Build()
 			if !reflect.DeepEqual(c.Command, mock.expectedCmd) {
 				t.Fatalf("test '%s' failed: expected command '%q': actual '%q'", name, mock.expectedCmd, c.Command)
 			}
@@ -192,8 +204,10 @@ func TestBuilderWithArguments(t *testing.T) {
 		"t1": {[]string{"-jsonpath", "metadata.name"}, []string{"-jsonpath", "metadata.name"}},
 	}
 	for name, mock := range tests {
+		name := name // pin it
+		mock := mock // pin it
 		t.Run(name, func(t *testing.T) {
-			c, _ := Builder().WithArguments(mock.args).Build()
+			c, _ := NewBuilder().WithArguments(mock.args).Build()
 			if !reflect.DeepEqual(c.Args, mock.expectedArgs) {
 				t.Fatalf("test '%s' failed: expected arguments '%q': actual '%q'", name, mock.expectedArgs, c.Args)
 			}

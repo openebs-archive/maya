@@ -1,309 +1,440 @@
-// Copyright © 2019 The OpenEBS Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+Copyright 2019 The OpenEBS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 package admission
 
 import (
-	"fmt"
+	"strconv"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	k8s "github.com/openebs/maya/pkg/client/k8s/v1alpha1"
-	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
+
+	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
-	"github.com/openebs/maya/tests/artifacts"
-	framework "github.com/openebs/maya/tests/framework/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	snap "github.com/openebs/maya/pkg/kubernetes/snapshot/v1alpha1"
+	sc "github.com/openebs/maya/pkg/kubernetes/storageclass/v1alpha1"
+	spc "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
+	"github.com/openebs/maya/tests/cstor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-const (
-	// namespaceYaml holds the yaml spec
-	// to create admission namespace
-	namespaceYaml artifacts.Artifact = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: admission
-`
-	// cStorPVC holds the yaml spec
-	// for source persistentvolumeclaim
-	cStorPVC artifacts.Artifact = `
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: cstor-source-volume
-  namespace: admission
-  labels:
-    name: cstor-source-volume
-spec:
-  storageClassName: openebs-cstor-class
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: "2G"
-`
-	// singleReplicaSC holds the yaml spec
-	// for pool with single replica
-	singleReplicaSC artifacts.Artifact = `
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: openebs-cstor-class
-  annotations:
-    cas.openebs.io/config: |
-      - name: StoragePoolClaim
-        value: "cstor-sparse-pool"
-      - name: ReplicaCount
-        value: "1"
-    openebs.io/cas-type: cstor
-provisioner: openebs.io/provisioner-iscsi
-reclaimPolicy: Delete
-`
-	// clonePVCYaml holds the yaml spec
-	// for clone persistentvolumeclaim
-	clonePVCYaml artifacts.Artifact = `
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: test-snap-claim
-  namespace: admission
-  labels:
-    name: test-snap-claim
-  annotations:
-    snapshot.alpha.kubernetes.io/snapshot: snapshot-cstor
-spec:
-  storageClassName: openebs-snapshot-promoter
-  accessModes: [ "ReadWriteOnce" ]
-  resources:
-    requests:
-      storage: 2G`
-	// cstorSnapshotYaml holds the yaml spec
-	// for volume snapshot
-	cstorSnapshotYaml artifacts.Artifact = `
-apiVersion: volumesnapshot.external-storage.k8s.io/v1
-kind: VolumeSnapshot
-metadata:
-  name: snapshot-cstor
-  namespace: admission
-spec:
-  persistentVolumeClaimName: cstor-source-volume
-`
-)
-
-var _ = Describe("[single-node] [cstor] AdmissionWebhook", func() {
-	options := framework.FrameworkOptions{
-		MinNodeCount: 1,
-		Artifacts:    "../artifacts/openebs-ci.yaml",
-	}
-	_ = framework.NewFrameworkDefault("AdmissionWebhook pvc delete", options)
-
+var _ = Describe("[cstor] TEST ADMISSION SERVER VALIDATION", func() {
 	var (
-		NSUnst, SCUnst, PVCUnst *unstructured.Unstructured
-		pvclaim                 *corev1.PersistentVolumeClaim
+		err          error
+		pvcName      = "test-cstor-admission-pvc"
+		snapName     = "test-cstor-admission-snapshot"
+		clonepvcName = "test-cstor-admission-pvc-cloned"
 	)
+
 	BeforeEach(func() {
-		// Extracting storageclass artifacts unstructured
-		var err error
-		SCUnst, err = artifacts.GetArtifactUnstructured(singleReplicaSC)
-		Expect(err).ShouldNot(HaveOccurred())
+		When("deploying cstor sparse pool", func() {
+			By("building storagepoolclaim")
+			spcObj = spc.NewBuilder().
+				WithGenerateName(spcName).
+				WithDiskType(string(apis.TypeSparseCPV)).
+				WithMaxPool(cstor.PoolCount).
+				WithOverProvisioning(false).
+				WithPoolType(string(apis.PoolTypeStripedCPV)).
+				Build().Object
 
-		// Apply  single replica storageclass
-		cu := k8s.CreateOrUpdate(
-			k8s.GroupVersionResourceFromGVK(SCUnst),
-			SCUnst.GetNamespace(),
-		)
+			By("creating above storagepoolclaim")
+			spcObj, err = ops.SPCClient.Create(spcObj)
+			Expect(err).To(BeNil(), "while creating spc", spcName)
 
-		_, err = cu.Apply(SCUnst)
-		Expect(err).ShouldNot(HaveOccurred())
+			By("verifying healthy cstorpool count")
+			cspCount := ops.GetHealthyCSPCount(spcObj.Name, cstor.PoolCount)
+			Expect(cspCount).To(Equal(1), "while checking cstorpool health count")
 
-		// Creates admission namespace
-		NSUnst, err = artifacts.GetArtifactUnstructured(
-			artifacts.Artifact(namespaceYaml),
-		)
-		Expect(err).ShouldNot(HaveOccurred())
+			By("building a CAS Config with generated SPC name")
+			CASConfig := strings.Replace(openebsCASConfigValue, "$spcName", spcObj.Name, 1)
+			CASConfig = strings.Replace(CASConfig, "$count", strconv.Itoa(cstor.ReplicaCount), 1)
+			annotations[string(apis.CASTypeKey)] = string(apis.CstorVolume)
+			annotations[string(apis.CASConfigKey)] = CASConfig
 
-		cu = k8s.CreateOrUpdate(
-			k8s.GroupVersionResourceFromGVK(NSUnst),
-			NSUnst.GetNamespace(),
-		)
-		_, err = cu.Apply(NSUnst)
-		Expect(err).ShouldNot(HaveOccurred())
+			By("building storageclass object")
+			scObj, err = sc.NewBuilder().
+				WithGenerateName(scName).
+				WithAnnotations(annotations).
+				WithProvisioner(openebsProvisioner).Build()
+			Expect(err).ShouldNot(HaveOccurred(), "while building storageclass obj for storageclass {%s}", scName)
 
-		// Extracting PVC artifacts unstructured
-		PVCUnst, err = artifacts.GetArtifactUnstructured(cStorPVC)
-		Expect(err).ShouldNot(HaveOccurred())
+			By("creating storageclass")
+			scObj, err = ops.SCClient.Create(scObj)
+			Expect(err).To(BeNil(), "while creating storageclass", scName)
 
-		// Create pvc using storageclass 'cstor-sparse-class'
-		By(fmt.Sprintf("Creating pvc '%s' in '%s' namespace", PVCUnst.GetName(), PVCUnst.GetNamespace()))
-		cu = k8s.CreateOrUpdate(
-			k8s.GroupVersionResourceFromGVK(PVCUnst),
-			PVCUnst.GetNamespace(),
-		)
-		_, err = cu.Apply(PVCUnst)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		By("verifying pvc to be created and bound with pv")
-		Eventually(func() bool {
-			pvclaim, err = pvc.
-				NewKubeClient().
-				WithNamespace(PVCUnst.GetNamespace()).
-				Get(PVCUnst.GetName(), metav1.GetOptions{})
-			Expect(err).ShouldNot(HaveOccurred())
-			return pvc.
-				NewForAPIObject(pvclaim).IsBound()
-		},
-			framework.DefaultTimeOut, framework.DefaultPollingInterval).
-			Should(BeTrue())
-
-		// Check for cstorvolume to get healthy
-		Eventually(func() bool {
-			cstorvolume, err := cv.
-				NewKubeclient(cv.WithNamespace("openebs")).
-				Get(pvclaim.Spec.VolumeName, metav1.GetOptions{})
-			Expect(err).ShouldNot(HaveOccurred())
-			return cv.
-				NewForAPIObject(cstorvolume).IsHealthy()
-		},
-			framework.DefaultTimeOut, framework.DefaultPollingInterval).
-			Should(BeTrue())
+		})
 	})
 
 	AfterEach(func() {
-		By(fmt.Sprintf("deleting PVC '%s' as part of teardown", PVCUnst.GetName()))
-		// Delete the PVC artifacts
-		cu := k8s.DeleteResource(
-			k8s.GroupVersionResourceFromGVK(PVCUnst),
-			PVCUnst.GetNamespace(),
-		)
-		err := cu.Delete(PVCUnst)
-		Expect(err).ShouldNot(HaveOccurred())
+		By("deleting resources created for cstor volume snapshot provisioning", func() {
+			By("deleting storagepoolclaim")
+			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting the spc's {%s}", spcName)
 
-		// Verify deletion of pvc instances
-		Eventually(func() int {
-			pvcs, err := pvc.
-				NewKubeClient().
-				WithNamespace(PVCUnst.GetNamespace()).
-				List(metav1.ListOptions{LabelSelector: "name=cstor-source-volume"})
-			Expect(err).ShouldNot(HaveOccurred())
-			return len(pvcs.Items)
-		},
-			framework.DefaultTimeOut, framework.DefaultPollingInterval).
-			Should(Equal(0), "pvc count should be 0")
+			By("deleting storageclass")
+			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting storageclass", scName)
 
-		CstorVolumeLabel := "openebs.io/persistent-volume=" + pvclaim.Spec.VolumeName
-
-		// verify deletion of cstorvolume
-		Eventually(func() int {
-			cvs, err := cv.
-				NewKubeclient(cv.WithNamespace("openebs")).
-				List(metav1.ListOptions{LabelSelector: CstorVolumeLabel})
-			Expect(err).ShouldNot(HaveOccurred())
-			return len(cvs.Items)
-		},
-			framework.DefaultTimeOut, framework.DefaultPollingInterval).
-			Should(Equal(0), "cStorvolume count should be 0")
-
-		sc := k8s.DeleteResource(
-			k8s.GroupVersionResourceFromGVK(SCUnst),
-			SCUnst.GetNamespace(),
-		)
-		err = sc.Delete(SCUnst)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		ns := k8s.DeleteResource(
-			k8s.GroupVersionResourceFromGVK(NSUnst),
-			"",
-		)
-		err = ns.Delete(NSUnst)
-		Expect(err).ShouldNot(HaveOccurred())
-
-	})
-
-	Context("Test admission server validation for pvc delete", func() {
-		It("should deny the deletion of source volume", func() {
-
-			By("Creating a snapshot for a given volume")
-			SnapUnst, err := artifacts.GetArtifactUnstructured(cstorSnapshotYaml)
-			Expect(err).ShouldNot(HaveOccurred())
-			// Apply volume snapshot
-			cu := k8s.CreateOrUpdate(
-				k8s.GroupVersionResourceFromGVK(SnapUnst),
-				SnapUnst.GetNamespace(),
-			)
-			_, err = cu.Apply(SnapUnst)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// Extracting clone PVC artifacts unstructured
-			By("Creating a clone volume using snapshot")
-			ClonePVCUnst, err := artifacts.GetArtifactUnstructured(clonePVCYaml)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			cu = k8s.CreateOrUpdate(
-				k8s.GroupVersionResourceFromGVK(ClonePVCUnst),
-				ClonePVCUnst.GetNamespace(),
-			)
-			_, err = cu.Apply(ClonePVCUnst)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			By(fmt.Sprintf("verifying clone pvc '%s' to be created and bound with pv", ClonePVCUnst.GetName()))
-			Eventually(func() bool {
-				pvclone, err := pvc.
-					NewKubeClient().
-					WithNamespace(ClonePVCUnst.GetNamespace()).
-					Get(ClonePVCUnst.GetName(), metav1.GetOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
-				return pvc.
-					NewForAPIObject(pvclone).IsBound()
-			},
-				framework.DefaultTimeOut, framework.DefaultPollingInterval).
-				Should(BeTrue())
-
-			By(fmt.Sprintf("Deleting source PVC '%s' should fail with error", PVCUnst.GetName()))
-
-			del := k8s.DeleteResource(
-				k8s.GroupVersionResourceFromGVK(PVCUnst),
-				PVCUnst.GetNamespace(),
-			)
-			err = del.Delete(PVCUnst)
-			Expect(err).ToNot(BeNil())
-
-			By(fmt.Sprintf("Deleting clone persistentvolumeclaim '%s'", ClonePVCUnst.GetName()))
-			err = del.Delete(ClonePVCUnst)
-			Expect(err).ShouldNot(HaveOccurred())
-
-			// Verify deletion of pvc instances
-			Eventually(func() int {
-				pvcs, err := pvc.
-					NewKubeClient().
-					WithNamespace(ClonePVCUnst.GetNamespace()).
-					List(metav1.ListOptions{LabelSelector: "name=test-snap-claim"})
-				Expect(err).ShouldNot(HaveOccurred())
-				return len(pvcs.Items)
-			},
-				framework.DefaultTimeOut, framework.DefaultPollingInterval).
-				Should(Equal(0), "pvc count should be 0")
-
-			By("Deleting volume snapshot")
-			snap := k8s.DeleteResource(
-				k8s.GroupVersionResourceFromGVK(SnapUnst),
-				SnapUnst.GetNamespace(),
-			)
-			err = snap.Delete(SnapUnst)
-			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
+
+	When("cstor pvc with replicacount 1 is created", func() {
+		It("should create cstor volume target pod", func() {
+
+			By("building a persistentvolumeclaim")
+			pvcObj, err = pvc.NewBuilder().
+				WithName(pvcName).
+				WithNamespace(nsObj.Name).
+				WithStorageClass(scObj.Name).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("creating cstor persistentvolumeclaim")
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+			By("verifying volume target pod count as 1")
+			targetVolumeLabel := pvcLabel + pvcObj.Name
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			By("verifying pvc status as bound")
+			status := ops.IsPVCBoundEventually(pvcName)
+			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+			By("verifying cstorVolume status as healthy")
+			CstorVolumeLabel := "openebs.io/persistent-volume=" + pvcObj.Spec.VolumeName
+			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 1)
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
+			By("building a cstor volume snapshot")
+			snapObj, err = snap.NewBuilder().
+				WithName(snapName).
+				WithNamespace(nsObj.Name).
+				WithPVC(pvcName).
+				Build()
+			Expect(err).To(
+				BeNil(),
+				"while building snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("creating cstor volume snapshot")
+			_, err = ops.SnapClient.WithNamespace(nsObj.Name).Create(snapObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			snaptype := ops.GetSnapshotTypeEventually(snapName)
+			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
+
+			By("builing clone persistentvolumeclaim")
+			cloneAnnotations := map[string]string{
+				"snapshot.alpha.kubernetes.io/snapshot": snapName,
+			}
+
+			clonepvcObj, err = pvc.NewBuilder().
+				WithName(clonepvcName).
+				WithAnnotations(cloneAnnotations).
+				WithNamespace(nsObj.Name).
+				WithStorageClass(clonescName).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).
+				Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("creating clone persistentvolumeclaim")
+			_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(clonepvcObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("verifying clone volume target pod count")
+
+			clonetargetLabel := pvcLabel + clonepvcName
+			clonePodCount := ops.GetPodRunningCountEventually(openebsNamespace, clonetargetLabel, 1)
+			Expect(clonePodCount).To(Equal(1), "while checking clone pvc pod count")
+
+			By("verifying clone volumeereplica count")
+			clonepvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(clonepvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			clonecvrLabel := pvLabel + clonepvcObj.Spec.VolumeName
+			cvrCount = ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, clonecvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			By("verifying clone pvc status as bound")
+			status = ops.IsPVCBoundEventually(clonepvcName)
+			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+			By("deleting source pvc which failed to delete due to clone pvc exists")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).ToNot(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("deleting clone persistentvolumeclaim")
+			err = ops.PVCClient.Delete(clonepvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying clone target pod count as 0")
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, clonetargetLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
+
+			By("verifying deleted clone pvc")
+			clonepvc := ops.IsPVCDeleted(clonepvcName)
+			Expect(clonepvc).To(Equal(true), "while trying to get deleted pvc")
+
+			By("verifying if clone cstorvolume is deleted")
+			CstorVolumeLabel = pvLabel + clonepvcObj.Spec.VolumeName
+			clonecvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			Expect(clonecvCount).To(Equal(true), "while checking cstorvolume count")
+
+			By("deleting cstor volume snapshot")
+			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("verifying deleted snapshot")
+			snap := ops.IsSnapshotDeleted(snapName)
+			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
+			By("deleting source persistentvolumeclaim")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying source volume target pod count as 0")
+
+			sourcetargetLabel := pvcLabel + pvcName
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, sourcetargetLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
+
+			By("verifying deleted source pvc")
+			pvc := ops.IsPVCDeleted(pvcName)
+			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
+
+			By("verifying if source cstorvolume is deleted")
+			CstorVolumeLabel = pvLabel + pvcObj.Spec.VolumeName
+			cvCount = ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
+		})
+	})
+
+	When("cstor clone pvc with different size created", func() {
+		It("should failed to create clone cstor volume", func() {
+
+			By("building a source persistentvolumeclaim")
+			pvcObj, err = pvc.NewBuilder().
+				WithName(pvcName).
+				WithNamespace(nsObj.Name).
+				WithStorageClass(scObj.Name).
+				WithAccessModes(accessModes).
+				WithCapacity(capacity).Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("creating cstor persistentvolumeclaim")
+			_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(pvcObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying volume target pod count as 1")
+			targetVolumeLabel := pvcLabel + pvcObj.Name
+			controllerPodCount := ops.GetPodRunningCountEventually(openebsNamespace, targetVolumeLabel, 1)
+			Expect(controllerPodCount).To(Equal(1), "while checking controller pod count")
+
+			By("verifying cstorvolume replica count")
+			pvcObj, err = ops.PVCClient.WithNamespace(nsObj.Name).Get(pvcName, metav1.GetOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while getting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+			cvrLabel := pvLabel + pvcObj.Spec.VolumeName
+			cvrCount := ops.GetCstorVolumeReplicaCountEventually(openebsNamespace, cvrLabel, cstor.ReplicaCount)
+			Expect(cvrCount).To(Equal(true), "while checking cstorvolume replica count")
+
+			By("verifying pvc status as bound")
+			status := ops.IsPVCBoundEventually(pvcName)
+			Expect(status).To(Equal(true), "while checking status equal to bound")
+
+			By("verifying cstorVolume status as healthy")
+			CstorVolumeLabel := pvLabel + pvcObj.Spec.VolumeName
+			cvCount := ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 1)
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
+			By("building a cstor volume snapshot")
+			snapObj, err = snap.NewBuilder().
+				WithName(snapName).
+				WithNamespace(nsObj.Name).
+				WithPVC(pvcName).
+				Build()
+			Expect(err).To(
+				BeNil(),
+				"while building snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("creating cstor volume snapshot")
+			_, err = ops.SnapClient.WithNamespace(nsObj.Name).Create(snapObj)
+			Expect(err).To(
+				BeNil(),
+				"while creating snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			snaptype := ops.GetSnapshotTypeEventually(snapName)
+			Expect(snaptype).To(Equal("Ready"), "while checking snapshot type")
+
+			By("builing clone persistentvolumeclaim")
+			cloneAnnotations := map[string]string{
+				"snapshot.alpha.kubernetes.io/snapshot": snapName,
+			}
+
+			cloneObj, err := pvc.NewBuilder().
+				WithName(clonepvcName).
+				WithAnnotations(cloneAnnotations).
+				WithNamespace(nsObj.Name).
+				WithStorageClass(clonescName).
+				WithAccessModes(accessModes).
+				WithCapacity("10G").
+				Build()
+			Expect(err).ShouldNot(
+				HaveOccurred(),
+				"while building clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("creating clone persistentvolumeclaim should failed to provision")
+			_, err = ops.PVCClient.WithNamespace(nsObj.Name).Create(cloneObj)
+			Expect(err).ToNot(
+				BeNil(),
+				"while creating clone pvc {%s} in namespace {%s}",
+				clonepvcName,
+				nsName,
+			)
+
+			By("deleting cstor volume snapshot")
+			err = ops.SnapClient.Delete(snapName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting snapshot {%s} in namespace {%s}",
+				snapName,
+				nsName,
+			)
+
+			By("verifying deleted snapshot")
+			snap := ops.IsSnapshotDeleted(snapName)
+			Expect(snap).To(Equal(true), "while checking for deleted snapshot")
+
+			By("deleting source persistentvolumeclaim")
+			err = ops.PVCClient.Delete(pvcName, &metav1.DeleteOptions{})
+			Expect(err).To(
+				BeNil(),
+				"while deleting pvc {%s} in namespace {%s}",
+				pvcName,
+				nsName,
+			)
+
+			By("verifying source volume target pod count as 0")
+
+			sourcetargetLabel := pvcLabel + pvcName
+			controllerPodCount = ops.GetPodRunningCountEventually(openebsNamespace, sourcetargetLabel, 0)
+			Expect(controllerPodCount).To(Equal(0), "while checking controller pod count")
+
+			By("verifying deleted source pvc")
+			pvc := ops.IsPVCDeleted(pvcName)
+			Expect(pvc).To(Equal(true), "while trying to get deleted pvc")
+
+			By("verifying if source cstorvolume is deleted")
+			CstorVolumeLabel = pvLabel + pvcObj.Spec.VolumeName
+			cvCount = ops.GetCstorVolumeCountEventually(openebsNamespace, CstorVolumeLabel, 0)
+			Expect(cvCount).To(Equal(true), "while checking cstorvolume count")
+
+		})
+	})
+
 })
