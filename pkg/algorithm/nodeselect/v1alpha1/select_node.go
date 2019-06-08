@@ -233,7 +233,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 
 	bdcObjList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: lselector})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list block device claim for {%s}", spc.Name)
+		return nil, errors.Wrapf(err, "failed to list block device claims for {%s}", spc.Name)
 	}
 	customBDCObjList := bdc.ListBuilderFromAPIList(bdcObjList)
 
@@ -272,7 +272,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 				WithOwnerReference(spc).
 				Build()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to build blockd device claim for bd {%s}", bdName)
+				return nil, errors.Wrapf(err, "failed to build block device claim for bd {%s}", bdName)
 			}
 
 			_, err = bdcKubeclient.Create(newBDCObj.Object)
@@ -289,7 +289,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
 	if pendingBDCCount != 0 {
-		return nil, errors.Errorf("failed to claim block devcies on node: {%s}", nodeClaimedBDs.NodeName)
+		return nil, errors.Errorf("failed to claim block devices on node {%s}", nodeClaimedBDs.NodeName)
 	}
 	return nodeClaimedBDs, nil
 }

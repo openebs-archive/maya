@@ -28,6 +28,8 @@ import (
 const (
 	// StoragePoolKind holds the value of StoragePoolClaim
 	StoragePoolKind = "StoragePoolClaim"
+	// APIVersion holds the value of OpenEBS version
+	APIVersion = "openebs.io/v1alpha1"
 )
 
 // Builder is the builder object for BlockDeviceClaim
@@ -237,7 +239,7 @@ func (b *Builder) WithOwnerReference(spc *apis.StoragePoolClaim) *Builder {
 	}
 	trueVal := true
 	reference := metav1.OwnerReference{
-		APIVersion:         string(apis.OpenEBSVersionKey),
+		APIVersion:         APIVersion,
 		Kind:               StoragePoolKind,
 		UID:                spc.ObjectMeta.UID,
 		Name:               spc.ObjectMeta.Name,
