@@ -78,6 +78,14 @@ func fakeGetClientSetForPathErr(fakeConfigPath string) (cli *clientset.Clientset
 	return nil, errors.New("fake error")
 }
 
+func fakeDeleteCollectionOk(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	return nil
+}
+
+func fakeDeleteCollectionErr(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	return errors.New("fake error")
+}
+
 func TestWithDefaultOptions(t *testing.T) {
 	tests := map[string]struct {
 		kubeClient *KubeClient
@@ -347,6 +355,48 @@ func TestKubernetesDeletePod(t *testing.T) {
 				del:                 mock.delete,
 			}
 			err := k.Delete(mock.podName, &metav1.DeleteOptions{})
+			if mock.expectErr && err == nil {
+				t.Fatalf("Test %q failed: expected error not to be nil", name)
+			}
+			if !mock.expectErr && err != nil {
+				t.Fatalf("Test %q failed: expected error to be nil", name)
+			}
+		})
+	}
+}
+
+func TestKubernetesDeleteCollection(t *testing.T) {
+	tests := map[string]struct {
+		getClientset        getClientsetFn
+		getClientSetForPath getClientsetForPathFn
+		kubeConfigPath      string
+		listOpts            string
+		deleteCollection    deleteCollectionFn
+		expectErr           bool
+	}{
+		"Test 1": {fakeGetClientSetErr, fakeGetClientSetForPathOk, "", "selector=selector1", fakeDeleteCollectionOk, true},
+		"Test 2": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "fake-path2", "selector=selector1", fakeDeleteCollectionOk, false},
+		"Test 3": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "", "selector=selector1", fakeDeleteCollectionErr, true},
+		"Test 4": {fakeGetClientSetOk, fakeGetClientSetForPathOk, "fakepath", "selector=selector1", fakeDeleteCollectionErr, true},
+		"Test 5": {fakeGetClientSetOk, fakeGetClientSetForPathErr, "fake-path2", "selector=selector1", fakeDeleteCollectionOk, true},
+		"Test 6": {fakeGetClientSetOk, fakeGetClientSetForPathErr, "fake-path2", "selector=selector1", fakeDeleteCollectionErr, true},
+	}
+
+	for name, mock := range tests {
+		name := name
+		mock := mock
+		t.Run(name, func(t *testing.T) {
+			k := &KubeClient{
+				getClientset:        mock.getClientset,
+				getClientsetForPath: mock.getClientSetForPath,
+				kubeConfigPath:      mock.kubeConfigPath,
+				namespace:           "",
+				delCollection:       mock.deleteCollection,
+			}
+			err := k.DeleteCollection(
+				metav1.ListOptions{LabelSelector: mock.listOpts},
+				&metav1.DeleteOptions{},
+			)
 			if mock.expectErr && err == nil {
 				t.Fatalf("Test %q failed: expected error not to be nil", name)
 			}

@@ -56,6 +56,10 @@ type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOpt
 // deleting of pod
 type deleteFn func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
 
+// deleteFn is a typed function that abstracts
+// deletion of pod's collection
+type deleteCollectionFn func(cli *clientset.Clientset, namespace string, listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error
+
 // getFn is a typed function that abstracts
 // to get pod
 type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error)
@@ -124,6 +128,7 @@ type KubeClient struct {
 	create               createFn
 	list                 listFn
 	del                  deleteFn
+	delCollection        deleteCollectionFn
 	get                  getFn
 	exec                 execFn
 }
@@ -147,8 +152,10 @@ func (k *KubeClient) withDefaults() {
 		}
 	}
 	if k.getKubeConfigForPath == nil {
-		k.getKubeConfigForPath = func(kubeConfigPath string) (config *rest.Config, err error) {
-			return client.New(client.WithKubeConfigPath(kubeConfigPath)).GetConfigForPathOrDirect()
+		k.getKubeConfigForPath = func(kubeConfigPath string) (
+			config *rest.Config, err error) {
+			return client.New(client.WithKubeConfigPath(kubeConfigPath)).
+				GetConfigForPathOrDirect()
 		}
 	}
 	if k.getClientset == nil {
@@ -157,28 +164,39 @@ func (k *KubeClient) withDefaults() {
 		}
 	}
 	if k.getClientsetForPath == nil {
-		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
+		k.getClientsetForPath = func(kubeConfigPath string) (
+			clients *clientset.Clientset, err error) {
 			return client.New(client.WithKubeConfigPath(kubeConfigPath)).Clientset()
 		}
 	}
 	if k.create == nil {
-		k.create = func(cli *clientset.Clientset, namespace string, pod *corev1.Pod) (*corev1.Pod, error) {
+		k.create = func(cli *clientset.Clientset,
+			namespace string, pod *corev1.Pod) (*corev1.Pod, error) {
 			return cli.CoreV1().Pods(namespace).Create(pod)
 		}
 	}
 	if k.list == nil {
-		k.list = func(cli *clientset.Clientset, namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
+		k.list = func(cli *clientset.Clientset,
+			namespace string, opts metav1.ListOptions) (*corev1.PodList, error) {
 			return cli.CoreV1().Pods(namespace).List(opts)
 		}
 	}
 	if k.del == nil {
-		k.del = func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+		k.del = func(cli *clientset.Clientset, namespace,
+			name string, opts *metav1.DeleteOptions) error {
 			return cli.CoreV1().Pods(namespace).Delete(name, opts)
 		}
 	}
 	if k.get == nil {
-		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*corev1.Pod, error) {
+		k.get = func(cli *clientset.Clientset, namespace,
+			name string, opts metav1.GetOptions) (*corev1.Pod, error) {
 			return cli.CoreV1().Pods(namespace).Get(name, opts)
+		}
+	}
+	if k.delCollection == nil {
+		k.delCollection = func(cli *clientset.Clientset, namespace string,
+			listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+			return cli.CoreV1().Pods(namespace).DeleteCollection(deleteOpts, listOpts)
 		}
 	}
 	if k.exec == nil {
@@ -366,4 +384,13 @@ func (k *KubeClient) ExecRaw(name string,
 		return nil, err
 	}
 	return json.Marshal(execOutput)
+}
+
+// DeleteCollection deletes a collection of pod objects.
+func (k *KubeClient) DeleteCollection(listOpts metav1.ListOptions, deleteOpts *metav1.DeleteOptions) error {
+	cli, err := k.getClientsetOrCached()
+	if err != nil {
+		return errors.Wrapf(err, "failed to delete the collection of pods")
+	}
+	return k.delCollection(cli, k.namespace, listOpts, deleteOpts)
 }

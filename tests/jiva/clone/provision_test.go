@@ -254,7 +254,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 						WithVolumeMounts(
 							[]corev1.VolumeMount{
 								corev1.VolumeMount{
-									Name:      "demo-vol1",
+									Name:      "demo-vol2",
 									MountPath: "/mnt/store1",
 								},
 							},
@@ -262,7 +262,7 @@ var _ = Describe("[jiva] TEST JIVA CLONE CREATION", func() {
 				).
 				WithVolumeBuilder(
 					volume.NewBuilder().
-						WithName("demo-vol1").
+						WithName("demo-vol2").
 						WithPVCSource(cloneName),
 				).
 				Build()
