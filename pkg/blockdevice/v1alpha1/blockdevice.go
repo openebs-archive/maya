@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	errors "github.com/openebs/maya/pkg/errors/v1alpha1"
@@ -29,18 +31,26 @@ import (
 //TODO: Update the file with latest pattern
 const (
 	// StorageNodePredicateKey is the key for StorageNodePredicate function.
-	FilterInactive       = "filterInactive"
-	FilterNonInactive    = "filterNonInactive"
-	FilterClaimedDevices = "filterClaimedDevices"
-	InActiveStatus       = "Inactive"
+	FilterInactive         = "filterInactive"
+	FilterNonInactive      = "filterNonInactive"
+	FilterNonPartitions    = "filterNonPartitions"
+	FilterSparseDevices    = "filterSparseDevices"
+	FilterNonSparseDevices = "filterNonSparseDevices"
+	InActiveStatus         = "Inactive"
 )
 
-// DefaultDiskCount is a map containing the default disk count of various raid types.
+// DefaultDiskCount is a map containing the default block device count of various raid types.
 var DefaultDiskCount = map[string]int{
 	string(apis.PoolTypeMirroredCPV): int(apis.MirroredBlockDeviceCountCPV),
 	string(apis.PoolTypeStripedCPV):  int(apis.StripedBlockDeviceCountCPV),
 	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzBlockDeviceCountCPV),
 	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2BlockDeviceCountCPV),
+}
+
+// SupportedDiskType is a map containing the valid disk type
+var SupportedDiskType = map[string]bool{
+	string(apis.TypeSparseCPV): true,
+	string(apis.TypeDiskCPV):   true,
 }
 
 // KubernetesClient is the kubernetes client which will implement block device actions/behaviours
@@ -105,9 +115,11 @@ var checkPredicatesFuncs = [...]predicate{
 // filterPredicatesFuncMap is an array of filter predicate functions
 // filter predicates should be tunable by client.
 var filterOptionFuncMap = map[string]filterOptionFunc{
-	FilterInactive:       filterInactive,
-	FilterNonInactive:    filterNonInactive,
-	FilterClaimedDevices: filterClaimedDevices,
+	FilterInactive:         filterInactive,
+	FilterNonInactive:      filterNonInactive,
+	FilterNonPartitions:    filterNonPartitions,
+	FilterSparseDevices:    filterSparseDevices,
+	FilterNonSparseDevices: filterNonSparseDevices,
 }
 
 // predicateFailedError returns the predicate error which is provided to this function as an argument
@@ -202,12 +214,12 @@ func (bdl *BlockDeviceList) Filter(predicateKeys ...string) *BlockDeviceList {
 }
 
 //filterInactive filter and give out all the inactive block device
-func filterInactive(orignialList *BlockDeviceList) *BlockDeviceList {
+func filterInactive(originalList *BlockDeviceList) *BlockDeviceList {
 	filteredList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
-	for _, device := range orignialList.Items {
+	for _, device := range originalList.Items {
 		if device.Status.State == InActiveStatus {
 			filteredList.Items = append(filteredList.Items, device)
 		}
@@ -229,13 +241,39 @@ func filterNonInactive(orignialList *BlockDeviceList) *BlockDeviceList {
 	return filteredList
 }
 
-func filterClaimedDevices(orignialList *BlockDeviceList) *BlockDeviceList {
+func filterNonPartitions(originalList *BlockDeviceList) *BlockDeviceList {
 	filteredList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
-	for _, device := range orignialList.Items {
-		if device.Status.ClaimState == ndm.BlockDeviceClaimed {
+	for _, device := range originalList.Items {
+		if strings.EqualFold(device.Spec.Partitioned, "No") {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
+func filterSparseDevices(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		if strings.EqualFold(device.Spec.Details.DeviceType, string(apis.TypeSparseCPV)) {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
+func filterNonSparseDevices(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		if !strings.EqualFold(device.Spec.Details.DeviceType, string(apis.TypeSparseCPV)) {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}
@@ -293,4 +331,26 @@ func (bdl *BlockDeviceList) GetBlockDevice(bdcName string) *ndm.BlockDevice {
 		}
 	}
 	return nil
+}
+
+// GetBDList returns matched block devices present in the list
+func (bdl *BlockDeviceList) GetBDList(bdcl *ndm.BlockDeviceClaimList) *BlockDeviceList {
+	if len(bdcl.Items) == 0 {
+		return bdl
+	}
+	bdListFromBDC := make(map[string]int)
+	for _, bdc := range bdcl.Items {
+		bdListFromBDC[bdc.Spec.BlockDeviceName]++
+	}
+
+	newBDL := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, bd := range bdl.BlockDeviceList.Items {
+		if bdListFromBDC[bd.Name] == 1 {
+			newBDL.BlockDeviceList.Items = append(newBDL.BlockDeviceList.Items, bd)
+		}
+	}
+	return newBDL
 }

@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/glog"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	openebs "github.com/openebs/maya/pkg/client/generated/clientset/versioned"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
 	"github.com/pkg/errors"
@@ -146,7 +147,7 @@ func validate(spc *apis.StoragePoolClaim) error {
 	for _, v := range validateFuncList {
 		err := v(spc)
 		if err != nil {
-			return errors.Wrapf(err, "spc validation failed")
+			return err
 		}
 	}
 	return nil
@@ -176,7 +177,7 @@ func validatePoolType(spc *apis.StoragePoolClaim) error {
 func validateDiskType(spc *apis.StoragePoolClaim) error {
 	diskType := spc.Spec.Type
 	// TODO: Update below snippet to make use of predicates
-	if !(diskType == string(apis.TypeBlockDeviceCPV)) {
+	if !blockdevice.SupportedDiskType[diskType] {
 		return errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
 	return nil
