@@ -46,7 +46,7 @@ func FakeDiskCreator(bdc *blockdevice.KubernetesClient) {
 	var diskObjectList [70]*ndmapis.BlockDevice
 
 	sparseDiskCount := 2
-	var key, diskLabel string
+	var key, diskLabel, deviceType string
 
 	// nodeIdentifer will help in naming a node and attaching multiple disks to a single node.
 	nodeIdentifer := 0
@@ -57,13 +57,13 @@ func FakeDiskCreator(bdc *blockdevice.KubernetesClient) {
 			sparseDiskCount = 0
 		}
 		if sparseDiskCount != 2 {
-			key = "ndm.io/disk-type"
-			diskLabel = "sparse"
+			deviceType = "sparse"
 			sparseDiskCount++
 		} else {
-			key = "ndm.io/blockdevice-type"
-			diskLabel = "blockdevice"
+			deviceType = "disk"
 		}
+		key = "ndm.io/blockdevice-type"
+		diskLabel = "blockdevice"
 		diskObjectList[diskListIndex] = &ndmapis.BlockDevice{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -71,6 +71,11 @@ func FakeDiskCreator(bdc *blockdevice.KubernetesClient) {
 				Labels: map[string]string{
 					"kubernetes.io/hostname": "gke-ashu-cstor-default-pool-a4065fd6-vxsh" + strconv.Itoa(nodeIdentifer),
 					key:                      diskLabel,
+				},
+			},
+			Spec: ndmapis.DeviceSpec{
+				Details: ndmapis.DeviceDetails{
+					DeviceType: deviceType,
 				},
 			},
 			Status: ndmapis.DeviceStatus{
@@ -134,7 +139,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #1
 		"autoSPC1": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "striped",
 				},
@@ -145,7 +150,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #2
 		"autoSPC2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "mirrored",
 				},
@@ -220,7 +225,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #8
 		"manualSPC8": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "mirrored",
 				},
@@ -234,7 +239,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #8
 		"manualSPC9": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "mirrored",
 				},
@@ -248,7 +253,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #10
 		"manualSPC10Raidz": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz",
 				},
@@ -262,7 +267,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #11
 		"manualSPC11Raidz": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz",
 				},
@@ -276,7 +281,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #12
 		"manualSPC12Raidz": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz",
 				},
@@ -290,7 +295,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #13
 		"manualSPC13Raidz": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz",
 				},
@@ -304,7 +309,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #14
 		"manualSPC14Raidz": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz",
 				},
@@ -318,7 +323,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #15
 		"manualSPC15Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
@@ -332,7 +337,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #16
 		"manualSPC16Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
@@ -346,7 +351,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #17
 		"manualSPC17Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
@@ -360,7 +365,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #18
 		"manualSPC18Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
@@ -374,7 +379,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #19
 		"manualSPC19Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
@@ -388,7 +393,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 		// Test Case #20
 		"manualSPC20Raidz2": {&v1alpha1.StoragePoolClaim{
 			Spec: v1alpha1.StoragePoolClaimSpec{
-				Type: "blockdevice",
+				Type: "disk",
 				PoolSpec: v1alpha1.CStorPoolAttr{
 					PoolType: "raidz2",
 				},
