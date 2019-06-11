@@ -26,12 +26,12 @@ type PoolType string
 // These are the valid pool types of cStor Pool.
 const (
 	// PoolStriped is the striped raid group.
-	PoolStriped PoolType = "striped"
-	// PoolMirrored is the striped raid group.
-	PoolMirrored PoolType = "Mirrored"
-	// PoolRaidz is the striped raid group.
+	PoolStriped PoolType = "stripe"
+	// PoolMirrored is the mirror raid group.
+	PoolMirrored PoolType = "mirror"
+	// PoolRaidz is the raidz raid group.
 	PoolRaidz PoolType = "raidz"
-	// PoolRaidz2 is the striped raid group.
+	// PoolRaidz2 is the raidz2 raid group.
 	PoolRaidz2 PoolType = "raidz2"
 )
 
@@ -51,51 +51,91 @@ type CStorPoolCluster struct {
 
 // CStorPoolClusterSpec is the spec for a CStorPoolClusterSpec resource
 type CStorPoolClusterSpec struct {
-	Name     string                     `json:"name"`
-	Type     string                     `json:"type"`
-	MaxPools *int                       `json:"maxPools"`
-	MinPools int                        `json:"minPools"`
-	Nodes    []CStorPoolClusterNodeSpec `json:"nodes"`
-	PoolSpec CStorPoolAttr              `json:"poolSpec"`
+	// Pools is the spec for pools for various nodes
+	// where it should be created.
+	Pools []PoolSpec `json:"pools"`
 }
 
-// CStorPoolClusterNodeSpec is the spec for node where pool should be created.
-type CStorPoolClusterNodeSpec struct {
-	// Name is the name of the node.
-	Name string `json:"name"`
-	// PoolSpec is the pool related specification that is used to provision cstor pool on the node.
-	PoolSpec CStorPoolClusterSpecAttr `json:"poolSpec"`
-	// DiskGroups contains the list of disk groups that should be used for pool provisioning on that node.
-	DiskGroups []CStorPoolClusterDiskGroups `json:"groups"`
+//PoolSpec is the spec for pool on node where it should be created.
+type PoolSpec struct {
+	// NodeSelector is the labels that will be used to select
+	// a node for pool provisioning.
+	// Required field
+	NodeSelector map[string]string `json:"nodeSelector"`
+	// RaidConfig is the raid group configuration for the given pool.
+	RaidGroups []RaidGroup `json:"raidGroups"`
+	// PoolConfig is the default pool config that applies to the
+	// pool on node.
+	PoolConfig PoolConfig `json:"poolConfig"`
 }
 
-// CStorPoolClusterDiskGroups contains details of a disk group.
-type CStorPoolClusterDiskGroups struct {
-	// Name is the name of the disk group.
-	Name string `json:"name"`
-	// Disks is the disks present in the group.
-	Disks []CStorPoolClusterDisk `json:"disks"`
+// PoolConfig is the default pool config that applies to the
+// pool on node.
+type PoolConfig struct {
+	// Cachefile is used for faster pool imports
+	// optional -- if not specified or left empty cache file is not
+	// used.
+	CacheFile string `json:"cacheFile"`
+	// DefaultRaidGroupType is the default raid type which applies
+	// to all the pools if raid type is not specified there
+	// Compulsory field if any raidGroup is not given Type
+	DefaultRaidGroupType string `json:"defaultRaidGroupType"`
+
+	// OverProvisioning to enable over provisioning
+	// Optional -- defaults to false
+	OverProvisioning bool `json:"overProvisioning"`
+	// Compression to enable compression
+	// Optional -- defaults to off
+	// Possible values : lz, off
+	Compression string `json:"compression"`
 }
 
-// CStorPoolClusterDisk contains the name details of a disk CR.
-type CStorPoolClusterDisk struct {
-	// Name is the name of the disk CR.
+// RaidGroup contains the details of a raid group for the pool
+type RaidGroup struct {
+	// Type is the raid group type
+	// Supported values are : stripe, mirror, raidz and raidz2
+
+	// stripe -- stripe is a raid group which divides data into blocks and
+	// spreads the data blocks across multiple block devices.
+
+	// mirror -- mirror is a raid group which does redundancy
+	// across multiple block devices.
+
+	// raidz -- RAID-Z is a data/parity distribution scheme like RAID-5, but uses dynamic stripe width.
+	// radiz2 -- TODO
+	// Optional -- defaults to `defaultRaidGroupType` present in `PoolConfig`
+	Type string `json:"type"`
+	// Name is the name of the group.
+	// Required -- to be given by user.
 	Name string `json:"name"`
-	// ID is a unique id associated to this disk either by user or system.
-	// This ID does not change even if the disk is replaced so one can think it as a slot for this disk.
-	ID string `json:"id"`
+	// IsWriteCache is to enable this group as a write cache.
+	IsWriteCache bool `json:"isWriteCache"`
+	// IsSpare is to declare this group as spare which will be
+	// part of the pool that can be used if some block devices
+	// fail.
+	IsSpare bool `json:"isSpare"`
+	// IsReadCache is to enable this group as read cache.
+	IsReadCache bool `json:"isReadCache"`
+	// BlockDevices contains a list of block devices that
+	// constitute this raid group.
+	BlockDevices []CStorPoolClusterBlockDevice `json:"blockDevices"`
+}
+
+// CStorPoolClusterBlockDevice contains the details of block devices that
+// constitutes a raid group.
+type CStorPoolClusterBlockDevice struct {
+	// BlockDeviceName is the name of the block device.
+	BlockDeviceName string `json:"blockDeviceName"`
+	// Capacity is the capacity of the block device.
+	// It is system generated
+	Capacity string `json:"capacity"`
+	// DevLink is the dev link for block devices
+	DevLink string `json:"devLink"`
 }
 
 // CStorPoolClusterStatus is for handling status of pool.
 type CStorPoolClusterStatus struct {
 	Phase string `json:"phase"`
-}
-
-// CStorPoolClusterSpecAttr is to describe zpool related attributes.
-type CStorPoolClusterSpecAttr struct {
-	CacheFile        string   `json:"cacheFile"`        //optional, faster if specified
-	PoolType         PoolType `json:"poolType"`         //mirrored, striped
-	OverProvisioning bool     `json:"overProvisioning"` //true or false
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
