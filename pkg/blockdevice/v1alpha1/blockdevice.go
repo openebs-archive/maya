@@ -332,25 +332,3 @@ func (bdl *BlockDeviceList) GetBlockDevice(bdcName string) *ndm.BlockDevice {
 	}
 	return nil
 }
-
-// GetBDList returns matched block devices present in the list
-func (bdl *BlockDeviceList) GetBDList(bdcl *ndm.BlockDeviceClaimList) *BlockDeviceList {
-	if len(bdcl.Items) == 0 {
-		return bdl
-	}
-	bdListFromBDC := make(map[string]int)
-	for _, bdc := range bdcl.Items {
-		bdListFromBDC[bdc.Spec.BlockDeviceName]++
-	}
-
-	newBDL := &BlockDeviceList{
-		BlockDeviceList: &ndm.BlockDeviceList{},
-		errs:            nil,
-	}
-	for _, bd := range bdl.BlockDeviceList.Items {
-		if bdListFromBDC[bd.Name] == 1 {
-			newBDL.BlockDeviceList.Items = append(newBDL.BlockDeviceList.Items, bd)
-		}
-	}
-	return newBDL
-}

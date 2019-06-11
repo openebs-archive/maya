@@ -104,6 +104,20 @@ func (bdc *BlockDeviceClaim) IsStatus(status string) bool {
 }
 
 // Len returns the length og BlockDeviceClaimList.
-func (l *BlockDeviceClaimList) Len() int {
-	return len(l.ObjectList.Items)
+func (bdcl *BlockDeviceClaimList) Len() int {
+	return len(bdcl.ObjectList.Items)
+}
+
+// GetBDList returns map of node name and corresponding block devices to that
+// node from block device claim list
+func (bdcl *BlockDeviceClaimList) GetBDList() map[string][]string {
+	var newNodeBDList map[string][]string
+	newNodeBDList = make(map[string][]string)
+	if bdcl == nil {
+		return newNodeBDList
+	}
+	for _, bdc := range bdcl.ObjectList.Items {
+		newNodeBDList[bdc.Spec.HostName] = append(newNodeBDList[bdc.Spec.HostName], bdc.Spec.BlockDeviceName)
+	}
+	return newNodeBDList
 }

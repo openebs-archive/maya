@@ -43,6 +43,7 @@ type ClaimedBDDetails struct {
 
 // NodeBlockDeviceSelector selects a node and block devices attached to it.
 func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
+	var filteredNodeBDs map[string]*blockDeviceList
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
@@ -54,9 +55,50 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	selectedBD := ac.selectNode(nodeBlockDeviceMap)
+
+	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+		filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	selectedBD := ac.selectNode(filteredNodeBDs)
 
 	return selectedBD, nil
+}
+
+// getFilteredNodeBlockDevices returns the map of node name and block device
+// list if no claims are present on list of block devices. If claims are present
+// then it retunrns those block devices on which claims are created
+func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
+	namespace := env.Get(env.OpenEBSNamespace)
+	bdcKubeclient := bdc.NewKubeClient().
+		WithNamespace(namespace)
+	bdcList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	if err != nil {
+		return nil, err
+	}
+
+	customBDCList := &bdc.BlockDeviceClaimList{
+		ObjectList: bdcList,
+	}
+
+	nodeClaimedBDs := customBDCList.GetBDList()
+
+	newNodeBDMap := make(map[string]*blockDeviceList)
+	for node, bdList := range nodeBDs {
+		if len(nodeClaimedBDs[node]) == 0 {
+			newNodeBDMap[node] = &blockDeviceList{
+				Items: bdList.Items,
+			}
+		} else {
+			newNodeBDMap[node] = &blockDeviceList{
+				Items: nodeClaimedBDs[node],
+			}
+		}
+	}
+	return newNodeBDMap, nil
 }
 
 // getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
@@ -207,7 +249,6 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
 		bdl = bdList.Filter(blockdevice.FilterNonInactive)
-		//TODO: Validate partitions
 	} else {
 		bdl, err = ac.getBlockDeviceListInAutoMode(bdList, diskType)
 		if err != nil {
@@ -227,16 +268,7 @@ func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceLi
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)
 	}
-
-	namespace := env.Get(env.OpenEBSNamespace)
-	bdcKubeclient := bdc.NewKubeClient().
-		WithNamespace(namespace)
-	bdcList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
-	if err != nil {
-		return nil, err
-	}
-	newBDList := bdl.GetBDList(bdcList)
-	return newBDList, nil
+	return bdl, nil
 }
 
 //TODO: Make changes in below code in refactor PR
@@ -321,7 +353,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
 	if pendingBDCCount != 0 {
-		return nil, errors.Errorf("failed to claim %d block devices on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
+		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
 	return nodeClaimedBDs, nil
 }
