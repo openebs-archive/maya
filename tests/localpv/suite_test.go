@@ -35,10 +35,6 @@ var (
 	kubeConfigPath string
 	namespace      = "localpv-ns"
 	namespaceObj   *corev1.Namespace
-	pvcObj         *corev1.PersistentVolumeClaim
-	pvcName        = "pvc-hp"
-	accessModes    = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity       = "2Gi"
 	err            error
 )
 

@@ -154,8 +154,8 @@ func (b *Builder) WithLabels(labels map[string]string) *Builder {
 	return b
 }
 
-// WithLabelsAndSelector sets label selector for template and deployment
-func (b *Builder) WithLabelsAndSelector(labels map[string]string) *Builder {
+// WithLabelSelector sets label selector for template and deployment
+func (b *Builder) WithLabelSelector(labels map[string]string) *Builder {
 	if len(labels) == 0 {
 		b.errors = append(b.errors, errors.New("failed to build deployment: missing labels"))
 		return b

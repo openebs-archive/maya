@@ -27,16 +27,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	deployName    = "busybox-deploy"
-	label         = "demo=deployment"
-	deployObj     *deploy.Deploy
-	labelselector = map[string]string{
-		"demo": "deployment",
-	}
-)
-
-var _ = Describe("TEST LOCAL PV", func() {
+var _ = Describe("TEST HOSTPATH LOCAL PV", func() {
+	var (
+		pvcObj        *corev1.PersistentVolumeClaim
+		accessModes   = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+		capacity      = "2Gi"
+		deployName    = "busybox-hostpath"
+		label         = "demo=hostpath-deployment"
+		pvcName       = "pvc-hp"
+		deployObj     *deploy.Deploy
+		labelselector = map[string]string{
+			"demo": "hostpath-deployment",
+		}
+	)
 
 	When("pvc with storageclass openebs-hostpath is created", func() {
 		It("should create a pvc ", func() {
@@ -76,7 +79,7 @@ var _ = Describe("TEST LOCAL PV", func() {
 			deployObj, err = deploy.NewBuilder().
 				WithName(deployName).
 				WithNamespace(namespaceObj.Name).
-				WithLabelsAndSelector(labelselector).
+				WithLabelSelector(labelselector).
 				WithContainerBuilder(
 					container.NewBuilder().
 						WithName("busybox").
