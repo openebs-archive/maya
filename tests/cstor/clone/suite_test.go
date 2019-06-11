@@ -43,19 +43,19 @@ var (
 - name: StoragePoolClaim
   value: $spcName
 `
-	openebsProvisioner = "openebs.io/provisioner-iscsi"
-	spcName            = "test-cstor-clone-sparse-pool"
-	nsObj              *corev1.Namespace
-	scObj              *storagev1.StorageClass
-	spcObj             *apis.StoragePoolClaim
-	pvcObj             *corev1.PersistentVolumeClaim
-	snapObj            *snapshot.VolumeSnapshot
-	targetLabel        = "openebs.io/target=cstor-target"
-	pvLabel            = "openebs.io/persistent-volume="
-	pvcLabel           = "openebs.io/persistent-volume-claim="
-	accessModes        = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
-	capacity           = "5G"
-	annotations        = map[string]string{}
+	openebsProvisioner  = "openebs.io/provisioner-iscsi"
+	spcName             = "test-cstor-clone-sparse-pool"
+	nsObj               *corev1.Namespace
+	scObj               *storagev1.StorageClass
+	spcObj              *apis.StoragePoolClaim
+	pvcObj              *corev1.PersistentVolumeClaim
+	snapObj             *snapshot.VolumeSnapshot
+	podObj, clonePodObj *corev1.Pod
+	pvLabel             = "openebs.io/persistent-volume="
+	pvcLabel            = "openebs.io/persistent-volume-claim="
+	accessModes         = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce}
+	capacity            = "5G"
+	annotations         = map[string]string{}
 )
 
 func TestSource(t *testing.T) {
