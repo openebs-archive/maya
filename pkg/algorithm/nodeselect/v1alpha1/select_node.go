@@ -207,7 +207,7 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
 		bdl = bdList.Filter(blockdevice.FilterNonInactive)
-		//TODO:
+		//TODO: Validate partitions
 	} else {
 		bdl, err = ac.getBlockDeviceListInAutoMode(bdList, diskType)
 		if err != nil {
@@ -224,7 +224,6 @@ func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceLi
 	} else {
 		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonPartitions, blockdevice.FilterNonSparseDevices)
 	}
-
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)
 	}
