@@ -638,3 +638,92 @@ func TestFilterNonSparseDevices(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterNonFSType(t *testing.T) {
+	tests := map[string]struct {
+		// fakeCasPool holds the fake fakeCasPool object in test cases.
+		blockDeviceList *BlockDeviceList
+		// expectedBlockDeviceListLength holds the length of disk list
+		expectedBlockDeviceCount int
+	}{
+		"EmptyBlockDeviceList1": {
+			blockDeviceList: &BlockDeviceList{
+				BlockDeviceList: &ndm.BlockDeviceList{},
+				errs:            nil,
+			},
+			expectedBlockDeviceCount: 0,
+		},
+		"blockDeviceList2": {
+			blockDeviceList: &BlockDeviceList{
+				BlockDeviceList: &ndm.BlockDeviceList{
+					TypeMeta: metav1.TypeMeta{},
+					ListMeta: metav1.ListMeta{},
+					Items: []ndm.BlockDevice{
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path: "/dev/sda",
+								FileSystem: ndm.FileSystemInfo{
+									Type: "ext4",
+								},
+								Partitioned: "YES",
+							},
+							Status: ndm.DeviceStatus{
+								State: "Active",
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path:        "/dev/sdb",
+								Partitioned: "NO",
+								FileSystem: ndm.FileSystemInfo{
+									Type: "ext3",
+								},
+							},
+							Status: ndm.DeviceStatus{
+								State: "Active",
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path:        "/dev/sdb",
+								Partitioned: "NO",
+								FileSystem:  ndm.FileSystemInfo{},
+							},
+							Status: ndm.DeviceStatus{
+								State: "Active",
+							},
+						},
+						{
+							TypeMeta:   metav1.TypeMeta{},
+							ObjectMeta: metav1.ObjectMeta{},
+							Spec: ndm.DeviceSpec{
+								Path:        "/dev/sdb",
+								Partitioned: "NO",
+							},
+							Status: ndm.DeviceStatus{
+								State: "Active",
+							},
+						},
+					},
+				},
+				errs: nil,
+			},
+			expectedBlockDeviceCount: 2,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			filtteredBlockDeviceList := filterNonFSType(test.blockDeviceList)
+			if len(filtteredBlockDeviceList.Items) != test.expectedBlockDeviceCount {
+				t.Errorf("Test %q failed: expected block device object count %d but got %d", name, test.expectedBlockDeviceCount, len(filtteredBlockDeviceList.Items))
+			}
+		})
+	}
+}

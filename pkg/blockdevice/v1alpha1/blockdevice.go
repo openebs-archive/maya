@@ -31,9 +31,10 @@ import (
 //TODO: Update the file with latest pattern
 const (
 	// StorageNodePredicateKey is the key for StorageNodePredicate function.
-	FilterInactive         = "filterInactive"
-	FilterNonInactive      = "filterNonInactive"
-	FilterNonPartitions    = "filterNonPartitions"
+	FilterInactive    = "filterInactive"
+	FilterNonInactive = "filterNonInactive"
+	//FilterNonPartitions    = "filterNonPartitions"
+	FilterNonFSType        = "filterNonFSType"
 	FilterSparseDevices    = "filterSparseDevices"
 	FilterNonSparseDevices = "filterNonSparseDevices"
 	InActiveStatus         = "Inactive"
@@ -45,12 +46,6 @@ var DefaultDiskCount = map[string]int{
 	string(apis.PoolTypeStripedCPV):  int(apis.StripedBlockDeviceCountCPV),
 	string(apis.PoolTypeRaidzCPV):    int(apis.RaidzBlockDeviceCountCPV),
 	string(apis.PoolTypeRaidz2CPV):   int(apis.Raidz2BlockDeviceCountCPV),
-}
-
-// SupportedDiskType is a map containing the valid disk type
-var SupportedDiskType = map[string]bool{
-	string(apis.TypeSparseCPV): true,
-	string(apis.TypeDiskCPV):   true,
 }
 
 // KubernetesClient is the kubernetes client which will implement block device actions/behaviours
@@ -115,9 +110,10 @@ var checkPredicatesFuncs = [...]predicate{
 // filterPredicatesFuncMap is an array of filter predicate functions
 // filter predicates should be tunable by client.
 var filterOptionFuncMap = map[string]filterOptionFunc{
-	FilterInactive:         filterInactive,
-	FilterNonInactive:      filterNonInactive,
-	FilterNonPartitions:    filterNonPartitions,
+	FilterInactive:    filterInactive,
+	FilterNonInactive: filterNonInactive,
+	//FilterNonPartitions:    filterNonPartitions,
+	FilterNonFSType:        filterNonFSType,
 	FilterSparseDevices:    filterSparseDevices,
 	FilterNonSparseDevices: filterNonSparseDevices,
 }
@@ -254,13 +250,26 @@ func filterNonPartitions(originalList *BlockDeviceList) *BlockDeviceList {
 	return filteredList
 }
 
+func filterNonFSType(originalList *BlockDeviceList) *BlockDeviceList {
+	filteredList := &BlockDeviceList{
+		BlockDeviceList: &ndm.BlockDeviceList{},
+		errs:            nil,
+	}
+	for _, device := range originalList.Items {
+		if device.Spec.FileSystem.Type == "" {
+			filteredList.Items = append(filteredList.Items, device)
+		}
+	}
+	return filteredList
+}
+
 func filterSparseDevices(originalList *BlockDeviceList) *BlockDeviceList {
 	filteredList := &BlockDeviceList{
 		BlockDeviceList: &ndm.BlockDeviceList{},
 		errs:            nil,
 	}
 	for _, device := range originalList.Items {
-		if strings.EqualFold(device.Spec.Details.DeviceType, string(apis.TypeSparseCPV)) {
+		if device.Spec.Details.DeviceType == string(apis.TypeSparseCPV) {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}
@@ -273,7 +282,7 @@ func filterNonSparseDevices(originalList *BlockDeviceList) *BlockDeviceList {
 		errs:            nil,
 	}
 	for _, device := range originalList.Items {
-		if !strings.EqualFold(device.Spec.Details.DeviceType, string(apis.TypeSparseCPV)) {
+		if !(device.Spec.Details.DeviceType == string(apis.TypeSparseCPV)) {
 			filteredList.Items = append(filteredList.Items, device)
 		}
 	}

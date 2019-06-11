@@ -24,6 +24,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// SupportedDiskType is a map containing the valid disk type
+var SupportedDiskType = map[string]bool{
+	string(apis.TypeSparseCPV): true,
+	string(apis.TypeDiskCPV):   true,
+}
+
 // SPC encapsulates StoragePoolClaim api object.
 type SPC struct {
 	// actual spc object

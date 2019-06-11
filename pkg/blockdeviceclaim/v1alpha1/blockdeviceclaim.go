@@ -111,8 +111,7 @@ func (bdcl *BlockDeviceClaimList) Len() int {
 // GetBDList returns map of node name and corresponding block devices to that
 // node from block device claim list
 func (bdcl *BlockDeviceClaimList) GetBDList() map[string][]string {
-	var newNodeBDList map[string][]string
-	newNodeBDList = make(map[string][]string)
+	newNodeBDList := make(map[string][]string)
 	if bdcl == nil {
 		return newNodeBDList
 	}

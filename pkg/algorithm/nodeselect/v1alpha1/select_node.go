@@ -23,6 +23,7 @@ import (
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +57,7 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 		return nil, err
 	}
 
+	filteredNodeBDs = nodeBlockDeviceMap
 	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
 		filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
 		if err != nil {
@@ -205,11 +207,10 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 
 // diskFilterConstraint takes a value for key "ndm.io/disk-type" and form a label.
 func diskFilterConstraint(diskType string) string {
-	var label string
-	if blockdevice.SupportedDiskType[diskType] {
-		label = string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
+	if spcv1alpha1.SupportedDiskType[diskType] {
+		return string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
 	}
-	return label
+	return ""
 }
 
 // ProvisioningType returns the way pool should be provisioned e.g. auto or manual.
@@ -261,9 +262,9 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceList, diskType string) (*blockdevice.BlockDeviceList, error) {
 	var bdl *blockdevice.BlockDeviceList
 	if diskType == string(apis.TypeSparseCPV) {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonPartitions, blockdevice.FilterSparseDevices)
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterSparseDevices)
 	} else {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonPartitions, blockdevice.FilterNonSparseDevices)
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterNonSparseDevices)
 	}
 	if len(bdl.Items) == 0 {
 		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)

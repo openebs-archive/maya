@@ -80,8 +80,7 @@ func FakeDiskCreator(bd *blockdevice.KubernetesClient) {
 				Partitioned: "NO",
 			},
 			Status: ndmapis.DeviceStatus{
-				State:      DiskStateActive,
-				ClaimState: ndmapis.BlockDeviceClaimed,
+				State: DiskStateActive,
 			},
 		}
 		_, err := bd.Create(diskObjectList[diskListIndex])
@@ -128,6 +127,59 @@ func fakeAlgorithmConfig(spc *v1alpha1.StoragePoolClaim) *Config {
 	}
 
 	return ac
+}
+
+func TestProvisioningType(t *testing.T) {
+	tests := map[string]struct {
+		spc              *v1alpha1.StoragePoolClaim
+		expectedPoolType string
+	}{
+		"autoSPC1": {
+			spc: &v1alpha1.StoragePoolClaim{
+				Spec: v1alpha1.StoragePoolClaimSpec{
+					Type: "disk",
+					PoolSpec: v1alpha1.CStorPoolAttr{
+						PoolType: "striped",
+					},
+				},
+			},
+			expectedPoolType: ProvisioningTypeAuto,
+		},
+		"manualSPC2": {
+			spc: &v1alpha1.StoragePoolClaim{
+				Spec: v1alpha1.StoragePoolClaimSpec{
+					Type: "disk",
+					PoolSpec: v1alpha1.CStorPoolAttr{
+						PoolType: "mirrored",
+					},
+					BlockDevices: v1alpha1.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice1", "blockdevice2"},
+					},
+				},
+			},
+			expectedPoolType: ProvisioningTypeManual,
+		},
+		"autoSPC3": {
+			spc: &v1alpha1.StoragePoolClaim{
+				Spec: v1alpha1.StoragePoolClaimSpec{
+					Type: "sparse",
+					PoolSpec: v1alpha1.CStorPoolAttr{
+						PoolType: "striped",
+					},
+				},
+			},
+			expectedPoolType: ProvisioningTypeAuto,
+		},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			mode := ProvisioningType(test.spc)
+			if mode != test.expectedPoolType {
+				t.Fatalf("Test %q failed expected mode: %s got %s", name, test.expectedPoolType, mode)
+			}
+		})
+	}
 }
 
 func TestNodeBlockDeviceAlloter(t *testing.T) {
@@ -475,7 +527,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 			if !test.expectedErr && err != nil {
 				t.Fatalf("Test case failed expected error to be nil")
 			}
-			if !test.expectedErr && err == nil && len(blockdeviceList.BlockDevices.Items) != test.expectedDiskListLength {
+			if err == nil && len(blockdeviceList.BlockDevices.Items) != test.expectedDiskListLength {
 				t.Errorf("Test case failed as the expected blockdevice list length is %d but got %d", test.expectedDiskListLength, len(blockdeviceList.BlockDevices.Items))
 			}
 		})
