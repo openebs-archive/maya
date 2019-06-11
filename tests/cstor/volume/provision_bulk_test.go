@@ -41,8 +41,9 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 		pvcObjTpl     *v1.PersistentVolumeClaim
 	)
 
-	BeforeEach(func() {
-		When("creating a cstor based volume", func() {
+	When("creating resources required by test", func() {
+		It("should create a spc and storageclass", func() {
+
 			By("building spc")
 			spcObj = spc.NewBuilder().
 				WithGenerateName(spcName).
@@ -83,21 +84,6 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 			By("creating above storageclass")
 			scObj, err = ops.SCClient.Create(scObj)
 			Expect(err).To(BeNil(), "while creating storageclass {%s}", scName)
-
-		})
-	})
-
-	AfterEach(func() {
-		By("deleting resources created during this test", func() {
-
-			By("deleting spc")
-			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
-
-			By("deleting storageclass")
-			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
-			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
-
 		})
 	})
 
@@ -146,7 +132,25 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 				"while creating pvcs {%s} in namespace {%s}", pvcNamePrefix, nsObj.Name,
 			)
 
+			By("verifying target pod count for all pvcs")
+			podCount := ops.GetPodRunningCountEventually(
+				openebsNamespace,
+				"openebs.io/storage-class="+scObj.Name,
+				10,
+			)
+			Expect(podCount).To(Equal(10), "while checking target pod count")
+
+			By("fetching pvc list")
+			pvcObjList, err = ops.PVCClient.WithNamespace(nsObj.Name).
+				List(metav1.ListOptions{})
+			Expect(err).ShouldNot(HaveOccurred(), "while fetching pvcs")
+
 			for _, pvcObj := range pvcObjList.Items {
+
+				By("verifying pvc status as bound")
+				status := ops.IsPVCBoundEventually(pvcObj.Name)
+				Expect(status).To(Equal(true), "while checking status equal to bound")
+
 				By("verifying target pod count")
 				targetLabel := pvcLabel + pvcObj.Name
 				controllerPodCount := ops.GetPodRunningCountEventually(
@@ -176,10 +180,6 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 					Equal(true),
 					"while checking cvr count",
 				)
-
-				By("verifying pvc status as bound")
-				status := ops.IsPVCBound(pvcObj.Name)
-				Expect(status).To(Equal(true), "while checking status equal to bound")
 
 			}
 		})
@@ -245,6 +245,20 @@ var _ = Describe("[cstor] TEST BULK VOLUME PROVISIONING", func() {
 				)
 
 			}
+		})
+	})
+
+	When("cleaning up test resources", func() {
+		It("should delete resources created during this test", func() {
+
+			By("deleting spc")
+			_, err = ops.SPCClient.Delete(spcObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting spc {%s}", spcObj.Name)
+
+			By("deleting storageclass")
+			err = ops.SCClient.Delete(scObj.Name, &metav1.DeleteOptions{})
+			Expect(err).To(BeNil(), "while deleting storageclass {%s}", scName)
+
 		})
 	})
 })
