@@ -156,6 +156,10 @@ func (c *Controller) addSpc(obj interface{}) {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", obj))
 		return
 	}
+	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
+		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+		return
+	}
 	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
 	c.enqueueSpc(spc)
 }
@@ -165,6 +169,10 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 	spc, ok := newSpc.(*apis.StoragePoolClaim)
 	if !ok {
 		runtime.HandleError(fmt.Errorf("Couldn't get spc object %#v", newSpc))
+		return
+	}
+	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
+		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
@@ -187,6 +195,10 @@ func (c *Controller) deleteSpc(obj interface{}) {
 			runtime.HandleError(fmt.Errorf("Tombstone contained object that is not a storagepoolclaim %#v", obj))
 			return
 		}
+	}
+	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
+		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+		return
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
 	c.enqueueSpc(spc)

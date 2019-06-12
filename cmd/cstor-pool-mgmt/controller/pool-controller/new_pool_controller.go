@@ -18,6 +18,7 @@ package poolcontroller
 
 import (
 	"github.com/golang/glog"
+	ver "github.com/openebs/maya/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -103,6 +104,8 @@ func NewCStorPoolController(
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
 
+	curVersion := ver.Current()
+
 	// Set up an event handler for when CstorPool resources change.
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -111,6 +114,11 @@ func NewCStorPoolController(
 				return
 			}
 			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
+				return
+			}
+			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
+				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}
 			q.Operation = common.QOpAdd
@@ -131,6 +139,11 @@ func NewCStorPoolController(
 				return
 			}
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
+				return
+			}
+			if newCStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
+				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+					newCStorPool.Name, curVersion, newCStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}
 			// Periodic resync will send update events for all known CStorPool.
@@ -154,6 +167,11 @@ func NewCStorPoolController(
 		DeleteFunc: func(obj interface{}) {
 			cStorPool := obj.(*apis.CStorPool)
 			if !IsRightCStorPoolMgmt(cStorPool) {
+				return
+			}
+			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
+				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}
 			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))
