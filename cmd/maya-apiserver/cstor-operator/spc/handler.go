@@ -176,8 +176,7 @@ func validatePoolType(spc *apis.StoragePoolClaim) error {
 // validateDiskType validates the disk types in spc.
 func validateDiskType(spc *apis.StoragePoolClaim) error {
 	diskType := spc.Spec.Type
-	// TODO: Update below snippet to make use of predicates
-	if !spcv1alpha1.SupportedDiskType[diskType] {
+	if !spcv1alpha1.SupportedDiskTypes[apis.CasPoolValString(diskType)] {
 		return errors.Errorf("aborting storagepool create operation as specified type is %s which is invalid", diskType)
 	}
 	return nil

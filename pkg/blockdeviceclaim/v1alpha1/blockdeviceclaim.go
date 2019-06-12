@@ -20,8 +20,6 @@ import (
 	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 )
 
-//TODO: While using these packages UnitTest must be written to corresponding function
-
 // BlockDeviceClaim encapsulates BlockDeviceClaim api object.
 type BlockDeviceClaim struct {
 	// actual block device claim object
@@ -108,9 +106,9 @@ func (bdcl *BlockDeviceClaimList) Len() int {
 	return len(bdcl.ObjectList.Items)
 }
 
-// GetBDList returns map of node name and corresponding block devices to that
+// GetBlockDeviceNamesByNode returns map of node name and corresponding block devices to that
 // node from block device claim list
-func (bdcl *BlockDeviceClaimList) GetBDList() map[string][]string {
+func (bdcl *BlockDeviceClaimList) GetBlockDeviceNamesByNode() map[string][]string {
 	newNodeBDList := make(map[string][]string)
 	if bdcl == nil {
 		return newNodeBDList

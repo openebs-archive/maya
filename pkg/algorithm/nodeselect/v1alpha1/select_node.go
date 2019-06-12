@@ -86,7 +86,7 @@ func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceLis
 		ObjectList: bdcList,
 	}
 
-	nodeClaimedBDs := customBDCList.GetBDList()
+	nodeClaimedBDs := customBDCList.GetBlockDeviceNamesByNode()
 
 	newNodeBDMap := make(map[string]*blockDeviceList)
 	for node, bdList := range nodeBDs {
@@ -207,7 +207,7 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 
 // diskFilterConstraint takes a value for key "ndm.io/disk-type" and form a label.
 func diskFilterConstraint(diskType string) string {
-	if spcv1alpha1.SupportedDiskType[diskType] {
+	if spcv1alpha1.SupportedDiskTypes[apis.CasPoolValString(diskType)] {
 		return string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
 	}
 	return ""

@@ -81,7 +81,7 @@ func TestGetBDList(t *testing.T) {
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
-			nodeBDList := test.bdcList.GetBDList()
+			nodeBDList := test.bdcList.GetBlockDeviceNamesByNode()
 			if len(nodeBDList) != test.nodeCount {
 				t.Errorf("Test %q failed: expected block device object count %d but got %d", name, test.nodeCount, len(nodeBDList))
 			}
