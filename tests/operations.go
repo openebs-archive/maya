@@ -32,6 +32,7 @@ import (
 	kubeclient "github.com/openebs/maya/pkg/kubernetes/client/v1alpha1"
 	deploy "github.com/openebs/maya/pkg/kubernetes/deployment/appsv1/v1alpha1"
 	ns "github.com/openebs/maya/pkg/kubernetes/namespace/v1alpha1"
+	node "github.com/openebs/maya/pkg/kubernetes/node/v1alpha1"
 	pvc "github.com/openebs/maya/pkg/kubernetes/persistentvolumeclaim/v1alpha1"
 	pod "github.com/openebs/maya/pkg/kubernetes/pod/v1alpha1"
 	svc "github.com/openebs/maya/pkg/kubernetes/service/v1alpha1"
@@ -64,6 +65,7 @@ type Options struct {
 // Operations provides clients amd methods to perform operations
 type Operations struct {
 	KubeClient     *kubeclient.Client
+	NodeClient     *node.Kubeclient
 	PodClient      *pod.KubeClient
 	SCClient       *sc.Kubeclient
 	PVCClient      *pvc.Kubeclient
@@ -180,6 +182,9 @@ func (ops *Operations) withDefaults() {
 	if ops.BDClient == nil {
 		ops.BDClient = bd.NewKubeClient(bd.WithKubeConfigPath(ops.kubeConfigPath))
 	}
+	if ops.NodeClient == nil {
+		ops.NodeClient = node.NewKubeClient(node.WithKubeConfigPath(ops.kubeConfigPath))
+	}
 }
 
 // VerifyOpenebs verify running state of required openebs control plane components
@@ -295,6 +300,19 @@ func (ops *Operations) GetCstorVolumeReplicaCount(namespace, lselector string) i
 		WithFilter(cvr.IsHealthy()).
 		List().
 		Len()
+}
+
+// GetReadyNodes gives cstorvolumereplica healthy count currently based on selecter
+func (ops *Operations) GetReadyNodes() *corev1.NodeList {
+	nodes, err := ops.NodeClient.
+		List(metav1.ListOptions{})
+	Expect(err).ShouldNot(HaveOccurred())
+	return node.
+		NewListBuilder().
+		WithAPIList(nodes).
+		WithFilter(node.IsReady()).
+		List().
+		ToAPIList()
 }
 
 // IsPVCBound checks if the pvc is bound or not
@@ -440,6 +458,10 @@ func (ops *Operations) GetCSPCount(spcName string, expectedCSPCount int) int {
 		cspCount = csp.
 			ListBuilderForAPIObject(cspAPIList).
 			List().
+			Filter(
+				csp.HasLabel(string(apis.StoragePoolClaimCPK), spcName),
+				csp.IsStatus("Healthy"),
+			).
 			Len()
 		if cspCount == expectedCSPCount {
 			return cspCount
