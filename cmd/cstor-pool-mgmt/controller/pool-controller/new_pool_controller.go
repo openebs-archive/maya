@@ -117,7 +117,7 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
 					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}
@@ -142,7 +142,7 @@ func NewCStorPoolController(
 				return
 			}
 			if newCStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
 					newCStorPool.Name, curVersion, newCStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}
@@ -170,7 +170,7 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("No action is taking on csp: %s current version: %s csp version: %s",
+				glog.Infof("csp %s is not reconciled current version of controller: %s csp version: %s",
 					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSUpgradeKey)])
 				return
 			}

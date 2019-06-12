@@ -149,7 +149,7 @@ func (cb *ControllerBuilder) Build() (*Controller, error) {
 	return cb.Controller, nil
 }
 
-// addSpc is the add event handler for spc.
+// addSpc is the add event handler for spc
 func (c *Controller) addSpc(obj interface{}) {
 	spc, ok := obj.(*apis.StoragePoolClaim)
 	if !ok {
@@ -157,7 +157,7 @@ func (c *Controller) addSpc(obj interface{}) {
 		return
 	}
 	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
 		return
 	}
 	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
@@ -172,7 +172,7 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		return
 	}
 	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
@@ -197,7 +197,7 @@ func (c *Controller) deleteSpc(obj interface{}) {
 		}
 	}
 	if spc.Labels[string(apis.OpenEBSUpgradeKey)] == "true" {
-		glog.Infof("No action is taking on spc: %s reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
+		glog.Infof("spc %s is not reconciled reason upgrade value: %s", spc.Name, spc.Labels[string(apis.OpenEBSUpgradeKey)])
 		return
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
