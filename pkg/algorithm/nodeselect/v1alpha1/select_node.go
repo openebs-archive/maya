@@ -17,11 +17,13 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/golang/glog"
 	ndmapis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
 	blockdevice "github.com/openebs/maya/pkg/blockdevice/v1alpha1"
 	bdc "github.com/openebs/maya/pkg/blockdeviceclaim/v1alpha1"
 	env "github.com/openebs/maya/pkg/env/v1alpha1"
+	spcv1alpha1 "github.com/openebs/maya/pkg/storagepoolclaim/v1alpha1"
 	volume "github.com/openebs/maya/pkg/volume"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,6 +44,7 @@ type ClaimedBDDetails struct {
 
 // NodeBlockDeviceSelector selects a node and block devices attached to it.
 func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
+	var filteredNodeBDs map[string]*blockDeviceList
 	listBD, err := ac.getBlockDevice()
 	if err != nil {
 		return nil, err
@@ -53,9 +56,51 @@ func (ac *Config) NodeBlockDeviceSelector() (*nodeBlockDevice, error) {
 	if err != nil {
 		return nil, err
 	}
-	selectedBD := ac.selectNode(nodeBlockDeviceMap)
+
+	filteredNodeBDs = nodeBlockDeviceMap
+	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+		filteredNodeBDs, err = ac.getFilteredNodeBlockDevices(nodeBlockDeviceMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	selectedBD := ac.selectNode(filteredNodeBDs)
 
 	return selectedBD, nil
+}
+
+// getFilteredNodeBlockDevices returns the map of node name and block device
+// list if no claims are present on list of block devices. If claims are present
+// then it retunrns those block devices on which claims are created
+func (ac *Config) getFilteredNodeBlockDevices(nodeBDs map[string]*blockDeviceList) (map[string]*blockDeviceList, error) {
+	namespace := env.Get(env.OpenEBSNamespace)
+	bdcKubeclient := bdc.NewKubeClient().
+		WithNamespace(namespace)
+	bdcList, err := bdcKubeclient.List(metav1.ListOptions{LabelSelector: string(apis.StoragePoolClaimCPK) + "=" + ac.Spc.Name})
+	if err != nil {
+		return nil, err
+	}
+
+	customBDCList := &bdc.BlockDeviceClaimList{
+		ObjectList: bdcList,
+	}
+
+	nodeClaimedBDs := customBDCList.GetBlockDeviceNamesByNode()
+
+	newNodeBDMap := make(map[string]*blockDeviceList)
+	for node, bdList := range nodeBDs {
+		if len(nodeClaimedBDs[node]) == 0 {
+			newNodeBDMap[node] = &blockDeviceList{
+				Items: bdList.Items,
+			}
+		} else {
+			newNodeBDMap[node] = &blockDeviceList{
+				Items: nodeClaimedBDs[node],
+			}
+		}
+	}
+	return newNodeBDMap, nil
 }
 
 // getUsedBlockDeviceMap gives list of disks that has already been used for pool provisioning.
@@ -162,13 +207,10 @@ func (ac *Config) selectNode(nodeBlockDeviceMap map[string]*blockDeviceList) *no
 
 // diskFilterConstraint takes a value for key "ndm.io/disk-type" and form a label.
 func diskFilterConstraint(diskType string) string {
-	var label string
-	if diskType == string(apis.TypeSparseCPV) {
-		label = string(apis.NdmDiskTypeCPK) + "=" + string(apis.TypeSparseCPV)
-	} else {
-		label = string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
+	if spcv1alpha1.SupportedDiskTypes[apis.CasPoolValString(diskType)] {
+		return string(apis.NdmBlockDeviceTypeCPK) + "=" + string(apis.TypeBlockDeviceCPV)
 	}
-	return label
+	return ""
 }
 
 // ProvisioningType returns the way pool should be provisioned e.g. auto or manual.
@@ -198,18 +240,40 @@ func (ac *Config) poolType() string {
 
 // getBlockDevice return the all disks of a certain type(e.g. sparse, blockdevice) which is specified in spc.
 func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
-	diskFilterLabel := diskFilterConstraint(ac.Spc.Spec.Type)
-	bdL, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
+	var bdl *blockdevice.BlockDeviceList
+	diskType := ac.Spc.Spec.Type
+	diskFilterLabel := diskFilterConstraint(diskType)
+	bdList, err := ac.BlockDeviceClient.List(metav1.ListOptions{LabelSelector: diskFilterLabel})
 	if err != nil {
 		return nil, err
 	}
-	bdl := bdL.Filter(blockdevice.FilterNonInactive)
+
+	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
+		bdl = bdList.Filter(blockdevice.FilterNonInactive)
+	} else {
+		bdl, err = ac.getBlockDeviceListInAutoMode(bdList, diskType)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return bdl.BlockDeviceList, nil
 }
 
-//TODO: Make changes in below code befor PR checked in
+func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceList, diskType string) (*blockdevice.BlockDeviceList, error) {
+	var bdl *blockdevice.BlockDeviceList
+	if diskType == string(apis.TypeSparseCPV) {
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterSparseDevices)
+	} else {
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterNonSparseDevices)
+	}
+	if len(bdl.Items) == 0 {
+		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)
+	}
+	return bdl, nil
+}
+
+//TODO: Make changes in below code in refactor PR
 // 1) Use Builder Pattern or some approach to present below code
-// 2) Refactor the below code before removing WIP
 
 // ClaimBlockDevice will create BDC for corresponding BD
 func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePoolClaim) (*ClaimedBDDetails, error) {
@@ -279,6 +343,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to create block device claim for bdc {%s}", bdcName)
 			}
+			glog.Infof("successfully created block device claim {%s} for block device {%s}", bdcName, bdName)
 			// As a part of reconcilation we will create pool if all the block
 			// devices are claimed
 			pendingBDCCount++
@@ -289,7 +354,7 @@ func (ac *Config) ClaimBlockDevice(nodeBDs *nodeBlockDevice, spc *apis.StoragePo
 		nodeClaimedBDs.BlockDeviceList = append(nodeClaimedBDs.BlockDeviceList, claimedBD)
 	}
 	if pendingBDCCount != 0 {
-		return nil, errors.Errorf("failed to claim block devices on node {%s}", nodeClaimedBDs.NodeName)
+		return nil, errors.Errorf("pending block device claim count %d on node {%s}", pendingBDCCount, nodeClaimedBDs.NodeName)
 	}
 	return nodeClaimedBDs, nil
 }

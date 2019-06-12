@@ -76,7 +76,7 @@ func (pc *PoolCreateConfig) getCasPool(spc *apis.StoragePoolClaim) (*apis.CasPoo
 		Build()
 	casPoolWithDisks, err := pc.withDisks(casPool, spc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to build cas pool for spc %s", spc.Name)
+		return nil, err
 	}
 	return casPoolWithDisks, nil
 }

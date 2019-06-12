@@ -143,7 +143,7 @@ func TestValidateBlockDeviceType(t *testing.T) {
 					Type: string(apis.TypeSparseCPV),
 				},
 			},
-			expectedError: true,
+			expectedError: false,
 		},
 		"Disk pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -154,7 +154,7 @@ func TestValidateBlockDeviceType(t *testing.T) {
 					Type: string(apis.TypeDiskCPV),
 				},
 			},
-			expectedError: true,
+			expectedError: false,
 		},
 		"block device pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -165,7 +165,7 @@ func TestValidateBlockDeviceType(t *testing.T) {
 					Type: string(apis.TypeBlockDeviceCPV),
 				},
 			},
-			expectedError: false,
+			expectedError: true,
 		},
 		"Empty pool type": {
 			spc: &apis.StoragePoolClaim{
@@ -290,7 +290,7 @@ func TestValidateSpc(t *testing.T) {
 					PoolSpec: apis.CStorPoolAttr{
 						PoolType: string(apis.PoolTypeRaidz2CPV),
 					},
-					Type:     string(apis.TypeBlockDeviceCPV),
+					Type:     string(apis.TypeDiskCPV),
 					MaxPools: newInt(3),
 				},
 			},
@@ -310,7 +310,7 @@ func TestValidateSpc(t *testing.T) {
 							"blockdevice-2", "blockdevice-3",
 							"bolckdevice-4", "blockdevice-5", "blockdevice-6"},
 					},
-					Type: string(apis.TypeBlockDeviceCPV),
+					Type: string(apis.TypeDiskCPV),
 				},
 			},
 			expectedError: false,
@@ -328,7 +328,7 @@ func TestValidateSpc(t *testing.T) {
 					MaxPools: newInt(3),
 				},
 			},
-			expectedError: true,
+			expectedError: false,
 		},
 		"Invalid Manual SPC with invalid BDCount": {
 			spc: &apis.StoragePoolClaim{
@@ -344,10 +344,29 @@ func TestValidateSpc(t *testing.T) {
 							"bolckdevice-2", "blockdevice-3",
 							"blockdevice-4", "blockdevice-5"},
 					},
-					Type: string(apis.TypeBlockDeviceCPV),
+					Type: string(apis.TypeDiskCPV),
 				},
 			},
 			expectedError: false,
+		},
+		"Invalid SPC with invalid Disk type": {
+			spc: &apis.StoragePoolClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pool-claim-1",
+				},
+				Spec: apis.StoragePoolClaimSpec{
+					PoolSpec: apis.CStorPoolAttr{
+						PoolType: string(apis.PoolTypeMirroredCPV),
+					},
+					BlockDevices: apis.BlockDeviceAttr{
+						BlockDeviceList: []string{"blockdevice-1",
+							"bolckdevice-2", "blockdevice-3",
+							"blockdevice-4", "blockdevice-5"},
+					},
+					Type: "blockdevice",
+				},
+			},
+			expectedError: true,
 		},
 	}
 
