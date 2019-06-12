@@ -249,14 +249,27 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	}
 
 	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive)
+		bdl, err = ac.getBlockDeviceListInManualMode(bdList, diskType)
 	} else {
 		bdl, err = ac.getBlockDeviceListInAutoMode(bdList, diskType)
-		if err != nil {
-			return nil, err
-		}
+	}
+	if err != nil {
+		return nil, err
 	}
 	return bdl.BlockDeviceList, nil
+}
+
+func (ac *Config) getBlockDeviceListInManualMode(bdList *blockdevice.BlockDeviceList, diskType string) (*blockdevice.BlockDeviceList, error) {
+	var bdl *blockdevice.BlockDeviceList
+	if diskType == string(apis.TypeSparseCPV) {
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterSparseDevices)
+	} else {
+		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonSparseDevices)
+	}
+	if len(bdl.Items) == 0 {
+		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)
+	}
+	return bdl, nil
 }
 
 func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceList, diskType string) (*blockdevice.BlockDeviceList, error) {

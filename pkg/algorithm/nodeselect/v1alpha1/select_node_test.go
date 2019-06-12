@@ -243,10 +243,11 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 			expectedErr:            true,
 		},
 		//Test Case #5
+		// blockdevice0, blockdevice1 are of sparse type
 		"manualSPC5": {
 			fakeCasPool: &v1alpha1.StoragePoolClaim{
 				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "sparse",
+					Type: "disk",
 					PoolSpec: v1alpha1.CStorPoolAttr{
 						PoolType: "striped",
 					},
@@ -255,19 +256,19 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 					},
 				},
 			},
-			expectedDiskListLength: 3,
+			expectedDiskListLength: 1,
 			expectedErr:            false,
 		},
 		// Test Case #6
 		"manualSPC6": {
 			fakeCasPool: &v1alpha1.StoragePoolClaim{
 				Spec: v1alpha1.StoragePoolClaimSpec{
-					Type: "sparse",
+					Type: "disk",
 					PoolSpec: v1alpha1.CStorPoolAttr{
 						PoolType: "mirrored",
 					},
 					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2"},
+						BlockDeviceList: []string{"blockdevice3", "blockdevice4"},
 					},
 				},
 			},
@@ -459,7 +460,7 @@ func TestNodeBlockDeviceAlloter(t *testing.T) {
 						PoolType: "raidz2",
 					},
 					BlockDevices: v1alpha1.BlockDeviceAttr{
-						BlockDeviceList: []string{"blockdevice1", "blockdevice2", "blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6"},
+						BlockDeviceList: []string{"blockdevice3", "blockdevice4", "blockdevice5", "blockdevice6", "blockdevice7", "blockdevice8"},
 					},
 				},
 			},
