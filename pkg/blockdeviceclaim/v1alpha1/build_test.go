@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
+	ndm "github.com/openebs/maya/pkg/apis/openebs.io/ndm/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -218,9 +219,9 @@ func TestBuild(t *testing.T) {
 			expectedBDC: &apis.BlockDeviceClaim{
 				ObjectMeta: metav1.ObjectMeta{Name: "BDC1"},
 				Spec: apis.DeviceClaimSpec{
-					Requirements: apis.DeviceClaimRequirements{
+					Resources: apis.DeviceClaimResources{
 						Requests: corev1.ResourceList{
-							corev1.ResourceName("capacity"): fakeCapacity("10Ti"),
+							corev1.ResourceName(ndm.ResourceStorage): fakeCapacity("10Ti"),
 						},
 					},
 				},
