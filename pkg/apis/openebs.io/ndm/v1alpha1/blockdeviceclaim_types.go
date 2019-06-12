@@ -17,17 +17,17 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DeviceClaimSpec defines the desired state of BlockDeviceClaim
 type DeviceClaimSpec struct {
-	Requirements    DeviceClaimRequirements `json:"requirements"`                 // the requirements in the claim like Capacity, IOPS
-	DeviceType      string                  `json:"deviceType"`                   // DeviceType represents the type of drive like SSD, HDD etc.,
-	HostName        string                  `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
-	Details         DeviceClaimDetails      `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
-	BlockDeviceName string                  `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
+	Resources       DeviceClaimResources `json:"resources"`                    // the resources in the claim like Capacity, IOPS
+	DeviceType      string               `json:"deviceType"`                   // DeviceType represents the type of drive like SSD, HDD etc.,
+	HostName        string               `json:"hostName"`                     // Node name from where blockdevice has to be claimed.
+	Details         DeviceClaimDetails   `json:"deviceClaimDetails,omitempty"` // Details of the device to be claimed
+	BlockDeviceName string               `json:"blockDeviceName,omitempty"`    // BlockDeviceName is the reference to the block-device backing this claim
 }
 
 // DeviceClaimStatus defines the observed state of BlockDeviceClaim
@@ -55,16 +55,16 @@ const (
 	BlockDeviceClaimStatusDone DeviceClaimPhase = "Bound"
 )
 
-// DeviceClaimRequirements defines the request by the claim, eg, Capacity, IOPS
-type DeviceClaimRequirements struct {
+// DeviceClaimResources defines the request by the claim, eg, Capacity, IOPS
+type DeviceClaimResources struct {
 	// Requests describes the minimum resources required. eg: if storage resource of 10G is
 	// requested minimum capacity of 10G should be available
-	Requests v1.ResourceList `json:"requests"`
+	Requests corev1.ResourceList `json:"requests"`
 }
 
 const (
-	// ResourceCapacity defines the capacity required as v1.Quantity
-	ResourceCapacity v1.ResourceName = "capacity"
+	// ResourceStorage defines the storage required as v1.Quantity
+	ResourceStorage corev1.ResourceName = "storage"
 )
 
 // DeviceClaimDetails defines the details of the block device that should be claimed
