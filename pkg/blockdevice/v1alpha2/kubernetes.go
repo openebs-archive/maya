@@ -43,6 +43,10 @@ type listFn func(cli *clientset.Clientset, namespace string, opts metav1.ListOpt
 // abstracts fetching of block deivce
 type getFn func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDevice, error)
 
+// delFn is a typed function that
+// abstracts deleting of block deivce
+type delFn func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error
+
 // Kubeclient enables kubernetes API operations
 // on block device instance
 type Kubeclient struct {
@@ -58,6 +62,7 @@ type Kubeclient struct {
 	getClientsetForPath getClientsetForPathFn
 	list                listFn
 	get                 getFn
+	del                 delFn
 }
 
 // KubeclientBuildOption defines the abstraction
@@ -78,7 +83,8 @@ func (k *Kubeclient) WithDefaults() {
 	}
 	if k.getClientsetForPath == nil {
 		k.getClientsetForPath = func(kubeConfigPath string) (clients *clientset.Clientset, err error) {
-			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).Config()
+			config, err := kclient.New(kclient.WithKubeConfigPath(kubeConfigPath)).
+				GetConfigForPathOrDirect()
 			if err != nil {
 				return nil, err
 			}
@@ -94,6 +100,11 @@ func (k *Kubeclient) WithDefaults() {
 	if k.get == nil {
 		k.get = func(cli *clientset.Clientset, namespace, name string, opts metav1.GetOptions) (*apis.BlockDevice, error) {
 			return cli.OpenebsV1alpha1().BlockDevices(namespace).Get(name, opts)
+		}
+	}
+	if k.del == nil {
+		k.del = func(cli *clientset.Clientset, namespace, name string, opts *metav1.DeleteOptions) error {
+			return cli.OpenebsV1alpha1().BlockDevices(namespace).Delete(name, opts)
 		}
 	}
 }
@@ -170,4 +181,13 @@ func (k *Kubeclient) Get(name string, opts metav1.GetOptions) (*apis.BlockDevice
 		return nil, err
 	}
 	return k.get(cli, k.namespace, name, opts)
+}
+
+// Delete deletes a disk object
+func (k *Kubeclient) Delete(name string, opts *metav1.DeleteOptions) error {
+	cli, err := k.getClientOrCached()
+	if err != nil {
+		return err
+	}
+	return k.del(cli, k.namespace, name, opts)
 }

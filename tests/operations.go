@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apis "github.com/openebs/maya/pkg/apis/openebs.io/v1alpha1"
+	bd "github.com/openebs/maya/pkg/blockdevice/v1alpha2"
 	csp "github.com/openebs/maya/pkg/cstorpool/v1alpha3"
 	cv "github.com/openebs/maya/pkg/cstorvolume/v1alpha1"
 	cvr "github.com/openebs/maya/pkg/cstorvolumereplica/v1alpha1"
@@ -76,6 +77,7 @@ type Operations struct {
 	URClient       *result.Kubeclient
 	UnstructClient *unstruct.Kubeclient
 	DeployClient   *deploy.Kubeclient
+	BDClient       *bd.Kubeclient
 	kubeConfigPath string
 }
 
@@ -174,6 +176,9 @@ func (ops *Operations) withDefaults() {
 	}
 	if ops.DeployClient == nil {
 		ops.DeployClient = deploy.NewKubeClient(deploy.WithKubeConfigPath(ops.kubeConfigPath))
+	}
+	if ops.BDClient == nil {
+		ops.BDClient = bd.NewKubeClient(bd.WithKubeConfigPath(ops.kubeConfigPath))
 	}
 }
 
