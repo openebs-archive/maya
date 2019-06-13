@@ -74,7 +74,7 @@ metadata:
       #      cpu: 100m
 spec:
   name: cstor-sparse-pool
-  type: blockdevice
+  type: sparse
   maxPools: 3
   poolSpec:
     poolType: striped
