@@ -247,29 +247,23 @@ func (ac *Config) getBlockDevice() (*ndmapis.BlockDeviceList, error) {
 	if err != nil {
 		return nil, err
 	}
+	filterList := []string{blockdevice.FilterNonInactive}
 
-	if ProvisioningType(ac.Spc) == ProvisioningTypeManual {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive)
+	if diskType == string(apis.TypeSparseCPV) {
+		filterList = append(filterList, blockdevice.FilterSparseDevices)
 	} else {
-		bdl, err = ac.getBlockDeviceListInAutoMode(bdList, diskType)
-		if err != nil {
-			return nil, err
-		}
+		filterList = append(filterList, blockdevice.FilterNonSparseDevices)
+	}
+
+	if ProvisioningType(ac.Spc) == ProvisioningTypeAuto {
+		filterList = append(filterList, blockdevice.FilterNonFSType)
+	}
+
+	bdl = bdList.Filter(filterList...)
+	if len(bdl.Items) == 0 {
+		return nil, errors.Errorf("type {%s} devices are not available to provision pools in %s mode", diskType, ProvisioningType(ac.Spc))
 	}
 	return bdl.BlockDeviceList, nil
-}
-
-func (ac *Config) getBlockDeviceListInAutoMode(bdList *blockdevice.BlockDeviceList, diskType string) (*blockdevice.BlockDeviceList, error) {
-	var bdl *blockdevice.BlockDeviceList
-	if diskType == string(apis.TypeSparseCPV) {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterSparseDevices)
-	} else {
-		bdl = bdList.Filter(blockdevice.FilterNonInactive, blockdevice.FilterNonFSType, blockdevice.FilterNonSparseDevices)
-	}
-	if len(bdl.Items) == 0 {
-		return nil, errors.Errorf("type {%s} devices are not available to create pool", diskType)
-	}
-	return bdl, nil
 }
 
 //TODO: Make changes in below code in refactor PR
