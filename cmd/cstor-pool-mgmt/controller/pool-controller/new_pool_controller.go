@@ -17,8 +17,9 @@ limitations under the License.
 package poolcontroller
 
 import (
+	"fmt"
+
 	"github.com/golang/glog"
-	ver "github.com/openebs/maya/pkg/version"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -104,8 +105,6 @@ func NewCStorPoolController(
 	// Instantiating QueueLoad before entering workqueue.
 	q := common.QueueLoad{}
 
-	curVersion := ver.Current()
-
 	// Set up an event handler for when CstorPool resources change.
 	cStorPoolInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -116,9 +115,11 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(cStorPool) || IsErrorDuplicate(cStorPool) {
 				return
 			}
-			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s and csp version: %s",
-					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSVersionKey)])
+			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
+					"value set to %q upgrade to latest version to create cStor pools",
+					string(apis.OpenEBSDisableReconcileKey), cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Create", message)
 				return
 			}
 			q.Operation = common.QOpAdd
@@ -141,9 +142,11 @@ func NewCStorPoolController(
 			if IsDeletionFailedBefore(newCStorPool) || IsErrorDuplicate(newCStorPool) {
 				return
 			}
-			if newCStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s csp version: %s",
-					newCStorPool.Name, curVersion, newCStorPool.Labels[string(apis.OpenEBSVersionKey)])
+			if newCStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
+					"value set to %q upgrade to latest version to update cStor pools",
+					string(apis.OpenEBSDisableReconcileKey), newCStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				controller.recorder.Event(newCStorPool, corev1.EventTypeWarning, "Update", message)
 				return
 			}
 			// Periodic resync will send update events for all known CStorPool.
@@ -169,9 +172,11 @@ func NewCStorPoolController(
 			if !IsRightCStorPoolMgmt(cStorPool) {
 				return
 			}
-			if cStorPool.Labels[string(apis.OpenEBSVersionKey)] != curVersion {
-				glog.Infof("csp %s is not reconciled due to mismatch of controller version: %s and csp version: %s",
-					cStorPool.Name, curVersion, cStorPool.Labels[string(apis.OpenEBSVersionKey)])
+			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
+				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
+					"value set to %q upgrade to latest version to delete cStor pools",
+					string(apis.OpenEBSDisableReconcileKey), cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Delete", message)
 				return
 			}
 			glog.Infof("cStorPool Resource deleted event: %v, %v", cStorPool.ObjectMeta.Name, string(cStorPool.ObjectMeta.UID))

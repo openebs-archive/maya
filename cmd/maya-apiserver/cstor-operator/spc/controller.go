@@ -157,10 +157,10 @@ func (c *Controller) addSpc(obj interface{}) {
 		return
 	}
 	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
-			spc.Name,
-			string(apis.OpenEBSDisableReconcileKey),
-			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		message := fmt.Sprintf("Reconciliation stopped due to %q label "+
+			"value set to %q upgrade to latest version to create pools",
+			string(apis.OpenEBSDisableReconcileKey), spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Create", message)
 		return
 	}
 	glog.V(4).Infof("Queuing SPC %s for add event", spc.Name)
@@ -175,10 +175,10 @@ func (c *Controller) updateSpc(oldSpc, newSpc interface{}) {
 		return
 	}
 	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
-			spc.Name,
-			string(apis.OpenEBSDisableReconcileKey),
-			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		message := fmt.Sprintf("Reconciliation stopped due to %q label "+
+			"value set to %q upgrade to latest version to update pool configurations",
+			string(apis.OpenEBSDisableReconcileKey), spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Update", message)
 		return
 	}
 	// Enqueue spc only when there is a pending pool to be created.
@@ -203,10 +203,10 @@ func (c *Controller) deleteSpc(obj interface{}) {
 		}
 	}
 	if spc.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-		glog.Infof("spc %s is not reconciled reason %s key set to : %s",
-			spc.Name,
-			string(apis.OpenEBSDisableReconcileKey),
-			spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		message := fmt.Sprintf("Reconciliation stopped due to %q "+
+			"label value set to %q upgrade to latest version to delete pools",
+			string(apis.OpenEBSDisableReconcileKey), spc.Labels[string(apis.OpenEBSDisableReconcileKey)])
+		c.recorder.Event(spc, corev1.EventTypeWarning, "Delete", message)
 		return
 	}
 	glog.V(4).Infof("Deleting storagepoolclaim %s", spc.Name)
