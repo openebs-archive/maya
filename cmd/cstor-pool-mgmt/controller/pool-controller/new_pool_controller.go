@@ -116,9 +116,7 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
-					"value set to %q upgrade to latest version to create cStor pools",
-					string(apis.OpenEBSDisableReconcileKey), cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Create", message)
 				return
 			}
@@ -143,9 +141,7 @@ func NewCStorPoolController(
 				return
 			}
 			if newCStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
-					"value set to %q upgrade to latest version to update cStor pools",
-					string(apis.OpenEBSDisableReconcileKey), newCStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(newCStorPool, corev1.EventTypeWarning, "Update", message)
 				return
 			}
@@ -173,9 +169,7 @@ func NewCStorPoolController(
 				return
 			}
 			if cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)] == "true" {
-				message := fmt.Sprintf("Reconciliation stopped due to %q label "+
-					"value set to %q upgrade to latest version to delete cStor pools",
-					string(apis.OpenEBSDisableReconcileKey), cStorPool.Labels[string(apis.OpenEBSDisableReconcileKey)])
+				message := fmt.Sprintf("reconcile is disabled via %q label", string(apis.OpenEBSDisableReconcileKey))
 				controller.recorder.Event(cStorPool, corev1.EventTypeWarning, "Delete", message)
 				return
 			}
